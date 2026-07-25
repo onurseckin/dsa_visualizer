@@ -2,7 +2,7 @@
 
 A high-performance, dark-themed **Data Structures and Algorithms (DSA) Knowledge Graph & Interactive Visualizer** built with **React**, **TypeScript**, **Vite**, and **Vanilla CSS**.
 
-The project visualizes **40+ algorithms** mapped across **21 granular topological prerequisite modules** covering core technical interview problems (NeetCode Roadmap) and advanced competitive programming topics (*Competitive Programmer's Handbook*).
+The project visualizes **40+ algorithms** mapped across **21 granular topological prerequisite modules** covering core technical interview problems and advanced competitive programming topics (*Competitive Programmer's Handbook*).
 
 ---
 
