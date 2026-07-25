@@ -10,6 +10,7 @@ import { CodeBlockViewer } from './primitives/CodeBlockViewer';
 import { ProblemHeader } from './primitives/ProblemHeader';
 import { ComplexityCard } from './ComplexityCard';
 import { ControlPanel, ControlPanelProps } from './ControlPanel';
+import { ResizableLayout } from './ResizableLayout';
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
@@ -97,135 +98,181 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     }
   };
 
-  return (
-    <main
+  const leftColumnContent = (
+    <div
       style={{
-        padding: '1.25rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.25rem',
-        flex: 1,
+        gap: '0.75rem',
+        height: '100%',
+        overflow: 'hidden',
       }}
     >
-      {/* Problem Specification Compact Header Card */}
-      <ProblemHeader
-        title={algorithm.title}
-        category={algorithm.category}
-        difficulty={algorithm.difficulty}
-        description={algorithm.description}
-        constraints={algorithm.constraints}
-        examples={algorithm.examples}
-        timeComplexity={algorithm.timeComplexity}
-        spaceComplexity={algorithm.spaceComplexity}
-      />
-
-      {/* Main Workspace Layout Grid */}
-      <div className={`main-workspace-grid view-mode-${viewMode}`}>
-        {/* Left Column: Visual Canvas & Auxiliary Side Panels */}
-        {(viewMode === 'split' || viewMode === 'visual') && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Primary Visualizer Canvas Card (HERO Focus) */}
-            <div
-              className="glass-card visualizer-hero-card"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                minHeight: '440px',
-                overflow: 'hidden',
-                border: '1px solid var(--border-muted)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
-              }}
-            >
-              {/* Integrated Tutorial Explanation Banner */}
-              {showTutorial && currentStep?.explanation && (
-                <div
-                  style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <TutorialCard
-                    what={currentStep.explanation.what}
-                    why={currentStep.explanation.why}
-                    stepIndex={currentStep.stepIndex}
-                    codeLine={currentStep.codeLine}
-                    onClose={onToggleTutorial}
-                    variant="banner"
-                  />
-                </div>
-              )}
-
-              {/* Canvas Center Stage Render Area */}
-              <div
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  width: '100%',
-                  height: '100%',
-                  minHeight: '320px',
-                  overflow: 'auto',
-                }}
-              >
-                {renderPrimaryVisualizer() || (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: '300px',
-                      color: 'var(--text-muted)',
-                      textAlign: 'center',
-                      padding: '2rem',
-                    }}
-                  >
-                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                      No visual snapshot available
-                    </p>
-                    <p style={{ fontSize: '0.85rem' }}>
-                      Select an algorithm step or click Play to begin visualization.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Integrated Control Panel Controls Attached Directly to Canvas */}
-              {resolvedControlProps && (
-                <ControlPanel {...resolvedControlProps} variant="embedded" />
-              )}
-            </div>
-
-            {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
-            {showAuxiliary && currentStep?.auxiliaryState && (
-              <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
-            )}
+      {/* Primary Visualizer Canvas Card (HERO Focus - Fits Viewport Height) */}
+      <div
+        className="glass-card visualizer-hero-card"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          flex: 1,
+          minHeight: '260px',
+          overflow: 'hidden',
+          border: '1px solid var(--border-muted)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+        }}
+      >
+        {/* Integrated Tutorial Explanation Banner */}
+        {showTutorial && currentStep?.explanation && (
+          <div
+            style={{
+              borderBottom: '1px solid var(--border-subtle)',
+              background: 'rgba(15, 23, 42, 0.9)',
+              backdropFilter: 'blur(10px)',
+              flexShrink: 0,
+            }}
+          >
+            <TutorialCard
+              what={currentStep.explanation.what}
+              why={currentStep.explanation.why}
+              stepIndex={currentStep.stepIndex}
+              codeLine={currentStep.codeLine}
+              onClose={onToggleTutorial}
+              variant="banner"
+            />
           </div>
         )}
 
-        {/* Right Column: Code Viewer & Complexity Metrics */}
-        {(viewMode === 'split' || viewMode === 'code') && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <CodeBlockViewer
-              code={algorithm.code}
-              activeLine={currentStep?.codeLine || 1}
-              variables={currentStep?.variables}
-            />
+        {/* Canvas Center Stage Render Area (Fills Available Height) */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+          }}
+        >
+          {renderPrimaryVisualizer() || (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '200px',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                padding: '1.5rem',
+              }}
+            >
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                No visual snapshot available
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                Select an algorithm step or click Play to begin visualization.
+              </p>
+            </div>
+          )}
+        </div>
 
-            <ComplexityCard
-              timeComplexity={algorithm.timeComplexity}
-              spaceComplexity={algorithm.spaceComplexity}
-              variableState={currentStep?.variables}
-            />
+        {/* Integrated Control Panel Toolbar Attached Directly to Bottom of Canvas */}
+        {resolvedControlProps && (
+          <div style={{ flexShrink: 0 }}>
+            <ControlPanel {...resolvedControlProps} variant="embedded" />
+          </div>
+        )}
+      </div>
+
+      {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
+      {showAuxiliary && currentStep?.auxiliaryState && (
+        <div style={{ flexShrink: 0, maxHeight: '220px', overflow: 'auto' }}>
+          <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
+        </div>
+      )}
+    </div>
+  );
+
+  const rightColumnContent = (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ flex: 1, minHeight: '200px', overflow: 'auto' }}>
+        <CodeBlockViewer
+          code={algorithm.code}
+          activeLine={currentStep?.codeLine || 1}
+          variables={currentStep?.variables}
+        />
+      </div>
+
+      <div style={{ flexShrink: 0 }}>
+        <ComplexityCard
+          timeComplexity={algorithm.timeComplexity}
+          spaceComplexity={algorithm.spaceComplexity}
+          variableState={currentStep?.variables}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <main
+      style={{
+        padding: '0.75rem 1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        height: 'calc(100vh - 68px)',
+        maxHeight: 'calc(100dvh - 68px)',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Problem Specification Compact Header Card */}
+      <div style={{ flexShrink: 0 }}>
+        <ProblemHeader
+          title={algorithm.title}
+          category={algorithm.category}
+          difficulty={algorithm.difficulty}
+          description={algorithm.description}
+          constraints={algorithm.constraints}
+          examples={algorithm.examples}
+          timeComplexity={algorithm.timeComplexity}
+          spaceComplexity={algorithm.spaceComplexity}
+        />
+      </div>
+
+      {/* Resizable Layout Stage (Zero Page Scroll) */}
+      <div style={{ flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }}>
+        {viewMode === 'split' && (
+          <ResizableLayout
+            leftPanel={leftColumnContent}
+            rightPanel={rightColumnContent}
+            initialSplitRatio={60}
+            minLeftPercent={30}
+            maxLeftPercent={80}
+          />
+        )}
+        {viewMode === 'visual' && (
+          <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+            {leftColumnContent}
+          </div>
+        )}
+        {viewMode === 'code' && (
+          <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+            {rightColumnContent}
           </div>
         )}
       </div>
     </main>
   );
 };
-
-
