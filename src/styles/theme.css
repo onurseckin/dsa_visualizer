@@ -1,61 +1,116 @@
+/* Design tokens — single source of truth for the DSA Visualizer theme.
+   Professional dark spruce + muted emerald. No neon, no glow shadows.
+   Documented in docs/planning/ui-overhaul/DESIGN.md. */
+
 :root {
-  /* Dark Green Obsidian Base Palette */
-  --bg-darkest: #040d0a;
-  --bg-base: #06120e;
-  --bg-surface: #0a1c16;
-  --bg-surface-hover: #0e261e;
-  --bg-card: rgba(10, 28, 22, 0.75);
-  --bg-glass: rgba(6, 18, 14, 0.85);
+  color-scheme: dark;
 
-  /* Borders & Dividers */
-  --border-muted: rgba(0, 255, 157, 0.12);
-  --border-subtle: rgba(0, 255, 157, 0.25);
-  --border-glow: rgba(0, 255, 157, 0.5);
+  /* Surfaces (page → surface → elevated → inset for wells) */
+  --bg-page: #0f1713;
+  --bg-surface: #151f1a;
+  --bg-elevated: #1b2620;
+  --bg-inset: #111a15;
+  --bg-hover: #212e27;
+  --bg-pressed: #273630;
+  --bg-backdrop: rgba(7, 12, 10, 0.62);
 
-  /* Primary Accent & Matrix Emeralds */
-  --accent-emerald: #00ff9d;
-  --accent-mint: #34d399;
-  --accent-cyan: #06b6d4;
-  --accent-glow: 0 0 15px rgba(0, 255, 157, 0.4);
+  /* Borders */
+  --border-subtle: rgba(173, 201, 187, 0.09);
+  --border-default: rgba(173, 201, 187, 0.16);
+  --border-strong: rgba(173, 201, 187, 0.28);
+  --border-accent: rgba(52, 211, 153, 0.55);
 
-  /* Algorithm Visual State Highlights */
-  --state-default: #1e3a30;
-  --state-default-text: #a7f3d0;
-  --state-compare: #f59e0b;     /* Amber warning glow */
-  --state-compare-bg: rgba(245, 158, 11, 0.2);
-  --state-swap: #ef4444;        /* Crimson swap glow */
-  --state-swap-bg: rgba(239, 68, 68, 0.2);
-  --state-sorted: #00ff9d;      /* Emerald complete glow */
-  --state-sorted-bg: rgba(0, 255, 157, 0.2);
-  --state-active: #3b82f6;      /* Cyan pointer / active cursor */
-  --state-active-bg: rgba(59, 130, 246, 0.2);
-  --state-pivot: #a855f7;       /* Neon purple pivot marker */
-  --state-pivot-bg: rgba(168, 85, 247, 0.2);
+  /* Accent — marks interaction and selection, never decoration */
+  --accent: #34d399;
+  --accent-hover: #6ee7b7;
+  --accent-soft: rgba(52, 211, 153, 0.13);
+  --accent-softer: rgba(52, 211, 153, 0.07);
+  --text-on-accent: #082b1f;
+  --accent-secondary: #2dd4bf;
+
+  /* Text */
+  --text-primary: #e9f2ed;
+  --text-secondary: #b0c4b9;
+  --text-muted: #87998d;
+  --text-faint: #64756a;
+
+  /* Semantic feedback */
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.14);
+
+  /* Algorithm element states (one pair per ElementState in types/dsa.ts) */
+  --state-default: #33453c;
+  --state-default-bg: #1e2b25;
+  --state-compare: #fbbf24;
+  --state-compare-bg: rgba(251, 191, 36, 0.16);
+  --state-swap: #f87171;
+  --state-swap-bg: rgba(248, 113, 113, 0.16);
+  --state-sorted: #34d399;
+  --state-sorted-bg: rgba(52, 211, 153, 0.16);
+  --state-active: #60a5fa;
+  --state-active-bg: rgba(96, 165, 250, 0.16);
+  --state-pivot: #c084fc;
+  --state-pivot-bg: rgba(192, 132, 252, 0.16);
+  --state-visited: #94a3b8;
+  --state-visited-bg: rgba(148, 163, 184, 0.14);
+  --state-queued: #22d3ee;
+  --state-queued-bg: rgba(34, 211, 238, 0.14);
+  --state-in-stack: #fb923c;
+  --state-in-stack-bg: rgba(251, 146, 60, 0.16);
+  --state-path: #2dd4bf;
+  --state-path-bg: rgba(45, 212, 191, 0.18);
 
   /* Typography */
-  --text-main: #f0fdf4;
-  --text-dim: #a7f3d0;
-  --text-muted: #4ade80;
-  --text-dark: #14532d;
-  
-  /* Fonts */
-  --font-ui: 'Inter', 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --text-xs: 0.72rem;
+  --text-sm: 0.8rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.15rem;
+  --text-2xl: 1.4rem;
 
-  /* Focus Outlines & Ring Effects */
-  --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-emerald);
-  --focus-ring-subtle: 0 0 0 2px rgba(0, 255, 157, 0.4);
+  /* Spacing — 4px grid */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
 
-  /* Transitions */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Control heights */
+  --control-h-sm: 28px;
+  --control-h-md: 34px;
+  --control-h-lg: 40px;
 
-  /* Shadows & Radius */
+  /* Radius */
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(0, 255, 157, 0.25);
-  --shadow-glow-lg: 0 0 35px rgba(0, 255, 157, 0.4);
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* Elevation — neutral, subtle */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  /* Focus */
+  --focus-ring: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--accent);
+
+  /* Motion */
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s ease;
+
+  /* Layering */
+  --z-dropdown: 100;
+  --z-drawer: 1000;
+  --z-modal: 1100;
+  --z-tooltip: 1200;
 }
