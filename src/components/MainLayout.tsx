@@ -10,7 +10,8 @@ import { CodeBlockViewer } from './primitives/CodeBlockViewer';
 import { ProblemHeader } from './primitives/ProblemHeader';
 import { ComplexityCard } from './ComplexityCard';
 import { ControlPanel, ControlPanelProps } from './ControlPanel';
-import { ResizableLayout } from './ResizableLayout';
+import { ResizableLayout, LAYOUT_SPLIT_STORAGE_KEY } from './ResizableLayout';
+import { Card } from '../ui';
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
@@ -103,7 +104,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const handleResetLayout = React.useCallback(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem('dsa_visualizer_layout_split');
+        localStorage.removeItem(LAYOUT_SPLIT_STORAGE_KEY);
       }
     } catch {
       // Ignore storage errors
@@ -116,72 +117,64 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
-        minHeight: '0',
+        gap: 'var(--space-3)',
+        minHeight: 0,
         height: '100%',
       }}
     >
-      {/* Primary Visualizer Canvas Card (HERO Focus) */}
-      <div
-        className="glass-card visualizer-hero-card"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          flex: 1,
-          minHeight: '260px',
-          overflow: 'hidden',
-          border: '1px solid var(--border-muted)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
-        }}
-      >
-        {/* Canvas Center Stage Render Area */}
+      {/* Hero visualizer panel: canvas centers, ControlPanel docks at the bottom edge */}
+      <Card padding="none" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <div
-          className="visualizer-canvas-stage"
           style={{
-            flex: 1,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            width: '100%',
+            flexDirection: 'column',
             height: '100%',
-            minHeight: '220px',
-            overflow: 'auto',
+            minHeight: 0,
           }}
         >
-          {renderPrimaryVisualizer() || (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '180px',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                padding: '1.5rem',
-              }}
-            >
-              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                No visual snapshot available
-              </p>
-              <p style={{ fontSize: '0.85rem' }}>
-                Select an algorithm step or click Play to begin visualization.
-              </p>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'auto',
+              padding: 'var(--space-3)',
+            }}
+          >
+            {renderPrimaryVisualizer() || (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-muted)',
+                  textAlign: 'center',
+                  padding: 'var(--space-6)',
+                }}
+              >
+                <p style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  No visual snapshot available
+                </p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  Select an algorithm step or click Play to begin visualization.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {resolvedControlProps && (
+            <div style={{ flexShrink: 0 }}>
+              <ControlPanel {...resolvedControlProps} variant="embedded" />
             </div>
           )}
         </div>
+      </Card>
 
-        {/* Integrated Control Panel Toolbar Attached Directly to Bottom of Canvas */}
-        {resolvedControlProps && (
-          <div style={{ flexShrink: 0 }}>
-            <ControlPanel {...resolvedControlProps} variant="embedded" />
-          </div>
-        )}
-      </div>
-
-      {/* Natural Teacher Tutorial Explanation Text */}
+      {/* Compact teacher explanation for the current step */}
       {showTutorial && currentStep?.explanation && (
         <div style={{ flexShrink: 0 }}>
           <TutorialCard
@@ -196,9 +189,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         </div>
       )}
 
-      {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
+      {/* Auxiliary side data structures (queue, call stack, visited set, hash map) */}
       {showAuxiliary && currentStep?.auxiliaryState && (
-        <div style={{ flexShrink: 0, minHeight: '80px' }}>
+        <div style={{ flexShrink: 0 }}>
           <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
         </div>
       )}
@@ -210,12 +203,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
-        minHeight: '0',
+        gap: 'var(--space-3)',
+        minHeight: 0,
         height: '100%',
       }}
     >
-      <div style={{ flex: 1, minHeight: '260px', overflow: 'auto' }}>
+      {/* Code viewer owns its internal scroll; this wrapper only constrains height */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         <CodeBlockViewer
           code={algorithm.code}
           activeLine={currentStep?.codeLine || 1}
@@ -227,7 +229,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <ComplexityCard
           timeComplexity={algorithm.timeComplexity}
           spaceComplexity={algorithm.spaceComplexity}
-          variableState={currentStep?.variables}
+          complexityAnalysis={algorithm.complexityAnalysis}
         />
       </div>
     </div>
@@ -236,18 +238,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <main
       style={{
-        padding: '0.75rem 1rem',
+        flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
-        flex: 1,
-        height: 'calc(100vh - 64px)',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
+        overflow: 'hidden',
         boxSizing: 'border-box',
-        overflowY: 'auto',
-        overflowX: 'hidden',
       }}
     >
-      {/* Problem Specification Compact Header Card */}
+      {/* Compact problem strip (expand/collapse handled inside ProblemHeader) */}
       <div style={{ flexShrink: 0 }}>
         <ProblemHeader
           title={algorithm.title}
@@ -262,8 +263,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
       </div>
 
-      {/* Resizable Layout Stage */}
-      <div style={{ flex: 1, height: '100%', minHeight: '360px' }}>
+      {/* Stage row takes the remaining viewport space; panels scroll internally */}
+      <div style={{ flex: 1, minHeight: 0 }}>
         {viewMode === 'split' && (
           <ResizableLayout
             leftPanel={leftColumnContent}
@@ -275,12 +276,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           />
         )}
         {viewMode === 'visual' && (
-          <div style={{ width: '100%', height: '100%', minHeight: '360px' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: 0 }}>
             {leftColumnContent}
           </div>
         )}
         {viewMode === 'code' && (
-          <div style={{ width: '100%', height: '100%', minHeight: '360px' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: 0 }}>
             {rightColumnContent}
           </div>
         )}

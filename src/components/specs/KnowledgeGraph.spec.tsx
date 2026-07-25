@@ -3,14 +3,30 @@ import { describe, it, expect, vi } from 'vitest';
 import { KnowledgeGraph, TOPIC_ROADMAP_NODES } from '../KnowledgeGraph';
 
 describe('KnowledgeGraph Component Spec', () => {
-  it('renders SVG region and roadmap node cards', () => {
+  it('renders SVG region, roadmap heading, and hover hint chrome', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
 
+    expect(screen.getByText('Topic prerequisite roadmap')).toBeInTheDocument();
     expect(screen.getByText('All Categorized Topic Modules')).toBeInTheDocument();
+    expect(screen.getByText(/Hover to trace prerequisites/i)).toBeInTheDocument();
     expect(
       screen.getByRole('region', { name: /Interactive Data Structures and Algorithms Prerequisite Roadmap/i })
     ).toBeInTheDocument();
+  });
+
+  it('renders grid topic cards as ui Cards with difficulty badges', () => {
+    const onSelectMock = vi.fn();
+    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
+
+    const gridCard = screen.getAllByRole('button', { name: /1\. Arrays & Hashing:/i })[0];
+    expect(gridCard).toHaveClass('ui-card');
+
+    // Grid card shows an Easy difficulty badge and a neutral topic-count badge
+    const easyBadges = screen.getAllByText('Easy');
+    expect(easyBadges.some((el) => el.classList.contains('ui-badge--success'))).toBe(true);
+    const countBadges = screen.getAllByText('4 Topics');
+    expect(countBadges.some((el) => el.classList.contains('ui-badge--neutral'))).toBe(true);
   });
 
   it('triggers category selection when SVG node or grid card is clicked', () => {
@@ -74,4 +90,3 @@ describe('KnowledgeGraph Component Spec', () => {
     });
   });
 });
-

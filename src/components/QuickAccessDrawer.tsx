@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Search, ChevronRight, Folder, Sparkles, Check } from 'lucide-react';
-import { CategoryType } from '../types/dsa';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Search } from 'lucide-react';
+import type { CategoryType } from '../types/dsa';
 import { getAllAlgorithms } from '../algorithms/registry';
+import { Badge, Button, Collapsible, Drawer, Input, difficultyBadgeVariant } from '../ui';
 
 export const ALL_CATEGORIES: { id: CategoryType; label: string }[] = [
   { id: 'arrays_and_hashing', label: '1. Arrays & Hashing' },
@@ -39,389 +40,158 @@ export interface QuickAccessDrawerProps {
   categories?: { id: CategoryType; label: string }[];
 }
 
-export const QuickAccessDrawer: React.FC<QuickAccessDrawerProps> = ({
+export function QuickAccessDrawer({
   isOpen,
   onClose,
   onSelectAlgorithm,
   activeAlgorithmId,
   categories = ALL_CATEGORIES,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus input and handle ESC key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    inputRef.current?.focus();
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
+}: QuickAccessDrawerProps) {
   const allAlgorithms = useMemo(() => getAllAlgorithms(), []);
 
-  // Filter categories and algorithms based on live search
-  const categoryGroups = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+  const activeCategoryId = useMemo(
+    () => allAlgorithms.find((alg) => alg.id === activeAlgorithmId)?.category,
+    [allAlgorithms, activeAlgorithmId],
+  );
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openMap, setOpenMap] = useState<Partial<Record<CategoryType, boolean>>>(() =>
+    activeCategoryId !== undefined ? { [activeCategoryId]: true } : {},
+  );
+
+  // Each open starts fresh: empty search, only the active algorithm's category expanded.
+  useEffect(() => {
+    if (!isOpen) return;
+    setSearchQuery('');
+    setOpenMap(activeCategoryId !== undefined ? { [activeCategoryId]: true } : {});
+  }, [isOpen, activeCategoryId]);
+
+  const query = searchQuery.trim().toLowerCase();
+  const isSearching = query.length > 0;
+
+  const totalAlgorithms = useMemo(
+    () => allAlgorithms.filter((alg) => categories.some((cat) => cat.id === alg.category)).length,
+    [allAlgorithms, categories],
+  );
+
+  const groups = useMemo(() => {
     return categories
       .map((cat) => {
-        const catAlgs = allAlgorithms.filter((alg) => alg.category === cat.id);
-        const filteredAlgs = catAlgs.filter((alg) => {
-          if (!q) return true;
-          const titleMatch = alg.title.toLowerCase().includes(q);
-          const descMatch = alg.description.toLowerCase().includes(q);
-          const catMatch = cat.label.toLowerCase().includes(q);
-          const diffMatch = alg.difficulty?.toLowerCase().includes(q);
-          return titleMatch || descMatch || catMatch || diffMatch;
-        });
-
-        return {
-          category: cat,
-          algorithms: filteredAlgs,
-          totalCount: catAlgs.length,
-        };
+        const catAlgorithms = allAlgorithms.filter((alg) => alg.category === cat.id);
+        const matches = !isSearching
+          ? catAlgorithms
+          : catAlgorithms.filter(
+              (alg) =>
+                alg.title.toLowerCase().includes(query) ||
+                alg.description.toLowerCase().includes(query) ||
+                cat.label.toLowerCase().includes(query) ||
+                (alg.difficulty?.toLowerCase().includes(query) ?? false),
+            );
+        return { category: cat, algorithms: matches, totalCount: catAlgorithms.length };
       })
-      .filter((group) => {
-        if (!q) return true;
-        return group.algorithms.length > 0 || group.category.label.toLowerCase().includes(q);
-      });
-  }, [searchQuery, categories, allAlgorithms]);
+      .filter((group) => !isSearching || group.algorithms.length > 0);
+  }, [categories, allAlgorithms, isSearching, query]);
 
-  const totalAlgorithmCount = useMemo(() => {
-    return allAlgorithms.length;
-  }, [allAlgorithms]);
-
-  if (!isOpen) return null;
-
-  const getDifficultyStyle = (difficulty?: string) => {
-    switch (difficulty) {
-      case 'Easy':
-        return {
-          color: '#00ff9d',
-          bg: 'rgba(0, 255, 157, 0.12)',
-          border: 'rgba(0, 255, 157, 0.3)',
-        };
-      case 'Medium':
-        return {
-          color: '#ffb703',
-          bg: 'rgba(255, 183, 3, 0.12)',
-          border: 'rgba(255, 183, 3, 0.3)',
-        };
-      case 'Hard':
-        return {
-          color: '#ff0055',
-          bg: 'rgba(255, 0, 85, 0.12)',
-          border: 'rgba(255, 0, 85, 0.3)',
-        };
-      default:
-        return {
-          color: 'var(--text-dim)',
-          bg: 'rgba(255, 255, 255, 0.05)',
-          border: 'rgba(255, 255, 255, 0.1)',
-        };
-    }
+  const handleSelect = (algorithmId: string, categoryFolder: CategoryType) => {
+    onSelectAlgorithm(algorithmId, categoryFolder);
+    onClose();
   };
 
   return (
-    <>
-      {/* Dimmed Glass Backdrop */}
-      <div
-        data-testid="drawer-backdrop"
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(4, 13, 10, 0.75)',
-          backdropFilter: 'blur(6px)',
-          zIndex: 1000,
-          transition: 'opacity 0.2s ease',
-        }}
-      />
-
-      {/* Sliding Glass Side Drawer */}
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Quick Access Problems Drawer"
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: '420px',
-          maxWidth: '90vw',
-          background: 'var(--bg-glass)',
-          backdropFilter: 'blur(16px)',
-          borderLeft: '1px solid var(--border-glow)',
-          boxShadow: 'var(--shadow-card), -8px 0 32px rgba(0, 0, 0, 0.5)',
-          zIndex: 1001,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
-        {/* Drawer Header */}
-        <div
+    <Drawer isOpen={isOpen} onClose={onClose} title="Algorithms" width={420}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <p
           style={{
-            padding: '1.25rem 1.25rem 1rem',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.85rem',
-            background: 'var(--bg-darkest)',
+            margin: 0,
+            fontSize: 'var(--text-sm)',
+            color: 'var(--text-muted)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <Sparkles style={{ width: '20px', height: '20px', color: 'var(--accent-emerald)' }} />
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: '1.15rem',
-                  fontWeight: 700,
-                  color: 'var(--text-main)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                Quick Problems
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Close drawer"
-              title="Close drawer"
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-dim)',
-                cursor: 'pointer',
-                padding: '0.3rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <X style={{ width: '18px', height: '18px' }} />
-            </button>
-          </div>
+          {totalAlgorithms} algorithms across {categories.length} categories
+        </p>
 
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-            Browse <strong style={{ color: 'var(--accent-emerald)' }}>{totalAlgorithmCount}</strong> algorithms across{' '}
-            <strong style={{ color: 'var(--accent-emerald)' }}>{categories.length}</strong> categories.
-          </div>
+        <Input
+          autoFocus
+          leadingIcon={<Search />}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onClear={() => setSearchQuery('')}
+          placeholder="Search algorithms…"
+          aria-label="Search algorithms"
+        />
 
-          {/* Live Search Input */}
-          <div
+        {groups.length === 0 ? (
+          <p
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.45rem 0.75rem',
+              margin: 0,
+              padding: 'var(--space-6) var(--space-2)',
+              textAlign: 'center',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-muted)',
             }}
           >
-            <Search style={{ width: '16px', height: '16px', color: 'var(--accent-emerald)', flexShrink: 0 }} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search problems or categories..."
-              aria-label="Search problems in drawer"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                width: '100%',
-                fontFamily: 'var(--font-ui)',
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-dim)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
+            No algorithms match “{searchQuery.trim()}”
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {groups.map((group) => (
+              <Collapsible
+                key={group.category.id}
+                title={group.category.label}
+                meta={
+                  <Badge size="sm" variant="neutral">
+                    {isSearching ? group.algorithms.length : group.totalCount}
+                  </Badge>
+                }
+                // While searching, matching categories are forced open; the manual
+                // toggle state only drives the browse (non-search) view.
+                open={isSearching ? true : openMap[group.category.id] === true}
+                onOpenChange={(open) => {
+                  if (isSearching) return;
+                  setOpenMap((prev) => ({ ...prev, [group.category.id]: open }));
                 }}
               >
-                <X style={{ width: '14px', height: '14px' }} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Scrollable Categories & Problems List */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '1rem 1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem',
-          }}
-        >
-          {categoryGroups.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '2rem 1rem',
-                color: 'var(--text-dim)',
-                fontSize: '0.9rem',
-              }}
-            >
-              No algorithms match "<strong style={{ color: 'var(--text-main)' }}>{searchQuery}</strong>"
-            </div>
-          ) : (
-            categoryGroups.map((group) => {
-              return (
-                <div key={group.category.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {/* Category Header */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.35rem 0.5rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(0, 255, 157, 0.05)',
-                      border: '1px solid var(--border-muted)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Folder style={{ width: '15px', height: '15px', color: 'var(--accent-emerald)' }} />
-                      <span
-                        style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: 'var(--text-main)',
-                          fontFamily: 'var(--font-code)',
-                        }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  {group.algorithms.map((alg) => {
+                    const isActive = alg.id === activeAlgorithmId;
+                    return (
+                      <Button
+                        key={alg.id}
+                        variant="ghost"
+                        fullWidth
+                        selected={isActive}
+                        icon={isActive ? <Check /> : undefined}
+                        onClick={() => handleSelect(alg.id, alg.category)}
+                        style={{ justifyContent: 'flex-start' }}
                       >
-                        {group.category.label}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        color: 'var(--text-dim)',
-                        padding: '1px 6px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-surface)',
-                      }}
-                    >
-                      {group.algorithms.length}
-                    </span>
-                  </div>
-
-                  {/* Algorithm Items */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingLeft: '0.5rem' }}>
-                    {group.algorithms.length === 0 ? (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', padding: '0.25rem 0.5rem' }}>
-                        No algorithms in this category match search.
-                      </div>
-                    ) : (
-                      group.algorithms.map((alg) => {
-                        const isActive = alg.id === activeAlgorithmId;
-                        const diffStyle = getDifficultyStyle(alg.difficulty);
-
-                        return (
-                          <div
-                            key={alg.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              onSelectAlgorithm(alg.id, alg.category);
-                              onClose();
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                onSelectAlgorithm(alg.id, alg.category);
-                                onClose();
-                              }
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '0.5rem 0.75rem',
-                              borderRadius: 'var(--radius-sm)',
-                              background: isActive ? 'rgba(0, 255, 157, 0.15)' : 'var(--bg-surface)',
-                              border: isActive
-                                ? '1px solid var(--accent-emerald)'
-                                : '1px solid var(--border-subtle)',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              {isActive ? (
-                                <Check style={{ width: '14px', height: '14px', color: 'var(--accent-emerald)' }} />
-                              ) : (
-                                <ChevronRight style={{ width: '14px', height: '14px', color: 'var(--text-dim)' }} />
-                              )}
-                              <span
-                                style={{
-                                  fontSize: '0.85rem',
-                                  fontWeight: isActive ? 700 : 500,
-                                  color: isActive ? 'var(--accent-emerald)' : 'var(--text-main)',
-                                }}
-                              >
-                                {alg.title}
-                              </span>
-                            </div>
-
-                            {alg.difficulty && (
-                              <span
-                                style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  padding: '1px 6px',
-                                  borderRadius: '3px',
-                                  background: diffStyle.bg,
-                                  color: diffStyle.color,
-                                  border: `1px solid ${diffStyle.border}`,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {alg.difficulty}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                        <span
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {alg.title}
+                        </span>
+                        {alg.difficulty !== undefined ? (
+                          <Badge size="sm" variant={difficultyBadgeVariant(alg.difficulty)}>
+                            {alg.difficulty}
+                          </Badge>
+                        ) : null}
+                      </Button>
+                    );
+                  })}
                 </div>
-              );
-            })
-          )}
-        </div>
-      </aside>
-    </>
+              </Collapsible>
+            ))}
+          </div>
+        )}
+      </div>
+    </Drawer>
   );
-};
+}
 
 export default QuickAccessDrawer;

@@ -8,81 +8,49 @@ export interface ArrayVisualizerProps {
   title?: string;
 }
 
-const getStateStyles = (state: ElementState) => {
-  switch (state) {
-    case 'compare':
-      return {
-        bg: 'var(--state-compare-bg)',
-        border: 'var(--state-compare)',
-        color: 'var(--state-compare)',
-        shadow: '0 0 12px rgba(245, 158, 11, 0.5)',
-      };
-    case 'swap':
-      return {
-        bg: 'var(--state-swap-bg)',
-        border: 'var(--state-swap)',
-        color: 'var(--state-swap)',
-        shadow: '0 0 14px rgba(239, 68, 68, 0.6)',
-      };
-    case 'sorted':
-      return {
-        bg: 'var(--state-sorted-bg)',
-        border: 'var(--state-sorted)',
-        color: 'var(--state-sorted)',
-        shadow: '0 0 12px rgba(0, 255, 157, 0.5)',
-      };
-    case 'active':
-      return {
-        bg: 'var(--state-active-bg)',
-        border: 'var(--state-active)',
-        color: 'var(--state-active)',
-        shadow: '0 0 12px rgba(59, 130, 246, 0.5)',
-      };
-    case 'pivot':
-      return {
-        bg: 'var(--state-pivot-bg)',
-        border: 'var(--state-pivot)',
-        color: 'var(--state-pivot)',
-        shadow: '0 0 12px rgba(168, 85, 247, 0.5)',
-      };
-    case 'visited':
-      return {
-        bg: 'rgba(6, 182, 212, 0.2)',
-        border: '#06b6d4',
-        color: '#06b6d4',
-        shadow: '0 0 10px rgba(6, 182, 212, 0.4)',
-      };
-    case 'queued':
-      return {
-        bg: 'rgba(234, 179, 8, 0.2)',
-        border: '#eab308',
-        color: '#eab308',
-        shadow: '0 0 10px rgba(234, 179, 8, 0.4)',
-      };
-    case 'in-stack':
-      return {
-        bg: 'rgba(236, 72, 153, 0.2)',
-        border: '#ec4899',
-        color: '#ec4899',
-        shadow: '0 0 10px rgba(236, 72, 153, 0.4)',
-      };
-    case 'path':
-      return {
-        bg: 'rgba(16, 185, 129, 0.25)',
-        border: '#10b981',
-        color: '#10b981',
-        shadow: '0 0 12px rgba(16, 185, 129, 0.5)',
-      };
-    case 'default':
-    default:
-      return {
-        bg: 'var(--state-default)',
-        border: 'var(--border-subtle)',
-        color: 'var(--state-default-text)',
-        shadow: 'none',
-      };
-  }
-};
+/* ElementState names map 1:1 onto the --state-* token names in theme.css. */
+const stateColor = (state: ElementState): string => `var(--state-${state})`;
+const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
+
+interface PointerChipsProps {
+  pointers: string[];
+  centerX: number;
+  baseY: number;
+}
+
+/* Small mono accent chips stacked above an element for pointer labels (i, j, mid…). */
+const PointerChips: React.FC<PointerChipsProps> = ({ pointers, centerX, baseY }) => (
+  <g>
+    {pointers.map((ptr, pIdx) => {
+      const chipWidth = ptr.length * 7 + 10;
+      const chipY = baseY - 18 - (pointers.length - 1 - pIdx) * 18;
+      return (
+        <g key={`${ptr}-${pIdx}`}>
+          <rect
+            x={centerX - chipWidth / 2}
+            y={chipY}
+            width={chipWidth}
+            height={15}
+            rx={4}
+            fill="var(--accent-soft)"
+          />
+          <text
+            x={centerX}
+            y={chipY + 7.5}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="var(--accent)"
+            fontSize="10"
+            fontFamily="var(--font-code)"
+            fontWeight="600"
+          >
+            {ptr}
+          </text>
+        </g>
+      );
+    })}
+  </g>
+);
 
 export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   elements,
@@ -98,7 +66,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
 
   const isBoxMode = mode === 'box';
   const barAreaHeight = isBoxMode ? Math.min(barWidth, 48) : Math.min(maxHeight, 220);
-  const topPadding = 36;
+  const topPadding = 40;
   const bottomPadding = 32;
 
   const viewBoxWidth = n * barWidth + (n - 1) * gap + paddingX * 2;
@@ -120,12 +88,10 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
       {title && (
         <div
           style={{
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            color: 'var(--accent-mint)',
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            marginBottom: 'var(--space-2)',
           }}
         >
           {title}
@@ -140,75 +106,61 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           width: '100%',
           height: '100%',
           maxHeight: '100%',
-          background: 'var(--bg-darkest)',
+          background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-card)',
         }}
       >
         {elements.map((item, index) => {
-          const style = getStateStyles(item.state);
           const x = paddingX + index * (barWidth + gap);
+          const fill = stateBg(item.state);
+          const stroke = stateColor(item.state);
 
           if (mode === 'bar') {
             const heightPct = Math.max((item.value / maxVal) * 100, 12);
             const barHeight = Math.max(Math.round((heightPct * barAreaHeight) / 100), 16);
             const y = topPadding + (barAreaHeight - barHeight);
+            const valueInside = barHeight >= 22;
 
             return (
               <g key={item.id || `arr-node-${index}`}>
-                {/* Pointer labels above */}
                 {item.pointers && item.pointers.length > 0 && (
-                  <g>
-                    {item.pointers.map((ptr, pIdx) => (
-                      <text
-                        key={`${ptr}-${pIdx}`}
-                        x={x + barWidth / 2}
-                        y={y - 10 - (item.pointers!.length - 1 - pIdx) * 14}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="var(--accent-emerald)"
-                        fontSize="11"
-                        fontFamily="var(--font-code)"
-                        fontWeight="700"
-                      >
-                        {ptr}
-                      </text>
-                    ))}
-                  </g>
+                  <PointerChips
+                    pointers={item.pointers}
+                    centerX={x + barWidth / 2}
+                    baseY={valueInside ? y : y - 16}
+                  />
                 )}
 
-                {/* Element bar body */}
                 <rect
                   x={x}
                   y={y}
                   width={barWidth}
                   height={barHeight}
                   rx={6}
-                  fill={style.bg}
-                  stroke={style.border}
-                  strokeWidth={2}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={1}
                 />
                 <text
                   x={x + barWidth / 2}
-                  y={barHeight >= 22 ? y + barHeight / 2 : y - 10}
+                  y={valueInside ? y + barHeight / 2 : y - 10}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill={style.color}
+                  fill="var(--text-primary)"
                   fontFamily="var(--font-code)"
-                  fontWeight="700"
+                  fontWeight="600"
                   fontSize={elements.length > 20 ? 10 : 13}
                 >
                   {item.value}
                 </text>
 
-                {/* Index label below */}
                 <text
                   x={x + barWidth / 2}
                   y={topPadding + barAreaHeight + 18}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill="var(--text-muted)"
+                  fill="var(--text-faint)"
                   fontFamily="var(--font-code)"
                   fontSize="11"
                 >
@@ -222,58 +174,43 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
 
             return (
               <g key={item.id || `arr-node-${index}`}>
-                {/* Pointer labels above */}
                 {item.pointers && item.pointers.length > 0 && (
-                  <g>
-                    {item.pointers.map((ptr, pIdx) => (
-                      <text
-                        key={`${ptr}-${pIdx}`}
-                        x={x + barWidth / 2}
-                        y={y - 10 - (item.pointers!.length - 1 - pIdx) * 14}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="var(--accent-emerald)"
-                        fontSize="11"
-                        fontFamily="var(--font-code)"
-                        fontWeight="700"
-                      >
-                        {ptr}
-                      </text>
-                    ))}
-                  </g>
+                  <PointerChips
+                    pointers={item.pointers}
+                    centerX={x + barWidth / 2}
+                    baseY={y}
+                  />
                 )}
 
-                {/* Element box body */}
                 <rect
                   x={x + (barWidth - boxSize) / 2}
                   y={y}
                   width={boxSize}
                   height={boxSize}
                   rx={8}
-                  fill={style.bg}
-                  stroke={style.border}
-                  strokeWidth={2}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={1}
                 />
                 <text
                   x={x + barWidth / 2}
                   y={y + boxSize / 2}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill={style.color}
+                  fill="var(--text-primary)"
                   fontFamily="var(--font-code)"
-                  fontWeight="700"
+                  fontWeight="600"
                   fontSize="14"
                 >
                   {item.value}
                 </text>
 
-                {/* Index label below */}
                 <text
                   x={x + barWidth / 2}
                   y={topPadding + barAreaHeight + 18}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill="var(--text-muted)"
+                  fill="var(--text-faint)"
                   fontFamily="var(--font-code)"
                   fontSize="11"
                 >

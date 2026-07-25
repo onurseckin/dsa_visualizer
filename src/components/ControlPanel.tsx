@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  RotateCcw,
-  Gauge,
-  Sliders,
-} from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Shuffle } from 'lucide-react';
+import { Button, IconButton, Slider } from '../ui';
 
 export interface ControlPanelProps {
   isPlaying: boolean;
@@ -43,136 +36,105 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   variant = 'embedded',
 }) => {
   const isEmbedded = variant === 'embedded';
+  const displayStep = totalSteps === 0 ? 0 : currentStep + 1;
 
   return (
     <div
-      className={isEmbedded ? 'control-panel-embedded' : 'glass-card'}
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: isEmbedded ? '0.6rem 1rem' : '0.6rem 1.25rem',
-        margin: isEmbedded ? '0' : '0.75rem 1.25rem 0 1.25rem',
-        borderTop: isEmbedded ? '1px solid var(--border-subtle)' : undefined,
-        background: isEmbedded ? 'var(--bg-surface)' : undefined,
-        gap: '0.75rem',
         flexWrap: 'wrap',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-2) var(--space-3)',
         width: '100%',
+        boxSizing: 'border-box',
+        background: isEmbedded ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+        borderTop: isEmbedded ? '1px solid var(--border-subtle)' : undefined,
+        border: isEmbedded ? undefined : '1px solid var(--border-subtle)',
+        borderRadius: isEmbedded ? undefined : 'var(--radius-md)',
       }}
     >
-      {/* Playback Action Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <button
-          className="btn"
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <IconButton
+          icon={<RotateCcw />}
+          aria-label="Reset to first step"
           onClick={onReset}
-          title="Reset to Step 0"
           disabled={isPlaying}
-        >
-          <RotateCcw style={{ width: '16px', height: '16px' }} />
-        </button>
-
-        <button
-          className="btn"
+        />
+        <IconButton
+          icon={<SkipBack />}
+          aria-label="Step backward"
           onClick={onStepBack}
           disabled={isPlaying || currentStep <= 0}
-          title="Step Backward"
-        >
-          <SkipBack style={{ width: '16px', height: '16px' }} />
-        </button>
-
-        <button
-          className="btn btn-primary"
+        />
+        <Button
+          variant="primary"
+          icon={isPlaying ? <Pause /> : <Play />}
           onClick={onPlayPause}
-          title={isPlaying ? 'Pause' : 'Play'}
-          style={{ padding: '0.5rem 1.25rem' }}
+          aria-label={isPlaying ? 'Pause playback' : 'Play all steps'}
         >
-          {isPlaying ? (
-            <>
-              <Pause style={{ width: '16px', height: '16px' }} />
-              <span>Pause</span>
-            </>
-          ) : (
-            <>
-              <Play style={{ width: '16px', height: '16px' }} />
-              <span>Play</span>
-            </>
-          )}
-        </button>
-
-        <button
-          className="btn"
+          {isPlaying ? 'Pause' : 'Play'}
+        </Button>
+        <IconButton
+          icon={<SkipForward />}
+          aria-label="Step forward"
           onClick={onStepForward}
           disabled={isPlaying || currentStep >= totalSteps - 1}
-          title="Step Forward"
-        >
-          <SkipForward style={{ width: '16px', height: '16px' }} />
-        </button>
+        />
       </div>
 
-      {/* Step Counter Indicator */}
+      <span
+        aria-label={`Step ${displayStep} of ${totalSteps}`}
+        style={{
+          fontFamily: 'var(--font-code)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--text-secondary)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {displayStep} / {totalSteps}
+      </span>
+
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
-          fontFamily: 'var(--font-code)',
-          fontSize: '0.85rem',
-          color: 'var(--text-main)',
+          gap: 'var(--space-3)',
+          marginLeft: 'auto',
         }}
       >
-        <span style={{ color: 'var(--text-dim)' }}>Step:</span>
-        <span style={{ fontWeight: 700, color: 'var(--accent-emerald)' }}>
-          {totalSteps === 0 ? 0 : currentStep + 1}
-        </span>
-        <span style={{ color: 'var(--text-muted)' }}>/</span>
-        <span>{totalSteps}</span>
-      </div>
+        <Slider
+          label="Speed"
+          min={50}
+          max={1000}
+          step={50}
+          // The stored value is delay-per-step (ms); the track is inverted so
+          // dragging right reads as "faster".
+          value={1050 - speed}
+          onChange={(value) => onSpeedChange(1050 - value)}
+          formatValue={(value) => `${1050 - value} ms`}
+          style={{ width: '120px' }}
+        />
 
-      {/* Speed & Data Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        {/* Speed Slider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Gauge style={{ width: '15px', height: '15px', color: 'var(--accent-mint)' }} />
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Speed:</span>
-          <input
-            type="range"
-            min="50"
-            max="1000"
-            step="50"
-            value={1050 - speed} // Inverse so slider right means faster
-            onChange={(e) => onSpeedChange(1050 - Number(e.target.value))}
-            style={{ width: '90px', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
-          />
-        </div>
-
-        {/* Data Size Slider */}
         {supportsCustomSize && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sliders style={{ width: '15px', height: '15px', color: 'var(--accent-mint)' }} />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Elements:</span>
-            <input
-              type="range"
-              min="5"
-              max="35"
+          <>
+            <Slider
+              label="Elements"
+              min={5}
+              max={35}
               value={dataSize}
-              onChange={(e) => onDataSizeChange(Number(e.target.value))}
+              onChange={onDataSizeChange}
               disabled={isPlaying}
-              style={{ width: '80px', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
+              style={{ width: '104px' }}
             />
-            <span style={{ fontFamily: 'var(--font-code)', fontSize: '0.8rem', minWidth: '20px' }}>
-              {dataSize}
-            </span>
-          </div>
+            <IconButton
+              icon={<Shuffle />}
+              aria-label="Generate new random input"
+              onClick={onGenerateRandom}
+              disabled={isPlaying}
+            />
+          </>
         )}
-
-        <button
-          className="btn"
-          onClick={onGenerateRandom}
-          disabled={isPlaying}
-          style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
-        >
-          New Random Input
-        </button>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { GripVertical } from 'lucide-react';
 
 export const LAYOUT_SPLIT_STORAGE_KEY = 'dsa_visualizer_layout_split';
 
@@ -44,6 +43,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
   });
 
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const updateAndPersistRatio = useCallback(
@@ -74,6 +74,10 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchStart = useCallback(() => {
     setIsDragging(true);
   }, []);
 
@@ -135,6 +139,8 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
     return <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>{leftPanel}</div>;
   }
 
+  const handleActive = isDragging || isHovered;
+
   return (
     <div
       ref={containerRef}
@@ -142,7 +148,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         display: 'flex',
         width: '100%',
         height: '100%',
-        minHeight: '480px',
+        minHeight: 0,
         overflow: 'hidden',
         position: 'relative',
         userSelect: isDragging ? 'none' : 'auto',
@@ -153,17 +159,18 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         style={{
           width: `${splitRatio}%`,
           height: '100%',
-          minHeight: '480px',
+          minHeight: 0,
+          minWidth: 0,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          transition: isDragging ? 'none' : 'width 0.1s ease',
+          transition: isDragging ? 'none' : 'width var(--transition-fast)',
         }}
       >
         {leftPanel}
       </div>
 
-      {/* Draggable Vertical Splitter Handle */}
+      {/* Draggable Vertical Splitter Handle — 8px hit area around a thin line */}
       <div
         role="separator"
         aria-orientation="vertical"
@@ -173,35 +180,29 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         aria-label="Resize layout columns"
         tabIndex={0}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onDoubleClick={() => updateAndPersistRatio(initialSplitRatio)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           width: '8px',
           height: '100%',
-          background: isDragging
-            ? 'var(--accent-emerald)'
-            : 'var(--bg-darkest)',
-          borderLeft: '1px solid var(--border-subtle)',
-          borderRight: '1px solid var(--border-subtle)',
+          flexShrink: 0,
           cursor: 'col-resize',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'stretch',
           justifyContent: 'center',
-          zIndex: 10,
-          transition: 'background 0.2s ease',
-          flexShrink: 0,
-        }}
-        onMouseEnter={(e) => {
-          if (!isDragging) e.currentTarget.style.background = 'rgba(0, 255, 157, 0.2)';
-        }}
-        onMouseLeave={(e) => {
-          if (!isDragging) e.currentTarget.style.background = 'var(--bg-darkest)';
+          background: 'transparent',
+          touchAction: 'none',
+          zIndex: 1,
         }}
       >
-        <GripVertical
+        <div
           style={{
-            width: '12px',
-            height: '12px',
-            color: isDragging ? 'var(--bg-darkest)' : 'var(--text-dim)',
+            width: '2px',
+            background: handleActive ? 'var(--accent)' : 'var(--border-default)',
+            borderRadius: 'var(--radius-full)',
+            transition: 'background var(--transition-fast)',
             pointerEvents: 'none',
           }}
         />
@@ -212,11 +213,12 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         style={{
           width: `${100 - splitRatio}%`,
           height: '100%',
-          minHeight: '480px',
+          minHeight: 0,
+          minWidth: 0,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          transition: isDragging ? 'none' : 'width 0.1s ease',
+          transition: isDragging ? 'none' : 'width var(--transition-fast)',
         }}
       >
         {rightPanel}

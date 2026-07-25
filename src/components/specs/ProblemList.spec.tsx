@@ -3,35 +3,60 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProblemList } from '../ProblemList';
 
 describe('ProblemList Component Spec', () => {
-  it('renders problem directory title, stat summary pills, and problems table', () => {
+  it('renders problem directory title, stat count badges, and problems table', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
     expect(screen.getByText(/All Categorized Problems & Algorithms/i)).toBeInTheDocument();
-    expect(screen.getByText(/Total:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Easy:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Medium:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hard:/i)).toBeInTheDocument();
+
+    const totalBadge = screen.getByText(/Total:/i);
+    expect(totalBadge).toHaveClass('ui-badge', 'ui-badge--neutral');
+    expect(screen.getByText(/Easy:/i)).toHaveClass('ui-badge--success');
+    expect(screen.getByText(/Medium:/i)).toHaveClass('ui-badge--warning');
+    expect(screen.getByText(/Hard:/i)).toHaveClass('ui-badge--danger');
   });
 
-  it('filters table rows dynamically when typing in the search bar', () => {
+  it('filters table rows dynamically when typing in the ui search input', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
     const input = screen.getByPlaceholderText(/Filter problems by title/i);
+    expect(input).toHaveClass('ui-input__field');
     fireEvent.change(input, { target: { value: 'Bubble Sort' } });
 
     expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
+
+    // Clear button resets the search
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(input).toHaveValue('');
   });
 
-  it('filters table rows by difficulty filter buttons', () => {
+  it('marks the difficulty filter button as selected and filters rows', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
     const easyBtn = screen.getByRole('button', { name: 'Easy' });
+    expect(easyBtn).toHaveClass('ui-btn', 'ui-btn--sm');
     fireEvent.click(easyBtn);
 
+    expect(easyBtn).toHaveClass('ui-btn--selected');
+    expect(easyBtn).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByText('Easy')[0]).toBeInTheDocument();
+  });
+
+  it('filters rows via category chip buttons with selected treatment', () => {
+    const onSelectMock = vi.fn();
+    render(<ProblemList onSelectAlgorithm={onSelectMock} />);
+
+    const allChip = screen.getByRole('button', { name: 'All categories' });
+    expect(allChip).toHaveClass('ui-btn--selected');
+
+    const arraysChip = screen.getByRole('button', { name: 'Arrays & Hashing' });
+    fireEvent.click(arraysChip);
+
+    expect(arraysChip).toHaveClass('ui-btn--selected');
+    expect(allChip).not.toHaveClass('ui-btn--selected');
+    expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
   });
 
   it('navigates to workspace when clicking table row or Visualize button', () => {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Code2, Terminal } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Card } from '../../ui';
 
 export interface CodeBlockViewerProps {
   code: string;
@@ -13,121 +13,120 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
   variables,
 }) => {
   const lines = code.trim().split('\n');
+  const activeLineRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // Optional call: jsdom doesn't implement scrollIntoView.
+    activeLineRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [activeLine]);
+
+  const hasVariables = variables !== undefined && Object.keys(variables).length > 0;
 
   return (
-    <div
-      className="glass-card"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.6rem 1rem',
-          background: 'var(--bg-darkest)',
-          borderBottom: '1px solid var(--border-muted)',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Code2 style={{ width: '16px', height: '16px', color: 'var(--accent-emerald)' }} />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
-            Algorithm Code Implementation
-          </span>
-        </div>
+    <Card
+      padding="none"
+      title={
         <span
           style={{
             fontFamily: 'var(--font-code)',
-            fontSize: '0.75rem',
-            color: 'var(--accent-emerald)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 400,
+            color: 'var(--text-muted)',
           }}
         >
-          Executing Line: {activeLine}
+          solution.py
         </span>
-      </div>
-
-      {/* Code Editor / Line Viewer */}
+      }
+      actions={
+        <span
+          style={{
+            fontFamily: 'var(--font-code)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-muted)',
+          }}
+        >
+          line {activeLine}
+        </span>
+      }
+      style={{ height: '100%' }}
+    >
       <div
         style={{
-          padding: '0.75rem 0',
-          flex: 1,
-          overflowY: 'auto',
-          background: 'var(--bg-darkest)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          minHeight: 0,
         }}
       >
-        {lines.map((lineText, idx) => {
-          const lineNumber = idx + 1;
-          const isActive = lineNumber === activeLine;
-
-          return (
-            <div
-              key={idx}
-              className={`code-line ${isActive ? 'code-line-active' : ''}`}
-            >
-              {/* Line Number */}
-              <span
-                style={{
-                  width: '32px',
-                  display: 'inline-block',
-                  textAlign: 'right',
-                  marginRight: '12px',
-                  color: isActive ? 'var(--accent-emerald)' : 'var(--text-dark)',
-                  userSelect: 'none',
-                  fontSize: '0.8rem',
-                }}
-              >
-                {lineNumber}
-              </span>
-              {/* Line Content */}
-              <span style={{ color: isActive ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                {lineText}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Live Variable Register Footer */}
-      {variables && Object.keys(variables).length > 0 && (
         <div
           style={{
-            padding: '0.5rem 1rem',
-            background: 'var(--bg-surface)',
-            borderTop: '1px solid var(--border-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            overflowX: 'auto',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            background: 'var(--bg-inset)',
+            padding: 'var(--space-2) 0',
           }}
         >
-          <Terminal style={{ width: '14px', height: '14px', color: 'var(--accent-mint)' }} />
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vars:</span>
-          {Object.entries(variables).map(([k, v]) => (
+          {lines.map((lineText, idx) => {
+            const lineNumber = idx + 1;
+            const isActive = lineNumber === activeLine;
+
+            return (
+              <div
+                key={idx}
+                ref={isActive ? activeLineRef : undefined}
+                className={isActive ? 'ui-code-line ui-code-line--active' : 'ui-code-line'}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '2.5em',
+                    textAlign: 'right',
+                    marginRight: 'var(--space-3)',
+                    color: 'var(--text-faint)',
+                    userSelect: 'none',
+                  }}
+                >
+                  {lineNumber}
+                </span>
+                {lineText}
+              </div>
+            );
+          })}
+        </div>
+
+        {hasVariables && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              padding: 'var(--space-2) var(--space-3)',
+              borderTop: '1px solid var(--border-subtle)',
+              overflowX: 'auto',
+              flexShrink: 0,
+            }}
+          >
             <span
-              key={k}
               style={{
-                fontFamily: 'var(--font-code)',
-                fontSize: '0.75rem',
-                color: 'var(--text-main)',
-                background: 'var(--bg-darkest)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-muted)',
-                whiteSpace: 'nowrap',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-muted)',
+                flexShrink: 0,
+                marginRight: 'var(--space-1)',
               }}
             >
-              {k}=<span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>{String(v)}</span>
+              Vars
             </span>
-          ))}
-        </div>
-      )}
-    </div>
+            {Object.entries(variables).map(([k, v]) => (
+              <span key={k} className="ui-chip">
+                {k}
+                <span style={{ color: 'var(--text-faint)' }}>=</span>
+                <span style={{ color: 'var(--text-primary)' }}>{String(v)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 };

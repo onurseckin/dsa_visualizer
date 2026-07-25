@@ -1,92 +1,109 @@
 import React from 'react';
-import { TimeComplexity } from '../types/dsa';
-import { Clock, Cpu } from 'lucide-react';
+import { Collapsible } from '../ui';
+import type { ComplexityAnalysis, TimeComplexity } from '../types/dsa';
 
-interface ComplexityCardProps {
+export interface ComplexityCardProps {
   timeComplexity: TimeComplexity;
   spaceComplexity: string;
+  complexityAnalysis: ComplexityAnalysis;
   variableState?: Record<string, string | number | boolean>;
 }
+
+interface BigOChip {
+  label: string;
+  value: string;
+  color: string;
+}
+
+const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+    {chips.map((chip) => (
+      <div
+        key={chip.label}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          padding: 'var(--space-1) var(--space-2)',
+          background: 'var(--bg-inset)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-sm)',
+          minWidth: '64px',
+        }}
+      >
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{chip.label}</span>
+        <span
+          style={{
+            fontFamily: 'var(--font-code)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+            color: chip.color,
+          }}
+        >
+          {chip.value}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const ProseBlock: React.FC<{ label: string; body: string }> = ({ label, body }) => (
+  <div>
+    <div
+      style={{
+        fontSize: 'var(--text-xs)',
+        fontWeight: 600,
+        color: 'var(--text-muted)',
+        marginBottom: 'var(--space-1)',
+      }}
+    >
+      {label}
+    </div>
+    <p
+      style={{
+        margin: 0,
+        fontSize: 'var(--text-sm)',
+        lineHeight: 1.55,
+        color: 'var(--text-secondary)',
+      }}
+    >
+      {body}
+    </p>
+  </div>
+);
 
 export const ComplexityCard: React.FC<ComplexityCardProps> = ({
   timeComplexity,
   spaceComplexity,
+  complexityAnalysis,
   variableState,
 }) => {
+  const chips: BigOChip[] = [
+    { label: 'Best', value: timeComplexity.best, color: 'var(--success)' },
+    { label: 'Avg', value: timeComplexity.average, color: 'var(--text-primary)' },
+    { label: 'Worst', value: timeComplexity.worst, color: 'var(--warning)' },
+    { label: 'Space', value: spaceComplexity, color: 'var(--info)' },
+  ];
+
+  const variables = variableState ? Object.entries(variableState) : [];
+
   return (
-    <div
-      className="glass-card"
-      style={{
-        padding: '0.85rem 1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.4rem' }}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Clock style={{ width: '15px', height: '15px', color: 'var(--accent-emerald)' }} />
-          Complexity Analysis
-        </span>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', fontSize: '0.75rem' }}>
-        <div style={{ background: 'var(--bg-darkest)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-muted)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Best Time</div>
-          <div style={{ fontFamily: 'var(--font-code)', fontWeight: 600, color: 'var(--accent-emerald)' }}>
-            {timeComplexity.best}
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--bg-darkest)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-muted)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Avg Time</div>
-          <div style={{ fontFamily: 'var(--font-code)', fontWeight: 600, color: 'var(--accent-mint)' }}>
-            {timeComplexity.average}
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--bg-darkest)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-muted)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Worst Time</div>
-          <div style={{ fontFamily: 'var(--font-code)', fontWeight: 600, color: 'var(--state-compare)' }}>
-            {timeComplexity.worst}
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--bg-darkest)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-muted)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Space</div>
-          <div style={{ fontFamily: 'var(--font-code)', fontWeight: 600, color: 'var(--accent-cyan)' }}>
-            {spaceComplexity}
-          </div>
-        </div>
-      </div>
-
-      {variableState && Object.keys(variableState).length > 0 && (
-        <div style={{ borderTop: '1px solid var(--border-muted)', paddingTop: '0.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <Cpu style={{ width: '13px', height: '13px', color: 'var(--accent-mint)' }} />
-            Live State Registers
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {Object.entries(variableState).map(([key, value]) => (
-              <span
-                key={key}
-                style={{
-                  fontFamily: 'var(--font-code)',
-                  fontSize: '0.75rem',
-                  background: 'var(--bg-surface)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-main)',
-                }}
-              >
-                <span style={{ color: 'var(--text-muted)' }}>{key}:</span>{' '}
-                <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>{String(value)}</span>
+    <Collapsible title="Complexity" defaultOpen>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <BigOChipRow chips={chips} />
+        <ProseBlock label="Time" body={complexityAnalysis.time} />
+        <ProseBlock label="Space" body={complexityAnalysis.space} />
+        {variables.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+            {variables.map(([key, value]) => (
+              <span key={key} className="ui-chip">
+                <span style={{ color: 'var(--text-muted)' }}>{key}:</span>
+                <span style={{ color: 'var(--text-primary)' }}>{String(value)}</span>
               </span>
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </Collapsible>
   );
 };
