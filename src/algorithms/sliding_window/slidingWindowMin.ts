@@ -198,7 +198,7 @@ export const generateSlidingWindowMinSteps = (
 export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   id: 'sliding-window-min',
   title: 'Sliding Window Minimum',
-  category: 'fundamentals',
+  category: 'sliding_window',
   difficulty: 'Hard',
   description:
     'Find the minimum element in every contiguous sliding window of size k using a monotonic deque in O(n) time.',

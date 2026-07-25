@@ -10,7 +10,7 @@ describe('prefixSum algorithm spec', () => {
   it('should have valid metadata', () => {
     expect(prefixSum.id).toBe('prefix-sum');
     expect(prefixSum.title).toBe('Prefix Sum');
-    expect(prefixSum.category).toBe('fundamentals');
+    expect(prefixSum.category).toBe('arrays_and_hashing');
     expect(prefixSum.difficulty).toBe('Easy');
     expect(prefixSum.defaultInput).toEqual(DEFAULT_PREFIX_SUM_INPUT);
   });

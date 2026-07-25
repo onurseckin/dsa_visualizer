@@ -181,7 +181,7 @@ export const generateEditDistanceSteps = (
 export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   id: 'edit-distance',
   title: 'Edit Distance (2D Dynamic Programming)',
-  category: 'dynamic-programming',
+  category: 'dp_2d',
   difficulty: 'Hard',
   description:
     'Finds the minimum number of single-character insertions, deletions, or substitutions to transform word1 into word2 using 2D DP tabulation.',

@@ -7,8 +7,8 @@ describe('KnowledgeGraph Component Spec', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
 
-    expect(screen.getByText('NeetCode Aligned Knowledge Graph')).toBeInTheDocument();
-    expect(screen.getByText('All NeetCode 18 Topic Categories')).toBeInTheDocument();
+    expect(screen.getByText('Topologically Ordered Prerequisite Knowledge Graph')).toBeInTheDocument();
+    expect(screen.getByText('All Categorized Topic Modules')).toBeInTheDocument();
   });
 
   it('triggers category selection when node or card is clicked', () => {
@@ -21,8 +21,8 @@ describe('KnowledgeGraph Component Spec', () => {
     expect(onSelectMock).toHaveBeenCalledWith('arrays_and_hashing');
   });
 
-  it('contains all 19 NeetCode nodes with valid properties', () => {
-    expect(NEETCODE_NODES.length).toBe(19);
+  it('contains all 21 NeetCode nodes with valid properties', () => {
+    expect(NEETCODE_NODES.length).toBe(21);
     NEETCODE_NODES.forEach((node) => {
       expect(node.id).toBeDefined();
       expect(node.categoryFolder).toBeDefined();

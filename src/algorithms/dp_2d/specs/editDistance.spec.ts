@@ -36,7 +36,7 @@ describe('editDistance algorithm logic spec', () => {
 
   it('validates algorithm metadata', () => {
     expect(editDistance.id).toBe('edit-distance');
-    expect(editDistance.category).toBe('dynamic-programming');
+    expect(editDistance.category).toBe('dp_2d');
     expect(editDistance.difficulty).toBe('Hard');
   });
 });
