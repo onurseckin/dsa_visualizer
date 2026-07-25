@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -26,10 +26,11 @@ describe('SlidingWindowMin React Component Spec', () => {
 
     expect(screen.getByText('Sliding Window Minimum')).toBeInTheDocument();
 
-    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getAllByText(/Finds the minimum element in every contiguous sliding window/i)[0]
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/monotonic deque is a double-ended queue/i)[0]
     ).toBeInTheDocument();
   });
 

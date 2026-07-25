@@ -14,6 +14,18 @@ describe('countingBits logic spec', () => {
     expect(countingBits.code).toContain('def countBits(n):');
   });
 
+  it('ships a topic guide teaching the shift-and-reuse recurrence', () => {
+    const guide = countingBits.topicGuide;
+    expect(guide.overview).toContain('population count');
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Right shift');
+  });
+
   it('generates valid steps for default input (n = 5)', () => {
     const steps = generateCountingBitsSteps(DEFAULT_COUNTING_BITS_INPUT);
     expect(steps.length).toBe(7); // 1 init + 5 loop + 1 finish

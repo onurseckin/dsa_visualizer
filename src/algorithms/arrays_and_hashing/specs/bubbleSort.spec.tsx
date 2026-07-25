@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { bubbleSort, generateBubbleSortSteps } from '../bubbleSort';
@@ -22,11 +22,15 @@ describe('BubbleSort React Component Spec', () => {
 
     expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
 
-    // Problem details are collapsed by default; expand them to reveal the description.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getByText(/Bubble Sort is a simple comparison-based sorting algorithm/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(bubbleSort.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: bubbleSort.topicGuide.sections[0].heading })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key terms')).toBeInTheDocument();
   });
 
   it('renders step visualizer with element array state', () => {

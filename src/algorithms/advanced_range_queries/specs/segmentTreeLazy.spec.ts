@@ -45,4 +45,25 @@ describe('segmentTreeLazy algorithm spec', () => {
     expect(steps.length).toBe(1);
     expect(steps[0].variables.n).toBe(0);
   });
+
+  it('should teach the topic through a topicGuide', () => {
+    const guide = segmentTreeLazy.topicGuide;
+    expect(guide.overview.length).toBeGreaterThan(120);
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+      expect(section.body).not.toMatch(/[*#`_]|^- /);
+    });
+
+    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(' ');
+    expect(allText).toContain('lazy tag');
+    expect(allText).toContain('push');
+
+    expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
+    expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Push down');
+  });
 });

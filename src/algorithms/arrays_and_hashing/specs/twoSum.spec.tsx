@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { DEFAULT_TWO_SUM_INPUT, generateTwoSumSteps, twoSum } from '../twoSum';
@@ -22,11 +22,15 @@ describe('TwoSum React Component Spec', () => {
 
     expect(screen.getByText('Two Sum')).toBeInTheDocument();
 
-    // Problem details are collapsed by default; expand them to reveal the description.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getByText(/Given an array of integers nums and an integer target/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(twoSum.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: twoSum.topicGuide.sections[0].heading })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key terms')).toBeInTheDocument();
   });
 
   it('renders step visualizer with hash map auxiliary state', () => {

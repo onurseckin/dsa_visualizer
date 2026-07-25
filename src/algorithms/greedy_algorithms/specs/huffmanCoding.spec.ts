@@ -16,6 +16,18 @@ describe('huffmanCoding spec logic', () => {
     expect(huffmanCoding.code).toBe(PYTHON_HUFFMAN_CODE);
   });
 
+  it('ships a topic guide teaching prefix codes and the greedy merge', () => {
+    const guide = huffmanCoding.topicGuide;
+    expect(guide.overview).toContain('prefix-free');
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Min-heap');
+  });
+
   it('uses Python code representation', () => {
     expect(huffmanCoding.code).toContain('import heapq');
     expect(huffmanCoding.code).toContain('def build_huffman_tree(text):');

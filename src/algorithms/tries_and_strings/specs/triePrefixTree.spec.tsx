@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -36,8 +36,7 @@ describe('TriePrefixTree React Component Spec', () => {
 
     expect(screen.getByText('Trie (Prefix Tree)')).toBeInTheDocument();
 
-    // The problem description is collapsed by default; expand it first.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded by default, so the description is already visible.
     expect(
       screen.getAllByText(/tree-like data structure for storing strings/i)[0]
     ).toBeInTheDocument();

@@ -45,4 +45,25 @@ describe('segmentTree algorithm spec', () => {
     expect(steps.length).toBe(1);
     expect(steps[0].primarySnapshot.kind).toBe('tree');
   });
+
+  it('should teach the topic through a topicGuide', () => {
+    const guide = segmentTree.topicGuide;
+    expect(guide.overview.length).toBeGreaterThan(120);
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+      expect(section.body).not.toMatch(/[*#`_]|^- /);
+    });
+
+    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(' ');
+    expect(allText).toContain('interval');
+    expect(allText).toContain('identity');
+
+    expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
+    expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Merge function');
+  });
 });

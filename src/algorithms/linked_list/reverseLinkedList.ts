@@ -232,6 +232,63 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     time: 'We visit each node exactly once, and at every node we do the same constant amount of pointer work — save the next node, flip one link, advance two pointers. There is no nesting and no re-scanning, so the total work grows linearly with the list length: O(n) in every case, even when the list is already "reversed".',
     space: 'No matter how long the list is, we only ever hold three pointer variables (prev, curr, nxt), and all flipping happens in place on the existing nodes — so extra memory stays constant at O(1).',
   },
+  topicGuide: {
+    overview:
+      'A singly linked list is a chain of nodes where each node stores a value and a single reference to the next node, and nothing else — there are no indices and no way to look backward. Reversing that chain in place is the canonical exercise in pointer surgery: you cannot swap the two ends the way you would in an array, so you have to re-aim every next pointer as you walk past it. The three-pointer technique you learn here is the foundation for almost every linked-list problem, because they all come down to rewriting links without losing your grip on the rest of the list.',
+    sections: [
+      {
+        heading: 'Why a linked list resists reversal',
+        body: 'In an array you reverse by swapping the first and last elements, then the second and second-to-last, because random access lets you touch any position instantly. A singly linked list gives you only one move — follow next — so you cannot reach the tail without walking the whole chain, and once you are at the tail you cannot walk back. The insight that unlocks the problem is that reversal is entirely local: the finished list is just the original list with every single link turned around, and you can turn one link around at a time. The only real difficulty is that the moment you overwrite curr.next you destroy your one and only route to everything after curr.',
+      },
+      {
+        heading: 'The three-pointer walk',
+        body: 'You carry exactly three references. prev is the head of the portion you have already reversed, curr is the node you are about to flip, and nxt is a temporary stash of curr.next. Each iteration performs the same four statements in a fixed order: save nxt = curr.next, flip curr.next = prev, slide prev = curr, then slide curr = nxt. The order is not stylistic — saving nxt has to happen before the flip, or the flip erases the address you needed, and advancing prev has to happen before advancing curr, or you lose track of the reversed head. Once you have internalised that little four-step dance you can write this function without thinking.',
+      },
+      {
+        heading: 'The invariant that proves it works',
+        body: 'At the top of every loop iteration the list is split cleanly in two: every node from the original head up to but not including curr has been reversed and prev points at its head, while curr points at the first untouched node whose forward chain is still fully intact. One iteration flips exactly one link and advances both pointers by one node, which moves the boundary forward while keeping both halves well formed, so the invariant survives. The loop ends when curr becomes None, meaning the untouched half is empty and the reversed half is the entire list — so prev is the new head, which is exactly what you return. Notice that starting prev at None is what silently gives the old head its correct None terminator.',
+      },
+      {
+        heading: 'Iterative, recursive, or copy the values',
+        body: 'A recursive version reads elegantly — reverse the tail, then attach the current node behind it — but it opens one stack frame per node, so a five-thousand-node list will exhaust the default recursion limit in Python and risks a stack overflow in most languages. Copying the values into an array, reversing the array, and writing them back is easy to get right, but it costs a second pass and O(n) memory, and it quietly fails whenever the problem cares about the node objects themselves rather than their payloads, as it does when nodes are shared or spliced elsewhere. The iterative walk is the version to reach for by default: one pass, constant memory, no recursion risk. Reach for recursion only when the problem genuinely wants a bottom-up formulation, such as reversing in groups.',
+      },
+      {
+        heading: 'Pitfalls and edge cases',
+        body: 'The empty list handles itself: curr starts at None, the loop body never runs, and you return prev, which is still None — correct without a special case. A single node is flipped once so its next becomes None, and it is both head and tail. The classic bug is writing curr = curr.next after curr.next = prev, which sends you backward into the already-reversed half and loops forever or halts early; that is precisely why nxt exists. One more thing to keep in mind is that after the call the variable head, if you still hold it, now names the tail — external references do not follow the reversal, which is why the function must return the new head rather than mutate in place silently.',
+      },
+      {
+        heading: 'Where this technique goes next',
+        body: 'Reversing a sublist between two positions uses the same loop, bounded by counters, with a dummy node in front so the head itself has a stable predecessor to splice against. Reversing in groups of k runs the loop k times, then reconnects the group to the previous one and recurses on the remainder. A palindrome check finds the midpoint with slow and fast pointers, reverses the second half with this exact code, then compares the halves; the reorder-list problem does the same and then interleaves them. Across all of them the discipline is identical: before you rewrite a link, stash whatever that link was your only way of reaching.',
+      },
+    ],
+    keyTerms: [
+      {
+        term: 'Singly linked list',
+        definition:
+          'A sequence of nodes in which each node holds a value and one reference to its successor, with the last node pointing at None. Traversal is forward-only and there is no direct access by position.',
+      },
+      {
+        term: 'In-place',
+        definition:
+          'Rearranging the existing nodes by changing their pointers rather than allocating new nodes or an auxiliary array. It is what lets this algorithm use constant extra memory.',
+      },
+      {
+        term: 'prev, curr, nxt',
+        definition:
+          'The three working references: prev is the head of the already-reversed prefix, curr is the node whose link you are flipping, and nxt is the saved successor that keeps the untouched suffix reachable.',
+      },
+      {
+        term: 'Loop invariant',
+        definition:
+          'A statement that is true before and after every iteration, here "the prefix behind curr is reversed and headed by prev". Proving it holds is how you convince yourself the final answer is right rather than testing your way to confidence.',
+      },
+      {
+        term: 'Lost link',
+        definition:
+          'The failure mode where you overwrite the only pointer that led to part of the list, making those nodes unreachable. Every linked-list bug of the "my list got truncated" variety is a lost link.',
+      },
+    ],
+  },
   defaultInput: DEFAULT_REVERSE_LINKED_LIST_INPUT,
   generateSteps: generateReverseLinkedListSteps,
 };

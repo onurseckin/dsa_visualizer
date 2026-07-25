@@ -26,5 +26,8 @@ describe('topologicalSort React component spec', () => {
     );
 
     expect(screen.getByText("Topological Sort (Kahn's Algorithm)")).toBeInTheDocument();
+    // Details are expanded by default, so the topic guide renders without any interaction.
+    expect(screen.getByText('Ready means nothing is pointing at you')).toBeInTheDocument();
+    expect(screen.getByText('In-degree')).toBeInTheDocument();
   });
 });

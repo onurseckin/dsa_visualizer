@@ -2,6 +2,7 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   ArrayElement,
+  TopicGuide,
 } from '../../types/dsa';
 
 export interface TwoPointersInput {
@@ -164,6 +165,69 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   return steps;
 };
 
+const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    'This is the same-direction flavor of two pointers, better known as a variable-size sliding window. Both indices march forward through the array: the right one admits elements into a window while the left one evicts them, and a running sum is repaired incrementally instead of recomputed. It answers questions about contiguous runs, such as finding a subarray with a given sum, the shortest run reaching a threshold, or the longest run staying under one. The precondition that makes it valid here is that every element is non-negative, which is what gives the sum a predictable response to each move.',
+  sections: [
+    {
+      heading: 'The window as a repaired quantity',
+      body: `A brute-force solution recomputes the sum of every candidate subarray from scratch, redoing the same additions over and over. The window keeps a single number instead and edits it: add arr[right] when the right edge advances, subtract arr[left] when the left edge moves forward. Because a contiguous range changes by exactly one element per move, that edit is one addition or one subtraction, and the running total is always precisely the sum of the elements between the two pointers. Maintaining a derived value through small edits rather than recomputing it is the habit that carries over to every other window problem you will meet.`,
+    },
+    {
+      heading: 'How the grow and shrink loops interact',
+      body: `The outer loop advances right one index at a time and folds the new element into the sum, so the window always ends at right. The inner loop then repairs any overshoot: while the sum exceeds the target, drop arr[left] and advance left. Only after that repair do you test for equality, because a window that is still too large could never be the answer. If the sum lands on the target you have your indices, and if right reaches the end without a hit then no contiguous run has that sum. Although the loops are nested, the two pointers together take at most a couple of passes' worth of steps, because neither ever turns around.`,
+    },
+    {
+      heading: 'Why non-negative elements are not optional',
+      body: `The shrink rule leans on a specific promise: removing an element can only lower the sum and adding one can only raise it. Non-negative values guarantee that, so a window over the target can only be fixed from the left and a window under it can only be helped by growing. Introduce one negative number and both assumptions collapse, because an over-target window might become correct by growing and shrinking might make it larger. For arrays with negatives you change tools entirely and use prefix sums stored in a hash map, which finds a range summing to the target without needing any monotone response at all. Recognizing which precondition a technique leans on is the difference between applying a pattern and guessing.`,
+    },
+    {
+      heading: 'The invariant and why nothing is missed',
+      body: `At the top of each outer iteration the window holds a sum that is at most the target, and every window ending earlier that could have matched has already been examined. Advancing right implicitly considers all windows ending at the new right, because the shrink loop walks left forward to exactly the first position where the sum stops exceeding the target. The subtle part is that any left position before that is ruled out not just for this right but for every later one, since growing right only adds value, so a left that overshoots now overshoots forever. That is why the left pointer never needs to be reset, and why one candidate per right index is enough to be sure no valid window was skipped.`,
+    },
+    {
+      heading: 'Pitfalls and edge cases',
+      body: `Test for equality after the shrink loop, never before, or a window that momentarily overshoots gets judged in the wrong state. Guard the inner loop with left not passing right, so a single element larger than the target cannot push left beyond the window and leave the bookkeeping incoherent. If the target can be zero and the array contains zeros, decide up front whether an empty window counts as an answer, because this formulation only ever reports a non-empty range. Be equally clear about what you are returning, since the first matching window, the shortest one, and a count of all of them are three different loops built on the same skeleton, and conflating them is a common source of wrong answers.`,
+    },
+    {
+      heading: 'The wider family of window problems',
+      body: `Change the quantity being maintained and the same skeleton solves a surprising range of problems. Track a character-frequency map instead of a sum and you have Longest Substring Without Repeating Characters, where the shrink condition is that a duplicate is inside the window. Track a count of distinct keys and you get Fruit Into Baskets or Longest Substring with At Most K Distinct Characters. When a problem asks for the smallest window meeting a condition you keep shrinking while the condition still holds and record the best; when it asks for the largest you shrink only while the condition is violated. The question to answer each time is the same: what does the window guarantee right now, and which edge repairs a violation.`,
+    },
+  ],
+  keyTerms: [
+    {
+      term: 'Sliding window',
+      definition:
+        'A contiguous range whose two endpoints only move forward, so every element enters the window at most once and leaves it at most once.',
+    },
+    {
+      term: 'Running sum',
+      definition:
+        'The maintained total of the current window, updated by one addition or subtraction per pointer move instead of being recomputed from the elements.',
+    },
+    {
+      term: 'Shrink condition',
+      definition:
+        'The predicate that says the window is currently invalid and the left edge must advance. Here it is simply that the running sum has passed the target.',
+    },
+    {
+      term: 'Monotone response',
+      definition:
+        'The guarantee that growing the window can only increase the tracked quantity and shrinking can only decrease it. Non-negative elements are what supply it in this problem.',
+    },
+    {
+      term: 'Amortized traversal',
+      definition:
+        'The accounting insight that two forward-only pointers cover the array a bounded number of times in total, even though one loop sits inside the other.',
+    },
+    {
+      term: 'Prefix sum',
+      definition:
+        'The cumulative total of all elements up to an index. It is the alternative tool once negative values break the monotone response a window relies on.',
+    },
+  ],
+};
+
 export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   id: 'two-pointers',
   title: 'Two Pointers (Subarray Sum)',
@@ -199,6 +263,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     time: 'The right pointer walks the array exactly once, and the left pointer chases it — it only ever moves forward, so across the whole run it also takes at most n steps. Even though the shrink loop looks nested, the total work is bounded by those two forward walks, which is why the time is O(n) rather than O(n²).',
     space: 'The window is tracked with just two indices and one running sum, so extra memory stays constant at O(1) regardless of input size.',
   },
+  topicGuide: TWO_POINTERS_TOPIC_GUIDE,
   defaultInput: DEFAULT_TWO_POINTERS_INPUT,
   generateSteps: generateTwoPointersSteps,
 };

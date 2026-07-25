@@ -17,6 +17,18 @@ describe('sievePrimes spec logic', () => {
     expect(sievePrimes.code).toBe(PYTHON_SIEVE_CODE);
   });
 
+  it('ships a topic guide teaching elimination and the square-root bound', () => {
+    const guide = sievePrimes.topicGuide;
+    expect(guide.overview).toContain('sieve');
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Square root bound');
+  });
+
   it('generates valid steps and identifies primes up to default limit 30', () => {
     const steps = generateSieveSteps(DEFAULT_SIEVE_INPUT);
     expect(steps.length).toBeGreaterThan(0);

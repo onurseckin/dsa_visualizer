@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -28,8 +28,7 @@ describe('TreeDiameter React Component Spec', () => {
       screen.getByText('Tree Diameter (2-DFS Algorithm)')
     ).toBeInTheDocument();
 
-    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getAllByText(/longest simple path/i)[0]
     ).toBeInTheDocument();

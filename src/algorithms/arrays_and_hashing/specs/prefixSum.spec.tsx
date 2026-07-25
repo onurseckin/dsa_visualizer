@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { DEFAULT_PREFIX_SUM_INPUT, generatePrefixSumSteps, prefixSum } from '../prefixSum';
@@ -22,11 +22,15 @@ describe('PrefixSum React Component Spec', () => {
 
     expect(screen.getByText('Prefix Sum')).toBeInTheDocument();
 
-    // Problem details are collapsed by default; expand them to reveal the description.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getByText(/Computes cumulative prefix sums for an array/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(prefixSum.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: prefixSum.topicGuide.sections[0].heading })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key terms')).toBeInTheDocument();
   });
 
   it('renders step explanation and auxiliary prefix sum array state', () => {

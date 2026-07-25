@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../bellmanFord';
 
 describe('bellmanFord React component spec', () => {
-  it('renders algorithm title and expands the description in MainLayout', () => {
+  it('renders algorithm title and the description in MainLayout', () => {
     const steps = generateBellmanFordSteps(DEFAULT_BELLMAN_FORD_INPUT);
     const noop = vi.fn();
 
@@ -27,11 +27,11 @@ describe('bellmanFord React component spec', () => {
 
     expect(screen.getByText('Bellman-Ford Shortest Path')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
-
+    // Details are expanded by default, so the description renders without any interaction.
     expect(
       screen.getByText(/computes shortest paths from one source vertex to every other vertex/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(/Relax everything, then do it again/i)).toBeInTheDocument();
   });
 
   it('renders auxiliary distance table and graph visualizer without crashing', () => {

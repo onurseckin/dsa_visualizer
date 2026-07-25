@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -26,8 +26,7 @@ describe('NQueens React Component Spec', () => {
 
     expect(screen.getByText('N-Queens Backtracking')).toBeInTheDocument();
 
-    // Problem details are collapsed by default; expand them to reveal the description.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getByText(/placing N chess queens on an N×N chessboard/i)
     ).toBeInTheDocument();

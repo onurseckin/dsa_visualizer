@@ -15,6 +15,18 @@ describe('euclidGcd spec logic', () => {
     expect(euclidGcd.code).toBe(PYTHON_EUCLID_GCD_CODE);
   });
 
+  it('ships a topic guide teaching the remainder identity', () => {
+    const guide = euclidGcd.topicGuide;
+    expect(guide.overview).toContain('greatest common divisor');
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Bezout identity');
+  });
+
   it('generates correct steps for Euclidean GCD', () => {
     const steps = generateEuclidGcdSteps(DEFAULT_EUCLID_GCD_INPUT);
     expect(steps.length).toBeGreaterThan(0);

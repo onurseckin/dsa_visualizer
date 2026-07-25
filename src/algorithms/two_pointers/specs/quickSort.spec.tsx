@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { generateQuickSortSteps, quickSort } from '../quickSort';
@@ -32,13 +32,17 @@ describe('QuickSort React Component Spec', () => {
 
     expect(screen.getByText('Quick Sort')).toBeInTheDocument();
 
-    // The problem description is collapsed by default; expand it first.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getAllByText(
         /Quick Sort is an efficient divide-and-conquer sorting algorithm/i
       )[0]
     ).toBeInTheDocument();
+    expect(screen.getByText(quickSort.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: quickSort.topicGuide.sections[0].heading })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key terms')).toBeInTheDocument();
   });
 
   it('renders step visualizer with call stack auxiliary panel', () => {

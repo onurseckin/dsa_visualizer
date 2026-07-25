@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../floydWarshall';
 
 describe('floydWarshall React component spec', () => {
-  it('renders algorithm title and expands the description in MainLayout', () => {
+  it('renders algorithm title and the description in MainLayout', () => {
     const steps = generateFloydWarshallSteps(DEFAULT_FLOYD_WARSHALL_INPUT);
     const noop = vi.fn();
 
@@ -29,11 +29,11 @@ describe('floydWarshall React component spec', () => {
       screen.getByText('Floyd-Warshall All-Pairs Shortest Path')
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
-
+    // Details are expanded by default, so the description renders without any interaction.
     expect(
       screen.getByText(/shortest path between every pair of vertices in a weighted directed graph/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(/How the triple loop implements that/i)).toBeInTheDocument();
   });
 
   it('renders auxiliary 2D matrix state and grid visualizer without crashing', () => {

@@ -22,5 +22,8 @@ describe('dijkstraShortestPath React component spec', () => {
     );
 
     expect(screen.getByText("Dijkstra's Shortest Path Algorithm")).toBeInTheDocument();
+    // Details are expanded by default, so the topic guide renders without any interaction.
+    expect(screen.getByText('The greedy frontier')).toBeInTheDocument();
+    expect(screen.getByText('Relaxation')).toBeInTheDocument();
   });
 });

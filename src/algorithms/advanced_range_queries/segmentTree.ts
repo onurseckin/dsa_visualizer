@@ -2,6 +2,7 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   ElementState,
+  TopicGuide,
   TreeNodeItem,
 } from '../../types/dsa';
 
@@ -345,6 +346,64 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   return steps;
 };
 
+const SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    'A segment tree is a binary tree of intervals laid over an array: the root owns the whole array, every internal node splits its interval in half between two children, and every leaf owns a single element. Each node caches the answer for its own interval, here the sum, so a question about an arbitrary range can be assembled from a few cached answers instead of scanning elements one by one. Because the tree is only about log n levels deep, reading a range and changing an element both stay cheap even when the array is edited constantly. It is the general-purpose workhorse of range queries, and a surprising number of range problems turn out to be a segment tree in disguise.',
+  sections: [
+    {
+      heading: 'Intervals as a designed cache',
+      body: 'There are roughly n squared possible query ranges, so precomputing all of them is hopeless, but you never actually need all of them. The insight is to precompute answers for one carefully chosen family of about 2n intervals, namely the halving structure of a binary tree, because any range can then be cut into at most two of those intervals per level. The tree is therefore a cache whose entries were picked so that arbitrary questions are covered by very few of them. Building it is a single post-order traversal in which each node takes the merge of its two children, so construction touches every node exactly once and never revisits it.',
+    },
+    {
+      heading: 'How a query descends',
+      body: 'A query for a range starts at the root and asks each node one of three questions. If the node\'s interval is disjoint from the query range you return the identity value, zero for sums, and stop, because that branch contributes nothing. If the node\'s interval lies entirely inside the query range you return its cached value immediately without looking at a single leaf, and this is the step that makes the query fast. Otherwise the range straddles the midpoint, so you recurse into both children and merge whatever they report. An update is simpler still: you walk the one path down to the target leaf, write the new value there, and recompute each ancestor from its two children as the recursion unwinds.',
+    },
+    {
+      heading: 'The invariant that keeps it honest',
+      body: 'Every node holds one promise: its stored value equals the merge of the values stored by its two children, and for a leaf it equals the array element itself. Building establishes that promise bottom-up, and an update breaks it only along a single root-to-leaf path before immediately repairing it on the way back up. Query correctness then follows from the promise plus the fact that the fully covered nodes where recursion stops partition the query range exactly, so no element is counted twice and none is missed. Almost every segment tree bug is a violated promise somewhere: a node whose cached value was never recomputed after a descendant changed.',
+    },
+    {
+      heading: 'Choosing it over the alternatives',
+      body: 'If the array never changes, do not build a segment tree, because a plain prefix-sum array or a sparse table answers the same queries faster and in far less code. If it does change but the aggregate is invertible and only point updates are needed, a Fenwick tree does the job in a quarter of the lines. Reach for a segment tree when the merge is not invertible, as with minimum, maximum, or greatest common divisor, when you need to descend into the structure searching for a position, or when range updates with lazy propagation are on the horizon. Its real advantage is generality: it works for any associative merge that has an identity, and each node can hold a rich summary rather than a single number.',
+    },
+    {
+      heading: 'Implementation pitfalls',
+      body: 'The flat layout puts the root at index 1 and gives node v children 2v and 2v plus 1, which is convenient but needs an array of size 4n rather than 2n, because when n is not a power of two the tree is uneven and the deepest indices overshoot. Recursion must carry the interval bounds along, since a node index by itself does not reveal what it covers. Mind the split: the left child takes start through mid and the right takes mid plus 1 through end, and getting that wrong creates overlapping intervals that double-count elements. The disjoint case must return a genuine identity for your merge, zero for sums or positive infinity for minimum, because a wrong neutral value corrupts results silently rather than crashing.',
+    },
+    {
+      heading: 'The same skeleton, different payloads',
+      body: 'Once the traversal exists, changing what a node stores changes what the tree can answer. Store a minimum along with how many times it occurs and you can ask how often the smallest value in a range appears. Store the best prefix, best suffix, best subarray, and total sum and you get maximum-subarray queries over any range, the classic example of storing just enough to make merging possible. Store a sorted list at each node and you get a merge-sort tree that counts how many values in a range fall below a threshold. The mental move never changes: ask what a parent needs from its children in order to answer the question, then store exactly that.',
+    },
+  ],
+  keyTerms: [
+    {
+      term: 'Node interval',
+      definition:
+        'The contiguous slice of the array that a node is responsible for. The root covers everything, each internal node splits its slice at the midpoint, and every leaf covers one element.',
+    },
+    {
+      term: 'Merge function',
+      definition:
+        'The rule that computes a parent\'s value from its two children, addition in this implementation. It must be associative, because the tree groups elements in whatever way its intervals dictate rather than in query order.',
+    },
+    {
+      term: 'Identity element',
+      definition:
+        'The value a disjoint branch returns so it cannot affect the answer, such as zero for sums or positive infinity for minimums. An associative merge plus an identity is precisely what a segment tree requires.',
+    },
+    {
+      term: 'Canonical decomposition',
+      definition:
+        'The set of fully covered nodes at which a query stops recursing. There are at most two per level of the tree, which is why a query visits only a logarithmic number of nodes.',
+    },
+    {
+      term: 'Heap-style indexing',
+      definition:
+        'Storing the tree in a flat array with the root at index 1 and node v children at 2v and 2v plus 1. It avoids pointers entirely at the cost of allocating roughly 4n slots.',
+    },
+  ],
+};
+
 export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   id: 'segment-tree',
   title: 'Segment Tree (Range Sum Query & Update)',
@@ -375,6 +434,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
     time: 'Every operation starts at the root and descends, and each level halves the interval, so the tree is only about log n levels deep. An update follows a single root-to-leaf path, and a query visits at most a constant number of nodes per level because fully covered branches return their cached sum immediately — so both cost O(log n) in every case. Building the tree visits each node exactly once, which is O(n).',
     space: 'The tree stores one cached sum per interval node; an array of size 4n safely covers every level of the (possibly uneven) binary tree, so memory grows linearly with the input — O(n).',
   },
+  topicGuide: SEGMENT_TREE_TOPIC_GUIDE,
   defaultInput: DEFAULT_SEGMENT_TREE_INPUT,
   generateSteps: generateSegmentTreeSteps,
 };
