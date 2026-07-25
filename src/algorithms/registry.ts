@@ -19,11 +19,27 @@ import { bubbleSort } from './sorting/bubbleSort';
 import { quickSort } from './sorting/quickSort';
 import { kruskalMst } from './trees/kruskalMst';
 
+import { numberOfIslands } from './graphs/numberOfIslands';
+import { editDistance } from './dp_2d/editDistance';
+import { convexHull } from './math_and_geometry/convexHull';
+
+import { binarySearchMatrix } from './binary_search/binarySearchMatrix';
+import { binaryTreeLca } from './trees/binaryTreeLca';
+import { triePrefixTree } from './tries/triePrefixTree';
+import { nQueens } from './backtracking/nQueens';
+
 export {
+  binarySearchMatrix,
+  binaryTreeLca,
+  triePrefixTree,
+  nQueens,
   prefixSum,
   twoSumSorted,
   validParentheses,
   slidingWindowMin,
+  numberOfIslands,
+  editDistance,
+  convexHull,
   bfsGraph,
   bubbleSort,
   coinChangeDp,
@@ -42,6 +58,13 @@ export {
 };
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
+  'binary-search-matrix': binarySearchMatrix as AlgorithmDefinition,
+  'binary-tree-lca': binaryTreeLca as AlgorithmDefinition,
+  'trie-prefix-tree': triePrefixTree as AlgorithmDefinition,
+  'n-queens': nQueens as AlgorithmDefinition,
+  'number-of-islands': numberOfIslands as AlgorithmDefinition,
+  'edit-distance': editDistance as AlgorithmDefinition,
+  'convex-hull': convexHull as AlgorithmDefinition,
   'prefix-sum': prefixSum as AlgorithmDefinition,
   'two-sum-sorted': twoSumSorted as AlgorithmDefinition,
   'valid-parentheses': validParentheses as AlgorithmDefinition,
