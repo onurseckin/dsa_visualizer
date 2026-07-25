@@ -12,15 +12,25 @@ vi.mock('../primitives/ProblemHeader', () => ({
   ProblemHeader: ({
     title,
     difficulty,
+    description,
+    expanded,
+    onToggleExpanded,
     onResetLayout,
   }: {
     title: string;
     difficulty?: string;
+    description: string;
+    expanded: boolean;
+    onToggleExpanded: () => void;
     onResetLayout?: () => void;
   }) => (
     <div data-testid="problem-header">
       <span>{title}</span>
       <span>{difficulty}</span>
+      <button aria-expanded={expanded} onClick={onToggleExpanded}>
+        Details
+      </button>
+      {expanded && <p>{description}</p>}
       <button onClick={onResetLayout}>Reset Layout</button>
     </div>
   ),
@@ -192,6 +202,69 @@ describe('MainLayout Component Spec', () => {
 
     const main = screen.getByRole('main');
     expect(main).toHaveStyle({ overflow: 'hidden', display: 'flex' });
+    expect(main).toHaveAttribute('data-details-expanded', 'false');
+  });
+
+  it('hides problem details by default and switches to page-scroll mode while expanded', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    const main = screen.getByRole('main');
+    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
+    expect(main).toHaveAttribute('data-details-expanded', 'false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
+    expect(main).toHaveAttribute('data-details-expanded', 'true');
+    expect(main).toHaveStyle({ overflowY: 'auto' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
+    expect(main).toHaveAttribute('data-details-expanded', 'false');
+    expect(main).toHaveStyle({ overflow: 'hidden' });
+  });
+
+  it('collapses details again when the algorithm changes', () => {
+    const { rerender } = render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
+
+    rerender(
+      <MainLayout
+        algorithm={{ ...dummyAlgorithm, id: 'insertion-sort' }}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
+    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
   });
 
   it('renders visualizer, code viewer, and complexity prose in split viewMode', () => {
