@@ -10,6 +10,7 @@ export interface TutorialCardProps {
   codeLine?: number;
   initialCollapsed?: boolean;
   onClose?: () => void;
+  variant?: 'standalone' | 'banner';
 }
 
 export const TutorialCard: React.FC<TutorialCardProps> = ({
@@ -21,14 +22,25 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   codeLine,
   initialCollapsed = false,
   onClose,
+  variant = 'standalone',
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
 
   const whatText = what || explanation?.what || '';
   const whyText = why || explanation?.why || '';
+  const isBanner = variant === 'banner';
 
   return (
-    <div className="glass-card" style={{ width: '100%', overflow: 'hidden' }}>
+    <div
+      className={isBanner ? 'tutorial-card-banner' : 'glass-card'}
+      style={{
+        width: '100%',
+        overflow: 'hidden',
+        background: isBanner ? 'transparent' : undefined,
+        border: isBanner ? 'none' : undefined,
+        borderRadius: isBanner ? 0 : undefined,
+      }}
+    >
       {/* Header Bar */}
       <div
         style={{

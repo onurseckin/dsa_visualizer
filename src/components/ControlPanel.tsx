@@ -9,7 +9,7 @@ import {
   Sliders,
 } from 'lucide-react';
 
-interface ControlPanelProps {
+export interface ControlPanelProps {
   isPlaying: boolean;
   onPlayPause: () => void;
   onStepBack: () => void;
@@ -23,6 +23,7 @@ interface ControlPanelProps {
   onDataSizeChange: (size: number) => void;
   onGenerateRandom: () => void;
   supportsCustomSize?: boolean;
+  variant?: 'standalone' | 'embedded';
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -39,18 +40,24 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onDataSizeChange,
   onGenerateRandom,
   supportsCustomSize = true,
+  variant = 'embedded',
 }) => {
+  const isEmbedded = variant === 'embedded';
+
   return (
     <div
-      className="glass-card"
+      className={isEmbedded ? 'control-panel-embedded' : 'glass-card'}
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.6rem 1.25rem',
-        margin: '0.75rem 1.25rem 0 1.25rem',
-        gap: '1rem',
+        padding: isEmbedded ? '0.6rem 1rem' : '0.6rem 1.25rem',
+        margin: isEmbedded ? '0' : '0.75rem 1.25rem 0 1.25rem',
+        borderTop: isEmbedded ? '1px solid var(--border-subtle)' : undefined,
+        background: isEmbedded ? 'var(--bg-surface)' : undefined,
+        gap: '0.75rem',
         flexWrap: 'wrap',
+        width: '100%',
       }}
     >
       {/* Playback Action Controls */}

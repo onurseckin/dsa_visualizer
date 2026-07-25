@@ -10,6 +10,7 @@ export interface ProblemHeaderProps {
   examples?: ProblemExample[];
   timeComplexity?: TimeComplexity;
   spaceComplexity?: string;
+  initialExpanded?: boolean;
 }
 
 const getDifficultyBadgeClass = (difficulty?: DifficultyLevel): string => {
@@ -34,12 +35,13 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   examples,
   timeComplexity,
   spaceComplexity,
+  initialExpanded = true,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   return (
-    <div className="glass-card" style={{ width: '100%', padding: '16px 20px' }}>
-      {/* Top Title Row */}
+    <div className="glass-card" style={{ width: '100%', padding: '12px 18px' }}>
+      {/* Compact Main Title & Metadata Row */}
       <div
         style={{
           display: 'flex',
@@ -47,16 +49,17 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          marginBottom: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        {/* Left Side: Title, Category, Difficulty & Complexity Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <h1
             style={{
-              fontSize: '1.4rem',
+              fontSize: '1.25rem',
               fontWeight: 800,
               color: 'var(--text-main)',
               letterSpacing: '-0.02em',
+              margin: 0,
             }}
           >
             {title}
@@ -79,75 +82,80 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
           </span>
 
           <span className={getDifficultyBadgeClass(difficulty)}>{difficulty}</span>
+
+          {/* Inline Complexity Pills */}
+          {timeComplexity && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontFamily: 'var(--font-code)',
+                background: 'var(--bg-darkest)',
+                border: '1px solid var(--border-subtle)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Time: <strong style={{ color: 'var(--accent-emerald)' }}>O({timeComplexity.average})</strong>
+            </span>
+          )}
+
+          {spaceComplexity && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontFamily: 'var(--font-code)',
+                background: 'var(--bg-darkest)',
+                border: '1px solid var(--border-subtle)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Space: <strong style={{ color: 'var(--accent-cyan)' }}>O({spaceComplexity})</strong>
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-          >
-            {isExpanded ? 'Hide Details ▲' : 'Show Details ▼'}
-          </button>
-        </div>
+        {/* Right Side: Expand / Collapse Toggle Button */}
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+        >
+          {isExpanded ? 'Hide Details ▲' : 'Show Details ▼'}
+        </button>
       </div>
 
-      {/* Complexity Badges */}
-      {(timeComplexity || spaceComplexity) && (
+      {/* Expandable Details Container: Description, Examples, Constraints */}
+      {isExpanded && (
         <div
           style={{
+            marginTop: '12px',
+            paddingTop: '12px',
+            borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
-            flexWrap: 'wrap',
-            gap: '12px',
-            marginBottom: '14px',
-            padding: '8px 12px',
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-muted)',
+            flexDirection: 'column',
+            gap: '14px',
           }}
         >
-          {timeComplexity && (
-            <div style={{ fontSize: '0.78rem', fontFamily: 'var(--font-code)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Time: </span>
-              <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>
-                O({timeComplexity.average})
-              </span>
-              <span style={{ color: 'var(--text-dark)', fontSize: '0.7rem', marginLeft: '6px' }}>
-                (Worst: O({timeComplexity.worst}))
-              </span>
-            </div>
-          )}
-          {spaceComplexity && (
-            <div style={{ fontSize: '0.78rem', fontFamily: 'var(--font-code)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Space: </span>
-              <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                O({spaceComplexity})
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+          {/* Description */}
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+            {description}
+          </p>
 
-      {/* Description */}
-      <p style={{ color: 'var(--text-dim)', fontSize: '0.92rem', lineHeight: '1.6' }}>
-        {description}
-      </p>
-
-      {/* Expandable Details Section */}
-      {isExpanded && (
-        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Examples */}
           {examples && examples.length > 0 && (
             <div>
               <div
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   color: 'var(--accent-mint)',
-                  marginBottom: '8px',
+                  marginBottom: '6px',
                 }}
               >
                 Examples
@@ -157,11 +165,11 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
                   <div
                     key={`example-${idx}`}
                     style={{
-                      padding: '10px 14px',
+                      padding: '8px 12px',
                       background: 'var(--bg-darkest)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       fontFamily: 'var(--font-code)',
                     }}
                   >
@@ -183,7 +191,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
                           marginTop: '4px',
                           color: 'var(--text-dim)',
                           fontFamily: 'var(--font-ui)',
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
                         }}
                       >
                         <em>{ex.explanation}</em>
@@ -200,7 +208,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
             <div>
               <div
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
@@ -212,9 +220,10 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
               </div>
               <ul
                 style={{
-                  paddingLeft: '20px',
+                  paddingLeft: '18px',
+                  margin: 0,
                   color: 'var(--text-dim)',
-                  fontSize: '0.84rem',
+                  fontSize: '0.82rem',
                   fontFamily: 'var(--font-code)',
                 }}
               >

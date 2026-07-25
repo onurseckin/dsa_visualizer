@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, ArrowRight, Sparkles } from 'lucide-react';
+import { Network, ArrowRight } from 'lucide-react';
 
 export interface NeetCodeNode {
   id: string;
@@ -22,8 +22,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: [],
     algorithmCount: 4,
     difficulty: 'Easy',
-    x: 400,
-    y: 50,
+    x: 550,
+    y: 60,
   },
   {
     id: 'two-pointers',
@@ -34,7 +34,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 180,
-    y: 150,
+    y: 170,
   },
   {
     id: 'stack-and-queue',
@@ -45,7 +45,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 400,
-    y: 150,
+    y: 170,
   },
   {
     id: 'binary-search',
@@ -56,7 +56,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 620,
-    y: 150,
+    y: 170,
   },
   {
     id: 'sliding-window',
@@ -66,8 +66,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Medium',
-    x: 100,
-    y: 250,
+    x: 120,
+    y: 290,
   },
   {
     id: 'linked-list',
@@ -77,8 +77,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 260,
-    y: 250,
+    x: 330,
+    y: 290,
   },
   {
     id: 'tree-fundamentals',
@@ -88,8 +88,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['linked-list', 'binary-search'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 520,
-    y: 250,
+    x: 550,
+    y: 290,
   },
   {
     id: 'tries-and-strings',
@@ -99,8 +99,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 100,
-    y: 350,
+    x: 180,
+    y: 410,
   },
   {
     id: 'heap-and-priority-queue',
@@ -110,8 +110,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 3,
     difficulty: 'Medium',
-    x: 280,
-    y: 350,
+    x: 400,
+    y: 410,
   },
   {
     id: 'backtracking',
@@ -121,8 +121,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 520,
-    y: 350,
+    x: 620,
+    y: 410,
   },
   {
     id: 'graph-traversal',
@@ -133,7 +133,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 4,
     difficulty: 'Medium',
     x: 400,
-    y: 450,
+    y: 530,
   },
   {
     id: 'graph-shortest-paths',
@@ -144,7 +144,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Hard',
     x: 180,
-    y: 550,
+    y: 650,
   },
   {
     id: 'graph-spanning-trees',
@@ -155,7 +155,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Medium',
     x: 400,
-    y: 550,
+    y: 650,
   },
   {
     id: 'graph-directed-and-scc',
@@ -166,7 +166,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Hard',
     x: 620,
-    y: 550,
+    y: 650,
   },
   {
     id: 'graph-flows-and-cuts',
@@ -177,7 +177,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Hard',
     x: 180,
-    y: 650,
+    y: 770,
   },
   {
     id: 'dp-1d',
@@ -187,8 +187,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['backtracking'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 740,
-    y: 450,
+    x: 770,
+    y: 530,
   },
   {
     id: 'dp-2d',
@@ -198,8 +198,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['dp-1d'],
     algorithmCount: 4,
     difficulty: 'Hard',
-    x: 740,
-    y: 550,
+    x: 770,
+    y: 650,
   },
   {
     id: 'advanced-range-queries',
@@ -209,8 +209,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['dp-2d'],
     algorithmCount: 4,
     difficulty: 'Hard',
-    x: 740,
-    y: 650,
+    x: 770,
+    y: 770,
   },
   {
     id: 'bit-manipulation',
@@ -220,8 +220,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 760,
-    y: 250,
+    x: 840,
+    y: 170,
   },
   {
     id: 'math-and-number-theory',
@@ -231,8 +231,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 760,
-    y: 350,
+    x: 900,
+    y: 290,
   },
   {
     id: 'geometry-and-sweep-line',
@@ -242,8 +242,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['math-and-number-theory'],
     algorithmCount: 2,
     difficulty: 'Hard',
-    x: 400,
-    y: 650,
+    x: 900,
+    y: 410,
   },
 ];
 
@@ -330,43 +330,6 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         width: '100%',
       }}
     >
-      {/* Title Header */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            background: 'rgba(0, 255, 157, 0.15)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '9999px',
-            padding: '0.3rem 1rem',
-            marginBottom: '0.75rem',
-          }}
-        >
-          <Sparkles style={{ width: '16px', height: '16px', color: 'var(--accent-emerald)' }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-emerald)' }}>
-            INTERVIEW & COMPETITIVE PROGRAMMING TOPOLOGY
-          </span>
-        </div>
-
-        <h1
-          style={{
-            fontSize: '2.2rem',
-            fontWeight: 800,
-            color: 'var(--text-main)',
-            letterSpacing: '-0.03em',
-            marginBottom: '0.5rem',
-          }}
-        >
-          Topologically Ordered Prerequisite Knowledge Graph
-        </h1>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', maxWidth: '720px', margin: '0 auto' }}>
-          Follow the prerequisite arrows from foundational data structures to specialized graph, flow, and range query algorithms.
-          Click any topic node to jump directly to its visualizers and Python code implementations.
-        </p>
-      </div>
-
       {/* Interactive SVG Knowledge Graph Container */}
       <div
         className="glass-card"
@@ -377,14 +340,14 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
           overflowX: 'auto',
           position: 'relative',
           padding: '2rem 1rem',
-          minHeight: '760px',
+          minHeight: '890px',
           background: 'var(--bg-darkest)',
         }}
       >
         <svg
-          width="920"
-          height="720"
-          viewBox="0 0 920 720"
+          width="1100"
+          height="850"
+          viewBox="0 0 1100 850"
           style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
         >
           <defs>
@@ -545,7 +508,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-muted)', paddingTop: '0.5rem', marginTop: '0.3rem' }}>
                 <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-code)', color: 'var(--text-muted)' }}>
-                  {node.algorithmCount} Interactive Algs
+                  {node.algorithmCount} Topics
                 </span>
                 <ArrowRight style={{ width: '14px', height: '14px', color: 'var(--accent-mint)' }} />
               </div>
@@ -556,3 +519,4 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
     </div>
   );
 };
+

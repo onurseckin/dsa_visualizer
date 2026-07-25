@@ -4,7 +4,6 @@ import { ALGORITHM_REGISTRY, getAllAlgorithms } from './algorithms/registry';
 import { useStepEngine } from './engine/stepEngine';
 import soundEngine from './engine/soundEngine';
 import { Navbar } from './components/Navbar';
-import { ControlPanel } from './components/ControlPanel';
 import { MainLayout } from './components/MainLayout';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { ProblemList } from './components/ProblemList';
@@ -175,35 +174,31 @@ export function App() {
       ) : appView === 'list' ? (
         <ProblemList onSelectAlgorithm={handleGlobalSelectAlgorithm} />
       ) : (
-        <>
-          {/* Playback Control Toolbar */}
-          <ControlPanel
-            isPlaying={isPlaying}
-            onPlayPause={togglePlay}
-            onStepBack={stepBackward}
-            onStepForward={stepForward}
-            onReset={reset}
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            speed={speed}
-            onSpeedChange={setSpeed}
-            dataSize={dataSize}
-            onDataSizeChange={setDataSize}
-            onGenerateRandom={handleGenerateRandom}
-            supportsCustomSize={algorithm.category === 'arrays_and_hashing'}
-          />
-
-          {/* Main Visualizer Workspace Layout */}
-          <MainLayout
-            algorithm={algorithm}
-            currentStep={currentStep}
-            viewMode={viewMode}
-            showTutorial={showTutorial}
-            showAuxiliary={showAuxiliary}
-            onToggleTutorial={() => setShowTutorial(false)}
-            onToggleAuxiliary={() => setShowAuxiliary((prev) => !prev)}
-          />
-        </>
+        /* Main Visualizer Workspace Layout */
+        <MainLayout
+          algorithm={algorithm}
+          currentStep={currentStep}
+          viewMode={viewMode}
+          showTutorial={showTutorial}
+          showAuxiliary={showAuxiliary}
+          onToggleTutorial={() => setShowTutorial(false)}
+          onToggleAuxiliary={() => setShowAuxiliary((prev) => !prev)}
+          controlProps={{
+            isPlaying,
+            onPlayPause: togglePlay,
+            onStepBack: stepBackward,
+            onStepForward: stepForward,
+            onReset: reset,
+            currentStep: currentStepIndex,
+            totalSteps,
+            speed,
+            onSpeedChange: setSpeed,
+            dataSize,
+            onDataSizeChange: setDataSize,
+            onGenerateRandom: handleGenerateRandom,
+            supportsCustomSize: algorithm.category === 'arrays_and_hashing',
+          }}
+        />
       )}
     </div>
   );
