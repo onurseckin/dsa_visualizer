@@ -124,8 +124,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     1,
-    'Initialize 2-DFS Tree Diameter Algorithm',
-    `Starting 2-DFS algorithm to find tree diameter from arbitrary start root Node '${nodeMap.get(rootId)?.val ?? rootId}'.`
+    `Initialize 2-DFS Tree Diameter Algorithm from start node ${nodeMap.get(rootId)?.val ?? rootId}`,
+    `The 2-DFS method leverages the tree boundary invariant: running a DFS from any arbitrary start node reliably identifies at least one boundary endpoint of the tree diameter.`
   );
 
   // DFS 1: Find farthest node A from root
@@ -147,7 +147,7 @@ export const generateTreeDiameterSteps = (
     addStep(
       4,
       `DFS 1: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
-      `Evaluating current node distance from start root. Max distance so far: ${maxDistA} at Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}.`,
+      `Evaluating distance from start root. Track maximum depth encountered so far (currently max distance ${maxDistA} at Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}).`,
       u,
       farthestNodeA,
       undefined,
@@ -168,7 +168,7 @@ export const generateTreeDiameterSteps = (
   addStep(
     13,
     `DFS 1: Start search from root Node ${nodeMap.get(rootId)?.val ?? rootId}`,
-    `First DFS pass will find the farthest node A from root.`,
+    `First DFS pass explores all branches to discover node A—the node located at maximum distance from the initial arbitrary root.`,
     rootId
   );
 
@@ -177,7 +177,7 @@ export const generateTreeDiameterSteps = (
   addStep(
     13,
     `DFS 1 Complete: Farthest node A found is Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
-    `Max distance from root is ${maxDistA}. Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} is chosen as diameter endpoint A.`,
+    `The maximum distance from root is ${maxDistA}. Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} is guaranteed to be one endpoint of the diameter path.`,
     undefined,
     farthestNodeA,
     undefined,
@@ -207,7 +207,7 @@ export const generateTreeDiameterSteps = (
     addStep(
       4,
       `DFS 2: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist} from Node A (${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA})`,
-      `Traversing tree from endpoint A. Current max distance: ${diameter}.`,
+      `Traversing tree branches from endpoint A. Updating current maximum path length (currently diameter ${diameter} at Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}).`,
       u,
       farthestNodeA,
       farthestNodeB,
@@ -228,7 +228,7 @@ export const generateTreeDiameterSteps = (
   addStep(
     15,
     `DFS 2: Start search from endpoint A (Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA})`,
-    `Second DFS pass from endpoint A will find the farthest node B and the full diameter path.`,
+    `Second DFS pass traverses the tree using endpoint A as origin to locate the farthest node B and extract the complete diameter path.`,
     farthestNodeA,
     farthestNodeA
   );
@@ -240,7 +240,7 @@ export const generateTreeDiameterSteps = (
   addStep(
     15,
     `DFS 2 Complete: Endpoint B is Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}`,
-    `Farthest node from A is Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} at distance ${diameter}.`,
+    `Farthest node reachable from A is Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} at distance ${diameter}, proving this path is maximal.`,
     undefined,
     farthestNodeA,
     farthestNodeB,
@@ -253,7 +253,7 @@ export const generateTreeDiameterSteps = (
   addStep(
     16,
     `Tree Diameter Computation Complete! Diameter = ${diameter}`,
-    `The longest simple path in the tree is between Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} with path: ${pathVals}.`,
+    `The maximum tree diameter path spans between Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} with path: ${pathVals}.`,
     undefined,
     farthestNodeA,
     farthestNodeB,
@@ -270,7 +270,27 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   category: 'tree_queries_and_diameter',
   difficulty: 'Medium',
   description:
-    'Computes the diameter (longest simple path) of an unweighted tree using the classic two-pass Depth-First Search algorithm.',
+    'Computes the diameter (the length of the longest simple path between any two nodes) of an unweighted tree using the double Depth-First Search (2-DFS) algorithm. The algorithm relies on the fundamental structural invariant: starting a DFS from any arbitrary root node finds a node A that is guaranteed to be one of the diameter\'s endpoints. A second DFS starting from node A discovers the opposite endpoint B and the exact diameter distance.',
+  constraints: [
+    '1 <= Number of nodes N <= 10^5',
+    'The graph is guaranteed to be a valid connected tree with N - 1 undirected edges',
+    'Node values are unique identifiers or integers within [1, 10^9]',
+    'Edge weights are uniform (unweighted tree)',
+  ],
+  examples: [
+    {
+      input: 'rootId = "1", nodes = 8-node binary tree',
+      output: '6',
+      explanation:
+        'DFS 1 from root node 1 finds leaf node 7 (distance 3). DFS 2 from node 7 finds leaf node 8 (distance 6). The path 7 -> 4 -> 2 -> 1 -> 3 -> 6 -> 8 contains 6 edges.',
+    },
+    {
+      input: 'rootId = "1", nodes = [1 -> 2 -> 3]',
+      output: '2',
+      explanation:
+        'In a 3-node linear chain tree, the path between endpoint leaf 3 and endpoint leaf 1 spans 2 edges.',
+    },
+  ],
   code: TREE_DIAMETER_CODE,
   timeComplexity: {
     best: 'O(V + E)',

@@ -98,14 +98,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     }
   };
 
+  const [resetLayoutKey, setResetLayoutKey] = React.useState<number>(0);
+
+  const handleResetLayout = React.useCallback(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('dsa_visualizer_layout_split');
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    setResetLayoutKey((prev) => prev + 1);
+  }, []);
+
   const leftColumnContent = (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
+        minHeight: '480px',
         height: '100%',
-        overflow: 'hidden',
       }}
     >
       {/* Primary Visualizer Canvas Card (HERO Focus - Fits Viewport Height) */}
@@ -116,7 +129,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           flexDirection: 'column',
           position: 'relative',
           flex: 1,
-          minHeight: '260px',
+          minHeight: '480px',
           overflow: 'hidden',
           border: '1px solid var(--border-muted)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
@@ -133,9 +146,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             }}
           >
             <TutorialCard
+              explanation={currentStep.explanation}
               what={currentStep.explanation.what}
               why={currentStep.explanation.why}
               stepIndex={currentStep.stepIndex}
+              totalSteps={totalSteps}
               codeLine={currentStep.codeLine}
               onClose={onToggleTutorial}
               variant="banner"
@@ -145,6 +160,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         {/* Canvas Center Stage Render Area (Fills Available Height) */}
         <div
+          className="visualizer-canvas-stage"
           style={{
             flex: 1,
             display: 'flex',
@@ -153,6 +169,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             padding: 0,
             width: '100%',
             height: '100%',
+            minHeight: '480px',
             overflow: 'auto',
           }}
         >
@@ -163,7 +180,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '200px',
+                minHeight: '240px',
                 color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '1.5rem',
@@ -189,7 +206,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
       {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
       {showAuxiliary && currentStep?.auxiliaryState && (
-        <div style={{ flexShrink: 0, maxHeight: '220px', overflow: 'auto' }}>
+        <div style={{ flexShrink: 0, minHeight: '120px' }}>
           <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
         </div>
       )}
@@ -202,11 +219,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
+        minHeight: '480px',
         height: '100%',
-        overflow: 'hidden',
       }}
     >
-      <div style={{ flex: 1, minHeight: '200px', overflow: 'auto' }}>
+      <div style={{ flex: 1, minHeight: '360px', overflow: 'auto' }}>
         <CodeBlockViewer
           code={algorithm.code}
           activeLine={currentStep?.codeLine || 1}
@@ -231,9 +248,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        height: 'calc(100vh - 68px)',
-        maxHeight: 'calc(100dvh - 68px)',
-        overflow: 'hidden',
+        minHeight: 'calc(100vh - 68px)',
         boxSizing: 'border-box',
       }}
     >
@@ -248,11 +263,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           examples={algorithm.examples}
           timeComplexity={algorithm.timeComplexity}
           spaceComplexity={algorithm.spaceComplexity}
+          onResetLayout={handleResetLayout}
         />
       </div>
 
-      {/* Resizable Layout Stage (Zero Page Scroll) */}
-      <div style={{ flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      {/* Resizable Layout Stage */}
+      <div style={{ flex: 1, height: '100%', minHeight: '480px' }}>
         {viewMode === 'split' && (
           <ResizableLayout
             leftPanel={leftColumnContent}
@@ -260,15 +276,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             initialSplitRatio={60}
             minLeftPercent={30}
             maxLeftPercent={80}
+            resetKey={resetLayoutKey}
           />
         )}
         {viewMode === 'visual' && (
-          <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: '480px' }}>
             {leftColumnContent}
           </div>
         )}
         {viewMode === 'code' && (
-          <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: '480px' }}>
             {rightColumnContent}
           </div>
         )}

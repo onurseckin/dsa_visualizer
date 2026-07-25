@@ -173,7 +173,7 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
           12,
           `Mark multiple i = ${i} as composite`,
           wasPrime
-            ? `${i} is a composite multiple of prime ${p} (${p} x ${i / p}). Set is_prime[${i}] = False.`
+            ? `${i} is a composite multiple of prime ${p} (${p} x ${i / p}). Set is_prime[${i}] = False. Multiples smaller than p*p were already marked by smaller prime factors.`
             : `${i} was already marked composite by a smaller prime factor.`,
           { p, i, 'is_prime[i]': false }
         );
@@ -196,7 +196,7 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   addStep(
     9,
     `Check loop condition (p * p > limit)`,
-    `Outer loop terminates because p * p exceeds ${limit}. All remaining True entries are prime.`,
+    `Outer loop terminates because p * p exceeds ${limit}. All remaining True entries in the array are guaranteed to be prime.`,
     { limit }
   );
 
@@ -232,7 +232,22 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   category: 'math_and_number_theory',
   difficulty: 'Easy',
   description:
-    'Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit by iteratively marking multiples of each prime as composite.',
+    'Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a specified limit. It iteratively marks the multiples of each discovered prime as composite, starting from p*p. It operates in sub-linear O(N log log N) time.',
+  constraints: [
+    '0 <= limit <= 10^5',
+  ],
+  examples: [
+    {
+      input: 'limit = 10',
+      output: '[2, 3, 5, 7]',
+      explanation: 'Composite numbers 4, 6, 8, 9, 10 are eliminated, leaving primes 2, 3, 5, 7.',
+    },
+    {
+      input: 'limit = 30',
+      output: '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]',
+      explanation: 'Iteratively marks multiples of 2, 3, 5 up to sqrt(30) ~ 5.',
+    },
+  ],
   code: PYTHON_SIEVE_CODE,
   timeComplexity: {
     best: 'O(n log log n)',

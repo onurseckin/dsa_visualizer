@@ -137,7 +137,7 @@ export const generateFloydWarshallSteps = (
     codeLine: 3,
     explanation: {
       what: `Initialize ${n}x${n} distance matrix`,
-      why: 'Set self-distances dist[i][i] = 0 and direct edge weights. All other pairs default to ∞.',
+      why: 'Set self-distances dist[i][i] = 0 and populate direct edge weights. All other non-adjacent cell pairs default to ∞.',
     },
     primarySnapshot: {
       kind: 'grid',
@@ -161,7 +161,7 @@ export const generateFloydWarshallSteps = (
       codeLine: 12,
       explanation: {
         what: `Consider intermediate pivot node k = ${pivotNode} (index ${k})`,
-        why: `Test if routing paths through pivot '${pivotNode}' offers shorter all-pairs distances.`,
+        why: `Evaluate if routing paths through intermediate pivot node '${pivotNode}' yields shorter paths for any (i, j) cell pair.`,
       },
       primarySnapshot: {
         kind: 'grid',
@@ -195,7 +195,7 @@ export const generateFloydWarshallSteps = (
               codeLine: 17,
               explanation: {
                 what: `Update dist['${uNode}']['${vNode}']: ${distIJ === Infinity ? '∞' : distIJ} → ${newDist}`,
-                why: `Path via '${pivotNode}' is shorter: dist['${uNode}']['${pivotNode}'] (${distIK}) + dist['${pivotNode}']['${vNode}'] (${distKJ}) = ${newDist} < ${distIJ === Infinity ? '∞' : distIJ}.`,
+                why: `Subpath Optimization: Routing via intermediate pivot '${pivotNode}' reduces distance: dist['${uNode}']['${pivotNode}'] (${distIK}) + dist['${pivotNode}']['${vNode}'] (${distKJ}) = ${newDist} < previous dist['${uNode}']['${vNode}'] (${distIJ === Infinity ? '∞' : distIJ}).`,
               },
               primarySnapshot: {
                 kind: 'grid',
@@ -269,12 +269,26 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   category: 'graph_shortest_paths',
   difficulty: 'Medium',
   description:
-    'Computes shortest paths between all pairs of vertices in a weighted directed graph using dynamic programming 2D matrix tabulation.',
-  constraints: ['1 <= V <= 50', '-10^3 <= weight <= 10^3'],
+    'Floyd-Warshall computes the all-pairs shortest paths for a weighted directed graph using dynamic programming matrix tabulation. It considers every vertex k as a potential intermediate pivot node between every pair of vertices (i, j). If passing through pivot k yields a shorter path distance (dist[i][k] + dist[k][j] < dist[i][j]), the matrix entry is updated. After trying all V possible pivot vertices across all V^2 cell pairs (O(V^3) total iterations), the distance matrix contains the absolute shortest path length between any pair of vertices in the graph.',
+  constraints: [
+    '1 <= Vertices V <= 200',
+    '0 <= Edges E <= V * (V - 1)',
+    '-10^4 <= Edge Weight <= 10^4',
+    'Graph can be directed or undirected',
+    'Can handle negative edge weights, provided no negative-weight cycles exist',
+  ],
   examples: [
     {
-      input: '4 nodes, 5 weighted directed edges',
+      input: '4 nodes (1-4), 5 edges: [1->3(-2), 2->1(4), 2->3(3), 3->4(2), 4->2(-1)]',
       output: 'Full 4x4 shortest path distance matrix',
+      explanation:
+        '1. Init direct edges. 2. Pivot k=3 updates dist[1][4] = dist[1][3] + dist[3][4] = (-2)+2 = 0. 3. Pivot k=4 updates dist[4][3] via node 2. Complete 4x4 matrix computed.',
+    },
+    {
+      input: '2 nodes, edge 1->2(5), no 2->1 edge',
+      output: 'dist[1][2]=5, dist[2][1]=∞',
+      explanation:
+        'Direct path 1 to 2 is distance 5. Node 1 is unreachable from Node 2, maintaining dist[2][1] = ∞.',
     },
   ],
   code: FLOYD_WARSHALL_CODE,

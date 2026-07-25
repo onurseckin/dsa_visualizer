@@ -66,14 +66,14 @@ export const generatePrefixSumSteps = (
   addStep(
     1,
     'Initialize Prefix Sum Calculation',
-    `Given input array [${nums.join(', ')}], initialize prefix sum computation.`,
+    `Prefix sum precomputes cumulative totals for input array [${nums.join(', ')}] so sub-array range sums (L..R) can be calculated in O(1) time as prefix[R+1] - prefix[L].`,
     { length: n }
   );
 
   addStep(
     3,
     'Allocate Prefix Array',
-    `Created prefix array of size ${n + 1} initialized to 0: [${prefixValues.join(', ')}].`,
+    `Created prefix array of size ${n + 1} initialized to 0: [${prefixValues.join(', ')}]. Storing prefix[0] = 0 provides a clean base case for ranges starting at index 0.`,
     { prefixLength: n + 1 }
   );
 
@@ -89,14 +89,14 @@ export const generatePrefixSumSteps = (
     addStep(
       4,
       `Inspect index i = ${i} (nums[${i}] = ${currentVal})`,
-      `Processing element at index ${i}.`,
+      `Inspecting element nums[${i}] = ${currentVal} to extend the cumulative prefix sum from index 0 through index ${i}.`,
       { i, 'nums[i]': currentVal, 'prefix[i]': prevPrefix }
     );
 
     addStep(
       5,
       `Compute prefix[${i + 1}] = prefix[${i}] + nums[${i}]`,
-      `prefix[${i + 1}] = ${prevPrefix} + ${currentVal} = ${newPrefix}.`,
+      `Cumulative update: prefix[${i + 1}] = ${prevPrefix} + ${currentVal} = ${newPrefix}. This represents the sum of all elements from index 0 to ${i}.`,
       { i, 'prefix[i]': prevPrefix, 'nums[i]': currentVal, 'prefix[i+1]': newPrefix }
     );
 
@@ -107,7 +107,7 @@ export const generatePrefixSumSteps = (
   addStep(
     6,
     'Complete Prefix Sum Array',
-    `Computed final prefix sum array: [${prefixValues.join(', ')}].`,
+    `Computed final prefix sum array: [${prefixValues.join(', ')}]. Any range sum query can now be answered in constant time.`,
     { result: prefixValues.join(', ') }
   );
 
@@ -120,7 +120,21 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Computes cumulative prefix sums for an array, enabling O(1) time sub-array range sum queries.',
+    'Computes cumulative prefix sums for an array, enabling O(1) time sub-array range sum queries by precomputing cumulative totals.',
+  constraints: ['1 <= nums.length <= 10^5', '-10^4 <= nums[i] <= 10^4'],
+  examples: [
+    {
+      input: 'nums = [2, 4, 1, 3, 5]',
+      output: 'prefix = [0, 2, 6, 7, 10, 15]',
+      explanation:
+        'Sum of sub-array from index 1 to 3 (4 + 1 + 3 = 8) is evaluated in O(1) time as prefix[4] - prefix[1] = 10 - 2 = 8.',
+    },
+    {
+      input: 'nums = [1, 1, 1]',
+      output: 'prefix = [0, 1, 2, 3]',
+      explanation: 'Prefix sums build incrementally at each step.',
+    },
+  ],
   code: PREFIX_SUM_CODE,
   timeComplexity: {
     best: 'O(n)',

@@ -125,7 +125,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     addStep(
       3,
       `Compute remainder (remainder = a % b)`,
-      `${currentA} % ${currentB} = ${remainder} (since ${currentA} = ${quotient} * ${currentB} + ${remainder}).`,
+      `${currentA} % ${currentB} = ${remainder} (since ${currentA} = ${quotient} * ${currentB} + ${remainder}). By Division Theorem, gcd(${currentA}, ${currentB}) = gcd(${currentB}, ${remainder}).`,
       currentA,
       currentB,
       remainder,
@@ -153,7 +153,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     addStep(
       5,
       `Update b = remainder`,
-      `Assign remainder ${remainder} to b (was ${prevB}). Next state: gcd(${currentA}, ${currentB}).`,
+      `Assign remainder ${remainder} to b (was ${prevB}). Next state: gcd(${currentA}, ${currentB}). Divisors shrink exponentially in each step.`,
       currentA,
       currentB
     );
@@ -174,7 +174,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     codeLine: 6,
     explanation: {
       what: `Return result GCD = ${currentA}`,
-      why: `The Greatest Common Divisor of ${initialA} and ${initialB} is ${currentA}.`,
+      why: `The Greatest Common Divisor of ${initialA} and ${initialB} is ${currentA}. When b reaches 0, the last non-zero remainder is the exact GCD.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -212,7 +212,22 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   category: 'math_and_number_theory',
   difficulty: 'Easy',
   description:
-    'Computes the Greatest Common Divisor (GCD) of two integers using the Euclidean algorithm by repeatedly replacing numbers with remainder after division.',
+    'Computes the Greatest Common Divisor (GCD) of two non-negative integers using the classical Euclidean algorithm. Based on the fundamental principle that the GCD of two numbers also divides their remainder (gcd(a, b) = gcd(b, a mod b)), reducing subproblem sizes logarithmically.',
+  constraints: [
+    '0 <= a, b <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'a = 48, b = 18',
+      output: '6',
+      explanation: '48 = 2*18 + 12 -> gcd(18, 12). 18 = 1*12 + 6 -> gcd(12, 6). 12 = 2*6 + 0 -> GCD is 6.',
+    },
+    {
+      input: 'a = 101, b = 10',
+      output: '1',
+      explanation: '101 % 10 = 1, 10 % 1 = 0 -> GCD is 1 (coprime integers).',
+    },
+  ],
   code: PYTHON_EUCLID_GCD_CODE,
   timeComplexity: {
     best: 'O(1)',

@@ -118,12 +118,12 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   addStep(
     19,
     "Initialize Kruskal's Minimum Spanning Tree (MST) Algorithm",
-    'Preparing Disjoint Set Union (DSU) parent pointers and edge sorting.',
+    'Preparing Disjoint Set Union (DSU) parent pointers and sorting edge list by non-decreasing weight to enable greedy edge selection.',
     { nodeCount: nodes.length, edgeCount: edges.length }
   );
 
   if (nodes.length === 0) {
-    addStep(28, 'Kruskal MST complete', 'Graph has no nodes.', { mstEdgeCount: 0 });
+    addStep(28, 'Kruskal MST complete', 'Graph has 0 nodes.', { mstEdgeCount: 0 });
     return steps;
   }
 
@@ -135,7 +135,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   addStep(
     20,
     'Initialize DSU parent array (each node is its own parent set)',
-    'Set parent[v] = v for all vertices in the graph.',
+    'Set parent[v] = v for all vertices so that every node starts in its own singleton connected component.',
     { dsuInitialized: true }
   );
 
@@ -175,9 +175,9 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   addStep(
     21,
     `Sort all ${sortedEdges.length} edges in non-decreasing order of weight`,
-    `Edges ordered by weight: [${sortedEdges
+    `Greedy Choice Strategy: Processing edges in ascending weight order ([${sortedEdges
       .map((e) => `${e.from}-${e.to}(w=${e.weight ?? 1})`)
-      .join(', ')}].`,
+      .join(', ')}]) ensures that the lightest edge bridging two disconnected components is always prioritized.`,
     { sortedEdgeCount: sortedEdges.length }
   );
 
@@ -205,7 +205,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     addStep(
       24,
       `Examine edge (${edge.from} - ${edge.to}, weight ${edge.weight ?? 1})`,
-      `Finding DSU roots: find('${edge.from}') = '${rootU}', find('${edge.to}') = '${rootV}'.`,
+      `Finding DSU component roots: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}' to test for cycle creation.`,
       {
         from: edge.from,
         to: edge.to,
@@ -229,7 +229,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       addStep(
         26,
         `Union successful! Add edge (${edge.from} - ${edge.to}) to MST`,
-        `Roots '${rootU}' and '${rootV}' are different. Set parent['${rootU}'] = '${rootV}'.`,
+        `Roots '${rootU}' and '${rootV}' are distinct (find('${edge.from}') != find('${edge.to}')). Edge (${edge.from} - ${edge.to}) bridges two separate components without creating a cycle. Set parent['${rootU}'] = '${rootV}'.`,
         {
           from: edge.from,
           to: edge.to,
@@ -242,7 +242,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       addStep(
         25,
         `Union rejected! Edge (${edge.from} - ${edge.to}) forms a cycle`,
-        `Both nodes share the same DSU root '${rootU}'. Edge skipped to prevent cycle.`,
+        `Both nodes '${edge.from}' and '${edge.to}' already share DSU root '${rootU}'. Adding this edge would form a cycle, so it is safely skipped.`,
         {
           from: edge.from,
           to: edge.to,
@@ -262,7 +262,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   addStep(
     28,
     `Kruskal's MST complete. Total MST weight = ${totalMstWeight}`,
-    `Found Minimum Spanning Tree with ${mstEdges.length} edges and total weight ${totalMstWeight}.`,
+    `Successfully identified Minimum Spanning Tree containing ${mstEdges.length} edges with minimum cumulative weight of ${totalMstWeight}.`,
     {
       totalEdgesInMst: mstEdges.length,
       totalMstWeight,
@@ -278,7 +278,28 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   category: 'graph_spanning_trees',
   difficulty: 'Medium',
   description:
-    "Finds the Minimum Spanning Tree (MST) of a connected, weighted graph by greedily picking edges in increasing order of weight using Disjoint Set Union (DSU / Union-Find).",
+    'Kruskal\'s algorithm computes the Minimum Spanning Tree (MST) of a connected, undirected weighted graph. An MST is a subset of edges that connects all V vertices together without any cycles while minimizing the total sum of edge weights. The algorithm operates greedily: it sorts all E graph edges in non-decreasing order of weight and iterates through them. For each edge (u, v), a Disjoint Set Union (DSU / Union-Find) data structure with path compression checks if u and v belong to different connected components (find(u) != find(v)). If they belong to distinct sets, the edge is accepted into the MST and the sets are merged (union(u, v)); otherwise, the edge is rejected to prevent a cycle.',
+  constraints: [
+    '1 <= Vertices V <= 10^4',
+    '0 <= Edges E <= 10^5',
+    '-10^4 <= Edge Weight <= 10^4',
+    'Graph must be undirected and connected (to form a single spanning tree of V - 1 edges)',
+    'Duplicate edge weights are supported',
+  ],
+  examples: [
+    {
+      input: '4 nodes (A,B,C,D), 5 edges: [A-B(1), B-C(2), C-D(3), A-C(4), B-D(5)]',
+      output: 'MST Edges: [A-B(1), B-C(2), C-D(3)], Total Weight = 6',
+      explanation:
+        '1. Sort edges: A-B(1), B-C(2), C-D(3), A-C(4), B-D(5). 2. Accept A-B(1). 3. Accept B-C(2). 4. Accept C-D(3). 5. Edge A-C(4) forms cycle (roots A & C connected via B), skipped. MST total weight = 6.',
+    },
+    {
+      input: '3 nodes (A,B,C) forming a triangle with weights A-B(5), B-C(5), A-C(10)',
+      output: 'MST Edges: [A-B(5), B-C(5)], Total Weight = 10',
+      explanation:
+        'Selecting the two lightest edges connects all 3 vertices into an MST without forming the triangle cycle.',
+    },
+  ],
   code: KRUSKAL_CODE,
   timeComplexity: {
     best: 'O(E log E)',

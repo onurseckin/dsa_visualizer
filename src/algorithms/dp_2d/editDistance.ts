@@ -88,7 +88,7 @@ export const generateEditDistanceSteps = (
     codeLine: 3,
     explanation: {
       what: `Initialized DP table of size (${m + 1} x ${n + 1}) with base cases.`,
-      why: 'Converting a word prefix to an empty string requires deleting all characters, and vice versa.',
+      why: 'Converting a prefix of word1 of length i to an empty string requires i deletions (dp[i][0] = i), and converting an empty string to a prefix of word2 of length j requires j insertions (dp[0][j] = j).',
     },
     primarySnapshot: createGridSnapshot(undefined, [], [0, n]),
     auxiliaryState: {
@@ -109,7 +109,7 @@ export const generateEditDistanceSteps = (
           codeLine: 13,
           explanation: {
             what: `Matching characters word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}') at index (${i}, ${j}).`,
-            why: `Since characters match, no extra edit operation is needed. dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
+            why: `Since characters match, no edit operation is required. The optimal cost equals the cost of matching prefixes word1[0..${i - 2}] and word2[0..${j - 2}]: dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot([i, j], [[i - 1, j - 1]], [i, j]),
           auxiliaryState: {
@@ -133,7 +133,7 @@ export const generateEditDistanceSteps = (
           codeLine: 15,
           explanation: {
             what: `Mismatch word1[${i - 1}] ('${char1}') != word2[${j - 1}] ('${char2}') at index (${i}, ${j}). Compare Delete(${deleteOp}), Insert(${insertOp}), Replace(${replaceOp}).`,
-            why: `Minimum previous cost is ${minPrev} via ${bestOpName}. dp[${i}][${j}] = 1 + ${minPrev} = ${dp[i][j]}.`,
+            why: `Minimum previous edit cost is ${minPrev} via ${bestOpName}. Add 1 for the edit operation: dp[${i}][${j}] = 1 + min(${deleteOp}, ${insertOp}, ${replaceOp}) = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot(
             [i, j],
@@ -165,7 +165,7 @@ export const generateEditDistanceSteps = (
     codeLine: 17,
     explanation: {
       what: `Edit Distance computation complete. Minimum operations to convert "${word1}" to "${word2}" is ${dp[m][n]}.`,
-      why: 'Full 2D tabulation complete. Answer stored in bottom-right cell dp[m][n].',
+      why: 'Full 2D tabulation complete. The bottom-right cell dp[m][n] holds the globally optimal edit distance between full strings.',
     },
     primarySnapshot: createGridSnapshot([m, n], [], [m, n]),
     auxiliaryState: {
@@ -183,13 +183,21 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   category: 'dp_2d',
   difficulty: 'Hard',
   description:
-    'Finds the minimum number of single-character insertions, deletions, or substitutions to transform word1 into word2 using 2D DP tabulation.',
-  constraints: ['0 <= word1.length, word2.length <= 20'],
+    'Finds the minimum number of single-character operations (insertions, deletions, or substitutions) required to transform word1 into word2 using Levenshtein distance 2D dynamic programming tabulation.',
+  constraints: [
+    '0 <= word1.length, word2.length <= 500',
+    'Strings consist of lowercase English letters',
+  ],
   examples: [
     {
       input: 'word1 = "horse", word2 = "ros"',
       output: '3',
       explanation: 'horse -> rorse (replace h with r) -> rose (remove r) -> ros (remove e)',
+    },
+    {
+      input: 'word1 = "intention", word2 = "execution"',
+      output: '5',
+      explanation: 'intention -> inention (remove t) -> enention (replace i with e) -> exention (replace n with x) -> exection (replace n with c) -> execution (insert u)',
     },
   ],
   code: EDIT_DISTANCE_CODE,

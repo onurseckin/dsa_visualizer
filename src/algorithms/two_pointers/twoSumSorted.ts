@@ -76,7 +76,7 @@ export const generateTwoSumSortedSteps = (
   addStep(
     1,
     'Initialize Two Sum II (Sorted)',
-    `Search for two elements in sorted array [${nums.join(', ')}] that sum to target ${target}.`,
+    `Because array [${nums.join(', ')}] is sorted, we can find two numbers summing to target ${target} in O(n) time and O(1) space using opposing two pointers.`,
     { target, length: n }
   );
 
@@ -86,14 +86,14 @@ export const generateTwoSumSortedSteps = (
   addStep(
     2,
     'Initialize Left Pointer',
-    `Set left pointer at index 0 (value ${nums[left] ?? 'N/A'}).`,
+    `Set left pointer at index 0 (value ${nums[left] ?? 'N/A'}), pointing to the smallest unexamined element.`,
     { left, right, target }
   );
 
   addStep(
     3,
     'Initialize Right Pointer',
-    `Set right pointer at index ${right} (value ${nums[right] ?? 'N/A'}).`,
+    `Set right pointer at index ${right} (value ${nums[right] ?? 'N/A'}), pointing to the largest unexamined element.`,
     { left, right, target }
   );
 
@@ -116,14 +116,14 @@ export const generateTwoSumSortedSteps = (
     addStep(
       5,
       `Evaluate Left < Right (${left} < ${right})`,
-      `Loop condition satisfied. Pointers active at indices ${left} and ${right}.`,
+      `Loop invariant satisfied: left (${left}) < right (${right}). Testing active candidate pair (nums[${left}] = ${nums[left]}, nums[${right}] = ${nums[right]}).`,
       { left, right, 'nums[left]': nums[left], 'nums[right]': nums[right] }
     );
 
     addStep(
       6,
       `Calculate current_sum = nums[${left}] + nums[${right}]`,
-      `Sum is ${nums[left]} + ${nums[right]} = ${sum}. Target is ${target}.`,
+      `Compute candidate sum: ${nums[left]} + ${nums[right]} = ${sum}. Target is ${target}.`,
       { left, right, sum, target }
     );
 
@@ -136,7 +136,7 @@ export const generateTwoSumSortedSteps = (
       addStep(
         9,
         `Found Target Sum! Return indices [${left}, ${right}]`,
-        `nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${target}.`,
+        `Target match! nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${target}. Solution indices [${left}, ${right}] returned.`,
         { resultIdx1: left, resultIdx2: right, target, sum }
       );
       return steps;
@@ -144,7 +144,7 @@ export const generateTwoSumSortedSteps = (
       addStep(
         11,
         `Sum (${sum}) < Target (${target})`,
-        `Sum is too small. Increment left pointer from ${left} to ${left + 1} to increase sum.`,
+        `Monotonic Decision: Sum (${sum}) is smaller than target (${target}). Pairing nums[${left}] with any element <= nums[${right}] cannot reach target. Increment left pointer from ${left} to ${left + 1} to increase sum.`,
         { left, right, sum, target }
       );
       elements[left].state = 'visited';
@@ -154,7 +154,7 @@ export const generateTwoSumSortedSteps = (
       addStep(
         13,
         `Sum (${sum}) > Target (${target})`,
-        `Sum is too large. Decrement right pointer from ${right} to ${right - 1} to decrease sum.`,
+        `Monotonic Decision: Sum (${sum}) is larger than target (${target}). Pairing nums[${right}] with any element >= nums[${left}] cannot reach target. Decrement right pointer from ${right} to ${right - 1} to decrease sum.`,
         { left, right, sum, target }
       );
       elements[right].state = 'visited';
@@ -166,7 +166,7 @@ export const generateTwoSumSortedSteps = (
   addStep(
     15,
     'Return empty array []',
-    `No pair in array sums to target ${target}.`,
+    `Pointers converged (left >= right) without finding any pair summing to target ${target}. Return empty array.`,
     { target }
   );
 
@@ -179,7 +179,25 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   category: 'two_pointers',
   difficulty: 'Easy',
   description:
-    'Find two numbers in a 1-indexed sorted array that add up to target using the outer-bound two-pointer approach.',
+    'Find two numbers in a 1-indexed sorted array of integers that add up to target using opposing left and right pointers in O(n) time and O(1) extra space.',
+  constraints: [
+    '2 <= nums.length <= 3 * 10^4',
+    '-1000 <= nums[i] <= 1000',
+    'nums is sorted in non-decreasing order.',
+    '-1000 <= target <= 1000',
+  ],
+  examples: [
+    {
+      input: 'nums = [1, 3, 4, 6, 8, 10, 13], target = 14',
+      output: '[0, 6]',
+      explanation: 'nums[0] (1) + nums[6] (13) = 14. Return 0-indexed indices [0, 6].',
+    },
+    {
+      input: 'nums = [2, 7, 11, 15], target = 9',
+      output: '[0, 1]',
+      explanation: 'nums[0] (2) + nums[1] (7) = 9. Return [0, 1].',
+    },
+  ],
   code: TWO_SUM_SORTED_CODE,
   timeComplexity: {
     best: 'O(n)',

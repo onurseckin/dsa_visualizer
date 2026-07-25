@@ -87,12 +87,12 @@ const getStateStyles = (state: ElementState) => {
 export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   elements,
   mode = 'bar',
-  maxHeight = 240,
+  maxHeight = 320,
   title,
 }) => {
   const maxVal = Math.max(...elements.map((el) => el.value), 1);
   const n = Math.max(elements.length, 1);
-  const barWidth = Math.min(Math.max(600 / n, 28), 54);
+  const barWidth = Math.min(Math.max(700 / n, 32), 60);
   const gap = 8;
   const paddingX = 16;
   const paddingY = 40;
@@ -108,6 +108,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
+        minHeight: '480px',
         padding: 0,
       }}
     >
@@ -129,9 +130,11 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         width="100%"
         height="100%"
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',
+          minHeight: '480px',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',

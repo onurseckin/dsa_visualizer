@@ -84,7 +84,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   addStep(
     2,
     `Initialize Kadane: currentMax = ${currentMax}, globalMax = ${globalMax}`,
-    `Start processing first element nums[0] = ${elements[0].value}.`,
+    `Kadane Decision Rule: Initialize running local max (currentMax) and overall max (globalMax) to nums[0] (${elements[0].value}). At index 0, the best contiguous subarray ending at index 0 is the single element nums[0].`,
     { currentMax, globalMax, start, end, tempStart, i: 0, 'nums[0]': elements[0].value }
   );
 
@@ -115,7 +115,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         7,
         `nums[${i}] (${val}) > currentMax + nums[${i}] (${currentMax + val})`,
-        `Discard previous subarray. Start new subarray from index ${i} with currentMax = ${currentMax}.`,
+        `Reset Subarray Window: The previous accumulated sum was negative (${currentMax - val}), making it detrimental to extend. Discard previous window and start a fresh subarray at index ${i}.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
       );
     } else {
@@ -124,7 +124,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         11,
         `Extend subarray: currentMax += nums[${i}] (${val}) -> ${currentMax}`,
-        `Adding nums[${i}] (${val}) increases/modifies the current subarray sum to ${currentMax}.`,
+        `Extend Subarray Window: The previous accumulated sum (${currentMax - val}) is positive/helpful. Adding nums[${i}] (${val}) extends the running subarray sum to ${currentMax}.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
       );
     }
@@ -137,7 +137,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         14,
         `New globalMax found: ${globalMax}`,
-        `Updated globalMax to ${globalMax} for subarray from index ${start} to ${end}.`,
+        `Record New High: Running local max currentMax (${currentMax}) exceeds previous globalMax. Update globalMax = ${globalMax} for subarray range [${start}..${end}].`,
         { i, currentMax, globalMax, start, end, tempStart }
       );
     }
@@ -160,7 +160,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   addStep(
     18,
     `Kadane Algorithm Complete`,
-    `Maximum contiguous subarray sum is ${globalMax} spanning indices [${start}..${end}].`,
+    `Evaluation Complete: Discovered maximum contiguous subarray sum globalMax = ${globalMax} spanning indices [${start}..${end}] in single linear O(n) pass.`,
     { globalMax, start, end }
   );
 
@@ -173,7 +173,25 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   category: 'arrays_and_hashing',
   difficulty: 'Medium',
   description:
-    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in an array of numbers in O(n) time and O(1) extra space.",
+    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in an array of numbers in O(n) time and O(1) extra space by dynamically deciding whether to extend the current subarray or reset it at each index.",
+  constraints: ['1 <= nums.length <= 10^5', '-10^4 <= nums[i] <= 10^4'],
+  examples: [
+    {
+      input: 'nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]',
+      output: '6',
+      explanation: 'The contiguous subarray [4, -1, 2, 1] has the maximum sum = 6.',
+    },
+    {
+      input: 'nums = [1]',
+      output: '1',
+      explanation: 'The single element array has maximum sum = 1.',
+    },
+    {
+      input: 'nums = [5, 4, -1, 7, 8]',
+      output: '23',
+      explanation: 'The entire array forms the maximum contiguous subarray with sum = 23.',
+    },
+  ],
   code: KADANE_MAX_SUBARRAY_CODE,
   timeComplexity: {
     best: 'O(n)',

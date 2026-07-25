@@ -93,8 +93,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
-      what: `Initialize distance table. Set dist['${startNode}'] = 0, all other nodes = ∞. Push (0, '${startNode}') to Priority Queue.`,
-      why: 'Source node has 0 distance to itself. Priority Queue will process nodes in ascending order of current tentative distance.',
+      what: `Initialize distance table. Set dist['${startNode}'] = 0, all other nodes = ∞. Push (0, '${startNode}') into Priority Queue.`,
+      why: 'Source vertex has 0 distance to itself while all other tentative distances default to infinity. Priority Queue orders unvisited vertices by distance to enforce the greedy choice property.',
     },
     primarySnapshot: { kind: 'graph', nodes: getGraphNodes(startNode), edges: getGraphEdges() },
     auxiliaryState: {
@@ -117,7 +117,7 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
       codeLine: 10,
       explanation: {
         what: `Extracted node '${u}' from Priority Queue with distance ${d}. Mark '${u}' as visited.`,
-        why: `Dijkstra Greedy Choice: '${u}' currently has the smallest unvisited tentative distance (${d}). Its shortest path distance is finalized.`,
+        why: `Dijkstra Greedy Choice: Node '${u}' currently holds the minimum tentative distance (${d}) among all unvisited vertices. Non-negative edge weights guarantee that no alternate unvisited path can reach '${u}' with a smaller cost, so dist['${u}'] is finalized.`,
       },
       primarySnapshot: { kind: 'graph', nodes: getGraphNodes(u), edges: getGraphEdges() },
       auxiliaryState: {
@@ -143,7 +143,7 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
           codeLine: 19,
           explanation: {
             what: `Relaxed edge (${u} → ${v}, weight ${edge.weight}). Updated dist['${v}'] = ${newDist}. Push (${newDist}, '${v}') to PQ.`,
-            why: `Found shorter path to '${v}' via '${u}': dist['${u}'] (${dist[u] - edge.weight}) + ${edge.weight} = ${newDist} < previous dist['${v}'] (${oldDist === Infinity ? '∞' : oldDist}).`,
+            why: `Triangle Inequality Relaxation: dist['${u}'] (${dist[u] - edge.weight}) + weight (${edge.weight}) = ${newDist} < previous dist['${v}'] (${oldDist === Infinity ? '∞' : oldDist}). Shorter path discovered to '${v}' via '${u}'.`,
           },
           primarySnapshot: {
             kind: 'graph',
@@ -166,7 +166,7 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     codeLine: 22,
     explanation: {
       what: `Dijkstra algorithm execution completed. Shortest path distances from '${startNode}' computed for all nodes.`,
-      why: 'All reachable graph nodes evaluated; Priority Queue is empty.',
+      why: 'All reachable graph vertices have been visited and finalized; Priority Queue is empty.',
     },
     primarySnapshot: { kind: 'graph', nodes: getGraphNodes(), edges: getGraphEdges() },
     auxiliaryState: {
@@ -185,9 +185,28 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   category: 'graph_shortest_paths',
   difficulty: 'Medium',
   description:
-    'Finds the shortest paths from a single source node to all other nodes in a weighted graph with non-negative edge weights.',
-  constraints: ['1 <= V <= 100', '0 <= weight <= 10^4'],
-  examples: [{ input: 'StartNode = A', output: 'Distances: A:0, B:2, C:5, D:4' }],
+    'Dijkstra\'s algorithm finds the single-source shortest paths from a starting node to all other vertices in a weighted graph with non-negative edge weights. Using a Greedy strategy backed by a Min-Priority Queue (min-heap), the algorithm repeatedly extracts the unvisited vertex with the smallest tentative distance, marks its distance as finalized, and relaxes all of its outgoing edges. The greedy choice property guarantees that once a vertex is popped from the priority queue, its current tentative distance is optimal and cannot be improved by any other path.',
+  constraints: [
+    '1 <= Vertices V <= 10^4',
+    '0 <= Edges E <= 10^5',
+    '0 <= Edge Weight <= 10^4 (non-negative edge weights required)',
+    'Graph can be directed or undirected',
+    'Source vertex must exist in the graph',
+  ],
+  examples: [
+    {
+      input: 'StartNode = A, Nodes = [A, B, C, D, E], Edges = [A->B(4), A->C(2), B->C(1), B->D(5), C->D(8), C->E(10), D->E(2)]',
+      output: 'Distances: A:0, B:4, C:2, D:9, E:11',
+      explanation:
+        '1. Start A at dist 0. 2. Pop C (dist 2), relax C->E (12) and C->D (10). 3. Pop B (dist 4), relax B->D (9). 4. Pop D (dist 9), relax D->E (11). Final shortest path distances computed.',
+    },
+    {
+      input: 'StartNode = A, disconnected graph with nodes [A, B, C] and edge A->B(5)',
+      output: 'Distances: A:0, B:5, C:∞',
+      explanation:
+        'Node C is unreachable from source node A, maintaining an infinite distance value.',
+    },
+  ],
   code: DIJKSTRA_CODE,
   timeComplexity: { best: 'O((V + E) log V)', average: 'O((V + E) log V)', worst: 'O((V + E) log V)' },
   spaceComplexity: 'O(V + E)',

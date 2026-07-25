@@ -98,7 +98,6 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   const treeValues = new Array<number>(maxTreeNodes).fill(0);
   const activeNodeMap = new Map<number, InternalNode>();
 
-  // Build structure layout first
   const dummyBuild = (node: number, start: number, end: number) => {
     activeNodeMap.set(node, { nodeIdx: node, start, end, val: 0 });
     if (start === end) return;
@@ -165,7 +164,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       `Build node ${node} covering range [${start}..${end}]`,
       start === end
         ? `Leaf node covering element at index ${start} (val = ${input.array[start]}).`
-        : `Internal node covering range [${start}..${end}]. Recurse left and right.`,
+        : `Internal node covering range [${start}..${end}]. Recurse left and right subtrees.`,
       { node, start, end },
       { [node]: 'compare' }
     );
@@ -202,7 +201,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   addStep(
     14,
     'Segment Tree Construction Complete',
-    'Root node contains total array sum.',
+    'Root node contains total array sum. Tree is fully constructed.',
     { totalSum: treeValues[1] }
   );
 
@@ -223,7 +222,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       addStep(
         31,
         `Query node ${node} [${start}..${end}] is fully inside target [${l}..${r}]`,
-        `Range [${start}..${end}] is fully enclosed by [${l}..${r}]. Return node sum ${treeValues[node]}.`,
+        `Range [${start}..${end}] is fully enclosed by [${l}..${r}]. Return precomputed node sum ${treeValues[node]}.`,
         { node, start, end, l, r, val: treeValues[node] },
         { [node]: 'sorted' }
       );
@@ -350,7 +349,19 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   category: 'advanced_range_queries',
   difficulty: 'Hard',
   description:
-    'A Segment Tree is a binary tree structure used for storing information about intervals or segments. It allows querying range sums and point updates in O(log n) time.',
+    'A Segment Tree is a full binary tree used for storing interval information. It enables querying range sums and executing point updates in O(log N) time by dividing array intervals recursively into left and right sub-ranges.',
+  constraints: [
+    '1 <= N <= 10^5',
+    '1 <= Q <= 10^5',
+    '-10^9 <= array[i] <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'array = [1, 3, 5, 7, 9, 11], operations = [Query [1..3], Update index 2 to 6, Query [1..3]]',
+      output: 'Query 1: 15, Query 2: 16',
+      explanation: 'Initial sum arr[1..3] = 3+5+7 = 15. Updating arr[2] from 5 to 6 changes range sum to 3+6+7 = 16.',
+    },
+  ],
   code: SEGMENT_TREE_CODE,
   timeComplexity: {
     best: 'O(log n)',

@@ -145,7 +145,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     1,
     "Initialize Kosaraju's Algorithm",
-    "Starting Kosaraju's 2-Pass algorithm for Strongly Connected Components.",
+    "Starting Kosaraju's 2-Pass algorithm for Strongly Connected Components. Pass 1 will run DFS on original graph G to record finish order.",
     undefined,
     'Initialization',
     { nodeCount: currentNodes.length, edgeCount: currentEdges.length }
@@ -155,7 +155,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     2,
     'Pass 1: Start DFS traversal to compute finish order stack',
-    'Running DFS on original graph G to record vertices in order of finishing times.',
+    'Running DFS on original graph G. Vertices finishing later will be placed higher in the stack, ensuring sink SCCs of G^T are processed first in Pass 2.',
     undefined,
     'Pass 1 (DFS Finish Stack)'
   );
@@ -170,7 +170,7 @@ export const generateKosarajuSccSteps = (
     addStep(
       6,
       `Pass 1: DFS visiting Node '${u}'`,
-      `Marked Node '${u}' as visited. Recursively exploring unvisited out-neighbors.`,
+      `Marked Node '${u}' as visited. Recursively exploring unvisited out-neighbors to establish finishing times.`,
       u,
       'Pass 1 (DFS Finish Stack)',
       { current: u }
@@ -185,7 +185,7 @@ export const generateKosarajuSccSteps = (
         addStep(
           8,
           `Pass 1: Traverse edge '${u}' -> '${v}'`,
-          `Neighbor '${v}' is unvisited. Recurse into '${v}'.`,
+          `Neighbor '${v}' is unvisited. Recurse into '${v}' before pushing '${u}' to finish stack.`,
           v,
           'Pass 1 (DFS Finish Stack)',
           { from: u, to: v }
@@ -202,7 +202,7 @@ export const generateKosarajuSccSteps = (
     addStep(
       10,
       `Pass 1: Node '${u}' finished. Pushed to finish stack.`,
-      `All outgoing edges from '${u}' processed. Added '${u}' to stack. Current stack size: ${finishStack.length}.`,
+      `All outgoing edges from '${u}' processed. '${u}' is pushed to the finish stack. Nodes on top of the stack finished last.`,
       u,
       'Pass 1 (DFS Finish Stack)',
       { current: u, stackSize: finishStack.length }
@@ -218,7 +218,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     14,
     'Pass 1 Complete! All vertices processed.',
-    `Finish stack computed: [${[...finishStack].reverse().join(', ')}].`,
+    `Finish stack computed: [${[...finishStack].reverse().join(', ')}]. Top vertex completed last in original graph traversal.`,
     undefined,
     'Pass 1 (Complete)',
     { stackSize: finishStack.length }
@@ -235,7 +235,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     16,
     'Transpose Graph G -> G^T',
-    'Reversed all edge directions to form the transposed graph G^T.',
+    'Reversed all edge directions to form transposed graph G^T. SCCs in G remain SCCs in G^T, but component reachability is inverted.',
     undefined,
     'Graph Transpose (Reversed Edges)',
     { transposed: true }
@@ -245,7 +245,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     18,
     'Pass 2: Pop nodes from stack and run DFS on G^T',
-    'Vertices with higher finish times are processed first to extract Strongly Connected Components.',
+    'Vertices with higher finish times are processed first on G^T. Traversal from a source SCC in G^T isolates exactly one SCC without escaping to other components.',
     undefined,
     'Pass 2 (Extract SCCs)'
   );
@@ -261,7 +261,7 @@ export const generateKosarajuSccSteps = (
     addStep(
       20,
       `Pass 2: Adding Node '${u}' to SCC #${sccs.length + 1}`,
-      `Node '${u}' is reachable in G^T. Appended to current component.`,
+      `Node '${u}' is reachable in transposed graph G^T from the root of current component. Appended to SCC #${sccs.length + 1}.`,
       u,
       'Pass 2 (Extract SCCs)',
       { current: u, componentSize: component.length }
@@ -284,7 +284,7 @@ export const generateKosarajuSccSteps = (
     addStep(
       27,
       `Pass 2: Pop Node '${u}' from stack`,
-      `Checking if Node '${u}' has been visited in Pass 2.`,
+      `Evaluating top node '${u}' from finish stack. If unvisited in Pass 2, it anchors a new Strongly Connected Component.`,
       u,
       'Pass 2 (Extract SCCs)',
       { popped: u }
@@ -306,7 +306,7 @@ export const generateKosarajuSccSteps = (
       addStep(
         31,
         `Pass 2: Discovered SCC #${sccs.length}: {${component.join(', ')}}`,
-        `Successfully extracted Strongly Connected Component #${sccs.length} containing ${component.length} vertex/vertices.`,
+        `Successfully extracted Strongly Connected Component #${sccs.length} containing ${component.length} vertex/vertices. All internal nodes can reach each other.`,
         undefined,
         'Pass 2 (Extract SCCs)',
         { sccIndex: sccs.length, members: component.join(', ') }
@@ -317,7 +317,7 @@ export const generateKosarajuSccSteps = (
   addStep(
     32,
     `Kosaraju SCC Complete! Found ${sccs.length} Strongly Connected Component(s).`,
-    `All vertices grouped into SCCs. Graph decomposition complete.`,
+    'All vertices grouped into SCCs. Graph decomposition complete.',
     undefined,
     'Complete',
     { sccCount: sccs.length }
@@ -328,11 +328,24 @@ export const generateKosarajuSccSteps = (
 
 export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   id: 'kosaraju-scc',
-  title: 'Kosaraju\'s Strongly Connected Components',
+  title: "Kosaraju's Strongly Connected Components",
   category: 'graph_directed_and_scc',
   difficulty: 'Hard',
   description:
-    'Finds all Strongly Connected Components (SCCs) in a directed graph using Kosaraju\'s two-pass Depth-First Search algorithm with graph transposition.',
+    'Finds all Strongly Connected Components (SCCs) in a directed graph using Kosaraju\'s two-pass Depth-First Search algorithm with graph transposition. A directed graph is strongly connected if every vertex is reachable from any other vertex. Kosaraju\'s algorithm decomposes the graph into a condensation DAG of maximal strongly connected subgraphs in linear time O(V + E).',
+  constraints: [
+    '1 <= V <= 500',
+    '0 <= E <= 2000',
+    'Graph is directed and may contain cycles and self-loops',
+  ],
+  examples: [
+    {
+      input: 'Nodes 0..4, Edges: 0->1, 1->2, 2->0, 1->3, 3->4, 4->3',
+      output: '2 SCCs: SCC 1 = {0, 1, 2}, SCC 2 = {3, 4}',
+      explanation:
+        'Vertices 0, 1, 2 form a directed cycle and can reach each other. Vertices 3 and 4 form another 2-node cycle. Edge 1->3 connects the two components in one direction.',
+    },
+  ],
   code: KOSARAJU_SCC_CODE,
   timeComplexity: {
     best: 'O(V + E)',

@@ -125,7 +125,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
   addStep(
     1,
     `Initialize ${n}-Queens Backtracking Solver`,
-    `Goal: Place ${n} non-attacking queens on an ${n}x${n} chessboard.`
+    `Goal: Place ${n} non-attacking queens on an ${n}x${n} chessboard such that no two queens share the same row, column, or diagonal.`
   );
 
   const backtrack = (row: number) => {
@@ -133,7 +133,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
       6,
       `Enter backtrack(row = ${row})`,
       row === n
-        ? `Reached row ${n}! All ${n} queens placed successfully.`
+        ? `Reached row ${n}! All ${n} queens placed successfully without conflicts.`
         : `Attempting to place queen at row ${row}.`,
       undefined,
       false,
@@ -145,7 +145,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
       addStep(
         8,
         `Solution #${totalSolutions} Found!`,
-        `All ${n} queens placed with no conflicts across rows, columns, or diagonals.`,
+        `All ${n} queens placed with no conflicts across rows, columns, or diagonals. Recorded complete solution configuration.`,
         undefined,
         true,
         { row, totalSolutions, isSolution: true }
@@ -162,8 +162,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         12,
         `Check position (row ${row}, col ${col})`,
         hasConflict
-          ? `Conflict detected at col ${col} or diagonal (d1=${d1}, d2=${d2}). Cannot place Queen.`
-          : `Position (row ${row}, col ${col}) is safe! Proceeding to place Queen.`,
+          ? `Conflict detected at col ${col} or diagonal (diag1=${d1}, diag2=${d2}). Pruning branch.`
+          : `Position (row ${row}, col ${col}) is safe! No conflicting queens in column or diagonals.`,
         { r: row, c: col, conflict: hasConflict },
         false,
         { row, col, hasConflict }
@@ -178,7 +178,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         addStep(
           15,
           `Place Queen at (row ${row}, col ${col})`,
-          `Added queen to board and marked col ${col}, diag1=${d1}, diag2=${d2} as occupied.`,
+          `Added queen to board at (row ${row}, col ${col}) and registered occupied column ${col}, major diagonal ${d1}, and minor diagonal ${d2}.`,
           { r: row, c: col, conflict: false },
           false,
           { row, col }
@@ -194,7 +194,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         addStep(
           22,
           `Backtrack: Remove Queen from (row ${row}, col ${col})`,
-          `Backtracking from row ${row + 1}. Removed queen from (row ${row}, col ${col}).`,
+          `Backtracking from row ${row + 1}. Removed queen from (row ${row}, col ${col}) to explore remaining candidate positions.`,
           { r: row, c: col, conflict: false },
           false,
           { row, col }
@@ -223,7 +223,22 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
   category: 'backtracking',
   difficulty: 'Hard',
   description:
-    'The N-Queens puzzle requires placing N chess queens on an N×N chessboard so that no two queens threaten each other using recursive backtracking.',
+    'The N-Queens puzzle requires placing N chess queens on an N×N chessboard so that no two queens threaten each other. Using recursive backtracking, queens are placed row by row while maintaining lookup sets for occupied columns and diagonals (row - col and row + col). Invalid placement branches are pruned early.',
+  constraints: [
+    '1 <= N <= 9',
+  ],
+  examples: [
+    {
+      input: 'n = 4',
+      output: '2 valid solutions',
+      explanation: 'Solutions: [[".Q..", "...Q", "Q...", "..Q."], ["..Q.", "Q...", "...Q", ".Q.."]]',
+    },
+    {
+      input: 'n = 1',
+      output: '1 valid solution',
+      explanation: 'Single queen placed at (0, 0).',
+    },
+  ],
   code: N_QUEENS_CODE,
   timeComplexity: {
     best: 'O(N!)',

@@ -51,7 +51,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       codeLine: 1,
       explanation: {
         what: 'Input array is empty.',
-        why: 'Cannot find kth largest element in an empty array.',
+        why: 'Cannot extract the Kth largest element from an array with length 0.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -72,8 +72,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
-      what: `Initialize min-heap of maximum size k=${k}.`,
-      why: 'A min-heap of size K keeps the K largest elements seen so far.',
+      what: `Initialize Min-Heap with capacity target K = ${k}.`,
+      why: 'A Min-Heap of size K acts as a filter tracking the K largest elements seen so far. The smallest of these K elements resides at the root for instant O(1) comparison.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -135,8 +135,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
-        what: `Push num=${num} into min-heap.`,
-        why: `Heap now contains ${minHeap.length} elements: [${minHeap.join(', ')}].`,
+        what: `Push num=${num} into Min-Heap (Heap size: ${minHeap.length}).`,
+        why: `Inserting ${num} and restoring heap order via sift-up ensures that the root remains the smallest element among all items currently in the heap: [${minHeap.join(', ')}].`,
       },
       primarySnapshot: {
         kind: 'array',
@@ -167,8 +167,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         stepIndex: stepIdx++,
         codeLine: 8,
         explanation: {
-          what: `Heap size exceeded K (${minHeap.length + 1} > ${k}). Popped smallest element: ${popped}.`,
-          why: 'By evicting the smallest element, we maintain the K largest elements seen so far.',
+          what: `Heap size exceeded K (${minHeap.length + 1} > ${k}). Evicted root minimum: ${popped}.`,
+          why: `Because we only need to keep the K largest elements, evicting the root minimum guarantees that all numbers retained in the heap are strictly greater than or equal to ${popped}.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -199,7 +199,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     codeLine: 9,
     explanation: {
       what: `Algorithm finished. The ${k}th largest element is ${result}.`,
-      why: 'The min-heap of size K contains the K largest elements, so its root (smallest of the K) is the Kth largest element.',
+      why: `The Min-Heap of size K retains the K largest elements from the entire array. Because its root represents the minimum value among these top K candidates, it is mathematically the Kth largest element overall.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -228,21 +228,24 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   category: 'heap_and_priority_queue',
   difficulty: 'Medium',
   description:
-    'Find the Kth largest element in an unsorted array using a Min-Heap of size K.',
+    'Find the Kth largest element in an unsorted array of numbers using a Min-Heap of fixed capacity K. As we iterate through each element in the array, we push it into the min-heap. Whenever the heap size exceeds K, the minimum element (located at the root) is evicted. Because smaller elements are systematically removed, the min-heap maintains the K largest elements seen so far across the entire array. Consequently, when all elements have been processed, the minimum element remaining at the heap\'s root is precisely the Kth largest element.',
   constraints: [
     '1 <= k <= nums.length <= 10^5',
     '-10^4 <= nums[i] <= 10^4',
+    'Duplicate elements are counted as distinct occurrences',
   ],
   examples: [
     {
       input: 'nums = [3,2,1,5,6,4], k = 2',
       output: '5',
-      explanation: 'The 2nd largest element in sorted order [1,2,3,4,5,6] is 5.',
+      explanation:
+        'Sorting the array in non-decreasing order gives [1,2,3,4,5,6]. The 2nd largest element is 5. The min-heap of size 2 retains [5, 6] with root 5.',
     },
     {
       input: 'nums = [3,2,3,1,2,4,5,5,6], k = 4',
       output: '4',
-      explanation: 'The 4th largest element is 4.',
+      explanation:
+        'Sorted order is [1,2,2,3,3,4,5,5,6]. The 4th largest element is 4. The min-heap of size 4 retains [4, 5, 5, 6] with root 4.',
     },
   ],
   code: `import heapq

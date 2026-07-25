@@ -89,7 +89,7 @@ export const generateHuffmanCodingSteps = (
     codeLine: 15,
     explanation: {
       what: `Count character frequencies for text "${rawText}".`,
-      why: 'Count frequencies of each character to build min-heap priority queue.',
+      why: 'Character frequency counts determine priority. Characters occurring more frequently will be placed closer to the root of the tree, resulting in shorter binary codes.',
     },
     primarySnapshot: {
       kind: 'tree',
@@ -132,7 +132,7 @@ export const generateHuffmanCodingSteps = (
     codeLine: 16,
     explanation: {
       what: `Initialize min-heap with ${heap.length} leaf nodes.`,
-      why: 'Heap ordered by frequency allows greedy extraction of the two lowest-frequency nodes.',
+      why: 'A min-heap priority queue allows greedy $O(\\log K)$ extraction of the two lowest-frequency nodes in each merging step.',
     },
     primarySnapshot: {
       kind: 'tree',
@@ -161,7 +161,6 @@ export const generateHuffmanCodingSteps = (
   ): { nodes: TreeNodeItem[]; rootId?: string } => {
     const treeNodes: TreeNodeItem[] = [];
 
-    // Calculate layout coordinates
     const assignPositions = (
       nodeId: string,
       depth: number,
@@ -232,7 +231,7 @@ export const generateHuffmanCodingSteps = (
       codeLine: 20,
       explanation: {
         what: `Pop two lowest-frequency nodes: ${left.char ? `'${left.char}'` : left.id} (${left.freq}) and ${right.char ? `'${right.char}'` : right.id} (${right.freq}).`,
-        why: 'Greedy choice: Merge the two smallest subtrees into a new parent node.',
+        why: 'Greedy choice property: The two least frequent nodes must be siblings at the deepest level of an optimal prefix code tree.',
       },
       primarySnapshot: {
         kind: 'tree',
@@ -261,7 +260,7 @@ export const generateHuffmanCodingSteps = (
       codeLine: 25,
       explanation: {
         what: `Merged parent node ${parentId} with frequency ${mergedNode.freq} re-inserted into min-heap.`,
-        why: 'Re-heapify priority queue to prepare for next iteration.',
+        why: 'Re-heapify priority queue to prepare for the next greedy merging iteration until a single root remains.',
       },
       primarySnapshot: {
         kind: 'tree',
@@ -305,7 +304,7 @@ export const generateHuffmanCodingSteps = (
     codeLine: 27,
     explanation: {
       what: `Huffman Tree construction complete. Final root frequency = ${rootNode?.freq || 0}.`,
-      why: 'Traversed tree to derive optimal variable-length prefix binary codes for each character.',
+      why: 'Traversed binary tree (left edge = 0, right edge = 1) to derive optimal variable-length prefix-free binary codes for each character, minimizing total encoded bit length.',
     },
     primarySnapshot: {
       kind: 'tree',
@@ -333,14 +332,17 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   category: 'greedy_algorithms',
   difficulty: 'Medium',
   description:
-    'Huffman Coding is a greedy data compression algorithm that constructs an optimal binary prefix code tree based on character frequencies.',
-  constraints: ['1 <= text.length <= 100'],
+    'Huffman Coding is a lossless greedy data compression algorithm that constructs an optimal variable-length prefix code tree based on character frequencies. Characters occurring more frequently are assigned shorter binary codes, guaranteeing minimal average code length (approaching theoretical entropy limits).',
+  constraints: [
+    '1 <= text.length <= 10^4',
+    'Text consists of ASCII characters',
+  ],
   examples: [
     {
       input: 'text = "abracadabra"',
-      output: 'Codes derived: a: "0", b: "110", r: "111", c: "100", d: "101"',
+      output: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
       explanation:
-        'Higher frequency character "a" receives shorter prefix code (1 bit), reducing overall encoded size.',
+        'Character "a" has highest frequency (5 occurrences) and receives a 1-bit code ("0"). Rare characters receiving 3-bit codes reduce total encoded string length.',
     },
   ],
   code: PYTHON_HUFFMAN_CODE,

@@ -86,7 +86,7 @@ export function generateMergeIntervalsSteps(
     codeLine: 4,
     explanation: {
       what: `Sort ${intervals.length} intervals by start time.`,
-      why: 'Sorting allows processing intervals sequentially and easily checking for overlaps.',
+      why: 'Sorting intervals by their starting boundary guarantees that any potential overlaps occur between adjacent intervals in the sorted sequence, allowing single-pass processing.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -111,7 +111,7 @@ export function generateMergeIntervalsSteps(
     codeLine: 5,
     explanation: {
       what: `Initialize merged list with first interval ${formatInterval(intervals[0])}.`,
-      why: 'The first interval is our initial comparison anchor.',
+      why: 'The first sorted interval serves as our initial running merged interval against which subsequent intervals are compared.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -141,7 +141,7 @@ export function generateMergeIntervalsSteps(
         codeLine: 9,
         explanation: {
           what: `Overlap detected! Current ${formatInterval(current)} overlaps with previous ${formatInterval({ start: prev.start, end: oldEnd })}.`,
-          why: `Since current.start (${current.start}) <= prev.end (${oldEnd}), update prev.end to max(${oldEnd}, ${current.end}) = ${prev.end}. Merged interval is now ${formatInterval(prev)}.`,
+          why: `Since current.start (${current.start}) <= prev.end (${oldEnd}), the intervals overlap. Merge by updating prev.end to max(${oldEnd}, ${current.end}) = ${prev.end}. Merged interval is now ${formatInterval(prev)}.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -170,7 +170,7 @@ export function generateMergeIntervalsSteps(
         codeLine: 11,
         explanation: {
           what: `No overlap between previous ${formatInterval(prev)} and current ${formatInterval(current)}.`,
-          why: `current.start (${current.start}) > prev.end (${prev.end}), so append ${formatInterval(current)} as a new non-overlapping interval.`,
+          why: `current.start (${current.start}) > prev.end (${prev.end}), meaning current interval begins strictly after the previous interval ends. Append ${formatInterval(current)} as a new independent merged interval.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -198,7 +198,7 @@ export function generateMergeIntervalsSteps(
     codeLine: 12,
     explanation: {
       what: `Finished merging. Result: ${merged.map(formatInterval).join(', ')}.`,
-      why: 'All non-overlapping merged intervals covering the input range have been produced.',
+      why: 'All non-overlapping merged intervals covering the full input range have been produced.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -229,7 +229,7 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   category: 'intervals',
   difficulty: 'Medium',
   description:
-    'Merge all overlapping intervals and return an array of non-overlapping intervals covering all input intervals.',
+    'Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals. Intervals are sorted by start time, allowing overlap detection via a single linear scan.',
   constraints: [
     '1 <= intervals.length <= 10^4',
     'intervals[i].length == 2',
@@ -239,12 +239,12 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
     {
       input: 'intervals = [[1,3],[2,6],[8,10],[15,18]]',
       output: '[[1,6],[8,10],[15,18]]',
-      explanation: 'Intervals [1,3] and [2,6] overlap, merged into [1,6].',
+      explanation: 'Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].',
     },
     {
       input: 'intervals = [[1,4],[4,5]]',
       output: '[[1,5]]',
-      explanation: 'Intervals [1,4] and [4,5] are considered overlapping.',
+      explanation: 'Intervals [1,4] and [4,5] touch at boundary 4 and are merged into [1,5].',
     },
   ],
   code: `def merge(intervals):

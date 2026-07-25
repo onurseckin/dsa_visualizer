@@ -80,7 +80,7 @@ export const generateFordFulkersonSteps = (
       codeLine: 1,
       explanation: {
         what: 'Initialize Ford-Fulkerson Maximum Flow',
-        why: 'Empty node set or invalid source/sink provided.',
+        why: 'Empty node set or invalid source/sink provided. Maximum flow is 0.',
       },
       primarySnapshot: { kind: 'graph', nodes: [], edges: [] },
       auxiliaryState: { customState: { 'Max Flow': 0 } },
@@ -187,7 +187,7 @@ export const generateFordFulkersonSteps = (
     codeLine: 1,
     explanation: {
       what: `Initialize Ford-Fulkerson Max Flow from source '${source}' to sink '${sink}'`,
-      why: 'Residual graph set up with initial flow 0 across all edges.',
+      why: 'Residual graph set up with initial flow 0 across all edges. Invariant: capacity constraints and conservation of flow are maintained.',
     },
     primarySnapshot: {
       kind: 'graph',
@@ -244,7 +244,7 @@ export const generateFordFulkersonSteps = (
         codeLine: 30,
         explanation: {
           what: `No more augmenting paths found. Maximum Flow algorithm complete!`,
-          why: `Residual graph has no remaining path from source '${source}' to sink '${sink}' with capacity > 0.`,
+          why: `Residual graph has no remaining path from source '${source}' to sink '${sink}' with capacity > 0. By the Max-Flow Min-Cut theorem, current total flow ${currentMaxFlow} is optimal.`,
         },
         primarySnapshot: {
           kind: 'graph',
@@ -274,7 +274,7 @@ export const generateFordFulkersonSteps = (
       codeLine: 25,
       explanation: {
         what: `Found augmenting path: ${pathNodes.join(' → ')} with bottleneck capacity ${bottleneck}`,
-        why: `Minimum available residual capacity along path is ${bottleneck}.`,
+        why: `The bottleneck capacity is the minimum available residual capacity along the discovered path (${pathNodes.join(' → ')}).`,
       },
       primarySnapshot: {
         kind: 'graph',
@@ -316,7 +316,7 @@ export const generateFordFulkersonSteps = (
       codeLine: 28,
       explanation: {
         what: `Augmented flow by ${bottleneck}. Updated total Max Flow = ${currentMaxFlow}`,
-        why: `Added bottleneck flow along augmenting path and updated residual network edge capacities.`,
+        why: `Pushed ${bottleneck} units of flow through the augmenting path, updating residual capacities. Forward residual capacity decreases by ${bottleneck}, while reverse capacity increases by ${bottleneck} to allow flow cancellation.`,
       },
       primarySnapshot: {
         kind: 'graph',
@@ -345,12 +345,19 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   category: 'graph_flows_and_cuts',
   difficulty: 'Hard',
   description:
-    'Computes the maximum flow from a source vertex to a sink vertex in a flow network by iteratively finding augmenting paths in the residual graph.',
-  constraints: ['2 <= V <= 50', '1 <= capacity <= 10^4'],
+    'Computes the maximum flow from a source vertex S to a sink vertex T in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem.',
+  constraints: [
+    '2 <= V <= 50',
+    '1 <= capacity <= 10^4',
+    'Graph is a directed network with non-negative capacities',
+    'Source S and Sink T must exist in the network',
+  ],
   examples: [
     {
-      input: 'Source = S, Sink = T, 4 nodes, 5 capacity edges',
+      input: 'Source = S, Sink = T, Nodes: [S, A, B, T], Edges with capacities S->A:10, S->B:10, A->B:2, A->T:10, B->T:10',
       output: 'Max Flow = 20',
+      explanation:
+        'Flow of 10 is pushed along S->A->T and 10 along S->B->T. Total capacity of 20 reaches sink T.',
     },
   ],
   code: FORD_FULKERSON_CODE,

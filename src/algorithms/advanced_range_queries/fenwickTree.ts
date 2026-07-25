@@ -144,7 +144,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       addStep(
         8,
         `Update tree[${i}] += ${delta} -> new val = ${tree[i]}`,
-        `Lowbit for index ${i} is ${lowbit}. Next index will be ${i} + ${lowbit} = ${i + lowbit}.`,
+        `Lowbit for index ${i} is ${lowbit} (bin: 0b${lowbit.toString(2)}). Next index to update is ${i} + ${lowbit} = ${i + lowbit}.`,
         { i, lowbit, delta, 'tree[i]': tree[i] },
         getElements(i, 'swap', { [i]: ['updated'] })
       );
@@ -260,7 +260,19 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   category: 'advanced_range_queries',
   difficulty: 'Medium',
   description:
-    'A Binary Indexed Tree (Fenwick Tree) efficiently updates elements and computes prefix sums in O(log n) time.',
+    'A Binary Indexed Tree (Fenwick Tree) is a compact array-based data structure that supports logarithmic time O(log N) point updates and range sum queries. Each index i covers a sub-interval of length equal to its least significant set bit (i & -i).',
+  constraints: [
+    '1 <= N <= 10^5',
+    '1 <= Q <= 10^5',
+    '-10^9 <= array[i] <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'array = [3, 2, -1, 6, 5, 4, -3, 37], operations = [Range Query [1..5], Update index 3 by +5, Range Query [1..5]]',
+      output: 'Query 1: 15, Query 2: 20',
+      explanation: 'Initial prefix sum up to index 5 is 3+2+(-1)+6+5 = 15. Adding 5 to index 3 updates tree elements responsibility ranges, increasing range sum to 20.',
+    },
+  ],
   code: FENWICK_TREE_CODE,
   timeComplexity: {
     best: 'O(log n)',

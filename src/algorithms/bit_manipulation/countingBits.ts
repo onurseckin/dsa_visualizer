@@ -53,7 +53,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
     codeLine: 2,
     explanation: {
       what: `Initialize answer array of length n+1 = ${n + 1} with zeros.`,
-      why: 'ans[0] = 0 because binary representation of 0 has 0 set bits.',
+      why: 'ans[0] = 0 because the binary representation of 0 contains 0 set bits (ones).',
     },
     primarySnapshot: {
       kind: 'array',
@@ -79,7 +79,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
       codeLine: 4,
       explanation: {
         what: `Calculate set bits for i=${i} (binary: ${i.toString(2)}).`,
-        why: `ans[${i}] = ans[${i} >> 1] + (${i} & 1) = ans[${half}] (${ans[half]}) + ${lowestBit} = ${ans[i]}.`,
+        why: `ans[${i}] = ans[${i} >> 1] + (${i} & 1) = ans[${half}] (${ans[half]}) + ${lowestBit} = ${ans[i]}. Shifting right by 1 drops the least significant bit, re-using subproblem ans[${half}].`,
       },
       primarySnapshot: {
         kind: 'array',
@@ -109,7 +109,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
     codeLine: 5,
     explanation: {
       what: `Computed set bits for all numbers from 0 to ${n}.`,
-      why: 'Dynamic programming bit manipulation completes in O(N) time.',
+      why: 'Dynamic programming bit manipulation completes in O(N) linear time and O(1) extra space beyond the output array.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -140,18 +140,20 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   category: 'bit_manipulation',
   difficulty: 'Easy',
   description:
-    'Given an integer n, return an array ans of length n + 1 such that for each i (0 <= i <= n), ans[i] is the number of 1s in the binary representation of i.',
-  constraints: ['0 <= n <= 10^5'],
+    'Given an integer n, returns an array ans of length n + 1 such that for each i (0 <= i <= n), ans[i] is the number of 1s in the binary representation of i. Uses dynamic programming and bitwise right-shift (i >> 1) to achieve linear O(N) time complexity without calling built-in bit-count functions.',
+  constraints: [
+    '0 <= n <= 10^5',
+  ],
   examples: [
     {
       input: 'n = 2',
       output: '[0, 1, 1]',
-      explanation: '0 -> 0 (0 ones), 1 -> 1 (1 one), 2 -> 10 (1 one).',
+      explanation: '0 -> 0b0 (0 ones), 1 -> 0b1 (1 one), 2 -> 0b10 (1 one).',
     },
     {
       input: 'n = 5',
       output: '[0, 1, 1, 2, 1, 2]',
-      explanation: '0 -> 0, 1 -> 1, 2 -> 1, 3 -> 2, 4 -> 1, 5 -> 2.',
+      explanation: '0 -> 0b0 (0), 1 -> 0b1 (1), 2 -> 0b10 (1), 3 -> 0b11 (2), 4 -> 0b100 (1), 5 -> 0b101 (2).',
     },
   ],
   code: `def countBits(n):

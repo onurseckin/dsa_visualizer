@@ -89,7 +89,7 @@ const getCellAppearance = (cell: GridCellNode) => {
 
 export const GridVisualizer: React.FC<GridVisualizerProps> = ({
   grid,
-  cellSize = 36,
+  cellSize = 42,
   showDistance = false,
   onCellClick,
   title,
@@ -112,6 +112,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
+        minHeight: '480px',
         padding: 0,
       }}
     >
@@ -133,9 +134,11 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         width="100%"
         height="100%"
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',
+          minHeight: '480px',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
