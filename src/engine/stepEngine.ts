@@ -36,6 +36,9 @@ export function useStepEngine({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const onStepChangeRef = useRef(onStepChange);
   const stepsRef = useRef(steps);
+  // Initialized to 0 so the initial index-0 render never notifies (no sound on
+  // page load); also guards StrictMode's double-invoked effects from double-firing.
+  const lastNotifiedIndexRef = useRef<number>(0);
 
   // Keep refs updated to prevent effect dependency churn
   useEffect(() => {
@@ -49,8 +52,11 @@ export function useStepEngine({
   const totalSteps = steps.length;
   const currentStep = steps[currentStepIndex] || null;
 
-  // Fire onStepChange in a clean dedicated effect (outside setState updaters)
+  // Fire onStepChange in a clean dedicated effect (outside setState updaters).
+  // Only notify when the index actually moved since the last notification.
   useEffect(() => {
+    if (currentStepIndex === lastNotifiedIndexRef.current) return;
+    lastNotifiedIndexRef.current = currentStepIndex;
     if (stepsRef.current[currentStepIndex] && onStepChangeRef.current) {
       onStepChangeRef.current(stepsRef.current[currentStepIndex]);
     }
@@ -152,8 +158,10 @@ export function useStepEngine({
     return () => stopTimer();
   }, [isPlaying, speed, stopTimer]);
 
-  // Reset step index if steps array changes
+  // Reset step index if steps array changes; pre-marking index 0 as notified
+  // keeps the reset silent (no sound on algorithm switch).
   useEffect(() => {
+    lastNotifiedIndexRef.current = 0;
     setCurrentStepIndex(0);
     setIsPlaying(false);
     stopTimer();
