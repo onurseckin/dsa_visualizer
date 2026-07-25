@@ -76,13 +76,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Category Tabs */}
-        <nav style={{ display: 'flex', gap: '0.25rem' }}>
+        <nav style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
           {categories.map((cat) => (
             <button
               key={cat.id}
               className={`btn ${activeCategory === cat.id ? 'btn-active' : ''}`}
               onClick={() => onSelectCategory(cat.id)}
-              style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
             >
               {cat.label}
             </button>

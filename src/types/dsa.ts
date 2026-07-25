@@ -110,8 +110,18 @@ export interface AlgorithmStep {
 }
 
 export type ViewMode = 'split' | 'visual' | 'code';
-export type CategoryType = 'sorting' | 'graph' | 'tree' | 'data-structures' | 'leetcode';
 export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
+
+export type CategoryType =
+  | 'fundamentals'
+  | 'sorting'
+  | 'data-structures'
+  | 'dynamic-programming'
+  | 'graph'
+  | 'tree'
+  | 'advanced'
+  | 'math-games'
+  | 'leetcode';
 
 export interface TimeComplexity {
   best: string;

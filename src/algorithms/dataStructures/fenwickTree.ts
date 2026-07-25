@@ -1,0 +1,248 @@
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+} from '../../types/dsa';
+
+export interface FenwickTreeOperation {
+  type: 'update' | 'query';
+  index?: number;
+  delta?: number;
+  left?: number;
+  right?: number;
+}
+
+export interface FenwickTreeInput {
+  array: number[];
+  operations?: FenwickTreeOperation[];
+}
+
+export const FENWICK_TREE_CODE = `class FenwickTree {
+  constructor(size) {
+    this.tree = new Array(size + 1).fill(0);
+  }
+
+  update(index, delta) {
+    for (let i = index; i < this.tree.length; i += i & -i) {
+      this.tree[i] += delta;
+    }
+  }
+
+  query(index) {
+    let sum = 0;
+    for (let i = index; i > 0; i -= i & -i) {
+      sum += this.tree[i];
+    }
+    return sum;
+  }
+
+  rangeQuery(left, right) {
+    return this.query(right) - this.query(left - 1);
+  }
+}`;
+
+export const DEFAULT_FENWICK_INPUT: FenwickTreeInput = {
+  array: [3, 2, -1, 6, 5, 4, -3, 37],
+  operations: [
+    { type: 'query', left: 1, right: 5 },
+    { type: 'update', index: 3, delta: 5 },
+    { type: 'query', left: 1, right: 5 },
+  ],
+};
+
+export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
+  const n = input.array.length;
+  // 1-indexed tree array of size n + 1
+  const tree = new Array<number>(n + 1).fill(0);
+
+  // Array elements to represent tree[1..n] for visualization
+  const getElements = (highlightIdx?: number, highlightState: ArrayElement['state'] = 'active', pointers?: Record<number, string[]>): ArrayElement[] => {
+    const elements: ArrayElement[] = [];
+    for (let i = 1; i <= n; i++) {
+      let state: ArrayElement['state'] = 'default';
+      if (highlightIdx === i) {
+        state = highlightState;
+      }
+      elements.push({
+        id: `tree-${i}`,
+        value: tree[i],
+        state,
+        pointers: pointers && pointers[i] ? pointers[i] : undefined,
+      });
+    }
+    return elements;
+  };
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    elements: ArrayElement[]
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: 'array',
+        elements,
+      },
+      auxiliaryState: {
+        customState: {
+          originalArray: input.array.join(', '),
+          treeArray: tree.slice(1).join(', '),
+        },
+      },
+      variables,
+    });
+  };
+
+  // Helper point update function
+  const updateFenwick = (idx: number, delta: number) => {
+    addStep(
+      6,
+      `Start update at index ${idx} with delta = ${delta}`,
+      `Propagate update upward through tree indices using i += i & -i.`,
+      { index: idx, delta },
+      getElements(idx, 'compare', { [idx]: ['idx'] })
+    );
+
+    let i = idx;
+    while (i <= n) {
+      const lowbit = i & -i;
+      tree[i] += delta;
+
+      addStep(
+        7,
+        `Update tree[${i}] += ${delta} -> new val = ${tree[i]}`,
+        `Lowbit for index ${i} is ${lowbit}. Next index will be ${i} + ${lowbit} = ${i + lowbit}.`,
+        { i, lowbit, delta, 'tree[i]': tree[i] },
+        getElements(i, 'swap', { [i]: ['updated'] })
+      );
+
+      i += lowbit;
+    }
+  };
+
+  // Helper prefix query function
+  const queryFenwick = (idx: number): number => {
+    let sum = 0;
+    let i = idx;
+
+    addStep(
+      11,
+      `Start prefix sum query for index 1..${idx}`,
+      `Accumulate tree values downwards using i -= i & -i.`,
+      { index: idx, sum },
+      getElements(idx, 'compare', { [idx]: ['idx'] })
+    );
+
+    while (i > 0) {
+      const lowbit = i & -i;
+      sum += tree[i];
+
+      addStep(
+        13,
+        `Add tree[${i}] (${tree[i]}) to prefix sum -> current sum = ${sum}`,
+        `Lowbit for index ${i} is ${lowbit}. Next tree index to query will be ${i} - ${lowbit} = ${i - lowbit}.`,
+        { i, lowbit, 'tree[i]': tree[i], sum },
+        getElements(i, 'active', { [i]: ['contrib'] })
+      );
+
+      i -= lowbit;
+    }
+
+    return sum;
+  };
+
+  addStep(
+    2,
+    `Initialize Fenwick Tree of size ${n}`,
+    `Create binary indexed tree array of length ${n + 1} initialized to 0.`,
+    { n },
+    getElements()
+  );
+
+  // Build tree from input array
+  for (let i = 0; i < n; i++) {
+    const val = input.array[i];
+    if (val !== 0) {
+      updateFenwick(i + 1, val);
+    }
+  }
+
+  addStep(
+    4,
+    'Fenwick Tree construction complete',
+    `Tree is fully built from initial array [${input.array.join(', ')}].`,
+    { n },
+    getElements()
+  );
+
+  // Process operations if provided
+  const ops = input.operations ?? [];
+  for (const op of ops) {
+    if (op.type === 'update' && op.index !== undefined && op.delta !== undefined) {
+      addStep(
+        6,
+        `Execute Operation: Update index ${op.index} by delta ${op.delta}`,
+        `Apply point update of ${op.delta} to position ${op.index}.`,
+        { op: 'update', index: op.index, delta: op.delta },
+        getElements(op.index, 'compare', { [op.index]: ['update'] })
+      );
+      updateFenwick(op.index, op.delta);
+    } else if (op.type === 'query' && op.left !== undefined && op.right !== undefined) {
+      addStep(
+        17,
+        `Execute Operation: Range Query [${op.left}..${op.right}]`,
+        `Calculate range sum using prefixQuery(${op.right}) - prefixQuery(${op.left - 1}).`,
+        { op: 'query', left: op.left, right: op.right },
+        getElements()
+      );
+
+      const sumRight = queryFenwick(op.right);
+      const sumLeftMinus1 = op.left > 1 ? queryFenwick(op.left - 1) : 0;
+      const rangeSum = sumRight - sumLeftMinus1;
+
+      addStep(
+        18,
+        `Range Query [${op.left}..${op.right}] Result = ${rangeSum}`,
+        `prefixQuery(${op.right}) [${sumRight}] - prefixQuery(${op.left - 1}) [${sumLeftMinus1}] = ${rangeSum}.`,
+        { left: op.left, right: op.right, sumRight, sumLeftMinus1, rangeSum },
+        getElements()
+      );
+    }
+  }
+
+  addStep(
+    19,
+    'All Fenwick Tree operations complete',
+    'Finished processing range queries and point updates.',
+    { n },
+    getElements()
+  );
+
+  return steps;
+};
+
+export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
+  id: 'fenwick-tree',
+  title: 'Binary Indexed Tree (Fenwick Tree)',
+  category: 'data-structures',
+  difficulty: 'Medium',
+  description:
+    'A Binary Indexed Tree (Fenwick Tree) efficiently updates elements and computes prefix sums in O(log n) time.',
+  code: FENWICK_TREE_CODE,
+  timeComplexity: {
+    best: 'O(log n)',
+    average: 'O(log n)',
+    worst: 'O(log n)',
+  },
+  spaceComplexity: 'O(n)',
+  defaultInput: DEFAULT_FENWICK_INPUT,
+  generateSteps: generateFenwickTreeSteps,
+};
