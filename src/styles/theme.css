@@ -1,0 +1,51 @@
+:root {
+  /* Dark Green Obsidian Base Palette */
+  --bg-darkest: #040d0a;
+  --bg-base: #06120e;
+  --bg-surface: #0a1c16;
+  --bg-surface-hover: #0e261e;
+  --bg-card: rgba(10, 28, 22, 0.75);
+  --bg-glass: rgba(6, 18, 14, 0.85);
+
+  /* Borders & Dividers */
+  --border-muted: rgba(0, 255, 157, 0.12);
+  --border-subtle: rgba(0, 255, 157, 0.25);
+  --border-glow: rgba(0, 255, 157, 0.5);
+
+  /* Primary Accent & Matrix Emeralds */
+  --accent-emerald: #00ff9d;
+  --accent-mint: #34d399;
+  --accent-cyan: #06b6d4;
+  --accent-glow: 0 0 15px rgba(0, 255, 157, 0.4);
+
+  /* Algorithm Visual State Highlights */
+  --state-default: #1e3a30;
+  --state-default-text: #a7f3d0;
+  --state-compare: #f59e0b;     /* Amber warning glow */
+  --state-compare-bg: rgba(245, 158, 11, 0.2);
+  --state-swap: #ef4444;        /* Crimson swap glow */
+  --state-swap-bg: rgba(239, 68, 68, 0.2);
+  --state-sorted: #00ff9d;      /* Emerald complete glow */
+  --state-sorted-bg: rgba(0, 255, 157, 0.2);
+  --state-active: #3b82f6;      /* Cyan pointer / active cursor */
+  --state-active-bg: rgba(59, 130, 246, 0.2);
+  --state-pivot: #a855f7;       /* Neon purple pivot marker */
+  --state-pivot-bg: rgba(168, 85, 247, 0.2);
+
+  /* Typography */
+  --text-main: #f0fdf4;
+  --text-dim: #a7f3d0;
+  --text-muted: #4ade80;
+  --text-dark: #14532d;
+  
+  /* Fonts */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+
+  /* Shadows & Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 255, 157, 0.2);
+}
