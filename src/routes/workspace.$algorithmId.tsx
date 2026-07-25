@@ -4,6 +4,7 @@ import { AlgorithmStep } from '../types/dsa';
 import { ALGORITHM_REGISTRY } from '../algorithms/registry';
 import { useStepEngine } from '../engine/stepEngine';
 import soundEngine from '../engine/soundEngine';
+import { deriveStepCue } from '../engine/stepSound';
 import { MainLayout } from '../components/MainLayout';
 import { useSettings } from '../app/SettingsContext';
 
@@ -62,21 +63,25 @@ function WorkspacePage() {
 
   // Ref tracks the last step index that triggered sound (prevents duplicate triggers/echoes)
   const lastHandledStepRef = useRef<number>(-1);
+  // The step the listener last heard: cue classification is a delta against it.
+  const prevHandledStepRef = useRef<AlgorithmStep | null>(null);
+
+  // A new steps array means a new run, so the delta baseline must not leak across it.
+  useEffect(() => {
+    lastHandledStepRef.current = -1;
+    prevHandledStepRef.current = null;
+  }, [steps]);
 
   const handleStepChange = useCallback(
     (step: AlgorithmStep) => {
-      if (!soundEnabled || !step) return;
       if (lastHandledStepRef.current === step.stepIndex) return;
+      const prevStep = prevHandledStepRef.current;
       lastHandledStepRef.current = step.stepIndex;
+      // Tracked even while muted so re-enabling sound resumes with a valid baseline.
+      prevHandledStepRef.current = step;
 
-      const whatText = step.explanation?.what.toLowerCase() || '';
-      if (whatText.includes('swap')) {
-        soundEngine.playSwap();
-      } else if (whatText.includes('compar')) {
-        soundEngine.playCompare(440);
-      } else if (step.stepIndex === steps.length - 1) {
-        soundEngine.playComplete();
-      }
+      if (!soundEnabled) return;
+      soundEngine.playCue(deriveStepCue(step, prevStep, steps.length));
     },
     [soundEnabled, steps.length]
   );

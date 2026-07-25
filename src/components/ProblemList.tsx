@@ -130,12 +130,12 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   };
 
   /* Real buttons (keyboard-accessible) inside the th; the selected treatment marks
-     the active sort column. Padding math keeps the label flush with plain headers. */
+     the active sort column. The bordered default variant keeps the sort affordance
+     visible against the inset header strip. */
   const sortableHeader = (label: string, field: 'title' | 'difficulty' | 'category') => (
     <th style={{ padding: 'var(--space-2)' }}>
       <Button
         size="sm"
-        variant="ghost"
         selected={sortBy === field}
         icon={<ArrowUpDown />}
         onClick={() => toggleSort(field)}
@@ -270,7 +270,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
                       key={alg.id}
                       onClick={() => onSelectAlgorithm(alg.id, alg.category)}
                       style={{
-                        borderBottom: '1px solid var(--border-subtle)',
+                        borderBottom: '1px solid var(--border-default)',
                         transition: 'background var(--transition-fast)',
                         cursor: 'pointer',
                       }}
@@ -281,10 +281,12 @@ export const ProblemList: React.FC<ProblemListProps> = ({
                         e.currentTarget.style.background = 'transparent';
                       }}
                     >
+                      {/* Rows highlight to --bg-hover, where muted/faint tones drop
+                          below AA — every cell therefore stays at secondary or above. */}
                       <td
                         style={{
                           padding: cellPadding,
-                          color: 'var(--text-faint)',
+                          color: 'var(--text-secondary)',
                           fontFamily: 'var(--font-code)',
                           fontSize: 'var(--text-sm)',
                         }}
@@ -295,7 +297,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                           <Code2
                             aria-hidden="true"
-                            style={{ width: '16px', height: '16px', color: 'var(--text-muted)', flexShrink: 0 }}
+                            style={{ width: '16px', height: '16px', color: 'var(--text-secondary)', flexShrink: 0 }}
                           />
                           <span>{alg.title}</span>
                         </span>

@@ -23,10 +23,10 @@ const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '2px',
+          gap: 'var(--space-1)',
           padding: 'var(--space-1) var(--space-2)',
           background: 'var(--bg-inset)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-sm)',
           minWidth: '64px',
         }}

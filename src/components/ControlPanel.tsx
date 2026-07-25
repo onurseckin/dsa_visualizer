@@ -48,9 +48,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         padding: 'var(--space-2) var(--space-3)',
         width: '100%',
         boxSizing: 'border-box',
-        background: isEmbedded ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+        // Embedded: a toolbar strip attached under the stage, one tier above the
+        // card it sits in. Standalone: a bordered panel of its own.
+        background: isEmbedded ? 'var(--bg-elevated)' : 'var(--bg-chrome)',
         borderTop: isEmbedded ? '1px solid var(--border-subtle)' : undefined,
-        border: isEmbedded ? undefined : '1px solid var(--border-subtle)',
+        border: isEmbedded ? undefined : '1px solid var(--border-default)',
         borderRadius: isEmbedded ? undefined : 'var(--radius-md)',
       }}
     >
@@ -83,16 +85,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         />
       </div>
 
+      {/* Inset well so the readout still reads against the elevated strip it sits on. */}
       <span
         aria-label={`Step ${displayStep} of ${totalSteps}`}
-        style={{
-          fontFamily: 'var(--font-code)',
-          fontSize: 'var(--text-sm)',
-          color: 'var(--text-secondary)',
-          whiteSpace: 'nowrap',
-        }}
+        className="ui-chip"
+        style={{ background: 'var(--bg-inset)', borderColor: 'var(--border-default)' }}
       >
-        {displayStep} / {totalSteps}
+        <span style={{ color: 'var(--text-primary)' }}>{displayStep}</span>
+        <span style={{ color: 'var(--text-muted)' }}>/</span>
+        <span style={{ color: 'var(--text-secondary)' }}>{totalSteps}</span>
       </span>
 
       <div
