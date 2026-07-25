@@ -361,7 +361,7 @@ export const generateTriePrefixTreeSteps = (
 export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   id: 'trie-prefix-tree',
   title: 'Trie (Prefix Tree)',
-  category: 'data-structures',
+  category: 'tries_and_strings',
   difficulty: 'Medium',
   description:
     'A tree-like data structure used for efficient storage and retrieval of strings. Supports fast word insertion, full word searching, and prefix matching.',

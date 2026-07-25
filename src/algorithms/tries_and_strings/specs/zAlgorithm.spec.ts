@@ -10,7 +10,7 @@ describe('zAlgorithm unit spec', () => {
   it('should have correct algorithm metadata', () => {
     expect(zAlgorithm.id).toBe('z-algorithm');
     expect(zAlgorithm.title).toBe('Z-Algorithm String Matching');
-    expect(zAlgorithm.category).toBe('tries');
+    expect(zAlgorithm.category).toBe('tries_and_strings');
     expect(zAlgorithm.difficulty).toBe('Hard');
     expect(zAlgorithm.code).toContain('def z_algorithm');
     expect(zAlgorithm.timeComplexity.average).toBe('O(n + m)');

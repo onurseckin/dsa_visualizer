@@ -285,7 +285,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   id: 'kmp-string-match',
   title: 'KMP String Matching',
-  category: 'advanced_range_and_cp',
+  category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
     'Knuth-Morris-Pratt (KMP) string searching algorithm matches a pattern in a text using a Longest Prefix Suffix (LPS) table to avoid redundant character comparisons.',

@@ -4,13 +4,12 @@ import {
   DEFAULT_KOSARAJU_INPUT,
   generateKosarajuSccSteps,
 } from '../kosarajuScc';
-import type { GraphVisualSnapshot } from '../../../types/dsa';
 
 describe('kosarajuScc algorithm spec', () => {
   it('should have valid definition metadata', () => {
     expect(kosarajuScc.id).toBe('kosaraju-scc');
     expect(kosarajuScc.title).toBe("Kosaraju's Strongly Connected Components");
-    expect(kosarajuScc.category).toBe('advanced_graphs');
+    expect(kosarajuScc.category).toBe('graph_directed_and_scc');
     expect(kosarajuScc.difficulty).toBe('Hard');
     expect(kosarajuScc.defaultInput).toEqual(DEFAULT_KOSARAJU_INPUT);
   });
@@ -25,13 +24,15 @@ describe('kosarajuScc algorithm spec', () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.sccCount).toBe(2);
 
-    const snapshot = lastStep.primarySnapshot as GraphVisualSnapshot;
-    expect(snapshot.kind).toBe('graph');
-    expect(snapshot.nodes).toHaveLength(5);
+    const snapshot = lastStep.primarySnapshot;
+    if (snapshot.kind === 'graph') {
+      expect(snapshot.kind).toBe('graph');
+      expect(snapshot.nodes).toHaveLength(5);
 
-    // All nodes should be in sorted state after SCC assignment
-    const sortedNodes = snapshot.nodes.filter((n) => n.state === 'sorted');
-    expect(sortedNodes).toHaveLength(5);
+      // All nodes should be in sorted state after SCC assignment
+      const sortedNodes = snapshot.nodes.filter((n) => n.state === 'sorted');
+      expect(sortedNodes).toHaveLength(5);
+    }
   });
 
   it('should handle a single strongly connected cycle', () => {

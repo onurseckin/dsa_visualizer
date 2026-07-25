@@ -269,7 +269,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   id: 'z-algorithm',
   title: 'Z-Algorithm String Matching',
-  category: 'tries',
+  category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
     'The Z-algorithm finds all occurrences of a pattern in a text in O(n + m) linear time by constructing the Z-array for concatenated string pattern$text.',

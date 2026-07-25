@@ -10,7 +10,7 @@ describe('binaryTreeLca algorithm spec', () => {
   it('should have valid definition metadata', () => {
     expect(binaryTreeLca.id).toBe('binary-tree-lca');
     expect(binaryTreeLca.title).toBe('Lowest Common Ancestor of a Binary Tree');
-    expect(binaryTreeLca.category).toBe('tree');
+    expect(binaryTreeLca.category).toBe('tree_fundamentals');
     expect(binaryTreeLca.difficulty).toBe('Medium');
     expect(binaryTreeLca.defaultInput).toEqual(DEFAULT_BINARY_TREE_LCA_INPUT);
   });

@@ -171,7 +171,7 @@ export const generateValidParenthesesSteps = (
 export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   id: 'valid-parentheses',
   title: 'Valid Parentheses',
-  category: 'leetcode',
+  category: 'stack_and_queue',
   difficulty: 'Easy',
   description:
     'Determine if an input string of brackets () {} [] is valid using a LIFO stack.',

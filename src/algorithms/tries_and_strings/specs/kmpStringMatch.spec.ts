@@ -10,7 +10,7 @@ describe('kmpStringMatch algorithm spec', () => {
   it('should have correct algorithm metadata', () => {
     expect(kmpStringMatch.id).toBe('kmp-string-match');
     expect(kmpStringMatch.title).toBe('KMP String Matching');
-    expect(kmpStringMatch.category).toBe('advanced_range_and_cp');
+    expect(kmpStringMatch.category).toBe('tries_and_strings');
     expect(kmpStringMatch.difficulty).toBe('Hard');
     expect(kmpStringMatch.defaultInput).toEqual(DEFAULT_KMP_INPUT);
   });

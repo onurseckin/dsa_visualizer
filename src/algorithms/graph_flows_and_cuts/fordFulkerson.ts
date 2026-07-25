@@ -327,7 +327,7 @@ export const generateFordFulkersonSteps = (
 export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   id: 'ford-fulkerson',
   title: 'Ford-Fulkerson Maximum Flow',
-  category: 'advanced_graphs',
+  category: 'graph_flows_and_cuts',
   difficulty: 'Hard',
   description:
     'Computes the maximum flow from a source vertex to a sink vertex in a flow network by iteratively finding augmenting paths in the residual graph.',

@@ -4,12 +4,13 @@ import {
   generateValidParenthesesSteps,
   validParentheses,
 } from '../validParentheses';
+import type { ArrayVisualSnapshot } from '../../../types/dsa';
 
 describe('validParentheses algorithm spec', () => {
   it('should have valid metadata', () => {
     expect(validParentheses.id).toBe('valid-parentheses');
     expect(validParentheses.title).toBe('Valid Parentheses');
-    expect(validParentheses.category).toBe('leetcode');
+    expect(validParentheses.category).toBe('stack_and_queue');
     expect(validParentheses.difficulty).toBe('Easy');
     expect(validParentheses.defaultInput).toEqual(DEFAULT_VALID_PARENTHESES_INPUT);
   });
@@ -17,6 +18,10 @@ describe('validParentheses algorithm spec', () => {
   it('should validate matching balanced brackets correctly', () => {
     const steps = generateValidParenthesesSteps(DEFAULT_VALID_PARENTHESES_INPUT);
     expect(steps.length).toBeGreaterThan(0);
+
+    const firstStep = steps[0];
+    const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
+    expect(snapshot.kind).toBe('array');
 
     const hasStackState = steps.some(
       (s) => s.auxiliaryState.stack !== undefined && s.auxiliaryState.stack.length > 0
