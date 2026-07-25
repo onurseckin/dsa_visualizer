@@ -164,7 +164,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '1.25rem',
+                  padding: 0,
+                  width: '100%',
+                  height: '100%',
                   minHeight: '320px',
                   overflow: 'auto',
                 }}

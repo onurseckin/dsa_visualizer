@@ -91,6 +91,13 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   title,
 }) => {
   const maxVal = Math.max(...elements.map((el) => el.value), 1);
+  const n = Math.max(elements.length, 1);
+  const barWidth = Math.min(Math.max(600 / n, 28), 54);
+  const gap = 8;
+  const paddingX = 16;
+  const paddingY = 40;
+  const viewBoxWidth = n * barWidth + (n - 1) * gap + paddingX * 2;
+  const viewBoxHeight = maxHeight + paddingY + 40;
 
   return (
     <div
@@ -98,7 +105,10 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         width: '100%',
+        height: '100%',
+        padding: 0,
       }}
     >
       {title && (
@@ -115,138 +125,151 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           {title}
         </div>
       )}
-      <div
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         style={{
-          display: 'flex',
-          alignItems: mode === 'bar' ? 'flex-end' : 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          padding: '24px 16px',
           width: '100%',
-          minHeight: `${maxHeight + 80}px`,
-          overflowX: 'auto',
+          height: '100%',
+          background: 'var(--bg-darkest)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         {elements.map((item, index) => {
           const style = getStateStyles(item.state);
-          const heightPct = Math.max((item.value / maxVal) * 100, 15);
-          const barHeight = Math.round((heightPct * maxHeight) / 100);
+          const x = paddingX + index * (barWidth + gap);
 
-          return (
-            <div
-              key={item.id || `arr-node-${index}`}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                position: 'relative',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            >
-              {/* Pointer labels above */}
-              {item.pointers && item.pointers.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    position: 'absolute',
-                    top: mode === 'bar' ? '-32px' : '-28px',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2,
-                  }}
-                >
-                  {item.pointers.map((ptr, pIdx) => (
-                    <span
-                      key={`${ptr}-${pIdx}`}
-                      style={{
-                        background: 'rgba(0, 255, 157, 0.2)',
-                        border: '1px solid var(--accent-emerald)',
-                        color: 'var(--accent-emerald)',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        boxShadow: 'var(--shadow-glow)',
-                      }}
-                    >
-                      {ptr}
-                    </span>
-                  ))}
-                </div>
-              )}
+          if (mode === 'bar') {
+            const heightPct = Math.max((item.value / maxVal) * 100, 15);
+            const barHeight = Math.round((heightPct * maxHeight) / 100);
+            const y = paddingY + (maxHeight - barHeight);
 
-              {/* Element visual body */}
-              {mode === 'bar' ? (
-                <div
-                  style={{
-                    width: Math.min(Math.max(600 / Math.max(elements.length, 1), 24), 54),
-                    height: `${barHeight}px`,
-                    backgroundColor: style.bg,
-                    border: `2px solid ${style.border}`,
-                    borderRadius: '6px 6px 4px 4px',
-                    boxShadow: style.shadow,
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'center',
-                    paddingBottom: '6px',
-                    transition: 'all 0.25s ease',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: style.color,
-                      fontFamily: 'var(--font-code)',
-                      fontWeight: 700,
-                      fontSize: elements.length > 20 ? '0.7rem' : '0.85rem',
-                    }}
-                  >
-                    {item.value}
-                  </span>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    backgroundColor: style.bg,
-                    border: `2px solid ${style.border}`,
-                    borderRadius: '8px',
-                    boxShadow: style.shadow,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.25s ease',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: style.color,
-                      fontFamily: 'var(--font-code)',
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                    }}
-                  >
-                    {item.value}
-                  </span>
-                </div>
-              )}
+            return (
+              <g key={item.id || `arr-node-${index}`}>
+                {/* Pointer labels above */}
+                {item.pointers && item.pointers.length > 0 && (
+                  <g>
+                    {item.pointers.map((ptr, pIdx) => (
+                      <text
+                        key={`${ptr}-${pIdx}`}
+                        x={x + barWidth / 2}
+                        y={y - 8 - (item.pointers!.length - 1 - pIdx) * 14}
+                        textAnchor="middle"
+                        fill="var(--accent-emerald)"
+                        fontSize="11"
+                        fontFamily="var(--font-code)"
+                        fontWeight="700"
+                      >
+                        {ptr}
+                      </text>
+                    ))}
+                  </g>
+                )}
 
-              {/* Index label below */}
-              <span
-                style={{
-                  marginTop: '6px',
-                  fontSize: '0.72rem',
-                  fontFamily: 'var(--font-code)',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                [{index}]
-              </span>
-            </div>
-          );
+                {/* Element bar body */}
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barHeight}
+                  rx={6}
+                  fill={style.bg}
+                  stroke={style.border}
+                  strokeWidth={2}
+                />
+                <text
+                  x={x + barWidth / 2}
+                  y={y + barHeight - 8}
+                  textAnchor="middle"
+                  fill={style.color}
+                  fontFamily="var(--font-code)"
+                  fontWeight="700"
+                  fontSize={elements.length > 20 ? 10 : 13}
+                >
+                  {item.value}
+                </text>
+
+                {/* Index label below */}
+                <text
+                  x={x + barWidth / 2}
+                  y={paddingY + maxHeight + 24}
+                  textAnchor="middle"
+                  fill="var(--text-muted)"
+                  fontFamily="var(--font-code)"
+                  fontSize="11"
+                >
+                  [{index}]
+                </text>
+              </g>
+            );
+          } else {
+            const boxSize = Math.min(barWidth, 48);
+            const y = paddingY + (maxHeight - boxSize) / 2;
+
+            return (
+              <g key={item.id || `arr-node-${index}`}>
+                {/* Pointer labels above */}
+                {item.pointers && item.pointers.length > 0 && (
+                  <g>
+                    {item.pointers.map((ptr, pIdx) => (
+                      <text
+                        key={`${ptr}-${pIdx}`}
+                        x={x + barWidth / 2}
+                        y={y - 8 - (item.pointers!.length - 1 - pIdx) * 14}
+                        textAnchor="middle"
+                        fill="var(--accent-emerald)"
+                        fontSize="11"
+                        fontFamily="var(--font-code)"
+                        fontWeight="700"
+                      >
+                        {ptr}
+                      </text>
+                    ))}
+                  </g>
+                )}
+
+                {/* Element box body */}
+                <rect
+                  x={x + (barWidth - boxSize) / 2}
+                  y={y}
+                  width={boxSize}
+                  height={boxSize}
+                  rx={8}
+                  fill={style.bg}
+                  stroke={style.border}
+                  strokeWidth={2}
+                />
+                <text
+                  x={x + barWidth / 2}
+                  y={y + boxSize / 2 + 5}
+                  textAnchor="middle"
+                  fill={style.color}
+                  fontFamily="var(--font-code)"
+                  fontWeight="700"
+                  fontSize="14"
+                >
+                  {item.value}
+                </text>
+
+                {/* Index label below */}
+                <text
+                  x={x + barWidth / 2}
+                  y={paddingY + maxHeight + 24}
+                  textAnchor="middle"
+                  fill="var(--text-muted)"
+                  fontFamily="var(--font-code)"
+                  fontSize="11"
+                >
+                  [{index}]
+                </text>
+              </g>
+            );
+          }
         })}
-      </div>
+      </svg>
     </div>
   );
 };

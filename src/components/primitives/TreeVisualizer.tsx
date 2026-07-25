@@ -124,6 +124,22 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
 
   const computedNodes = Array.from(computedNodesMap.values());
 
+  let minX = 0;
+  let minY = 0;
+  let maxX = width;
+  let maxY = height;
+
+  if (computedNodes.length > 0) {
+    const xs = computedNodes.map((n) => n.cx);
+    const ys = computedNodes.map((n) => n.cy);
+    minX = Math.min(0, Math.min(...xs) - nodeRadius - 20);
+    minY = Math.min(0, Math.min(...ys) - nodeRadius - 20);
+    maxX = Math.max(width, Math.max(...xs) + nodeRadius + 20);
+    maxY = Math.max(height, Math.max(...ys) + nodeRadius + 20);
+  }
+  const viewBoxWidth = maxX - minX;
+  const viewBoxHeight = maxY - minY;
+
   return (
     <div
       style={{
@@ -132,7 +148,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        padding: '16px',
+        height: '100%',
+        padding: 0,
       }}
     >
       {title && (
@@ -150,10 +167,12 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         </div>
       )}
       <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height="100%"
+        viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         style={{
+          width: '100%',
+          height: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',

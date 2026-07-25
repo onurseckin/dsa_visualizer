@@ -63,7 +63,7 @@ html, body {
 }
 
 .main-workspace-grid.view-mode-split {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 7fr 3fr;
 }
 
 .main-workspace-grid.view-mode-visual,

@@ -22,7 +22,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: [],
     algorithmCount: 4,
     difficulty: 'Easy',
-    x: 550,
+    x: 660,
     y: 60,
   },
   {
@@ -33,8 +33,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 180,
-    y: 170,
+    x: 140,
+    y: 190,
   },
   {
     id: 'stack-and-queue',
@@ -45,7 +45,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 400,
-    y: 170,
+    y: 190,
   },
   {
     id: 'binary-search',
@@ -55,8 +55,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 620,
-    y: 170,
+    x: 660,
+    y: 190,
   },
   {
     id: 'sliding-window',
@@ -66,8 +66,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Medium',
-    x: 120,
-    y: 290,
+    x: 140,
+    y: 320,
   },
   {
     id: 'linked-list',
@@ -77,8 +77,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 330,
-    y: 290,
+    x: 400,
+    y: 320,
   },
   {
     id: 'tree-fundamentals',
@@ -88,8 +88,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['linked-list', 'binary-search'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 550,
-    y: 290,
+    x: 660,
+    y: 320,
   },
   {
     id: 'tries-and-strings',
@@ -99,8 +99,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 180,
-    y: 410,
+    x: 140,
+    y: 450,
   },
   {
     id: 'heap-and-priority-queue',
@@ -111,7 +111,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Medium',
     x: 400,
-    y: 410,
+    y: 450,
   },
   {
     id: 'backtracking',
@@ -121,8 +121,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 620,
-    y: 410,
+    x: 660,
+    y: 450,
   },
   {
     id: 'graph-traversal',
@@ -133,7 +133,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 4,
     difficulty: 'Medium',
     x: 400,
-    y: 530,
+    y: 580,
   },
   {
     id: 'graph-shortest-paths',
@@ -143,8 +143,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['graph-traversal'],
     algorithmCount: 3,
     difficulty: 'Hard',
-    x: 180,
-    y: 650,
+    x: 140,
+    y: 710,
   },
   {
     id: 'graph-spanning-trees',
@@ -155,7 +155,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Medium',
     x: 400,
-    y: 650,
+    y: 710,
   },
   {
     id: 'graph-directed-and-scc',
@@ -165,8 +165,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['graph-traversal'],
     algorithmCount: 3,
     difficulty: 'Hard',
-    x: 620,
-    y: 650,
+    x: 660,
+    y: 710,
   },
   {
     id: 'graph-flows-and-cuts',
@@ -176,8 +176,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['graph-shortest-paths'],
     algorithmCount: 3,
     difficulty: 'Hard',
-    x: 180,
-    y: 770,
+    x: 140,
+    y: 840,
   },
   {
     id: 'dp-1d',
@@ -187,8 +187,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['backtracking'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 770,
-    y: 530,
+    x: 920,
+    y: 580,
   },
   {
     id: 'dp-2d',
@@ -198,8 +198,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['dp-1d'],
     algorithmCount: 4,
     difficulty: 'Hard',
-    x: 770,
-    y: 650,
+    x: 920,
+    y: 710,
   },
   {
     id: 'advanced-range-queries',
@@ -209,8 +209,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['dp-2d'],
     algorithmCount: 4,
     difficulty: 'Hard',
-    x: 770,
-    y: 770,
+    x: 920,
+    y: 840,
   },
   {
     id: 'bit-manipulation',
@@ -220,8 +220,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
-    x: 840,
-    y: 170,
+    x: 920,
+    y: 190,
   },
   {
     id: 'math-and-number-theory',
@@ -231,8 +231,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 900,
-    y: 290,
+    x: 1180,
+    y: 190,
   },
   {
     id: 'geometry-and-sweep-line',
@@ -242,8 +242,8 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['math-and-number-theory'],
     algorithmCount: 2,
     difficulty: 'Hard',
-    x: 900,
-    y: 410,
+    x: 1180,
+    y: 320,
   },
 ];
 
@@ -325,7 +325,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         flexDirection: 'column',
         alignItems: 'center',
         padding: '2rem 1.5rem',
-        maxWidth: '1280px',
+        maxWidth: '1400px',
         margin: '0 auto',
         width: '100%',
       }}
@@ -340,14 +340,14 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
           overflowX: 'auto',
           position: 'relative',
           padding: '2rem 1rem',
-          minHeight: '890px',
+          minHeight: '950px',
           background: 'var(--bg-darkest)',
         }}
       >
         <svg
-          width="1100"
-          height="850"
-          viewBox="0 0 1100 850"
+          width="1350"
+          height="920"
+          viewBox="0 0 1350 920"
           style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
         >
           <defs>
