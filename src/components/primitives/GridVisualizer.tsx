@@ -14,6 +14,9 @@ interface CellAppearance {
   border: string;
   color: string;
   symbol: string;
+  /* Touched cells get a heavier outline (never a glow) so untouched navy cells
+     stay visibly inactive next to active ones. */
+  strokeWidth: number;
 }
 
 /* ElementState names map 1:1 onto the --state-* token names in theme.css.
@@ -25,6 +28,7 @@ const getCellAppearance = (cell: GridCellNode): CellAppearance => {
       border: 'var(--state-sorted)',
       color: 'var(--state-sorted)',
       symbol: 'S',
+      strokeWidth: 2,
     };
   }
   if (cell.isEnd) {
@@ -33,14 +37,17 @@ const getCellAppearance = (cell: GridCellNode): CellAppearance => {
       border: 'var(--state-swap)',
       color: 'var(--state-swap)',
       symbol: 'E',
+      strokeWidth: 2,
     };
   }
   if (cell.isWall) {
     return {
       bg: 'var(--bg-pressed)',
       border: 'var(--border-strong)',
-      color: 'var(--text-faint)',
+      // Faint/muted tones lose AA on --bg-pressed, so wall labels stay secondary.
+      color: 'var(--text-secondary)',
       symbol: '',
+      strokeWidth: 1,
     };
   }
   if (cell.isPath) {
@@ -49,6 +56,7 @@ const getCellAppearance = (cell: GridCellNode): CellAppearance => {
       border: 'var(--state-path)',
       color: 'var(--text-primary)',
       symbol: '',
+      strokeWidth: 2,
     };
   }
   if (cell.isVisited) {
@@ -57,6 +65,7 @@ const getCellAppearance = (cell: GridCellNode): CellAppearance => {
       border: 'var(--state-visited)',
       color: 'var(--text-secondary)',
       symbol: '',
+      strokeWidth: 2,
     };
   }
 
@@ -66,6 +75,7 @@ const getCellAppearance = (cell: GridCellNode): CellAppearance => {
     border: `var(--state-${state})`,
     color: state === 'default' ? 'var(--text-muted)' : 'var(--text-primary)',
     symbol: '',
+    strokeWidth: state === 'default' ? 1 : 2,
   };
 };
 
@@ -94,7 +104,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
-        minHeight: '300px',
+        minHeight: 'var(--panel-min-h)',
         padding: 0,
       }}
     >
@@ -121,7 +131,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
           maxHeight: '100%',
           background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--border-default)',
         }}
       >
         {grid.map((row, rIdx) =>
@@ -155,7 +165,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
                   rx={4}
                   fill={appearance.bg}
                   stroke={appearance.border}
-                  strokeWidth={1}
+                  strokeWidth={appearance.strokeWidth}
                 />
                 {cellText && (
                   <text

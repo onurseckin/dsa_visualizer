@@ -1,5 +1,6 @@
 import React from 'react';
 import { TreeNodeItem, ElementState } from '../../types/dsa';
+import { vizSlotBg, vizSlotColor } from './vizPalette';
 
 export interface TreeVisualizerProps {
   nodes: TreeNodeItem[];
@@ -7,6 +8,9 @@ export interface TreeVisualizerProps {
   width?: number;
   height?: number;
   title?: string;
+  /* Optional identity tinting: node id → zero-based --viz-* slot (subtree, heap
+     partition, trie branch). Absent for every algorithm that only has state. */
+  groups?: Record<string, number>;
 }
 
 interface ComputedTreeNode extends TreeNodeItem {
@@ -18,14 +22,21 @@ interface ComputedTreeNode extends TreeNodeItem {
 const stateColor = (state: ElementState): string => `var(--state-${state})`;
 const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
 
+const NODE_RADIUS = 26;
+const GROUP_RING_GAP = 5;
+const LEVEL_GAP = 84;
+const SHAPE_TRANSITION =
+  'fill var(--transition-normal), stroke var(--transition-normal), stroke-width var(--transition-normal), opacity var(--transition-normal)';
+const MOVE_TRANSITION = `transform var(--transition-normal), ${SHAPE_TRANSITION}`;
+
 export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   nodes,
   rootId,
-  width = 800,
-  height = 500,
+  width = 900,
+  height = 560,
   title,
+  groups,
 }) => {
-  const nodeRadius = 24;
   if (!nodes || nodes.length === 0) return null;
 
   const nodeMap = new Map<string, TreeNodeItem>();
@@ -66,17 +77,17 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       cy,
     });
 
-    const nextSpread = Math.max(spreadX / 2, 34);
+    const nextSpread = Math.max(spreadX / 2, NODE_RADIUS + 16);
     if (item.leftId) {
-      layoutTree(item.leftId, depth + 1, cx - spreadX, cy + 72, nextSpread);
+      layoutTree(item.leftId, depth + 1, cx - spreadX, cy + LEVEL_GAP, nextSpread);
     }
     if (item.rightId) {
-      layoutTree(item.rightId, depth + 1, cx + spreadX, cy + 72, nextSpread);
+      layoutTree(item.rightId, depth + 1, cx + spreadX, cy + LEVEL_GAP, nextSpread);
     }
   };
 
-  const initialSpread = Math.min(width / 4, 160);
-  layoutTree(computedRootId, 0, width / 2, 60, initialSpread);
+  const initialSpread = Math.min(width / 3.4, 200);
+  layoutTree(computedRootId, 0, width / 2, 70, initialSpread);
 
   const computedNodes = Array.from(computedNodesMap.values());
 
@@ -88,14 +99,24 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   if (computedNodes.length > 0) {
     const xs = computedNodes.map((n) => n.cx);
     const ys = computedNodes.map((n) => n.cy);
-    const padding = nodeRadius + 24;
+    const padding = NODE_RADIUS + GROUP_RING_GAP + 14;
     minX = Math.min(...xs) - padding;
     minY = Math.min(...ys) - padding;
     maxX = Math.max(...xs) + padding;
     maxY = Math.max(...ys) + padding;
   }
-  const viewBoxWidth = Math.max(maxX - minX, 100);
-  const viewBoxHeight = Math.max(maxY - minY, 100);
+  const viewBoxWidth = Math.max(maxX - minX, 120);
+  const viewBoxHeight = Math.max(maxY - minY, 120);
+
+  const groupOf = (id: string): number | undefined => groups?.[id];
+
+  const groupSlots = Array.from(
+    new Set(
+      computedNodes
+        .map((node) => groupOf(node.id))
+        .filter((slot): slot is number => slot !== undefined)
+    )
+  ).sort((a, b) => a - b);
 
   return (
     <div
@@ -103,11 +124,13 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'stretch',
         width: '100%',
         height: '100%',
         minHeight: '300px',
+        minWidth: 0,
         padding: 0,
+        gap: 'var(--space-2)',
       }}
     >
       {title && (
@@ -116,7 +139,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             fontSize: 'var(--text-xs)',
             fontWeight: 600,
             color: 'var(--text-muted)',
-            marginBottom: 'var(--space-2)',
+            textAlign: 'center',
           }}
         >
           {title}
@@ -128,9 +151,11 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         preserveAspectRatio="xMidYMid meet"
         style={{
+          flex: '1 1 auto',
+          display: 'block',
           width: '100%',
           height: '100%',
-          maxHeight: '100%',
+          minHeight: 0,
           background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
@@ -147,6 +172,17 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             const child = computedNodesMap.get(link.childId);
             if (!child) return null;
 
+            /* A link belongs to the child's subtree, so it inherits the child's
+               identity color when both ends agree; otherwise it stays chrome. */
+            const parentSlot = groupOf(parent.id);
+            const childSlot = groupOf(child.id);
+            const onPath = child.state === 'path' && parent.state === 'path';
+            const linkColor = onPath
+              ? 'var(--state-path)'
+              : childSlot !== undefined && childSlot === parentSlot
+              ? vizSlotColor(childSlot)
+              : 'var(--border-default)';
+
             return (
               <line
                 key={`link-${parent.id}-${child.id}`}
@@ -154,43 +190,97 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 y1={parent.cy}
                 x2={child.cx}
                 y2={child.cy}
-                stroke="var(--border-strong)"
-                strokeWidth="1.5"
-                style={{ transition: 'all 0.3s ease' }}
+                stroke={linkColor}
+                strokeWidth={onPath ? 3 : 1.8}
+                strokeLinecap="round"
+                style={{ transition: SHAPE_TRANSITION }}
               />
             );
           });
         })}
 
         {/* Render Binary Tree Nodes */}
-        {computedNodes.map((node) => (
-          <g
-            key={`treenode-${node.id}`}
-            transform={`translate(${node.cx}, ${node.cy})`}
-            style={{ transition: 'transform 0.3s ease' }}
-          >
-            <circle
-              r={nodeRadius}
-              fill={stateBg(node.state)}
-              stroke={stateColor(node.state)}
-              strokeWidth="1.5"
-              style={{ transition: 'all 0.3s ease' }}
-            />
-            <text
-              x="0"
-              y="0"
-              dominantBaseline="central"
-              textAnchor="middle"
-              fill="var(--text-primary)"
-              fontSize="13"
-              fontFamily="var(--font-code)"
-              fontWeight="600"
+        {computedNodes.map((node) => {
+          const slot = groupOf(node.id);
+          const hasGroup = slot !== undefined;
+          const inSemanticState = node.state !== 'default';
+
+          /* Same precedence as GraphVisualizer: state paints the node, identity
+             is demoted to an outer ring so nothing regresses without groups. */
+          const fill = inSemanticState || !hasGroup ? stateBg(node.state) : vizSlotBg(slot);
+          const stroke = inSemanticState || !hasGroup ? stateColor(node.state) : vizSlotColor(slot);
+          const showGroupRing = hasGroup && inSemanticState;
+
+          return (
+            <g
+              key={`treenode-${node.id}`}
+              transform={`translate(${node.cx}, ${node.cy})`}
+              style={{ transition: MOVE_TRANSITION }}
             >
-              {node.val}
-            </text>
-          </g>
-        ))}
+              {showGroupRing && (
+                <circle
+                  r={NODE_RADIUS + GROUP_RING_GAP}
+                  fill="none"
+                  stroke={vizSlotColor(slot)}
+                  strokeWidth="2.5"
+                  strokeOpacity="0.9"
+                  style={{ transition: SHAPE_TRANSITION }}
+                />
+              )}
+              <circle
+                r={NODE_RADIUS}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={inSemanticState ? 2.5 : 2}
+                style={{ transition: SHAPE_TRANSITION }}
+              />
+              <text
+                x="0"
+                y="0"
+                dominantBaseline="central"
+                textAnchor="middle"
+                fill="var(--text-primary)"
+                fontSize="15"
+                fontFamily="var(--font-code)"
+                fontWeight="600"
+              >
+                {node.val}
+              </text>
+            </g>
+          );
+        })}
       </svg>
+
+      {groupSlots.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: 'var(--space-1) var(--space-3)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {groupSlots.map((slot) => (
+            <span
+              key={`tree-legend-${slot}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: 'var(--radius-full)',
+                  background: vizSlotColor(slot),
+                }}
+              />
+              {`Group ${slot + 1}`}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

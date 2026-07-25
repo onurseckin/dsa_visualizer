@@ -102,7 +102,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
               alignItems: 'center',
               gap: 'var(--space-1)',
               padding: 'var(--space-2) var(--space-3)',
-              borderTop: '1px solid var(--border-subtle)',
+              borderTop: '1px solid var(--border-default)',
               overflowX: 'auto',
               flexShrink: 0,
             }}
@@ -120,7 +120,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
             {Object.entries(variables).map(([k, v]) => (
               <span key={k} className="ui-chip">
                 {k}
-                <span style={{ color: 'var(--text-faint)' }}>=</span>
+                <span style={{ color: 'var(--text-muted)' }}>=</span>
                 <span style={{ color: 'var(--text-primary)' }}>{String(v)}</span>
               </span>
             ))}

@@ -42,7 +42,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
         <span
           aria-hidden="true"
-          style={{ display: 'inline-flex', color: 'var(--text-muted)', marginTop: '2px' }}
+          style={{ display: 'inline-flex', color: 'var(--text-secondary)', marginTop: '2px' }}
         >
           <GraduationCap size={16} />
         </span>
