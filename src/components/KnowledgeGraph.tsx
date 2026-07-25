@@ -1,7 +1,7 @@
 import React from 'react';
 import { Network, ArrowRight } from 'lucide-react';
 
-export interface NeetCodeNode {
+export interface TopicRoadmapNode {
   id: string;
   title: string;
   categoryFolder: string;
@@ -13,7 +13,7 @@ export interface NeetCodeNode {
   y: number;
 }
 
-export const NEETCODE_NODES: NeetCodeNode[] = [
+export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
   {
     id: 'arrays-and-hashing',
     title: '1. Arrays & Hashing',
@@ -257,9 +257,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
   const renderConnections = () => {
     const lines: React.ReactNode[] = [];
 
-    NEETCODE_NODES.forEach((node) => {
+    TOPIC_ROADMAP_NODES.forEach((node) => {
       node.prerequisites.forEach((prereqId) => {
-        const parent = NEETCODE_NODES.find((n) => n.id === prereqId);
+        const parent = TOPIC_ROADMAP_NODES.find((n) => n.id === prereqId);
         if (parent) {
           const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
           const strokeColor = isHighlighted ? 'var(--accent-emerald)' : 'var(--border-subtle)';
@@ -377,12 +377,12 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
 
           {renderConnections()}
 
-          {NEETCODE_NODES.map((node) => {
+          {TOPIC_ROADMAP_NODES.map((node) => {
             const isHovered = hoveredNodeId === node.id;
             const isRelated =
               hoveredNodeId !== null &&
               (node.prerequisites.includes(hoveredNodeId) ||
-                NEETCODE_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
+                TOPIC_ROADMAP_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
 
             const strokeColor = isHovered
               ? 'var(--accent-emerald)'
@@ -460,7 +460,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>
-          {NEETCODE_NODES.map((node) => (
+          {TOPIC_ROADMAP_NODES.map((node) => (
             <div
               key={node.id}
               className="glass-card"

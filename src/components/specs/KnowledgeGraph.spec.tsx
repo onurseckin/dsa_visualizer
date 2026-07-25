@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { KnowledgeGraph, NEETCODE_NODES } from '../KnowledgeGraph';
+import { KnowledgeGraph, TOPIC_ROADMAP_NODES } from '../KnowledgeGraph';
 
 describe('KnowledgeGraph Component Spec', () => {
   it('renders SVG region and roadmap node cards', () => {
@@ -59,9 +59,9 @@ describe('KnowledgeGraph Component Spec', () => {
     fireEvent.blur(button);
   });
 
-  it('contains all 21 NeetCode nodes with valid properties and prerequisite structure', () => {
-    expect(NEETCODE_NODES.length).toBe(21);
-    NEETCODE_NODES.forEach((node) => {
+  it('contains all 21 topic roadmap nodes with valid properties and prerequisite structure', () => {
+    expect(TOPIC_ROADMAP_NODES.length).toBe(21);
+    TOPIC_ROADMAP_NODES.forEach((node) => {
       expect(node.id).toBeDefined();
       expect(node.title).toBeDefined();
       expect(node.categoryFolder).toBeDefined();

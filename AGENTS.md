@@ -214,7 +214,7 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
 ```
 
 ### Step 4: Update Knowledge Graph Node in `src/components/KnowledgeGraph.tsx`
-Update the corresponding node in `NEETCODE_NODES` array (or increment `algorithmCount`).
+Update the corresponding node in `TOPIC_ROADMAP_NODES` array (or increment `algorithmCount`).
 
 ### Step 5: Verify Master Quality Gate
 Run the master quality gate command in your terminal:
