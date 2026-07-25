@@ -138,7 +138,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          minHeight: '480px',
+          maxHeight: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
@@ -181,7 +181,8 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
                 {cellText && (
                   <text
                     x={x + cellSize / 2}
-                    y={y + cellSize / 2 + 4}
+                    y={y + cellSize / 2}
+                    dominantBaseline="central"
                     textAnchor="middle"
                     fill={appearance.color}
                     fontSize="12"

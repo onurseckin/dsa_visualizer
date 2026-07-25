@@ -19,7 +19,7 @@ describe('topologicalSort algorithm spec', () => {
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.codeLine).toBe(1);
+    expect(firstStep.codeLine).toBe(3);
 
     const snapshot = firstStep.primarySnapshot;
     if (snapshot.kind === 'graph') {

@@ -87,7 +87,7 @@ const getStateStyles = (state: ElementState) => {
 export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   elements,
   mode = 'bar',
-  maxHeight = 320,
+  maxHeight = 220,
   title,
 }) => {
   const maxVal = Math.max(...elements.map((el) => el.value), 1);
@@ -95,9 +95,14 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   const barWidth = Math.min(Math.max(700 / n, 32), 60);
   const gap = 8;
   const paddingX = 16;
-  const paddingY = 40;
+
+  const isBoxMode = mode === 'box';
+  const barAreaHeight = isBoxMode ? Math.min(barWidth, 48) : Math.min(maxHeight, 220);
+  const topPadding = 36;
+  const bottomPadding = 32;
+
   const viewBoxWidth = n * barWidth + (n - 1) * gap + paddingX * 2;
-  const viewBoxHeight = maxHeight + paddingY + 40;
+  const viewBoxHeight = topPadding + barAreaHeight + bottomPadding;
 
   return (
     <div
@@ -134,7 +139,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          minHeight: '480px',
+          maxHeight: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
@@ -146,9 +151,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           const x = paddingX + index * (barWidth + gap);
 
           if (mode === 'bar') {
-            const heightPct = Math.max((item.value / maxVal) * 100, 15);
-            const barHeight = Math.round((heightPct * maxHeight) / 100);
-            const y = paddingY + (maxHeight - barHeight);
+            const heightPct = Math.max((item.value / maxVal) * 100, 12);
+            const barHeight = Math.max(Math.round((heightPct * barAreaHeight) / 100), 16);
+            const y = topPadding + (barAreaHeight - barHeight);
 
             return (
               <g key={item.id || `arr-node-${index}`}>
@@ -159,8 +164,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                       <text
                         key={`${ptr}-${pIdx}`}
                         x={x + barWidth / 2}
-                        y={y - 8 - (item.pointers!.length - 1 - pIdx) * 14}
+                        y={y - 10 - (item.pointers!.length - 1 - pIdx) * 14}
                         textAnchor="middle"
+                        dominantBaseline="central"
                         fill="var(--accent-emerald)"
                         fontSize="11"
                         fontFamily="var(--font-code)"
@@ -185,8 +191,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                 />
                 <text
                   x={x + barWidth / 2}
-                  y={y + barHeight - 8}
+                  y={barHeight >= 22 ? y + barHeight / 2 : y - 10}
                   textAnchor="middle"
+                  dominantBaseline="central"
                   fill={style.color}
                   fontFamily="var(--font-code)"
                   fontWeight="700"
@@ -198,8 +205,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                 {/* Index label below */}
                 <text
                   x={x + barWidth / 2}
-                  y={paddingY + maxHeight + 24}
+                  y={topPadding + barAreaHeight + 18}
                   textAnchor="middle"
+                  dominantBaseline="central"
                   fill="var(--text-muted)"
                   fontFamily="var(--font-code)"
                   fontSize="11"
@@ -210,7 +218,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
             );
           } else {
             const boxSize = Math.min(barWidth, 48);
-            const y = paddingY + (maxHeight - boxSize) / 2;
+            const y = topPadding + (barAreaHeight - boxSize) / 2;
 
             return (
               <g key={item.id || `arr-node-${index}`}>
@@ -221,8 +229,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                       <text
                         key={`${ptr}-${pIdx}`}
                         x={x + barWidth / 2}
-                        y={y - 8 - (item.pointers!.length - 1 - pIdx) * 14}
+                        y={y - 10 - (item.pointers!.length - 1 - pIdx) * 14}
                         textAnchor="middle"
+                        dominantBaseline="central"
                         fill="var(--accent-emerald)"
                         fontSize="11"
                         fontFamily="var(--font-code)"
@@ -247,8 +256,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                 />
                 <text
                   x={x + barWidth / 2}
-                  y={y + boxSize / 2 + 5}
+                  y={y + boxSize / 2}
                   textAnchor="middle"
+                  dominantBaseline="central"
                   fill={style.color}
                   fontFamily="var(--font-code)"
                   fontWeight="700"
@@ -260,8 +270,9 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                 {/* Index label below */}
                 <text
                   x={x + barWidth / 2}
-                  y={paddingY + maxHeight + 24}
+                  y={topPadding + barAreaHeight + 18}
                   textAnchor="middle"
+                  dominantBaseline="central"
                   fill="var(--text-muted)"
                   fontFamily="var(--font-code)"
                   fontSize="11"

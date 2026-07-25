@@ -117,7 +117,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        minHeight: '320px',
+        minHeight: '0',
         height: '100%',
       }}
     >
@@ -129,7 +129,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           flexDirection: 'column',
           position: 'relative',
           flex: 1,
-          minHeight: '320px',
+          minHeight: '260px',
           overflow: 'hidden',
           border: '1px solid var(--border-muted)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
@@ -146,7 +146,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             padding: 0,
             width: '100%',
             height: '100%',
-            minHeight: '300px',
+            minHeight: '220px',
             overflow: 'auto',
           }}
         >
@@ -157,7 +157,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '200px',
+                minHeight: '180px',
                 color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '1.5rem',
@@ -198,7 +198,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
       {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
       {showAuxiliary && currentStep?.auxiliaryState && (
-        <div style={{ flexShrink: 0, minHeight: '100px' }}>
+        <div style={{ flexShrink: 0, minHeight: '80px' }}>
           <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
         </div>
       )}
@@ -211,11 +211,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        minHeight: '480px',
+        minHeight: '0',
         height: '100%',
       }}
     >
-      <div style={{ flex: 1, minHeight: '360px', overflow: 'auto' }}>
+      <div style={{ flex: 1, minHeight: '260px', overflow: 'auto' }}>
         <CodeBlockViewer
           code={algorithm.code}
           activeLine={currentStep?.codeLine || 1}
@@ -240,8 +240,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        minHeight: 'calc(100vh - 68px)',
+        flex: 1,
+        height: 'calc(100vh - 64px)',
         boxSizing: 'border-box',
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
       {/* Problem Specification Compact Header Card */}
@@ -260,7 +263,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </div>
 
       {/* Resizable Layout Stage */}
-      <div style={{ flex: 1, height: '100%', minHeight: '480px' }}>
+      <div style={{ flex: 1, height: '100%', minHeight: '360px' }}>
         {viewMode === 'split' && (
           <ResizableLayout
             leftPanel={leftColumnContent}
@@ -272,12 +275,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           />
         )}
         {viewMode === 'visual' && (
-          <div style={{ width: '100%', height: '100%', minHeight: '480px' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: '360px' }}>
             {leftColumnContent}
           </div>
         )}
         {viewMode === 'code' && (
-          <div style={{ width: '100%', height: '100%', minHeight: '480px' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: '360px' }}>
             {rightColumnContent}
           </div>
         )}
