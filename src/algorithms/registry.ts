@@ -1,4 +1,8 @@
 import type { AlgorithmDefinition } from '../types/dsa';
+import { prefixSum } from './arrays_and_hashing/prefixSum';
+import { twoSumSorted } from './two_pointers/twoSumSorted';
+import { validParentheses } from './stack/validParentheses';
+import { slidingWindowMin } from './sliding_window/slidingWindowMin';
 import { fenwickTree } from './dataStructures/fenwickTree';
 import { segmentTree } from './dataStructures/segmentTree';
 import { kmpStringMatch } from './advanced/kmpStringMatch';
@@ -16,6 +20,10 @@ import { quickSort } from './sorting/quickSort';
 import { kruskalMst } from './trees/kruskalMst';
 
 export {
+  prefixSum,
+  twoSumSorted,
+  validParentheses,
+  slidingWindowMin,
   bfsGraph,
   bubbleSort,
   coinChangeDp,
@@ -34,6 +42,10 @@ export {
 };
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
+  'prefix-sum': prefixSum as AlgorithmDefinition,
+  'two-sum-sorted': twoSumSorted as AlgorithmDefinition,
+  'valid-parentheses': validParentheses as AlgorithmDefinition,
+  'sliding-window-min': slidingWindowMin as AlgorithmDefinition,
   'bubble-sort': bubbleSort as AlgorithmDefinition,
   'quick-sort': quickSort as AlgorithmDefinition,
   'kadane-max-subarray': kadaneMaxSubarray as AlgorithmDefinition,
