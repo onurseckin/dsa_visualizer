@@ -5,19 +5,20 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces (page → surface → elevated → inset for wells) */
-  --bg-page: #0f1713;
-  --bg-surface: #151f1a;
-  --bg-elevated: #1b2620;
-  --bg-inset: #111a15;
-  --bg-hover: #212e27;
-  --bg-pressed: #273630;
-  --bg-backdrop: rgba(7, 12, 10, 0.62);
+  /* Surfaces — anchored to Tailwind green-950 (#052e16) as the page base;
+     only the inset well may go darker, everything else steps up from it. */
+  --bg-page: #052e16;
+  --bg-surface: #0a3a1e;
+  --bg-elevated: #0e4425;
+  --bg-inset: #04250f;
+  --bg-hover: #134f2c;
+  --bg-pressed: #175a33;
+  --bg-backdrop: rgba(2, 18, 9, 0.66);
 
   /* Borders */
-  --border-subtle: rgba(173, 201, 187, 0.09);
-  --border-default: rgba(173, 201, 187, 0.16);
-  --border-strong: rgba(173, 201, 187, 0.28);
+  --border-subtle: rgba(134, 239, 172, 0.1);
+  --border-default: rgba(134, 239, 172, 0.17);
+  --border-strong: rgba(134, 239, 172, 0.3);
   --border-accent: rgba(52, 211, 153, 0.55);
 
   /* Accent — marks interaction and selection, never decoration */
@@ -29,10 +30,10 @@
   --accent-secondary: #2dd4bf;
 
   /* Text */
-  --text-primary: #e9f2ed;
-  --text-secondary: #b0c4b9;
-  --text-muted: #87998d;
-  --text-faint: #64756a;
+  --text-primary: #ecfdf3;
+  --text-secondary: #b7d7c3;
+  --text-muted: #8aae97;
+  --text-faint: #648b72;
 
   /* Semantic feedback */
   --success: #34d399;
