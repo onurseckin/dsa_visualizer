@@ -157,7 +157,6 @@ export function QuickAccessDrawer({
                     return (
                       <Button
                         key={alg.id}
-                        variant="ghost"
                         fullWidth
                         selected={isActive}
                         icon={isActive ? <Check /> : undefined}

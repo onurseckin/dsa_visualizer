@@ -90,12 +90,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '56px',
+        height: 'var(--navbar-h)',
         flexShrink: 0,
         padding: '0 var(--space-4)',
         gap: 'var(--space-3)',
-        background: 'var(--bg-surface)',
-        borderBottom: '1px solid var(--border-subtle)',
+        // Navy chrome tier: keeps the navbar visibly separate from the page and
+        // from the emerald content cards below it.
+        background: 'var(--bg-chrome)',
+        borderBottom: '1px solid var(--border-default)',
       }}
     >
       {/* Brand + app-view switcher */}

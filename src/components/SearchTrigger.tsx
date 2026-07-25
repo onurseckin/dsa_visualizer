@@ -25,16 +25,24 @@ export const SearchTrigger: React.FC<SearchTriggerProps> = ({ onOpenDrawer }) =>
         borderRadius: 'var(--radius-md)',
         fontFamily: 'var(--font-ui)',
         fontSize: 'var(--text-sm)',
-        color: 'var(--text-faint)',
+        color: 'var(--text-muted)',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        transition: 'border-color var(--transition-fast), background var(--transition-fast)',
+        transition: 'border-color var(--transition-fast), color var(--transition-fast)',
+      }}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.borderColor = 'var(--border-strong)';
+        event.currentTarget.style.color = 'var(--text-primary)';
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.borderColor = 'var(--border-default)';
+        event.currentTarget.style.color = 'var(--text-muted)';
       }}
     >
       <Search
         aria-hidden="true"
-        style={{ width: '14px', height: '14px', color: 'var(--text-muted)', flexShrink: 0 }}
+        style={{ width: '14px', height: '14px', color: 'currentColor', flexShrink: 0 }}
       />
       <span
         style={{
