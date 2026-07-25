@@ -173,3 +173,157 @@ The `ComplexityCard` renders the Big-O chips plus these paragraphs.
 - Tests: update the spec files you own to match new behavior/text; run only your own
   spec files (`bunx vitest run <paths>`) — never the full suite. Keep them passing.
 - Don't start dev servers or browsers. Don't commit — the orchestrator commits.
+
+---
+
+# Round 3 — contrast, customizable layout, education, smart sound
+
+Supersedes conflicting details above. Sections 1–8 still describe the component
+system; the deltas below win where they overlap.
+
+## R3.1 Palette (navy + emerald, validated)
+
+`src/styles/theme.css` is rewritten and **finished** — read it, never edit it.
+No token was renamed, so components keep compiling; values and intent changed:
+
+- **Two hue tiers.** Navy carries app chrome (`--bg-inset` wells → `--bg-page`
+  → `--bg-chrome` navbar/toolbars); emerald carries content (`--bg-surface`
+  cards → `--bg-elevated` buttons/chips → `--bg-hover` → `--bg-pressed`).
+  Use `--bg-chrome` for the navbar and any toolbar strip.
+- **Borders are solid tones now** (`--border-subtle` / `--border-default` /
+  `--border-strong`), not near-invisible alphas. Every card and button must
+  carry a real border — that is what makes controls read against the surface.
+  `--border-strong` clears 3:1 against page and surface; use it for hovered
+  or emphasized boundaries.
+- **Accent is mint** `#5eead4`. Selection/interaction only.
+- Text tones all clear WCAG AA on the surfaces they are used on. Never put
+  `--text-muted` or `--text-faint` on `--bg-hover`/`--bg-pressed` (they lose
+  contrast there) — use `--text-secondary`/`--text-primary` on hover states.
+- **`--viz-1` … `--viz-8`**: a validated categorical palette for telling
+  *groups* apart. Assign in fixed slot order, never cycle past 8 (fold extras
+  into `--state-default`). Do not invent new chart colors — this set passed
+  colorblind-separation gates as an ordered set and substitutions break it.
+- Element `--state-*` tokens stay semantic (algorithm state, not identity).
+  Untouched elements are navy so any color means "the algorithm acted here".
+- New layout metrics: `--navbar-h`, `--stage-min-h`, `--panel-min-h`.
+
+## R3.2 Smart responsive layout — never block page scroll
+
+The old "expanded vs collapsed layout mode" switch is **removed**. One system:
+
+- `<main>` always allows page scrolling (`overflow-y: auto`). Never
+  `overflow: hidden` on the page or `<main>`.
+- The stage sizes itself from the viewport with a floor:
+  `height: max(var(--stage-min-h), calc(100dvh - <chrome+header+gaps>))`.
+  On a tall monitor that resolves to the viewport, so everything fits with no
+  scrolling; on a short monitor the floor wins and the page scrolls. This is
+  the "smart flexibility" requirement — fit when it can, scroll when it must.
+- Inner panels keep `min-height: 0` and scroll internally.
+- Expanding details simply adds content above the stage; the page scrolls. The
+  stage does not shrink and no mode switch happens.
+
+## R3.3 Fully customizable, persisted workspace panels
+
+Every workspace section is resizable — horizontally **and** vertically.
+
+- Horizontal: the left/right stage split (visualizer column vs code column).
+- Vertical, left column: visualizer / tutorial / auxiliary.
+- Vertical, right column: code / complexity.
+- Drag handles use the existing `role="separator"` pattern with
+  `aria-orientation` set correctly, keyboard arrow support, and double-click to
+  restore that handle's default.
+
+Persistence contract — one versioned key, written on every commit of a drag:
+
+```ts
+// src/app/workspaceLayout.ts
+export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v3';
+
+export interface WorkspaceLayout {
+  version: 3;
+  splitPercent: number;                                               // left column width %
+  leftRows: { visualizer: number; tutorial: number; auxiliary: number }; // flex weights
+  rightRows: { code: number; complexity: number };                    // flex weights
+}
+```
+
+Rules: validate on read (wrong version, bad shape, NaN, out-of-range → defaults);
+never throw on storage errors; sizes survive reload **and** dev-server restarts
+because they live in `localStorage`, so never clear the key except on an
+explicit confirmed reset.
+
+**Reset requires confirmation.** "Reset layout" opens `ConfirmDialog` from
+`src/ui` (new: `isOpen`, `title`, `message`, `confirmLabel`, `cancelLabel`,
+`destructive`, `onConfirm`, `onCancel`; Escape/backdrop cancel). Only on confirm
+does the key get removed and the layout return to defaults.
+
+## R3.4 Educational details (`topicGuide`)
+
+`AlgorithmDefinition` gains a **required** field:
+
+```ts
+export interface TopicGuide {
+  overview: string;                                     // what this topic IS
+  sections: { heading: string; body: string }[];        // the teaching body
+  keyTerms?: { term: string; definition: string }[];    // vocabulary
+}
+```
+
+This is a **topic lesson, not step narration**. The step `explanation.why`
+strings stay as they are (that is the play-by-play). `topicGuide` teaches the
+whole subject behind the problem so the details panel is a reference you could
+study from with the animation paused.
+
+Required shape per algorithm:
+- `overview`: 2–4 sentences orienting the learner — what the technique/data
+  structure is and what class of problem it solves.
+- `sections`: **4–6** sections, each `body` being 3–6 full sentences. Cover, in
+  this spirit (adapt headings to the topic): the core idea and the insight that
+  makes it work; how the mechanism operates concretely; why it is correct
+  (the invariant it maintains); when to reach for it versus alternatives;
+  common pitfalls and edge cases; how it generalizes to sibling problems.
+- `keyTerms`: 3–6 terms a newcomer would stumble on, each defined in one or two
+  sentences.
+- Voice: a good teacher writing prose — second person ("you"), concrete, no
+  bullet fragments inside `body`, no markdown syntax, no Big-O dumps (that is
+  `complexityAnalysis`), no restating the step list.
+
+**Details are expanded by default** in the workspace.
+
+## R3.5 Smart step-by-step sound
+
+Every step transition must be audible, with a cue that matches what the step
+did — not silence for most steps as before.
+
+```ts
+// src/engine/stepSound.ts
+export type SoundCueKind =
+  | 'advance' | 'compare' | 'swap' | 'push' | 'pop' | 'visit'
+  | 'enqueue' | 'dequeue' | 'relax' | 'match' | 'complete';
+
+export interface SoundCue {
+  kind: SoundCueKind;
+  /** 0..1 — drives pitch so stepping reads as motion, not noise. */
+  pitch: number;
+}
+
+export function deriveStepCue(
+  step: AlgorithmStep,
+  prevStep: AlgorithmStep | null,
+  totalSteps: number,
+): SoundCue;
+```
+
+- Pure function, fully unit-testable, no audio imports.
+- Derive the kind from real step content: which `ElementState`s appeared in the
+  snapshot versus the previous step, `auxiliaryState` growth/shrink
+  (stack/queue push vs pop), distance-table changes (`relax`), and
+  `explanation.what` keywords as a tiebreaker. Last step → `complete`.
+- Default to `'advance'` (a soft tick) so **no step is silent**.
+- `pitch` should generally track progress through the run or the value being
+  touched, so a sort audibly rises as it converges.
+- `soundEngine` gains `playCue(cue: SoundCue)`; existing public methods stay.
+- Timing: the step interval goes as low as 50ms, so the throttle must not
+  swallow legitimate consecutive steps — cap it near 30ms and raise the voice
+  ceiling. Distinct cue kinds get distinct timbre/duration, kept short
+  (≤120ms) so fast playback stays crisp rather than muddy.

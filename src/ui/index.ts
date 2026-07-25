@@ -25,5 +25,8 @@ export type { CollapsibleProps } from './Collapsible';
 export { Drawer } from './Drawer';
 export type { DrawerProps } from './Drawer';
 
+export { ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';
+
 export { Kbd } from './Kbd';
 export type { KbdProps } from './Kbd';
