@@ -224,7 +224,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
 export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   id: 'kth-largest-element',
   title: 'Kth Largest Element in an Array',
-  category: 'heap',
+  category: 'heap_and_priority_queue',
   difficulty: 'Medium',
   description:
     'Find the Kth largest element in an unsorted array using a Min-Heap of size K.',

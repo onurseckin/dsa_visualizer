@@ -220,7 +220,7 @@ export const generateBinaryTreeLcaSteps = (
 export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   id: 'binary-tree-lca',
   title: 'Lowest Common Ancestor of a Binary Tree',
-  category: 'tree',
+  category: 'tree_fundamentals',
   difficulty: 'Medium',
   description:
     'Given a binary tree and two nodes p and q, find the lowest common ancestor (LCA) node in the tree using bottom-up post-order recursion.',

@@ -267,7 +267,7 @@ export const generateTreeDiameterSteps = (
 export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   id: 'tree-diameter',
   title: 'Tree Diameter (2-DFS Algorithm)',
-  category: 'trees',
+  category: 'tree_queries_and_diameter',
   difficulty: 'Medium',
   description:
     'Computes the diameter (longest simple path) of an unweighted tree using the classic two-pass Depth-First Search algorithm.',

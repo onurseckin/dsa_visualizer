@@ -4,6 +4,7 @@ import {
   generateKthLargestSteps,
   DEFAULT_KTH_LARGEST_INPUT,
 } from '../kthLargestElement';
+import type { ArrayVisualSnapshot } from '../../../types/dsa';
 
 describe('kthLargestElement logic spec', () => {
   it('generates valid steps for default input', () => {
@@ -11,7 +12,8 @@ describe('kthLargestElement logic spec', () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
-    expect(firstStep.primarySnapshot.kind).toBe('array');
+    const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
+    expect(snapshot.kind).toBe('array');
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.result).toBe(5);
@@ -35,7 +37,7 @@ describe('kthLargestElement logic spec', () => {
 
   it('verifies algorithm definition metadata', () => {
     expect(kthLargestElement.id).toBe('kth-largest-element');
-    expect(kthLargestElement.category).toBe('heap');
+    expect(kthLargestElement.category).toBe('heap_and_priority_queue');
     expect(kthLargestElement.difficulty).toBe('Medium');
   });
 });
