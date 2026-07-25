@@ -14,53 +14,9 @@ interface ComputedTreeNode extends TreeNodeItem {
   cy: number;
 }
 
-const getNodeStateColors = (state: ElementState) => {
-  switch (state) {
-    case 'compare':
-      return {
-        fill: 'var(--state-compare-bg)',
-        stroke: 'var(--state-compare)',
-        text: 'var(--state-compare)',
-        glow: 'rgba(245, 158, 11, 0.5)',
-      };
-    case 'swap':
-      return {
-        fill: 'var(--state-swap-bg)',
-        stroke: 'var(--state-swap)',
-        text: 'var(--state-swap)',
-        glow: 'rgba(239, 68, 68, 0.6)',
-      };
-    case 'sorted':
-      return {
-        fill: 'var(--state-sorted-bg)',
-        stroke: 'var(--state-sorted)',
-        text: 'var(--state-sorted)',
-        glow: 'rgba(0, 255, 157, 0.6)',
-      };
-    case 'active':
-      return {
-        fill: 'var(--state-active-bg)',
-        stroke: 'var(--state-active)',
-        text: 'var(--state-active)',
-        glow: 'rgba(59, 130, 246, 0.6)',
-      };
-    case 'visited':
-      return {
-        fill: 'rgba(6, 182, 212, 0.25)',
-        stroke: '#06b6d4',
-        text: '#06b6d4',
-        glow: 'rgba(6, 182, 212, 0.4)',
-      };
-    case 'default':
-    default:
-      return {
-        fill: 'var(--bg-surface)',
-        stroke: 'var(--border-subtle)',
-        text: 'var(--text-main)',
-        glow: 'transparent',
-      };
-  }
-};
+/* ElementState names map 1:1 onto the --state-* token names in theme.css. */
+const stateColor = (state: ElementState): string => `var(--state-${state})`;
+const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
 
 export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   nodes,
@@ -157,12 +113,10 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       {title && (
         <div
           style={{
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            color: 'var(--accent-mint)',
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            marginBottom: 'var(--space-2)',
           }}
         >
           {title}
@@ -177,10 +131,9 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           width: '100%',
           height: '100%',
           maxHeight: '100%',
-          background: 'var(--bg-darkest)',
+          background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-card)',
           overflow: 'visible',
         }}
       >
@@ -201,8 +154,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 y1={parent.cy}
                 x2={child.cx}
                 y2={child.cy}
-                stroke="var(--border-subtle)"
-                strokeWidth="2"
+                stroke="var(--border-strong)"
+                strokeWidth="1.5"
                 style={{ transition: 'all 0.3s ease' }}
               />
             );
@@ -210,40 +163,33 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         })}
 
         {/* Render Binary Tree Nodes */}
-        {computedNodes.map((node) => {
-          const style = getNodeStateColors(node.state);
-
-          return (
-            <g
-              key={`treenode-${node.id}`}
-              transform={`translate(${node.cx}, ${node.cy})`}
-              style={{ transition: 'transform 0.3s ease' }}
+        {computedNodes.map((node) => (
+          <g
+            key={`treenode-${node.id}`}
+            transform={`translate(${node.cx}, ${node.cy})`}
+            style={{ transition: 'transform 0.3s ease' }}
+          >
+            <circle
+              r={nodeRadius}
+              fill={stateBg(node.state)}
+              stroke={stateColor(node.state)}
+              strokeWidth="1.5"
+              style={{ transition: 'all 0.3s ease' }}
+            />
+            <text
+              x="0"
+              y="0"
+              dominantBaseline="central"
+              textAnchor="middle"
+              fill="var(--text-primary)"
+              fontSize="13"
+              fontFamily="var(--font-code)"
+              fontWeight="600"
             >
-              <circle
-                r={nodeRadius}
-                fill={style.fill}
-                stroke={style.stroke}
-                strokeWidth="2"
-                style={{
-                  filter: style.glow !== 'transparent' ? `drop-shadow(0 0 8px ${style.glow})` : undefined,
-                  transition: 'all 0.3s ease',
-                }}
-              />
-              <text
-                x="0"
-                y="0"
-                dominantBaseline="central"
-                textAnchor="middle"
-                fill={style.text}
-                fontSize="13"
-                fontFamily="var(--font-code)"
-                fontWeight="700"
-              >
-                {node.val}
-              </text>
-            </g>
-          );
-        })}
+              {node.val}
+            </text>
+          </g>
+        ))}
       </svg>
     </div>
   );

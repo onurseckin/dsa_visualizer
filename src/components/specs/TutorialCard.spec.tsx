@@ -5,11 +5,11 @@ import type { StepExplanation } from '../../types/dsa';
 
 describe('TutorialCard Component Spec', () => {
   const sampleExplanation: StepExplanation = {
-    what: 'Comparing element at index 0 (val 5) with pivot (val 3).',
-    why: 'Partitioning step requires smaller elements on the left side.',
+    what: 'Compare 5 with the pivot 3',
+    why: 'We need smaller elements on the left side, so we check where 5 belongs before moving on.',
   };
 
-  it('renders step number, line indicator, and natural teacher explanation prose', () => {
+  it('renders the step label and one flowing paragraph with a bold lead-in', () => {
     render(
       <TutorialCard
         explanation={sampleExplanation}
@@ -19,14 +19,27 @@ describe('TutorialCard Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Step 3 \/ 10/i)).toBeInTheDocument();
-    expect(screen.getByText(/Line 14/i)).toBeInTheDocument();
+    expect(screen.getByText('Step 3 of 10')).toBeInTheDocument();
+
+    // The "what" becomes a bold lead-in sentence with terminal punctuation.
+    const lead = screen.getByText('Compare 5 with the pivot 3.');
+    expect(lead.tagName).toBe('STRONG');
+
     expect(
-      screen.getByText(/Comparing element at index 0 \(val 5\) with pivot \(val 3\)\. Partitioning step requires smaller elements on the left side\./i)
+      screen.getByText(/We need smaller elements on the left side/i)
     ).toBeInTheDocument();
+
+    // No WHAT/WHY section headers in the teacher strip.
+    expect(screen.queryByText(/^what$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^why$/i)).not.toBeInTheDocument();
   });
 
-  it('handles optional close callback when provided', () => {
+  it('omits the total when only stepIndex is known', () => {
+    render(<TutorialCard explanation={sampleExplanation} stepIndex={0} />);
+    expect(screen.getByText('Step 1')).toBeInTheDocument();
+  });
+
+  it('invokes onClose from the "Hide tutorial" icon button', () => {
     const handleClose = vi.fn();
     render(
       <TutorialCard
@@ -36,8 +49,13 @@ describe('TutorialCard Component Spec', () => {
       />
     );
 
-    const closeBtn = screen.getByRole('button', { name: /Dismiss explanation/i });
+    const closeBtn = screen.getByRole('button', { name: /Hide tutorial/i });
     fireEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalled();
+  });
+
+  it('renders nothing when there is no explanation text', () => {
+    const { container } = render(<TutorialCard stepIndex={0} totalSteps={5} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

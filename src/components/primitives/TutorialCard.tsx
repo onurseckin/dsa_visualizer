@@ -1,4 +1,6 @@
 import React from 'react';
+import { GraduationCap, X } from 'lucide-react';
+import { Card, IconButton } from '../../ui';
 import { StepExplanation } from '../../types/dsa';
 
 export interface TutorialCardProps {
@@ -19,98 +21,68 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   why,
   stepIndex,
   totalSteps,
-  codeLine,
   onClose,
 }) => {
-  const whatText = what || explanation?.what || '';
-  const whyText = why || explanation?.why || '';
+  const whatText = (what || explanation?.what || '').trim();
+  const whyText = (why || explanation?.why || '').trim();
 
-  // Combine into clean, fluid teacher prose
-  const teacherText = [whatText, whyText].filter(Boolean).join(' ');
+  if (!whatText && !whyText) return null;
 
-  if (!teacherText) return null;
+  // The "what" is a short action label; give it terminal punctuation so it
+  // reads as the lead-in sentence of the paragraph.
+  const lead = whatText && !/[.!?:]$/.test(whatText) ? `${whatText}.` : whatText;
+
+  const stepLabel =
+    stepIndex !== undefined
+      ? `Step ${stepIndex + 1}${totalSteps !== undefined ? ` of ${totalSteps}` : ''}`
+      : undefined;
 
   return (
-    <div
-      style={{
-        padding: '0.85rem 1.1rem',
-        background: 'rgba(15, 23, 42, 0.75)',
-        borderLeft: '3px solid var(--accent-emerald)',
-        borderRadius: 'var(--radius-sm)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.4rem',
-        boxShadow: 'var(--shadow-card)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.5rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              fontFamily: 'var(--font-code)',
-              color: 'var(--accent-emerald)',
-              background: 'rgba(0, 255, 157, 0.1)',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 255, 157, 0.2)',
-            }}
-          >
-            Step {stepIndex !== undefined ? stepIndex + 1 : 1}
-            {totalSteps !== undefined ? ` / ${totalSteps}` : ''}
-          </span>
-          {codeLine !== undefined && (
-            <span
+    <Card padding="sm">
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <span
+          aria-hidden="true"
+          style={{ display: 'inline-flex', color: 'var(--text-muted)', marginTop: '2px' }}
+        >
+          <GraduationCap size={16} />
+        </span>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {stepLabel && (
+            <div
               style={{
-                fontSize: '0.72rem',
-                fontFamily: 'var(--font-code)',
-                color: 'var(--text-dim)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-muted)',
+                marginBottom: 'var(--space-1)',
               }}
             >
-              Line {codeLine}
-            </span>
+              {stepLabel}
+            </div>
           )}
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              lineHeight: 1.55,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {lead && <strong style={{ color: 'var(--text-primary)' }}>{lead}</strong>}
+            {lead && whyText ? ' ' : ''}
+            {whyText}
+          </p>
         </div>
 
         {onClose && (
-          <button
-            type="button"
+          <IconButton
+            icon={<X />}
+            aria-label="Hide tutorial"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-dim)',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              padding: '0 4px',
-            }}
-            title="Dismiss explanation"
-            aria-label="Dismiss explanation"
-          >
-            ✕
-          </button>
+          />
         )}
       </div>
-
-      <p
-        style={{
-          margin: 0,
-          color: 'var(--text-main)',
-          fontSize: '0.88rem',
-          lineHeight: 1.55,
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
-        {teacherText}
-      </p>
-    </div>
+    </Card>
   );
 };

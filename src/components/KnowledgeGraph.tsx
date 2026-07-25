@@ -1,5 +1,6 @@
 import React from 'react';
-import { Network, ArrowRight } from 'lucide-react';
+import { Network, ArrowRight, MousePointerClick } from 'lucide-react';
+import { Badge, Card, difficultyBadgeVariant } from '../ui';
 
 export interface TopicRoadmapNode {
   id: string;
@@ -262,8 +263,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         const parent = TOPIC_ROADMAP_NODES.find((n) => n.id === prereqId);
         if (parent) {
           const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
-          const strokeColor = isHighlighted ? 'var(--accent-emerald)' : 'var(--border-subtle)';
-          const strokeWidth = isHighlighted ? 2.5 : 1.5;
+          const strokeColor = isHighlighted ? 'var(--accent)' : 'var(--border-strong)';
+          const strokeWidth = isHighlighted ? 2 : 1.5;
           const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.3) : 0.85;
 
           let startX = parent.x;
@@ -299,7 +300,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 markerEnd={isHighlighted ? 'url(#arrow-active)' : 'url(#arrow-default)'}
                 style={{
                   opacity: strokeOpacity,
-                  transition: 'all 0.2s ease',
+                  transition: 'all var(--transition-normal)',
                 }}
               />
             </g>
@@ -324,146 +325,172 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '2rem 1.5rem',
+        padding: 'var(--space-6)',
         maxWidth: '1400px',
         margin: '0 auto',
         width: '100%',
+        gap: 'var(--space-6)',
       }}
     >
-      {/* Interactive SVG Knowledge Graph Container */}
-      <div
-        className="glass-card"
-        role="region"
-        aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        style={{
-          width: '100%',
-          overflowX: 'auto',
-          position: 'relative',
-          padding: '2rem 1rem',
-          minHeight: '950px',
-          background: 'var(--bg-darkest)',
-        }}
+      {/* Interactive SVG roadmap */}
+      <Card
+        icon={<Network aria-hidden="true" style={{ color: 'var(--accent)' }} />}
+        title={
+          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Topic prerequisite roadmap
+          </span>
+        }
+        actions={
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <MousePointerClick aria-hidden="true" style={{ width: '14px', height: '14px' }} />
+            Hover to trace prerequisites, click to open a topic
+          </span>
+        }
+        padding="none"
+        style={{ width: '100%' }}
       >
-        <svg
-          width="1350"
-          height="920"
-          viewBox="0 0 1350 920"
-          style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
+        <div
+          role="region"
+          aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
+          style={{
+            width: '100%',
+            overflowX: 'auto',
+            position: 'relative',
+            padding: 'var(--space-6) var(--space-4)',
+            minHeight: '950px',
+            background: 'var(--bg-inset)',
+          }}
         >
-          <defs>
-            <marker
-              id="arrow-default"
-              viewBox="0 0 10 10"
-              refX="6"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--border-subtle)" opacity="0.8" />
-            </marker>
-            <marker
-              id="arrow-active"
-              viewBox="0 0 10 10"
-              refX="6"
-              refY="5"
-              markerWidth="7"
-              markerHeight="7"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent-emerald)" />
-            </marker>
-          </defs>
-
-          {renderConnections()}
-
-          {TOPIC_ROADMAP_NODES.map((node) => {
-            const isHovered = hoveredNodeId === node.id;
-            const isRelated =
-              hoveredNodeId !== null &&
-              (node.prerequisites.includes(hoveredNodeId) ||
-                TOPIC_ROADMAP_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
-
-            const strokeColor = isHovered
-              ? 'var(--accent-emerald)'
-              : isRelated
-              ? 'var(--accent-mint)'
-              : node.difficulty === 'Hard'
-              ? 'var(--state-swap)'
-              : node.difficulty === 'Medium'
-              ? 'var(--state-compare)'
-              : 'var(--accent-emerald)';
-
-            return (
-              <g
-                key={node.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                transform={`translate(${node.x - 90}, ${node.y - 30})`}
-                onClick={() => onSelectCategoryFolder(node.categoryFolder)}
-                onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
-                onMouseEnter={() => setHoveredNodeId(node.id)}
-                onMouseLeave={() => setHoveredNodeId(null)}
-                onFocus={() => setHoveredNodeId(node.id)}
-                onBlur={() => setHoveredNodeId(null)}
-                style={{ cursor: 'pointer', outline: 'none' }}
+          <svg
+            width="1350"
+            height="920"
+            viewBox="0 0 1350 920"
+            style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
+          >
+            <defs>
+              <marker
+                id="arrow-default"
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
               >
-                <rect
-                  width="180"
-                  height="60"
-                  rx="10"
-                  fill="var(--bg-surface)"
-                  stroke={strokeColor}
-                  strokeWidth={isHovered ? 2.5 : 1.5}
-                  style={{
-                    filter: isHovered
-                      ? 'drop-shadow(0 0 12px rgba(0, 255, 157, 0.4))'
-                      : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))',
-                    transition: 'all 0.2s ease',
-                  }}
-                />
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--border-strong)" opacity="0.8" />
+              </marker>
+              <marker
+                id="arrow-active"
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
+              </marker>
+            </defs>
 
-                <text
-                  x="90"
-                  y="24"
-                  textAnchor="middle"
-                  fill={isHovered ? 'var(--accent-emerald)' : 'var(--text-main)'}
-                  fontSize="11.5"
-                  fontWeight="700"
-                  fontFamily="var(--font-ui)"
+            {renderConnections()}
+
+            {TOPIC_ROADMAP_NODES.map((node) => {
+              const isHovered = hoveredNodeId === node.id;
+              const isRelated =
+                hoveredNodeId !== null &&
+                (node.prerequisites.includes(hoveredNodeId) ||
+                  TOPIC_ROADMAP_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
+
+              return (
+                <g
+                  key={node.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                  transform={`translate(${node.x - 90}, ${node.y - 30})`}
+                  onClick={() => onSelectCategoryFolder(node.categoryFolder)}
+                  onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(null)}
+                  onFocus={() => setHoveredNodeId(node.id)}
+                  onBlur={() => setHoveredNodeId(null)}
+                  style={{ cursor: 'pointer', outline: 'none' }}
                 >
-                  {node.title}
-                </text>
+                  <rect
+                    width="180"
+                    height="60"
+                    rx="10"
+                    fill={isHovered ? 'var(--accent-soft)' : 'var(--bg-elevated)'}
+                    stroke={
+                      isHovered
+                        ? 'var(--border-accent)'
+                        : isRelated
+                        ? 'var(--border-strong)'
+                        : 'var(--border-default)'
+                    }
+                    strokeWidth={isHovered ? 1.5 : 1}
+                    style={{ transition: 'all var(--transition-normal)' }}
+                  />
 
-                <text
-                  x="90"
-                  y="44"
-                  textAnchor="middle"
-                  fill="var(--text-dim)"
-                  fontSize="10"
-                  fontFamily="var(--font-code)"
-                >
-                  {node.algorithmCount} Algs • {node.difficulty}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+                  <text
+                    x="90"
+                    y="24"
+                    textAnchor="middle"
+                    fill={isHovered ? 'var(--accent)' : 'var(--text-primary)'}
+                    fontSize="11.5"
+                    fontWeight="600"
+                    fontFamily="var(--font-ui)"
+                  >
+                    {node.title}
+                  </text>
 
-      {/* Grid List of Topics for Quick Access */}
-      <div style={{ width: '100%', marginTop: '2.5rem' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Network style={{ width: '18px', height: '18px', color: 'var(--accent-emerald)' }} />
+                  <text
+                    x="90"
+                    y="44"
+                    textAnchor="middle"
+                    fill="var(--text-secondary)"
+                    fontSize="10"
+                    fontFamily="var(--font-code)"
+                  >
+                    {node.algorithmCount} Algs • {node.difficulty}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </Card>
+
+      {/* Grid list of topics for quick access */}
+      <div style={{ width: '100%' }}>
+        <h3
+          style={{
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            marginBottom: 'var(--space-3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <Network aria-hidden="true" style={{ width: '16px', height: '16px' }} />
           All Categorized Topic Modules
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 'var(--space-3)' }}>
           {TOPIC_ROADMAP_NODES.map((node) => (
-            <div
+            <Card
               key={node.id}
-              className="glass-card"
+              padding="sm"
               role="button"
               tabIndex={0}
               aria-label={`${node.title}: ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
@@ -474,49 +501,59 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
               onFocus={() => setHoveredNodeId(node.id)}
               onBlur={() => setHoveredNodeId(null)}
               style={{
-                padding: '1rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '0.5rem',
-                borderColor: hoveredNodeId === node.id ? 'var(--accent-emerald)' : undefined,
+                transition: 'background var(--transition-fast), border-color var(--transition-fast)',
+                background: hoveredNodeId === node.id ? 'var(--bg-hover)' : undefined,
+                borderColor: hoveredNodeId === node.id ? 'var(--border-strong)' : undefined,
               }}
             >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                    {node.title}
-                  </span>
-                  <span
-                    className={`badge ${
-                      node.difficulty === 'Easy'
-                        ? 'badge-easy'
-                        : node.difficulty === 'Medium'
-                        ? 'badge-medium'
-                        : 'badge-hard'
-                    }`}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-2)',
+                  height: '100%',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 'var(--space-2)',
+                      marginBottom: 'var(--space-1)',
+                    }}
                   >
-                    {node.difficulty}
-                  </span>
+                    <span style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {node.title}
+                    </span>
+                    <Badge variant={difficultyBadgeVariant(node.difficulty)}>{node.difficulty}</Badge>
+                  </div>
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                    {node.description}
+                  </p>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.4 }}>
-                  {node.description}
-                </p>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-muted)', paddingTop: '0.5rem', marginTop: '0.3rem' }}>
-                <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-code)', color: 'var(--text-muted)' }}>
-                  {node.algorithmCount} Topics
-                </span>
-                <ArrowRight style={{ width: '14px', height: '14px', color: 'var(--accent-mint)' }} />
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: 'var(--space-2)',
+                    marginTop: 'var(--space-1)',
+                  }}
+                >
+                  <Badge variant="neutral">{node.algorithmCount} Topics</Badge>
+                  <ArrowRight aria-hidden="true" style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+                </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
     </div>
   );
 };
-

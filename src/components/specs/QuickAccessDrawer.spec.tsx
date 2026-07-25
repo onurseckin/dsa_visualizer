@@ -4,104 +4,122 @@ import { QuickAccessDrawer } from '../QuickAccessDrawer';
 
 describe('QuickAccessDrawer Component Spec', () => {
   it('does not render when isOpen is false', () => {
-    render(
-      <QuickAccessDrawer
-        isOpen={false}
-        onClose={vi.fn()}
-        onSelectAlgorithm={vi.fn()}
-      />
-    );
+    render(<QuickAccessDrawer isOpen={false} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('renders drawer header, categories, algorithms, and search bar when isOpen is true', () => {
-    render(
-      <QuickAccessDrawer
-        isOpen={true}
-        onClose={vi.fn()}
-        onSelectAlgorithm={vi.fn()}
-      />
-    );
+  it('renders title, counts subtitle, autofocused search, and collapsed categories', () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText(/Quick Problems/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Search problems or categories.../i)).toBeInTheDocument();
-    expect(screen.getByText(/1. Arrays & Hashing/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Algorithms' })).toBeInTheDocument();
+    expect(screen.getByText(/algorithms across 25 categories/i)).toBeInTheDocument();
+
+    const searchInput = screen.getByLabelText('Search algorithms');
+    expect(searchInput).toHaveFocus();
+
+    // No active algorithm: every category starts collapsed, so no rows are visible.
+    expect(screen.getByRole('button', { name: /1\. Arrays & Hashing/i })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.queryByText('Two Sum')).not.toBeInTheDocument();
   });
 
-  it('filters algorithms and categories dynamically when typing in search input', () => {
+  it('expands a collapsed category on header click to reveal its rows', () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
+
+    const header = screen.getByRole('button', { name: /1\. Arrays & Hashing/i });
+    fireEvent.click(header);
+
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Two Sum')).toBeInTheDocument();
+    expect(screen.getAllByText('Easy').length).toBeGreaterThan(0);
+  });
+
+  it('opens only the active algorithm category by default and marks its row selected', () => {
     render(
       <QuickAccessDrawer
         isOpen={true}
         onClose={vi.fn()}
         onSelectAlgorithm={vi.fn()}
-      />
+        activeAlgorithmId="two-sum"
+      />,
     );
 
-    const searchInput = screen.getByPlaceholderText(/Search problems or categories.../i);
-    fireEvent.change(searchInput, { target: { value: 'dijkstra' } });
+    expect(screen.getByRole('button', { name: /1\. Arrays & Hashing/i })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /13\. Graph Shortest Paths/i })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
 
+    const activeRow = screen.getByRole('button', { name: /Two Sum/i });
+    expect(activeRow).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText(/Dijkstra's Shortest Path Algorithm/i)).not.toBeInTheDocument();
+  });
+
+  it('search auto-expands matching categories and hides the rest', () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Search algorithms'), {
+      target: { value: 'dijkstra' },
+    });
+
+    // Match's category renders force-open, its row visible without any manual toggle.
+    expect(screen.getByRole('button', { name: /13\. Graph Shortest Paths/i })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect(screen.getByText(/Dijkstra's Shortest Path Algorithm/i)).toBeInTheDocument();
-    expect(screen.queryByText(/1. Arrays & Hashing/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/1\. Arrays & Hashing/i)).not.toBeInTheDocument();
   });
 
-  it('displays difficulty badges for algorithms', () => {
-    render(
-      <QuickAccessDrawer
-        isOpen={true}
-        onClose={vi.fn()}
-        onSelectAlgorithm={vi.fn()}
-      />
-    );
+  it('shows an empty state when no algorithm matches the search', () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
-    const searchInput = screen.getByPlaceholderText(/Search problems or categories.../i);
-    fireEvent.change(searchInput, { target: { value: 'bubble' } });
+    fireEvent.change(screen.getByLabelText('Search algorithms'), {
+      target: { value: 'zzz-no-such-algorithm' },
+    });
 
-    expect(screen.getAllByText(/Easy/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/No algorithms match/i)).toBeInTheDocument();
   });
 
-  it('invokes onSelectAlgorithm and onClose when an algorithm item is clicked', () => {
+  it('invokes onSelectAlgorithm with id and category, then onClose, when a row is clicked', () => {
     const handleSelect = vi.fn();
     const handleClose = vi.fn();
 
     render(
-      <QuickAccessDrawer
-        isOpen={true}
-        onClose={handleClose}
-        onSelectAlgorithm={handleSelect}
-      />
+      <QuickAccessDrawer isOpen={true} onClose={handleClose} onSelectAlgorithm={handleSelect} />,
     );
 
-    const searchInput = screen.getByPlaceholderText(/Search problems or categories.../i);
-    fireEvent.change(searchInput, { target: { value: 'dijkstra' } });
-
-    const algoItem = screen.getByText(/Dijkstra's Shortest Path Algorithm/i);
-    fireEvent.click(algoItem);
+    fireEvent.change(screen.getByLabelText('Search algorithms'), {
+      target: { value: 'dijkstra' },
+    });
+    fireEvent.click(screen.getByText(/Dijkstra's Shortest Path Algorithm/i));
 
     expect(handleSelect).toHaveBeenCalledWith('dijkstra-shortest-path', 'graph_shortest_paths');
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes when clicking close button, backdrop, or pressing Escape key', () => {
+  it('closes via the close button, backdrop click, and Escape key', () => {
     const handleClose = vi.fn();
 
     render(
-      <QuickAccessDrawer
-        isOpen={true}
-        onClose={handleClose}
-        onSelectAlgorithm={vi.fn()}
-      />
+      <QuickAccessDrawer isOpen={true} onClose={handleClose} onSelectAlgorithm={vi.fn()} />,
     );
 
-    const closeBtn = screen.getByTitle('Close drawer');
-    fireEvent.click(closeBtn);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(handleClose).toHaveBeenCalledTimes(1);
 
-    const backdrop = screen.getByTestId('drawer-backdrop');
-    fireEvent.click(backdrop);
+    const backdrop = document.querySelector('.ui-drawer-backdrop');
+    expect(backdrop).not.toBeNull();
+    fireEvent.click(backdrop as Element);
     expect(handleClose).toHaveBeenCalledTimes(2);
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(handleClose).toHaveBeenCalledTimes(3);
   });
 });

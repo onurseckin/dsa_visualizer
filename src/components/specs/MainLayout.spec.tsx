@@ -4,17 +4,119 @@ import { MainLayout } from '../MainLayout';
 import type { AlgorithmDefinition, AlgorithmStep } from '../../types/dsa';
 import type { ControlPanelProps } from '../ControlPanel';
 
+/* Child panels are owned and rebuilt by other agents. They are mocked here so this
+   spec verifies the layout contract only: composition, conditional rendering per
+   viewMode, and prop wiring across the agent boundary. ResizableLayout stays real. */
+
+vi.mock('../primitives/ProblemHeader', () => ({
+  ProblemHeader: ({
+    title,
+    difficulty,
+    onResetLayout,
+  }: {
+    title: string;
+    difficulty?: string;
+    onResetLayout?: () => void;
+  }) => (
+    <div data-testid="problem-header">
+      <span>{title}</span>
+      <span>{difficulty}</span>
+      <button onClick={onResetLayout}>Reset Layout</button>
+    </div>
+  ),
+}));
+
+vi.mock('../ControlPanel', () => ({
+  ControlPanel: ({
+    variant,
+    currentStep,
+    totalSteps,
+    onPlayPause,
+  }: {
+    variant?: string;
+    currentStep: number;
+    totalSteps: number;
+    onPlayPause: () => void;
+  }) => (
+    <div data-testid="control-panel" data-variant={variant}>
+      <button onClick={onPlayPause}>Play</button>
+      <span>{`${currentStep} / ${totalSteps}`}</span>
+    </div>
+  ),
+}));
+
+vi.mock('../primitives/TutorialCard', () => ({
+  TutorialCard: ({ what, onClose }: { what?: string; onClose?: () => void }) => (
+    <div data-testid="tutorial-card">
+      <span>{what}</span>
+      <button onClick={onClose}>Dismiss explanation</button>
+    </div>
+  ),
+}));
+
+vi.mock('../primitives/AuxiliaryPanel', () => ({
+  AuxiliaryPanel: ({ onClose }: { onClose?: () => void }) => (
+    <div data-testid="auxiliary-panel">
+      <button onClick={onClose}>Hide auxiliary panel</button>
+    </div>
+  ),
+}));
+
+vi.mock('../primitives/CodeBlockViewer', () => ({
+  CodeBlockViewer: ({ code, activeLine }: { code: string; activeLine: number }) => (
+    <pre data-testid="code-viewer" data-active-line={activeLine}>
+      {code}
+    </pre>
+  ),
+}));
+
+vi.mock('../ComplexityCard', () => ({
+  ComplexityCard: ({
+    complexityAnalysis,
+  }: {
+    complexityAnalysis: { time: string; space: string };
+  }) => (
+    <div data-testid="complexity-card">
+      <p>{complexityAnalysis.time}</p>
+      <p>{complexityAnalysis.space}</p>
+    </div>
+  ),
+}));
+
+vi.mock('../primitives/ArrayVisualizer', () => ({
+  ArrayVisualizer: ({ elements }: { elements: { value: number }[] }) => (
+    <div data-testid="array-visualizer">{elements.map((el) => el.value).join(',')}</div>
+  ),
+}));
+
+vi.mock('../primitives/GridVisualizer', () => ({
+  GridVisualizer: () => <div data-testid="grid-visualizer" />,
+}));
+
+vi.mock('../primitives/GraphVisualizer', () => ({
+  GraphVisualizer: () => <div data-testid="graph-visualizer" />,
+}));
+
+vi.mock('../primitives/TreeVisualizer', () => ({
+  TreeVisualizer: () => <div data-testid="tree-visualizer" />,
+}));
+
 const dummyAlgorithm: AlgorithmDefinition = {
   id: 'bubble-sort',
   title: 'Bubble Sort Algorithm',
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
-  description: 'Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.',
+  description:
+    'Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.',
   constraints: ['1 <= n <= 50'],
   examples: [{ input: '[3, 1, 2]', output: '[1, 2, 3]' }],
   code: 'def bubble_sort(arr):\n    pass',
   timeComplexity: { best: 'O(n)', average: 'O(n^2)', worst: 'O(n^2)' },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'We sweep the array repeatedly, so in the worst case the work grows quadratically — O(n^2).',
+    space: 'Swaps happen in place, so extra memory stays constant — O(1).',
+  },
   defaultInput: { array: [3, 1, 2] },
   generateSteps: () => [],
 };
@@ -24,7 +126,7 @@ const dummyStep: AlgorithmStep = {
   codeLine: 1,
   explanation: {
     what: 'Comparing elements 3 and 1',
-    why: 'Index 0 is greater than index 1, swap required.',
+    why: 'Index 0 is greater than index 1, so we swap the pair to move the larger value right.',
   },
   primarySnapshot: {
     kind: 'array',
@@ -57,33 +159,7 @@ const dummyControlProps: ControlPanelProps = {
 };
 
 describe('MainLayout Component Spec', () => {
-  it('renders compact problem header and toggles details on collapse', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={true}
-        showAuxiliary={true}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText('Bubble Sort Algorithm')).toBeInTheDocument();
-    expect(screen.getByText(/Easy/i)).toBeInTheDocument();
-    expect(screen.getByText(/Repeatedly steps through the list/i)).toBeInTheDocument();
-
-    // Toggle expand button to hide description and examples
-    const toggleBtn = screen.getByRole('button', { name: /Hide Details ▲/i });
-    expect(toggleBtn).toBeInTheDocument();
-
-    fireEvent.click(toggleBtn);
-    expect(screen.queryByText(/Repeatedly steps through the list/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Show Details ▼/i)).toBeInTheDocument();
-  });
-
-  it('renders both hero visualizer canvas and code viewer in split viewMode', () => {
+  it('renders the problem header strip with algorithm identity', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -96,11 +172,65 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText(/def bubble_sort/i)).toBeInTheDocument();
+    expect(screen.getByTestId('problem-header')).toBeInTheDocument();
+    expect(screen.getByText('Bubble Sort Algorithm')).toBeInTheDocument();
+    expect(screen.getByText('Easy')).toBeInTheDocument();
   });
 
-  it('renders integrated playback controls inside visualizer card when controlProps are provided', () => {
+  it('fills the viewport without page scroll: main is a flex column that clips overflow', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    const main = screen.getByRole('main');
+    expect(main).toHaveStyle({ overflow: 'hidden', display: 'flex' });
+  });
+
+  it('renders visualizer, code viewer, and complexity prose in split viewMode', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('array-visualizer')).toHaveTextContent('3,1,2');
+    expect(screen.getByTestId('code-viewer')).toHaveTextContent('def bubble_sort');
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+  });
+
+  it('passes complexityAnalysis from the algorithm definition to ComplexityCard', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    const card = screen.getByTestId('complexity-card');
+    expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.time);
+    expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.space);
+  });
+
+  it('embeds playback controls at the bottom edge of the visualizer card when controlProps are provided', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -114,13 +244,28 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByTitle('Play')).toBeInTheDocument();
-    expect(screen.getByTitle('Reset to Step 0')).toBeInTheDocument();
-    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
-    expect(screen.getByText('5')).toBeInTheDocument();
+    const panel = screen.getByTestId('control-panel');
+    expect(panel).toHaveAttribute('data-variant', 'embedded');
+    expect(panel).toHaveTextContent('0 / 5');
   });
 
-  it('hides code viewer in visual viewMode', () => {
+  it('omits playback controls when neither controlProps nor playback callbacks are provided', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
+  });
+
+  it('hides the code column in visual viewMode', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -133,11 +278,12 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.queryByText(/def bubble_sort/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('array-visualizer')).toBeInTheDocument();
+    expect(screen.queryByTestId('code-viewer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('complexity-card')).not.toBeInTheDocument();
   });
 
-  it('hides visualizer canvas in code viewMode', () => {
+  it('hides the visualizer column in code viewMode', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -150,11 +296,12 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/def bubble_sort/i)).toBeInTheDocument();
-    expect(screen.queryByText('3')).not.toBeInTheDocument();
+    expect(screen.getByTestId('code-viewer')).toBeInTheDocument();
+    expect(screen.getByTestId('complexity-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('array-visualizer')).not.toBeInTheDocument();
   });
 
-  it('toggles tutorial card banner overlay inside visualizer canvas card and triggers onClose', () => {
+  it('toggles the tutorial card and forwards onClose to onToggleTutorial', () => {
     const handleToggleTutorial = vi.fn();
     const { rerender } = render(
       <MainLayout
@@ -168,10 +315,9 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Comparing elements 3 and 1/i)).toBeInTheDocument();
+    expect(screen.getByText('Comparing elements 3 and 1')).toBeInTheDocument();
 
-    const closeBtn = screen.getByTitle('Dismiss explanation');
-    fireEvent.click(closeBtn);
+    fireEvent.click(screen.getByText('Dismiss explanation'));
     expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -186,10 +332,10 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.queryByText('Comparing elements 3 and 1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
   });
 
-  it('toggles auxiliary panel and triggers onToggleAuxiliary', () => {
+  it('toggles the auxiliary panel and forwards onClose to onToggleAuxiliary', () => {
     const handleToggleAuxiliary = vi.fn();
     const { rerender } = render(
       <MainLayout
@@ -203,10 +349,9 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText('Auxiliary Helper Data Structures')).toBeInTheDocument();
+    expect(screen.getByTestId('auxiliary-panel')).toBeInTheDocument();
 
-    const hideAuxBtn = screen.getByTitle('Hide auxiliary panel');
-    fireEvent.click(hideAuxBtn);
+    fireEvent.click(screen.getByText('Hide auxiliary panel'));
     expect(handleToggleAuxiliary).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -221,7 +366,7 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.queryByText('Auxiliary Helper Data Structures')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
   });
 
   it('renders fallback UI when currentStep is null', () => {
@@ -238,9 +383,11 @@ describe('MainLayout Component Spec', () => {
     );
 
     expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
+    expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
   });
 
-  it('resets split ratio and expands problem header when Reset Layout button is clicked', () => {
+  it('resets the split ratio to 60 when ProblemHeader triggers onResetLayout', () => {
     localStorage.setItem('dsa_visualizer_layout_split', '75');
 
     render(
@@ -255,22 +402,13 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    // First hide details
-    const hideBtn = screen.getByRole('button', { name: /Hide Details ▲/i });
-    fireEvent.click(hideBtn);
-    expect(screen.queryByText(/Repeatedly steps through the list/i)).not.toBeInTheDocument();
-
-    // Click Reset Layout button
-    const resetBtn = screen.getByRole('button', { name: /Reset Layout/i });
-    fireEvent.click(resetBtn);
-
-    // Problem details should be expanded again
-    expect(screen.getByText(/Repeatedly steps through the list/i)).toBeInTheDocument();
-
-    // Separator should be reset to default 60
     const handle = screen.getByRole('separator');
+    expect(handle).toHaveAttribute('aria-valuenow', '75');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Layout' }));
+
     expect(handle).toHaveAttribute('aria-valuenow', '60');
+    expect(localStorage.getItem('dsa_visualizer_layout_split')).toBe('60');
     localStorage.clear();
   });
 });
-

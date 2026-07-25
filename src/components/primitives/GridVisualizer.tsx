@@ -9,82 +9,64 @@ export interface GridVisualizerProps {
   title?: string;
 }
 
-const getCellAppearance = (cell: GridCellNode) => {
+interface CellAppearance {
+  bg: string;
+  border: string;
+  color: string;
+  symbol: string;
+}
+
+/* ElementState names map 1:1 onto the --state-* token names in theme.css.
+   Boolean flags (start/end/wall/path/visited) take priority over the state field. */
+const getCellAppearance = (cell: GridCellNode): CellAppearance => {
   if (cell.isStart) {
     return {
-      bg: 'rgba(0, 255, 157, 0.25)',
-      border: 'var(--accent-emerald)',
-      color: 'var(--accent-emerald)',
-      shadow: '0 0 10px rgba(0, 255, 157, 0.6)',
+      bg: 'var(--state-sorted-bg)',
+      border: 'var(--state-sorted)',
+      color: 'var(--state-sorted)',
       symbol: 'S',
     };
   }
   if (cell.isEnd) {
     return {
-      bg: 'rgba(239, 68, 68, 0.25)',
-      border: '#ef4444',
-      color: '#ef4444',
-      shadow: '0 0 10px rgba(239, 68, 68, 0.6)',
+      bg: 'var(--state-swap-bg)',
+      border: 'var(--state-swap)',
+      color: 'var(--state-swap)',
       symbol: 'E',
     };
   }
   if (cell.isWall) {
     return {
-      bg: '#040d0a',
-      border: '#0a1c16',
-      color: '#334155',
-      shadow: 'none',
+      bg: 'var(--bg-pressed)',
+      border: 'var(--border-strong)',
+      color: 'var(--text-faint)',
       symbol: '',
     };
   }
   if (cell.isPath) {
     return {
-      bg: 'rgba(245, 158, 11, 0.35)',
-      border: '#f59e0b',
-      color: '#ffffff',
-      shadow: '0 0 12px rgba(245, 158, 11, 0.7)',
+      bg: 'var(--state-path-bg)',
+      border: 'var(--state-path)',
+      color: 'var(--text-primary)',
       symbol: '',
     };
   }
   if (cell.isVisited) {
     return {
-      bg: 'rgba(6, 182, 212, 0.25)',
-      border: '#06b6d4',
-      color: '#a7f3d0',
-      shadow: '0 0 6px rgba(6, 182, 212, 0.3)',
+      bg: 'var(--state-visited-bg)',
+      border: 'var(--state-visited)',
+      color: 'var(--text-secondary)',
       symbol: '',
     };
   }
 
-  // Handle explicit ElementState fallback
   const state: ElementState = cell.state || 'default';
-  switch (state) {
-    case 'compare':
-      return {
-        bg: 'var(--state-compare-bg)',
-        border: 'var(--state-compare)',
-        color: 'var(--state-compare)',
-        shadow: '0 0 8px rgba(245, 158, 11, 0.5)',
-        symbol: '',
-      };
-    case 'active':
-      return {
-        bg: 'var(--state-active-bg)',
-        border: 'var(--state-active)',
-        color: 'var(--state-active)',
-        shadow: '0 0 8px rgba(59, 130, 246, 0.5)',
-        symbol: '',
-      };
-    case 'default':
-    default:
-      return {
-        bg: 'var(--bg-surface)',
-        border: 'var(--border-muted)',
-        color: 'var(--text-dim)',
-        shadow: 'none',
-        symbol: '',
-      };
-  }
+  return {
+    bg: `var(--state-${state}-bg)`,
+    border: `var(--state-${state})`,
+    color: state === 'default' ? 'var(--text-muted)' : 'var(--text-primary)',
+    symbol: '',
+  };
 };
 
 export const GridVisualizer: React.FC<GridVisualizerProps> = ({
@@ -119,12 +101,10 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
       {title && (
         <div
           style={{
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            color: 'var(--accent-mint)',
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            marginBottom: 'var(--space-2)',
           }}
         >
           {title}
@@ -139,10 +119,9 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
           width: '100%',
           height: '100%',
           maxHeight: '100%',
-          background: 'var(--bg-darkest)',
+          background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-card)',
         }}
       >
         {grid.map((row, rIdx) =>
@@ -187,7 +166,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
                     fill={appearance.color}
                     fontSize="12"
                     fontFamily="var(--font-code)"
-                    fontWeight="700"
+                    fontWeight="600"
                   >
                     {cellText}
                   </text>

@@ -1,4 +1,6 @@
 import React from 'react';
+import { X } from 'lucide-react';
+import { Card, IconButton } from '../../ui';
 import { AuxiliaryState } from '../../types/dsa';
 
 export interface AuxiliaryPanelProps {
@@ -6,6 +8,39 @@ export interface AuxiliaryPanelProps {
   auxiliaryState?: AuxiliaryState;
   onClose?: () => void;
 }
+
+interface DataRowProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+/* One labeled horizontal row of chips; the chip strip scrolls on overflow. */
+const DataRow: React.FC<DataRowProps> = ({ label, children }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+    <span
+      style={{
+        fontSize: 'var(--text-xs)',
+        color: 'var(--text-muted)',
+        flexShrink: 0,
+        minWidth: '64px',
+      }}
+    >
+      {label}
+    </span>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-1)',
+        overflowX: 'auto',
+        minWidth: 0,
+        paddingBottom: '2px',
+      }}
+    >
+      {children}
+    </div>
+  </div>
+);
 
 export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliaryState, onClose }) => {
   const currentAuxState = auxiliaryState || state || {};
@@ -25,234 +60,100 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
   const hasDistance = distanceEntries.length > 0;
   const hasCustom = customEntries.length > 0;
 
-  if (!hasStack && !hasQueue && !hasVisited && !hasHashMap && !hasDistance && !hasCustom) {
-    return (
-      <div className="glass-card" style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>No active auxiliary data structures at this step.</span>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Hide auxiliary panel"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              padding: '0.1rem 0.3rem',
-            }}
-            title="Hide auxiliary panel"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-    );
-  }
+  const hasAny = hasStack || hasQueue || hasVisited || hasHashMap || hasDistance || hasCustom;
+
+  const closeAction = onClose ? (
+    <IconButton
+      icon={<X />}
+      variant="ghost"
+      size="sm"
+      aria-label="Hide auxiliary panel"
+      onClick={onClose}
+    />
+  ) : undefined;
 
   return (
-    <div
-      className="glass-card"
-      style={{
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.4rem' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--accent-mint)' }}>
-          Auxiliary Helper Data Structures
-        </span>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Hide auxiliary panel"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              padding: '0.1rem 0.4rem',
-              borderRadius: '4px',
-            }}
-            title="Hide auxiliary panel"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        {/* Call Stack Panel */}
-        {hasStack && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-cyan)', marginBottom: '0.5rem' }}>
-              Call Stack (LIFO)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem' }}>
+    <Card title="Working data" actions={closeAction} padding="sm">
+      {hasAny ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {hasStack && (
+            <DataRow label="Stack">
               {stackItems.map((item, idx) => (
-                <div
-                  key={`stack-${idx}`}
-                  style={{
-                    background: idx === stackItems.length - 1 ? 'rgba(0, 255, 157, 0.2)' : 'var(--bg-surface)',
-                    border: idx === stackItems.length - 1 ? '1px solid var(--accent-emerald)' : '1px solid var(--border-muted)',
-                    borderRadius: '4px',
-                    padding: '0.3rem 0.6rem',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.8rem',
-                    color: idx === stackItems.length - 1 ? 'var(--accent-emerald)' : 'var(--text-main)',
-                  }}
-                >
-                  [{idx}] {String(item)} {idx === stackItems.length - 1 ? '← TOP' : ''}
-                </div>
+                <span key={`stack-${idx}`} className="ui-chip">
+                  {String(item)}
+                  {idx === stackItems.length - 1 && (
+                    <span style={{ color: 'var(--accent)' }}>top</span>
+                  )}
+                </span>
               ))}
-            </div>
-          </div>
-        )}
+            </DataRow>
+          )}
 
-        {/* Queue Panel */}
-        {hasQueue && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-mint)', marginBottom: '0.5rem' }}>
-              Queue (FIFO)
-            </div>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          {hasQueue && (
+            <DataRow label="Queue">
               {queueItems.map((item, idx) => (
-                <div
-                  key={`queue-${idx}`}
-                  style={{
-                    background: idx === 0 ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-surface)',
-                    border: idx === 0 ? '1px solid var(--state-active)' : '1px solid var(--border-muted)',
-                    borderRadius: '4px',
-                    padding: '0.3rem 0.6rem',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.8rem',
-                    color: idx === 0 ? 'var(--state-active)' : 'var(--text-main)',
-                  }}
-                >
-                  {idx === 0 ? 'FRONT: ' : ''}{String(item)}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Visited Set Panel */}
-        {hasVisited && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-emerald)', marginBottom: '0.5rem' }}>
-              Visited Nodes Set ({visitedItems.length})
-            </div>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {visitedItems.map((item, idx) => (
-                <span
-                  key={`vis-${idx}`}
-                  style={{
-                    background: 'rgba(0, 255, 157, 0.15)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '9999px',
-                    padding: '0.2rem 0.6rem',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.75rem',
-                    color: 'var(--accent-emerald)',
-                  }}
-                >
+                <span key={`queue-${idx}`} className="ui-chip">
+                  {idx === 0 && <span style={{ color: 'var(--accent)' }}>front</span>}
                   {String(item)}
                 </span>
               ))}
-            </div>
-          </div>
-        )}
+            </DataRow>
+          )}
 
-        {/* Hash Map Panel */}
-        {hasHashMap && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--state-pivot)', marginBottom: '0.5rem' }}>
-              Hash Map State (Key → Value)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          {hasVisited && (
+            <DataRow label={`Visited (${visitedItems.length})`}>
+              {visitedItems.map((item, idx) => (
+                <span key={`vis-${idx}`} className="ui-chip">
+                  {String(item)}
+                </span>
+              ))}
+            </DataRow>
+          )}
+
+          {hasHashMap && (
+            <DataRow label="Hash map">
               {hashMapEntries.map(([key, val]) => (
-                <div
-                  key={`hash-${key}`}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    background: 'var(--bg-surface)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>{key}</span>
-                  <span style={{ color: 'var(--accent-emerald)' }}>→ {String(val)}</span>
-                </div>
+                <span key={`hash-${key}`} className="ui-chip">
+                  {key}
+                  <span style={{ color: 'var(--text-faint)' }}>→</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
+                </span>
               ))}
-            </div>
-          </div>
-        )}
+            </DataRow>
+          )}
 
-        {/* Distance Table */}
-        {hasDistance && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--state-compare)', marginBottom: '0.5rem' }}>
-              Distance Table
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          {hasDistance && (
+            <DataRow label="Distances">
               {distanceEntries.map(([node, dist]) => (
-                <div
-                  key={`dist-${node}`}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    background: 'var(--bg-surface)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Node {node}</span>
-                  <span style={{ color: 'var(--state-compare)', fontWeight: 600 }}>{dist === Infinity ? '∞' : dist}</span>
-                </div>
+                <span key={`dist-${node}`} className="ui-chip">
+                  {node}
+                  <span style={{ color: 'var(--text-faint)' }}>→</span>
+                  <span style={{ color: 'var(--text-primary)' }}>
+                    {dist === Infinity ? '∞' : String(dist)}
+                  </span>
+                </span>
               ))}
-            </div>
-          </div>
-        )}
+            </DataRow>
+          )}
 
-        {/* Custom State */}
-        {hasCustom && (
-          <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-mint)', marginBottom: '0.5rem' }}>
-              Custom State
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          {hasCustom && (
+            <DataRow label="State">
               {customEntries.map(([k, val]) => (
-                <div
-                  key={`cust-${k}`}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    background: 'var(--bg-surface)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontFamily: 'var(--font-code)',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>{k}</span>
-                  <span style={{ color: 'var(--accent-emerald)' }}>{String(val)}</span>
-                </div>
+                <span key={`cust-${k}`} className="ui-chip">
+                  {k}
+                  <span style={{ color: 'var(--text-faint)' }}>=</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
+                </span>
               ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            </DataRow>
+          )}
+        </div>
+      ) : (
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+          No working data at this step.
+        </span>
+      )}
+    </Card>
   );
 };
 

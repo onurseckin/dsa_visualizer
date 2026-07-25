@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Play, Filter, Sparkles, Code2, ArrowUpDown } from 'lucide-react';
+import { Search, Play, Sparkles, Code2, ArrowUpDown } from 'lucide-react';
 import { CategoryType } from '../types/dsa';
 import { getAllAlgorithms } from '../algorithms/registry';
+import { Badge, Button, Card, Input, difficultyBadgeVariant } from '../ui';
 
 interface ProblemListProps {
   onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
@@ -34,6 +35,14 @@ const CATEGORY_LABELS: Partial<Record<CategoryType, string>> = {
   advanced_range_queries: 'Advanced Range Queries',
   geometry_and_sweep_line: 'Geometry & Sweep Line',
 };
+
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 'var(--text-sm)',
+  fontWeight: 600,
+  color: 'var(--text-muted)',
+};
+
+const cellPadding = 'var(--space-3) var(--space-4)';
 
 export const ProblemList: React.FC<ProblemListProps> = ({ onSelectAlgorithm }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,371 +107,225 @@ export const ProblemList: React.FC<ProblemListProps> = ({ onSelectAlgorithm }) =
     }
   };
 
-  const getDifficultyBadge = (diff?: string) => {
-    switch (diff) {
-      case 'Easy':
-        return { bg: 'rgba(0, 255, 157, 0.15)', color: '#00ff9d', border: 'rgba(0, 255, 157, 0.4)' };
-      case 'Medium':
-        return { bg: 'rgba(255, 183, 3, 0.15)', color: '#ffb703', border: 'rgba(255, 183, 3, 0.4)' };
-      case 'Hard':
-        return { bg: 'rgba(255, 0, 85, 0.15)', color: '#ff0055', border: 'rgba(255, 0, 85, 0.4)' };
-      default:
-        return { bg: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-dim)', border: 'var(--border-subtle)' };
-    }
-  };
+  /* Real buttons (keyboard-accessible) inside the th; the selected treatment marks
+     the active sort column. Padding math keeps the label flush with plain headers. */
+  const sortableHeader = (label: string, field: 'title' | 'difficulty' | 'category') => (
+    <th style={{ padding: 'var(--space-2)' }}>
+      <Button
+        size="sm"
+        variant="ghost"
+        selected={sortBy === field}
+        icon={<ArrowUpDown />}
+        onClick={() => toggleSort(field)}
+        aria-label={`Sort by ${label.toLowerCase()}`}
+        style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}
+      >
+        {label}
+      </Button>
+    </th>
+  );
 
   return (
     <div
       style={{
-        padding: '1.5rem',
+        padding: 'var(--space-6)',
         maxWidth: '1200px',
         margin: '0 auto',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.5rem',
+        gap: 'var(--space-4)',
       }}
     >
-      {/* Header Banner */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          background: 'var(--bg-surface)',
-          padding: '1.25rem 1.5rem',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-glow)',
-          boxShadow: 'var(--shadow-glow)',
-        }}
+      {/* Header */}
+      <Card
+        icon={<Sparkles aria-hidden="true" style={{ color: 'var(--accent)' }} />}
+        title={
+          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            All Categorized Problems &amp; Algorithms
+          </span>
+        }
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <Badge variant="neutral">Total: {stats.total}</Badge>
+            <Badge variant="success">Easy: {stats.easy}</Badge>
+            <Badge variant="warning">Medium: {stats.medium}</Badge>
+            <Badge variant="danger">Hard: {stats.hard}</Badge>
+          </div>
+        }
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
-            <Sparkles style={{ color: 'var(--accent-emerald)', width: '20px', height: '20px' }} />
-            <h1
-              style={{
-                fontSize: '1.4rem',
-                fontWeight: 700,
-                color: 'var(--text-main)',
-                fontFamily: 'var(--font-code)',
-                margin: 0,
-              }}
-            >
-              All Categorized Problems & Algorithms
-            </h1>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', margin: 0 }}>
-            Comprehensive directory of Data Structures, Visualized Algorithms, and LeetCode Problem Solutions.
-          </p>
-        </div>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+          Comprehensive directory of Data Structures, Visualized Algorithms, and LeetCode Problem Solutions.
+        </p>
+      </Card>
 
-        {/* Stats Summary Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-darkest)',
-              border: '1px solid var(--border-muted)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <span style={{ color: 'var(--text-dim)' }}>Total: </span>
-            <strong style={{ color: 'var(--accent-emerald)' }}>{stats.total}</strong>
-          </div>
-          <div
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(0, 255, 157, 0.1)',
-              border: '1px solid rgba(0, 255, 157, 0.3)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <span style={{ color: 'var(--text-dim)' }}>Easy: </span>
-            <strong style={{ color: '#00ff9d' }}>{stats.easy}</strong>
-          </div>
-          <div
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 183, 3, 0.1)',
-              border: '1px solid rgba(255, 183, 3, 0.3)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <span style={{ color: 'var(--text-dim)' }}>Medium: </span>
-            <strong style={{ color: '#ffb703' }}>{stats.medium}</strong>
-          </div>
-          <div
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 0, 85, 0.1)',
-              border: '1px solid rgba(255, 0, 85, 0.3)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <span style={{ color: 'var(--text-dim)' }}>Hard: </span>
-            <strong style={{ color: '#ff0055' }}>{stats.hard}</strong>
-          </div>
-        </div>
-      </div>
+      {/* Search + filters */}
+      <Card padding="sm">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClear={() => setSearchTerm('')}
+            leadingIcon={<Search />}
+            placeholder="Filter problems by title, category, description..."
+            aria-label="Filter problems"
+          />
 
-      {/* Filter & Search Bar Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          background: 'var(--bg-surface)',
-          padding: '0.85rem 1.25rem',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-subtle)',
-        }}
-      >
-        {/* Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              background: 'var(--bg-darkest)',
-              border: '1px solid var(--border-muted)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.45rem 0.8rem',
-              width: '100%',
-            }}
-          >
-            <Search style={{ width: '16px', height: '16px', color: 'var(--accent-emerald)' }} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Filter problems by title, category, description..."
-              aria-label="Filter problems"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                width: '100%',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Difficulty Filter Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Filter style={{ width: '15px', height: '15px', color: 'var(--text-dim)' }} />
-          {(['All', 'Easy', 'Medium', 'Hard'] as const).map((diff) => (
-            <button
-              key={diff}
-              onClick={() => setSelectedDifficulty(diff)}
-              className={`btn ${selectedDifficulty === diff ? 'btn-active' : ''}`}
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-            >
-              {diff}
-            </button>
-          ))}
-        </div>
-
-        {/* Category Dropdown Filter */}
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          aria-label="Filter by Topic Category"
-          style={{
-            background: 'var(--bg-darkest)',
-            color: 'var(--text-main)',
-            border: '1px solid var(--border-muted)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.45rem 0.8rem',
-            fontSize: '0.85rem',
-            outline: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          <option value="All">All Categories ({Object.keys(CATEGORY_LABELS).length})</option>
-          {Object.entries(CATEGORY_LABELS).map(([catKey, label]) => (
-            <option key={catKey} value={catKey}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Main Problems Table */}
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          overflow: 'hidden',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-          <thead>
-            <tr
-              style={{
-                background: 'var(--bg-darkest)',
-                borderBottom: '1px solid var(--border-subtle)',
-                color: 'var(--text-dim)',
-                textTransform: 'uppercase',
-                fontSize: '0.75rem',
-                letterSpacing: '0.05em',
-              }}
-            >
-              <th style={{ padding: '0.85rem 1rem', width: '50px' }}>#</th>
-              <th
-                onClick={() => toggleSort('title')}
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <span style={sectionLabelStyle}>Difficulty</span>
+            {(['All', 'Easy', 'Medium', 'Hard'] as const).map((diff) => (
+              <Button
+                key={diff}
+                size="sm"
+                selected={selectedDifficulty === diff}
+                onClick={() => setSelectedDifficulty(diff)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  Problem Title <ArrowUpDown style={{ width: '13px', height: '13px' }} />
-                </div>
-              </th>
-              <th
-                onClick={() => toggleSort('category')}
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
+                {diff}
+              </Button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <span style={{ ...sectionLabelStyle, lineHeight: 'var(--control-h-sm)' }}>Category</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+              <Button size="sm" selected={selectedCategory === 'All'} onClick={() => setSelectedCategory('All')}>
+                All categories
+              </Button>
+              {Object.entries(CATEGORY_LABELS).map(([catKey, label]) => (
+                <Button
+                  key={catKey}
+                  size="sm"
+                  selected={selectedCategory === catKey}
+                  onClick={() => setSelectedCategory(catKey)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Problems table */}
+      <Card padding="none">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-md)' }}>
+            <thead>
+              <tr
+                style={{
+                  background: 'var(--bg-inset)',
+                  borderBottom: '1px solid var(--border-default)',
+                  color: 'var(--text-muted)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  Topic / Category <ArrowUpDown style={{ width: '13px', height: '13px' }} />
-                </div>
-              </th>
-              <th
-                onClick={() => toggleSort('difficulty')}
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  Difficulty <ArrowUpDown style={{ width: '13px', height: '13px' }} />
-                </div>
-              </th>
-              <th style={{ padding: '0.85rem 1rem' }}>Time Complexity</th>
-              <th style={{ padding: '0.85rem 1rem' }}>Space Complexity</th>
-              <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAlgorithms.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-dim)' }}>
-                  No matching problems found. Try adjusting your search query or filters.
-                </td>
+                <th style={{ padding: cellPadding, width: '50px', fontWeight: 600 }}>#</th>
+                {sortableHeader('Problem title', 'title')}
+                {sortableHeader('Topic / category', 'category')}
+                {sortableHeader('Difficulty', 'difficulty')}
+                <th style={{ padding: cellPadding, fontWeight: 600 }}>Time complexity</th>
+                <th style={{ padding: cellPadding, fontWeight: 600 }}>Space complexity</th>
+                <th style={{ padding: cellPadding, textAlign: 'center', fontWeight: 600 }}>Action</th>
               </tr>
-            ) : (
-              filteredAlgorithms.map((alg, index) => {
-                const badge = getDifficultyBadge(alg.difficulty);
-                const catLabel = CATEGORY_LABELS[alg.category] || alg.category;
-
-                return (
-                  <tr
-                    key={alg.id}
-                    onClick={() => onSelectAlgorithm(alg.id, alg.category)}
-                    style={{
-                      borderBottom: '1px solid var(--border-subtle)',
-                      transition: 'background 0.15s ease',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(0, 255, 157, 0.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'transparent';
-                    }}
+            </thead>
+            <tbody>
+              {filteredAlgorithms.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)' }}
                   >
-                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontFamily: 'var(--font-code)' }}>
-                      {index + 1}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Code2 style={{ width: '15px', height: '15px', color: 'var(--accent-emerald)' }} />
-                        <span>{alg.title}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <span
+                    No matching problems found. Try adjusting your search query or filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredAlgorithms.map((alg, index) => {
+                  const catLabel = CATEGORY_LABELS[alg.category] || alg.category;
+
+                  return (
+                    <tr
+                      key={alg.id}
+                      onClick={() => onSelectAlgorithm(alg.id, alg.category)}
+                      style={{
+                        borderBottom: '1px solid var(--border-subtle)',
+                        transition: 'background var(--transition-fast)',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <td
                         style={{
-                          fontSize: '0.75rem',
-                          background: 'var(--bg-darkest)',
-                          padding: '3px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--border-muted)',
-                          color: 'var(--text-dim)',
+                          padding: cellPadding,
+                          color: 'var(--text-faint)',
+                          fontFamily: 'var(--font-code)',
+                          fontSize: 'var(--text-sm)',
                         }}
                       >
-                        {catLabel}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {alg.difficulty && (
-                        <span
-                          style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: '3px',
-                            background: badge.bg,
-                            color: badge.color,
-                            border: `1px solid ${badge.border}`,
+                        {index + 1}
+                      </td>
+                      <td style={{ padding: cellPadding, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <Code2
+                            aria-hidden="true"
+                            style={{ width: '16px', height: '16px', color: 'var(--text-muted)', flexShrink: 0 }}
+                          />
+                          <span>{alg.title}</span>
+                        </span>
+                      </td>
+                      <td style={{ padding: cellPadding }}>
+                        <Badge variant="neutral">{catLabel}</Badge>
+                      </td>
+                      <td style={{ padding: cellPadding }}>
+                        {alg.difficulty && (
+                          <Badge variant={difficultyBadgeVariant(alg.difficulty)}>{alg.difficulty}</Badge>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          padding: cellPadding,
+                          fontFamily: 'var(--font-code)',
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {alg.timeComplexity?.average || 'O(N)'}
+                      </td>
+                      <td
+                        style={{
+                          padding: cellPadding,
+                          fontFamily: 'var(--font-code)',
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {alg.spaceComplexity || 'O(1)'}
+                      </td>
+                      <td style={{ padding: cellPadding, textAlign: 'center' }}>
+                        <Button
+                          size="sm"
+                          icon={<Play />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectAlgorithm(alg.id, alg.category);
                           }}
                         >
-                          {alg.difficulty}
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.85rem 1rem',
-                        fontFamily: 'var(--font-code)',
-                        fontSize: '0.8rem',
-                        color: 'var(--accent-cyan)',
-                      }}
-                    >
-                      {alg.timeComplexity?.average || 'O(N)'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.85rem 1rem',
-                        fontFamily: 'var(--font-code)',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-dim)',
-                      }}
-                    >
-                      {alg.spaceComplexity || 'O(1)'}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                      <button
-                        className="btn btn-active"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectAlgorithm(alg.id, alg.category);
-                        }}
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.75rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                        }}
-                      >
-                        <Play style={{ width: '12px', height: '12px' }} />
-                        Visualize
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                          Visualize
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 };
