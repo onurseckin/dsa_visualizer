@@ -2,20 +2,39 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   SoundEngine,
   soundEngine,
+  cueFrequency,
+  EventCueKind,
   playCompare,
   playSwap,
   playPush,
   playPop,
   playComplete,
+  playCue,
   setMuted,
   isMuted,
   toggleMute,
 } from '../soundEngine';
+import { SoundCue } from '../stepSound';
+
+const EVENT_CUE_KINDS: EventCueKind[] = [
+  'advance',
+  'compare',
+  'swap',
+  'push',
+  'pop',
+  'visit',
+  'enqueue',
+  'dequeue',
+  'relax',
+  'match',
+];
+
+const cue = (kind: SoundCue['kind'], pitch = 0.5): SoundCue => ({ kind, pitch });
 
 class MockAudioParam {
   value = 1;
-  setValueAtTime = vi.fn();
-  linearRampToValueAtTime = vi.fn();
+  setValueAtTime = vi.fn((_value: number, _when: number): void => {});
+  linearRampToValueAtTime = vi.fn((_value: number, _when: number): void => {});
 }
 
 class MockOscillatorNode {
@@ -157,18 +176,26 @@ describe('SoundEngine', () => {
 
     it('throttles tones fired within the minimum interval', () => {
       engine.playPush();
-      nowMs = 50;
+      nowMs = 20;
       engine.playPush();
       expect(mockCtx.createOscillator).toHaveBeenCalledTimes(1);
     });
 
     it('does not advance the throttle clock for skipped tones', () => {
       engine.playPush(); // plays at t=0
-      nowMs = 50;
-      engine.playPush(); // throttled; must not mark t=50
-      nowMs = 90;
-      engine.playPush(); // 90ms since last actual play — must fire
+      nowMs = 20;
+      engine.playPush(); // throttled; must not mark t=20
+      nowMs = 35;
+      engine.playPush(); // 35ms since last actual play — must fire
       expect(mockCtx.createOscillator).toHaveBeenCalledTimes(2);
+    });
+
+    it('lets consecutive steps through at the 50ms playback floor', () => {
+      for (let i = 0; i < 6; i++) {
+        nowMs = i * 50;
+        engine.playCue(cue('advance', i / 5));
+      }
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(6);
     });
   });
 
@@ -202,24 +229,24 @@ describe('SoundEngine', () => {
   });
 
   describe('voice cap', () => {
-    it('skips new voices once 8 are active and frees slots via onended', () => {
-      for (let i = 0; i < 8; i++) {
+    it('skips new voices once 14 are active and frees slots via onended', () => {
+      for (let i = 0; i < 14; i++) {
         nowMs = i * 100;
         engine.playPush();
       }
-      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(8);
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(14);
 
-      nowMs = 900;
+      nowMs = 1500;
       engine.playPush();
-      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(8);
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(14);
 
       const firstVoice = mockCtx.oscillators[0];
       firstVoice.onended?.();
       expect(firstVoice.disconnect).toHaveBeenCalled();
 
-      nowMs = 1000;
+      nowMs = 1600;
       engine.playPush();
-      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(9);
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(15);
     });
   });
 
@@ -257,6 +284,153 @@ describe('SoundEngine', () => {
     });
   });
 
+  describe('playCue', () => {
+    interface RenderedVoice {
+      type: OscillatorType;
+      durationSec: number;
+      peakGain: number;
+      freq: number;
+    }
+
+    // Reads back what a single playCue call actually scheduled on the mock graph.
+    const renderCue = (kind: EventCueKind, pitch: number, atMs: number): RenderedVoice => {
+      nowMs = atMs;
+      const before = mockCtx.oscillators.length;
+      engine.playCue({ kind, pitch });
+      expect(mockCtx.oscillators.length).toBe(before + 1);
+
+      const osc = mockCtx.oscillators[before];
+      const voiceGain = mockCtx.gains[mockCtx.gains.length - 1];
+      return {
+        type: osc.type,
+        durationSec:
+          Number(osc.stop.mock.calls[0][0]) - Number(osc.start.mock.calls[0][0]),
+        peakGain: Number(voiceGain.gain.setValueAtTime.mock.calls[0][0]),
+        freq: Number(osc.frequency.setValueAtTime.mock.calls[0][0]),
+      };
+    };
+
+    it('gives every event cue kind a distinct short voice in the cue range', () => {
+      const rendered = EVENT_CUE_KINDS.map((kind, i) => renderCue(kind, 0.5, i * 60));
+
+      rendered.forEach((voice) => {
+        expect(voice.durationSec).toBeGreaterThan(0);
+        expect(voice.durationSec).toBeLessThanOrEqual(0.12);
+        expect(voice.freq).toBeGreaterThanOrEqual(220);
+        expect(voice.freq).toBeLessThanOrEqual(900);
+      });
+
+      const signatures = new Set(
+        rendered.map((v) => `${v.type}|${v.durationSec}|${v.peakGain}|${v.freq}`)
+      );
+      expect(signatures.size).toBe(EVENT_CUE_KINDS.length);
+    });
+
+    it('keeps the advance tick quieter and shorter than every event cue', () => {
+      const advance = renderCue('advance', 0.5, 0);
+      EVENT_CUE_KINDS.filter((kind) => kind !== 'advance').forEach((kind, i) => {
+        const other = renderCue(kind, 0.5, (i + 1) * 60);
+        expect(advance.peakGain).toBeLessThan(other.peakGain);
+        expect(advance.durationSec).toBeLessThan(other.durationSec);
+      });
+    });
+
+    it('raises pitch with the cue pitch value', () => {
+      const low = renderCue('compare', 0, 0);
+      const high = renderCue('compare', 1, 60);
+      expect(high.freq).toBeGreaterThan(low.freq);
+    });
+
+    it('clamps out-of-band pitches into the cue range', () => {
+      [-5, 0.5, 42, Number.NaN].forEach((pitch, i) => {
+        const voice = renderCue('relax', pitch, i * 60);
+        expect(voice.freq).toBeGreaterThanOrEqual(220);
+        expect(voice.freq).toBeLessThanOrEqual(900);
+      });
+    });
+
+    it('delegates the complete cue to the arpeggio', () => {
+      engine.playCue(cue('complete'));
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(4);
+    });
+
+    it('schedules nothing while muted', () => {
+      engine.setMuted(true);
+      EVENT_CUE_KINDS.forEach((kind, i) => {
+        nowMs = i * 60;
+        engine.playCue({ kind, pitch: 0.5 });
+      });
+      engine.playCue(cue('complete'));
+      expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+    });
+
+    it('schedules nothing while the context is suspended', () => {
+      mockCtx.state = 'suspended';
+      engine.playCue(cue('swap'));
+      expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+    });
+
+    it('honours the 30ms throttle between cues', () => {
+      engine.playCue(cue('compare'));
+      nowMs = 29;
+      engine.playCue(cue('compare'));
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(1);
+
+      nowMs = 30;
+      engine.playCue(cue('compare'));
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops scheduling once the voice ceiling is reached', () => {
+      for (let i = 0; i < 20; i++) {
+        nowMs = i * 40;
+        engine.playCue(cue('visit', i / 20));
+      }
+      expect(mockCtx.createOscillator).toHaveBeenCalledTimes(14);
+    });
+  });
+
+  describe('cueFrequency', () => {
+    it('keeps every kind inside the 220-900Hz musical band', () => {
+      EVENT_CUE_KINDS.forEach((kind) => {
+        for (let i = 0; i <= 10; i++) {
+          const freq = cueFrequency(kind, i / 10);
+          expect(freq).toBeGreaterThanOrEqual(220);
+          expect(freq).toBeLessThanOrEqual(900);
+        }
+      });
+    });
+
+    it('rises monotonically with pitch', () => {
+      let previous = 0;
+      for (let i = 0; i <= 20; i++) {
+        const freq = cueFrequency('compare', i / 20);
+        expect(freq).toBeGreaterThanOrEqual(previous);
+        previous = freq;
+      }
+      expect(previous).toBeGreaterThan(cueFrequency('compare', 0));
+    });
+
+    it('quantizes to a scale rather than sweeping continuously', () => {
+      const distinct = new Set<number>();
+      for (let i = 0; i <= 100; i++) {
+        distinct.add(Math.round(cueFrequency('compare', i / 100)));
+      }
+      expect(distinct.size).toBeGreaterThan(3);
+      expect(distinct.size).toBeLessThanOrEqual(11);
+    });
+
+    it('separates the registers of paired cues', () => {
+      expect(cueFrequency('pop', 0.5)).toBeLessThan(cueFrequency('push', 0.5));
+      expect(cueFrequency('dequeue', 0.5)).toBeLessThan(cueFrequency('enqueue', 0.5));
+    });
+
+    it('falls back to the root note for non-finite pitches', () => {
+      expect(cueFrequency('advance', Number.NaN)).toBe(220);
+      expect(cueFrequency('advance', Number.POSITIVE_INFINITY)).toBe(220);
+    });
+  });
+
   describe('environments without AudioContext', () => {
     beforeEach(() => {
       vi.stubGlobal('AudioContext', undefined);
@@ -270,6 +444,8 @@ describe('SoundEngine', () => {
       expect(() => engine.playPush()).not.toThrow();
       expect(() => engine.playPop()).not.toThrow();
       expect(() => engine.playComplete()).not.toThrow();
+      expect(() => engine.playCue(cue('advance'))).not.toThrow();
+      expect(() => engine.playCue(cue('complete'))).not.toThrow();
       expect(() => engine.setMuted(true)).not.toThrow();
       expect(engine.toggleMute()).toBe(false);
     });
@@ -284,6 +460,7 @@ describe('SoundEngine', () => {
       expect(() => playPush()).not.toThrow();
       expect(() => playPop()).not.toThrow();
       expect(() => playComplete()).not.toThrow();
+      expect(() => playCue(cue('advance'))).not.toThrow();
       expect(toggleMute()).toBe(true);
       expect(soundEngine.isMuted()).toBe(true);
       setMuted(false);

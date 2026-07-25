@@ -1,14 +1,69 @@
+import { SoundCue, SoundCueKind } from './stepSound';
+
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
   }
 }
 
-const MAX_ACTIVE_VOICES = 8;
-const MIN_TONE_INTERVAL_MS = 80;
+/* The step interval bottoms out at 50ms, so the throttle has to sit well below
+   that or legitimate consecutive steps get swallowed; the voice ceiling then has
+   to hold every short cue that can overlap at that rate. */
+const MAX_ACTIVE_VOICES = 14;
+const MIN_TONE_INTERVAL_MS = 30;
 const COMPLETE_COOLDOWN_MS = 400;
 const ARPEGGIO_NOTE_SPACING_SEC = 0.075;
 const ARPEGGIO_NOTE_DURATION_SEC = 0.18;
+
+/** Every cue kind except 'complete', which is the arpeggio rather than one tone. */
+export type EventCueKind = Exclude<SoundCueKind, 'complete'>;
+
+interface CueTimbre {
+  type: OscillatorType;
+  /** Kept <= 120ms so fast playback stays crisp instead of muddy. */
+  durationMs: number;
+  peakGain: number;
+  /** Register shift in scale degrees — what makes push read above pop. */
+  degreeOffset: number;
+}
+
+const CUE_SCALE_ROOT_HZ = 220;
+/* Major pentatonic: quantizing pitch to a scale makes a run sound intentional
+   instead of like a random sweep. Degree 10 lands on 880Hz, the top of the band. */
+const CUE_SCALE_SEMITONES: readonly number[] = [0, 2, 4, 7, 9];
+const CUE_SCALE_DEGREES = 11;
+
+/* Advance is deliberately the quietest and shortest voice: it fires on every
+   otherwise-uneventful step, so it must read as a tick under the event cues
+   rather than compete with them. */
+const CUE_TIMBRES: Record<EventCueKind, CueTimbre> = {
+  advance: { type: 'sine', durationMs: 28, peakGain: 0.016, degreeOffset: 0 },
+  compare: { type: 'sine', durationMs: 60, peakGain: 0.05, degreeOffset: 0 },
+  swap: { type: 'triangle', durationMs: 95, peakGain: 0.075, degreeOffset: -2 },
+  push: { type: 'square', durationMs: 55, peakGain: 0.032, degreeOffset: 3 },
+  pop: { type: 'square', durationMs: 55, peakGain: 0.032, degreeOffset: -3 },
+  visit: { type: 'triangle', durationMs: 55, peakGain: 0.045, degreeOffset: 1 },
+  enqueue: { type: 'sawtooth', durationMs: 50, peakGain: 0.028, degreeOffset: 2 },
+  dequeue: { type: 'sawtooth', durationMs: 50, peakGain: 0.028, degreeOffset: -2 },
+  relax: { type: 'triangle', durationMs: 70, peakGain: 0.05, degreeOffset: 4 },
+  match: { type: 'triangle', durationMs: 115, peakGain: 0.07, degreeOffset: 6 },
+};
+
+function clampDegree(degree: number): number {
+  if (!Number.isFinite(degree)) return 0;
+  return Math.min(CUE_SCALE_DEGREES - 1, Math.max(0, degree));
+}
+
+/** Maps a 0..1 cue pitch onto the quantized 220-880Hz cue range. */
+export function cueFrequency(kind: EventCueKind, pitch: number): number {
+  const safePitch = Number.isFinite(pitch) ? Math.min(1, Math.max(0, pitch)) : 0;
+  const degree = clampDegree(
+    Math.round(safePitch * (CUE_SCALE_DEGREES - 1)) + CUE_TIMBRES[kind].degreeOffset
+  );
+  const octave = Math.floor(degree / CUE_SCALE_SEMITONES.length);
+  const semitones = octave * 12 + CUE_SCALE_SEMITONES[degree % CUE_SCALE_SEMITONES.length];
+  return CUE_SCALE_ROOT_HZ * Math.pow(2, semitones / 12);
+}
 
 export class SoundEngine {
   private ctx: AudioContext | null = null;
@@ -173,6 +228,22 @@ export class SoundEngine {
     }
   }
 
+  /** Plays the cue a step earned; 'complete' delegates to the arpeggio. */
+  public playCue(cue: SoundCue): void {
+    if (cue.kind === 'complete') {
+      this.playComplete();
+      return;
+    }
+
+    const timbre = CUE_TIMBRES[cue.kind];
+    this.playTone(
+      cueFrequency(cue.kind, cue.pitch),
+      timbre.durationMs,
+      timbre.type,
+      timbre.peakGain
+    );
+  }
+
   public playCompare(val?: number, maxVal: number = 100): void {
     const safeMax = maxVal > 0 ? maxVal : 100;
     const freq =
@@ -235,6 +306,7 @@ export const playSwap = (val1?: number, val2?: number): void => soundEngine.play
 export const playPush = (): void => soundEngine.playPush();
 export const playPop = (): void => soundEngine.playPop();
 export const playComplete = (): void => soundEngine.playComplete();
+export const playCue = (cue: SoundCue): void => soundEngine.playCue(cue);
 
 export const setMuted = (muted: boolean): void => soundEngine.setMuted(muted);
 export const isMuted = (): boolean => soundEngine.isMuted();
