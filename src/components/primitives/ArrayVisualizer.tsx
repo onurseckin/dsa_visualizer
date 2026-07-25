@@ -108,7 +108,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
-        minHeight: '480px',
+        minHeight: '300px',
         padding: 0,
       }}
     >

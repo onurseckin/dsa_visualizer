@@ -28,15 +28,14 @@ describe('Navbar Component Spec', () => {
     expect(screen.getByText(/Problem List/i)).toBeInTheDocument();
     expect(screen.getByText(/Visualizer Workspace/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Search problems.../i)).toBeInTheDocument();
-    expect(screen.getByText(/Quick Problems/i)).toBeInTheDocument();
   });
 
-  it('toggles QuickAccessDrawer when clicking Quick Problems button', () => {
+  it('toggles QuickAccessDrawer when clicking ListFilter drawer trigger button', () => {
     render(<Navbar {...defaultProps} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    const drawerBtn = screen.getByText(/Quick Problems/i);
+    const drawerBtn = screen.getByRole('button', { name: /Open full problem directory sidebar/i });
     fireEvent.click(drawerBtn);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();

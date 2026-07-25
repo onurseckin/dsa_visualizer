@@ -168,9 +168,9 @@ describe('MainLayout Component Spec', () => {
       />
     );
 
-    expect(screen.getByText('Comparing elements 3 and 1')).toBeInTheDocument();
+    expect(screen.getByText(/Comparing elements 3 and 1/i)).toBeInTheDocument();
 
-    const closeBtn = screen.getByTitle('Close tutorial');
+    const closeBtn = screen.getByTitle('Dismiss explanation');
     fireEvent.click(closeBtn);
     expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
 

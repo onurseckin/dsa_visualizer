@@ -155,7 +155,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         alignItems: 'center',
         width: '100%',
         height: '100%',
-        minHeight: '480px',
+        minHeight: '300px',
         padding: 0,
       }}
     >
