@@ -8,9 +8,15 @@ import { ControlPanel } from './components/ControlPanel';
 import { MainLayout } from './components/MainLayout';
 
 const CATEGORIES: { id: CategoryType; label: string }[] = [
-  { id: 'sorting', label: 'Sorting Algorithms' },
-  { id: 'graph', label: 'Graph & Pathfinding' },
-  { id: 'leetcode', label: 'LeetCode Study' },
+  { id: 'fundamentals', label: '1. Fundamentals & Search' },
+  { id: 'sorting', label: '2. Sorting & Searching' },
+  { id: 'data-structures', label: '3. Data Structures & Range Queries' },
+  { id: 'dynamic-programming', label: '4. Dynamic Programming' },
+  { id: 'graph', label: '5. Graph Algorithms' },
+  { id: 'tree', label: '6. Trees & Spanning Trees' },
+  { id: 'advanced', label: '7. Advanced Strings & Flows' },
+  { id: 'math-games', label: '8. Math & Game Theory' },
+  { id: 'leetcode', label: '9. LeetCode Collection' },
 ];
 
 export function App() {
