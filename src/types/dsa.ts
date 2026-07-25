@@ -36,6 +36,10 @@ export interface GraphNodeItem {
   y?: number;
   state: ElementState;
   val?: number;
+  /* Identity grouping (SCC id, MST tree, island index, trie branch). Rendered
+     with the categorical --viz-* palette; independent of `state`, which carries
+     what the algorithm is doing right now. */
+  group?: number;
 }
 
 export interface GraphEdgeItem {
@@ -44,6 +48,8 @@ export interface GraphEdgeItem {
   weight?: number;
   isTraversed?: boolean;
   isPath?: boolean;
+  /* See GraphNodeItem.group — lets an edge inherit its component's color. */
+  group?: number;
 }
 
 export interface TreeNodeItem {
@@ -169,6 +175,24 @@ export interface ComplexityAnalysis {
   space: string;
 }
 
+export interface TopicGuideSection {
+  heading: string;
+  body: string;
+}
+
+export interface TopicGuideTerm {
+  term: string;
+  definition: string;
+}
+
+/* The educational reference for a problem's whole topic — not step narration.
+   Rendered in the expanded problem details; see docs/planning/ui-overhaul/DESIGN.md. */
+export interface TopicGuide {
+  overview: string;
+  sections: TopicGuideSection[];
+  keyTerms?: TopicGuideTerm[];
+}
+
 export interface ProblemExample {
   input: string;
   output: string;
@@ -187,6 +211,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   timeComplexity: TimeComplexity;
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis;
+  topicGuide: TopicGuide;
   generateSteps: (input: TInput) => AlgorithmStep[];
   defaultInput: TInput;
 }
