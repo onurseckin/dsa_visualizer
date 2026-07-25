@@ -115,7 +115,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   };
 
   addStep(
-    3,
+    1,
     "Initialize Topological Sort (Kahn's Algorithm)",
     'Beginning process to compute linear ordering of vertices in DAG.',
     { nodeCount: nodes.length, edgeCount: edges.length }

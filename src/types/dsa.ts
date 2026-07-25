@@ -184,3 +184,6 @@ export interface AlgorithmDefinition<TInput = unknown> {
   generateSteps: (input: TInput) => AlgorithmStep[];
   defaultInput: TInput;
 }
+
+export type AppView = 'tree' | 'list' | 'workspace';
+

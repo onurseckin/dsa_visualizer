@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { CategoryType, ViewMode, AlgorithmDefinition } from './types/dsa';
+import { CategoryType, ViewMode, AlgorithmDefinition, AppView } from './types/dsa';
 import { ALGORITHM_REGISTRY, getAllAlgorithms } from './algorithms/registry';
 import { useStepEngine } from './engine/stepEngine';
 import soundEngine from './engine/soundEngine';
@@ -7,31 +7,38 @@ import { Navbar } from './components/Navbar';
 import { ControlPanel } from './components/ControlPanel';
 import { MainLayout } from './components/MainLayout';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
+import { ProblemList } from './components/ProblemList';
 
 const CATEGORIES: { id: CategoryType; label: string }[] = [
   { id: 'arrays_and_hashing', label: '1. Arrays & Hashing' },
   { id: 'two_pointers', label: '2. Two Pointers' },
-  { id: 'stack', label: '3. Stack' },
+  { id: 'stack_and_queue', label: '3. Stack & Queue' },
   { id: 'binary_search', label: '4. Binary Search' },
   { id: 'sliding_window', label: '5. Sliding Window' },
   { id: 'linked_list', label: '6. Linked List' },
-  { id: 'trees', label: '7. Trees' },
-  { id: 'tries', label: '8. Tries' },
-  { id: 'heap', label: '9. Heap / Priority Queue' },
-  { id: 'backtracking', label: '10. Backtracking' },
-  { id: 'graphs', label: '11. Graphs' },
-  { id: 'dp_1d', label: '12. 1-D Dynamic Programming' },
-  { id: 'intervals', label: '13. Intervals' },
-  { id: 'greedy', label: '14. Greedy Algorithms' },
-  { id: 'advanced_graphs', label: '15. Advanced Graphs' },
-  { id: 'math_and_geometry', label: '16. Math & Geometry' },
-  { id: 'dp_2d', label: '17. 2-D Dynamic Programming' },
-  { id: 'bit_manipulation', label: '18. Bit Manipulation' },
-  { id: 'advanced_range_and_cp', label: '19. Advanced Range & CP' },
+  { id: 'tree_fundamentals', label: '7. Tree Fundamentals' },
+  { id: 'tree_queries_and_diameter', label: '8. Tree Queries & Diameter' },
+  { id: 'tries_and_strings', label: '9. Tries & Strings' },
+  { id: 'heap_and_priority_queue', label: '10. Heap / Priority Queue' },
+  { id: 'backtracking', label: '11. Backtracking' },
+  { id: 'graph_traversal', label: '12. Graph Traversal' },
+  { id: 'graph_shortest_paths', label: '13. Graph Shortest Paths' },
+  { id: 'graph_spanning_trees', label: '14. Graph Spanning Trees' },
+  { id: 'graph_directed_and_scc', label: '15. Graph Directed & SCC' },
+  { id: 'graph_flows_and_cuts', label: '16. Graph Flows & Cuts' },
+  { id: 'dp_1d', label: '17. 1-D Dynamic Programming' },
+  { id: 'dp_2d', label: '18. 2-D Dynamic Programming' },
+  { id: 'intervals', label: '19. Intervals' },
+  { id: 'greedy_algorithms', label: '20. Greedy Algorithms' },
+  { id: 'bit_manipulation', label: '21. Bit Manipulation' },
+  { id: 'math_and_number_theory', label: '22. Math & Number Theory' },
+  { id: 'game_theory', label: '23. Game Theory' },
+  { id: 'advanced_range_queries', label: '24. Advanced Range Queries' },
+  { id: 'geometry_and_sweep_line', label: '25. Geometry & Sweep Line' },
 ];
 
 export function App() {
-  const [appView, setAppView] = useState<'tree' | 'workspace'>('tree');
+  const [appView, setAppView] = useState<AppView>('tree');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('arrays_and_hashing');
   const [activeAlgorithmId, setActiveAlgorithmId] = useState<string>('bubble-sort');
   const [viewMode, setViewMode] = useState<ViewMode>('split');
@@ -54,7 +61,7 @@ export function App() {
 
   // Input data generator based on algorithm
   const currentInput = useMemo(() => {
-    if (algorithm.category === 'arrays_and_hashing' || algorithm.category === 'sorting') {
+    if (algorithm.category === 'arrays_and_hashing') {
       const arr: number[] = [];
       for (let i = 0; i < dataSize; i++) {
         const val = Math.floor(Math.abs(Math.sin(inputSeed * 997 + i * 13)) * 85) + 15;
@@ -103,6 +110,18 @@ export function App() {
     onStepChange: handleStepChange,
   });
 
+  // Global algorithm selection handler from search bar or problem list
+  const handleGlobalSelectAlgorithm = useCallback((algorithmId: string, categoryFolder?: CategoryType) => {
+    const targetAlg = ALGORITHM_REGISTRY[algorithmId] || getAllAlgorithms().find((a) => a.id === algorithmId);
+    if (targetAlg) {
+      setActiveAlgorithmId(targetAlg.id);
+      setActiveCategory(categoryFolder || targetAlg.category);
+    } else {
+      setActiveAlgorithmId(algorithmId);
+    }
+    setAppView('workspace');
+  }, []);
+
   // Handle topic node selection from Knowledge Graph
   const handleSelectCategoryFromTree = (folder: string) => {
     const cat = folder as CategoryType;
@@ -139,6 +158,7 @@ export function App() {
         algorithmIds={categoryAlgorithms.map((a) => ({ id: a.id, title: a.title, difficulty: a.difficulty }))}
         activeAlgorithmId={activeAlgorithmId}
         onSelectAlgorithm={setActiveAlgorithmId}
+        onGlobalSelectAlgorithm={handleGlobalSelectAlgorithm}
         viewMode={viewMode}
         onSetViewMode={setViewMode}
         showTutorial={showTutorial}
@@ -152,6 +172,8 @@ export function App() {
       {/* Main Content Area */}
       {appView === 'tree' ? (
         <KnowledgeGraph onSelectCategoryFolder={handleSelectCategoryFromTree} />
+      ) : appView === 'list' ? (
+        <ProblemList onSelectAlgorithm={handleGlobalSelectAlgorithm} />
       ) : (
         <>
           {/* Playback Control Toolbar */}
@@ -168,7 +190,7 @@ export function App() {
             dataSize={dataSize}
             onDataSizeChange={setDataSize}
             onGenerateRandom={handleGenerateRandom}
-            supportsCustomSize={algorithm.category === 'arrays_and_hashing' || algorithm.category === 'sorting'}
+            supportsCustomSize={algorithm.category === 'arrays_and_hashing'}
           />
 
           {/* Main Visualizer Workspace Layout */}
