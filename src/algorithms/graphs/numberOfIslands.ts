@@ -243,7 +243,7 @@ export const generateNumberOfIslandsSteps = (
 export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   id: 'number-of-islands',
   title: 'Number of Islands',
-  category: 'graph',
+  category: 'graphs',
   difficulty: 'Medium',
   description:
     'Counts the number of connected land components ("1") surrounded by water ("0") in a 2D grid using BFS/DFS graph traversal.',
