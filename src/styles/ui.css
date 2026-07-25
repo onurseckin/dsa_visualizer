@@ -692,3 +692,48 @@
   color: var(--text-secondary);
   white-space: nowrap;
 }
+
+/* ---------- ConfirmDialog ---------- */
+
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--bg-backdrop);
+}
+
+.ui-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(420px, 92vw);
+  padding: var(--space-5);
+  transform: translate(-50%, -50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-dialog__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ui-dialog__body {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.ui-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
