@@ -1,18 +1,26 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ComponentProps } from 'react';
 import { MainLayout } from '../MainLayout';
-import type { AlgorithmDefinition, AlgorithmStep } from '../../types/dsa';
+import type { AlgorithmDefinition, AlgorithmStep, TopicGuide } from '../../types/dsa';
 import type { ControlPanelProps } from '../ControlPanel';
+import {
+  DEFAULT_WORKSPACE_LAYOUT,
+  WORKSPACE_LAYOUT_KEY,
+  WorkspaceLayout,
+} from '../../app/workspaceLayout';
 
 /* Child panels are owned and rebuilt by other agents. They are mocked here so this
    spec verifies the layout contract only: composition, conditional rendering per
-   viewMode, and prop wiring across the agent boundary. ResizableLayout stays real. */
+   viewMode, prop wiring across the agent boundary, and the persisted geometry.
+   ResizableLayout / ResizableRows and ConfirmDialog stay real. */
 
 vi.mock('../primitives/ProblemHeader', () => ({
   ProblemHeader: ({
     title,
     difficulty,
     description,
+    topicGuide,
     expanded,
     onToggleExpanded,
     onResetLayout,
@@ -20,18 +28,20 @@ vi.mock('../primitives/ProblemHeader', () => ({
     title: string;
     difficulty?: string;
     description: string;
+    topicGuide: TopicGuide;
     expanded: boolean;
     onToggleExpanded: () => void;
     onResetLayout?: () => void;
   }) => (
-    <div data-testid="problem-header">
+    <div data-testid="problem-header" data-topic-sections={topicGuide.sections.length}>
       <span>{title}</span>
       <span>{difficulty}</span>
       <button aria-expanded={expanded} onClick={onToggleExpanded}>
         Details
       </button>
       {expanded && <p>{description}</p>}
-      <button onClick={onResetLayout}>Reset Layout</button>
+      {expanded && <p>{topicGuide.overview}</p>}
+      <button onClick={onResetLayout}>Ask to reset layout</button>
     </div>
   ),
 }));
@@ -111,6 +121,15 @@ vi.mock('../primitives/TreeVisualizer', () => ({
   TreeVisualizer: () => <div data-testid="tree-visualizer" />,
 }));
 
+const dummyTopicGuide: TopicGuide = {
+  overview: 'Sorting rearranges a collection so its elements sit in a predictable order.',
+  sections: [
+    { heading: 'The core idea', body: 'You repeatedly compare neighbours and push the larger one right.' },
+    { heading: 'Why it is correct', body: 'After each pass the largest unsorted value has reached its final slot.' },
+  ],
+  keyTerms: [{ term: 'Pass', definition: 'One full sweep from the start of the array to its unsorted end.' }],
+};
+
 const dummyAlgorithm: AlgorithmDefinition = {
   id: 'bubble-sort',
   title: 'Bubble Sort Algorithm',
@@ -127,6 +146,7 @@ const dummyAlgorithm: AlgorithmDefinition = {
     time: 'We sweep the array repeatedly, so in the worst case the work grows quadratically — O(n^2).',
     space: 'Swaps happen in place, so extra memory stays constant — O(1).',
   },
+  topicGuide: dummyTopicGuide,
   defaultInput: { array: [3, 1, 2] },
   generateSteps: () => [],
 };
@@ -168,88 +188,90 @@ const dummyControlProps: ControlPanelProps = {
   supportsCustomSize: true,
 };
 
+const renderLayout = (
+  overrides: Partial<ComponentProps<typeof MainLayout>> = {},
+): ReturnType<typeof render> =>
+  render(
+    <MainLayout
+      algorithm={dummyAlgorithm}
+      currentStep={dummyStep}
+      viewMode="split"
+      showTutorial={false}
+      showAuxiliary={false}
+      onToggleTutorial={vi.fn()}
+      onToggleAuxiliary={vi.fn()}
+      {...overrides}
+    />,
+  );
+
+const columnHandle = (): HTMLElement =>
+  screen.getByRole('separator', { name: 'Resize visualizer and code columns' });
+
+const storedLayout = (): WorkspaceLayout | null => {
+  const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
+  return raw === null ? null : (JSON.parse(raw) as WorkspaceLayout);
+};
+
+const seedLayout = (layout: WorkspaceLayout): void => {
+  localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(layout));
+};
+
+afterEach(() => {
+  localStorage.clear();
+});
+
 describe('MainLayout Component Spec', () => {
-  it('renders the problem header strip with algorithm identity', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+  it('renders the problem header strip with algorithm identity and the topic guide', () => {
+    renderLayout();
 
     expect(screen.getByTestId('problem-header')).toBeInTheDocument();
     expect(screen.getByText('Bubble Sort Algorithm')).toBeInTheDocument();
     expect(screen.getByText('Easy')).toBeInTheDocument();
+    expect(screen.getByTestId('problem-header')).toHaveAttribute('data-topic-sections', '2');
+    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
   });
 
-  it('fills the viewport without page scroll: main is a flex column that clips overflow', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+  it('never blocks page scrolling: main keeps overflow-y auto in every state', () => {
+    renderLayout();
 
     const main = screen.getByRole('main');
-    expect(main).toHaveStyle({ overflow: 'hidden', display: 'flex' });
-    expect(main).toHaveAttribute('data-details-expanded', 'false');
-  });
-
-  it('hides problem details by default and switches to page-scroll mode while expanded', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
-
-    const main = screen.getByRole('main');
-    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
-    expect(main).toHaveAttribute('data-details-expanded', 'false');
+    expect(main).toHaveStyle({ display: 'flex', overflowY: 'auto' });
+    expect(main.style.overflow).not.toBe('hidden');
+    expect(main).toHaveAttribute('data-details-expanded', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(main).toHaveAttribute('data-details-expanded', 'false');
+    expect(main).toHaveStyle({ overflowY: 'auto' });
+    expect(main.style.overflow).not.toBe('hidden');
+  });
+
+  it('sizes the stage from the viewport with a floor so short screens scroll instead of squeezing', () => {
+    const { container } = renderLayout();
+
+    const stage = container.querySelector('[data-stage="workspace"]') as HTMLElement;
+    expect(stage.style.height).toContain('max(var(--stage-min-h)');
+    expect(stage.style.height).toContain('100dvh');
+    expect(stage.style.height).toContain('var(--navbar-h)');
+  });
+
+  it('shows problem details expanded by default and lets the toggle collapse them', () => {
+    renderLayout();
 
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
-    expect(main).toHaveAttribute('data-details-expanded', 'true');
-    expect(main).toHaveStyle({ overflowY: 'auto' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
-
     expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
-    expect(main).toHaveAttribute('data-details-expanded', 'false');
-    expect(main).toHaveStyle({ overflow: 'hidden' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
   });
 
-  it('collapses details again when the algorithm changes', () => {
-    const { rerender } = render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+  it('keeps the details panel collapsed across an algorithm change once the user collapsed it', () => {
+    const { rerender } = renderLayout();
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
-    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
+    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
 
     rerender(
       <MainLayout
@@ -260,43 +282,22 @@ describe('MainLayout Component Spec', () => {
         showAuxiliary={false}
         onToggleTutorial={vi.fn()}
         onToggleAuxiliary={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
-    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
   });
 
   it('renders visualizer, code viewer, and complexity prose in split viewMode', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout();
 
     expect(screen.getByTestId('array-visualizer')).toHaveTextContent('3,1,2');
     expect(screen.getByTestId('code-viewer')).toHaveTextContent('def bubble_sort');
-    expect(screen.getByRole('separator')).toBeInTheDocument();
+    expect(columnHandle()).toBeInTheDocument();
   });
 
   it('passes complexityAnalysis from the algorithm definition to ComplexityCard', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout();
 
     const card = screen.getByTestId('complexity-card');
     expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.time);
@@ -304,18 +305,7 @@ describe('MainLayout Component Spec', () => {
   });
 
   it('embeds playback controls at the bottom edge of the visualizer card when controlProps are provided', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-        controlProps={dummyControlProps}
-      />
-    );
+    renderLayout({ controlProps: dummyControlProps });
 
     const panel = screen.getByTestId('control-panel');
     expect(panel).toHaveAttribute('data-variant', 'embedded');
@@ -323,33 +313,13 @@ describe('MainLayout Component Spec', () => {
   });
 
   it('omits playback controls when neither controlProps nor playback callbacks are provided', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout();
 
     expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
   });
 
   it('hides the code column in visual viewMode', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="visual"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout({ viewMode: 'visual' });
 
     expect(screen.getByTestId('array-visualizer')).toBeInTheDocument();
     expect(screen.queryByTestId('code-viewer')).not.toBeInTheDocument();
@@ -357,17 +327,7 @@ describe('MainLayout Component Spec', () => {
   });
 
   it('hides the visualizer column in code viewMode', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="code"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout({ viewMode: 'code' });
 
     expect(screen.getByTestId('code-viewer')).toBeInTheDocument();
     expect(screen.getByTestId('complexity-card')).toBeInTheDocument();
@@ -376,17 +336,10 @@ describe('MainLayout Component Spec', () => {
 
   it('toggles the tutorial card and forwards onClose to onToggleTutorial', () => {
     const handleToggleTutorial = vi.fn();
-    const { rerender } = render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={true}
-        showAuxiliary={false}
-        onToggleTutorial={handleToggleTutorial}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    const { rerender } = renderLayout({
+      showTutorial: true,
+      onToggleTutorial: handleToggleTutorial,
+    });
 
     expect(screen.getByText('Comparing elements 3 and 1')).toBeInTheDocument();
 
@@ -402,7 +355,7 @@ describe('MainLayout Component Spec', () => {
         showAuxiliary={false}
         onToggleTutorial={handleToggleTutorial}
         onToggleAuxiliary={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
@@ -410,17 +363,10 @@ describe('MainLayout Component Spec', () => {
 
   it('toggles the auxiliary panel and forwards onClose to onToggleAuxiliary', () => {
     const handleToggleAuxiliary = vi.fn();
-    const { rerender } = render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={true}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={handleToggleAuxiliary}
-      />
-    );
+    const { rerender } = renderLayout({
+      showAuxiliary: true,
+      onToggleAuxiliary: handleToggleAuxiliary,
+    });
 
     expect(screen.getByTestId('auxiliary-panel')).toBeInTheDocument();
 
@@ -436,52 +382,165 @@ describe('MainLayout Component Spec', () => {
         showAuxiliary={false}
         onToggleTutorial={vi.fn()}
         onToggleAuxiliary={handleToggleAuxiliary}
-      />
+      />,
     );
 
     expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
   });
 
   it('renders fallback UI when currentStep is null', () => {
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={null}
-        viewMode="split"
-        showTutorial={true}
-        showAuxiliary={true}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+    renderLayout({ currentStep: null, showTutorial: true, showAuxiliary: true });
 
     expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
     expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
     expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
   });
 
-  it('resets the split ratio to 60 when ProblemHeader triggers onResetLayout', () => {
-    localStorage.setItem('dsa_visualizer_layout_split', '75');
+  describe('resizable sections', () => {
+    it('exposes a vertical column handle plus horizontal row handles for every visible row pair', () => {
+      renderLayout({ showTutorial: true, showAuxiliary: true });
 
-    render(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={vi.fn()}
-      />
-    );
+      expect(columnHandle()).toHaveAttribute('aria-orientation', 'vertical');
 
-    const handle = screen.getByRole('separator');
-    expect(handle).toHaveAttribute('aria-valuenow', '75');
+      const rowHandles = screen
+        .getAllByRole('separator')
+        .filter((handle) => handle.getAttribute('aria-orientation') === 'horizontal');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset Layout' }));
+      expect(rowHandles.map((handle) => handle.getAttribute('aria-label'))).toEqual([
+        'Resize visualizer and tutorial rows',
+        'Resize tutorial and auxiliary data rows',
+        'Resize code and complexity rows',
+      ]);
+    });
 
-    expect(handle).toHaveAttribute('aria-valuenow', '60');
-    expect(localStorage.getItem('dsa_visualizer_layout_split')).toBe('60');
-    localStorage.clear();
+    it('drops the row handles of hidden rows so no dead handle or empty gap is left', () => {
+      renderLayout({ showTutorial: false, showAuxiliary: false });
+
+      const rowHandles = screen
+        .getAllByRole('separator')
+        .filter((handle) => handle.getAttribute('aria-orientation') === 'horizontal');
+
+      expect(rowHandles.map((handle) => handle.getAttribute('aria-label'))).toEqual([
+        'Resize code and complexity rows',
+      ]);
+    });
+
+    it('restores persisted sizes on mount', () => {
+      seedLayout({
+        version: 3,
+        splitPercent: 40,
+        leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
+        rightRows: { code: 55, complexity: 45 },
+      });
+
+      const { container } = renderLayout({ showTutorial: true });
+
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect((container.querySelector('[data-row="visualizer"]') as HTMLElement).style.flexGrow).toBe(
+        '50',
+      );
+      expect((container.querySelector('[data-row="code"]') as HTMLElement).style.flexGrow).toBe('55');
+    });
+
+    it('falls back to defaults when the persisted layout is unusable', () => {
+      localStorage.setItem(WORKSPACE_LAYOUT_KEY, '{"version":1,"splitPercent":90}');
+
+      renderLayout();
+
+      expect(columnHandle()).toHaveAttribute(
+        'aria-valuenow',
+        String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
+      );
+    });
+
+    it('persists a keyboard nudge of the column split so it survives a reload', () => {
+      renderLayout();
+
+      fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
+
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '62');
+      expect(storedLayout()?.splitPercent).toBe(62);
+    });
+
+    it('persists a keyboard nudge of a row handle', () => {
+      renderLayout();
+
+      const rowHandle = screen.getByRole('separator', { name: 'Resize code and complexity rows' });
+      fireEvent.keyDown(rowHandle, { key: 'ArrowDown' });
+
+      const stored = storedLayout();
+      expect(stored?.rightRows.code).toBeGreaterThan(DEFAULT_WORKSPACE_LAYOUT.rightRows.code);
+      expect((stored?.rightRows.code ?? 0) + (stored?.rightRows.complexity ?? 0)).toBeCloseTo(100);
+    });
+  });
+
+  describe('reset layout', () => {
+    const customLayout: WorkspaceLayout = {
+      version: 3,
+      splitPercent: 40,
+      leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
+      rightRows: { code: 55, complexity: 45 },
+    };
+
+    it('asks for confirmation instead of resetting immediately', () => {
+      seedLayout(customLayout);
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toHaveAttribute('aria-modal', 'true');
+      expect(screen.getByText('Reset workspace layout?')).toBeInTheDocument();
+      expect(dialog).toHaveTextContent('custom panel sizes will be lost');
+
+      // Nothing changed yet.
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect(storedLayout()).toEqual(customLayout);
+    });
+
+    it('keeps the layout when the dialog is dismissed with Escape', () => {
+      seedLayout(customLayout);
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect(storedLayout()).toEqual(customLayout);
+    });
+
+    it('keeps the layout when the cancel button is used', () => {
+      seedLayout(customLayout);
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Keep my layout' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect(storedLayout()).toEqual(customLayout);
+    });
+
+    it('clears storage and restores every default size only on confirm', () => {
+      seedLayout(customLayout);
+      const { container } = renderLayout({ showTutorial: true });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reset layout' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(localStorage.getItem(WORKSPACE_LAYOUT_KEY)).toBeNull();
+      expect(columnHandle()).toHaveAttribute(
+        'aria-valuenow',
+        String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
+      );
+      expect((container.querySelector('[data-row="visualizer"]') as HTMLElement).style.flexGrow).toBe(
+        String(DEFAULT_WORKSPACE_LAYOUT.leftRows.visualizer),
+      );
+      expect((container.querySelector('[data-row="code"]') as HTMLElement).style.flexGrow).toBe(
+        String(DEFAULT_WORKSPACE_LAYOUT.rightRows.code),
+      );
+    });
   });
 });
