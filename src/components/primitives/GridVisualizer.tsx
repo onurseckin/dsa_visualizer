@@ -96,6 +96,13 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
 }) => {
   if (!grid || grid.length === 0) return null;
 
+  const rows = grid.length;
+  const cols = grid[0].length;
+  const gap = 4;
+  const padding = 8;
+  const viewBoxWidth = cols * cellSize + (cols - 1) * gap + padding * 2;
+  const viewBoxHeight = rows * cellSize + (rows - 1) * gap + padding * 2;
+
   return (
     <div
       style={{
@@ -103,8 +110,9 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px',
-        overflow: 'auto',
+        width: '100%',
+        height: '100%',
+        padding: 0,
       }}
     >
       {title && (
@@ -121,13 +129,14 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
           {title}
         </div>
       )}
-      <div
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${grid[0].length}, ${cellSize}px)`,
-          gap: '4px',
+          width: '100%',
+          height: '100%',
           background: 'var(--bg-darkest)',
-          padding: '8px',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
           boxShadow: 'var(--shadow-card)',
@@ -138,41 +147,52 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
             const appearance = getCellAppearance(cell);
             const distLabel =
               showDistance && cell.distance !== undefined && cell.distance !== Infinity
-                ? cell.distance
+                ? String(cell.distance)
                 : '';
+            const cellText = appearance.symbol ? appearance.symbol : distLabel;
+
+            const x = padding + cIdx * (cellSize + gap);
+            const y = padding + rIdx * (cellSize + gap);
 
             return (
-              <div
+              <g
                 key={`grid-cell-${rIdx}-${cIdx}`}
                 onClick={() => onCellClick?.(rIdx, cIdx)}
-                style={{
-                  width: `${cellSize}px`,
-                  height: `${cellSize}px`,
-                  backgroundColor: appearance.bg,
-                  border: `1px solid ${appearance.border}`,
-                  borderRadius: '4px',
-                  boxShadow: appearance.shadow,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: onCellClick ? 'pointer' : 'default',
-                  userSelect: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-code)',
-                  color: appearance.color,
-                  transition: 'all 0.2s ease-in-out',
-                }}
-                title={`Row ${rIdx}, Col ${cIdx}${
-                  cell.distance !== undefined ? ` | Dist: ${cell.distance}` : ''
-                }`}
+                style={{ cursor: onCellClick ? 'pointer' : 'default' }}
               >
-                {appearance.symbol ? appearance.symbol : distLabel}
-              </div>
+                <title>
+                  {`Row ${rIdx}, Col ${cIdx}${
+                    cell.distance !== undefined ? ` | Dist: ${cell.distance}` : ''
+                  }`}
+                </title>
+                <rect
+                  x={x}
+                  y={y}
+                  width={cellSize}
+                  height={cellSize}
+                  rx={4}
+                  fill={appearance.bg}
+                  stroke={appearance.border}
+                  strokeWidth={1}
+                />
+                {cellText && (
+                  <text
+                    x={x + cellSize / 2}
+                    y={y + cellSize / 2 + 4}
+                    textAnchor="middle"
+                    fill={appearance.color}
+                    fontSize="12"
+                    fontFamily="var(--font-code)"
+                    fontWeight="700"
+                  >
+                    {cellText}
+                  </text>
+                )}
+              </g>
             );
           })
         )}
-      </div>
+      </svg>
     </div>
   );
 };

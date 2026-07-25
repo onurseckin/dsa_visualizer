@@ -124,6 +124,28 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     });
   });
 
+  // Bounding box calculation for dynamic viewBox scaling
+  let minX = 0;
+  let minY = 0;
+  let maxX = width;
+  let maxY = height;
+
+  if (nodeMap.size > 0) {
+    const xs = Array.from(nodeMap.values()).map((n) => n.x);
+    const ys = Array.from(nodeMap.values()).map((n) => n.y);
+    const calculatedMinX = Math.min(...xs) - nodeRadius - 20;
+    const calculatedMinY = Math.min(...ys) - nodeRadius - 20;
+    const calculatedMaxX = Math.max(...xs) + nodeRadius + 20;
+    const calculatedMaxY = Math.max(...ys) + nodeRadius + 20;
+
+    minX = Math.min(0, calculatedMinX);
+    minY = Math.min(0, calculatedMinY);
+    maxX = Math.max(width, calculatedMaxX);
+    maxY = Math.max(height, calculatedMaxY);
+  }
+  const viewBoxWidth = maxX - minX;
+  const viewBoxHeight = maxY - minY;
+
   return (
     <div
       style={{
@@ -132,7 +154,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        padding: '16px',
+        height: '100%',
+        padding: 0,
       }}
     >
       {title && (
@@ -150,10 +173,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         </div>
       )}
       <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height="100%"
+        viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         style={{
+          width: '100%',
+          height: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
