@@ -75,8 +75,8 @@ export const generateTwoSumSortedSteps = (
 
   addStep(
     1,
-    'Initialize Two Sum II (Sorted)',
-    `Because array [${nums.join(', ')}] is sorted, we can find two numbers summing to target ${target} in O(n) time and O(1) space using opposing two pointers.`,
+    'Set up the two-pointer search',
+    `The array [${nums.join(', ')}] is already sorted, so instead of testing every pair we can squeeze two pointers toward each other until they land on a pair that sums to ${target}.`,
     { target, length: n }
   );
 
@@ -85,15 +85,15 @@ export const generateTwoSumSortedSteps = (
 
   addStep(
     2,
-    'Initialize Left Pointer',
-    `Set left pointer at index 0 (value ${nums[left] ?? 'N/A'}), pointing to the smallest unexamined element.`,
+    'Place the left pointer at index 0',
+    `We start left at the smallest value, ${nums[left] ?? 'N/A'}. Moving this pointer right is our only way to make the sum bigger.`,
     { left, right, target }
   );
 
   addStep(
     3,
-    'Initialize Right Pointer',
-    `Set right pointer at index ${right} (value ${nums[right] ?? 'N/A'}), pointing to the largest unexamined element.`,
+    `Place the right pointer at index ${right}`,
+    `We start right at the largest value, ${nums[right] ?? 'N/A'}. Moving this pointer left is our only way to make the sum smaller.`,
     { left, right, target }
   );
 
@@ -118,15 +118,15 @@ export const generateTwoSumSortedSteps = (
 
     addStep(
       5,
-      `Evaluate Left < Right (${left} < ${right})`,
-      `Loop invariant satisfied: left (${left}) < right (${right}). Testing active candidate pair (nums[${left}] = ${nums[left]}, nums[${right}] = ${nums[right]}).`,
+      `Check pointers at ${left} and ${right}`,
+      `The pointers haven't crossed yet, so there are still pairs left to try. Our current candidates are nums[${left}] = ${nums[left]} and nums[${right}] = ${nums[right]}.`,
       { left, right, 'nums[left]': nums[left], 'nums[right]': nums[right] }
     );
 
     addStep(
       6,
-      `Calculate current_sum = nums[${left}] + nums[${right}]`,
-      `Compute candidate sum: ${nums[left]} + ${nums[right]} = ${sum}. Target is ${target}.`,
+      `Add ${nums[left]} and ${nums[right]}`,
+      `We add the two ends together: ${nums[left]} + ${nums[right]} = ${sum}. Comparing that against the target ${target} tells us which pointer to move next.`,
       { left, right, sum, target }
     );
 
@@ -138,16 +138,16 @@ export const generateTwoSumSortedSteps = (
 
       addStep(
         9,
-        `Found Target Sum! Return indices [${left}, ${right}]`,
-        `Target match! nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${target}. Solution indices [${left}, ${right}] returned.`,
+        `Return the pair [${left}, ${right}]`,
+        `${nums[left]} + ${nums[right]} lands exactly on ${target}, so indices [${left}, ${right}] are our answer. One pass with two pointers — that's the whole trick.`,
         { resultIdx1: left, resultIdx2: right, target, sum }
       );
       return steps;
     } else if (sum < target) {
       addStep(
         11,
-        `Sum (${sum}) < Target (${target})`,
-        `Monotonic Decision: Sum (${sum}) is smaller than target (${target}). Pairing nums[${left}] with any element <= nums[${right}] cannot reach target. Increment left pointer from ${left} to ${left + 1} to increase sum.`,
+        'Advance left to raise the sum',
+        `${sum} falls short of ${target}, and pairing nums[${left}] = ${nums[left]} with anything smaller than nums[${right}] would fall even shorter. So we're done with it — we move left to index ${left + 1} to bring in a bigger number.`,
         { left, right, sum, target }
       );
       elements[left].state = 'visited';
@@ -156,8 +156,8 @@ export const generateTwoSumSortedSteps = (
     } else {
       addStep(
         13,
-        `Sum (${sum}) > Target (${target})`,
-        `Monotonic Decision: Sum (${sum}) is larger than target (${target}). Pairing nums[${right}] with any element >= nums[${left}] cannot reach target. Decrement right pointer from ${right} to ${right - 1} to decrease sum.`,
+        'Pull right back to lower the sum',
+        `${sum} overshoots ${target}, and pairing nums[${right}] = ${nums[right]} with anything bigger than nums[${left}] would overshoot even more. So we're done with it — we move right to index ${right - 1} to bring in a smaller number.`,
         { left, right, sum, target }
       );
       elements[right].state = 'visited';
@@ -168,8 +168,8 @@ export const generateTwoSumSortedSteps = (
 
   addStep(
     15,
-    'Return empty array []',
-    `Pointers converged (left >= right) without finding any pair summing to target ${target}. Return empty array.`,
+    'Return empty array — no pair exists',
+    `The pointers met without ever hitting ${target}, which means every possible pair has been ruled out. We return an empty array to signal there is no answer.`,
     { target }
   );
 
@@ -182,7 +182,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   category: 'two_pointers',
   difficulty: 'Easy',
   description:
-    'Find two numbers in a 1-indexed sorted array of integers that add up to target using opposing left and right pointers in O(n) time and O(1) extra space.',
+    'Find two numbers in a sorted array that add up to a target by walking a left and a right pointer toward each other from opposite ends.',
   constraints: [
     '2 <= nums.length <= 3 * 10^4',
     '-1000 <= nums[i] <= 1000',
@@ -208,6 +208,10 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'Every iteration moves one of the two pointers a step inward and neither ever moves back, so after at most n - 1 moves they meet and the loop stops. That single squeeze across the array is why the time is O(n) in every case — the sorted order lets each comparison eliminate one element for good.',
+    space: 'We keep only two index variables and a running sum no matter how large the array gets, so extra memory is constant — O(1).',
+  },
   defaultInput: DEFAULT_TWO_SUM_SORTED_INPUT,
   generateSteps: generateTwoSumSortedSteps,
 };

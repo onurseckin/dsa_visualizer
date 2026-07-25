@@ -26,7 +26,7 @@ describe('sievePrimes spec logic', () => {
     expect(firstStep.codeLine).toBe(1);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.explanation.what).toContain('Return prime numbers list');
+    expect(lastStep.explanation.what).toContain('Return the list of primes');
     expect(lastStep.variables.primeCount).toBe(10); // 2, 3, 5, 7, 11, 13, 17, 19, 23, 29
 
     // Check boolean array snapshot in auxiliary state

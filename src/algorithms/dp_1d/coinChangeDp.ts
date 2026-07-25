@@ -34,8 +34,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialized DP table of size ${amount + 1} with infinity. Set dp[0] = 0.`,
-      why: 'Base case: 0 coins are required to make an amount of 0. All other amounts are initialized to infinity as uncomputed subproblems.',
+      what: `Create dp table of ${amount + 1} slots`,
+      why: 'dp[i] will hold the fewest coins that make amount i. Making 0 costs zero coins, so dp[0] = 0; every other slot starts at infinity, meaning "we have not found a way to make this amount yet".',
     },
     primarySnapshot: {
       kind: 'array',
@@ -64,8 +64,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
           stepIndex: stepIndex++,
           codeLine: 8,
           explanation: {
-            what: `Evaluating target amount i = ${i} using coin = ${coin}. Candidate: dp[${i - coin}] + 1 = ${candidate === Infinity ? '∞' : candidate}.`,
-            why: `Transition: dp[${i}] = min(${prevVal === Infinity ? '∞' : prevVal}, ${candidate === Infinity ? '∞' : candidate}). Checking if taking coin ${coin} yields a smaller coin count for amount ${i}.`,
+            what: `Try coin ${coin} for amount ${i}`,
+            why: `If we spend coin ${coin}, we land on the already-solved amount ${i - coin}, which would cost dp[${i - coin}] + 1 = ${candidate === Infinity ? '∞' : candidate} coins in total. We keep the better of that and our current ${prevVal === Infinity ? '∞' : prevVal}, so dp[${i}] is now ${dp[i] === Infinity ? '∞' : dp[i]}.`,
           },
           primarySnapshot: {
             kind: 'array',
@@ -100,8 +100,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
     stepIndex: stepIndex++,
     codeLine: 10,
     explanation: {
-      what: `Dynamic programming completed. Minimum coins required for target amount ${amount} is ${result}.`,
-      why: 'Tabulation filled optimal subproblem answers bottom-up from 1 to amount. Subproblem optimal substructure guarantees globally optimal solution.',
+      what: `Read the answer from dp[${amount}]`,
+      why: `${result === -1 ? `No combination of these coins can reach ${amount}, so dp[${amount}] stayed at infinity and we return -1.` : `We built every amount from already-optimal smaller amounts, so dp[${amount}] = ${result} is the true minimum.`} Filling one table entry per amount, once per coin, is all the work this took.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -148,6 +148,10 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   code: PYTHON_COIN_CHANGE_CODE,
   timeComplexity: { best: 'O(N * amount)', average: 'O(N * amount)', worst: 'O(N * amount)' },
   spaceComplexity: 'O(amount)',
+  complexityAnalysis: {
+    time: 'The dp table has amount + 1 entries, and to fill each entry we try every one of the N coin denominations. That nested loop performs N × amount constant-time transitions, giving O(N × amount). The cost is the same in every case because we always fill the entire table before reading the answer.',
+    space: 'The dp array is the only structure that grows: one entry for every amount from 0 up to the target, so extra memory is O(amount).',
+  },
   defaultInput: DEFAULT_COIN_CHANGE_INPUT,
   generateSteps: generateCoinChangeSteps,
 };

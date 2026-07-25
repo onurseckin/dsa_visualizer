@@ -24,7 +24,7 @@ describe('fordFulkerson algorithm logic spec', () => {
     expect(firstStep.codeLine).toBe(1);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.explanation.what).toContain('Maximum Flow algorithm complete');
+    expect(lastStep.explanation.what).toContain('no augmenting path remains');
     expect(lastStep.variables.maxFlow).toBe(20);
 
     const snapshot = lastStep.primarySnapshot;
@@ -51,13 +51,13 @@ describe('fordFulkerson algorithm logic spec', () => {
     const steps = generateFordFulkersonSteps(noPathInput);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.maxFlow).toBe(0);
-    expect(lastStep.explanation.what).toContain('No more augmenting paths');
+    expect(lastStep.explanation.what).toContain('no augmenting path remains');
   });
 
   it('should handle empty input graph', () => {
     const emptyInput = { nodes: [], edges: [], source: '', sink: '' };
     const steps = generateFordFulkersonSteps(emptyInput);
     expect(steps.length).toBe(1);
-    expect(steps[0].explanation.what).toContain('Initialize');
+    expect(steps[0].explanation.what).toContain('empty network');
   });
 });

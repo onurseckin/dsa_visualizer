@@ -1,8 +1,13 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { generateSegmentTreeLazySteps, segmentTreeLazy } from '../segmentTreeLazy';
+
+// jsdom does not implement scrollIntoView, which the code viewer calls on the active line
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 describe('segmentTreeLazy React component spec', () => {
   it('renders algorithm title in MainLayout', () => {

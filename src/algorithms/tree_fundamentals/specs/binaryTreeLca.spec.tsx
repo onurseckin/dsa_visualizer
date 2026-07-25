@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -27,8 +27,11 @@ describe('BinaryTreeLca React Component Spec', () => {
     expect(
       screen.getByText('Lowest Common Ancestor of a Binary Tree')
     ).toBeInTheDocument();
+
+    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/find the lowest common ancestor \(LCA\) node/i)
+      screen.getAllByText(/find the lowest common ancestor \(LCA\) node/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -50,6 +53,6 @@ describe('BinaryTreeLca React Component Spec', () => {
     );
 
     expect(screen.getByText(/Evaluate Node/i)).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
   });
 });

@@ -144,8 +144,8 @@ export const generateKosarajuSccSteps = (
 
   addStep(
     1,
-    "Initialize Kosaraju's Algorithm",
-    "Starting Kosaraju's 2-Pass algorithm for Strongly Connected Components. Pass 1 will run DFS on original graph G to record finish order.",
+    'Set up the two-pass plan',
+    'We find strongly connected components with two DFS sweeps: first we record the order vertices finish on the original graph, then we sweep the reversed graph in that order to peel off one component at a time.',
     undefined,
     'Initialization',
     { nodeCount: currentNodes.length, edgeCount: currentEdges.length }
@@ -154,8 +154,8 @@ export const generateKosarajuSccSteps = (
   // --- PASS 1: Compute post-order finish stack on G ---
   addStep(
     2,
-    'Pass 1: Start DFS traversal to compute finish order stack',
-    'Running DFS on original graph G. Vertices finishing later will be placed higher in the stack, ensuring sink SCCs of G^T are processed first in Pass 2.',
+    'Begin Pass 1 DFS on G',
+    'We run DFS on the original graph and push each vertex onto a stack the moment it finishes. Vertices that finish late end up on top — exactly the order Pass 2 will want to start from.',
     undefined,
     'Pass 1 (DFS Finish Stack)'
   );
@@ -169,8 +169,8 @@ export const generateKosarajuSccSteps = (
 
     addStep(
       6,
-      `Pass 1: DFS visiting Node '${u}'`,
-      `Marked Node '${u}' as visited. Recursively exploring unvisited out-neighbors to establish finishing times.`,
+      `Visit node '${u}'`,
+      `We mark '${u}' as visited and explore its unvisited out-neighbors first — in Pass 1 a vertex only finishes once everything reachable from it is done.`,
       u,
       'Pass 1 (DFS Finish Stack)',
       { current: u }
@@ -184,8 +184,8 @@ export const generateKosarajuSccSteps = (
       if (!pass1Visited.has(v)) {
         addStep(
           8,
-          `Pass 1: Traverse edge '${u}' -> '${v}'`,
-          `Neighbor '${v}' is unvisited. Recurse into '${v}' before pushing '${u}' to finish stack.`,
+          `Follow edge '${u}' -> '${v}'`,
+          `Neighbor '${v}' hasn't been visited yet, so we dive into it now — '${u}' has to wait for all of its descendants before it can join the finish stack.`,
           v,
           'Pass 1 (DFS Finish Stack)',
           { from: u, to: v }
@@ -201,8 +201,8 @@ export const generateKosarajuSccSteps = (
 
     addStep(
       10,
-      `Pass 1: Node '${u}' finished. Pushed to finish stack.`,
-      `All outgoing edges from '${u}' processed. '${u}' is pushed to the finish stack. Nodes on top of the stack finished last.`,
+      `Finish '${u}' and push it`,
+      `Everything reachable from '${u}' has been explored, so '${u}' is done and goes on the finish stack. The later a vertex finishes, the higher it sits.`,
       u,
       'Pass 1 (DFS Finish Stack)',
       { current: u, stackSize: finishStack.length }
@@ -217,8 +217,8 @@ export const generateKosarajuSccSteps = (
 
   addStep(
     14,
-    'Pass 1 Complete! All vertices processed.',
-    `Finish stack computed: [${[...finishStack].reverse().join(', ')}]. Top vertex completed last in original graph traversal.`,
+    'Complete Pass 1',
+    `The finish order came out as [${[...finishStack].reverse().join(', ')}], top first. The vertex on top finished last, which means its component can reach everything below it — a fact Pass 2 will exploit.`,
     undefined,
     'Pass 1 (Complete)',
     { stackSize: finishStack.length }
@@ -234,8 +234,8 @@ export const generateKosarajuSccSteps = (
 
   addStep(
     16,
-    'Transpose Graph G -> G^T',
-    'Reversed all edge directions to form transposed graph G^T. SCCs in G remain SCCs in G^T, but component reachability is inverted.',
+    'Reverse every edge to build G^T',
+    'We flip all the edges. Each SCC survives intact — a cycle reversed is still a cycle — but reachability between components inverts, and that is what will keep the next DFS trapped inside a single component.',
     undefined,
     'Graph Transpose (Reversed Edges)',
     { transposed: true }
@@ -244,8 +244,8 @@ export const generateKosarajuSccSteps = (
   // --- PASS 2: Collect SCCs in reverse finish order ---
   addStep(
     26,
-    'Pass 2: Pop nodes from stack and run DFS on G^T',
-    'Vertices with higher finish times are processed first on G^T. Traversal from a source SCC in G^T isolates exactly one SCC without escaping to other components.',
+    'Begin Pass 2 on G^T',
+    'Now we pop vertices in reverse finish order and DFS on the reversed graph. Starting from the latest finisher, each DFS can only reach vertices in its own component — the reversed edges block every escape route.',
     undefined,
     'Pass 2 (Extract SCCs)'
   );
@@ -260,8 +260,8 @@ export const generateKosarajuSccSteps = (
 
     addStep(
       20,
-      `Pass 2: Adding Node '${u}' to SCC #${sccs.length + 1}`,
-      `Node '${u}' is reachable in transposed graph G^T from the root of current component. Appended to SCC #${sccs.length + 1}.`,
+      `Add '${u}' to SCC #${sccs.length + 1}`,
+      `We reached '${u}' along reversed edges, which means '${u}' can reach this component's root in the original graph — and the finish order guarantees the reverse direction too, so they belong together.`,
       u,
       'Pass 2 (Extract SCCs)',
       { current: u, componentSize: component.length }
@@ -283,8 +283,8 @@ export const generateKosarajuSccSteps = (
 
     addStep(
       27,
-      `Pass 2: Pop Node '${u}' from stack`,
-      `Evaluating top node '${u}' from finish stack. If unvisited in Pass 2, it anchors a new Strongly Connected Component.`,
+      `Pop '${u}' from the stack`,
+      `We take '${u}' off the top of the finish stack. If it hasn't been claimed by a component yet, it anchors a brand-new SCC; if it has, we simply move on.`,
       u,
       'Pass 2 (Extract SCCs)',
       { popped: u }
@@ -305,8 +305,8 @@ export const generateKosarajuSccSteps = (
 
       addStep(
         31,
-        `Pass 2: Discovered SCC #${sccs.length}: {${component.join(', ')}}`,
-        `Successfully extracted Strongly Connected Component #${sccs.length} containing ${component.length} vertex/vertices. All internal nodes can reach each other.`,
+        `Complete SCC #${sccs.length}`,
+        `The DFS ran out of reversed edges, so this component is sealed: {${component.join(', ')}}. Every vertex inside it can reach every other one in both directions.`,
         undefined,
         'Pass 2 (Extract SCCs)',
         { sccIndex: sccs.length, members: component.join(', ') }
@@ -316,8 +316,8 @@ export const generateKosarajuSccSteps = (
 
   addStep(
     32,
-    `Kosaraju SCC Complete! Found ${sccs.length} Strongly Connected Component(s).`,
-    'All vertices grouped into SCCs. Graph decomposition complete.',
+    `Finish with ${sccs.length} component(s)`,
+    `Every vertex now belongs to exactly one strongly connected component. Two linear DFS sweeps plus one edge reversal did all the work, which is why the whole algorithm runs in O(V + E).`,
     undefined,
     'Complete',
     { sccCount: sccs.length }
@@ -353,6 +353,10 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
     worst: 'O(V + E)',
   },
   spaceComplexity: 'O(V + E)',
+  complexityAnalysis: {
+    time: 'Each of the two DFS passes visits every vertex once and walks every edge once, which is O(V + E) per pass. Transposing the graph also touches each edge exactly once. Two linear sweeps plus one linear transpose is still linear overall — O(V + E) — regardless of how the components are shaped.',
+    space: 'We hold adjacency lists for the graph and its transpose, the visited sets, and the finish stack, each proportional to the vertices and edges — O(V + E). The DFS recursion stack can also grow up to V frames on a long path.',
+  },
   defaultInput: DEFAULT_KOSARAJU_INPUT,
   generateSteps: generateKosarajuSccSteps,
 };

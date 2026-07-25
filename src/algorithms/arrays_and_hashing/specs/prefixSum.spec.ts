@@ -21,7 +21,7 @@ describe('prefixSum algorithm spec', () => {
 
     const firstStep = steps[0];
     expect(firstStep.codeLine).toBe(1);
-    expect(firstStep.explanation.what).toContain('Initialize Prefix Sum');
+    expect(firstStep.explanation.what).toContain('Start building prefix sums');
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.codeLine).toBe(6);

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -6,6 +6,16 @@ import {
   generateTriePrefixTreeSteps,
   triePrefixTree,
 } from '../triePrefixTree';
+
+/* The AuxiliaryPanel card is the only reliable scope for short row labels
+   like "State" that also appear in badges and segmented controls. */
+const getWorkingDataCard = (): HTMLElement => {
+  const card = screen.getByText('Working data').closest('.ui-card');
+  if (!(card instanceof HTMLElement)) {
+    throw new Error('Working data card not found');
+  }
+  return card;
+};
 
 describe('TriePrefixTree React Component Spec', () => {
   it('renders algorithm title and problem header', () => {
@@ -25,8 +35,11 @@ describe('TriePrefixTree React Component Spec', () => {
     );
 
     expect(screen.getByText('Trie (Prefix Tree)')).toBeInTheDocument();
+
+    // The problem description is collapsed by default; expand it first.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getAllByText(/tree-like data structure/i)[0]
+      screen.getAllByText(/tree-like data structure for storing strings/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -48,6 +61,9 @@ describe('TriePrefixTree React Component Spec', () => {
     );
 
     expect(screen.getByText('Trie (Prefix Tree)')).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+
+    const aux = within(getWorkingDataCard());
+    expect(aux.getByText('State')).toBeInTheDocument();
+    expect(aux.getAllByText(/insertedWords/)[0]).toBeInTheDocument();
   });
 });

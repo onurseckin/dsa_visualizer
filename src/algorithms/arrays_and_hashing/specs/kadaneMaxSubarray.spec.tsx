@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { generateKadaneMaxSubarraySteps, kadaneMaxSubarray } from '../kadaneMaxSubarray';
@@ -21,6 +21,9 @@ describe('KadaneMaxSubarray React Component Spec', () => {
     );
 
     expect(screen.getByText("Kadane's Algorithm (Maximum Subarray)")).toBeInTheDocument();
+
+    // Problem details are collapsed by default; expand them to reveal the description.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getByText(/Kadane's Algorithm finds the maximum sum of a contiguous subarray/i)
     ).toBeInTheDocument();
@@ -43,6 +46,6 @@ describe('KadaneMaxSubarray React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Kadane Algorithm Complete/i)).toBeInTheDocument();
+    expect(screen.getByText(/Kadane's scan complete/i)).toBeInTheDocument();
   });
 });

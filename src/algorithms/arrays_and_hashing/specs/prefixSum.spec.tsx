@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { DEFAULT_PREFIX_SUM_INPUT, generatePrefixSumSteps, prefixSum } from '../prefixSum';
@@ -21,6 +21,9 @@ describe('PrefixSum React Component Spec', () => {
     );
 
     expect(screen.getByText('Prefix Sum')).toBeInTheDocument();
+
+    // Problem details are collapsed by default; expand them to reveal the description.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getByText(/Computes cumulative prefix sums for an array/i)
     ).toBeInTheDocument();
@@ -43,7 +46,9 @@ describe('PrefixSum React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Complete Prefix Sum Array/i)).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText(/Finish the prefix array/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    // The computed prefix values are surfaced through the Visited row with a count.
+    expect(screen.getByText(/Visited \(\d+\)/)).toBeInTheDocument();
   });
 });

@@ -158,8 +158,8 @@ export const generateTriePrefixTreeSteps = (
 
   addStep(
     8,
-    'Initialize Trie Data Structure',
-    'Root node created for the prefix tree. The root represents an empty string prefix.',
+    'Create the empty root node',
+    'We start with a single root that stands for the empty string — every word we insert will grow a path of characters down from here.',
     'trie-root',
     [],
     { status: 'Initialized' }
@@ -172,8 +172,8 @@ export const generateTriePrefixTreeSteps = (
 
     addStep(
       11,
-      `Start inserting word "${word}"`,
-      `Starting at ROOT node to insert "${word}".`,
+      `Start inserting "${word}"`,
+      `We begin at the root and walk down one character of "${word}" at a time, creating branches only where the path doesn't exist yet.`,
       current.id,
       [],
       { operation: 'insert', word }
@@ -198,8 +198,8 @@ export const generateTriePrefixTreeSteps = (
 
         addStep(
           14,
-          `Create new TrieNode for character '${char}' (index ${i} of "${word}")`,
-          `Node for '${char}' did not exist. Created new child node and connected edge.`,
+          `Create a new node for '${char}'`,
+          `No child for '${char}' exists on this path yet, so we grow the tree here — character ${i + 1} of "${word}" is the point where it diverges from everything stored so far.`,
           current.id,
           [...traversedEdges],
           { operation: 'insert', word, char, created: true }
@@ -212,8 +212,8 @@ export const generateTriePrefixTreeSteps = (
 
         addStep(
           15,
-          `Follow existing node for character '${char}'`,
-          `Node for '${char}' already exists in Trie. Reusing shared prefix path.`,
+          `Reuse the existing '${char}' node`,
+          `A '${char}' child is already here from an earlier word, so we simply step into it — shared prefixes share nodes, which is the trie's whole space-saving trick.`,
           current.id,
           [...traversedEdges],
           { operation: 'insert', word, char, created: false }
@@ -224,8 +224,8 @@ export const generateTriePrefixTreeSteps = (
     current.isEndOfWord = true;
     addStep(
       16,
-      `Mark node '${current.char}' as endOfWord for "${word}"`,
-      `Finished inserting word "${word}". Marked is_end_of_word = True on terminal node.`,
+      `Mark '${current.char}' as end of word`,
+      `We've placed every character of "${word}", so we flag this node as a word ending — without the flag we couldn't tell a stored word from a mere prefix later.`,
       current.id,
       [...traversedEdges],
       { operation: 'insert', word, isEndOfWord: true }
@@ -240,8 +240,8 @@ export const generateTriePrefixTreeSteps = (
 
   addStep(
     19,
-    `Search for word "${searchWord}"`,
-    `Starting search at ROOT node for exact word "${searchWord}".`,
+    `Search for "${searchWord}"`,
+    `We go back to the root and follow the exact character path for "${searchWord}" — the word is stored only if the path exists and ends on a marked node.`,
     currentSearch.id,
     [],
     { operation: 'search', targetWord: searchWord }
@@ -253,8 +253,8 @@ export const generateTriePrefixTreeSteps = (
       found = false;
       addStep(
         22,
-        `Character '${char}' not found in Trie!`,
-        `Child for '${char}' does not exist under node '${currentSearch.char}'. Search for word "${searchWord}" fails.`,
+        `Stop — no '${char}' child here`,
+        `Node '${currentSearch.char}' has no child for '${char}', so "${searchWord}" was never inserted — the search returns False.`,
         currentSearch.id,
         [...searchEdges],
         { operation: 'search', targetWord: searchWord, char, found: false }
@@ -269,8 +269,8 @@ export const generateTriePrefixTreeSteps = (
 
     addStep(
       23,
-      `Traverse edge for character '${char}'`,
-      `Found matching child node '${char}'. Traversing down Trie.`,
+      `Follow the '${char}' edge`,
+      `The child for '${char}' exists, so we step down into it and keep matching "${searchWord}" one character at a time.`,
       currentSearch.id,
       [...searchEdges],
       { operation: 'search', targetWord: searchWord, char }
@@ -282,11 +282,11 @@ export const generateTriePrefixTreeSteps = (
     addStep(
       24,
       isComplete
-        ? `Word "${searchWord}" found in Trie!`
-        : `Prefix "${searchWord}" exists, but is_end_of_word is False`,
+        ? `Confirm "${searchWord}" is stored`
+        : `"${searchWord}" is only a prefix`,
       isComplete
-        ? `All characters matched and target node has is_end_of_word = True. Returns True.`
-        : `Node reached but not marked as end of word. Search returns False because "${searchWord}" is only a proper prefix of another word.`,
+        ? `We matched every character and landed on a node flagged as a word ending, so search returns True.`
+        : `We matched all the characters, but this node was never marked as a word ending — "${searchWord}" is just the start of a longer word, so search returns False.`,
       currentSearch.id,
       [...searchEdges],
       { operation: 'search', targetWord: searchWord, found: isComplete }
@@ -301,8 +301,8 @@ export const generateTriePrefixTreeSteps = (
 
   addStep(
     27,
-    `Check starts_with prefix "${prefix}"`,
-    `Starting prefix check at ROOT for "${prefix}".`,
+    `Check the prefix "${prefix}"`,
+    `starts_with only asks whether some word begins with "${prefix}", so we walk the same path from the root — this time no end-of-word flag is needed.`,
     currentPrefix.id,
     [],
     { operation: 'startsWith', prefix }
@@ -314,8 +314,8 @@ export const generateTriePrefixTreeSteps = (
       prefixFound = false;
       addStep(
         30,
-        `Prefix character '${char}' missing in Trie!`,
-        `Child for '${char}' does not exist. starts_with returns False.`,
+        `Stop — the path breaks at '${char}'`,
+        `There is no child for '${char}' here, so no stored word starts with "${prefix}" — starts_with returns False.`,
         currentPrefix.id,
         [...prefixEdges],
         { operation: 'startsWith', prefix, char, found: false }
@@ -330,8 +330,8 @@ export const generateTriePrefixTreeSteps = (
 
     addStep(
       31,
-      `Matched prefix character '${char}'`,
-      `Moving down prefix path for character '${char}'.`,
+      `Match prefix character '${char}'`,
+      `The '${char}' child exists, so we step into it — so far every character of the prefix agrees with what's stored.`,
       currentPrefix.id,
       [...prefixEdges],
       { operation: 'startsWith', prefix, char }
@@ -341,8 +341,8 @@ export const generateTriePrefixTreeSteps = (
   if (prefixFound) {
     addStep(
       32,
-      `Prefix "${prefix}" exists in Trie!`,
-      `All characters of prefix "${prefix}" matched in Trie. starts_with returns True regardless of is_end_of_word.`,
+      `Confirm prefix "${prefix}" exists`,
+      `We walked the whole prefix without falling off the tree, so at least one stored word starts with "${prefix}" — starts_with returns True. Every operation here cost one node per character, which is where the O(L) bound comes from.`,
       currentPrefix.id,
       [...prefixEdges],
       { operation: 'startsWith', prefix, found: true }
@@ -358,7 +358,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   category: 'tries_and_strings',
   difficulty: 'Medium',
   description:
-    'A Trie (Prefix Tree) is a tree-like data structure used for efficient key storage and retrieval. All descendants of a node share a common string prefix. Supports fast O(L) insertion, exact word search, and prefix matching (autocomplete).',
+    'A Trie (Prefix Tree) is a tree-like data structure for storing strings so that words with a common prefix share a path. Each edge represents one character, which makes insertion, exact word search, and prefix matching (the basis of autocomplete) all cost O(L) — one step per character.',
   constraints: [
     '1 <= wordsToInsert.length <= 100',
     '1 <= word.length <= 20',
@@ -378,6 +378,10 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
     worst: 'O(L)',
   },
   spaceComplexity: 'O(N * L)',
+  complexityAnalysis: {
+    time: 'Insert, search, and starts_with all walk one node per character, so each operation costs O(L) where L is the length of the word or prefix. The cost never depends on how many words the trie holds — we just follow (or create) one child link per letter. That is why best, average, and worst case are all the same.',
+    space: 'The tree itself is the memory cost: in the worst case no words share prefixes and we store one node per character, O(N * L) for N words of length L. Shared prefixes let words reuse nodes, so real tries are usually much smaller.',
+  },
   defaultInput: DEFAULT_TRIE_INPUT,
   generateSteps: generateTriePrefixTreeSteps,
 };

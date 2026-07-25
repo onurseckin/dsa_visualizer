@@ -50,8 +50,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: 0,
       codeLine: 1,
       explanation: {
-        what: 'Input array is empty.',
-        why: 'Cannot extract the Kth largest element from an array with length 0.',
+        what: 'Stop: the array is empty',
+        why: 'There is no Kth largest element to find in an empty array, so we stop right away.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -72,8 +72,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
-      what: `Initialize Min-Heap with capacity target K = ${k}.`,
-      why: 'A Min-Heap of size K acts as a filter tracking the K largest elements seen so far. The smallest of these K elements resides at the root for instant O(1) comparison.',
+      what: `Create an empty min-heap for K = ${k}`,
+      why: `Here's the plan: we keep only the ${k} largest numbers we've seen so far, stored in a min-heap. That way the smallest of our keepers always sits at the root, ready to be compared or evicted in an instant.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -135,8 +135,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
-        what: `Push num=${num} into Min-Heap (Heap size: ${minHeap.length}).`,
-        why: `Inserting ${num} and restoring heap order via sift-up ensures that the root remains the smallest element among all items currently in the heap: [${minHeap.join(', ')}].`,
+        what: `Push ${num} into the heap`,
+        why: `We add ${num} and let it sift up until its parent is smaller, so the smallest candidate stays at the root. The heap now holds [${minHeap.join(', ')}].`,
       },
       primarySnapshot: {
         kind: 'array',
@@ -167,8 +167,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         stepIndex: stepIdx++,
         codeLine: 8,
         explanation: {
-          what: `Heap size exceeded K (${minHeap.length + 1} > ${k}). Evicted root minimum: ${popped}.`,
-          why: `Because we only need to keep the K largest elements, evicting the root minimum guarantees that all numbers retained in the heap are strictly greater than or equal to ${popped}.`,
+          what: `Evict the root minimum, ${popped}`,
+          why: `The heap just grew to ${minHeap.length + 1} — one more than the ${k} we want to keep — so the smallest candidate, ${popped} at the root, gets dropped. Everything still in the heap is at least as large as what we discard.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -198,8 +198,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 9,
     explanation: {
-      what: `Algorithm finished. The ${k}th largest element is ${result}.`,
-      why: `The Min-Heap of size K retains the K largest elements from the entire array. Because its root represents the minimum value among these top K candidates, it is mathematically the Kth largest element overall.`,
+      what: `Done: the answer is ${result}`,
+      why: `Every number has passed through the filter, so the heap now holds the ${k} largest values in the whole array — and its root, ${result}, is the smallest of that group, which makes it exactly the Kth largest overall. Each element cost one O(log K) heap operation, O(N log K) in total.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -263,6 +263,10 @@ def findKthLargest(nums, k):
     worst: 'O(N log K)',
   },
   spaceComplexity: 'O(K)',
+  complexityAnalysis: {
+    time: 'We push each of the N array elements into a heap that never grows past K entries, and every push or pop on a heap that small costs O(log K) sift work. N elements times an O(log K) heap operation apiece gives O(N log K) — noticeably cheaper than fully sorting the array when K is small compared to N.',
+    space: "The min-heap is capped at K elements — the moment it reaches K + 1 we evict the root — so extra memory is O(K), independent of the array's length.",
+  },
   generateSteps: generateKthLargestSteps,
   defaultInput: DEFAULT_KTH_LARGEST_INPUT,
 };

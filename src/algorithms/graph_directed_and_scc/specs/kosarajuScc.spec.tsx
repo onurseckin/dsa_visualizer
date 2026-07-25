@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../kosarajuScc';
 
 describe('KosarajuScc React Component Spec', () => {
-  it('renders algorithm title and problem header', () => {
+  it('renders algorithm title and expands problem details on demand', () => {
     const steps = generateKosarajuSccSteps(DEFAULT_KOSARAJU_INPUT);
     const noop = vi.fn();
 
@@ -26,6 +26,12 @@ describe('KosarajuScc React Component Spec', () => {
 
     expect(
       screen.getAllByText(/Kosaraju's Strongly Connected Components/i)[0]
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+
+    expect(
+      screen.getByText(/Finds all Strongly Connected Components/i)
     ).toBeInTheDocument();
   });
 
@@ -46,7 +52,9 @@ describe('KosarajuScc React Component Spec', () => {
       />
     );
 
+    // Phase chip in the "State" row reports the current DFS pass.
     expect(screen.getAllByText(/Pass 1/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getByText('Visited (1)')).toBeInTheDocument();
   });
 });

@@ -113,8 +113,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    'Initialize KMP Algorithm',
-    `Searching for pattern "${pattern}" (length ${m}) inside text "${text}" (length ${n}).`,
+    'Set up the search',
+    `We're looking for "${pattern}" (length ${m}) inside "${text}" (length ${n}). KMP will do it in a single pass over the text by first learning the pattern's internal structure.`,
     { n, m, pattern, text },
     'Preprocessing'
   );
@@ -122,8 +122,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   if (m === 0 || n === 0 || m > n) {
     addStep(
       3,
-      'KMP Search complete (Invalid or empty input)',
-      'Pattern cannot be matched because pattern or text length is invalid.',
+      'Search complete — nothing to match',
+      'The pattern is empty, the text is empty, or the pattern is longer than the text, so a match is impossible and we return an empty result.',
       { n, m, matchesCount: 0 },
       'Complete'
     );
@@ -136,8 +136,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
   addStep(
     5,
-    'Initialize LPS / Prefix Table',
-    `LPS table initialized with 0s for pattern length ${m}. LPS[i] stores the length of the longest proper prefix of pattern[0..i] that is also a suffix of pattern[0..i].`,
+    'Prepare the LPS table',
+    `Before touching the text, we teach ourselves the pattern: LPS[i] will say how much of the pattern's own beginning repeats just before position i. That's exactly what tells us how far we can safely shift after a mismatch.`,
     { len, i, 'lps[0]': 0 },
     'Building LPS'
   );
@@ -148,8 +148,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       lps[i] = len;
       addStep(
         9,
-        `LPS match found: pattern[${i}] ('${pattern[i]}') === pattern[${len - 1}] ('${pattern[len - 1]}')`,
-        `Extending prefix-suffix match length to ${len}. Set LPS[${i}] = ${len}.`,
+        `Extend the prefix match to ${len}`,
+        `pattern[${i}] ('${pattern[i]}') equals pattern[${len - 1}] ('${pattern[len - 1]}'), so the copy of the pattern's start that echoes here grows by one — we record LPS[${i}] = ${len} and move on.`,
         { i, len, 'pattern[i]': pattern[i], 'LPS[i]': len },
         'Building LPS'
       );
@@ -159,8 +159,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       len = lps[len - 1];
       addStep(
         14,
-        `LPS mismatch: pattern[${i}] ('${pattern[i]}') !== pattern[${prevLen}] ('${pattern[prevLen]}')`,
-        `Fallback length from ${prevLen} to lps[${prevLen - 1}] = ${len} without advancing index i.`,
+        `Fall back to length ${len}`,
+        `pattern[${i}] ('${pattern[i]}') broke the run against pattern[${prevLen}] ('${pattern[prevLen]}'), but a shorter prefix might still fit — so we drop back to lps[${prevLen - 1}] = ${len} and retry without moving i.`,
         { i, len, 'pattern[i]': pattern[i] },
         'Building LPS'
       );
@@ -168,8 +168,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       lps[i] = 0;
       addStep(
         16,
-        `LPS no match: pattern[${i}] ('${pattern[i]}') !== pattern[0] ('${pattern[0]}')`,
-        `No non-empty proper prefix matches suffix ending at index ${i}. Set LPS[${i}] = 0.`,
+        `Record LPS[${i}] = 0`,
+        `Nothing before position ${i} echoes the pattern's start ('${pattern[i]}' doesn't even match '${pattern[0]}'), so a mismatch here will send us all the way back to the beginning.`,
         { i, len: 0, 'LPS[i]': 0 },
         'Building LPS'
       );
@@ -179,8 +179,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
   addStep(
     18,
-    'LPS / Prefix Table complete',
-    `LPS table built: [${lps.join(', ')}]. Now starting pattern matching loop in text without ever rewinding text pointer t_idx.`,
+    'LPS table complete',
+    `The table reads [${lps.join(', ')}]. Now we scan the text once — on any mismatch this table tells us exactly where to resume in the pattern, so the text pointer never has to rewind.`,
     { lps: lps.join(', ') },
     'Matching'
   );
@@ -199,10 +199,10 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
     addStep(
       21,
-      `Compare text[${tIdx}] ('${charT}') with pattern[${pIdx}] ('${charP}')`,
+      `Compare text[${tIdx}] with pattern[${pIdx}]`,
       charT === charP
-        ? `Characters match! Advance text pointer t_idx and pattern pointer p_idx.`
-        : `Characters differ! Use LPS table to shift pattern without backing up text pointer t_idx.`,
+        ? `'${charT}' matches '${charP}', so we advance both pointers and keep the streak going.`
+        : `'${charT}' and '${charP}' disagree, so we'll consult the LPS table to shift the pattern instead of backing up in the text.`,
       { tIdx, pIdx, 'text[tIdx]': charT, 'pattern[pIdx]': charP },
       'Matching',
       matches
@@ -224,8 +224,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
       addStep(
         25,
-        `Pattern match found at index ${matchStart}!`,
-        `Full pattern "${pattern}" matched text from index ${matchStart} to ${matchStart + m - 1}. Reset pattern pointer via LPS[${pIdx - 1}] = ${lps[pIdx - 1]} to search for overlapping matches.`,
+        `Match found at index ${matchStart}`,
+        `The whole pattern "${pattern}" lined up from index ${matchStart} to ${matchStart + m - 1}. We don't start over — resetting the pattern pointer to LPS[${pIdx - 1}] = ${lps[pIdx - 1]} lets us catch overlapping matches too.`,
         { matchStart, matchCount: matches.length, nextPIdx: lps[pIdx - 1] },
         'Matching',
         matches
@@ -241,8 +241,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
         pIdx = lps[pIdx - 1];
         addStep(
           29,
-          `Mismatch at text[${tIdx}]: reset pattern index from ${oldPIdx} to LPS[${oldPIdx - 1}] = ${pIdx}`,
-          `Skip ${oldPIdx - pIdx} comparisons without rewinding text pointer i (${tIdx}).`,
+          `Shift the pattern index to ${pIdx}`,
+          `The LPS table says the last ${pIdx} matched characters are also a pattern prefix, so we resume from there — skipping ${oldPIdx - pIdx} comparisons while the text pointer stays put at ${tIdx}.`,
           { tIdx, oldPIdx, newPIdx: pIdx },
           'Matching',
           matches
@@ -252,8 +252,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
         tIdx++;
         addStep(
           31,
-          `Mismatch at text[${oldTIdx}] with pattern[0]: advance text pointer to ${tIdx}`,
-          `Pattern index is 0, cannot fall back further. Advance text index.`,
+          `Advance the text pointer to ${tIdx}`,
+          `We mismatched on the pattern's very first character at text[${oldTIdx}], so there's nothing to fall back on — we simply try the next text position.`,
           { tIdx },
           'Matching',
           matches
@@ -274,8 +274,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
 
   addStep(
     32,
-    'KMP Search complete',
-    `Found ${matches.length} match(es) at index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}.`,
+    'Search complete',
+    `We found ${matches.length} match(es) at index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}. One pass to learn the pattern plus one pass over the text is what makes KMP run in O(n + m).`,
     { matchesCount: matches.length, matches: matches.join(', ') },
     'Complete',
     matches
@@ -290,7 +290,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
-    'Knuth-Morris-Pratt (KMP) search algorithm matches a pattern in a text in linear time O(N + M) using a Longest Prefix Suffix (LPS) table. By preprocessing the pattern into a finite state transition lookup table, KMP avoids redundant character comparisons and never backtracks the text pointer.',
+    'Knuth-Morris-Pratt (KMP) finds a pattern in a text in linear O(n + m) time. It first preprocesses the pattern into a Longest Prefix Suffix (LPS) table, which records how the pattern overlaps with itself; on a mismatch, that table says exactly where to resume — so the text pointer never moves backwards and no comparison is repeated.',
   constraints: [
     '1 <= text.length <= 10^5',
     '1 <= pattern.length <= 10^4',
@@ -310,6 +310,10 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     worst: 'O(n + m)',
   },
   spaceComplexity: 'O(m)',
+  complexityAnalysis: {
+    time: "There are two linear phases. Building the LPS table scans the pattern once — the fallback step can only give back match length that earlier steps built up, so it totals O(m). The matching phase never moves the text pointer backwards: every comparison either advances it or shrinks the pattern pointer, which only ever grew alongside it, so that phase is O(n). Together that's O(n + m), even in the worst case.",
+    space: 'The only extra structure is the LPS table, one integer per pattern character — O(m). The text itself needs no bookkeeping at all.',
+  },
   defaultInput: DEFAULT_KMP_INPUT,
   generateSteps: generateKmpSteps,
 };

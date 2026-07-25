@@ -124,17 +124,17 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    `Initialize ${n}-Queens Backtracking Solver`,
-    `Goal: Place ${n} non-attacking queens on an ${n}x${n} chessboard such that no two queens share the same row, column, or diagonal.`
+    `Set up the ${n}-queens board`,
+    `We need ${n} queens on a ${n}x${n} board with none able to attack another. We'll place them one row at a time and undo any choice that leads to a dead end — that undo is the backtracking.`
   );
 
   const backtrack = (row: number) => {
     addStep(
       6,
-      `Enter backtrack(row = ${row})`,
+      row === n ? `All ${n} rows are filled` : `Try to fill row ${row}`,
       row === n
-        ? `Reached row ${n}! All ${n} queens placed successfully without conflicts.`
-        : `Attempting to place queen at row ${row}.`,
+        ? `We've placed a queen in every row without a single conflict — this arrangement is a complete solution.`
+        : `Every earlier row already holds a safe queen, so now we scan row ${row} for a column that no existing queen attacks.`,
       undefined,
       false,
       { row }
@@ -144,8 +144,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
       totalSolutions++;
       addStep(
         8,
-        `Solution #${totalSolutions} Found!`,
-        `All ${n} queens placed with no conflicts across rows, columns, or diagonals. Recorded complete solution configuration.`,
+        `Record solution #${totalSolutions}`,
+        `This board is a valid answer, so we save a copy of it. Then we backtrack anyway — other arrangements may still be out there.`,
         undefined,
         true,
         { row, totalSolutions, isSolution: true }
@@ -160,10 +160,10 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
       addStep(
         12,
-        `Check position (row ${row}, col ${col})`,
+        `Check square (row ${row}, col ${col})`,
         hasConflict
-          ? `Conflict detected at col ${col} or diagonal (diag1=${d1}, diag2=${d2}). Pruning branch.`
-          : `Position (row ${row}, col ${col}) is safe! No conflicting queens in column or diagonals.`,
+          ? `A queen already covers column ${col} or one of this square's diagonals, so placing here would mean an attack. We skip it without searching any deeper — that's the pruning that keeps this feasible.`
+          : `Column ${col} and both diagonals through this square are clear, so a queen here is safe alongside everything placed so far.`,
         { r: row, c: col, conflict: hasConflict },
         false,
         { row, col, hasConflict }
@@ -177,8 +177,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
         addStep(
           15,
-          `Place Queen at (row ${row}, col ${col})`,
-          `Added queen to board at (row ${row}, col ${col}) and registered occupied column ${col}, major diagonal ${d1}, and minor diagonal ${d2}.`,
+          `Place a queen at (row ${row}, col ${col})`,
+          `The square is safe, so the queen goes down and we mark column ${col} and diagonals ${d1} and ${d2} as taken. Those three sets are what let every future safety check run in constant time.`,
           { r: row, c: col, conflict: false },
           false,
           { row, col }
@@ -193,8 +193,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
         addStep(
           22,
-          `Backtrack: Remove Queen from (row ${row}, col ${col})`,
-          `Backtracking from row ${row + 1}. Removed queen from (row ${row}, col ${col}) to explore remaining candidate positions.`,
+          `Remove the queen from (row ${row}, col ${col})`,
+          `We've explored everything that follows from this placement, so we lift the queen and free its column and diagonals. Now the next column in row ${row} gets its turn.`,
           { r: row, c: col, conflict: false },
           false,
           { row, col }
@@ -207,8 +207,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
   addStep(
     28,
-    `N-Queens Solver Completed`,
-    `Found a total of ${totalSolutions} distinct valid solution configurations for N = ${n}.`,
+    `Search complete: ${totalSolutions} solution${totalSolutions === 1 ? '' : 's'} found`,
+    `Every branch of the search tree has now been explored or pruned, giving ${totalSolutions} distinct arrangement${totalSolutions === 1 ? '' : 's'} for N = ${n}. The tree is factorial-sized in theory, but pruning let us skip most of it.`,
     undefined,
     false,
     { n, totalSolutions }
@@ -246,6 +246,10 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
     worst: 'O(N!)',
   },
   spaceComplexity: 'O(N)',
+  complexityAnalysis: {
+    time: 'Each row offers up to N columns, but every queen we place removes its column and two diagonals from all later rows — so the branching shrinks roughly like N × (N − 1) × (N − 2) × …, which is why the search tree grows factorially, O(N!). The three conflict sets prune many branches the instant a clash appears, yet in the worst case we still explore a factorial number of partial placements.',
+    space: 'The recursion never goes deeper than N rows, and the column and diagonal sets each hold at most N entries, so working memory grows linearly with N — O(N) beyond the board itself.',
+  },
   defaultInput: DEFAULT_NQUEENS_INPUT,
   generateSteps: generateNQueensSteps,
 };

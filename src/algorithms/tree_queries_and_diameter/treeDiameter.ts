@@ -124,8 +124,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     1,
-    `Initialize 2-DFS Tree Diameter Algorithm from start node ${nodeMap.get(rootId)?.val ?? rootId}`,
-    `The 2-DFS method leverages the tree boundary invariant: running a DFS from any arbitrary start node reliably identifies at least one boundary endpoint of the tree diameter.`
+    'Set up the two-DFS diameter search',
+    `We want the longest path anywhere in this tree. The trick we lean on: a DFS from any node always lands on one true endpoint of that longest path, so two well-aimed DFS passes are all we need.`
   );
 
   // DFS 1: Find farthest node A from root
@@ -146,8 +146,8 @@ export const generateTreeDiameterSteps = (
 
     addStep(
       4,
-      `DFS 1: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
-      `Evaluating distance from start root. Track maximum depth encountered so far (currently max distance ${maxDistA} at Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}).`,
+      `DFS 1: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
+      `Node ${nodeMap.get(u)?.val ?? u} sits ${dist} edges from our starting point. The farthest we've seen so far is ${maxDistA} edges, at node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} — if a deeper branch turns up, the record moves with it.`,
       u,
       farthestNodeA,
       undefined,
@@ -167,8 +167,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     13,
-    `DFS 1: Start search from root Node ${nodeMap.get(rootId)?.val ?? rootId}`,
-    `First DFS pass explores all branches to discover node A—the node located at maximum distance from the initial arbitrary root.`,
+    `DFS 1: start from node ${nodeMap.get(rootId)?.val ?? rootId}`,
+    `The first pass starts anywhere — we use the root — and simply asks which node lies farthest away. That farthest node is guaranteed to be one end of the diameter.`,
     rootId
   );
 
@@ -176,8 +176,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     13,
-    `DFS 1 Complete: Farthest node A found is Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
-    `The maximum distance from root is ${maxDistA}. Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} is guaranteed to be one endpoint of the diameter path.`,
+    `DFS 1 done: endpoint A is node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
+    `Nothing lies farther from the root than node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}, at ${maxDistA} edges — so it must be one endpoint of the diameter. Now we measure from there.`,
     undefined,
     farthestNodeA,
     undefined,
@@ -206,8 +206,8 @@ export const generateTreeDiameterSteps = (
 
     addStep(
       4,
-      `DFS 2: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist} from Node A (${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA})`,
-      `Traversing tree branches from endpoint A. Updating current maximum path length (currently diameter ${diameter} at Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}).`,
+      `DFS 2: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
+      `From endpoint A, node ${nodeMap.get(u)?.val ?? u} is ${dist} edges away. Our longest path so far runs ${diameter} edges, ending at node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}.`,
       u,
       farthestNodeA,
       farthestNodeB,
@@ -227,8 +227,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     15,
-    `DFS 2: Start search from endpoint A (Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA})`,
-    `Second DFS pass traverses the tree using endpoint A as origin to locate the farthest node B and extract the complete diameter path.`,
+    `DFS 2: start from endpoint A, node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
+    `Measuring from a known endpoint changes everything: the node farthest from A is the diameter's other endpoint, and the distance between them is the diameter itself.`,
     farthestNodeA,
     farthestNodeA
   );
@@ -239,8 +239,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     15,
-    `DFS 2 Complete: Endpoint B is Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}`,
-    `Farthest node reachable from A is Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} at distance ${diameter}, proving this path is maximal.`,
+    `DFS 2 done: endpoint B is node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}`,
+    `Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}, at ${diameter} edges from A, is as far as anything gets — so A and B are the two ends of the longest path in the tree.`,
     undefined,
     farthestNodeA,
     farthestNodeB,
@@ -252,8 +252,8 @@ export const generateTreeDiameterSteps = (
 
   addStep(
     16,
-    `Tree Diameter Computation Complete! Diameter = ${diameter}`,
-    `The maximum tree diameter path spans between Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB} with path: ${pathVals}.`,
+    `The diameter is ${diameter}`,
+    `The longest path runs ${pathVals}, spanning ${diameter} edges between node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}. Two linear DFS passes were all it took — O(V + E) overall.`,
     undefined,
     farthestNodeA,
     farthestNodeB,
@@ -298,6 +298,10 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
     worst: 'O(V + E)',
   },
   spaceComplexity: 'O(V)',
+  complexityAnalysis: {
+    time: "We run depth-first search twice, and each pass walks every node and edge exactly once — in a tree that's V nodes and V − 1 edges, so one pass costs O(V + E). Two linear passes are still linear, which is why the whole algorithm stays O(V + E) no matter what shape the tree has.",
+    space: 'We keep an adjacency list with an entry per node, plus the DFS recursion stack, which in a chain-shaped tree can stack up every node at once — so extra memory grows with the number of nodes, O(V).',
+  },
   defaultInput: DEFAULT_TREE_DIAMETER_INPUT,
   generateSteps: generateTreeDiameterSteps,
 };

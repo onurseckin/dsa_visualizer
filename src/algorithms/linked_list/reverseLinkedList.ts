@@ -68,22 +68,22 @@ export const generateReverseLinkedListSteps = (
 
   addStep(
     1,
-    'Initialize Reverse Linked List',
-    `Iterative Reversal Strategy: Reversing list [${nodes.join(' -> ')}] in-place in O(n) time and O(1) space by shifting three pointers (prev, curr, nxt).`,
+    'Start reversing the list',
+    `We want [${nodes.join(' -> ')}] to point the other way. Rather than building a copy, we walk the list once and flip each next pointer as we pass, juggling just three pointers: prev, curr, and nxt.`,
     { head: n > 0 ? nodes[0] : 'None', length: n }
   );
 
   if (n === 0) {
     addStep(
       2,
-      'Initialize prev = None',
-      'Base Case: List is empty. Initialize prev = None.',
+      'Set prev to None',
+      'The list is empty, so there are no links to flip — we set prev to None and we are already done.',
       { prev: 'None', curr: 'None' }
     );
     addStep(
       9,
       'Return None',
-      'Empty list reversed is None. Return None.',
+      'An empty list reversed is still an empty list, so we return None.',
       { newHead: 'None' }
     );
     return steps;
@@ -91,8 +91,8 @@ export const generateReverseLinkedListSteps = (
 
   addStep(
     2,
-    'Initialize prev = None',
-    'Set prev pointer to None (null). The original head node will become the tail node of the reversed list, so its next pointer must point to None.',
+    'Set prev to None',
+    `We start prev at None because the current head, node ${nodes[0]}, will become the tail of the reversed list — and a tail's next pointer has to be None.`,
     { prev: 'None' }
   );
 
@@ -101,8 +101,8 @@ export const generateReverseLinkedListSteps = (
 
   addStep(
     3,
-    'Initialize curr = head',
-    `Set active traversal pointer curr to original head node ${nodes[0]}.`,
+    `Point curr at the head, node ${nodes[0]}`,
+    `curr marks the node we are working on right now. We begin at the head, node ${nodes[0]}, and we'll slide forward one node at a time until we fall off the end.`,
     { prev: 'None', curr: nodes[0] }
   );
 
@@ -126,23 +126,23 @@ export const generateReverseLinkedListSteps = (
 
     addStep(
       4,
-      `Check while curr (curr = ${currentVal})`,
-      `Loop Invariant: Node curr (${currentVal}) is non-null. Proceeding with pointer reversal step.`,
+      `Check the loop: curr is ${currentVal}`,
+      `curr still points at node ${currentVal}, so there is a link left to flip — we stay in the loop.`,
       { i, prev: prevVal, curr: currentVal }
     );
 
     addStep(
       5,
-      `nxt = curr.next (nxt = ${nextVal})`,
-      `Preserve Forward Link: Save reference to original next node nxt (${nextVal}) BEFORE modifying curr.next, preventing loss of remaining list access.`,
+      `Save the next node, ${nextVal}`,
+      `Flipping curr.next in a moment would cut us off from the rest of the list, so first we stash a reference to ${nextVal} in nxt. This little save is what makes reversing in place safe.`,
       { i, prev: prevVal, curr: currentVal, nxt: nextVal }
     );
 
     elements[i].state = 'swap';
     addStep(
       6,
-      `curr.next = prev (node ${currentVal} -> ${prevVal})`,
-      `Reverse Pointer Invariant: Overwrite node ${currentVal}'s next pointer to point backward to prev node (${prevVal}).`,
+      `Flip node ${currentVal} to point at ${prevVal}`,
+      `Here is the actual reversal: node ${currentVal}'s next pointer now aims backward at ${prevVal} instead of forward. One more link is turned around.`,
       { i, 'curr.next': prevVal, prev: prevVal, curr: currentVal }
     );
 
@@ -157,15 +157,15 @@ export const generateReverseLinkedListSteps = (
 
     addStep(
       7,
-      `prev = curr (prev = ${currentVal})`,
-      `Advance Prev Pointer: Move prev forward to node ${currentVal}, extending the reversed sub-list.`,
+      `Move prev up to node ${currentVal}`,
+      `Node ${currentVal} is now fully reversed, so prev advances onto it — prev always marks the head of the finished, already-flipped portion of the list.`,
       { i, prev: currentVal, curr: currentVal }
     );
 
     addStep(
       8,
-      `curr = nxt (curr = ${nextVal})`,
-      `Advance Curr Pointer: Shift curr forward to saved nxt node (${nextVal}) to continue processing remaining unreversed list.`,
+      `Move curr to the saved node ${nextVal}`,
+      `We hop curr forward to ${nextVal}, the node we stashed earlier, and repeat the same flip on the rest of the list.`,
       { i, prev: currentVal, curr: nextVal }
     );
   }
@@ -178,15 +178,15 @@ export const generateReverseLinkedListSteps = (
 
   addStep(
     4,
-    'Check while curr (curr = None)',
-    'Loop Termination: curr is now None (null). All node pointers have been reversed.',
+    'Check the loop: curr is None',
+    'curr has walked off the end of the list, which means every link has been flipped — the loop is done.',
     { prev: nodes[n - 1], curr: 'None' }
   );
 
   addStep(
     9,
-    `Return prev (new head = ${nodes[n - 1]})`,
-    `Reversal Complete: Pointer prev references node ${nodes[n - 1]}, which is the new head of the reversed linked list.`,
+    `Return prev, the new head ${nodes[n - 1]}`,
+    `prev finished on node ${nodes[n - 1]}, the old tail — which is exactly the head of the reversed list, so we hand it back. One pass over the list, constant extra space.`,
     { newHead: nodes[n - 1] }
   );
 
@@ -228,6 +228,10 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'We visit each node exactly once, and at every node we do the same constant amount of pointer work — save the next node, flip one link, advance two pointers. There is no nesting and no re-scanning, so the total work grows linearly with the list length: O(n) in every case, even when the list is already "reversed".',
+    space: 'No matter how long the list is, we only ever hold three pointer variables (prev, curr, nxt), and all flipping happens in place on the existing nodes — so extra memory stays constant at O(1).',
+  },
   defaultInput: DEFAULT_REVERSE_LINKED_LIST_INPUT,
   generateSteps: generateReverseLinkedListSteps,
 };

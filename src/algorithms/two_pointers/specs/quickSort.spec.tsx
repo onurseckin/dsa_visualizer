@@ -1,7 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { generateQuickSortSteps, quickSort } from '../quickSort';
+
+/* The AuxiliaryPanel card is the only reliable scope for short row labels
+   like "Stack" that also appear in badges and segmented controls. */
+const getWorkingDataCard = (): HTMLElement => {
+  const card = screen.getByText('Working data').closest('.ui-card');
+  if (!(card instanceof HTMLElement)) {
+    throw new Error('Working data card not found');
+  }
+  return card;
+};
 
 describe('QuickSort React Component Spec', () => {
   it('renders algorithm title and problem description', () => {
@@ -21,8 +31,13 @@ describe('QuickSort React Component Spec', () => {
     );
 
     expect(screen.getByText('Quick Sort')).toBeInTheDocument();
+
+    // The problem description is collapsed by default; expand it first.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Quick Sort is an efficient divide-and-conquer sorting algorithm/i)
+      screen.getAllByText(
+        /Quick Sort is an efficient divide-and-conquer sorting algorithm/i
+      )[0]
     ).toBeInTheDocument();
   });
 
@@ -43,6 +58,9 @@ describe('QuickSort React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Call Stack \(LIFO\)/i)).toBeInTheDocument();
+    const aux = within(getWorkingDataCard());
+    expect(aux.getByText('Stack')).toBeInTheDocument();
+    // Default input has 7 elements, so the first pushed frame spans [0..6].
+    expect(aux.getAllByText(/quickSort\(0, 6\)/)[0]).toBeInTheDocument();
   });
 });

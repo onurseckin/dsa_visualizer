@@ -65,8 +65,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   if (n === 0) {
     addStep(
       1,
-      'Initialize Kadane Algorithm',
-      'Input array is empty. Return globalMax = 0.',
+      'Handle empty input',
+      'There are no elements to build a subarray from, so the best sum defaults to 0 and we stop right away.',
       { currentMax: 0, globalMax: 0, n: 0 }
     );
     return steps;
@@ -83,8 +83,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
   addStep(
     2,
-    `Initialize Kadane: currentMax = ${currentMax}, globalMax = ${globalMax}`,
-    `Kadane Decision Rule: Initialize running local max (currentMax) and overall max (globalMax) to nums[0] (${elements[0].value}). At index 0, the best contiguous subarray ending at index 0 is the single element nums[0].`,
+    `Start both sums at ${currentMax}`,
+    `The only subarray that ends at index 0 is [${elements[0].value}] by itself, so both our running sum and our best-so-far begin there. From now on, every element just has to decide: join the current run, or start a new one.`,
     { currentMax, globalMax, start, end, tempStart, i: 0, 'nums[0]': elements[0].value }
   );
 
@@ -104,6 +104,9 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     elements[i].state = 'compare';
     elements[i].pointers = ['i'];
 
+    // Captured before mutation so explanations can show the sum being abandoned/extended
+    const prevSum = currentMax;
+
     if (val > currentMax + val) {
       currentMax = val;
       tempStart = i;
@@ -114,8 +117,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
       addStep(
         7,
-        `nums[${i}] (${val}) > currentMax + nums[${i}] (${currentMax + val})`,
-        `Reset Subarray Window: The previous accumulated sum was negative (${currentMax - val}), making it detrimental to extend. Discard previous window and start a fresh subarray at index ${i}.`,
+        `Restart the subarray at index ${i}`,
+        `The sum we were carrying, ${prevSum}, is negative — adding ${val} on top of it would leave less than ${val} alone. So we drop that stretch and let a fresh subarray begin here.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
       );
     } else {
@@ -123,8 +126,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
       addStep(
         11,
-        `Extend subarray: currentMax += nums[${i}] (${val}) -> ${currentMax}`,
-        `Extend Subarray Window: The previous accumulated sum (${currentMax - val}) is positive/helpful. Adding nums[${i}] (${val}) extends the running subarray sum to ${currentMax}.`,
+        `Extend the subarray to ${currentMax}`,
+        `Our running sum ${prevSum} is worth keeping, so we let it absorb ${val}. The best subarray ending at index ${i} is now worth ${currentMax}.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
       );
     }
@@ -136,8 +139,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
       addStep(
         14,
-        `New globalMax found: ${globalMax}`,
-        `Record New High: Running local max currentMax (${currentMax}) exceeds previous globalMax. Update globalMax = ${globalMax} for subarray range [${start}..${end}].`,
+        `Record new best sum ${globalMax}`,
+        `The subarray ending at index ${i} sums to ${currentMax}, better than anything we've seen so far. We note the new record and its span [${start}..${end}].`,
         { i, currentMax, globalMax, start, end, tempStart }
       );
     }
@@ -159,8 +162,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
   addStep(
     18,
-    `Kadane Algorithm Complete`,
-    `Evaluation Complete: Discovered maximum contiguous subarray sum globalMax = ${globalMax} spanning indices [${start}..${end}] in single linear O(n) pass.`,
+    `Kadane's scan complete`,
+    `The best contiguous run spans [${start}..${end}] with a sum of ${globalMax}. One linear pass was enough, because each element only had to answer a single question: extend the run or start over.`,
     { globalMax, start, end }
   );
 
@@ -173,7 +176,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   category: 'arrays_and_hashing',
   difficulty: 'Medium',
   description:
-    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in an array of numbers in O(n) time and O(1) extra space by dynamically deciding whether to extend the current subarray or reset it at each index.",
+    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in a single pass by making one decision at each index: extend the current run, or abandon it and start fresh.",
   constraints: ['1 <= nums.length <= 10^5', '-10^4 <= nums[i] <= 10^4'],
   examples: [
     {
@@ -199,6 +202,10 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: "We make a single left-to-right pass, and at each element we do only a constant amount of work: one comparison to decide whether to extend or restart the run, and one to update the best-so-far. That's n constant-time decisions, so the total is O(n) in every case — no input can make the pass longer.",
+    space: 'We carry just a handful of scalars — the running sum, the best sum, and a few indices — no matter how long the array gets, so extra memory stays constant at O(1).',
+  },
   defaultInput: [-2, 1, -3, 4, -1, 2, 1, -5, 4],
   generateSteps: generateKadaneMaxSubarraySteps,
 };

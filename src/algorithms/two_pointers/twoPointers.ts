@@ -72,16 +72,16 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
   addStep(
     1,
-    'Initialize Two Pointers Subarray Sum',
-    `Find a contiguous subarray in [${input.array.join(', ')}] that sums to target = ${target} using a sliding window bounded by left and right pointers in O(n) time.`,
+    'Set up the window search',
+    `We're looking for a run of consecutive elements in [${input.array.join(', ')}] that sums to ${target}. A window bounded by left and right pointers will grow and shrink as we scan.`,
     { left: 0, right: 0, currentSum: 0, target, n }
   );
 
   if (n === 0) {
     addStep(
       11,
-      'Array is empty',
-      'No contiguous subarray can exist in an empty array.',
+      'Stop — the array is empty',
+      'There are no elements at all, so no contiguous subarray can exist. We return [-1, -1] right away.',
       { left: -1, right: -1, currentSum: 0, target }
     );
     return steps;
@@ -118,8 +118,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
     addStep(
       6,
-      `Expand window right = ${right}: add arr[${right}] (${rightVal})`,
-      `Window Expansion: Advancing right pointer incorporates element arr[${right}] (${rightVal}), increasing running currentSum to ${currentSum} (Target: ${target}).`,
+      `Grow the window to index ${right}`,
+      `We slide right to index ${right} and fold arr[${right}] = ${rightVal} into the running sum, which is now ${currentSum}. We're still chasing ${target}.`,
       { left, right, 'arr[right]': rightVal, currentSum, target }
     );
 
@@ -128,8 +128,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
       addStep(
         9,
-        `currentSum (${currentSum}) > target (${target}): shrink window from left = ${left}`,
-        `Window Contraction: Running sum (${currentSum}) exceeds target (${target}). Since elements are non-negative, subtracting arr[${left}] (${leftVal}) by advancing left pointer reduces sum toward target.`,
+        'Shrink the window from the left',
+        `Our sum ${currentSum} has overshot ${target}, and because every element is non-negative, growing the window can never fix that. We drop arr[${left}] = ${leftVal} off the left edge to bring the sum back down.`,
         { left, right, 'arr[left]': leftVal, currentSum, target }
       );
 
@@ -146,8 +146,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
       addStep(
         13,
-        `Found target sum! Subarray range [${left}..${right}]`,
-        `Target Match: Subarray elements [${input.array.slice(left, right + 1).join(', ')}] span range [${left}..${right}] and sum exactly to ${target}.`,
+        `Return the window [${left}..${right}]`,
+        `The window [${input.array.slice(left, right + 1).join(', ')}] sums to exactly ${target}, so indices [${left}, ${right}] are the answer. Because each pointer only ever moved forward, the whole search stayed linear.`,
         { left, right, currentSum, target }
       );
       return steps;
@@ -156,8 +156,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
   addStep(
     15,
-    'No contiguous subarray matches target',
-    `Scanned full array with right pointer without finding any contiguous subarray window summing to target ${target}.`,
+    'Return [-1, -1] — no window matched',
+    `The right pointer reached the end and no window ever settled on ${target}. There is no contiguous subarray with that sum, so we return [-1, -1].`,
     { left: -1, right: -1, currentSum, target }
   );
 
@@ -170,7 +170,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   category: 'two_pointers',
   difficulty: 'Easy',
   description:
-    'Finds a contiguous subarray whose elements sum up to a target value using two pointers (left and right) defining a dynamic sliding window over non-negative integers.',
+    'Finds a contiguous subarray that sums to a target value by growing and shrinking a window between left and right pointers over non-negative integers.',
   constraints: [
     '1 <= arr.length <= 10^5',
     '0 <= arr[i] <= 10^4',
@@ -195,6 +195,10 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'The right pointer walks the array exactly once, and the left pointer chases it — it only ever moves forward, so across the whole run it also takes at most n steps. Even though the shrink loop looks nested, the total work is bounded by those two forward walks, which is why the time is O(n) rather than O(n²).',
+    space: 'The window is tracked with just two indices and one running sum, so extra memory stays constant at O(1) regardless of input size.',
+  },
   defaultInput: DEFAULT_TWO_POINTERS_INPUT,
   generateSteps: generateTwoPointersSteps,
 };

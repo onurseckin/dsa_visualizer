@@ -29,7 +29,7 @@ describe('segmentTreeLazy algorithm spec', () => {
     expect(snapshot.nodes).toBeDefined();
 
     const queryResultSteps = steps.filter((s) =>
-      s.explanation.what.includes('Range Query [1..3] Result')
+      s.explanation.what.includes('Range query [1..3] equals')
     );
     expect(queryResultSteps.length).toBe(2);
 

@@ -56,8 +56,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
       stepIndex: 0,
       codeLine: 3,
       explanation: {
-        what: 'Initialize Dijkstra Shortest Path Algorithm',
-        why: 'Empty node set provided.',
+        what: 'Initialize on an empty graph',
+        why: 'There are no nodes to explore, so we finish immediately with an empty distance table.',
       },
       primarySnapshot: { kind: 'graph', nodes: [], edges: [] },
       auxiliaryState: { customState: { NodeCount: 0 } },
@@ -93,8 +93,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
-      what: `Initialize distance table. Set dist['${startNode}'] = 0, all other nodes = ∞. Push (0, '${startNode}') into Priority Queue.`,
-      why: 'Source vertex has 0 distance to itself while all other tentative distances default to infinity. Priority Queue orders unvisited vertices by distance to enforce the greedy choice property.',
+      what: `Set dist['${startNode}'] to 0`,
+      why: `We only know one distance for sure: '${startNode}' is 0 away from itself, so every other node starts at ∞ until we find a path to it. We seed the priority queue with (0, '${startNode}') so the closest frontier node is always the next one out.`,
     },
     primarySnapshot: { kind: 'graph', nodes: getGraphNodes(startNode), edges: getGraphEdges() },
     auxiliaryState: {
@@ -116,8 +116,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
       stepIndex: stepIndex++,
       codeLine: 10,
       explanation: {
-        what: `Extracted node '${u}' from Priority Queue with distance ${d}. Mark '${u}' as visited.`,
-        why: `Dijkstra Greedy Choice: Node '${u}' currently holds the minimum tentative distance (${d}) among all unvisited vertices. Non-negative edge weights guarantee that no alternate unvisited path can reach '${u}' with a smaller cost, so dist['${u}'] is finalized.`,
+        what: `Pop '${u}' at distance ${d}`,
+        why: `Of everything we haven't visited, '${u}' is the closest we can currently reach, at distance ${d}. Since no edge weight is negative, no detour could ever beat that, so we lock ${d} in as final and mark '${u}' visited.`,
       },
       primarySnapshot: { kind: 'graph', nodes: getGraphNodes(u), edges: getGraphEdges() },
       auxiliaryState: {
@@ -142,8 +142,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
           stepIndex: stepIndex++,
           codeLine: 19,
           explanation: {
-            what: `Relaxed edge (${u} → ${v}, weight ${edge.weight}). Updated dist['${v}'] = ${newDist}. Push (${newDist}, '${v}') to PQ.`,
-            why: `Triangle Inequality Relaxation: dist['${u}'] (${dist[u] - edge.weight}) + weight (${edge.weight}) = ${newDist} < previous dist['${v}'] (${oldDist === Infinity ? '∞' : oldDist}). Shorter path discovered to '${v}' via '${u}'.`,
+            what: `Relax edge ${u} → ${v}`,
+            why: `Going through '${u}' reaches '${v}' at cost ${newDist - edge.weight} + ${edge.weight} = ${newDist}, beating its old distance of ${oldDist === Infinity ? '∞' : oldDist}. We record the shortcut and queue (${newDist}, '${v}') so its neighbors get a chance to benefit too.`,
           },
           primarySnapshot: {
             kind: 'graph',
@@ -165,8 +165,8 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     stepIndex: stepIndex++,
     codeLine: 22,
     explanation: {
-      what: `Dijkstra algorithm execution completed. Shortest path distances from '${startNode}' computed for all nodes.`,
-      why: 'All reachable graph vertices have been visited and finalized; Priority Queue is empty.',
+      what: 'Read off the completed distance table',
+      why: `The queue is empty, so every node reachable from '${startNode}' has been visited and finalized. As a closing note: with a binary heap, all those pops and pushes together cost O((V + E) log V).`,
     },
     primarySnapshot: { kind: 'graph', nodes: getGraphNodes(), edges: getGraphEdges() },
     auxiliaryState: {
@@ -185,7 +185,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   category: 'graph_shortest_paths',
   difficulty: 'Medium',
   description:
-    'Dijkstra\'s algorithm finds the single-source shortest paths from a starting node to all other vertices in a weighted graph with non-negative edge weights. Using a Greedy strategy backed by a Min-Priority Queue (min-heap), the algorithm repeatedly extracts the unvisited vertex with the smallest tentative distance, marks its distance as finalized, and relaxes all of its outgoing edges. The greedy choice property guarantees that once a vertex is popped from the priority queue, its current tentative distance is optimal and cannot be improved by any other path.',
+    "Dijkstra's algorithm finds the shortest path from one starting node to every other vertex in a weighted graph, as long as no edge weight is negative. It works greedily with a min-priority queue: repeatedly pop the unvisited vertex with the smallest tentative distance, finalize that distance, and relax its outgoing edges to see if any neighbor just got cheaper to reach. Because weights are non-negative, a vertex's distance can never improve after it is popped — which is exactly why the greedy choice is safe.",
   constraints: [
     '1 <= Vertices V <= 10^4',
     '0 <= Edges E <= 10^5',
@@ -210,6 +210,10 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   code: DIJKSTRA_CODE,
   timeComplexity: { best: 'O((V + E) log V)', average: 'O((V + E) log V)', worst: 'O((V + E) log V)' },
   spaceComplexity: 'O(V + E)',
+  complexityAnalysis: {
+    time: 'Every vertex is popped from the priority queue at most once, and every edge relaxation can push at most one new entry into it. Each heap push or pop costs O(log V), so across V pops and up to E pushes the total work is O((V + E) log V). Best and worst case match because we always drain the whole queue before stopping.',
+    space: 'The distance table and visited set each hold one entry per vertex, and the priority queue can briefly hold one stale entry per edge relaxation, so extra memory grows as O(V + E).',
+  },
   defaultInput: DEFAULT_DIJKSTRA_INPUT,
   generateSteps: generateDijkstraSteps,
 };

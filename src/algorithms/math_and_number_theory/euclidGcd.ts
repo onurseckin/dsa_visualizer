@@ -100,8 +100,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
   // Line 1: Function entry
   addStep(
     1,
-    'Initialize Euclidean Algorithm',
-    `Calculate Greatest Common Divisor (GCD) of a = ${currentA} and b = ${currentB}.`,
+    `Start with gcd(${currentA}, ${currentB})`,
+    `We want the largest number that divides both ${currentA} and ${currentB}. Rather than testing divisors, we will keep shrinking the pair using remainders until the answer falls out on its own.`,
     currentA,
     currentB
   );
@@ -112,8 +112,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     // Line 2: Loop condition check
     addStep(
       2,
-      `Check loop condition (b != 0)`,
-      `b is currently ${currentB} (non-zero), so continue the Euclidean reduction loop.`,
+      `Check b: still ${currentB}, not zero`,
+      `As long as b is non-zero the pair can be reduced further, so we take another remainder and keep going.`,
       currentA,
       currentB
     );
@@ -124,8 +124,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     // Line 3: Modulo operation
     addStep(
       3,
-      `Compute remainder (remainder = a % b)`,
-      `${currentA} % ${currentB} = ${remainder} (since ${currentA} = ${quotient} * ${currentB} + ${remainder}). By Division Theorem, gcd(${currentA}, ${currentB}) = gcd(${currentB}, ${remainder}).`,
+      `Compute ${currentA} mod ${currentB} = ${remainder}`,
+      `Since ${currentA} = ${quotient} × ${currentB} + ${remainder}, anything that divides both ${currentA} and ${currentB} must also divide ${remainder}. So gcd(${currentA}, ${currentB}) is the same as gcd(${currentB}, ${remainder}) — the identical answer on a smaller pair.`,
       currentA,
       currentB,
       remainder,
@@ -137,8 +137,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     currentA = currentB;
     addStep(
       4,
-      `Update a = b`,
-      `Assign previous divisor b = ${currentB} to a (was ${prevA}).`,
+      `Slide the divisor into a`,
+      `We shift the pair down: the old divisor ${currentB} becomes the new a, replacing ${prevA}. We are now solving the same problem one size smaller.`,
       currentA,
       currentB,
       remainder,
@@ -152,8 +152,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
 
     addStep(
       5,
-      `Update b = remainder`,
-      `Assign remainder ${remainder} to b (was ${prevB}). Next state: gcd(${currentA}, ${currentB}). Divisors shrink exponentially in each step.`,
+      `Set b to the remainder ${remainder}`,
+      `The remainder ${remainder} takes over as b (it was ${prevB}), leaving us at gcd(${currentA}, ${currentB}). Notice how quickly the numbers shrink — they roughly halve every couple of steps.`,
       currentA,
       currentB
     );
@@ -162,8 +162,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
   // Line 2: Loop condition check (false)
   addStep(
     2,
-    'Check loop condition (b == 0)',
-    'b is now 0, so the while loop terminates.',
+    'Loop ends: b reached 0',
+    'With b at 0 there is no remainder left to chase, so the loop stops. Whatever now sits in a divides everything that came before it.',
     currentA,
     currentB
   );
@@ -173,8 +173,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     stepIndex: stepIndex++,
     codeLine: 6,
     explanation: {
-      what: `Return result GCD = ${currentA}`,
-      why: `The Greatest Common Divisor of ${initialA} and ${initialB} is ${currentA}. When b reaches 0, the last non-zero remainder is the exact GCD.`,
+      what: `Return GCD = ${currentA}`,
+      why: `The last non-zero remainder, ${currentA}, divides both original numbers ${initialA} and ${initialB}, and nothing larger can — so it is their greatest common divisor.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -212,7 +212,7 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   category: 'math_and_number_theory',
   difficulty: 'Easy',
   description:
-    'Computes the Greatest Common Divisor (GCD) of two non-negative integers using the classical Euclidean algorithm. Based on the fundamental principle that the GCD of two numbers also divides their remainder (gcd(a, b) = gcd(b, a mod b)), reducing subproblem sizes logarithmically.',
+    'Computes the Greatest Common Divisor (GCD) of two non-negative integers with the classical Euclidean algorithm. It rests on one elegant fact — gcd(a, b) = gcd(b, a mod b) — so each remainder step shrinks the problem until the answer is simply the last non-zero value.',
   constraints: [
     '0 <= a, b <= 10^9',
   ],
@@ -235,6 +235,10 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
     worst: 'O(log(min(a, b)))',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'Each remainder step shrinks the numbers fast: after any two consecutive iterations the smaller value has at least halved, so the loop runs on the order of log(min(a, b)) times. That is why even billion-scale inputs finish in a few dozen steps. In the best case b divides a immediately and a single iteration suffices — O(1).',
+    space: 'We only ever hold three integers — a, b, and the current remainder — no matter how large the inputs are, so extra memory stays constant at O(1).',
+  },
   defaultInput: DEFAULT_EUCLID_GCD_INPUT,
   generateSteps: generateEuclidGcdSteps,
 };

@@ -81,8 +81,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       stepIndex: 0,
       codeLine: 2,
       explanation: {
-        what: 'Initialize Segment Tree',
-        why: 'Input array is empty. No segment tree built.',
+        what: 'Check the input array',
+        why: 'The input array is empty, so there is no tree to build — we stop here.',
       },
       primarySnapshot: {
         kind: 'tree',
@@ -152,8 +152,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
   addStep(
     5,
-    `Initialize Segment Tree for array of size ${n}`,
-    `Create segment tree structure for input array [${input.array.join(', ')}].`,
+    `Set up a tree for ${n} elements`,
+    `We are going to cover [${input.array.join(', ')}] with nested intervals: leaves hold single elements, and every parent stores the sum of its two children.`,
     { n }
   );
 
@@ -161,10 +161,10 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   const buildTree = (node: number, start: number, end: number) => {
     addStep(
       7,
-      `Build node ${node} covering range [${start}..${end}]`,
+      `Visit node ${node} for range [${start}..${end}]`,
       start === end
-        ? `Leaf node covering element at index ${start} (val = ${input.array[start]}).`
-        : `Internal node covering range [${start}..${end}]. Recurse left and right subtrees.`,
+        ? `This interval is down to a single element, so node ${node} becomes a leaf holding arr[${start}] = ${input.array[start]}.`
+        : `This interval still spans several elements, so we split it in half and build the two children before we can know this node's sum.`,
       { node, start, end },
       { [node]: 'compare' }
     );
@@ -173,8 +173,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       treeValues[node] = input.array[start];
       addStep(
         9,
-        `Leaf node ${node} set to ${treeValues[node]}`,
-        `Assigned arr[${start}] = ${treeValues[node]} to leaf node ${node}.`,
+        `Store ${treeValues[node]} in leaf ${node}`,
+        `This leaf now answers any query that needs exactly index ${start} — its value never has to be recomputed.`,
         { node, start, end, val: treeValues[node] },
         { [node]: 'sorted' }
       );
@@ -189,8 +189,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     addStep(
       14,
-      `Node ${node} sum = left (${treeValues[2 * node]}) + right (${treeValues[2 * node + 1]}) = ${treeValues[node]}`,
-      `Combined child sums for node ${node} covering range [${start}..${end}].`,
+      `Sum the children into node ${node}`,
+      `With both halves built, node ${node} caches ${treeValues[2 * node]} + ${treeValues[2 * node + 1]} = ${treeValues[node]} for range [${start}..${end}], so future queries can grab this whole interval in one lookup.`,
       { node, start, end, leftVal: treeValues[2 * node], rightVal: treeValues[2 * node + 1], val: treeValues[node] },
       { [node]: 'active', [2 * node]: 'sorted', [2 * node + 1]: 'sorted' }
     );
@@ -200,8 +200,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
   addStep(
     14,
-    'Segment Tree Construction Complete',
-    'Root node contains total array sum. Tree is fully constructed.',
+    'Finish building the tree',
+    `The root now caches the full-array sum ${treeValues[1]}, and every interval below it is precomputed and ready to serve queries.`,
     { totalSum: treeValues[1] }
   );
 
@@ -210,8 +210,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     if (r < start || end < l) {
       addStep(
         29,
-        `Query node ${node} [${start}..${end}] is completely outside target [${l}..${r}]`,
-        `Range [${start}..${end}] has no overlap with query range [${l}..${r}]. Return sum 0.`,
+        `Skip node ${node} — no overlap`,
+        `Its range [${start}..${end}] lies entirely outside our target [${l}..${r}], so this branch contributes 0 and we never descend into it.`,
         { node, start, end, l, r },
         { [node]: 'visited' }
       );
@@ -221,8 +221,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     if (l <= start && end <= r) {
       addStep(
         31,
-        `Query node ${node} [${start}..${end}] is fully inside target [${l}..${r}]`,
-        `Range [${start}..${end}] is fully enclosed by [${l}..${r}]. Return precomputed node sum ${treeValues[node]}.`,
+        `Take node ${node}'s cached sum ${treeValues[node]}`,
+        `Its whole range [${start}..${end}] sits inside our target [${l}..${r}], so we use the precomputed sum without visiting a single child — this pruning is what keeps queries fast.`,
         { node, start, end, l, r, val: treeValues[node] },
         { [node]: 'sorted' }
       );
@@ -233,8 +233,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     addStep(
       32,
-      `Query node ${node} [${start}..${end}] partially overlaps target [${l}..${r}]`,
-      `Split query between left child [${start}..${mid}] and right child [${mid + 1}..${end}].`,
+      `Split the query at node ${node}`,
+      `Our target [${l}..${r}] covers only part of [${start}..${end}], so we ask the left child about [${start}..${mid}] and the right child about [${mid + 1}..${end}].`,
       { node, start, end, l, r, mid },
       { [node]: 'compare' }
     );
@@ -245,8 +245,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     addStep(
       35,
-      `Node ${node} [${start}..${end}] query result = ${leftSum} + ${rightSum} = ${result}`,
-      `Combined query contributions from left (${leftSum}) and right (${rightSum}) subtrees.`,
+      `Combine partial sums at node ${node}`,
+      `The left branch reported ${leftSum} and the right branch reported ${rightSum}, so this subtree's answer for the query is ${result}.`,
       { node, start, end, leftSum, rightSum, result },
       { [node]: 'active' }
     );
@@ -261,8 +261,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       treeValues[node] = val;
       addStep(
         18,
-        `Update leaf node ${node} (index ${idx}): ${oldVal} -> ${val}`,
-        `Leaf value updated to ${val}.`,
+        `Overwrite leaf ${node} with ${val}`,
+        `We reached the leaf for index ${idx} and replace ${oldVal} with ${val}; now we walk back up, refreshing each ancestor's cached sum.`,
         { node, idx, oldVal, val },
         { [node]: 'swap' }
       );
@@ -272,8 +272,10 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     const mid = Math.floor((start + end) / 2);
     addStep(
       21,
-      `Traverse node ${node} [${start}..${end}] towards update index ${idx}`,
-      idx <= mid ? `Index ${idx} <= mid ${mid}. Go left.` : `Index ${idx} > mid ${mid}. Go right.`,
+      `Descend through node ${node}`,
+      idx <= mid
+        ? `Index ${idx} falls in the left half [${start}..${mid}], so only the left child needs to change — the right subtree stays untouched.`
+        : `Index ${idx} falls in the right half [${mid + 1}..${end}], so only the right child needs to change — the left subtree stays untouched.`,
       { node, start, end, idx, val },
       { [node]: 'compare' }
     );
@@ -288,8 +290,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     addStep(
       25,
-      `Recalculate parent node ${node} [${start}..${end}] sum -> ${treeValues[node]}`,
-      `Updated node ${node} sum after child update.`,
+      `Refresh node ${node}'s sum to ${treeValues[node]}`,
+      `One of its children just changed, so we recompute the cached sum for [${start}..${end}] to keep every interval on this path consistent.`,
       { node, start, end, val: treeValues[node] },
       { [node]: 'active' }
     );
@@ -301,8 +303,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     if (op.type === 'query' && op.left !== undefined && op.right !== undefined) {
       addStep(
         27,
-        `Execute Query operation for range [${op.left}..${op.right}]`,
-        `Start recursive range sum query traversal on Segment Tree.`,
+        `Start query for range [${op.left}..${op.right}]`,
+        `We walk down from the root, keeping only branches that overlap [${op.left}..${op.right}] and grabbing cached sums wherever a node's interval fits entirely inside.`,
         { op: 'query', left: op.left, right: op.right }
       );
 
@@ -310,15 +312,15 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
       addStep(
         35,
-        `Range Query [${op.left}..${op.right}] Result = ${totalSum}`,
-        `Range sum calculation complete. Final sum is ${totalSum}.`,
+        `Range query [${op.left}..${op.right}] equals ${totalSum}`,
+        `Adding up the covered pieces gives ${totalSum} — and we touched only a handful of nodes instead of scanning the whole array.`,
         { left: op.left, right: op.right, totalSum }
       );
     } else if (op.type === 'update' && op.index !== undefined && op.value !== undefined) {
       addStep(
         16,
-        `Execute Update operation: set index ${op.index} to ${op.value}`,
-        `Update element at index ${op.index} and recalculate parent node sums up to root.`,
+        `Start update: set index ${op.index} to ${op.value}`,
+        `We follow the single path from the root down to index ${op.index}'s leaf, then repair the cached sums on the way back up.`,
         { op: 'update', index: op.index, value: op.value }
       );
 
@@ -326,8 +328,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
       addStep(
         25,
-        `Update operation complete for index ${op.index}`,
-        `Segment Tree root sum is now ${treeValues[1]}.`,
+        `Finish update at index ${op.index}`,
+        `Every ancestor on the path has been refreshed, and the root's total now reads ${treeValues[1]}.`,
         { index: op.index, newRootSum: treeValues[1] }
       );
     }
@@ -335,8 +337,8 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
   addStep(
     35,
-    'All Segment Tree operations complete',
-    'Finished processing range queries and updates on Segment Tree.',
+    'All operations complete',
+    'Every query and update touched only a root-to-leaf slice of the tree — that O(log n) path length is the whole point of the structure.',
     { rootSum: treeValues[1] }
   );
 
@@ -349,7 +351,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   category: 'advanced_range_queries',
   difficulty: 'Hard',
   description:
-    'A Segment Tree is a full binary tree used for storing interval information. It enables querying range sums and executing point updates in O(log N) time by dividing array intervals recursively into left and right sub-ranges.',
+    'A Segment Tree covers an array with nested intervals: each leaf holds one element and each internal node caches the sum of its half-ranges. Because any query range can be assembled from a few of these precomputed intervals, both range-sum queries and point updates run in O(log N) time.',
   constraints: [
     '1 <= N <= 10^5',
     '1 <= Q <= 10^5',
@@ -369,6 +371,10 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
     worst: 'O(log n)',
   },
   spaceComplexity: 'O(n)',
+  complexityAnalysis: {
+    time: 'Every operation starts at the root and descends, and each level halves the interval, so the tree is only about log n levels deep. An update follows a single root-to-leaf path, and a query visits at most a constant number of nodes per level because fully covered branches return their cached sum immediately — so both cost O(log n) in every case. Building the tree visits each node exactly once, which is O(n).',
+    space: 'The tree stores one cached sum per interval node; an array of size 4n safely covers every level of the (possibly uneven) binary tree, so memory grows linearly with the input — O(n).',
+  },
   defaultInput: DEFAULT_SEGMENT_TREE_INPUT,
   generateSteps: generateSegmentTreeSteps,
 };

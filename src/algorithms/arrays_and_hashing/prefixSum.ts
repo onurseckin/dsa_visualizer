@@ -65,15 +65,15 @@ export const generatePrefixSumSteps = (
 
   addStep(
     1,
-    'Initialize Prefix Sum Calculation',
-    `Prefix sum precomputes cumulative totals for input array [${nums.join(', ')}] so sub-array range sums (L..R) can be calculated in O(1) time as prefix[R+1] - prefix[L].`,
+    'Start building prefix sums',
+    `We'll turn [${nums.join(', ')}] into a ladder of running totals, so that later any range sum can be read off with one subtraction instead of re-adding the whole slice.`,
     { length: n }
   );
 
   addStep(
     3,
-    'Allocate Prefix Array',
-    `Created prefix array of size ${n + 1} initialized to 0: [${prefixValues.join(', ')}]. Storing prefix[0] = 0 provides a clean base case for ranges starting at index 0.`,
+    'Allocate the prefix array',
+    `We make room for ${n + 1} totals, all zero for now: [${prefixValues.join(', ')}]. The extra leading 0 means even a range starting at index 0 has something clean to subtract.`,
     { prefixLength: n + 1 }
   );
 
@@ -88,15 +88,15 @@ export const generatePrefixSumSteps = (
 
     addStep(
       4,
-      `Inspect index i = ${i} (nums[${i}] = ${currentVal})`,
-      `Inspecting element nums[${i}] = ${currentVal} to extend the cumulative prefix sum from index 0 through index ${i}.`,
+      `Visit nums[${i}] = ${currentVal}`,
+      `So far our running total is ${prevPrefix}. Now we bring in ${currentVal} so the total covers everything up through index ${i}.`,
       { i, 'nums[i]': currentVal, 'prefix[i]': prevPrefix }
     );
 
     addStep(
       5,
-      `Compute prefix[${i + 1}] = prefix[${i}] + nums[${i}]`,
-      `Cumulative update: prefix[${i + 1}] = ${prevPrefix} + ${currentVal} = ${newPrefix}. This represents the sum of all elements from index 0 to ${i}.`,
+      `Set prefix[${i + 1}] = ${newPrefix}`,
+      `We add ${currentVal} to the previous total ${prevPrefix} and get ${newPrefix} — the sum of everything from index 0 through ${i}, banked for instant reuse later.`,
       { i, 'prefix[i]': prevPrefix, 'nums[i]': currentVal, 'prefix[i+1]': newPrefix }
     );
 
@@ -106,8 +106,8 @@ export const generatePrefixSumSteps = (
 
   addStep(
     6,
-    'Complete Prefix Sum Array',
-    `Computed final prefix sum array: [${prefixValues.join(', ')}]. Any range sum query can now be answered in constant time.`,
+    'Finish the prefix array',
+    `Our finished ladder of totals is [${prefixValues.join(', ')}]. From here, the sum of any range L..R is just prefix[R+1] minus prefix[L] — one subtraction, constant time.`,
     { result: prefixValues.join(', ') }
   );
 
@@ -120,7 +120,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Computes cumulative prefix sums for an array, enabling O(1) time sub-array range sum queries by precomputing cumulative totals.',
+    'Computes cumulative prefix sums for an array, so any later sub-array range sum can be answered in O(1) time with a single subtraction of two precomputed totals.',
   constraints: ['1 <= nums.length <= 10^5', '-10^4 <= nums[i] <= 10^4'],
   examples: [
     {
@@ -142,6 +142,10 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(n)',
+  complexityAnalysis: {
+    time: "We fill the prefix array in one pass over the input: each new entry is just the previous entry plus one array value, a single addition. With n elements that's n constant-time updates, so the work grows linearly — O(n). Best and worst case are identical because we always touch every element exactly once.",
+    space: 'We allocate one extra array of n + 1 running totals alongside the input, so extra memory grows linearly with the input size — O(n).',
+  },
   defaultInput: DEFAULT_PREFIX_SUM_INPUT,
   generateSteps: generatePrefixSumSteps,
 };

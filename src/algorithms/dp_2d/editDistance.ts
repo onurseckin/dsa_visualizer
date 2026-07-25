@@ -87,8 +87,8 @@ export const generateEditDistanceSteps = (
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialized DP table of size (${m + 1} x ${n + 1}) with base cases.`,
-      why: 'Converting a prefix of word1 of length i to an empty string requires i deletions (dp[i][0] = i), and converting an empty string to a prefix of word2 of length j requires j insertions (dp[0][j] = j).',
+      what: `Fill the base row and column`,
+      why: `The first column says dp[i][0] = i, because turning the first i letters of "${word1}" into nothing takes i deletions. The first row says dp[0][j] = j, because building the first j letters of "${word2}" from nothing takes j insertions.`,
     },
     primarySnapshot: createGridSnapshot(undefined, [], [0, n]),
     auxiliaryState: {
@@ -108,8 +108,8 @@ export const generateEditDistanceSteps = (
           stepIndex: stepIndex++,
           codeLine: 13,
           explanation: {
-            what: `Matching characters word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}') at index (${i}, ${j}).`,
-            why: `Since characters match, no edit operation is required. The optimal cost equals the cost of matching prefixes word1[0..${i - 2}] and word2[0..${j - 2}]: dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
+            what: `Match '${char1}' at cell (${i}, ${j})`,
+            why: `Both words have '${char1}' here, so no edit is needed — we just carry over the cost of matching the shorter prefixes diagonally: dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot([i, j], [[i - 1, j - 1]], [i, j]),
           auxiliaryState: {
@@ -132,8 +132,8 @@ export const generateEditDistanceSteps = (
           stepIndex: stepIndex++,
           codeLine: 15,
           explanation: {
-            what: `Mismatch word1[${i - 1}] ('${char1}') != word2[${j - 1}] ('${char2}') at index (${i}, ${j}). Compare Delete(${deleteOp}), Insert(${insertOp}), Replace(${replaceOp}).`,
-            why: `Minimum previous edit cost is ${minPrev} via ${bestOpName}. Add 1 for the edit operation: dp[${i}][${j}] = 1 + min(${deleteOp}, ${insertOp}, ${replaceOp}) = ${dp[i][j]}.`,
+            what: `Resolve mismatch '${char1}' vs '${char2}'`,
+            why: `The letters differ, so we pick the cheapest fix among deleting (${deleteOp}), inserting (${insertOp}), or replacing (${replaceOp}). ${bestOpName} wins at ${minPrev}, and adding 1 for the edit itself gives dp[${i}][${j}] = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot(
             [i, j],
@@ -164,8 +164,8 @@ export const generateEditDistanceSteps = (
     stepIndex: stepIndex++,
     codeLine: 17,
     explanation: {
-      what: `Edit Distance computation complete. Minimum operations to convert "${word1}" to "${word2}" is ${dp[m][n]}.`,
-      why: 'Full 2D tabulation complete. The bottom-right cell dp[m][n] holds the globally optimal edit distance between full strings.',
+      what: `Read the answer at dp[${m}][${n}]`,
+      why: `The bottom-right cell compares the full words, so turning "${word1}" into "${word2}" takes ${dp[m][n]} edits. We got there by solving every smaller prefix pair exactly once, which is why the work is proportional to the table size.`,
     },
     primarySnapshot: createGridSnapshot([m, n], [], [m, n]),
     auxiliaryState: {
@@ -207,6 +207,10 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     worst: 'O(M * N)',
   },
   spaceComplexity: 'O(M * N)',
+  complexityAnalysis: {
+    time: 'The dp table has (M + 1) × (N + 1) cells — one for every pair of prefixes of the two words — and we fill each cell exactly once with a constant amount of comparison work. That makes the total time O(M × N) no matter what the strings look like; matching and mismatching characters cost the same.',
+    space: 'The full 2D table stores an answer for every prefix pair, so memory grows with both word lengths — O(M × N). Only the previous row is strictly needed, but we keep the whole table so the computation stays visible.',
+  },
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };
