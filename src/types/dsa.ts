@@ -164,6 +164,11 @@ export interface TimeComplexity {
   worst: string;
 }
 
+export interface ComplexityAnalysis {
+  time: string;
+  space: string;
+}
+
 export interface ProblemExample {
   input: string;
   output: string;
@@ -181,6 +186,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   code: string;
   timeComplexity: TimeComplexity;
   spaceComplexity: string;
+  complexityAnalysis: ComplexityAnalysis;
   generateSteps: (input: TInput) => AlgorithmStep[];
   defaultInput: TInput;
 }
