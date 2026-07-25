@@ -102,14 +102,6 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   const treeValues = new Array<number>(maxTreeNodes).fill(0);
   const activeNodeMap = new Map<number, InternalNode>();
 
-  const buildNodeMap = (node: number, start: number, end: number) => {
-    activeNodeMap.set(node, { nodeIdx: node, start, end, val: treeValues[node] });
-    if (start === end) return;
-    const mid = Math.floor((start + end) / 2);
-    buildNodeMap(2 * node, start, mid);
-    buildNodeMap(2 * node + 1, mid + 1, end);
-  };
-
   // Build structure layout first
   const dummyBuild = (node: number, start: number, end: number) => {
     activeNodeMap.set(node, { nodeIdx: node, start, end, val: 0 });

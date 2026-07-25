@@ -147,7 +147,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       curr = parent[curr];
     }
     // Path compression
-    let root = curr;
+    const root = curr;
     curr = i;
     while (curr !== root) {
       const nxt = parent[curr];
