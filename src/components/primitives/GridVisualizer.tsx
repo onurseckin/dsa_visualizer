@@ -90,7 +90,7 @@ const getCellAppearance = (cell: GridCellNode) => {
 export const GridVisualizer: React.FC<GridVisualizerProps> = ({
   grid,
   cellSize = 42,
-  showDistance = false,
+  showDistance = true,
   onCellClick,
   title,
 }) => {
