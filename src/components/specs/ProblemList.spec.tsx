@@ -68,4 +68,44 @@ describe('ProblemList Component Spec', () => {
 
     expect(onSelectMock).toHaveBeenCalledWith('bubble-sort', 'arrays_and_hashing');
   });
+
+  it('drives the category filter from the controlled category prop', () => {
+    render(
+      <ProblemList onSelectAlgorithm={vi.fn()} category="two_pointers" onCategoryChange={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Two Pointers' })).toHaveClass('ui-btn--selected');
+    expect(screen.getByRole('button', { name: 'All categories' })).not.toHaveClass('ui-btn--selected');
+    expect(screen.queryByText('Bubble Sort')).not.toBeInTheDocument();
+  });
+
+  it('reports chip clicks through onCategoryChange without mutating its own selection', () => {
+    const onCategoryChange = vi.fn();
+    render(
+      <ProblemList onSelectAlgorithm={vi.fn()} category="All" onCategoryChange={onCategoryChange} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Arrays & Hashing' }));
+    expect(onCategoryChange).toHaveBeenCalledWith('arrays_and_hashing');
+
+    fireEvent.click(screen.getByRole('button', { name: 'All categories' }));
+    expect(onCategoryChange).toHaveBeenCalledWith('All');
+
+    // Selection stays put until the parent feeds a new category prop back in.
+    expect(screen.getByRole('button', { name: 'All categories' })).toHaveClass('ui-btn--selected');
+    expect(screen.getByRole('button', { name: 'Arrays & Hashing' })).not.toHaveClass('ui-btn--selected');
+  });
+
+  it('re-renders the filter when the controlled category prop changes', () => {
+    const { rerender } = render(
+      <ProblemList onSelectAlgorithm={vi.fn()} category="All" onCategoryChange={vi.fn()} />,
+    );
+    expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
+
+    rerender(
+      <ProblemList onSelectAlgorithm={vi.fn()} category="backtracking" onCategoryChange={vi.fn()} />,
+    );
+    expect(screen.getByRole('button', { name: 'Backtracking' })).toHaveClass('ui-btn--selected');
+    expect(screen.queryByText('Bubble Sort')).not.toBeInTheDocument();
+  });
 });
