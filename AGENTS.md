@@ -1,311 +1,540 @@
-# AGENTS.md - Developer & AI Agent Integration Guide
+<!-- intent-skills:start -->
+## Skill Loading
 
-Welcome, AI Agent or Developer! This document explains the architecture, design principles, data structures, and step-by-step procedures for contributing new algorithms, data structures, visualizers, or LeetCode solutions to the **DSA Visualizer** repository.
+Before editing files for a substantial task:
+- Run `bunx @tanstack/intent@latest list` from the workspace root to see available local skills.
+- If a listed skill matches the task, run `bunx @tanstack/intent@latest load <package>#<skill>` before changing files.
+- Use the loaded `SKILL.md` guidance while making the change.
+- Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
+- Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+<!-- intent-skills:end -->
+
+# AGENTS.md — Contributor Playbook for the DSA Visualizer
+
+Welcome, AI agent or developer. This file is the **single onboarding source** for this
+repository: it documents the stack's provenance, the architecture as it exists today,
+and — most importantly — a complete end-to-end playbook for adding a new algorithm
+("problem") so that a future contributor can ship one from this file alone.
+
+The app is a fully client-side SPA: React 18 + TypeScript 5.3 + Vite 5, TanStack
+Router (file-based routes), vitest + jsdom for tests, **bun** for all scripts, plain
+CSS design tokens for styling. There is no server, no database, no environment
+variables, and no secrets.
 
 ---
 
-## 1. High-Level Architecture Overview
+## 1. Scaffolding & Stack Provenance
 
-The repository is structured to separate design tokens, the reusable UI library, visual rendering primitives, step generator engines, algorithm definitions, and test specifications.
+This repo predates its TanStack scaffolding; the scaffold output was merged in, not
+used as the starting point. Knowing what came from where prevents accidental
+"upgrades" that break deliberate decisions.
+
+**Scaffold command:**
+
+```bash
+npx @tanstack/cli@latest create my-tanstack-app --agent --package-manager pnpm --tailwind
+```
+
+(run in a scratch directory; output merged into this pre-existing repo).
+
+**Intent commands:** `npx @tanstack/intent@latest install` (wired the skill block into
+AGENTS.md — the block at the top of this file; preserve it verbatim) and
+`npx @tanstack/intent@latest list`; skills are loaded per-task via
+`bunx @tanstack/intent@latest load <pkg>#<skill>` (12 router skills ship with the
+installed packages — 10 under `@tanstack/router-core#router-core` and its sub-skills,
+1 in `@tanstack/router-plugin`, 1 in `@tanstack/virtual-file-routes`).
+
+**Merged from the scaffold:**
+
+- `@tanstack/react-router` + file-based routes in `src/routes` with generated
+  `src/routeTree.gen.ts`.
+- `@tanstack/router-plugin` in `vite.config.ts` (**MUST stay before the react
+  plugin** — wrong order fails silently).
+- `@tanstack/router-cli` via `bun run generate-routes`, plus `tsr.config.json`
+  (`{ "target": "react" }`).
+- `.cta.json` (scaffold provenance record — do not delete).
+- `@tanstack/react-router-devtools` (dev only; lazily imported in
+  `src/routes/__root.tsx`, gated on `import.meta.env.DEV && MODE !== 'test'`).
+- Tailwind v4 via `@tailwindcss/vite` + `@tailwindcss/typography` — **theme +
+  utilities only, NO preflight** (preflight would reset the token-styled `ui.css`
+  components), with tokens bridged into Tailwind via `@theme inline` in
+  `src/styles/index.css`.
+
+**Deliberately NOT adopted (do not "fix" these):**
+
+- **TanStack Start SSR (`@tanstack/react-start`)** — this is a fully client-side SPA
+  (visualizations, no server data; static `dist` deploy). SSR adds machinery with no
+  payoff here.
+- **React 19 / Vite 8 / TS 6 from the scaffold** — repo stays React 18 / Vite 5 /
+  TS 5.3 to keep the 350+-test vitest stack stable (future upgrade candidates; see
+  section 9).
+- **pnpm** — repo uses bun (`bun.lock`). Never introduce npm/pnpm/yarn lockfiles.
+- **`@tanstack/devtools-vite`** — requires Vite >= 6.
+
+**Environment variables:** none required (no secrets; fonts load from the Google
+Fonts CDN via `index.html`). The only env usage is `import.meta.env.DEV` (plus
+`MODE !== 'test'`) gating the router devtools in `src/routes/__root.tsx`.
+
+**Deployment:** `bun run build` (runs `tsc && vite build`) → static `dist/`, deploy
+to any static host.
+
+**Scripts** (always via bun):
+
+| Command | What it does |
+|---|---|
+| `bun run dev` | Vite dev server (agents: don't run this — the user verifies UI) |
+| `bun run typecheck` | `tsc --noEmit` |
+| `bun run generate-routes` | `tsr generate` — regenerates `src/routeTree.gen.ts` |
+| `bun run lint` | ESLint, zero warnings allowed |
+| `bun run test` | Full vitest run (~350+ tests — final gate only) |
+| `bunx vitest run <paths>` | Scoped test run — **use this during iteration** |
+| `bun run build` | `tsc && vite build` → `dist/` |
+| `bun run check` | typecheck + lint + full tests + build — the master quality gate |
+
+---
+
+## 2. Architecture Map
 
 ```
 src/
-├── types/dsa.ts                  # Core Master TypeScript Interfaces & Union Types
-├── engine/soundEngine.ts         # Web Audio API Sound Generator
+├── main.tsx                      # StrictMode + RouterProvider entry
+├── router.tsx                    # createRouter({ routeTree, scrollRestoration, defaultPreload: 'intent' })
+├── routeTree.gen.ts              # GENERATED by TanStack Router — never hand-edit
+├── routes/                       # File-based routes (filenames define paths)
+│   ├── __root.tsx                # SettingsProvider + Navbar shell + <Outlet /> + dev-only devtools
+│   ├── index.tsx                 # "/"          → KnowledgeGraph roadmap page
+│   ├── problems.tsx              # "/problems"  → ProblemList, ?category= search param
+│   ├── workspace.index.tsx       # "/workspace" → redirects to /workspace/bubble-sort
+│   └── workspace.$algorithmId.tsx# "/workspace/:id" → the visualizer workspace
+├── app/
+│   ├── SettingsContext.tsx       # Persisted UI settings (localStorage-backed React context)
+│   └── categories.ts             # CATEGORIES list (25 canonical) + isCategoryType() guard
+├── engine/
+│   ├── stepEngine.ts             # useStepEngine hook: playback state machine + dedupe contract
+│   └── soundEngine.ts            # Web Audio singleton: gesture unlock + master-gain mute
+├── types/dsa.ts                  # ALL core interfaces & union types
 ├── styles/
-│   ├── theme.css                 # Design Tokens — the ONLY place color/spacing/type values live
-│   ├── ui.css                    # UI Library Class Styles (`ui-` prefix, BEM-ish)
-│   └── index.css                 # Global Resets & App-Level Layout Styles
-├── ui/                           # Reusable UI Component Library (barrel: ui/index.ts)
-│   ├── Button.tsx / IconButton.tsx / Badge.tsx / Card.tsx / Input.tsx
-│   ├── Slider.tsx / Segmented.tsx / Collapsible.tsx / Drawer.tsx / Kbd.tsx
-│   └── specs/                    # Vitest Specs for Every UI Component
+│   ├── theme.css                 # Design tokens — the ONLY place raw color/size values live
+│   ├── ui.css                    # UI library classes (`ui-` prefix) + shared .ui-chip/.ui-code-line
+│   └── index.css                 # Token/ui imports, Tailwind theme+utilities, @theme bridge, resets
+├── ui/                           # Reusable UI component library (barrel: ui/index.ts)
 ├── components/
-│   ├── KnowledgeGraph.tsx        # Interactive SVG Prerequisite Roadmap
-│   ├── MainLayout.tsx            # Main Shell Layout (Header, Visualizer, Code Panel)
-│   ├── Navbar.tsx                # Top Navigation (View Switchers, Toggles, Search Trigger)
-│   ├── SearchTrigger.tsx         # Input-Lookalike Button That Opens the Search Drawer
-│   ├── QuickAccessDrawer.tsx     # Drawer-Based Algorithm Search & Category Browser
-│   ├── ControlPanel.tsx          # Playback Controls (Play/Pause, Step, Speed, Size)
-│   ├── ComplexityCard.tsx        # Big-O Chips + Plain-English Complexity Prose
-│   ├── ResizableLayout.tsx       # Draggable Visualizer/Code Split
-│   ├── ProblemList.tsx           # Flat Problem Listing View
-│   └── primitives/               # Shared Reusable Visual Primitives
-│       ├── ArrayVisualizer.tsx   # 1D Array & Pointer Render Engine
-│       ├── GridVisualizer.tsx    # 2D Grid & Pathfinding Render Engine
-│       ├── GraphVisualizer.tsx   # SVG Graph Nodes & Weighted Edges Render Engine
-│       ├── TreeVisualizer.tsx    # SVG Binary Tree Render Engine
-│       ├── AuxiliaryPanel.tsx    # Side Panel (Stack, Queue, Visited Set, Hash Map)
-│       ├── TutorialCard.tsx      # Step Pedagogical Explanation Card ("WHAT" / "WHY")
-│       ├── CodeBlockViewer.tsx   # Python Code Viewer with Line Highlights & Variables
-│       └── ProblemHeader.tsx     # Difficulty Badge, Description & Constraints
-└── algorithms/                   # 25 Granular Topic Subdirectories (40 algorithms)
-    ├── registry.ts               # Central ALGORITHM_REGISTRY Export
-    ├── <category_folder>/        # Dedicated Topic Directory (e.g., graph_shortest_paths/)
-    │   ├── <algorithm_name>.ts   # Algorithm Definition, Python Code & Step Generator
-    │   └── specs/                # Dedicated Specs Subdirectory
-    │       ├── <algorithm>.spec.ts   # Vitest Algorithm Logic Specs
-    │       └── <algorithm>.spec.tsx  # Vitest React Component Render Specs
+│   ├── KnowledgeGraph.tsx        # SVG prerequisite roadmap (TOPIC_ROADMAP_NODES)
+│   ├── MainLayout.tsx            # Workspace shell: header strip, stage, code column
+│   ├── Navbar.tsx                # App/view switchers, toggles, "/" shortcut, search trigger
+│   ├── SearchTrigger.tsx         # Input-lookalike button that opens the search drawer
+│   ├── QuickAccessDrawer.tsx     # Drawer-based algorithm search & category browser
+│   ├── ControlPanel.tsx          # Play/pause, step, reset, speed, data size controls
+│   ├── ComplexityCard.tsx        # Big-O chips + plain-English complexity prose
+│   ├── ResizableLayout.tsx       # Draggable visualizer/code split (persisted ratio)
+│   ├── ProblemList.tsx           # Flat problem listing with category filter
+│   └── primitives/               # Visual render primitives
+│       ├── ArrayVisualizer.tsx   # kind: 'array'
+│       ├── GridVisualizer.tsx    # kind: 'grid'
+│       ├── GraphVisualizer.tsx   # kind: 'graph' (SVG, auto circular layout if no x/y)
+│       ├── TreeVisualizer.tsx    # kind: 'tree'  (SVG binary tree)
+│       ├── AuxiliaryPanel.tsx    # "Working data" chip rows (stack/queue/visited/…)
+│       ├── TutorialCard.tsx      # Teacher explanation card for the current step
+│       ├── CodeBlockViewer.tsx   # Python code viewer, active-line highlight, Vars strip
+│       └── ProblemHeader.tsx     # Title + badges + collapsed-by-default Details toggle
+└── algorithms/                   # 25 category folders, 40 algorithm definitions
+    ├── registry.ts               # ALGORITHM_REGISTRY: Record<id, AlgorithmDefinition>
+    └── <category>/
+        ├── <algorithmName>.ts    # Definition + Python code string + step generator
+        └── specs/
+            ├── <algorithmName>.spec.ts   # Pure step-generator invariants
+            └── <algorithmName>.spec.tsx  # MainLayout render spec
 ```
+
+### 2.1 Routing & navigation flow
+
+Routes are **file-based**: the filename defines the path (`workspace.$algorithmId.tsx`
+→ `/workspace/:algorithmId`). The `@tanstack/router-plugin` in `vite.config.ts`
+regenerates `src/routeTree.gen.ts` during dev/build; `bun run generate-routes` does it
+on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
+`createFileRoute('...')` — the plugin owns both.
+
+- **`__root.tsx`** wraps everything in `SettingsProvider`, renders the `Navbar`, and
+  derives the active app view purely from the pathname (`/` → tree, `/problems*` →
+  list, otherwise workspace). Navbar view switches call `navigate()`; selecting an
+  algorithm anywhere calls `setLastAlgorithmId(id)` then navigates to
+  `/workspace/$algorithmId`.
+- **`index.tsx`** renders the `KnowledgeGraph`; clicking a roadmap node navigates to
+  `/problems?category=<folder>`.
+- **`problems.tsx`** owns the only search param in the app: `?category=`. Its
+  `validateSearch` narrows through `isCategoryType()` from `src/app/categories.ts`;
+  unknown or alias values collapse to "no filter" instead of erroring, so mistyped
+  shared URLs still load the full list. Filter changes push (not replace) history
+  entries.
+- **`workspace.index.tsx`** statically redirects to `/workspace/bubble-sort`
+  (hooks are unavailable in `beforeLoad`; navbar-driven navigation supplies the
+  persisted `lastAlgorithmId` itself).
+- **`workspace.$algorithmId.tsx`** guards in `beforeLoad`: an id missing from
+  `ALGORITHM_REGISTRY` redirects to `bubble-sort`, so the component can look up the
+  registry unconditionally. It wires `useStepEngine`, sound triggering, and the
+  random-input controls, then renders `MainLayout`. **Adding an algorithm requires
+  zero route changes** — `/workspace/$algorithmId` resolves any registry id.
+
+### 2.2 SettingsContext (persistence)
+
+`src/app/SettingsContext.tsx` holds `viewMode` (`'split' | 'visual' | 'code'`),
+`showTutorial`, `showAuxiliary`, `soundEnabled`, and `lastAlgorithmId`. Every value
+is initialized from `localStorage` (keys prefixed `dsa_visualizer_`, e.g.
+`dsa_visualizer_view_mode`) through a validating `readStored(key, fallback, guard)`
+helper — reads that throw or contain garbage fall back to defaults; writes are
+best-effort so in-memory state stays authoritative. `useSettings()` throws outside
+the provider. `ResizableLayout` persists its split ratio separately under
+`dsa_visualizer_layout_split` (exported as `LAYOUT_SPLIT_STORAGE_KEY`; the header's
+"Reset layout" button removes it).
+
+### 2.3 stepEngine — the playback state machine and its dedupe contract
+
+`useStepEngine({ steps, onStepChange, defaultSpeed })` in `src/engine/stepEngine.ts`
+returns `{ currentStepIndex, currentStep, totalSteps, isPlaying, speed, play, pause,
+togglePlay, stepForward, stepBackward, goToStep, reset, setSpeed }`.
+
+Design points that must not be broken:
+
+- **Refs, not deps**: `steps` and `onStepChange` live in refs so the interval effect
+  never churns on new callback identities.
+- **Dedupe contract**: `onStepChange` fires from one dedicated effect, and only when
+  `currentStepIndex` differs from `lastNotifiedIndexRef`. The ref initializes to `0`,
+  so the initial index-0 render **never** notifies (no sound on page load), and
+  StrictMode's double-invoked effects cannot double-fire. When the `steps` array
+  identity changes (new algorithm / new input), the engine resets to index 0, stops
+  playback, and pre-marks index 0 as notified so the switch is silent.
+- Playback is a plain `setInterval(speed)` that auto-pauses at the last step;
+  `play()` from the last step restarts at 0.
+
+The workspace route layers a second dedupe (`lastHandledStepRef`) inside its
+`handleStepChange` and keys sounds off the step's `what` text: contains `swap` →
+`playSwap()`, contains `compar` → `playCompare()`, final step → `playComplete()`.
+**Never call sound functions from render or effects directly** — always go through
+`onStepChange` so both dedupe layers apply.
+
+### 2.4 soundEngine — gesture unlock + master gain
+
+`src/engine/soundEngine.ts` exports a singleton `SoundEngine` (plus function
+wrappers). Design decisions, all load-bearing:
+
+- **Lazy AudioContext** created on first use; `webkitAudioContext` fallback; all
+  failures are swallowed (sound is never allowed to crash the app).
+- **Gesture unlock**: browsers create AudioContexts suspended until a user gesture.
+  Scheduling into a suspended context makes every queued tone burst at once on
+  resume, so the engine *skips* tones while suspended and installs capture-phase
+  `pointerdown`/`keydown` listeners that call `ctx.resume()` on the first gesture,
+  removing themselves once running.
+- **Master gain mute**: muting sets a single master `GainNode` to 0 instantly instead
+  of suspending the context (suspend freezes `currentTime` and corrupts scheduling).
+- **Throttling**: max 8 concurrent voices, ≥80ms between tones, 400ms cooldown on the
+  completion arpeggio, which is scheduled in one pass on the AudioContext clock
+  (setTimeout chains drift).
+
+Public API: `playCompare(val?, maxVal?)` (pitch maps value), `playSwap`, `playPush`,
+`playPop`, `playComplete` (C-E-G-C arpeggio), `setMuted/isMuted/toggleMute`.
+
+### 2.5 Styles & tokens
+
+- `src/styles/theme.css` is the **only** place raw color/size values live: surfaces
+  (`--bg-page/surface/elevated/inset/hover/pressed/backdrop`), borders
+  (`--border-subtle/default/strong/accent`), accent (`--accent`, `--accent-hover`,
+  `--accent-soft/softer`, `--text-on-accent`), text
+  (`--text-primary/secondary/muted/faint`), semantic (`--success/warning/danger/info`
+  + `-soft`), one `--state-<name>`/`--state-<name>-bg` pair per `ElementState`, type
+  scale (`--text-xs..2xl`, `--font-ui`, `--font-code`), spacing (`--space-1..8`, 4px
+  grid), control heights (`--control-h-sm/md/lg`), radii, neutral shadows,
+  `--focus-ring`, transitions, and z-indices (`--z-dropdown/drawer/modal/tooltip`).
+- `src/styles/ui.css` styles the UI library (`ui-` prefix, BEM-ish:
+  `.ui-btn--primary`, `.ui-btn--selected`) and the shared classes `.ui-code-line`,
+  `.ui-code-line--active`, `.ui-chip`.
+- `src/styles/index.css` imports theme + ui, then Tailwind **theme and utilities
+  layers only** (no preflight), bridges tokens into Tailwind via `@theme inline`
+  (`--color-page: var(--bg-page)` etc.), and defines global resets, focus-visible,
+  selection, and scrollbar styling.
+
+Rules: **never hardcode hex/rgba colors or ad-hoc pixel/rem sizes in components** —
+always `var(--token)`. Element visual states map 1:1 to `--state-*` token pairs.
+
+### 2.6 Search flow
+
+The navbar renders `SearchTrigger` — a 240px button styled like an input
+(`🔍 Search algorithms… ⟨/⟩` with a `Kbd` chip). Clicking it, or pressing `/`
+anywhere outside an input/textarea/select/contenteditable, opens
+`QuickAccessDrawer` (built on `ui/Drawer`; ESC or backdrop click closes). The drawer
+holds an autofocused `Input` at the top, then one `Collapsible` per category with a
+count `Badge`; the active algorithm's category starts open. While searching, only
+matching categories render, auto-expanded. The selected row uses the standard
+selected treatment plus a check icon; every row shows a difficulty `Badge`. There is
+no dropdown-results search anywhere — the drawer owns all searching.
 
 ---
 
-## 2. Core Data Contracts (`src/types/dsa.ts`)
+## 3. Core Data Contracts (`src/types/dsa.ts`)
 
-Every algorithm in this codebase is defined via the `AlgorithmDefinition<TInput>` interface:
+All interfaces live in `src/types/dsa.ts`. The master shape:
 
 ```typescript
 export interface AlgorithmDefinition<TInput = unknown> {
-  id: string;                                   // Unique URL slug (e.g. 'dijkstra-shortest-path')
-  title: string;                                // Display title (e.g. "Dijkstra's Shortest Path Algorithm")
-  category: CategoryType;                       // Module folder name (e.g. 'graph_shortest_paths')
+  id: string;                     // URL slug AND registry key (e.g. 'two-sum')
+  title: string;                  // Display title (e.g. 'Two Sum')
+  category: CategoryType;         // Canonical folder id (e.g. 'arrays_and_hashing')
   difficulty?: 'Easy' | 'Medium' | 'Hard';
-  description: string;
-  constraints?: string[];
-  examples?: ProblemExample[];
-  code: string;                                 // Python code string representation
+  description: string;            // 1–3 sentences: problem + core idea
+  constraints?: string[];         // LeetCode-style bounds, shown in Details
+  examples?: ProblemExample[];    // { input, output, explanation? }
+  code: string;                   // Python source string (the ONLY display language)
   timeComplexity: { best: string; average: string; worst: string };
   spaceComplexity: string;
-  complexityAnalysis: ComplexityAnalysis;       // REQUIRED plain-English complexity prose
-  defaultInput: TInput;                         // Initial default input object
-  generateSteps: (input: TInput) => AlgorithmStep[]; // Pure generator function
+  complexityAnalysis: ComplexityAnalysis; // REQUIRED plain-English prose (section 4.4)
+  defaultInput: TInput;
+  generateSteps: (input: TInput) => AlgorithmStep[]; // Pure, synchronous
 }
 ```
 
-### The `ComplexityAnalysis` Field (Required)
-
-```typescript
-export interface ComplexityAnalysis {
-  time: string;  // 2–4 plain-English sentences: WHY the time complexity is what it is
-  space: string; // 1–3 sentences: what memory grows and why
-}
-```
-
-The `ComplexityCard` renders the Big-O chips plus these paragraphs, so the prose must
-explain the *reason* behind the bound, not restate it. Example (Two Sum):
-
-- `time`: `We walk the array once, and each hash-map lookup and insert costs O(1) on average, so the total work grows linearly with the number of elements — O(n). Even in the worst case, where no pair exists, we still make just a single pass.`
-- `space`: `The hash map stores up to one entry per element before a pair is found, so extra memory grows linearly with the input — O(n).`
-
-### The `AlgorithmStep` Structure
-
-An `AlgorithmStep` is an immutable snapshot generated for each step of execution:
+Each step is an immutable snapshot:
 
 ```typescript
 export interface AlgorithmStep {
-  stepIndex: number;
-  codeLine: number;                              // 1-indexed Python code line to highlight
-  explanation: {
-    what: string;                                // Short present-tense action label (≤ 8 words)
-    why: string;                                 // The teacher's sentence(s) — see contract below
-  };
-  primarySnapshot: PrimaryVisualSnapshot;        // Array, Grid, Graph, or Tree visual state
-  auxiliaryState: AuxiliaryState;                // Call stack, Queue, Visited Set, Hash Map, Distance Table
-  variables: Record<string, string | number | boolean>; // Live variable watch table
+  stepIndex: number;              // 0-based, strictly increasing
+  codeLine: number;               // 1-based line of `code` to highlight (section 4.5)
+  explanation: { what: string; why: string };  // Teacher voice (section 4.3)
+  primarySnapshot: PrimaryVisualSnapshot;      // array | grid | graph | tree
+  auxiliaryState: AuxiliaryState; // stack/queue/visited/hashMap/distanceTable/customState
+  variables: Record<string, string | number | boolean>; // Live "Vars" strip
 }
 ```
 
-### Teacher-Voice Explanation Contract
+Snapshot variants (discriminated on `kind`):
 
-Every step explanation must read like a teacher talking, not a log line:
+1. `ArrayVisualSnapshot` — `{ kind: 'array', elements: ArrayElement[] }`;
+   each element: `id`, `value`, `state: ElementState`, optional `pointers: string[]`
+   (labels like `i`, `j`, `match` rendered above the bar).
+2. `GridVisualSnapshot` — `{ kind: 'grid', grid: GridCellNode[][] }`;
+   cells: `row`, `col`, optional `isStart/isEnd/isWall/isVisited/isPath`, `state`,
+   `distance`.
+3. `GraphVisualSnapshot` — `{ kind: 'graph', nodes: GraphNodeItem[], edges: GraphEdgeItem[] }`;
+   nodes: `id`, `label`, `state`, optional `x`/`y`/`val`; edges: `from`, `to`,
+   optional `weight`/`isTraversed`/`isPath`.
+4. `TreeVisualSnapshot` — `{ kind: 'tree', nodes: TreeNodeItem[], rootId? }`;
+   nodes: `id`, `val`, optional `leftId`/`rightId`, `state`, optional `x`/`y`.
 
-- **`what`**: short present-tense action label, at most ~8 words (e.g. `Compute the complement`, `Look up 7 in the map`).
-- **`why`**: 1–2 conversational sentences explaining why this step happens and what it means, with the **actual runtime values interpolated** into the string. Address the learner as "we". No headers, no bullet lists, no exclamation spam, no robotic `Equation:`-style prefixes, and no Big-O lectures mid-step (a brief complexity note at the final step is fine).
+`ElementState` is the visual vocabulary: `default | compare | swap | sorted | active
+| pivot | visited | queued | in-stack | path` — each has a `--state-*` token pair.
 
-Example (Two Sum, checking the map):
-
-- `what`: `Look up 7 in the map`
-- `why`: `We need a partner for 2 that reaches 9, so we check whether 7 has already been seen. It hasn't yet — so we remember 2 and keep walking.`
-
-### Visual Snapshot Variants
-
-1. **`ArrayVisualSnapshot`** (`kind: 'array'`): `ArrayElement[]` containing `id`, `value`, `state`, and optional `pointers: string[]`.
-2. **`GridVisualSnapshot`** (`kind: 'grid'`): 2D matrix `GridCellNode[][]` containing `isStart`, `isEnd`, `isWall`, `isVisited`, `isPath`.
-3. **`GraphVisualSnapshot`** (`kind: 'graph'`): `GraphNodeItem[]` and `GraphEdgeItem[]` containing `x`, `y`, `weight`, `isTraversed`, `isPath`.
-4. **`TreeVisualSnapshot`** (`kind: 'tree'`): `TreeNodeItem[]` containing `val`, `leftId`, `rightId`, `state`, `x`, `y`.
+`CategoryType` contains the 25 canonical ids plus legacy compatibility aliases
+(`stack`, `trees`, `graphs`, `sorting`, …). **New algorithms must use a canonical
+id** — `isCategoryType()` only accepts the canonical 25, so aliases are not routeable
+category filters.
 
 ---
 
-## 3. Step Generator Pattern Guide
+## 4. Playbook: Adding a New Problem End-to-End
 
-Step generators **MUST** be pure functions that run synchronously and return an array of `AlgorithmStep`.
+### 4.1 Pick the category (decision guide — all 25)
 
-### Example Generator Skeleton
+| Folder | What belongs there |
+|---|---|
+| `arrays_and_hashing` | Hash maps, frequency counting, prefix sums, single-pass array scans, elementary sorts (Two Sum, Kadane, Bubble Sort live here) |
+| `two_pointers` | Converging/parallel index pairs over arrays, partition schemes (sorted Two Sum, Quick Sort's partition) |
+| `sliding_window` | Contiguous-window optimizations, monotonic deques over a moving range |
+| `stack_and_queue` | Problems whose core structure is LIFO/FIFO discipline (Valid Parentheses, monotonic stacks) |
+| `binary_search` | Halving a search space — sorted arrays, matrices, or the answer space itself |
+| `linked_list` | Pointer surgery on node chains: reversal, cycle detection, merging |
+| `tree_fundamentals` | Binary tree recursion/traversal basics: DFS orders, LCA, depth |
+| `tree_queries_and_diameter` | Path and aggregate computations over trees: diameter, subtree sums, rerooting |
+| `tries_and_strings` | Prefix trees and string matching automata (Trie, KMP, Z-algorithm) |
+| `heap_and_priority_queue` | Top-k, streaming order statistics, heapify mechanics |
+| `backtracking` | Exhaustive recursive search with undo (N-Queens, permutations, subsets) |
+| `graph_traversal` | BFS/DFS reachability, flood fill, connected components on grids/graphs |
+| `graph_shortest_paths` | Distance computation: Dijkstra, Bellman-Ford, Floyd-Warshall, 0-1 BFS |
+| `graph_spanning_trees` | Minimum spanning trees and union-find machinery (Kruskal, Prim) |
+| `graph_directed_and_scc` | DAG ordering and strongly connected components (topological sort, Kosaraju, Tarjan) |
+| `graph_flows_and_cuts` | Max-flow / min-cut / bipartite matching (Ford-Fulkerson, Edmonds-Karp) |
+| `dp_1d` | Dynamic programming over a single index/state dimension (coin change, house robber, LIS) |
+| `dp_2d` | DP over grids or two sequences (edit distance, LCS, unique paths) |
+| `intervals` | Sort-then-sweep over ranges: merging, scheduling, overlap counting |
+| `greedy_algorithms` | Local-choice-optimal constructions (Huffman coding, activity selection) |
+| `bit_manipulation` | Bitwise identities and tricks (counting bits, XOR pairing, masks) |
+| `math_and_number_theory` | Primes, GCD, modular arithmetic, combinatorics (Sieve, Euclid) |
+| `game_theory` | Win/lose state analysis and Sprague-Grundy style reasoning (Nim) |
+| `advanced_range_queries` | Fenwick trees, segment trees, lazy propagation over ranges |
+| `geometry_and_sweep_line` | Computational geometry and sweeps (convex hull, polygon area, closest pair) |
+
+If a problem could fit two folders, choose by **what technique the visualization
+teaches**, not the data type (Quick Sort teaches partitioning by two pointers, so it
+lives in `two_pointers`, not a "sorting" folder — there is no sorting folder).
+
+### 4.2 Create the algorithm file
+
+Path: `src/algorithms/<category>/<algorithmName>.ts` (camelCase filename; the exported
+const uses the same camelCase name; the `id` is the kebab-case slug).
+
+Export, following the house pattern (see `src/algorithms/arrays_and_hashing/twoSum.ts`
+as the canonical reference):
+
+1. A typed input interface (e.g. `export interface TwoSumInput { nums: number[]; target: number }`).
+2. The Python source as a named const template literal (e.g. `export const TWO_SUM_CODE = \`def two_sum(...)\``). Python only — the code viewer shows `solution.py`.
+3. A curated `DEFAULT_<NAME>_INPUT` const.
+4. The pure generator `generate<Name>Steps(input): AlgorithmStep[]`.
+5. The `AlgorithmDefinition<YourInput>` object wiring it all together.
+
+Strict typing throughout: no `any` in any form, no `unknown` casts, no suppression
+comments. Narrow snapshot unions with `if (snapshot.kind === 'graph') { ... }`.
+
+### 4.3 Write explanations in the teacher voice
+
+Every `explanation` is `{ what, why }` (contract from
+`docs/planning/ui-overhaul/DESIGN.md` §6):
+
+- **`what`** — short present-tense action label, ≤ ~8 words, with actual values when
+  they help: `Compute the complement 7`, `Visit nums[2] = 11`.
+- **`why`** — 1–2 conversational sentences explaining why this step happens and what
+  it means, with the **actual runtime values interpolated** into the string. Address
+  the learner as "we". No headers, no bullet lists, no exclamation spam, no robotic
+  `Equation:`-style prefixes, and no Big-O lectures mid-step (a brief complexity note
+  at the final step is fine).
+
+**Good** (Two Sum, checking the map — from DESIGN.md):
+
+> what: `Look up 7 in the map`
+> why: `We need a partner for 2 that reaches 9, so we check whether 7 has already
+> been seen. It hasn't yet — so we remember 2 and keep walking.`
+
+**Bad** — each violates the contract:
+
+> why: `Checking hashmap for key=7. Found=false.` *(log line, no "we", no meaning)*
+> why: `Equation: complement = target - nums[i] = 9 - 2 = 7` *(robotic prefix, restates code)*
+> why: `Hash map lookups are O(1) amortized, giving O(n) overall!` *(Big-O lecture mid-step + exclamation)*
+> why: `We look up the complement.` *(no runtime values interpolated — every step must use the real numbers)*
+
+Branchy steps should interpolate the branch taken (see the `hasComplement` ternary in
+`twoSum.ts` — the same step number produces different prose per outcome).
+
+### 4.4 Write the complexity prose
+
+`complexityAnalysis` is **required** (contract from DESIGN.md §7):
+
+- `time` — 2–4 plain-English sentences explaining **why** the time complexity is what
+  it is, not restating the bound.
+- `space` — 1–3 sentences: what memory grows and why.
+
+**Good** (Two Sum — from DESIGN.md):
+
+> time: `We walk the array once, and each hash-map lookup and insert costs O(1) on
+> average, so the total work grows linearly with the number of elements — O(n). Even
+> in the worst case, where no pair exists, we still make just a single pass.`
+> space: `The hash map stores up to one entry per element before a pair is found, so
+> extra memory grows linearly with the input — O(n).`
+
+**Bad**:
+
+> time: `O(n) because it is linear.` *(restates the chip; the chips already show O(n) — the prose must carry the reasoning)*
+> space: `Uses a hash map.` *(names the structure without saying what grows or why)*
+
+`ComplexityCard` renders the `timeComplexity` best/average/worst chips and
+`spaceComplexity` chip, then these paragraphs beneath them.
+
+### 4.5 The `addStep` closure pattern & `codeLine` mapping
+
+Generators build steps through a local `addStep` closure that snapshots the working
+state. Key rules:
+
+- **Deep-copy mutable visual state on every push.** The closure must map/spread the
+  working arrays (`elements.map((el) => ({ ...el, ... }))`, `{ ...hashMap }`) —
+  steps are immutable snapshots; sharing references makes later mutations bleed into
+  earlier steps.
+- `stepIndex` increments monotonically from 0 inside the closure.
+- **`codeLine` numbers map 1-based onto the lines of the `code` Python string.**
+  `CodeBlockViewer` renders `code.trim().split('\n')` with 1-based numbering, so line
+  1 is the `def` line of the template literal. If you edit the Python string, re-audit
+  every `codeLine` in the generator — the spec should pin at least the first and last
+  step's `codeLine` to catch drift.
+- `variables` feeds the "Vars" chip strip docked under the code viewer — keep it to
+  the handful of live values a reader would trace (`i`, `complement`, `target`), not
+  a dump of all state.
+
+Skeleton:
 
 ```typescript
-import type { AlgorithmDefinition, AlgorithmStep, ArrayVisualSnapshot } from '../../types/dsa';
-
-export const PYTHON_EXAMPLE_CODE = `def example_algo(arr):
-    n = len(arr)
-    for i in range(n):
-        # Step logic
-        pass`;
-
-export interface ExampleInput {
-  array: number[];
-}
-
 export const generateExampleSteps = (input: ExampleInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const arr = [...input.array];
-  let stepIdx = 0;
+  let stepIndex = 0;
+  const elements: ArrayElement[] = input.nums.map((val, idx) => ({
+    id: `el-${idx}`, value: val, state: 'default',
+  }));
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    vars: Record<string, string | number | boolean>,
-    activeIndices?: number[]
+    variables: Record<string, string | number | boolean>
   ) => {
     steps.push({
-      stepIndex: stepIdx++,
+      stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: 'array',
-        elements: arr.map((val, idx) => ({
-          id: `elem-${idx}`,
-          value: val,
-          state: activeIndices?.includes(idx) ? 'active' : 'default',
-        })),
+        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
       },
-      auxiliaryState: {
-        customState: { currentStep: stepIdx },
-      },
-      variables: vars,
+      auxiliaryState: { /* copy whatever aux structures apply */ },
+      variables,
     });
   };
 
-  // Step 1: Initial state — note the teacher voice with real values interpolated
-  addStep(
-    1,
-    'Set up the walk',
-    `We start with ${arr.length} elements and nothing examined yet, so we point at the first one and get ready to walk the array.`,
-    { n: arr.length }
-  );
-
-  // Execution loop...
+  addStep(1, 'Start the search',
+    `We want two numbers in [${input.nums.join(', ')}] that add up to ${input.target}. ...`,
+    { target: input.target });
+  // ... mutate elements/aux state, addStep after each meaningful action ...
   return steps;
 };
 ```
 
----
+### 4.6 Choose the `PrimaryVisualSnapshot` kind
 
-## 4. UI Library, Theming & Search Flow
+- **`array`** — anything linear: number arrays, strings (one element per char),
+  pointer walks, sliding windows, DP over one row. Use `pointers: ['i', 'j']` for
+  index labels and `state` for per-element coloring. Default choice when unsure.
+- **`grid`** — inherently 2D state: matrices, pathfinding boards, island maps,
+  N-Queens boards, 2D DP tables. Cells carry `isStart/isEnd/isWall/isVisited/isPath`
+  for pathfinding semantics or `state` for generic coloring.
+- **`graph`** — node/edge structures: traversals, shortest paths, MSTs, SCCs, flows.
+  `x`/`y` are optional — `GraphVisualizer` auto-places nodes on a circle (canvas
+  800×500, radius 0.38×min dimension) when omitted; provide coordinates only when
+  layout carries meaning (e.g. flow networks left-to-right). Mark progress with
+  `isTraversed`/`isPath` on edges and `state` on nodes.
+- **`tree`** — binary trees with parent→child identity: traversals, LCA, heaps
+  drawn as trees, tries. Nodes link via `leftId`/`rightId` with an optional `rootId`;
+  `x`/`y` optional.
 
-### The `src/ui/` Component Library
+One algorithm uses one kind for all its steps — the visualizer swaps per-step but
+mixing kinds mid-run is confusing and untested.
 
-All interactive chrome is built from the shared library in `src/ui/` (barrel export
-`src/ui/index.ts`, class styles in `src/styles/ui.css` with the `ui-` prefix):
+### 4.7 Choose `auxiliaryState` fields
 
-| Component | Purpose |
-|---|---|
-| `Button` | Variants `primary`/`secondary`/`ghost`/`danger`, sizes `sm`/`md`/`lg`, `selected`, `icon`, `fullWidth` |
-| `IconButton` | Square icon-only button; `aria-label` required |
-| `Badge` | Variants `neutral`/`accent`/`success`/`warning`/`danger`/`info`; helper `difficultyBadgeVariant(difficulty)` maps Easy→success, Medium→warning, Hard→danger |
-| `Card` | Surface panel with optional `title`, `icon`, `actions`, `padding`, `inset` |
-| `Input` | Text input with `leadingIcon` and `onClear` support |
-| `Slider` | Labeled range input with `formatValue` |
-| `Segmented` | Single-select toggle group (replaces hand-rolled toggles) |
-| `Collapsible` | Header-button + chevron section with optional controlled `open` |
-| `Drawer` | Right-side dialog with backdrop, ESC/backdrop close, `--z-drawer` |
-| `Kbd` | Small keycap chip for shortcut hints (e.g. `/`) |
+Each populated field renders as a labeled chip row in the `AuxiliaryPanel` ("Working
+data" card); empty/absent fields render nothing:
 
-**Rule: every button, badge, card, input, and drawer in the app comes from `src/ui/` —
-never hand-roll one-off equivalents in feature components.** Shared helper classes
-`.ui-code-line` / `.ui-code-line--active` (code viewer rows) and `.ui-chip` (mono
-key/value chips) also live in `ui.css`.
+| Field | UI row | Notes |
+|---|---|---|
+| `stack: (string\|number)[]` | "Stack" | Last item gets a `top` marker |
+| `queue: (string\|number)[]` | "Queue" | First item gets a `front` marker |
+| `visited: (string\|number)[]` | "Visited (n)" | Count in the label |
+| `hashMap: Record<string, string\|number>` | "Hash map" | Rendered `key → value` |
+| `distanceTable: Record<string, number>` | "Distances" | `Infinity` renders as `∞` |
+| `customState: Record<string, string\|number>` | "State" | Rendered `key = value`; the catch-all for anything else (dp rows, flow totals, counters) |
 
-### Styling Only via Tokens
+Copy the structures on every `addStep` (`{ ...hashMap }`, `[...queue]`). Use the
+field that matches the algorithm's actual working structure — a BFS should populate
+`queue` + `visited`, Dijkstra `distanceTable` + `visited`, DFS `stack`, DP
+`customState`.
 
-All colors, spacing, type sizes, radii, shadows, and z-indices come from the design
-tokens in `src/styles/theme.css` (`--bg-*`, `--border-*`, `--accent*`, `--text-*`,
-`--state-*`, `--space-*`, `--text-xs..2xl`, `--radius-*`, `--shadow-*`, `--z-*`).
-**Never hardcode hex/rgba color values or ad-hoc pixel/rem sizes in components** —
-reference tokens with `var(--token)`. Element visual states map 1:1 to the
-`--state-<name>` / `--state-<name>-bg` token pairs for every `ElementState`.
+### 4.8 Register the algorithm
 
-### Search Flow (SearchTrigger → QuickAccessDrawer)
-
-- The navbar renders `SearchTrigger`: a button styled to look like an input
-  (`🔍 Search algorithms… ⟨/⟩` with a `Kbd` chip). Clicking it — or pressing `/`
-  anywhere outside an input/textarea/select/contenteditable — opens the
-  `QuickAccessDrawer`. ESC or backdrop click closes it.
-- `QuickAccessDrawer` (built on `ui/Drawer`) contains an autofocused search `Input`
-  at the top, then one `Collapsible` section per category with a per-category count
-  `Badge`. The active algorithm's category starts open; others start collapsed. While
-  searching, only categories with matches render and they are auto-expanded. The
-  selected algorithm row uses the standard selected treatment plus a check icon, and
-  every row shows its difficulty `Badge`.
-- There is no dropdown-results search bar; the drawer owns all searching.
-
----
-
-## 5. Step-by-step Procedure to Add a New Algorithm
-
-Follow these 5 steps whenever adding a new algorithm, LeetCode problem, or data structure:
-
-### Step 1: Create Algorithm File in the Appropriate Topic Directory
-Create `src/algorithms/<category_folder>/<algorithm_name>.ts`.
-
-- Choose the appropriate directory from the **25 Granular Modules** (e.g. `graph_shortest_paths`, `tries_and_strings`, `dp_1d`, `math_and_number_theory`).
-- Provide clean **Python** code in `code: PYTHON_CODE_STRING`.
-- Include the required `complexityAnalysis: { time, space }` prose (see section 2 guidelines).
-- Write step explanations in the teacher voice (see section 2 contract).
-- Enforce strict typing with **0 `any` or `unknown` casts**.
-
-### Step 2: Create Spec Files in `specs/` Subdirectory
-Inside `src/algorithms/<category_folder>/specs/`:
-
-1. **Logic Spec** (`<algorithm_name>.spec.ts`):
-   ```typescript
-   import { describe, expect, it } from 'vitest';
-   import { myAlgo, generateMyAlgoSteps, DEFAULT_INPUT } from '../myAlgo';
-
-   describe('myAlgo algorithm logic spec', () => {
-     it('should have correct metadata', () => {
-       expect(myAlgo.id).toBe('my-algo');
-       expect(myAlgo.category).toBe('my_category_folder');
-     });
-
-     it('should generate valid steps', () => {
-       const steps = generateMyAlgoSteps(DEFAULT_INPUT);
-       expect(steps.length).toBeGreaterThan(0);
-     });
-   });
-   ```
-
-2. **React Component Render Spec** (`<algorithm_name>.spec.tsx`):
-   ```typescript
-   import { render, screen } from '@testing-library/react';
-   import { describe, expect, it, vi } from 'vitest';
-   import { MainLayout } from '../../../components/MainLayout';
-   import { myAlgo, generateMyAlgoSteps, DEFAULT_INPUT } from '../myAlgo';
-
-   describe('myAlgo React Component Spec', () => {
-     it('renders layout cleanly', () => {
-       const steps = generateMyAlgoSteps(DEFAULT_INPUT);
-       render(
-         <MainLayout
-           algorithm={myAlgo}
-           currentStep={steps[0]}
-           viewMode="split"
-           showTutorial={true}
-           showAuxiliary={true}
-           onToggleTutorial={vi.fn()}
-           onToggleAuxiliary={vi.fn()}
-         />
-       );
-       expect(screen.getAllByText(/My Algo Title/i)[0]).toBeInTheDocument();
-     });
-   });
-   ```
-
-### Step 3: Register in `src/algorithms/registry.ts`
-Import your algorithm and register it in `ALGORITHM_REGISTRY`:
+In `src/algorithms/registry.ts`, import and add one entry:
 
 ```typescript
-import { myAlgo } from './my_category_folder/myAlgo';
+import { myAlgo } from './my_category/myAlgo';
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   // ...
@@ -313,29 +542,223 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
 };
 ```
 
-### Step 4: Update Knowledge Graph Node in `src/components/KnowledgeGraph.tsx`
-Update the corresponding node in `TOPIC_ROADMAP_NODES` array (or increment `algorithmCount`).
+- The key **must equal** the definition's `id` — it is the URL slug.
+- The `as AlgorithmDefinition` cast is the sanctioned widening from
+  `AlgorithmDefinition<SpecificInput>` to the registry's `AlgorithmDefinition`
+  (`TInput = unknown`); it is not an `any` escape.
+- **Routes need NO changes** — `/workspace/$algorithmId` resolves any registry id,
+  and the `QuickAccessDrawer`/`ProblemList` enumerate the registry automatically.
 
-### Step 5: Verify Master Quality Gate
-Run the master quality gate command in your terminal:
+Then bump the category's `algorithmCount` in `TOPIC_ROADMAP_NODES`
+(`src/components/KnowledgeGraph.tsx`) so the roadmap node count stays truthful.
 
-```bash
-bun run check
+Note: the workspace's data-size/randomize controls only activate for
+`arrays_and_hashing` algorithms whose `defaultInput` is a plain `number[]`
+(`supportsRandomArray` in `workspace.$algorithmId.tsx`); object-shaped inputs keep
+their curated default — design your `defaultInput` to be a great teaching example.
+
+### 4.9 Write the specs
+
+Both files live in `src/algorithms/<category>/specs/`. Study
+`src/algorithms/arrays_and_hashing/specs/twoSum.spec.ts(x)` and
+`graph_shortest_paths/specs/bellmanFord.spec.ts` as templates.
+
+**Logic spec — `<name>.spec.ts`** (pure step-generator invariants, no DOM):
+
+- Metadata: `id`, `title`, `category`, `defaultInput` equality, `code` contains the
+  Python `def`.
+- Step count: `steps.length > 0`; first step has `stepIndex === 0` and the expected
+  `codeLine`.
+- `codeLine` bounds: every step's `codeLine` is ≥1 and ≤ the number of lines in the
+  code string (pin the final step's exact line).
+- Snapshot integrity: narrow with `if (snapshot.kind === '...')` and assert element
+  counts/states; assert the auxiliary structures appear when expected.
+- Final state: the algorithm's *answer* is correct for the default input **and** for
+  at least 2–3 custom inputs including an edge case (no solution, negative numbers,
+  cycle present, empty-ish input).
+
+**Render spec — `<name>.spec.tsx`** (component integration through `MainLayout`):
+
+```tsx
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { MainLayout } from '../../../components/MainLayout';
+import { myAlgo, generateMyAlgoSteps, DEFAULT_MY_ALGO_INPUT } from '../myAlgo';
+
+it('renders title and description', () => {
+  const steps = generateMyAlgoSteps(DEFAULT_MY_ALGO_INPUT);
+  render(
+    <MainLayout
+      algorithm={myAlgo}
+      currentStep={steps[0]}
+      viewMode="split"
+      showTutorial={true}
+      showAuxiliary={true}
+      onToggleTutorial={vi.fn()}
+      onToggleAuxiliary={vi.fn()}
+    />
+  );
+  expect(screen.getByText('My Algo Title')).toBeInTheDocument();
+  // Details are collapsed by default — expand before asserting on description text.
+  fireEvent.click(screen.getByRole('button', { name: /details/i }));
+  expect(screen.getByText(/first words of the description/i)).toBeInTheDocument();
+});
 ```
 
-Ensure:
-- `tsc --noEmit` returns **0 errors**.
-- `eslint` returns **0 warnings and 0 errors**.
-- `vitest run` passes **100% of test specs**.
-- `vite build` builds production bundle cleanly.
+Cover: title renders; description behind the Details toggle; a mid/last step renders
+its tutorial `what` text (use `screen.getAllByText(...)[0]` — step text can appear in
+more than one panel); "Working data" rows appear for a step whose auxiliary state is
+populated. jsdom gotchas are in section 6.
+
+Run only your specs while iterating:
+
+```bash
+bunx vitest run src/algorithms/<category>/specs/<name>.spec.ts src/algorithms/<category>/specs/<name>.spec.tsx
+```
+
+### 4.10 Final gate
+
+Exactly once, when the work is done:
+
+```bash
+bun run check   # tsc --noEmit && eslint (0 warnings) && vitest run (all green) && vite build
+```
 
 ---
 
-## 6. Strict Code Quality Rules for AI Agents
+## 5. Common-Components Mandate (`src/ui/`)
 
-1. **NO `any` or `unknown` casts**: Always use proper interfaces from `src/types/dsa.ts` or narrow types using type guards (`if (snapshot.kind === 'graph') { ... }`).
-2. **NO Suppression Comments**: Never use `@ts-ignore`, `@ts-expect-error`, or `eslint-disable`.
-3. **Python Code Representation Only**: All algorithm code strings displayed in the Code Block Viewer **MUST** be written in Python.
-4. **UI From the Library, Colors From Tokens**: Buttons, badges, cards, inputs, and drawers come from `src/ui/`; all color/size values reference tokens in `src/styles/theme.css` — no hardcoded hex/rgba in components.
-5. **Isolate Specs in `specs/`**: All Vitest test files must live inside the `specs/` subdirectory of their dedicated category folder.
-6. **Conventional Commits**: Every git commit message must begin with an approved tag (e.g. `feat:`, `fix:`, `refactor:`, `test:`, `ci:`).
+**Every button, badge, card, input, slider, toggle group, collapsible, drawer, and
+keycap in the app comes from `src/ui/` (barrel `src/ui/index.ts`) — never hand-roll
+one-off equivalents in feature components.**
+
+| Component | API essentials |
+|---|---|
+| `Button` | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?`, `icon?`, `fullWidth?` + native props; labels never wrap |
+| `IconButton` | Square icon-only button: `icon`, `size?`, `variant?`, `selected?`; **`aria-label` required** |
+| `Badge` | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`; helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger; sentence case text |
+| `Card` | Surface panel: `title?`, `icon?`, `actions?`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?` |
+| `Input` | Text input with `leadingIcon?` and `onClear?` (clear button when non-empty), sizes |
+| `Slider` | Labeled range: `label?`, `value`, `min`, `max`, `step?`, `onChange(value)`, `formatValue?` |
+| `Segmented` | Single-select toggle group: `options: { value, label, icon? }[]`, `value`, `onChange`, `size?` |
+| `Collapsible` | `title`, `meta?` (right side of header), `defaultOpen?`, optional controlled `open`/`onOpenChange`; header is a real `<button>` |
+| `Drawer` | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `footer?`; backdrop, ESC + backdrop close, `role="dialog"` `aria-modal`, `--z-drawer` |
+| `Kbd` | Small keycap chip for shortcut hints (e.g. `/`) |
+
+Shared classes in `ui.css` for app components not worth a dedicated component:
+
+- `.ui-code-line` / `.ui-code-line--active` — code viewer rows. Active row =
+  `--accent-soft` background + 2px `--accent` left border + `--text-primary`, normal
+  weight (a transparent left border on inactive rows prevents text shift).
+- `.ui-chip` — small mono key/value chip (`--bg-elevated`, `--border-subtle`,
+  `--font-code`) used for live variables and all AuxiliaryPanel data.
+
+**One interaction system everywhere** (do not invent alternatives):
+
+- Selected/active: background `--accent-soft`, 1px `--border-accent`, text
+  `--accent`. Nothing else — no glow, no bold-only signaling, no scale.
+- Hover (non-selected): background `--bg-hover`, text `--text-primary`.
+- Primary buttons: solid `--accent` bg, `--text-on-accent` text; hover `--accent-hover`.
+- Focus: `:focus-visible` → `--focus-ring` (global, already wired).
+- Disabled: opacity 0.45, `cursor: not-allowed`.
+- Icon sizes: 14px in `sm`, 16px in `md`, 18px in `lg` controls (set by ui.css — no
+  inline icon sizes).
+
+Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
+
+---
+
+## 6. Gotchas
+
+- **jsdom lacks `scrollIntoView`** — always optional-call it:
+  `ref.current?.scrollIntoView?.({ block: 'nearest' })` (see `CodeBlockViewer`). A
+  bare call crashes every render spec that mounts the code viewer.
+- **ProblemHeader details are collapsed by default** — render specs must
+  `fireEvent.click(screen.getByRole('button', { name: /details/i }))` before
+  asserting on `description`/constraints/examples text.
+- **Duplicated text in the DOM** — a step's `what` text can appear in both the
+  TutorialCard and elsewhere; prefer `screen.getAllByText(...)[0]` when asserting
+  step prose through `MainLayout`.
+- **Sound requires a user gesture** — browsers start AudioContexts suspended; the
+  soundEngine skips tones until its pointerdown/keydown unlock listeners resume the
+  context. Don't "fix" silence-before-first-click; it is the autoplay policy.
+- **StrictMode double-render is handled by stepEngine dedupe** —
+  `lastNotifiedIndexRef` guarantees `onStepChange` fires once per index move and
+  never for the initial index. **Never add sound calls in render or effects
+  directly**; route all side effects through `onStepChange`.
+- **The route tree is generated** — never hand-edit `src/routeTree.gen.ts` (it is
+  overwritten) or the path string inside `createFileRoute('...')` (the plugin derives
+  and maintains it from the filename). New routes = new files in `src/routes/`; the
+  plugin regenerates during dev/build, or run `bun run generate-routes`.
+- **Router plugin order in `vite.config.ts`** — `tanstackRouter(...)` must precede
+  `react()`; the wrong order fails silently. This file is finished — read, don't
+  edit.
+- **Run scoped vitest during iteration** (`bunx vitest run <paths>`); the full
+  `bun run check` runs exactly once as the final gate. The full suite is 350+ tests
+  and is not an iteration loop.
+- **Category aliases are not routeable** — `?category=` only accepts the 25 canonical
+  ids via `isCategoryType`; legacy `CategoryType` aliases silently collapse to "no
+  filter".
+- **Steps must be deep-copied snapshots** — sharing element/aux references between
+  `addStep` calls is the classic bug: stepping backward then shows mutated "past"
+  state. Copy in the closure, always.
+- **localStorage can throw** — every read/write goes through the validated
+  `readStored`/`writeStored` helpers (SettingsContext) or try/catch
+  (ResizableLayout). Follow that pattern for any new persistence.
+
+---
+
+## 7. Strict Code Quality Rules
+
+1. **No `any` in any form** — annotations, casts, generic defaults, or implicit.
+   ESLint enforces `@typescript-eslint/no-explicit-any: error`. Narrow unions with
+   type guards (`if (snapshot.kind === 'graph')`), use `unknown` + guards at true
+   boundaries (see `readStored`).
+2. **No suppression comments** — never `@ts-ignore`, `@ts-expect-error`, or
+   `eslint-disable` (the generated `routeTree.gen.ts` header is the tool's own output
+   and is exempt because you never edit it).
+3. **Python only** in `code` strings — the viewer presents `solution.py`.
+4. **UI from the library, colors from tokens** (sections 2.5 and 5).
+5. **Specs live in `specs/` subdirectories** of the folder they cover.
+6. **Comments explain the non-obvious *why*** — no restating code, no banners.
+7. **Conventional Commits** — every commit subject starts with an approved tag
+   (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, …), imperative, < 70 chars.
+
+---
+
+## 8. Test Landscape
+
+Vitest + jsdom (`vite.config.ts` `test` block; setup file
+`src/test/setup.ts` loads `@testing-library/jest-dom`). Spec locations:
+
+- `src/algorithms/<category>/specs/*.spec.ts(x)` — one logic + one render spec per
+  algorithm (section 4.9).
+- `src/ui/specs/*.spec.tsx` — one spec per UI-library component.
+- `src/components/specs/*` — app component specs (Navbar, QuickAccessDrawer,
+  MainLayout, ControlPanel, …).
+- `src/engine/specs/*` — stepEngine and soundEngine behavior.
+- `src/app/specs/routing.spec.tsx` — route-level integration (redirects, search
+  param validation, navigation flows).
+
+---
+
+## 9. Roadmap Seeds (good next contributions)
+
+- **URL-driven workspace settings** — lift `viewMode`/`showTutorial`/`showAuxiliary`
+  (and perhaps step index) into `/workspace/$algorithmId` search params via
+  `validateSearch`, so workspace views become shareable links; SettingsContext
+  becomes the fallback rather than the source of truth. The
+  `router-core/search-params` intent skill covers the patterns.
+- **More algorithms per category** — most categories have 1–2 of a planned 3–4
+  (registry has 40 today). Each addition is exactly the section 4 playbook; remember
+  the `TOPIC_ROADMAP_NODES` count bump.
+- **React 19 / Vite 8 / TS 6 upgrade path** — deliberately deferred (section 1). When
+  attempted: upgrade in a branch, land Vite + vitest together, verify the 350+-test
+  suite and the router plugin ordering, then consider `@tanstack/devtools-vite`
+  (needs Vite ≥ 6).
+- **Custom input editors** — `supportsRandomArray` only covers plain number arrays;
+  a per-kind input editor (graph/grid/tree) would make the workspace interactive for
+  the other 24 categories.
+- **More sound hooks** — `playPush`/`playPop` exist but nothing triggers them yet;
+  wiring them to stack/queue aux transitions (through `onStepChange` only) is a
+  contained improvement.
