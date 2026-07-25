@@ -7,15 +7,15 @@ declare global {
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
+  private lastPlayTime: number = 0;
+  private minToneIntervalMs: number = 35; // Minimum interval between tone triggers to prevent audio lag & queue backlog
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
 
     if (!this.ctx) {
       try {
-        const AudioCtxClass =
-          window.AudioContext || window.webkitAudioContext;
-
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
         if (AudioCtxClass) {
           this.ctx = new AudioCtxClass();
         }
@@ -35,6 +35,11 @@ class SoundEngine {
 
   public setMuted(muted: boolean): void {
     this.muted = muted;
+    if (muted && this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend().catch(() => {
+        // Safe catch for suspend
+      });
+    }
   }
 
   public isMuted(): boolean {
@@ -42,8 +47,18 @@ class SoundEngine {
   }
 
   public toggleMute(): boolean {
-    this.muted = !this.muted;
+    this.setMuted(!this.muted);
     return this.muted;
+  }
+
+  private shouldThrottle(): boolean {
+    if (this.muted) return true;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - this.lastPlayTime < this.minToneIntervalMs) {
+      return true;
+    }
+    this.lastPlayTime = now;
+    return false;
   }
 
   private playTone(
@@ -53,7 +68,7 @@ class SoundEngine {
     startGain: number = 0.1,
     endGain: number = 0.001
   ): void {
-    if (this.muted) return;
+    if (this.shouldThrottle()) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -75,6 +90,16 @@ class SoundEngine {
       osc.connect(gain);
       gain.connect(ctx.destination);
 
+      // Clean up audio nodes on completion to prevent memory leaks
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {
+          // Ignore disconnect errors
+        }
+      };
+
       osc.start();
       osc.stop(ctx.currentTime + durationSec);
     } catch {
@@ -93,7 +118,7 @@ class SoundEngine {
   }
 
   public playSwap(val1?: number, val2?: number): void {
-    if (this.muted) return;
+    if (this.shouldThrottle()) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -117,6 +142,15 @@ class SoundEngine {
       osc.connect(gain);
       gain.connect(ctx.destination);
 
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {
+          // Ignore disconnect errors
+        }
+      };
+
       osc.start();
       osc.stop(ctx.currentTime + 0.12);
     } catch {
@@ -125,7 +159,7 @@ class SoundEngine {
   }
 
   public playPush(): void {
-    if (this.muted) return;
+    if (this.shouldThrottle()) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -143,6 +177,15 @@ class SoundEngine {
       osc.connect(gain);
       gain.connect(ctx.destination);
 
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {
+          // Ignore disconnect errors
+        }
+      };
+
       osc.start();
       osc.stop(ctx.currentTime + 0.09);
     } catch {
@@ -151,7 +194,7 @@ class SoundEngine {
   }
 
   public playPop(): void {
-    if (this.muted) return;
+    if (this.shouldThrottle()) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -168,6 +211,15 @@ class SoundEngine {
 
       osc.connect(gain);
       gain.connect(ctx.destination);
+
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {
+          // Ignore disconnect errors
+        }
+      };
 
       osc.start();
       osc.stop(ctx.currentTime + 0.09);

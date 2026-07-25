@@ -34,9 +34,27 @@ export function useStepEngine({
   const [speed, setSpeedState] = useState<number>(defaultSpeed);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const onStepChangeRef = useRef(onStepChange);
+  const stepsRef = useRef(steps);
+
+  // Keep refs updated to prevent effect dependency churn
+  useEffect(() => {
+    onStepChangeRef.current = onStepChange;
+  }, [onStepChange]);
+
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   const totalSteps = steps.length;
   const currentStep = steps[currentStepIndex] || null;
+
+  // Fire onStepChange in a clean dedicated effect (outside setState updaters)
+  useEffect(() => {
+    if (stepsRef.current[currentStepIndex] && onStepChangeRef.current) {
+      onStepChangeRef.current(stepsRef.current[currentStepIndex]);
+    }
+  }, [currentStepIndex]);
 
   // Clear timer helper
   const stopTimer = useCallback(() => {
@@ -55,63 +73,49 @@ export function useStepEngine({
   // Step Forward
   const stepForward = useCallback(() => {
     setCurrentStepIndex((prev) => {
-      if (prev < steps.length - 1) {
-        const next = prev + 1;
-        if (onStepChange && steps[next]) {
-          onStepChange(steps[next]);
-        }
-        return next;
+      if (prev < stepsRef.current.length - 1) {
+        return prev + 1;
       } else {
         pause();
         return prev;
       }
     });
-  }, [steps, onStepChange, pause]);
+  }, [pause]);
 
   // Step Backward
   const stepBackward = useCallback(() => {
     setCurrentStepIndex((prev) => {
       if (prev > 0) {
-        const next = prev - 1;
-        if (onStepChange && steps[next]) {
-          onStepChange(steps[next]);
-        }
-        return next;
+        return prev - 1;
       }
       return prev;
     });
-  }, [steps, onStepChange]);
+  }, []);
 
   // Go to explicit step
   const goToStep = useCallback(
     (index: number) => {
-      if (index >= 0 && index < steps.length) {
+      if (index >= 0 && index < stepsRef.current.length) {
         setCurrentStepIndex(index);
-        if (onStepChange && steps[index]) {
-          onStepChange(steps[index]);
-        }
       }
     },
-    [steps, onStepChange]
+    []
   );
 
   // Reset to step 0
   const reset = useCallback(() => {
     pause();
     setCurrentStepIndex(0);
-    if (onStepChange && steps[0]) {
-      onStepChange(steps[0]);
-    }
-  }, [pause, steps, onStepChange]);
+  }, [pause]);
 
   // Play playback
   const play = useCallback(() => {
-    if (steps.length === 0) return;
-    if (currentStepIndex >= steps.length - 1) {
+    if (stepsRef.current.length === 0) return;
+    if (currentStepIndex >= stepsRef.current.length - 1) {
       setCurrentStepIndex(0);
     }
     setIsPlaying(true);
-  }, [steps.length, currentStepIndex]);
+  }, [currentStepIndex]);
 
   // Toggle play/pause
   const togglePlay = useCallback(() => {
@@ -133,12 +137,8 @@ export function useStepEngine({
       stopTimer();
       timerRef.current = setInterval(() => {
         setCurrentStepIndex((prev) => {
-          if (prev < steps.length - 1) {
-            const next = prev + 1;
-            if (onStepChange && steps[next]) {
-              onStepChange(steps[next]);
-            }
-            return next;
+          if (prev < stepsRef.current.length - 1) {
+            return prev + 1;
           } else {
             setIsPlaying(false);
             return prev;
@@ -150,7 +150,7 @@ export function useStepEngine({
     }
 
     return () => stopTimer();
-  }, [isPlaying, speed, steps, onStepChange, stopTimer]);
+  }, [isPlaying, speed, stopTimer]);
 
   // Reset step index if steps array changes
   useEffect(() => {
