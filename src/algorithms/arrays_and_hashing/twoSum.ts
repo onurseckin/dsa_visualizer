@@ -65,14 +65,14 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
   addStep(
     1,
     'Initialize Two Sum',
-    `Find two numbers in [${input.nums.join(', ')}] that add up to target = ${target}.`,
+    `Rather than scanning all pairs in O(n²) brute-force time, we use a single-pass Hash Map to find two elements in [${input.nums.join(', ')}] summing to target = ${target}.`,
     { target, length: n }
   );
 
   addStep(
     2,
     'Initialize Hash Map',
-    'Create an empty map to store { value: index } pairs for O(1) complement lookup.',
+    'Created an empty hash map to store seen values and their indices {value: index}, enabling O(1) complement lookup during traversal.',
     { target }
   );
 
@@ -85,7 +85,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     addStep(
       3,
       `Loop index i = ${i} (arr[${i}] = ${currentVal})`,
-      `Inspecting element at index ${i}.`,
+      `Inspecting element nums[${i}] = ${currentVal}. We calculate what value is needed to reach target sum ${target}.`,
       { i, 'nums[i]': currentVal, target }
     );
 
@@ -94,7 +94,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     addStep(
       4,
       `Calculate complement = target - nums[${i}]`,
-      `${target} - ${currentVal} = ${complement}. We look for ${complement} in the hash map.`,
+      `Complement equation: ${target} - ${currentVal} = ${complement}. If ${complement} was previously inserted in our hash map, a valid pair exists.`,
       { i, 'nums[i]': currentVal, complement, target }
     );
 
@@ -104,8 +104,8 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
       5,
       `Check if hash map contains key '${complement}'`,
       hasComplement
-        ? `Complement ${complement} found in map at index ${hashMap[String(complement)]}!`
-        : `Complement ${complement} is not yet in the map.`,
+        ? `Complement ${complement} is present in hash map at index ${hashMap[String(complement)]}! Pair found.`
+        : `Complement ${complement} has not been seen yet. We must store current element ${currentVal} for subsequent lookups.`,
       { i, complement, hasComplement }
     );
 
@@ -119,7 +119,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
       addStep(
         6,
         `Return indices [${prevIdx}, ${i}]`,
-        `Found pair nums[${prevIdx}] (${elements[prevIdx].value}) + nums[${i}] (${currentVal}) = ${target}.`,
+        `Found pair nums[${prevIdx}] (${elements[prevIdx].value}) + nums[${i}] (${currentVal}) = ${target}. Algorithm terminates in O(n) time and O(n) space.`,
         { resultIdx1: prevIdx, resultIdx2: i, target }
       );
       return steps;
@@ -133,7 +133,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     addStep(
       7,
       `Store map[${currentVal}] = ${i}`,
-      `Recorded value ${currentVal} with its index ${i} into hash map.`,
+      `Recorded hash_map[${currentVal}] = ${i} so future elements needing complement ${currentVal} can find it in O(1) time.`,
       { i, 'nums[i]': currentVal }
     );
   }
@@ -141,7 +141,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
   addStep(
     8,
     'Return empty array []',
-    `No pair in array sums up to target = ${target}.`,
+    `Finished array traversal without finding any two elements summing to target ${target}. Return empty array.`,
     { target }
   );
 
@@ -154,7 +154,30 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target using a Hash Map.',
+    'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target using a Hash Map for O(1) complement lookup.',
+  constraints: [
+    '2 <= nums.length <= 10^4',
+    '-10^9 <= nums[i] <= 10^9',
+    '-10^9 <= target <= 10^9',
+    'Only one valid answer exists.',
+  ],
+  examples: [
+    {
+      input: 'nums = [2, 7, 11, 15], target = 9',
+      output: '[0, 1]',
+      explanation: 'Because nums[0] + nums[1] == 9, we return [0, 1].',
+    },
+    {
+      input: 'nums = [3, 2, 4], target = 6',
+      output: '[1, 2]',
+      explanation: 'Because nums[1] + nums[2] == 6, we return [1, 2].',
+    },
+    {
+      input: 'nums = [3, 3], target = 6',
+      output: '[0, 1]',
+      explanation: 'Because nums[0] + nums[1] == 6, we return [0, 1].',
+    },
+  ],
   code: TWO_SUM_CODE,
   timeComplexity: {
     best: 'O(n)',

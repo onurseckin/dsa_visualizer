@@ -89,14 +89,14 @@ export const generateSlidingWindowMinSteps = (
   addStep(
     3,
     'Initialize Sliding Window Minimum',
-    `Find minimum element in each sliding window of size k = ${k} over array [${nums.join(', ')}].`,
+    `Find the minimum element in every contiguous sliding window of size k = ${k} over array [${nums.join(', ')}] using a Monotonic Increasing Deque in O(n) total time.`,
     { k, length: n }
   );
 
   addStep(
     5,
     'Initialize Data Structures',
-    'Created empty result array and empty monotonic deque for index management.',
+    'Created empty result list and double-ended queue (deque). The deque will store array indices in strictly increasing order of element values.',
     { k, dequeSize: 0, resultSize: 0 }
   );
 
@@ -126,7 +126,7 @@ export const generateSlidingWindowMinSteps = (
     addStep(
       6,
       `Iterate index i = ${i} (nums[${i}] = ${currentVal})`,
-      `Processing element nums[${i}] = ${currentVal}. Current window: [${nums.slice(windowStart, i + 1).join(', ')}].`,
+      `Window Right Boundary: Processing element nums[${i}] = ${currentVal}. Active window range: [${windowStart}..${i}] containing elements [${nums.slice(windowStart, i + 1).join(', ')}].`,
       { i, 'nums[i]': currentVal, windowStart, k }
     );
 
@@ -139,7 +139,7 @@ export const generateSlidingWindowMinSteps = (
         addStep(
           8,
           `Remove index ${removedIdx} from front of deque`,
-          `Index ${removedIdx} is outside current window boundary (<= ${i - k}).`,
+          `Boundary Eviction: Index ${removedIdx} is now outside the current sliding window boundary (index <= ${i - k}). Pop from front of deque.`,
           { i, removedIdx }
         );
       }
@@ -149,7 +149,7 @@ export const generateSlidingWindowMinSteps = (
       addStep(
         7,
         'Check front of deque',
-        `Front index ${deque[0]} is within window (${deque[0]} > ${i - k}).`,
+        `Boundary Invariant: Front index ${deque[0]} is valid and within active window bounds (${deque[0]} > ${i - k}).`,
         { i, dequeFront: deque[0] }
       );
     }
@@ -161,7 +161,7 @@ export const generateSlidingWindowMinSteps = (
         addStep(
           10,
           `Pop index ${poppedIdx} (val: ${nums[poppedIdx]}) from back of deque`,
-          `nums[${poppedIdx}] (${nums[poppedIdx]}) >= nums[${i}] (${currentVal}). It cannot be minimum for any future window.`,
+          `Monotonic Invariant Violation: nums[${poppedIdx}] (${nums[poppedIdx]}) >= current value nums[${i}] (${currentVal}). Because ${currentVal} is smaller and introduced later, index ${poppedIdx} can NEVER be the minimum for any future window. Pop it from back.`,
           { i, poppedIdx, 'nums[popped]': nums[poppedIdx] }
         );
       }
@@ -173,7 +173,7 @@ export const generateSlidingWindowMinSteps = (
     addStep(
       11,
       `Push index ${i} to deque`,
-      `Pushed index ${i} to deque. Deque indices: [${deque.join(', ')}].`,
+      `Insert Index: Pushed index ${i} (value ${currentVal}) to back of monotonic deque. Deque preserves strictly increasing element values: [${deque.map((idx) => nums[idx]).join(', ')}].`,
       { i, dequeState: deque.join(', ') }
     );
 
@@ -188,7 +188,7 @@ export const generateSlidingWindowMinSteps = (
       addStep(
         13,
         `Record window minimum: ${minVal}`,
-        `Window [${windowStart}..${i}] minimum is nums[${minIdx}] = ${minVal}. Pushed to result.`,
+        `Query Result: Monotonic deque front (index ${minIdx}) provides minimum value (${minVal}) for window [${windowStart}..${i}] in O(1) time. Appended to result list.`,
         { windowStart, windowEnd: i, minVal, result: result.join(', ') }
       );
     }
@@ -197,7 +197,7 @@ export const generateSlidingWindowMinSteps = (
   addStep(
     14,
     'Complete Sliding Window Minimum',
-    `Final sliding window minimums: [${result.join(', ')}].`,
+    `Evaluation Complete: Computed minimums for all sliding windows of size k = ${k}: [${result.join(', ')}] in linear O(n) time.`,
     { result: result.join(', ') }
   );
 
@@ -210,7 +210,7 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   category: 'sliding_window',
   difficulty: 'Hard',
   description:
-    'Find the minimum element in every contiguous sliding window of size k using a monotonic deque in O(n) time.',
+    'Finds the minimum element in every contiguous sliding window of size k moving across an array using a Monotonic Increasing Deque in optimal O(n) time and O(k) space.',
   constraints: [
     '1 <= nums.length <= 10^5',
     '-10^4 <= nums[i] <= 10^4',
@@ -222,6 +222,11 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
       output: '[2, 2, 5, 5, 3, 3]',
       explanation:
         'The sliding windows of size 3 are [4,2,12]->2, [2,12,11]->2, [12,11,5]->5, [11,5,8]->5, [5,8,3]->3, [8,3,9]->3.',
+    },
+    {
+      input: 'nums = [1, -1], k = 1',
+      output: '[1, -1]',
+      explanation: 'Sliding window of size 1 yields each array element itself as the window minimum.',
     },
   ],
   code: SLIDING_WINDOW_MIN_CODE,

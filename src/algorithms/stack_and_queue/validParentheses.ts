@@ -79,21 +79,21 @@ export const generateValidParenthesesSteps = (
   addStep(
     1,
     'Initialize Valid Parentheses Check',
-    `Validate input string "${s}" using a LIFO stack.`,
+    `LIFO Stack Parsing Strategy: Validate input bracket string "${s}" using a Last-In, First-Out (LIFO) stack to enforce proper bracket nesting and closure order.`,
     { inputString: s, length: n }
   );
 
   addStep(
     2,
     'Initialize Empty Stack',
-    'Created empty stack for tracking opening brackets.',
+    'Created empty stack data structure. The stack buffers open brackets so that the most recently opened bracket is evaluated first upon encountering a closing bracket.',
     { stackSize: 0 }
   );
 
   addStep(
     3,
     'Define Bracket Mappings',
-    'Set up bracket map associating each closing bracket with its matching open bracket.',
+    'Constructed bracket hash map { ")":"(", "}":"{", "]":"[" } for O(1) matching verification between closing brackets and expected opening brackets.',
     { map: '")":"(", "}":"{", "]":"["' }
   );
 
@@ -104,7 +104,7 @@ export const generateValidParenthesesSteps = (
     addStep(
       4,
       `Inspect index i = ${i} ('${char}')`,
-      `Reading character '${char}' at index ${i}.`,
+      `Character Inspection: Reading bracket '${char}' at string index ${i}. Active stack depth: ${stack.length}.`,
       { i, char, stackSize: stack.length }
     );
 
@@ -112,7 +112,7 @@ export const generateValidParenthesesSteps = (
       addStep(
         5,
         `Check if '${char}' is an open bracket`,
-        `'${char}' is an open bracket, which needs to be pushed onto the stack.`,
+        `Opening Bracket Decision: '${char}' is an opening bracket, initiating a new nested context that must be pushed onto the stack.`,
         { i, char, isOpenBracket: true }
       );
 
@@ -122,7 +122,7 @@ export const generateValidParenthesesSteps = (
       addStep(
         6,
         `Push '${char}' onto stack`,
-        `Pushed open bracket '${char}'. Stack now contains: [${stack.join(', ')}].`,
+        `Push Action: Pushed open bracket '${char}' to top of stack. Active unclosed brackets stack: [${stack.join(', ')}].`,
         { i, char, stackSize: stack.length }
       );
     } else {
@@ -132,7 +132,7 @@ export const generateValidParenthesesSteps = (
       addStep(
         8,
         `Check matching condition for closing bracket '${char}'`,
-        `Closing bracket '${char}' requires open bracket '${expectedOpen}'. Top of stack: '${stackTop ?? 'EMPTY'}'.`,
+        `Closing Bracket Verification: Closing bracket '${char}' requires top of stack to hold matching open bracket '${expectedOpen}'. Current stack top: '${stackTop ?? 'EMPTY'}'.`,
         { i, char, expectedOpen: expectedOpen ?? '', stackTop: stackTop ?? 'EMPTY' }
       );
 
@@ -142,7 +142,7 @@ export const generateValidParenthesesSteps = (
         addStep(
           9,
           `Mismatch or empty stack! Return False`,
-          `Closing bracket '${char}' does not match top of stack '${stackTop ?? 'EMPTY'}'. String is invalid!`,
+          `Validation Failure: Closing bracket '${char}' does not match top of stack '${stackTop ?? 'EMPTY'}'. Bracket order or symmetry is violated; return False!`,
           { i, char, stackTop: stackTop ?? 'EMPTY', isValid: false }
         );
         return steps;
@@ -154,7 +154,7 @@ export const generateValidParenthesesSteps = (
       addStep(
         10,
         `Pop '${popped}' from stack`,
-        `Successfully matched '${char}' with '${popped}'. Popped '${popped}' from stack.`,
+        `Pop Match: Closing bracket '${char}' correctly matches open bracket '${popped}'. Popped '${popped}' from stack to resolve the nested pair.`,
         { i, char, poppedChar: popped ?? '', stackSize: stack.length }
       );
     }
@@ -170,7 +170,7 @@ export const generateValidParenthesesSteps = (
     11,
     `Final Check: Stack is ${isValid ? 'Empty (True)' : 'Non-empty (False)'}`,
     isValid
-      ? 'All open brackets were matched correctly. String is VALID!'
+      ? 'All open brackets were matched and closed in correct LIFO sequence. String is VALID!'
       : `Unmatched open brackets remain in stack: [${stack.join(', ')}]. String is INVALID!`,
     { isValid, remainingStackSize: stack.length }
   );
@@ -184,7 +184,28 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   category: 'stack_and_queue',
   difficulty: 'Easy',
   description:
-    'Determine if an input string of brackets () {} [] is valid using a LIFO stack.',
+    'Determine if an input string of brackets () {} [] is valid using a LIFO stack to enforce exact opening-closing pair order and nesting symmetry.',
+  constraints: [
+    '1 <= s.length <= 10^4',
+    's consists of parentheses only: () {} []',
+  ],
+  examples: [
+    {
+      input: 's = "({[]})"',
+      output: 'true',
+      explanation: 'All opening brackets are matched by corresponding closing brackets in exact LIFO order.',
+    },
+    {
+      input: 's = "()[]{}"',
+      output: 'true',
+      explanation: 'Sequential matching bracket pairs are correctly closed.',
+    },
+    {
+      input: 's = "(]"',
+      output: 'false',
+      explanation: 'Closing bracket ] does not match the most recently opened bracket (.',
+    },
+  ],
   code: VALID_PARENTHESES_CODE,
   timeComplexity: {
     best: 'O(n)',

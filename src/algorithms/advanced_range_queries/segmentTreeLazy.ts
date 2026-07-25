@@ -189,7 +189,7 @@ export const generateSegmentTreeLazySteps = (
   addStep(
     1,
     `Initialize Segment Tree with Lazy Propagation for array size ${n}`,
-    `Create tree and lazy propagation arrays of size 4*N = ${maxTreeNodes}.`,
+    `Create tree and lazy propagation arrays of size 4*N = ${maxTreeNodes}. Lazy propagation allows performing range updates in O(log N) time.`,
     { n }
   );
 
@@ -457,7 +457,19 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   category: 'advanced_range_queries',
   difficulty: 'Hard',
   description:
-    'A Segment Tree with Lazy Propagation supports range updates and range sum queries in O(log n) time by postponing updates to subtrees until necessary.',
+    'A Segment Tree with Lazy Propagation supports range updates and range sum queries in O(log N) time. Range updates are postponed and stored in lazy tags, pushing modifications down to child subtrees only when those subtrees are traversed during future queries or updates.',
+  constraints: [
+    '1 <= N <= 10^5',
+    '1 <= Q <= 10^5',
+    '-10^9 <= val <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'array = [1, 2, 3, 4, 5], operations = [Range Query [1..3], Range Update [1..3] += 5, Range Query [1..3]]',
+      output: 'Query 1: 9, Query 2: 24',
+      explanation: 'Initial sum arr[1..3] = 2+3+4 = 9. Adding 5 to range [1..3] updates 3 elements by 5 (+15 total), giving new sum 24.',
+    },
+  ],
   code: SEGMENT_TREE_LAZY_CODE,
   timeComplexity: {
     best: 'O(log n)',

@@ -28,7 +28,7 @@ describe('TreeDiameter React Component Spec', () => {
       screen.getByText('Tree Diameter (2-DFS Algorithm)')
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/longest simple path/i)
+      screen.getAllByText(/longest simple path/i)[0]
     ).toBeInTheDocument();
   });
 

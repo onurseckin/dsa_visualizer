@@ -138,7 +138,7 @@ export const generateBinarySearchMatrixSteps = (
   addStep(
     5,
     `Initialize 2D Binary Search on ${rows}x${cols} matrix`,
-    `Total elements: ${totalElements}. Initial search bounds: low = 0, high = ${totalElements - 1}.`,
+    `Virtual 1D Array Mapping: Because each row is sorted and the first element of each row exceeds the last element of the previous row, we treat the ${rows}x${cols} grid as a single virtual sorted 1D array of ${totalElements} elements with bounds low = 0, high = ${totalElements - 1}.`,
     0,
     totalElements - 1
   );
@@ -156,7 +156,7 @@ export const generateBinarySearchMatrixSteps = (
     addStep(
       8,
       `Compute mid index ${mid} -> matrix[${r}][${c}] = ${midVal}`,
-      `Flattened mid = (${low} + ${high}) // 2 = ${mid}. Matrix cell is row ${r}, col ${c}.`,
+      `Coordinate Mapping: Virtual midpoint index mid = ${mid} maps to 2D matrix cell row ${r} (mid // ${cols}) and col ${c} (mid % ${cols}), yielding value matrix[${r}][${c}] = ${midVal}.`,
       low,
       high,
       mid,
@@ -169,7 +169,7 @@ export const generateBinarySearchMatrixSteps = (
       addStep(
         14,
         `Target ${target} found at matrix[${r}][${c}]!`,
-        `matrix[${r}][${c}] (${midVal}) matches target ${target}. Binary search succeeds.`,
+        `Target Match: matrix[${r}][${c}] (${midVal}) matches target ${target}. Binary search succeeds in O(log(m * n)) time!`,
         low,
         high,
         mid,
@@ -183,7 +183,7 @@ export const generateBinarySearchMatrixSteps = (
       addStep(
         16,
         `matrix[${r}][${c}] (${midVal}) < target (${target})`,
-        `Target must be in the right half. Update low = mid + 1 = ${mid + 1}.`,
+        `Binary Decision: matrix[${r}][${c}] (${midVal}) is smaller than target ${target}. By monotonic sorted property, all elements in virtual range [0..${mid}] are strictly < ${target}. Eliminate left half: low = mid + 1 (${mid + 1}).`,
         low,
         high,
         mid,
@@ -195,7 +195,7 @@ export const generateBinarySearchMatrixSteps = (
       addStep(
         18,
         `matrix[${r}][${c}] (${midVal}) > target (${target})`,
-        `Target must be in the left half. Update high = mid - 1 = ${mid - 1}.`,
+        `Binary Decision: matrix[${r}][${c}] (${midVal}) is larger than target ${target}. By monotonic sorted property, all elements in virtual range [${mid}..${totalElements - 1}] are strictly > ${target}. Eliminate right half: high = mid - 1 (${mid - 1}).`,
         low,
         high,
         mid,
@@ -210,7 +210,7 @@ export const generateBinarySearchMatrixSteps = (
     addStep(
       20,
       `Target ${target} not found in matrix`,
-      `Search range low (${low}) > high (${high}). Target is absent.`,
+      `Search Space Exhausted: Search range collapsed (low ${low} > high ${high}) without discovering target ${target}. Target is absent from matrix.`,
       low,
       high,
       undefined,
@@ -228,7 +228,25 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   category: 'binary_search',
   difficulty: 'Medium',
   description:
-    'Searches for a target value in an m x n integer matrix where each row is sorted and the first integer of each row is greater than the last integer of the previous row using 2D binary search.',
+    'Searches for a target value in an m x n integer matrix where each row is sorted and the first element of each row is greater than the last element of the previous row using virtual 1D-to-2D index mapping.',
+  constraints: [
+    'm == matrix.length',
+    'n == matrix[i].length',
+    '1 <= m, n <= 100',
+    '-10^4 <= matrix[i][j], target <= 10^4',
+  ],
+  examples: [
+    {
+      input: 'matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 3',
+      output: 'true',
+      explanation: 'Target 3 exists at row 0, column 1.',
+    },
+    {
+      input: 'matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13',
+      output: 'false',
+      explanation: 'Target 13 is not present in the matrix.',
+    },
+  ],
   code: BINARY_SEARCH_MATRIX_CODE,
   timeComplexity: {
     best: 'O(1)',

@@ -182,7 +182,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     addStep(
       14,
       `Compute cross product for edge P${i} -> P${nextIdx}`,
-      `x1*y2 - x2*y1 = (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}. Accumulated area_sum = ${areaSum}.`,
+      `x1*y2 - x2*y1 = (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}. Accumulated area_sum = ${areaSum}. Each cross-product represents the signed area of a trapezoid bounded by the edge and coordinate axes.`,
       nodes,
       edges,
       {
@@ -249,7 +249,19 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   category: 'geometry_and_sweep_line',
   difficulty: 'Medium',
   description:
-    'Calculates the area of a simple polygon given its ordered vertices in a 2D plane using the Shoelace algorithm (Gauss area formula).',
+    'Calculates the area of a simple non-self-intersecting polygon given its ordered vertices in a 2D plane using the Shoelace formula (Gauss area formula). Sums signed trapezoidal areas formed by cross-multiplying adjacent vertex coordinates along the perimeter in O(N) linear time.',
+  constraints: [
+    '3 <= vertices.length <= 1000',
+    '-1000 <= x, y <= 1000',
+    'Polygon must be simple (non-self-intersecting) with vertices ordered sequentially',
+  ],
+  examples: [
+    {
+      input: 'points = [(100,100), (400,100), (350,300), (150,300)]',
+      output: '45000',
+      explanation: 'Trapezoid area calculated via 0.5 * |(100*100 - 400*100) + (400*300 - 350*100) + (350*300 - 150*300) + (150*100 - 100*300)| = 45000.',
+    },
+  ],
   code: PYTHON_POLYGON_AREA_CODE,
   timeComplexity: {
     best: 'O(n)',

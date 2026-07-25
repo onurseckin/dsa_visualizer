@@ -142,7 +142,7 @@ export const generateConvexHullSteps = (
     codeLine: 9,
     explanation: {
       what: `Sorted ${points.length} points lexicographically by X coordinate, then Y coordinate.`,
-      why: "Andrew's Monotone Chain algorithm requires points sorted left-to-right to scan lower and upper boundaries independently.",
+      why: "Andrew's Monotone Chain algorithm requires points sorted left-to-right to scan lower and upper boundaries independently in O(N log N) time.",
     },
     primarySnapshot: createGraphSnapshot(),
     auxiliaryState: {
@@ -168,7 +168,7 @@ export const generateConvexHullSteps = (
         codeLine: 17,
         explanation: {
           what: `Popped point ${popped.id} from lower hull stack.`,
-          why: `Point ${p.id} creates a non-left turn (cross product = ${crossVal} <= 0) with ${prevO.id} and ${popped.id}.`,
+          why: `Point ${p.id} creates a non-left turn (cross product = ${crossVal} <= 0) with ${prevO.id} and ${popped.id}. A convex boundary requires strict counter-clockwise (left) turns.`,
         },
         primarySnapshot: createGraphSnapshot(p.id, [...lower, p]),
         auxiliaryState: {
@@ -267,12 +267,16 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   category: 'geometry_and_sweep_line',
   difficulty: 'Hard',
   description:
-    'Finds the smallest convex polygon containing a set of 2D points using Monotone Chain (Andrew algorithm).',
-  constraints: ['1 <= points.length <= 100', '0 <= x, y <= 1000'],
+    'Finds the smallest convex polygon containing a given set of 2D points using Andrew\'s Monotone Chain algorithm. Points are sorted lexicographically by X then Y coordinate, and lower and upper hulls are constructed using 2D vector cross-product orientation tests to eliminate non-left-turn interior vertices.',
+  constraints: [
+    '1 <= points.length <= 1000',
+    '-1000 <= x, y <= 1000',
+  ],
   examples: [
     {
       input: 'points = [{x:0, y:0}, {x:0, y:4}, {x:4, y:0}, {x:2, y:2}]',
-      output: '3 vertices (triangle perimeter)',
+      output: '3 vertices: [(0,0), (4,0), (0,4)]',
+      explanation: 'Point (2, 2) is strictly inside the triangle formed by (0,0), (4,0), (0,4) and is eliminated.',
     },
   ],
   code: PYTHON_CONVEX_HULL_CODE,

@@ -239,5 +239,38 @@ describe('MainLayout Component Spec', () => {
 
     expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
   });
+
+  it('resets split ratio and expands problem header when Reset Layout button is clicked', () => {
+    localStorage.setItem('dsa_visualizer_layout_split', '75');
+
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+
+    // First hide details
+    const hideBtn = screen.getByRole('button', { name: /Hide Details ▲/i });
+    fireEvent.click(hideBtn);
+    expect(screen.queryByText(/Repeatedly steps through the list/i)).not.toBeInTheDocument();
+
+    // Click Reset Layout button
+    const resetBtn = screen.getByRole('button', { name: /Reset Layout/i });
+    fireEvent.click(resetBtn);
+
+    // Problem details should be expanded again
+    expect(screen.getByText(/Repeatedly steps through the list/i)).toBeInTheDocument();
+
+    // Separator should be reset to default 60
+    const handle = screen.getByRole('separator');
+    expect(handle).toHaveAttribute('aria-valuenow', '60');
+    localStorage.clear();
+  });
 });
 

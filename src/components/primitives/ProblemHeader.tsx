@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { CategoryType, DifficultyLevel, ProblemExample, TimeComplexity } from '../../types/dsa';
 
 export interface ProblemHeaderProps {
@@ -11,6 +12,7 @@ export interface ProblemHeaderProps {
   timeComplexity?: TimeComplexity;
   spaceComplexity?: string;
   initialExpanded?: boolean;
+  onResetLayout?: () => void;
 }
 
 const getDifficultyBadgeClass = (difficulty?: DifficultyLevel): string => {
@@ -36,6 +38,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   timeComplexity,
   spaceComplexity,
   initialExpanded = true,
+  onResetLayout,
 }) => {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
@@ -117,15 +120,36 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
           )}
         </div>
 
-        {/* Right Side: Expand / Collapse Toggle Button */}
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setIsExpanded(!isExpanded)}
-          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-        >
-          {isExpanded ? 'Hide Details ▲' : 'Show Details ▼'}
-        </button>
+        {/* Right Side: Reset Layout & Expand/Collapse Toggle Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setIsExpanded(true);
+              onResetLayout?.();
+            }}
+            title="Reset panel split ratio to default and expand details"
+            style={{
+              padding: '4px 10px',
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <RotateCcw style={{ width: '12px', height: '12px' }} />
+            Reset Layout
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+          >
+            {isExpanded ? 'Hide Details ▲' : 'Show Details ▼'}
+          </button>
+        </div>
       </div>
 
       {/* Expandable Details Container: Description, Examples, Constraints */}

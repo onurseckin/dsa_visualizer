@@ -35,7 +35,7 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
     codeLine: 3,
     explanation: {
       what: `Initialized DP table of size ${amount + 1} with infinity. Set dp[0] = 0.`,
-      why: 'Base case: 0 coins are required to form a target amount of 0.',
+      why: 'Base case: 0 coins are required to make an amount of 0. All other amounts are initialized to infinity as uncomputed subproblems.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -65,7 +65,7 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
           codeLine: 8,
           explanation: {
             what: `Evaluating target amount i = ${i} using coin = ${coin}. Candidate: dp[${i - coin}] + 1 = ${candidate === Infinity ? '∞' : candidate}.`,
-            why: `Transition: dp[${i}] = min(${prevVal === Infinity ? '∞' : prevVal}, ${candidate === Infinity ? '∞' : candidate}).`,
+            why: `Transition: dp[${i}] = min(${prevVal === Infinity ? '∞' : prevVal}, ${candidate === Infinity ? '∞' : candidate}). Checking if taking coin ${coin} yields a smaller coin count for amount ${i}.`,
           },
           primarySnapshot: {
             kind: 'array',
@@ -101,7 +101,7 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
     codeLine: 10,
     explanation: {
       what: `Dynamic programming completed. Minimum coins required for target amount ${amount} is ${result}.`,
-      why: 'Tabulation filled optimal subproblem answers bottom-up.',
+      why: 'Tabulation filled optimal subproblem answers bottom-up from 1 to amount. Subproblem optimal substructure guarantees globally optimal solution.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -127,13 +127,27 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   category: 'dp_1d',
   difficulty: 'Medium',
   description:
-    'Finds the fewest number of coins needed to make up a target amount using dynamic programming tabulation.',
-  constraints: ['1 <= coins.length <= 12', '1 <= amount <= 100'],
-  examples: [{ input: 'coins = [1, 3, 4], amount = 6', output: '2 (3 + 3 = 6)' }],
+    'Finds the fewest number of coins needed to make up a given target amount using 1D dynamic programming tabulation. If that amount of money cannot be made up by any combination of the coins, returns -1. You may assume that you have an infinite number of each kind of coin.',
+  constraints: [
+    '1 <= coins.length <= 12',
+    '1 <= coins[i] <= 10^4',
+    '0 <= amount <= 10^4',
+  ],
+  examples: [
+    {
+      input: 'coins = [1, 3, 4], amount = 6',
+      output: '2',
+      explanation: 'Optimal combination is 3 + 3 = 6 (2 coins total). Greedy choice (4 + 1 + 1) would yield 3 coins, showing why DP optimal substructure is necessary.',
+    },
+    {
+      input: 'coins = [2], amount = 3',
+      output: '-1',
+      explanation: 'Target amount 3 cannot be formed using only coin denomination 2.',
+    },
+  ],
   code: PYTHON_COIN_CHANGE_CODE,
   timeComplexity: { best: 'O(N * amount)', average: 'O(N * amount)', worst: 'O(N * amount)' },
   spaceComplexity: 'O(amount)',
   defaultInput: DEFAULT_COIN_CHANGE_INPUT,
   generateSteps: generateCoinChangeSteps,
 };
-

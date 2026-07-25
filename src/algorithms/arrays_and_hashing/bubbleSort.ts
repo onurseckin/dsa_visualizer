@@ -46,7 +46,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     1,
     'Initialize Bubble Sort',
-    `Start sorting an array of ${n} elements.`,
+    `Bubble Sort iterates through an array of ${n} elements, repeatedly swapping adjacent elements out of order until the largest unsorted element bubbles to the right end on each pass.`,
     { n }
   );
 
@@ -57,7 +57,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       7,
       'Bubble Sort complete',
-      'Array is already sorted.',
+      'Array of size <= 1 is trivially sorted.',
       { n }
     );
     return steps;
@@ -66,7 +66,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     2,
     `Set array length n = ${n}`,
-    'Determine the number of elements to process.',
+    `Array length n = ${n} implies a maximum of ${n - 1} passes are required to sort the array.`,
     { n }
   );
 
@@ -74,7 +74,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       3,
       `Start pass i = ${i}`,
-      `Outer loop iteration ${i + 1} of ${n - 1}. Largest remaining element will bubble up to index ${n - 1 - i}.`,
+      `Pass ${i + 1} of ${n - 1}: Comparing adjacent elements from index 0 up to ${n - 2 - i}. The largest unsorted element will settle at index ${n - 1 - i}.`,
       { i, n }
     );
 
@@ -92,8 +92,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
         5,
         `Compare arr[${j}] (${valJ}) and arr[${j + 1}] (${valJNext})`,
         valJ > valJNext
-          ? `${valJ} > ${valJNext}, so they need to be swapped.`
-          : `${valJ} <= ${valJNext}, so they are in correct order.`,
+          ? `Inversion detected: ${valJ} > ${valJNext}. To maintain non-decreasing order, swap elements at indices ${j} and ${j + 1}.`
+          : `Correct relative order: ${valJ} <= ${valJNext}. No swap needed; proceed to next adjacent pair.`,
         { i, j, 'arr[j]': valJ, 'arr[j+1]': valJNext }
       );
 
@@ -108,7 +108,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
         addStep(
           6,
           `Swap arr[${j}] and arr[${j + 1}]`,
-          `Swapped values ${valJ} and ${valJNext}.`,
+          `Swapped values ${valJ} and ${valJNext}, advancing the larger element ${valJ} toward the right boundary.`,
           { i, j, 'arr[j]': workingElements[j].value, 'arr[j+1]': workingElements[j + 1].value }
         );
       }
@@ -126,7 +126,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       3,
       `Element at index ${sortedIdx} (${workingElements[sortedIdx].value}) is now sorted`,
-      `Pass ${i + 1} completed. The largest unsorted element has bubbled to position ${sortedIdx}.`,
+      `Pass Invariant: Pass ${i + 1} completed. The largest unsorted value (${workingElements[sortedIdx].value}) has bubbled up to its final sorted position at index ${sortedIdx}.`,
       { i, sortedIdx, sortedValue: workingElements[sortedIdx].value }
     );
   }
@@ -140,7 +140,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     7,
     'Bubble Sort complete',
-    'All passes complete. The array is fully sorted in ascending order.',
+    'All passes complete. Every element is finalized in sorted ascending order.',
     { n }
   );
 
@@ -153,7 +153,20 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Bubble Sort is a simple comparison-based sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.',
+    'Bubble Sort is a simple comparison-based sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order until the entire array is sorted.',
+  constraints: ['1 <= arr.length <= 10^3', '-10^4 <= arr[i] <= 10^4'],
+  examples: [
+    {
+      input: 'arr = [5, 2, 8, 1, 4]',
+      output: '[1, 2, 4, 5, 8]',
+      explanation: 'Repeatedly swaps adjacent inverted pairs until array is completely sorted in ascending order.',
+    },
+    {
+      input: 'arr = [3, 2, 1]',
+      output: '[1, 2, 3]',
+      explanation: 'Reverse sorted array requires maximum swaps across all passes.',
+    },
+  ],
   code: BUBBLE_SORT_CODE,
   timeComplexity: {
     best: 'O(n)',

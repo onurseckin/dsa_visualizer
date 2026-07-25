@@ -159,7 +159,7 @@ export const generateTriePrefixTreeSteps = (
   addStep(
     8,
     'Initialize Trie Data Structure',
-    'Root node created.',
+    'Root node created for the prefix tree. The root represents an empty string prefix.',
     'trie-root',
     [],
     { status: 'Initialized' }
@@ -199,7 +199,7 @@ export const generateTriePrefixTreeSteps = (
         addStep(
           14,
           `Create new TrieNode for character '${char}' (index ${i} of "${word}")`,
-          `Node for '${char}' did not exist. Created new child node.`,
+          `Node for '${char}' did not exist. Created new child node and connected edge.`,
           current.id,
           [...traversedEdges],
           { operation: 'insert', word, char, created: true }
@@ -213,7 +213,7 @@ export const generateTriePrefixTreeSteps = (
         addStep(
           15,
           `Follow existing node for character '${char}'`,
-          `Node for '${char}' already exists. Transitioning down trie.`,
+          `Node for '${char}' already exists in Trie. Reusing shared prefix path.`,
           current.id,
           [...traversedEdges],
           { operation: 'insert', word, char, created: false }
@@ -225,7 +225,7 @@ export const generateTriePrefixTreeSteps = (
     addStep(
       16,
       `Mark node '${current.char}' as endOfWord for "${word}"`,
-      `Finished inserting word "${word}". Marked is_end_of_word = True.`,
+      `Finished inserting word "${word}". Marked is_end_of_word = True on terminal node.`,
       current.id,
       [...traversedEdges],
       { operation: 'insert', word, isEndOfWord: true }
@@ -241,7 +241,7 @@ export const generateTriePrefixTreeSteps = (
   addStep(
     19,
     `Search for word "${searchWord}"`,
-    `Starting search at ROOT node for "${searchWord}".`,
+    `Starting search at ROOT node for exact word "${searchWord}".`,
     currentSearch.id,
     [],
     { operation: 'search', targetWord: searchWord }
@@ -254,7 +254,7 @@ export const generateTriePrefixTreeSteps = (
       addStep(
         22,
         `Character '${char}' not found in Trie!`,
-        `Child for '${char}' does not exist. Search failed.`,
+        `Child for '${char}' does not exist under node '${currentSearch.char}'. Search for word "${searchWord}" fails.`,
         currentSearch.id,
         [...searchEdges],
         { operation: 'search', targetWord: searchWord, char, found: false }
@@ -270,7 +270,7 @@ export const generateTriePrefixTreeSteps = (
     addStep(
       23,
       `Traverse edge for character '${char}'`,
-      `Found child node '${char}'. Moving to next node.`,
+      `Found matching child node '${char}'. Traversing down Trie.`,
       currentSearch.id,
       [...searchEdges],
       { operation: 'search', targetWord: searchWord, char }
@@ -285,8 +285,8 @@ export const generateTriePrefixTreeSteps = (
         ? `Word "${searchWord}" found in Trie!`
         : `Prefix "${searchWord}" exists, but is_end_of_word is False`,
       isComplete
-        ? `All characters matched and node has is_end_of_word = True.`
-        : `Node reached but not marked as end of word. Search returns False.`,
+        ? `All characters matched and target node has is_end_of_word = True. Returns True.`
+        : `Node reached but not marked as end of word. Search returns False because "${searchWord}" is only a proper prefix of another word.`,
       currentSearch.id,
       [...searchEdges],
       { operation: 'search', targetWord: searchWord, found: isComplete }
@@ -342,7 +342,7 @@ export const generateTriePrefixTreeSteps = (
     addStep(
       32,
       `Prefix "${prefix}" exists in Trie!`,
-      `All characters of prefix "${prefix}" matched in Trie. starts_with returns True.`,
+      `All characters of prefix "${prefix}" matched in Trie. starts_with returns True regardless of is_end_of_word.`,
       currentPrefix.id,
       [...prefixEdges],
       { operation: 'startsWith', prefix, found: true }
@@ -358,7 +358,19 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   category: 'tries_and_strings',
   difficulty: 'Medium',
   description:
-    'A tree-like data structure used for efficient storage and retrieval of strings. Supports fast word insertion, full word searching, and prefix matching.',
+    'A Trie (Prefix Tree) is a tree-like data structure used for efficient key storage and retrieval. All descendants of a node share a common string prefix. Supports fast O(L) insertion, exact word search, and prefix matching (autocomplete).',
+  constraints: [
+    '1 <= wordsToInsert.length <= 100',
+    '1 <= word.length <= 20',
+    'Strings consist of lowercase English letters',
+  ],
+  examples: [
+    {
+      input: 'wordsToInsert = ["cat", "car", "dog"], searchWord = "car", prefixToSearch = "ca"',
+      output: 'search("car") -> True, startsWith("ca") -> True',
+      explanation: 'Words "cat" and "car" share the prefix "ca". Searching "car" finds terminal node with is_end_of_word = True.',
+    },
+  ],
   code: TRIE_PREFIX_TREE_CODE,
   timeComplexity: {
     best: 'O(L)',

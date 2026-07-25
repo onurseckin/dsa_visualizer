@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { GripVertical } from 'lucide-react';
 
+export const LAYOUT_SPLIT_STORAGE_KEY = 'dsa_visualizer_layout_split';
+
 interface ResizableLayoutProps {
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
@@ -9,6 +11,8 @@ interface ResizableLayoutProps {
   maxLeftPercent?: number;
   showLeft?: boolean;
   showRight?: boolean;
+  resetKey?: number;
+  onSplitChange?: (ratio: number) => void;
 }
 
 export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
@@ -19,10 +23,54 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
   maxLeftPercent = 80,
   showLeft = true,
   showRight = true,
+  resetKey,
+  onSplitChange,
 }) => {
-  const [splitRatio, setSplitRatio] = useState<number>(initialSplitRatio);
+  const [splitRatio, setSplitRatio] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const saved = localStorage.getItem(LAYOUT_SPLIT_STORAGE_KEY);
+        if (saved !== null) {
+          const parsed = parseFloat(saved);
+          if (!isNaN(parsed) && parsed >= minLeftPercent && parsed <= maxLeftPercent) {
+            return parsed;
+          }
+        }
+      } catch {
+        // Fallback if localStorage read throws
+      }
+    }
+    return initialSplitRatio;
+  });
+
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const updateAndPersistRatio = useCallback(
+    (ratio: number) => {
+      const clampedRatio = Math.max(minLeftPercent, Math.min(maxLeftPercent, ratio));
+      setSplitRatio(clampedRatio);
+      if (onSplitChange) {
+        onSplitChange(clampedRatio);
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          localStorage.setItem(LAYOUT_SPLIT_STORAGE_KEY, String(clampedRatio));
+        } catch {
+          // Ignore localStorage write errors
+        }
+      }
+    },
+    [minLeftPercent, maxLeftPercent, onSplitChange]
+  );
+
+  const prevResetKey = useRef(resetKey);
+  useEffect(() => {
+    if (resetKey !== undefined && resetKey !== prevResetKey.current) {
+      prevResetKey.current = resetKey;
+      updateAndPersistRatio(initialSplitRatio);
+    }
+  }, [resetKey, initialSplitRatio, updateAndPersistRatio]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,10 +82,9 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
       if (!isDragging || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const newRatio = ((e.clientX - rect.left) / rect.width) * 100;
-      const clampedRatio = Math.max(minLeftPercent, Math.min(maxLeftPercent, newRatio));
-      setSplitRatio(clampedRatio);
+      updateAndPersistRatio(newRatio);
     },
-    [isDragging, minLeftPercent, maxLeftPercent]
+    [isDragging, updateAndPersistRatio]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -50,10 +97,9 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
       const rect = containerRef.current.getBoundingClientRect();
       const touchX = e.touches[0].clientX;
       const newRatio = ((touchX - rect.left) / rect.width) * 100;
-      const clampedRatio = Math.max(minLeftPercent, Math.min(maxLeftPercent, newRatio));
-      setSplitRatio(clampedRatio);
+      updateAndPersistRatio(newRatio);
     },
-    [isDragging, minLeftPercent, maxLeftPercent]
+    [isDragging, updateAndPersistRatio]
   );
 
   useEffect(() => {
@@ -96,6 +142,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         display: 'flex',
         width: '100%',
         height: '100%',
+        minHeight: '480px',
         overflow: 'hidden',
         position: 'relative',
         userSelect: isDragging ? 'none' : 'auto',
@@ -106,6 +153,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         style={{
           width: `${splitRatio}%`,
           height: '100%',
+          minHeight: '480px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -125,7 +173,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         aria-label="Resize layout columns"
         tabIndex={0}
         onMouseDown={handleMouseDown}
-        onDoubleClick={() => setSplitRatio(initialSplitRatio)}
+        onDoubleClick={() => updateAndPersistRatio(initialSplitRatio)}
         style={{
           width: '8px',
           height: '100%',
@@ -164,6 +212,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         style={{
           width: `${100 - splitRatio}%`,
           height: '100%',
+          minHeight: '480px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',

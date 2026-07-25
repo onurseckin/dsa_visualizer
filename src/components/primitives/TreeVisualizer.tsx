@@ -65,11 +65,11 @@ const getNodeStateColors = (state: ElementState) => {
 export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   nodes,
   rootId,
-  width = 600,
-  height = 360,
+  width = 800,
+  height = 500,
   title,
 }) => {
-  const nodeRadius = 20;
+  const nodeRadius = 24;
   if (!nodes || nodes.length === 0) return null;
 
   const nodeMap = new Map<string, TreeNodeItem>();
@@ -110,17 +110,17 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       cy,
     });
 
-    const nextSpread = Math.max(spreadX / 2, 28);
+    const nextSpread = Math.max(spreadX / 2, 34);
     if (item.leftId) {
-      layoutTree(item.leftId, depth + 1, cx - spreadX, cy + 64, nextSpread);
+      layoutTree(item.leftId, depth + 1, cx - spreadX, cy + 72, nextSpread);
     }
     if (item.rightId) {
-      layoutTree(item.rightId, depth + 1, cx + spreadX, cy + 64, nextSpread);
+      layoutTree(item.rightId, depth + 1, cx + spreadX, cy + 72, nextSpread);
     }
   };
 
-  const initialSpread = Math.min(width / 4, 140);
-  layoutTree(computedRootId, 0, width / 2, 50, initialSpread);
+  const initialSpread = Math.min(width / 4, 160);
+  layoutTree(computedRootId, 0, width / 2, 60, initialSpread);
 
   const computedNodes = Array.from(computedNodesMap.values());
 
@@ -132,10 +132,10 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   if (computedNodes.length > 0) {
     const xs = computedNodes.map((n) => n.cx);
     const ys = computedNodes.map((n) => n.cy);
-    minX = Math.min(0, Math.min(...xs) - nodeRadius - 20);
-    minY = Math.min(0, Math.min(...ys) - nodeRadius - 20);
-    maxX = Math.max(width, Math.max(...xs) + nodeRadius + 20);
-    maxY = Math.max(height, Math.max(...ys) + nodeRadius + 20);
+    minX = Math.min(0, Math.min(...xs) - nodeRadius - 30);
+    minY = Math.min(0, Math.min(...ys) - nodeRadius - 30);
+    maxX = Math.max(width, Math.max(...xs) + nodeRadius + 30);
+    maxY = Math.max(height, Math.max(...ys) + nodeRadius + 30);
   }
   const viewBoxWidth = maxX - minX;
   const viewBoxHeight = maxY - minY;
@@ -149,6 +149,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         alignItems: 'center',
         width: '100%',
         height: '100%',
+        minHeight: '480px',
         padding: 0,
       }}
     >
@@ -170,9 +171,11 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         width="100%"
         height="100%"
         viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',
+          minHeight: '480px',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',

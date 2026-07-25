@@ -137,7 +137,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   addStep(
     5,
     'Initialize LPS / Prefix Table',
-    `LPS table initialized with 0s for pattern length ${m}.`,
+    `LPS table initialized with 0s for pattern length ${m}. LPS[i] stores the length of the longest proper prefix of pattern[0..i] that is also a suffix of pattern[0..i].`,
     { len, i, 'lps[0]': 0 },
     'Building LPS'
   );
@@ -160,7 +160,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       addStep(
         14,
         `LPS mismatch: pattern[${i}] ('${pattern[i]}') !== pattern[${prevLen}] ('${pattern[prevLen]}')`,
-        `Fall back length from ${prevLen} to lps[${prevLen - 1}] = ${len}.`,
+        `Fallback length from ${prevLen} to lps[${prevLen - 1}] = ${len} without advancing index i.`,
         { i, len, 'pattern[i]': pattern[i] },
         'Building LPS'
       );
@@ -169,7 +169,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       addStep(
         16,
         `LPS no match: pattern[${i}] ('${pattern[i]}') !== pattern[0] ('${pattern[0]}')`,
-        `No prefix match possible. Set LPS[${i}] = 0.`,
+        `No non-empty proper prefix matches suffix ending at index ${i}. Set LPS[${i}] = 0.`,
         { i, len: 0, 'LPS[i]': 0 },
         'Building LPS'
       );
@@ -180,7 +180,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   addStep(
     18,
     'LPS / Prefix Table complete',
-    `LPS table built: [${lps.join(', ')}]. Now starting pattern matching loop in text.`,
+    `LPS table built: [${lps.join(', ')}]. Now starting pattern matching loop in text without ever rewinding text pointer t_idx.`,
     { lps: lps.join(', ') },
     'Matching'
   );
@@ -201,8 +201,8 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       21,
       `Compare text[${tIdx}] ('${charT}') with pattern[${pIdx}] ('${charP}')`,
       charT === charP
-        ? `Characters match! Advance text and pattern pointers.`
-        : `Characters differ! Use LPS table to skip redundant comparisons.`,
+        ? `Characters match! Advance text pointer t_idx and pattern pointer p_idx.`
+        : `Characters differ! Use LPS table to shift pattern without backing up text pointer t_idx.`,
       { tIdx, pIdx, 'text[tIdx]': charT, 'pattern[pIdx]': charP },
       'Matching',
       matches
@@ -225,7 +225,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       addStep(
         25,
         `Pattern match found at index ${matchStart}!`,
-        `Pattern "${pattern}" matched text from index ${matchStart} to ${matchStart + m - 1}. Reset pattern pointer via LPS[${pIdx - 1}] = ${lps[pIdx - 1]}.`,
+        `Full pattern "${pattern}" matched text from index ${matchStart} to ${matchStart + m - 1}. Reset pattern pointer via LPS[${pIdx - 1}] = ${lps[pIdx - 1]} to search for overlapping matches.`,
         { matchStart, matchCount: matches.length, nextPIdx: lps[pIdx - 1] },
         'Matching',
         matches
@@ -290,7 +290,19 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
-    'Knuth-Morris-Pratt (KMP) string searching algorithm matches a pattern in a text using a Longest Prefix Suffix (LPS) table to avoid redundant character comparisons.',
+    'Knuth-Morris-Pratt (KMP) search algorithm matches a pattern in a text in linear time O(N + M) using a Longest Prefix Suffix (LPS) table. By preprocessing the pattern into a finite state transition lookup table, KMP avoids redundant character comparisons and never backtracks the text pointer.',
+  constraints: [
+    '1 <= text.length <= 10^5',
+    '1 <= pattern.length <= 10^4',
+    'Strings consist of printable ASCII characters',
+  ],
+  examples: [
+    {
+      input: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
+      output: 'Match at index 10',
+      explanation: 'Precomputed LPS table allows skipping backward text comparisons during partial mismatches.',
+    },
+  ],
   code: KMP_CODE,
   timeComplexity: {
     best: 'O(n + m)',

@@ -26,7 +26,7 @@ describe('TriePrefixTree React Component Spec', () => {
 
     expect(screen.getByText('Trie (Prefix Tree)')).toBeInTheDocument();
     expect(
-      screen.getByText(/tree-like data structure used for efficient storage/i)
+      screen.getAllByText(/tree-like data structure/i)[0]
     ).toBeInTheDocument();
   });
 

@@ -121,7 +121,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
     addStep(
       8,
       'Nim Game complete (Empty piles)',
-      'No piles present in game.',
+      'No piles present in game. Returns Second Player as winner.',
       { n, xorSum: 0 },
       -1,
       -1,
@@ -152,7 +152,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   addStep(
     7,
     `Final Nim-sum XOR = ${currentXorSum}`,
-    `Sprague-Grundy theorem states that if XOR sum is 0, Second Player wins; otherwise First Player wins.`,
+    `By the Sprague-Grundy theorem, if the Nim-sum (bitwise XOR of all pile sizes) is 0, the game is in a P-position (Second Player wins). If Nim-sum > 0, the game is in an N-position (First Player wins).`,
     { xorSum: currentXorSum }
   );
 
@@ -160,7 +160,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
     addStep(
       8,
       'XOR Sum is 0: P-Position (Second Player Wins)',
-      'No winning move exists for the First Player. Second Player can force a win.',
+      'No winning move exists for the First Player. Any valid move made by the First Player will transition the Nim-sum to a non-zero value, allowing Second Player to respond and force a win.',
       { xorSum: 0, winner: 'Second Player' },
       -1,
       -1,
@@ -173,7 +173,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   addStep(
     10,
     `XOR Sum is ${currentXorSum} ≠ 0: N-Position (First Player Wins)`,
-    'Searching for a pile i such that (pile[i] ^ xorSum) < pile[i] to execute a winning move.',
+    'Searching for a pile i such that (pile[i] ^ xorSum) < pile[i] to execute a winning move that reduces the Nim-sum to 0 for the opponent.',
     { xorSum: currentXorSum, winner: 'First Player' },
     -1,
     -1,
@@ -234,7 +234,23 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   category: 'game_theory',
   difficulty: 'Medium',
   description:
-    'Nim Game algorithm calculates the Sprague-Grundy XOR sum of pile sizes to determine the winning player and identify the optimal winning move in impartial games.',
+    'Nim Game evaluates impartial mathematical games using the Sprague-Grundy theorem. Computes the Nim-sum (bitwise XOR sum of all pile sizes) in O(N) linear time to determine whether the game is in an N-position (First Player forced win) or P-position (Second Player forced win) and calculates the optimal move.',
+  constraints: [
+    '1 <= piles.length <= 10^4',
+    '0 <= piles[i] <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'piles = [3, 4, 5]',
+      output: 'First Player Wins, reduce pile 0 from 3 to 1 (remove 2)',
+      explanation: 'Initial XOR sum: 3 ^ 4 ^ 5 = 2 != 0 (First Player wins). Target size for pile 0 is 3 ^ 2 = 1.',
+    },
+    {
+      input: 'piles = [1, 2, 3]',
+      output: 'Second Player Wins',
+      explanation: 'Initial XOR sum: 1 ^ 2 ^ 3 = 0 (P-position, Second Player wins).',
+    },
+  ],
   code: NIM_GAME_CODE,
   timeComplexity: {
     best: 'O(n)',

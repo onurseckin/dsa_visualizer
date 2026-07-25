@@ -49,7 +49,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       codeLine: 1,
       explanation: {
         what: 'Initialize Z-Algorithm Search',
-        why: 'Invalid or empty input text/pattern provided.',
+        why: 'Invalid or empty input text/pattern provided. Search complete with 0 matches.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -162,7 +162,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   addStep(
     2,
     'Construct concatenated string S = pattern + "$" + text',
-    `Created string S = "${s}" of total length ${n} (Pattern length m = ${m}).`,
+    `Created string S = "${s}" of total length ${n} (Pattern length m = ${m}). The delimiter '$' prevents matches from extending across string boundaries.`,
     { s, n, m, text, pattern },
     'Initialization'
   );
@@ -170,7 +170,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   addStep(
     5,
     'Initialize Z-array and window pointers L = 0, R = 0',
-    'Z-array stores length of longest common prefix starting at S[i]. Window [L, R] tracks rightmost matched interval.',
+    'Z[i] stores the length of the longest common prefix between S and the suffix of S starting at index i. Window [L, R] tracks the rightmost matched interval.',
     { l: 0, r: 0, n },
     'Initialization'
   );
@@ -192,7 +192,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       addStep(
         9,
         `Index i = ${i} is inside window [L=${l}, R=${r}]`,
-        `Use previously computed Z[${k}] = ${z[k]}. Initialize Z[${i}] = min(R - i + 1, Z[i - L]) = ${z[i]}.`,
+        `Use previously computed Z[${k}] = ${z[k]}. Initialize Z[${i}] = min(R - i + 1, Z[i - L]) = ${z[i]} to avoid redundant comparisons.`,
         { i, l, r, k, 'Z[k]': z[k], remaining: rem, 'Z[i]': z[i] },
         'Window Optimization',
         i
@@ -272,7 +272,19 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
-    'The Z-algorithm finds all occurrences of a pattern in a text in O(n + m) linear time by constructing the Z-array for concatenated string pattern$text.',
+    'The Z-algorithm computes the Z-array for a string S = pattern$text in linear O(N + M) time. Z[i] is the length of the longest substring starting at S[i] that matches the prefix of S. A pattern match occurs whenever Z[i] equals the pattern length M.',
+  constraints: [
+    '1 <= text.length <= 10^5',
+    '1 <= pattern.length <= 10^4',
+    'Strings consist of printable ASCII characters',
+  ],
+  examples: [
+    {
+      input: 'text = "ababaaba", pattern = "aba"',
+      output: 'Matches at text indices 0 and 5',
+      explanation: 'Concatenated string "aba$ababaaba" generates Z-values equal to 3 at indices 4 and 9.',
+    },
+  ],
   code: Z_ALGORITHM_CODE,
   timeComplexity: {
     best: 'O(n + m)',

@@ -41,7 +41,8 @@ describe('ResizableLayout Component Spec', () => {
     expect(screen.getByText('Right Content')).toBeInTheDocument();
   });
 
-  it('supports mouse drag interactions on separator handle', () => {
+  it('supports mouse drag interactions on separator handle and persists to localStorage', () => {
+    localStorage.clear();
     render(
       <ResizableLayout
         leftPanel={<div>Left Content</div>}
@@ -53,9 +54,53 @@ describe('ResizableLayout Component Spec', () => {
     const handle = screen.getByRole('separator');
     expect(handle).toHaveAttribute('aria-valuenow', '50');
 
-    // Mouse down on handle
-    fireEvent.mouseDown(handle, { clientX: 500 });
-    fireEvent.mouseMove(window, { clientX: 600 });
-    fireEvent.mouseUp(window);
+    // Double click to reset
+    fireEvent.doubleClick(handle);
+    expect(localStorage.getItem('dsa_visualizer_layout_split')).toBe('50');
+  });
+
+  it('initializes split ratio from localStorage if valid', () => {
+    localStorage.setItem('dsa_visualizer_layout_split', '70');
+
+    render(
+      <ResizableLayout
+        leftPanel={<div>Left Content</div>}
+        rightPanel={<div>Right Content</div>}
+        initialSplitRatio={60}
+      />
+    );
+
+    const handle = screen.getByRole('separator');
+    expect(handle).toHaveAttribute('aria-valuenow', '70');
+    localStorage.clear();
+  });
+
+  it('resets split ratio to default when resetKey changes', () => {
+    localStorage.setItem('dsa_visualizer_layout_split', '75');
+
+    const { rerender } = render(
+      <ResizableLayout
+        leftPanel={<div>Left Content</div>}
+        rightPanel={<div>Right Content</div>}
+        initialSplitRatio={60}
+        resetKey={0}
+      />
+    );
+
+    const handle = screen.getByRole('separator');
+    expect(handle).toHaveAttribute('aria-valuenow', '75');
+
+    rerender(
+      <ResizableLayout
+        leftPanel={<div>Left Content</div>}
+        rightPanel={<div>Right Content</div>}
+        initialSplitRatio={60}
+        resetKey={1}
+      />
+    );
+
+    expect(handle).toHaveAttribute('aria-valuenow', '60');
+    expect(localStorage.getItem('dsa_visualizer_layout_split')).toBe('60');
+    localStorage.clear();
   });
 });

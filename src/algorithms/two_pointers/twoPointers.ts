@@ -73,7 +73,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   addStep(
     1,
     'Initialize Two Pointers Subarray Sum',
-    `Find a contiguous subarray in [${input.array.join(', ')}] that sums up to target = ${target}.`,
+    `Find a contiguous subarray in [${input.array.join(', ')}] that sums to target = ${target} using a sliding window bounded by left and right pointers in O(n) time.`,
     { left: 0, right: 0, currentSum: 0, target, n }
   );
 
@@ -81,7 +81,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     addStep(
       11,
       'Array is empty',
-      'No contiguous subarray possible in empty array.',
+      'No contiguous subarray can exist in an empty array.',
       { left: -1, right: -1, currentSum: 0, target }
     );
     return steps;
@@ -119,7 +119,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     addStep(
       5,
       `Expand window right = ${right}: add arr[${right}] (${rightVal})`,
-      `Extended right pointer. currentSum is now ${currentSum}. Target is ${target}.`,
+      `Window Expansion: Advancing right pointer incorporates element arr[${right}] (${rightVal}), increasing running currentSum to ${currentSum} (Target: ${target}).`,
       { left, right, 'arr[right]': rightVal, currentSum, target }
     );
 
@@ -129,7 +129,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       addStep(
         6,
         `currentSum (${currentSum}) > target (${target}): shrink window from left = ${left}`,
-        `Subtracting arr[${left}] (${leftVal}) to reduce sum.`,
+        `Window Contraction: Running sum (${currentSum}) exceeds target (${target}). Since elements are non-negative, subtracting arr[${left}] (${leftVal}) by advancing left pointer reduces sum toward target.`,
         { left, right, 'arr[left]': leftVal, currentSum, target }
       );
 
@@ -147,7 +147,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       addStep(
         10,
         `Found target sum! Subarray range [${left}..${right}]`,
-        `Subarray elements [${input.array.slice(left, right + 1).join(', ')}] sum up to ${target}.`,
+        `Target Match: Subarray elements [${input.array.slice(left, right + 1).join(', ')}] span range [${left}..${right}] and sum exactly to ${target}.`,
         { left, right, currentSum, target }
       );
       return steps;
@@ -157,7 +157,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   addStep(
     11,
     'No contiguous subarray matches target',
-    `Finished scanning array. No contiguous range sums to ${target}.`,
+    `Scanned full array with right pointer without finding any contiguous subarray window summing to target ${target}.`,
     { left: -1, right: -1, currentSum, target }
   );
 
@@ -170,7 +170,24 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   category: 'two_pointers',
   difficulty: 'Easy',
   description:
-    'Finds a contiguous subarray whose elements sum up to a target value using two pointers (left and right) defining a sliding window.',
+    'Finds a contiguous subarray whose elements sum up to a target value using two pointers (left and right) defining a dynamic sliding window over non-negative integers.',
+  constraints: [
+    '1 <= arr.length <= 10^5',
+    '0 <= arr[i] <= 10^4',
+    '1 <= target <= 10^9',
+  ],
+  examples: [
+    {
+      input: 'arr = [1, 2, 3, 7, 5], target = 12',
+      output: '[1, 3]',
+      explanation: 'Subarray from index 1 to 3: [2, 3, 7] sums to 2 + 3 + 7 = 12.',
+    },
+    {
+      input: 'arr = [1, 2, 3, 4, 5], target = 15',
+      output: '[0, 4]',
+      explanation: 'The entire array sums to 15.',
+    },
+  ],
   code: TWO_POINTERS_CODE,
   timeComplexity: {
     best: 'O(n)',

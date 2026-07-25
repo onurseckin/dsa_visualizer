@@ -94,18 +94,18 @@ const getNodeStateColors = (state: ElementState) => {
 export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   nodes,
   edges,
-  width = 600,
-  height = 380,
+  width = 800,
+  height = 500,
   isDirected = false,
   title,
 }) => {
-  const nodeRadius = 24;
+  const nodeRadius = 26;
 
   // Auto layout nodes that don't have explicit x, y
   const nodeMap = new Map<string, NodePosition & GraphNodeItem>();
   const centerX = width / 2;
   const centerY = height / 2;
-  const radius = Math.min(width, height) * 0.35;
+  const radius = Math.min(width, height) * 0.38;
 
   nodes.forEach((node, index) => {
     let px = node.x;
@@ -133,10 +133,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   if (nodeMap.size > 0) {
     const xs = Array.from(nodeMap.values()).map((n) => n.x);
     const ys = Array.from(nodeMap.values()).map((n) => n.y);
-    const calculatedMinX = Math.min(...xs) - nodeRadius - 20;
-    const calculatedMinY = Math.min(...ys) - nodeRadius - 20;
-    const calculatedMaxX = Math.max(...xs) + nodeRadius + 20;
-    const calculatedMaxY = Math.max(...ys) + nodeRadius + 20;
+    const calculatedMinX = Math.min(...xs) - nodeRadius - 30;
+    const calculatedMinY = Math.min(...ys) - nodeRadius - 30;
+    const calculatedMaxX = Math.max(...xs) + nodeRadius + 30;
+    const calculatedMaxY = Math.max(...ys) + nodeRadius + 30;
 
     minX = Math.min(0, calculatedMinX);
     minY = Math.min(0, calculatedMinY);
@@ -155,6 +155,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         alignItems: 'center',
         width: '100%',
         height: '100%',
+        minHeight: '480px',
         padding: 0,
       }}
     >
@@ -176,9 +177,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         width="100%"
         height="100%"
         viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',
+          minHeight: '480px',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',

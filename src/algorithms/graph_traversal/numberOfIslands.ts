@@ -113,7 +113,7 @@ export const generateNumberOfIslandsSteps = (
     codeLine: 3,
     explanation: {
       what: `Initialize Number of Islands grid scan (${rows}x${cols}).`,
-      why: 'Start scanning row by row to discover connected land components.',
+      why: 'Scan grid cells row by row, column by column. Encountering an unvisited land cell ("1") signals the root of a new connected component.',
     },
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: {
@@ -137,7 +137,7 @@ export const generateNumberOfIslandsSteps = (
           codeLine: 14,
           explanation: {
             what: `Discovered new island #${count} starting at cell (${r}, ${c}).`,
-            why: 'Found unvisited land cell. Increment island count and initiate BFS to visit all connected land.',
+            why: 'Encountered unvisited land cell ("1"). Increment island count and launch BFS to visit all 4-directionally connected land cells so they are not re-counted.',
           },
           primarySnapshot: createGridSnapshot([r, c]),
           auxiliaryState: {
@@ -158,7 +158,7 @@ export const generateNumberOfIslandsSteps = (
             codeLine: 19,
             explanation: {
               what: `Exploring cell (${cr}, ${cc}) on island #${count}.`,
-              why: 'Processing neighbors in 4 directions (up, down, left, right).',
+              why: 'Dequeue cell and evaluate its 4 orthogonal neighbors (up, down, left, right) to expand the current island component boundary.',
             },
             primarySnapshot: createGridSnapshot([cr, cc], queue),
             auxiliaryState: {
@@ -197,7 +197,7 @@ export const generateNumberOfIslandsSteps = (
                 codeLine: 24,
                 explanation: {
                   what: `Neighbor land cell (${nr}, ${nc}) connected to island #${count}.`,
-                  why: 'Added neighbor land cell to visited set and BFS queue.',
+                  why: 'Cell is valid unvisited land ("1"). Mark visited immediately and push into BFS queue for component traversal.',
                 },
                 primarySnapshot: createGridSnapshot([cr, cc], queue),
                 auxiliaryState: {
@@ -219,7 +219,7 @@ export const generateNumberOfIslandsSteps = (
     codeLine: 27,
     explanation: {
       what: `Grid traversal complete. Total islands found: ${count}.`,
-      why: 'All cells scanned. Returned total count of connected land components.',
+      why: 'All matrix cells evaluated. The total number of launched BFS expansions equals the total number of connected land components.',
     },
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: {
@@ -238,13 +238,24 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   category: 'graph_traversal',
   difficulty: 'Medium',
   description:
-    'Counts the number of connected land components ("1") surrounded by water ("0") in a 2D grid using BFS/DFS graph traversal.',
-  constraints: ['1 <= m, n <= 30', 'grid[i][j] is "0" or "1"'],
+    'Given an M x N 2D grid matrix representing a map of land cells ("1") and water cells ("0"), count the total number of distinct islands. An island is defined as a connected land component formed by connecting adjacent land cells horizontally or vertically (4-directionally). The algorithm iterates through every grid cell; when an unvisited land cell ("1") is encountered, it increments the island counter and triggers a Breadth-First Search (BFS) or Depth-First Search (DFS) traversal to visit and mark all connected land cells belonging to that same island.',
+  constraints: [
+    '1 <= m, n <= 300',
+    'grid[i][j] is either "0" (water) or "1" (land)',
+    'All grid boundaries outside matrix perimeter are considered surrounded by water',
+  ],
   examples: [
     {
-      input: 'grid = [["1","1","0"],["1","1","0"],["0","0","1"]]',
-      output: '2',
-      explanation: 'Two separate land masses exist.',
+      input: 'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
+      output: '3',
+      explanation:
+        'BFS from (0,0) visits the top-left 2x2 land block (Island 1). Scanning continues to (2,2) triggering Island 2. Finally (3,3) triggers Island 3 covering cells (3,3) and (3,4). Total = 3.',
+    },
+    {
+      input: 'grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]',
+      output: '1',
+      explanation:
+        'All land cells form a single 4-directionally connected component. BFS from (0,0) marks all land cells. Total = 1.',
     },
   ],
   code: NUMBER_OF_ISLANDS_CODE,
