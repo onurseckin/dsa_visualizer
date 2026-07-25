@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Code2,
   Eye,
@@ -10,19 +10,21 @@ import {
   Sparkles,
   Network,
   List,
+  Zap,
 } from 'lucide-react';
 import { ViewMode, CategoryType, AppView } from '../types/dsa';
 import { GlobalSearchBar } from './GlobalSearchBar';
+import { QuickAccessDrawer } from './QuickAccessDrawer';
 
-interface NavbarProps {
+export interface NavbarProps {
   appView: AppView;
   onSetAppView: (view: AppView) => void;
-  categories: { id: CategoryType; label: string }[];
-  activeCategory: CategoryType;
-  onSelectCategory: (cat: CategoryType) => void;
-  algorithmIds: { id: string; title: string; difficulty?: string }[];
-  activeAlgorithmId: string;
-  onSelectAlgorithm: (id: string) => void;
+  categories?: { id: CategoryType; label: string }[];
+  activeCategory?: CategoryType;
+  onSelectCategory?: (cat: CategoryType) => void;
+  algorithmIds?: { id: string; title: string; difficulty?: string }[];
+  activeAlgorithmId?: string;
+  onSelectAlgorithm?: (id: string) => void;
   onGlobalSelectAlgorithm: (id: string, categoryFolder?: CategoryType) => void;
   viewMode: ViewMode;
   onSetViewMode: (mode: ViewMode) => void;
@@ -38,11 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   appView,
   onSetAppView,
   categories,
-  activeCategory,
-  onSelectCategory,
-  algorithmIds,
   activeAlgorithmId,
-  onSelectAlgorithm,
   onGlobalSelectAlgorithm,
   viewMode,
   onSetViewMode,
@@ -53,6 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   soundEnabled,
   onToggleSound,
 }) => {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   return (
     <header
       style={{
@@ -130,63 +130,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Global Navbar Fast Search Bar */}
       <GlobalSearchBar onSelectAlgorithm={onGlobalSelectAlgorithm} />
 
-      {/* Category & Algorithm Selectors (Workspace view) */}
-      {appView === 'workspace' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {/* Category Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Category:</span>
-            <select
-              value={activeCategory}
-              onChange={(e) => onSelectCategory(e.target.value as CategoryType)}
-              style={{
-                background: 'var(--bg-surface)',
-                color: 'var(--text-main)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.4rem 0.8rem',
-                fontFamily: 'var(--font-ui)',
-                fontSize: '0.85rem',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Algorithm Selector Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 500 }}>Algorithm:</span>
-            <select
-              value={activeAlgorithmId}
-              onChange={(e) => onSelectAlgorithm(e.target.value)}
-              style={{
-                background: 'var(--bg-surface)',
-                color: 'var(--text-main)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.4rem 0.8rem',
-                fontFamily: 'var(--font-ui)',
-                fontSize: '0.85rem',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {algorithmIds.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title} {item.difficulty ? `(${item.difficulty})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
-
       {/* View Mode & Toggles */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {appView === 'workspace' && (
@@ -221,6 +164,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
+        {/* Quick Problems Drawer Trigger */}
+        <button
+          className={`btn ${isDrawerOpen ? 'btn-active' : ''}`}
+          onClick={() => setIsDrawerOpen((prev) => !prev)}
+          title="Toggle Quick Problems Directory Drawer"
+          style={{ padding: '0.35rem 0.6rem' }}
+        >
+          <Zap style={{ width: '15px', height: '15px', color: 'var(--accent-emerald)' }} />
+          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Quick Problems</span>
+        </button>
+
         <button
           className={`btn ${showTutorial ? 'btn-active' : ''}`}
           onClick={onToggleTutorial}
@@ -254,6 +208,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </button>
       </div>
+
+      {/* Quick Access Sliding Glass Side Drawer */}
+      <QuickAccessDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onSelectAlgorithm={onGlobalSelectAlgorithm}
+        activeAlgorithmId={activeAlgorithmId}
+        categories={categories}
+      />
     </header>
   );
 };
+

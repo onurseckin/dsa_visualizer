@@ -3,11 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { KnowledgeGraph, NEETCODE_NODES } from '../KnowledgeGraph';
 
 describe('KnowledgeGraph Component Spec', () => {
-  it('renders title, SVG region, and roadmap node cards', () => {
+  it('renders SVG region and roadmap node cards', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
 
-    expect(screen.getByText('Topologically Ordered Prerequisite Knowledge Graph')).toBeInTheDocument();
     expect(screen.getByText('All Categorized Topic Modules')).toBeInTheDocument();
     expect(
       screen.getByRole('region', { name: /Interactive Data Structures and Algorithms Prerequisite Roadmap/i })

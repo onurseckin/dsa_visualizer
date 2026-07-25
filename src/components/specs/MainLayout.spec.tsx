@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../MainLayout';
 import type { AlgorithmDefinition, AlgorithmStep } from '../../types/dsa';
+import type { ControlPanelProps } from '../ControlPanel';
 
 const dummyAlgorithm: AlgorithmDefinition = {
   id: 'bubble-sort',
@@ -39,8 +40,24 @@ const dummyStep: AlgorithmStep = {
   variables: { i: 0, j: 0 },
 };
 
+const dummyControlProps: ControlPanelProps = {
+  isPlaying: false,
+  onPlayPause: vi.fn(),
+  onStepBack: vi.fn(),
+  onStepForward: vi.fn(),
+  onReset: vi.fn(),
+  currentStep: 0,
+  totalSteps: 5,
+  speed: 300,
+  onSpeedChange: vi.fn(),
+  dataSize: 10,
+  onDataSizeChange: vi.fn(),
+  onGenerateRandom: vi.fn(),
+  supportsCustomSize: true,
+};
+
 describe('MainLayout Component Spec', () => {
-  it('renders problem header details accurately', () => {
+  it('renders compact problem header and toggles details on collapse', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -54,11 +71,19 @@ describe('MainLayout Component Spec', () => {
     );
 
     expect(screen.getByText('Bubble Sort Algorithm')).toBeInTheDocument();
-    expect(screen.getByText(/Repeatedly steps through the list/i)).toBeInTheDocument();
     expect(screen.getByText(/Easy/i)).toBeInTheDocument();
+    expect(screen.getByText(/Repeatedly steps through the list/i)).toBeInTheDocument();
+
+    // Toggle expand button to hide description and examples
+    const toggleBtn = screen.getByRole('button', { name: /Hide Details ▲/i });
+    expect(toggleBtn).toBeInTheDocument();
+
+    fireEvent.click(toggleBtn);
+    expect(screen.queryByText(/Repeatedly steps through the list/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Show Details ▼/i)).toBeInTheDocument();
   });
 
-  it('renders both visualizer and code viewer in split viewMode', () => {
+  it('renders both hero visualizer canvas and code viewer in split viewMode', () => {
     render(
       <MainLayout
         algorithm={dummyAlgorithm}
@@ -73,6 +98,26 @@ describe('MainLayout Component Spec', () => {
 
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText(/def bubble_sort/i)).toBeInTheDocument();
+  });
+
+  it('renders integrated playback controls inside visualizer card when controlProps are provided', () => {
+    render(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        viewMode="split"
+        showTutorial={false}
+        showAuxiliary={false}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+        controlProps={dummyControlProps}
+      />
+    );
+
+    expect(screen.getByTitle('Play')).toBeInTheDocument();
+    expect(screen.getByTitle('Reset to Step 0')).toBeInTheDocument();
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('hides code viewer in visual viewMode', () => {
@@ -109,7 +154,7 @@ describe('MainLayout Component Spec', () => {
     expect(screen.queryByText('3')).not.toBeInTheDocument();
   });
 
-  it('toggles tutorial card banner and triggers onClose', () => {
+  it('toggles tutorial card banner overlay inside visualizer canvas card and triggers onClose', () => {
     const handleToggleTutorial = vi.fn();
     const { rerender } = render(
       <MainLayout
@@ -195,3 +240,4 @@ describe('MainLayout Component Spec', () => {
     expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
   });
 });
+
