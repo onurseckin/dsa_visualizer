@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ALGORITHM_REGISTRY, getAlgorithm, getAllAlgorithms } from '../registry';
 
 describe('ALGORITHM_REGISTRY', () => {
-  it('should contain all 19 NeetCode topic algorithm definitions', () => {
+  it('should contain all granular topic algorithm definitions', () => {
     expect(ALGORITHM_REGISTRY['prefix-sum']).toBeDefined();
     expect(ALGORITHM_REGISTRY['two-sum']).toBeDefined();
     expect(ALGORITHM_REGISTRY['kadane-max-subarray']).toBeDefined();
@@ -15,31 +15,40 @@ describe('ALGORITHM_REGISTRY', () => {
     expect(ALGORITHM_REGISTRY['sliding-window-min']).toBeDefined();
     expect(ALGORITHM_REGISTRY['reverse-linked-list']).toBeDefined();
     expect(ALGORITHM_REGISTRY['binary-tree-lca']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['tree-diameter']).toBeDefined();
     expect(ALGORITHM_REGISTRY['trie-prefix-tree']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['z-algorithm']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['kmp-string-match']).toBeDefined();
     expect(ALGORITHM_REGISTRY['kth-largest-element']).toBeDefined();
     expect(ALGORITHM_REGISTRY['n-queens']).toBeDefined();
     expect(ALGORITHM_REGISTRY['bfs-graph']).toBeDefined();
     expect(ALGORITHM_REGISTRY['number-of-islands']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['dijkstra-shortest-path']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['bellman-ford']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['floyd-warshall']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['kruskal-mst']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['topological-sort']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['kosaraju-scc']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['ford-fulkerson']).toBeDefined();
     expect(ALGORITHM_REGISTRY['coin-change-dp']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['edit-distance']).toBeDefined();
     expect(ALGORITHM_REGISTRY['merge-intervals']).toBeDefined();
     expect(ALGORITHM_REGISTRY['huffman-coding']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['dijkstra-shortest-path']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['topological-sort']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['kruskal-mst']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['bellman-ford']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['edit-distance']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['sieve-primes']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['nim-game']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['convex-hull']).toBeDefined();
     expect(ALGORITHM_REGISTRY['counting-bits']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['sieve-primes']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['euclid-gcd']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['nim-game']).toBeDefined();
     expect(ALGORITHM_REGISTRY['fenwick-tree']).toBeDefined();
     expect(ALGORITHM_REGISTRY['segment-tree']).toBeDefined();
-    expect(ALGORITHM_REGISTRY['kmp-string-match']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['segment-tree-lazy']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['convex-hull']).toBeDefined();
+    expect(ALGORITHM_REGISTRY['polygon-area']).toBeDefined();
 
     expect(getAllAlgorithms().length).toBeGreaterThan(25);
-    expect(getAlgorithm('dijkstra-shortest-path')?.category).toBe('advanced_graphs');
-    expect(getAlgorithm('kruskal-mst')?.category).toBe('advanced_graphs');
-    expect(getAlgorithm('segment-tree')?.category).toBe('advanced_range_and_cp');
-    expect(getAlgorithm('huffman-coding')?.category).toBe('greedy');
+    expect(getAlgorithm('dijkstra-shortest-path')?.category).toBe('graph_shortest_paths');
+    expect(getAlgorithm('kruskal-mst')?.category).toBe('graph_spanning_trees');
+    expect(getAlgorithm('topological-sort')?.category).toBe('graph_directed_and_scc');
+    expect(getAlgorithm('segment-tree')?.category).toBe('advanced_range_queries');
+    expect(getAlgorithm('huffman-coding')?.category).toBe('greedy_algorithms');
   });
 });

@@ -9,7 +9,7 @@ describe('slidingWindowMin algorithm spec', () => {
   it('should have valid metadata', () => {
     expect(slidingWindowMin.id).toBe('sliding-window-min');
     expect(slidingWindowMin.title).toBe('Sliding Window Minimum');
-    expect(slidingWindowMin.category).toBe('fundamentals');
+    expect(slidingWindowMin.category).toBe('sliding_window');
     expect(slidingWindowMin.difficulty).toBe('Hard');
     expect(slidingWindowMin.defaultInput).toEqual(DEFAULT_SLIDING_WINDOW_MIN_INPUT);
   });

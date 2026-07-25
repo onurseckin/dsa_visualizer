@@ -23,29 +23,29 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 4,
     difficulty: 'Easy',
     x: 400,
-    y: 60,
+    y: 50,
   },
   {
     id: 'two-pointers',
     title: '2. Two Pointers',
     categoryFolder: 'two_pointers',
-    description: 'Target Sum, Sorted Arrays, Container With Most Water, 3Sum',
+    description: 'Target Sum, Sorted Arrays, Container With Most Water',
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 180,
-    y: 160,
+    y: 150,
   },
   {
-    id: 'stack',
-    title: '3. Stack',
-    categoryFolder: 'stack',
-    description: 'LIFO, Valid Parentheses, Monotonic Stack Nearest Smaller',
+    id: 'stack-and-queue',
+    title: '3. Stack & Queue',
+    categoryFolder: 'stack_and_queue',
+    description: 'LIFO Stack, Queue, Valid Parentheses, Monotonic Stack',
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 400,
-    y: 160,
+    y: 150,
   },
   {
     id: 'binary-search',
@@ -56,7 +56,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 620,
-    y: 160,
+    y: 150,
   },
   {
     id: 'sliding-window',
@@ -67,7 +67,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Medium',
     x: 100,
-    y: 270,
+    y: 250,
   },
   {
     id: 'linked-list',
@@ -78,117 +78,117 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 260,
-    y: 270,
+    y: 250,
   },
   {
-    id: 'trees',
-    title: '7. Trees',
-    categoryFolder: 'trees',
-    description: 'Binary Trees, BSTs, Traversals, Diameter, LCA Binary Lifting',
-    prerequisites: ['binary-search', 'linked-list'],
+    id: 'tree-fundamentals',
+    title: '7. Tree Fundamentals',
+    categoryFolder: 'tree_fundamentals',
+    description: 'Binary Trees, BSTs, Traversals, Lowest Common Ancestor',
+    prerequisites: ['linked-list', 'binary-search'],
     algorithmCount: 4,
     difficulty: 'Medium',
     x: 520,
-    y: 270,
+    y: 250,
   },
   {
-    id: 'tries',
-    title: '8. Tries',
-    categoryFolder: 'tries',
-    description: 'Prefix Trees, Word Search, Add & Search Words',
-    prerequisites: ['trees'],
-    algorithmCount: 2,
+    id: 'tries-and-strings',
+    title: '8. Tries & String Algs',
+    categoryFolder: 'tries_and_strings',
+    description: 'Prefix Trees, KMP String Match, Z-Algorithm, Hashing',
+    prerequisites: ['tree-fundamentals'],
+    algorithmCount: 4,
     difficulty: 'Medium',
     x: 100,
-    y: 380,
+    y: 350,
   },
   {
-    id: 'heap',
+    id: 'heap-and-priority-queue',
     title: '9. Heap / Priority Queue',
-    categoryFolder: 'heap',
-    description: 'Kth Largest Element, Median Finder, Task Scheduler',
-    prerequisites: ['trees'],
+    categoryFolder: 'heap_and_priority_queue',
+    description: 'Kth Largest Element, Min/Max Heap, Task Scheduler',
+    prerequisites: ['tree-fundamentals'],
     algorithmCount: 3,
     difficulty: 'Medium',
     x: 280,
-    y: 380,
+    y: 350,
   },
   {
     id: 'backtracking',
     title: '10. Backtracking',
     categoryFolder: 'backtracking',
     description: 'Subsets, Permutations, Combination Sum, N-Queens',
-    prerequisites: ['trees'],
+    prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
     x: 520,
-    y: 380,
+    y: 350,
   },
   {
-    id: 'graphs',
-    title: '11. Graphs',
-    categoryFolder: 'graphs',
-    description: 'DFS, BFS, Number of Islands, Bipartite 2-Coloring, Cycles',
-    prerequisites: ['backtracking'],
+    id: 'graph-traversal',
+    title: '11. Graph Traversal',
+    categoryFolder: 'graph_traversal',
+    description: 'BFS, DFS, Number of Islands, Bipartite Check, Cycles',
+    prerequisites: ['backtracking', 'tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
     x: 400,
-    y: 490,
+    y: 450,
+  },
+  {
+    id: 'graph-shortest-paths',
+    title: '12. Graph Shortest Paths',
+    categoryFolder: 'graph_shortest_paths',
+    description: 'Dijkstra, Bellman-Ford, Floyd-Warshall All-Pairs',
+    prerequisites: ['graph-traversal'],
+    algorithmCount: 3,
+    difficulty: 'Hard',
+    x: 180,
+    y: 550,
+  },
+  {
+    id: 'graph-spanning-trees',
+    title: '13. Spanning Trees & DSU',
+    categoryFolder: 'graph_spanning_trees',
+    description: 'Kruskal MST, Union-Find / DSU, Prim MST',
+    prerequisites: ['graph-traversal'],
+    algorithmCount: 3,
+    difficulty: 'Medium',
+    x: 400,
+    y: 550,
+  },
+  {
+    id: 'graph-directed-and-scc',
+    title: '14. Directed & SCC Graphs',
+    categoryFolder: 'graph_directed_and_scc',
+    description: 'Topological Sort (Kahn), Kosaraju SCC, Tarjan SCC',
+    prerequisites: ['graph-traversal'],
+    algorithmCount: 3,
+    difficulty: 'Hard',
+    x: 620,
+    y: 550,
+  },
+  {
+    id: 'graph-flows-and-cuts',
+    title: '15. Network Flows & Cuts',
+    categoryFolder: 'graph_flows_and_cuts',
+    description: 'Ford-Fulkerson Max Flow, Edmonds-Karp, Bipartite Matching',
+    prerequisites: ['graph-shortest-paths'],
+    algorithmCount: 3,
+    difficulty: 'Hard',
+    x: 180,
+    y: 650,
   },
   {
     id: 'dp-1d',
-    title: '12. 1-D Dynamic Programming',
+    title: '16. 1-D Dynamic Programming',
     categoryFolder: 'dp_1d',
     description: 'Climbing Stairs, House Robber, Coin Change, LIS DP',
     prerequisites: ['backtracking'],
     algorithmCount: 4,
     difficulty: 'Medium',
-    x: 640,
-    y: 490,
-  },
-  {
-    id: 'intervals',
-    title: '13. Intervals',
-    categoryFolder: 'intervals',
-    description: 'Insert Interval, Merge Intervals, Non-overlapping Intervals',
-    prerequisites: ['dp-1d'],
-    algorithmCount: 3,
-    difficulty: 'Medium',
-    x: 760,
-    y: 600,
-  },
-  {
-    id: 'greedy',
-    title: '14. Greedy Algorithms',
-    categoryFolder: 'greedy',
-    description: 'Kadane Max Subarray, Jump Game, Gas Station, Huffman',
-    prerequisites: ['intervals'],
-    algorithmCount: 3,
-    difficulty: 'Medium',
-    x: 760,
-    y: 710,
-  },
-  {
-    id: 'advanced-graphs',
-    title: '15. Advanced Graphs',
-    categoryFolder: 'advanced_graphs',
-    description: 'Dijkstra, Bellman-Ford, Topo Sort, Kruskal MST, Max Flow',
-    prerequisites: ['graphs'],
-    algorithmCount: 4,
-    difficulty: 'Hard',
-    x: 320,
-    y: 600,
-  },
-  {
-    id: 'math-and-geometry',
-    title: '16. Math & Geometry',
-    categoryFolder: 'math_and_geometry',
-    description: 'Sieve of Eratosthenes, Euclid GCD, Shoelace, Convex Hull',
-    prerequisites: ['trees'],
-    algorithmCount: 4,
-    difficulty: 'Medium',
-    x: 760,
-    y: 380,
+    x: 740,
+    y: 450,
   },
   {
     id: 'dp-2d',
@@ -198,30 +198,52 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     prerequisites: ['dp-1d'],
     algorithmCount: 4,
     difficulty: 'Hard',
-    x: 540,
-    y: 600,
+    x: 740,
+    y: 550,
+  },
+  {
+    id: 'advanced-range-queries',
+    title: '18. Advanced Range Queries',
+    categoryFolder: 'advanced_range_queries',
+    description: 'Fenwick Tree (BIT), Segment Tree, Lazy Propagation',
+    prerequisites: ['dp-2d'],
+    algorithmCount: 4,
+    difficulty: 'Hard',
+    x: 740,
+    y: 650,
   },
   {
     id: 'bit-manipulation',
-    title: '18. Bit Manipulation',
+    title: '19. Bit Manipulation',
     categoryFolder: 'bit_manipulation',
     description: 'Single Number, Counting Bits, Reverse Bits, Bitmask DP',
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
     x: 760,
-    y: 270,
+    y: 250,
   },
   {
-    id: 'advanced-range-and-cp',
-    title: '19. Advanced Range & CP',
-    categoryFolder: 'advanced_range_and_cp',
-    description: 'Fenwick Tree, Segment Tree, KMP Pattern Match, Nim Game',
-    prerequisites: ['greedy'],
+    id: 'math-and-number-theory',
+    title: '20. Math & Number Theory',
+    categoryFolder: 'math_and_number_theory',
+    description: 'Sieve of Eratosthenes, Euclid GCD, Modular Inverse',
+    prerequisites: ['arrays-and-hashing'],
     algorithmCount: 4,
+    difficulty: 'Medium',
+    x: 760,
+    y: 350,
+  },
+  {
+    id: 'geometry-and-sweep-line',
+    title: '21. Geometry & Sweep Line',
+    categoryFolder: 'geometry_and_sweep_line',
+    description: 'Shoelace Polygon Area, Convex Hull (Monotone Chain)',
+    prerequisites: ['math-and-number-theory'],
+    algorithmCount: 3,
     difficulty: 'Hard',
-    x: 540,
-    y: 710,
+    x: 400,
+    y: 650,
   },
 ];
 
@@ -230,7 +252,6 @@ interface KnowledgeGraphProps {
 }
 
 export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategoryFolder }) => {
-  // Render SVG prerequisite connection lines
   const renderConnections = () => {
     const lines: React.ReactNode[] = [];
 
@@ -265,7 +286,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         flexDirection: 'column',
         alignItems: 'center',
         padding: '2rem 1.5rem',
-        maxWidth: '1200px',
+        maxWidth: '1280px',
         margin: '0 auto',
         width: '100%',
       }}
@@ -286,7 +307,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         >
           <Sparkles style={{ width: '16px', height: '16px', color: 'var(--accent-emerald)' }} />
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-emerald)' }}>
-            INTERVIEW & COMPETITIVE PROGRAMMING ROADMAP
+            INTERVIEW & COMPETITIVE PROGRAMMING TOPOLOGY
           </span>
         </div>
 
@@ -299,11 +320,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
             marginBottom: '0.5rem',
           }}
         >
-          NeetCode Aligned Knowledge Graph
+          Topologically Ordered Prerequisite Knowledge Graph
         </h1>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', maxWidth: '680px', margin: '0 auto' }}>
-          Explore the prerequisite learning tree from foundational data structures to complex graph and DP algorithms.
-          Click any topic node to open its interactive visualizers and code implementations.
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', maxWidth: '720px', margin: '0 auto' }}>
+          Follow the prerequisite arrows from foundational data structures to specialized graph, flow, and range query algorithms.
+          Click any topic node to jump directly to its visualizers and Python code implementations.
         </p>
       </div>
 
@@ -315,19 +336,17 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
           overflowX: 'auto',
           position: 'relative',
           padding: '2rem 1rem',
-          minHeight: '820px',
+          minHeight: '760px',
           background: 'var(--bg-darkest)',
         }}
       >
         <svg
-          width="900"
-          height="780"
+          width="920"
+          height="720"
           style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
         >
-          {/* Prerequisite Edges */}
           {renderConnections()}
 
-          {/* Category Nodes */}
           {NEETCODE_NODES.map((node) => (
             <g
               key={node.id}
@@ -335,7 +354,6 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
               onClick={() => onSelectCategoryFolder(node.categoryFolder)}
               style={{ cursor: 'pointer' }}
             >
-              {/* Node Card Container */}
               <rect
                 width="180"
                 height="60"
@@ -349,20 +367,18 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 }}
               />
 
-              {/* Node Title */}
               <text
                 x="90"
                 y="24"
                 textAnchor="middle"
                 fill="var(--text-main)"
-                fontSize="12"
+                fontSize="11.5"
                 fontWeight="700"
                 fontFamily="var(--font-ui)"
               >
                 {node.title}
               </text>
 
-              {/* Difficulty & Count Subtitle */}
               <text
                 x="90"
                 y="44"
@@ -382,10 +398,10 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       <div style={{ width: '100%', marginTop: '2.5rem' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Network style={{ width: '18px', height: '18px', color: 'var(--accent-emerald)' }} />
-          All NeetCode 18 Topic Categories
+          All Categorized Topic Modules
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>
           {NEETCODE_NODES.map((node) => (
             <div
               key={node.id}

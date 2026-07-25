@@ -119,7 +119,7 @@ export const generatePrefixSumSteps = (
 export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: 'prefix-sum',
   title: 'Prefix Sum',
-  category: 'fundamentals',
+  category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
     'Computes cumulative prefix sums for an array, enabling O(1) time sub-array range sum queries.',

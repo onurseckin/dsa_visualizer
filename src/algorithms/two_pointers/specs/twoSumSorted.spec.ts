@@ -10,7 +10,7 @@ describe('twoSumSorted algorithm spec', () => {
   it('should have correct algorithm metadata', () => {
     expect(twoSumSorted.id).toBe('two-sum-sorted');
     expect(twoSumSorted.title).toBe('Two Sum II (Sorted)');
-    expect(twoSumSorted.category).toBe('leetcode');
+    expect(twoSumSorted.category).toBe('two_pointers');
     expect(twoSumSorted.difficulty).toBe('Easy');
     expect(twoSumSorted.defaultInput).toEqual(DEFAULT_TWO_SUM_SORTED_INPUT);
   });

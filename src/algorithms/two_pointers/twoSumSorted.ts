@@ -176,7 +176,7 @@ export const generateTwoSumSortedSteps = (
 export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   id: 'two-sum-sorted',
   title: 'Two Sum II (Sorted)',
-  category: 'leetcode',
+  category: 'two_pointers',
   difficulty: 'Easy',
   description:
     'Find two numbers in a 1-indexed sorted array that add up to target using the outer-bound two-pointer approach.',
