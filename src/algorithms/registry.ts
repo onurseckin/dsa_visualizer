@@ -27,10 +27,17 @@ import { editDistance } from './dp_2d/editDistance';
 import { sievePrimes } from './math_and_geometry/sievePrimes';
 import { nimGame } from './math_and_geometry/nimGame';
 import { convexHull } from './math_and_geometry/convexHull';
+import { euclidGcd } from './math_and_geometry/euclidGcd';
+import { polygonArea } from './math_and_geometry/polygonArea';
 import { countingBits } from './bit_manipulation/countingBits';
 import { fenwickTree } from './advanced_range_and_cp/fenwickTree';
 import { segmentTree } from './advanced_range_and_cp/segmentTree';
 import { kmpStringMatch } from './advanced_range_and_cp/kmpStringMatch';
+
+import { treeDiameter } from './trees/treeDiameter';
+import { kosarajuScc } from './advanced_graphs/kosarajuScc';
+import { zAlgorithm } from './tries/zAlgorithm';
+import { segmentTreeLazy } from './advanced_range_and_cp/segmentTreeLazy';
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   'prefix-sum': prefixSum as AlgorithmDefinition,
@@ -45,7 +52,9 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   'sliding-window-min': slidingWindowMin as AlgorithmDefinition,
   'reverse-linked-list': reverseLinkedList as AlgorithmDefinition,
   'binary-tree-lca': binaryTreeLca as AlgorithmDefinition,
+  'tree-diameter': treeDiameter as AlgorithmDefinition,
   'trie-prefix-tree': triePrefixTree as AlgorithmDefinition,
+  'z-algorithm': zAlgorithm as AlgorithmDefinition,
   'kth-largest-element': kthLargestElement as AlgorithmDefinition,
   'n-queens': nQueens as AlgorithmDefinition,
   'bfs-graph': bfsGraph as AlgorithmDefinition,
@@ -57,13 +66,17 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   'topological-sort': topologicalSort as AlgorithmDefinition,
   'kruskal-mst': kruskalMst as AlgorithmDefinition,
   'bellman-ford': bellmanFord as AlgorithmDefinition,
+  'kosaraju-scc': kosarajuScc as AlgorithmDefinition,
   'edit-distance': editDistance as AlgorithmDefinition,
   'sieve-primes': sievePrimes as AlgorithmDefinition,
   'nim-game': nimGame as AlgorithmDefinition,
   'convex-hull': convexHull as AlgorithmDefinition,
+  'euclid-gcd': euclidGcd as AlgorithmDefinition,
+  'polygon-area': polygonArea as AlgorithmDefinition,
   'counting-bits': countingBits as AlgorithmDefinition,
   'fenwick-tree': fenwickTree as AlgorithmDefinition,
   'segment-tree': segmentTree as AlgorithmDefinition,
+  'segment-tree-lazy': segmentTreeLazy as AlgorithmDefinition,
   'kmp-string-match': kmpStringMatch as AlgorithmDefinition,
 };
 
