@@ -4,17 +4,13 @@ import type {
   ArrayElement,
 } from '../../types/dsa';
 
-export const BUBBLE_SORT_CODE = `function bubbleSort(arr) {
-  const n = arr.length;
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = 0; j < n - i - 1; j++) {
-      if (arr[j] > arr[j + 1]) {
-        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-      }
-    }
-  }
-  return arr;
-}`;
+export const BUBBLE_SORT_CODE = `def bubble_sort(arr: list[int]) -> list[int]:
+    n = len(arr)
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+    return arr`;
 
 export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
