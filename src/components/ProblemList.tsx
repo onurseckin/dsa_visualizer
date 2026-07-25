@@ -6,6 +6,10 @@ import { Badge, Button, Card, Input, difficultyBadgeVariant } from '../ui';
 
 interface ProblemListProps {
   onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
+  /** Controlled category filter — when provided, the parent (e.g. the URL) owns
+      the selection and chip clicks are reported through onCategoryChange. */
+  category?: CategoryType | 'All';
+  onCategoryChange?: (category: CategoryType | 'All') => void;
 }
 
 const CATEGORY_LABELS: Partial<Record<CategoryType, string>> = {
@@ -44,10 +48,28 @@ const sectionLabelStyle: React.CSSProperties = {
 
 const cellPadding = 'var(--space-3) var(--space-4)';
 
-export const ProblemList: React.FC<ProblemListProps> = ({ onSelectAlgorithm }) => {
+// Object.entries erases the CategoryType key union; restore it once here.
+const CATEGORY_ENTRIES = Object.entries(CATEGORY_LABELS) as [CategoryType, string][];
+
+export const ProblemList: React.FC<ProblemListProps> = ({
+  onSelectAlgorithm,
+  category,
+  onCategoryChange,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [internalCategory, setInternalCategory] = useState<CategoryType | 'All'>('All');
+
+  // Controlled when the prop is present; uncontrolled falls back to local state.
+  const selectedCategory = category ?? internalCategory;
+
+  const handleCategorySelect = (next: CategoryType | 'All') => {
+    if (onCategoryChange) {
+      onCategoryChange(next);
+    } else {
+      setInternalCategory(next);
+    }
+  };
   const [sortBy, setSortBy] = useState<'title' | 'difficulty' | 'category'>('title');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -188,15 +210,15 @@ export const ProblemList: React.FC<ProblemListProps> = ({ onSelectAlgorithm }) =
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <span style={{ ...sectionLabelStyle, lineHeight: 'var(--control-h-sm)' }}>Category</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-              <Button size="sm" selected={selectedCategory === 'All'} onClick={() => setSelectedCategory('All')}>
+              <Button size="sm" selected={selectedCategory === 'All'} onClick={() => handleCategorySelect('All')}>
                 All categories
               </Button>
-              {Object.entries(CATEGORY_LABELS).map(([catKey, label]) => (
+              {CATEGORY_ENTRIES.map(([catKey, label]) => (
                 <Button
                   key={catKey}
                   size="sm"
                   selected={selectedCategory === catKey}
-                  onClick={() => setSelectedCategory(catKey)}
+                  onClick={() => handleCategorySelect(catKey)}
                 >
                   {label}
                 </Button>
