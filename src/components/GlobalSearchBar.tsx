@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { Search, X, ChevronRight, ListFilter } from 'lucide-react';
 import { AlgorithmDefinition, CategoryType } from '../types/dsa';
 import { getAllAlgorithms } from '../algorithms/registry';
 
 interface GlobalSearchBarProps {
   onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
+  onOpenDrawer?: () => void;
 }
 
 // Phonetic and common alias normalization dictionary
@@ -61,7 +62,7 @@ const CATEGORY_NAMES: Partial<Record<CategoryType, string>> = {
   geometry_and_sweep_line: 'Geometry & Sweep Line',
 };
 
-export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgorithm }) => {
+export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgorithm, onOpenDrawer }) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -203,6 +204,7 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
         />
         {query && (
           <button
+            type="button"
             onClick={() => {
               setQuery('');
               setIsOpen(false);
@@ -216,8 +218,29 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
               alignItems: 'center',
               padding: '0',
             }}
+            title="Clear search"
           >
             <X style={{ width: '14px', height: '14px' }} />
+          </button>
+        )}
+        {onOpenDrawer && (
+          <button
+            type="button"
+            onClick={onOpenDrawer}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--accent-emerald)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '2px',
+              borderRadius: '4px',
+            }}
+            title="Open full problem directory sidebar"
+            aria-label="Open full problem directory sidebar"
+          >
+            <ListFilter style={{ width: '16px', height: '16px' }} />
           </button>
         )}
       </div>

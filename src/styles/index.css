@@ -56,14 +56,14 @@ html, body {
 
 /* Visualizer Hero Container & Canvas Stage */
 .visualizer-hero-card {
-  min-height: 480px;
+  min-height: 320px;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .visualizer-canvas-stage {
-  min-height: 480px;
+  min-height: 320px;
   width: 100%;
   flex: 1;
   display: flex;

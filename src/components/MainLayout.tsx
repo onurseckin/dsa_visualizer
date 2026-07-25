@@ -117,11 +117,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        minHeight: '480px',
+        minHeight: '320px',
         height: '100%',
       }}
     >
-      {/* Primary Visualizer Canvas Card (HERO Focus - Fits Viewport Height) */}
+      {/* Primary Visualizer Canvas Card (HERO Focus) */}
       <div
         className="glass-card visualizer-hero-card"
         style={{
@@ -129,36 +129,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           flexDirection: 'column',
           position: 'relative',
           flex: 1,
-          minHeight: '480px',
+          minHeight: '320px',
           overflow: 'hidden',
           border: '1px solid var(--border-muted)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
         }}
       >
-        {/* Integrated Tutorial Explanation Banner */}
-        {showTutorial && currentStep?.explanation && (
-          <div
-            style={{
-              borderBottom: '1px solid var(--border-subtle)',
-              background: 'rgba(15, 23, 42, 0.9)',
-              backdropFilter: 'blur(10px)',
-              flexShrink: 0,
-            }}
-          >
-            <TutorialCard
-              explanation={currentStep.explanation}
-              what={currentStep.explanation.what}
-              why={currentStep.explanation.why}
-              stepIndex={currentStep.stepIndex}
-              totalSteps={totalSteps}
-              codeLine={currentStep.codeLine}
-              onClose={onToggleTutorial}
-              variant="banner"
-            />
-          </div>
-        )}
-
-        {/* Canvas Center Stage Render Area (Fills Available Height) */}
+        {/* Canvas Center Stage Render Area */}
         <div
           className="visualizer-canvas-stage"
           style={{
@@ -169,7 +146,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             padding: 0,
             width: '100%',
             height: '100%',
-            minHeight: '480px',
+            minHeight: '300px',
             overflow: 'auto',
           }}
         >
@@ -180,7 +157,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '240px',
+                minHeight: '200px',
                 color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '1.5rem',
@@ -204,9 +181,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </div>
 
+      {/* Natural Teacher Tutorial Explanation Text */}
+      {showTutorial && currentStep?.explanation && (
+        <div style={{ flexShrink: 0 }}>
+          <TutorialCard
+            explanation={currentStep.explanation}
+            what={currentStep.explanation.what}
+            why={currentStep.explanation.why}
+            stepIndex={currentStep.stepIndex}
+            totalSteps={totalSteps}
+            codeLine={currentStep.codeLine}
+            onClose={onToggleTutorial}
+          />
+        </div>
+      )}
+
       {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
       {showAuxiliary && currentStep?.auxiliaryState && (
-        <div style={{ flexShrink: 0, minHeight: '120px' }}>
+        <div style={{ flexShrink: 0, minHeight: '100px' }}>
           <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
         </div>
       )}

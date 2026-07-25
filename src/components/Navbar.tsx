@@ -10,7 +10,6 @@ import {
   Sparkles,
   Network,
   List,
-  Zap,
 } from 'lucide-react';
 import { ViewMode, CategoryType, AppView } from '../types/dsa';
 import { GlobalSearchBar } from './GlobalSearchBar';
@@ -127,9 +126,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Global Navbar Fast Search Bar */}
-      <GlobalSearchBar onSelectAlgorithm={onGlobalSelectAlgorithm} />
-
       {/* View Mode & Toggles */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {appView === 'workspace' && (
@@ -164,17 +160,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        {/* Quick Problems Drawer Trigger */}
-        <button
-          className={`btn ${isDrawerOpen ? 'btn-active' : ''}`}
-          onClick={() => setIsDrawerOpen((prev) => !prev)}
-          title="Toggle Quick Problems Directory Drawer"
-          style={{ padding: '0.35rem 0.6rem' }}
-        >
-          <Zap style={{ width: '15px', height: '15px', color: 'var(--accent-emerald)' }} />
-          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Quick Problems</span>
-        </button>
-
         <button
           className={`btn ${showTutorial ? 'btn-active' : ''}`}
           onClick={onToggleTutorial}
@@ -207,6 +192,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             <VolumeX style={{ width: '15px', height: '15px', color: 'var(--text-muted)' }} />
           )}
         </button>
+
+        {/* Global Navbar Fast Search Bar & Problem Directory Trigger (Rightmost End) */}
+        <GlobalSearchBar
+          onSelectAlgorithm={onGlobalSelectAlgorithm}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+        />
       </div>
 
       {/* Quick Access Sliding Glass Side Drawer */}
