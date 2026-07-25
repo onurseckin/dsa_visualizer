@@ -71,6 +71,8 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
 
   const algorithms = useMemo(() => getAllAlgorithms(), []);
 
+  const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   // Filter algorithms by search query with alias and fuzzy keyword matching
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -97,12 +99,15 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
     });
   }, [query, algorithms]);
 
-  // Global hotkey listener ('/' or 'Cmd+K' to focus)
+  // Global hotkey listener ('/' or 'Cmd+K' / 'Ctrl+K' to focus)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toUpperCase();
+      const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+
       if (
-        (e.key === '/' && document.activeElement !== inputRef.current) ||
-        ((e.metaKey || e.ctrlKey) && e.key === 'k')
+        (e.key === '/' && !isInputActive && document.activeElement !== inputRef.current) ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')
       ) {
         e.preventDefault();
         inputRef.current?.focus();
@@ -124,9 +129,31 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-scroll selected option into view when navigating with Arrow keys
+  useEffect(() => {
+    if (isOpen && optionRefs.current[selectedIndex]) {
+      const el = optionRefs.current[selectedIndex];
+      if (el && typeof el.scrollIntoView === 'function') {
+        try {
+          el.scrollIntoView({ block: 'nearest' });
+        } catch {
+          // Ignore in test environments (e.g. jsdom) where scrollIntoView is not fully supported
+        }
+      }
+    }
+  }, [selectedIndex, isOpen]);
+
   // Keyboard navigation within search dropdown
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen || results.length === 0) return;
+    if (!isOpen) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+
+    if (results.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -139,8 +166,6 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
       if (results[selectedIndex]) {
         handleSelect(results[selectedIndex]);
       }
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
     }
   };
 
@@ -182,6 +207,16 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen && query.trim() !== ''}
+          aria-controls="global-search-listbox"
+          aria-activedescendant={
+            isOpen && results.length > 0 && results[selectedIndex]
+              ? `search-option-${results[selectedIndex].id}`
+              : undefined
+          }
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -248,6 +283,7 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
       {/* Instant Autocomplete Search Dropdown */}
       {isOpen && query.trim() !== '' && (
         <div
+          id="global-search-listbox"
           role="listbox"
           aria-label="Algorithm Search Results"
           style={{
@@ -280,6 +316,10 @@ export const GlobalSearchBar: React.FC<GlobalSearchBarProps> = ({ onSelectAlgori
               return (
                 <div
                   key={alg.id}
+                  id={`search-option-${alg.id}`}
+                  ref={(el) => {
+                    optionRefs.current[index] = el;
+                  }}
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => handleSelect(alg)}

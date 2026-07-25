@@ -149,6 +149,7 @@ export const QuickAccessDrawer: React.FC<QuickAccessDrawerProps> = ({
       {/* Sliding Glass Side Drawer */}
       <aside
         role="dialog"
+        aria-modal="true"
         aria-label="Quick Access Problems Drawer"
         style={{
           position: 'fixed',

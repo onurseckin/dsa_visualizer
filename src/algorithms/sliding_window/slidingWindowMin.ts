@@ -94,7 +94,7 @@ export const generateSlidingWindowMinSteps = (
   );
 
   addStep(
-    5,
+    4,
     'Initialize Data Structures',
     'Created empty result list and double-ended queue (deque). The deque will store array indices in strictly increasing order of element values.',
     { k, dequeSize: 0, resultSize: 0 }
@@ -124,7 +124,7 @@ export const generateSlidingWindowMinSteps = (
     }
 
     addStep(
-      6,
+      7,
       `Iterate index i = ${i} (nums[${i}] = ${currentVal})`,
       `Window Right Boundary: Processing element nums[${i}] = ${currentVal}. Active window range: [${windowStart}..${i}] containing elements [${nums.slice(windowStart, i + 1).join(', ')}].`,
       { i, 'nums[i]': currentVal, windowStart, k }
@@ -137,7 +137,7 @@ export const generateSlidingWindowMinSteps = (
       if (removedIdx !== undefined) {
         removedOut = true;
         addStep(
-          8,
+          10,
           `Remove index ${removedIdx} from front of deque`,
           `Boundary Eviction: Index ${removedIdx} is now outside the current sliding window boundary (index <= ${i - k}). Pop from front of deque.`,
           { i, removedIdx }
@@ -147,7 +147,7 @@ export const generateSlidingWindowMinSteps = (
 
     if (!removedOut && deque.length > 0) {
       addStep(
-        7,
+        9,
         'Check front of deque',
         `Boundary Invariant: Front index ${deque[0]} is valid and within active window bounds (${deque[0]} > ${i - k}).`,
         { i, dequeFront: deque[0] }
@@ -159,7 +159,7 @@ export const generateSlidingWindowMinSteps = (
       const poppedIdx = deque.pop();
       if (poppedIdx !== undefined) {
         addStep(
-          10,
+          14,
           `Pop index ${poppedIdx} (val: ${nums[poppedIdx]}) from back of deque`,
           `Monotonic Invariant Violation: nums[${poppedIdx}] (${nums[poppedIdx]}) >= current value nums[${i}] (${currentVal}). Because ${currentVal} is smaller and introduced later, index ${poppedIdx} can NEVER be the minimum for any future window. Pop it from back.`,
           { i, poppedIdx, 'nums[popped]': nums[poppedIdx] }
@@ -171,7 +171,7 @@ export const generateSlidingWindowMinSteps = (
     deque.push(i);
 
     addStep(
-      11,
+      16,
       `Push index ${i} to deque`,
       `Insert Index: Pushed index ${i} (value ${currentVal}) to back of monotonic deque. Deque preserves strictly increasing element values: [${deque.map((idx) => nums[idx]).join(', ')}].`,
       { i, dequeState: deque.join(', ') }
@@ -186,7 +186,7 @@ export const generateSlidingWindowMinSteps = (
       elements[minIdx].state = 'sorted';
 
       addStep(
-        13,
+        20,
         `Record window minimum: ${minVal}`,
         `Query Result: Monotonic deque front (index ${minIdx}) provides minimum value (${minVal}) for window [${windowStart}..${i}] in O(1) time. Appended to result list.`,
         { windowStart, windowEnd: i, minVal, result: result.join(', ') }
@@ -195,7 +195,7 @@ export const generateSlidingWindowMinSteps = (
   }
 
   addStep(
-    14,
+    22,
     'Complete Sliding Window Minimum',
     `Evaluation Complete: Computed minimums for all sliding windows of size k = ${k}: [${result.join(', ')}] in linear O(n) time.`,
     { result: result.join(', ') }

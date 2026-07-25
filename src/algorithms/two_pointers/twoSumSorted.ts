@@ -98,9 +98,12 @@ export const generateTwoSumSortedSteps = (
   );
 
   while (left < right) {
-    // reset element states
+    // update element states: preserve visited for eliminated indices outside [left, right]
     for (let k = 0; k < n; k++) {
-      if (k !== left && k !== right) {
+      if (k < left || k > right) {
+        elements[k].state = 'visited';
+        elements[k].pointers = undefined;
+      } else if (k !== left && k !== right) {
         elements[k].state = 'default';
         elements[k].pointers = undefined;
       }

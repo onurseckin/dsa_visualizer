@@ -115,7 +115,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   };
 
   addStep(
-    1,
+    3,
     "Initialize Topological Sort (Kahn's Algorithm)",
     "Beginning process to compute linear ordering of vertices in a Directed Acyclic Graph (DAG) such that for every directed edge u -> v, vertex u appears before vertex v.",
     { nodeCount: nodes.length, edgeCount: edges.length }

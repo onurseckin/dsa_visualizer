@@ -99,7 +99,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   isDirected = false,
   title,
 }) => {
-  const nodeRadius = 26;
+  const nodeRadius = 24;
 
   // Auto layout nodes that don't have explicit x, y
   const nodeMap = new Map<string, NodePosition & GraphNodeItem>();
@@ -133,18 +133,15 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   if (nodeMap.size > 0) {
     const xs = Array.from(nodeMap.values()).map((n) => n.x);
     const ys = Array.from(nodeMap.values()).map((n) => n.y);
-    const calculatedMinX = Math.min(...xs) - nodeRadius - 30;
-    const calculatedMinY = Math.min(...ys) - nodeRadius - 30;
-    const calculatedMaxX = Math.max(...xs) + nodeRadius + 30;
-    const calculatedMaxY = Math.max(...ys) + nodeRadius + 30;
+    const padding = nodeRadius + 24;
 
-    minX = Math.min(0, calculatedMinX);
-    minY = Math.min(0, calculatedMinY);
-    maxX = Math.max(width, calculatedMaxX);
-    maxY = Math.max(height, calculatedMaxY);
+    minX = Math.min(...xs) - padding;
+    minY = Math.min(...ys) - padding;
+    maxX = Math.max(...xs) + padding;
+    maxY = Math.max(...ys) + padding;
   }
-  const viewBoxWidth = maxX - minX;
-  const viewBoxHeight = maxY - minY;
+  const viewBoxWidth = Math.max(maxX - minX, 100);
+  const viewBoxHeight = Math.max(maxY - minY, 100);
 
   return (
     <div
@@ -181,7 +178,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          minHeight: '480px',
+          maxHeight: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
@@ -194,7 +191,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             id="arrowhead"
             markerWidth="10"
             markerHeight="7"
-            refX="28"
+            refX={nodeRadius + 10}
             refY="3.5"
             orient="auto"
           >
@@ -204,7 +201,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             id="arrowhead-path"
             markerWidth="10"
             markerHeight="7"
-            refX="28"
+            refX={nodeRadius + 10}
             refY="3.5"
             orient="auto"
           >
@@ -225,7 +222,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             ? 'var(--accent-emerald)'
             : 'var(--border-muted)';
 
-          const strokeWidth = edge.isPath ? 4 : edge.isTraversed ? 3 : 2;
+          const strokeWidth = edge.isPath ? 3.5 : edge.isTraversed ? 2.5 : 2;
           const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : '4 4';
 
           const midX = (fromNode.x + toNode.x) / 2;
@@ -264,7 +261,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   />
                   <text
                     x="0"
-                    y="4"
+                    y="0"
+                    dominantBaseline="central"
                     textAnchor="middle"
                     fill="var(--accent-mint)"
                     fontSize="11"
@@ -301,10 +299,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               />
               <text
                 x="0"
-                y="4"
+                y="0"
+                dominantBaseline="central"
                 textAnchor="middle"
                 fill={style.text}
-                fontSize="14"
+                fontSize="13"
                 fontFamily="var(--font-code)"
                 fontWeight="700"
               >

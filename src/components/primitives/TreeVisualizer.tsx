@@ -132,13 +132,14 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   if (computedNodes.length > 0) {
     const xs = computedNodes.map((n) => n.cx);
     const ys = computedNodes.map((n) => n.cy);
-    minX = Math.min(0, Math.min(...xs) - nodeRadius - 30);
-    minY = Math.min(0, Math.min(...ys) - nodeRadius - 30);
-    maxX = Math.max(width, Math.max(...xs) + nodeRadius + 30);
-    maxY = Math.max(height, Math.max(...ys) + nodeRadius + 30);
+    const padding = nodeRadius + 24;
+    minX = Math.min(...xs) - padding;
+    minY = Math.min(...ys) - padding;
+    maxX = Math.max(...xs) + padding;
+    maxY = Math.max(...ys) + padding;
   }
-  const viewBoxWidth = maxX - minX;
-  const viewBoxHeight = maxY - minY;
+  const viewBoxWidth = Math.max(maxX - minX, 100);
+  const viewBoxHeight = Math.max(maxY - minY, 100);
 
   return (
     <div
@@ -175,7 +176,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          minHeight: '480px',
+          maxHeight: '100%',
           background: 'var(--bg-darkest)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
@@ -230,7 +231,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               />
               <text
                 x="0"
-                y="4"
+                y="0"
+                dominantBaseline="central"
                 textAnchor="middle"
                 fill={style.text}
                 fontSize="13"

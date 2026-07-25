@@ -116,7 +116,7 @@ export const generateFordFulkersonSteps = (
     pathNodeSet?: Set<string>,
     visitedNodeSet?: Set<string>
   ): GraphNodeItem[] =>
-    rawNodes.map((id) => {
+    rawNodes.map((id, index) => {
       let label = id;
       if (id === source) label = `${id} (S)`;
       if (id === sink) label = `${id} (T)`;
@@ -126,14 +126,29 @@ export const generateFordFulkersonSteps = (
       else if (pathNodeSet?.has(id)) state = 'path';
       else if (visitedNodeSet?.has(id)) state = 'visited';
 
-      const pos = DEFAULT_NODE_POSITIONS[id];
+      const pos = DEFAULT_NODE_POSITIONS[id] || {
+        x: Math.round(
+          260 +
+            150 *
+              Math.cos(
+                (2 * Math.PI * index) / Math.max(rawNodes.length, 1)
+              )
+        ),
+        y: Math.round(
+          190 +
+            120 *
+              Math.sin(
+                (2 * Math.PI * index) / Math.max(rawNodes.length, 1)
+              )
+        ),
+      };
 
       return {
         id,
         label,
         state,
-        x: pos?.x,
-        y: pos?.y,
+        x: pos.x,
+        y: pos.y,
       };
     });
 

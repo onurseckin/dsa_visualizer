@@ -117,7 +117,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     syncElementStates(left, right);
 
     addStep(
-      5,
+      6,
       `Expand window right = ${right}: add arr[${right}] (${rightVal})`,
       `Window Expansion: Advancing right pointer incorporates element arr[${right}] (${rightVal}), increasing running currentSum to ${currentSum} (Target: ${target}).`,
       { left, right, 'arr[right]': rightVal, currentSum, target }
@@ -127,7 +127,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       const leftVal = elements[left].value;
 
       addStep(
-        6,
+        9,
         `currentSum (${currentSum}) > target (${target}): shrink window from left = ${left}`,
         `Window Contraction: Running sum (${currentSum}) exceeds target (${target}). Since elements are non-negative, subtracting arr[${left}] (${leftVal}) by advancing left pointer reduces sum toward target.`,
         { left, right, 'arr[left]': leftVal, currentSum, target }
@@ -145,7 +145,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       syncElementStates(left, right, true);
 
       addStep(
-        10,
+        13,
         `Found target sum! Subarray range [${left}..${right}]`,
         `Target Match: Subarray elements [${input.array.slice(left, right + 1).join(', ')}] span range [${left}..${right}] and sum exactly to ${target}.`,
         { left, right, currentSum, target }
@@ -155,7 +155,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   }
 
   addStep(
-    11,
+    15,
     'No contiguous subarray matches target',
     `Scanned full array with right pointer without finding any contiguous subarray window summing to target ${target}.`,
     { left: -1, right: -1, currentSum, target }

@@ -243,7 +243,7 @@ export const generateKosarajuSccSteps = (
 
   // --- PASS 2: Collect SCCs in reverse finish order ---
   addStep(
-    18,
+    26,
     'Pass 2: Pop nodes from stack and run DFS on G^T',
     'Vertices with higher finish times are processed first on G^T. Traversal from a source SCC in G^T isolates exactly one SCC without escaping to other components.',
     undefined,
