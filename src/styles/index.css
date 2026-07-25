@@ -1,5 +1,25 @@
 @import './theme.css';
 @import './ui.css';
+/* Tailwind v4 theme + utilities only — preflight is intentionally skipped so it
+   cannot reset the token-styled ui.css components. */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@plugin '@tailwindcss/typography';
+
+/* Bridge design tokens into Tailwind so utilities resolve to the same values. */
+@theme inline {
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-code);
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-inset: var(--bg-inset);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+}
 
 * {
   box-sizing: border-box;
