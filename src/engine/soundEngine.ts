@@ -8,7 +8,7 @@ class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
   private lastPlayTime: number = 0;
-  private minToneIntervalMs: number = 35; // Minimum interval between tone triggers to prevent audio lag & queue backlog
+  private minToneIntervalMs: number = 80; // Minimum interval between tone triggers to prevent sound overlap/echo
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -63,45 +63,44 @@ class SoundEngine {
 
   private playTone(
     freq: number,
-    durationMs: number = 100,
+    durationMs: number = 90,
     type: OscillatorType = 'sine',
-    startGain: number = 0.1,
-    endGain: number = 0.001
+    startGain: number = 0.08
   ): void {
     if (this.shouldThrottle()) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
     try {
-      const safeFreq = Math.max(freq, 20);
-      const safeStartGain = Math.max(startGain, 0.0001);
-      const safeEndGain = Math.max(endGain, 0.0001);
+      const safeFreq = Math.max(freq, 40);
+      const safeStartGain = Math.max(startGain, 0.001);
       const durationSec = durationMs / 1000;
+      const startTime = ctx.currentTime;
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = type;
-      osc.frequency.setValueAtTime(safeFreq, ctx.currentTime);
+      osc.frequency.setValueAtTime(safeFreq, startTime);
 
-      gain.gain.setValueAtTime(safeStartGain, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(safeEndGain, ctx.currentTime + durationSec);
+      // Smooth linear envelope (no exponential echo/pitch dives)
+      gain.gain.setValueAtTime(safeStartGain, startTime);
+      gain.gain.linearRampToValueAtTime(0.0001, startTime + durationSec);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      // Clean up audio nodes on completion to prevent memory leaks
       osc.onended = () => {
         try {
           osc.disconnect();
           gain.disconnect();
         } catch {
-          // Ignore disconnect errors
+          // Safe catch for disconnect
         }
       };
 
-      osc.start();
-      osc.stop(ctx.currentTime + durationSec);
+      osc.start(startTime);
+      osc.stop(startTime + durationSec);
     } catch {
       // Ignore audio synthesis errors gracefully
     }
@@ -112,120 +111,25 @@ class SoundEngine {
     const safeMax = maxVal > 0 ? maxVal : 100;
     const freq =
       val !== undefined
-        ? 200 + (Math.min(Math.max(val, 0), safeMax) / safeMax) * 600
+        ? 220 + (Math.min(Math.max(val, 0), safeMax) / safeMax) * 500
         : 440;
-    this.playTone(freq, 80, 'sine', 0.08);
+    this.playTone(freq, 75, 'sine', 0.06);
   }
 
-  public playSwap(val1?: number, val2?: number): void {
-    if (this.shouldThrottle()) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    try {
-      const f1 = val1 !== undefined ? 250 + (Math.abs(val1) % 500) : 300;
-      const f2 = val2 !== undefined ? 350 + (Math.abs(val2) % 500) : 600;
-
-      const safeF1 = Math.max(f1, 20);
-      const safeF2 = Math.max(f2, 20);
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(safeF1, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(safeF2, ctx.currentTime + 0.12);
-
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.onended = () => {
-        try {
-          osc.disconnect();
-          gain.disconnect();
-        } catch {
-          // Ignore disconnect errors
-        }
-      };
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.12);
-    } catch {
-      // Ignore audio errors
-    }
+  public playSwap(val1?: number, _val2?: number): void {
+    if (this.muted) return;
+    const f1 = val1 !== undefined ? 300 + (Math.abs(val1) % 400) : 480;
+    this.playTone(f1, 90, 'triangle', 0.08);
   }
 
   public playPush(): void {
-    if (this.shouldThrottle()) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(350, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(550, ctx.currentTime + 0.09);
-
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.onended = () => {
-        try {
-          osc.disconnect();
-          gain.disconnect();
-        } catch {
-          // Ignore disconnect errors
-        }
-      };
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.09);
-    } catch {
-      // Ignore audio errors
-    }
+    if (this.muted) return;
+    this.playTone(520, 80, 'sine', 0.07);
   }
 
   public playPop(): void {
-    if (this.shouldThrottle()) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(550, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + 0.09);
-
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.onended = () => {
-        try {
-          osc.disconnect();
-          gain.disconnect();
-        } catch {
-          // Ignore disconnect errors
-        }
-      };
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.09);
-    } catch {
-      // Ignore audio errors
-    }
+    if (this.muted) return;
+    this.playTone(320, 80, 'sine', 0.07);
   }
 
   public playComplete(): void {
@@ -233,8 +137,33 @@ class SoundEngine {
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
       setTimeout(() => {
-        this.playTone(freq, 220, 'triangle', 0.1);
-      }, idx * 60);
+        if (!this.muted) {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.onended = () => {
+              try {
+                osc.disconnect();
+                gain.disconnect();
+              } catch {
+                // Ignore
+              }
+            };
+            osc.start();
+            osc.stop(ctx.currentTime + 0.18);
+          } catch {
+            // Ignore
+          }
+        }
+      }, idx * 75);
     });
   }
 }

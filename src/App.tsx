@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { CategoryType, ViewMode, AlgorithmDefinition, AppView } from './types/dsa';
 import { ALGORITHM_REGISTRY, getAllAlgorithms } from './algorithms/registry';
 import { useStepEngine } from './engine/stepEngine';
@@ -76,13 +76,20 @@ export function App() {
     return algorithm.generateSteps(currentInput);
   }, [algorithm, currentInput]);
 
+  // Ref to track last step index that triggered sound (prevents duplicate triggers/echoes)
+  const lastHandledStepRef = useRef<number>(-1);
+
   // Sound handler on step transition
   const handleStepChange = useCallback(
     (step: typeof steps[0]) => {
-      if (!soundEnabled) return;
-      if (step.explanation?.what.toLowerCase().includes('swap')) {
+      if (!soundEnabled || !step) return;
+      if (lastHandledStepRef.current === step.stepIndex) return;
+      lastHandledStepRef.current = step.stepIndex;
+
+      const whatText = step.explanation?.what.toLowerCase() || '';
+      if (whatText.includes('swap')) {
         soundEngine.playSwap();
-      } else if (step.explanation?.what.toLowerCase().includes('compar')) {
+      } else if (whatText.includes('compar')) {
         soundEngine.playCompare(440);
       } else if (step.stepIndex === steps.length - 1) {
         soundEngine.playComplete();
