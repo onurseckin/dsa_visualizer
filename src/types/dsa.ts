@@ -113,15 +113,34 @@ export type ViewMode = 'split' | 'visual' | 'code';
 export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
 
 export type CategoryType =
-  | 'fundamentals'
+  | 'arrays_and_hashing'
+  | 'two_pointers'
+  | 'stack'
+  | 'binary_search'
+  | 'sliding_window'
+  | 'linked_list'
+  | 'trees'
+  | 'tries'
+  | 'heap'
+  | 'backtracking'
+  | 'graphs'
+  | 'dp_1d'
+  | 'intervals'
+  | 'greedy'
+  | 'advanced_graphs'
+  | 'math_and_geometry'
+  | 'dp_2d'
+  | 'bit_manipulation'
+  | 'advanced_range_and_cp'
   | 'sorting'
+  | 'leetcode'
+  | 'fundamentals'
   | 'data-structures'
   | 'dynamic-programming'
   | 'graph'
   | 'tree'
   | 'advanced'
-  | 'math-games'
-  | 'leetcode';
+  | 'math-games';
 
 export interface TimeComplexity {
   best: string;
