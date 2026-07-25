@@ -9,18 +9,21 @@ import {
   Layers,
   Sparkles,
   Network,
+  List,
 } from 'lucide-react';
-import { ViewMode, CategoryType } from '../types/dsa';
+import { ViewMode, CategoryType, AppView } from '../types/dsa';
+import { GlobalSearchBar } from './GlobalSearchBar';
 
 interface NavbarProps {
-  appView: 'tree' | 'workspace';
-  onSetAppView: (view: 'tree' | 'workspace') => void;
+  appView: AppView;
+  onSetAppView: (view: AppView) => void;
   categories: { id: CategoryType; label: string }[];
   activeCategory: CategoryType;
   onSelectCategory: (cat: CategoryType) => void;
   algorithmIds: { id: string; title: string; difficulty?: string }[];
   activeAlgorithmId: string;
   onSelectAlgorithm: (id: string) => void;
+  onGlobalSelectAlgorithm: (id: string, categoryFolder?: CategoryType) => void;
   viewMode: ViewMode;
   onSetViewMode: (mode: ViewMode) => void;
   showTutorial: boolean;
@@ -40,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   algorithmIds,
   activeAlgorithmId,
   onSelectAlgorithm,
+  onGlobalSelectAlgorithm,
   viewMode,
   onSetViewMode,
   showTutorial,
@@ -64,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       }}
     >
       {/* Brand & App View Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
         <div
           onClick={() => onSetAppView('tree')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
@@ -79,12 +83,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               letterSpacing: '-0.02em',
             }}
           >
-            DSA<span style={{ color: 'var(--accent-emerald)' }}>.NeetCode</span>
+            DSA<span style={{ color: 'var(--accent-emerald)' }}>.Visualizer</span>
           </span>
         </div>
 
-        {/* View Switcher: Tree Map vs Workspace */}
-        <div style={{ display: 'flex', background: 'var(--bg-darkest)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-muted)' }}>
+        {/* View Switcher: Knowledge Tree vs Problem List vs Workspace */}
+        <div
+          style={{
+            display: 'flex',
+            background: 'var(--bg-darkest)',
+            padding: '3px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
           <button
             className={`btn ${appView === 'tree' ? 'btn-active' : ''}`}
             onClick={() => onSetAppView('tree')}
@@ -93,6 +105,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Network style={{ width: '15px', height: '15px' }} />
             <span style={{ fontSize: '0.8rem' }}>Knowledge Tree</span>
+          </button>
+          <button
+            className={`btn ${appView === 'list' ? 'btn-active' : ''}`}
+            onClick={() => onSetAppView('list')}
+            title="All Problems & Algorithms Directory"
+            style={{ padding: '0.35rem 0.75rem', border: 'none' }}
+          >
+            <List style={{ width: '15px', height: '15px' }} />
+            <span style={{ fontSize: '0.8rem' }}>Problem List</span>
           </button>
           <button
             className={`btn ${appView === 'workspace' ? 'btn-active' : ''}`}
@@ -105,6 +126,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Global Navbar Fast Search Bar */}
+      <GlobalSearchBar onSelectAlgorithm={onGlobalSelectAlgorithm} />
 
       {/* Category & Algorithm Selectors (Workspace view) */}
       {appView === 'workspace' && (
