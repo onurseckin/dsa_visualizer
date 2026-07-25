@@ -115,7 +115,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               {hashMapEntries.map(([key, val]) => (
                 <span key={`hash-${key}`} className="ui-chip">
                   {key}
-                  <span style={{ color: 'var(--text-faint)' }}>→</span>
+                  <span style={{ color: 'var(--text-muted)' }}>→</span>
                   <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
                 </span>
               ))}
@@ -127,7 +127,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               {distanceEntries.map(([node, dist]) => (
                 <span key={`dist-${node}`} className="ui-chip">
                   {node}
-                  <span style={{ color: 'var(--text-faint)' }}>→</span>
+                  <span style={{ color: 'var(--text-muted)' }}>→</span>
                   <span style={{ color: 'var(--text-primary)' }}>
                     {dist === Infinity ? '∞' : String(dist)}
                   </span>
@@ -141,7 +141,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               {customEntries.map(([k, val]) => (
                 <span key={`cust-${k}`} className="ui-chip">
                   {k}
-                  <span style={{ color: 'var(--text-faint)' }}>=</span>
+                  <span style={{ color: 'var(--text-muted)' }}>=</span>
                   <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
                 </span>
               ))}

@@ -33,6 +33,8 @@ const PointerChips: React.FC<PointerChipsProps> = ({ pointers, centerX, baseY })
             height={15}
             rx={4}
             fill="var(--accent-soft)"
+            stroke="var(--border-accent)"
+            strokeWidth={1}
           />
           <text
             x={centerX}
@@ -81,7 +83,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
-        minHeight: '300px',
+        minHeight: 'var(--panel-min-h)',
         padding: 0,
       }}
     >
@@ -108,13 +110,16 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           maxHeight: '100%',
           background: 'var(--bg-inset)',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--border-default)',
         }}
       >
         {elements.map((item, index) => {
           const x = paddingX + index * (barWidth + gap);
           const fill = stateBg(item.state);
           const stroke = stateColor(item.state);
+          // Touched elements get a heavier outline instead of a glow, so an
+          // untouched navy element stays visibly inactive next to an active one.
+          const strokeWidth = item.state === 'default' ? 1 : 2;
 
           if (mode === 'bar') {
             const heightPct = Math.max((item.value / maxVal) * 100, 12);
@@ -140,7 +145,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                   rx={6}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={1}
+                  strokeWidth={strokeWidth}
                 />
                 <text
                   x={x + barWidth / 2}
@@ -190,7 +195,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
                   rx={8}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={1}
+                  strokeWidth={strokeWidth}
                 />
                 <text
                   x={x + barWidth / 2}

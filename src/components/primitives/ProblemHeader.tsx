@@ -1,7 +1,13 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Badge, Button, Card, difficultyBadgeVariant } from '../../ui';
-import { CategoryType, DifficultyLevel, ProblemExample, TimeComplexity } from '../../types/dsa';
+import {
+  CategoryType,
+  DifficultyLevel,
+  ProblemExample,
+  TimeComplexity,
+  TopicGuide,
+} from '../../types/dsa';
 
 export interface ProblemHeaderProps {
   title: string;
@@ -12,6 +18,7 @@ export interface ProblemHeaderProps {
   examples?: ProblemExample[];
   timeComplexity?: TimeComplexity;
   spaceComplexity?: string;
+  topicGuide: TopicGuide;
   /* Expansion is controlled by the parent so the surrounding layout can switch
      between viewport-fit and page-scroll modes in sync with the details panel. */
   expanded: boolean;
@@ -24,6 +31,36 @@ const humanizeCategory = (category: string): string => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
+/* Prose is capped to a readable measure; without it long lesson paragraphs run the
+   full workspace width and become hard to track line-to-line. */
+const READABLE_MEASURE = '72ch';
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 'var(--text-xs)',
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  marginBottom: 'var(--space-1)',
+};
+
+const bodyStyle: React.CSSProperties = {
+  margin: 0,
+  maxWidth: READABLE_MEASURE,
+  fontSize: 'var(--text-sm)',
+  lineHeight: 1.65,
+  color: 'var(--text-secondary)',
+};
+
+const monoListStyle: React.CSSProperties = {
+  margin: 0,
+  paddingLeft: 'var(--space-4)',
+  fontFamily: 'var(--font-code)',
+  fontSize: 'var(--text-xs)',
+  lineHeight: 1.7,
+  color: 'var(--text-secondary)',
+};
+
 export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   title,
   category,
@@ -31,10 +68,13 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   description,
   constraints,
   examples,
+  topicGuide,
   expanded,
   onToggleExpanded,
   onResetLayout,
 }) => {
+  const keyTerms = topicGuide.keyTerms ?? [];
+
   return (
     <Card padding="sm">
       <div
@@ -88,99 +128,144 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
             borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 'var(--space-3)',
+            gap: 'var(--space-5)',
           }}
         >
           <p
             style={{
               margin: 0,
-              fontSize: 'var(--text-sm)',
-              lineHeight: 1.55,
+              maxWidth: READABLE_MEASURE,
+              fontSize: 'var(--text-md)',
+              lineHeight: 1.65,
               color: 'var(--text-secondary)',
             }}
           >
-            {description}
+            {topicGuide.overview}
           </p>
 
-          {constraints && constraints.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  marginBottom: 'var(--space-1)',
-                }}
-              >
-                Constraints
-              </div>
-              <ul
-                style={{
-                  margin: 0,
-                  paddingLeft: 'var(--space-4)',
-                  fontFamily: 'var(--font-code)',
-                  fontSize: 'var(--text-xs)',
-                  lineHeight: 1.7,
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {constraints.map((constraint, idx) => (
-                  <li key={`constraint-${idx}`}>{constraint}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <section>
+            <div style={labelStyle}>Problem</div>
+            <p style={bodyStyle}>{description}</p>
+          </section>
 
-          {examples && examples.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  marginBottom: 'var(--space-1)',
-                }}
-              >
-                Examples
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {examples.map((example, idx) => (
-                  <div
-                    key={`example-${idx}`}
-                    style={{
-                      padding: 'var(--space-2) var(--space-3)',
-                      background: 'var(--bg-inset)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontFamily: 'var(--font-code)',
-                      fontSize: 'var(--text-xs)',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Input: </span>
-                      <span style={{ color: 'var(--text-primary)' }}>{example.input}</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Output: </span>
-                      <span style={{ color: 'var(--text-primary)' }}>{example.output}</span>
-                    </div>
-                    {example.explanation && (
-                      <div
+          {/* The lesson body grows with its content — no internal max-height, because
+              R3.2 requires the page to scroll rather than clipping details. */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-5)',
+            }}
+          >
+            {topicGuide.sections.map((section, idx) => (
+              <section key={`guide-section-${idx}`}>
+                <h2
+                  style={{
+                    margin: '0 0 var(--space-2) 0',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {section.heading}
+                </h2>
+                <p style={bodyStyle}>{section.body}</p>
+              </section>
+            ))}
+
+            {keyTerms.length > 0 && (
+              <section>
+                <div style={labelStyle}>Key terms</div>
+                <dl
+                  style={{
+                    margin: 0,
+                    maxWidth: READABLE_MEASURE,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                  }}
+                >
+                  {keyTerms.map((entry, idx) => (
+                    <div key={`key-term-${idx}`}>
+                      <dt
                         style={{
-                          marginTop: 'var(--space-1)',
-                          fontFamily: 'var(--font-ui)',
+                          fontFamily: 'var(--font-code)',
+                          fontSize: 'var(--text-xs)',
+                          fontWeight: 600,
+                          color: 'var(--accent)',
+                        }}
+                      >
+                        {entry.term}
+                      </dt>
+                      <dd
+                        style={{
+                          margin: 0,
+                          fontSize: 'var(--text-sm)',
+                          lineHeight: 1.6,
                           color: 'var(--text-secondary)',
                         }}
                       >
-                        {example.explanation}
+                        {entry.definition}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            {constraints && constraints.length > 0 && (
+              <section>
+                <div style={labelStyle}>Constraints</div>
+                <ul style={monoListStyle}>
+                  {constraints.map((constraint, idx) => (
+                    <li key={`constraint-${idx}`}>{constraint}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {examples && examples.length > 0 && (
+              <section>
+                <div style={labelStyle}>Examples</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {examples.map((example, idx) => (
+                    <div
+                      key={`example-${idx}`}
+                      style={{
+                        padding: 'var(--space-2) var(--space-3)',
+                        background: 'var(--bg-inset)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontFamily: 'var(--font-code)',
+                        fontSize: 'var(--text-xs)',
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Input: </span>
+                        <span style={{ color: 'var(--text-primary)' }}>{example.input}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Output: </span>
+                        <span style={{ color: 'var(--text-primary)' }}>{example.output}</span>
+                      </div>
+                      {example.explanation && (
+                        <div
+                          style={{
+                            marginTop: 'var(--space-1)',
+                            fontFamily: 'var(--font-ui)',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {example.explanation}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
       )}
     </Card>

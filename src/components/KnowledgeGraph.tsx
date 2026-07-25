@@ -1,6 +1,51 @@
 import React from 'react';
 import { Network, ArrowRight, MousePointerClick } from 'lucide-react';
 import { Badge, Card, difficultyBadgeVariant } from '../ui';
+import { vizSlotBg, vizSlotColor } from './primitives/vizPalette';
+
+/* The roadmap reads as a map, so every topic belongs to one of exactly eight
+   families — one per validated --viz-* slot, assigned in fixed order. */
+export type TopicFamilyId =
+  | 'foundations'
+  | 'linear-structures'
+  | 'searching'
+  | 'trees-and-heaps'
+  | 'recursion'
+  | 'graphs'
+  | 'dynamic-programming'
+  | 'math-and-geometry';
+
+export interface TopicFamily {
+  id: TopicFamilyId;
+  label: string;
+  /** Zero-based --viz-* slot; index in TOPIC_FAMILIES is the fixed slot order. */
+  slot: number;
+}
+
+export const TOPIC_FAMILIES: TopicFamily[] = [
+  { id: 'foundations', label: 'Arrays & windows', slot: 0 },
+  { id: 'linear-structures', label: 'Linear structures', slot: 1 },
+  { id: 'searching', label: 'Searching', slot: 2 },
+  { id: 'trees-and-heaps', label: 'Trees & heaps', slot: 3 },
+  { id: 'recursion', label: 'Recursion', slot: 4 },
+  { id: 'graphs', label: 'Graphs', slot: 5 },
+  { id: 'dynamic-programming', label: 'Dynamic programming', slot: 6 },
+  { id: 'math-and-geometry', label: 'Math, bits & geometry', slot: 7 },
+];
+
+const FAMILY_BY_ID: Record<TopicFamilyId, TopicFamily> = TOPIC_FAMILIES.reduce(
+  (acc, family) => {
+    acc[family.id] = family;
+    return acc;
+  },
+  {} as Record<TopicFamilyId, TopicFamily>
+);
+
+export const topicFamilyColor = (family: TopicFamilyId): string =>
+  vizSlotColor(FAMILY_BY_ID[family].slot);
+export const topicFamilyLabel = (family: TopicFamilyId): string => FAMILY_BY_ID[family].label;
+const topicFamilyFill = (family: TopicFamilyId): string =>
+  vizSlotBg(FAMILY_BY_ID[family].slot, 18, 'var(--bg-elevated)');
 
 export interface TopicRoadmapNode {
   id: string;
@@ -10,6 +55,7 @@ export interface TopicRoadmapNode {
   prerequisites: string[];
   algorithmCount: number;
   difficulty: 'Easy' | 'Medium' | 'Hard';
+  family: TopicFamilyId;
   x: number;
   y: number;
 }
@@ -23,6 +69,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: [],
     algorithmCount: 4,
     difficulty: 'Easy',
+    family: 'foundations',
     x: 660,
     y: 60,
   },
@@ -34,6 +81,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
+    family: 'foundations',
     x: 140,
     y: 190,
   },
@@ -45,6 +93,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
+    family: 'linear-structures',
     x: 400,
     y: 190,
   },
@@ -56,6 +105,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
+    family: 'searching',
     x: 660,
     y: 190,
   },
@@ -67,6 +117,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Medium',
+    family: 'foundations',
     x: 140,
     y: 320,
   },
@@ -78,6 +129,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['two-pointers'],
     algorithmCount: 3,
     difficulty: 'Easy',
+    family: 'linear-structures',
     x: 400,
     y: 320,
   },
@@ -89,6 +141,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['linked-list', 'binary-search'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'trees-and-heaps',
     x: 660,
     y: 320,
   },
@@ -100,6 +153,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'trees-and-heaps',
     x: 140,
     y: 450,
   },
@@ -111,6 +165,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 3,
     difficulty: 'Medium',
+    family: 'trees-and-heaps',
     x: 400,
     y: 450,
   },
@@ -122,6 +177,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'recursion',
     x: 660,
     y: 450,
   },
@@ -133,6 +189,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['backtracking', 'tree-fundamentals'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'graphs',
     x: 400,
     y: 580,
   },
@@ -144,6 +201,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['graph-traversal'],
     algorithmCount: 3,
     difficulty: 'Hard',
+    family: 'graphs',
     x: 140,
     y: 710,
   },
@@ -155,6 +213,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['graph-traversal'],
     algorithmCount: 3,
     difficulty: 'Medium',
+    family: 'graphs',
     x: 400,
     y: 710,
   },
@@ -166,6 +225,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['graph-traversal'],
     algorithmCount: 3,
     difficulty: 'Hard',
+    family: 'graphs',
     x: 660,
     y: 710,
   },
@@ -177,6 +237,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['graph-shortest-paths'],
     algorithmCount: 3,
     difficulty: 'Hard',
+    family: 'graphs',
     x: 140,
     y: 840,
   },
@@ -188,6 +249,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['backtracking'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'dynamic-programming',
     x: 920,
     y: 580,
   },
@@ -199,6 +261,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['dp-1d'],
     algorithmCount: 4,
     difficulty: 'Hard',
+    family: 'dynamic-programming',
     x: 920,
     y: 710,
   },
@@ -210,6 +273,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['dp-2d'],
     algorithmCount: 4,
     difficulty: 'Hard',
+    family: 'dynamic-programming',
     x: 920,
     y: 840,
   },
@@ -221,6 +285,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 3,
     difficulty: 'Easy',
+    family: 'math-and-geometry',
     x: 920,
     y: 190,
   },
@@ -232,6 +297,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['arrays-and-hashing'],
     algorithmCount: 4,
     difficulty: 'Medium',
+    family: 'math-and-geometry',
     x: 1180,
     y: 190,
   },
@@ -243,6 +309,7 @@ export const TOPIC_ROADMAP_NODES: TopicRoadmapNode[] = [
     prerequisites: ['math-and-number-theory'],
     algorithmCount: 2,
     difficulty: 'Hard',
+    family: 'math-and-geometry',
     x: 1180,
     y: 320,
   },
@@ -263,9 +330,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         const parent = TOPIC_ROADMAP_NODES.find((n) => n.id === prereqId);
         if (parent) {
           const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
-          const strokeColor = isHighlighted ? 'var(--accent)' : 'var(--border-strong)';
-          const strokeWidth = isHighlighted ? 2 : 1.5;
-          const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.3) : 0.85;
+          /* An edge belongs to the topic it unlocks, so it carries the child's
+             family color — that is what makes the map read as coloured tracks. */
+          const strokeColor = isHighlighted ? 'var(--accent)' : topicFamilyColor(node.family);
+          const strokeWidth = isHighlighted ? 2.5 : 1.75;
+          const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
           let startX = parent.x;
           let startY = parent.y + 30;
@@ -296,8 +365,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
-                strokeDasharray={isHighlighted ? 'none' : '4 4'}
-                markerEnd={isHighlighted ? 'url(#arrow-active)' : 'url(#arrow-default)'}
+                strokeDasharray={isHighlighted ? 'none' : '5 5'}
+                markerEnd={isHighlighted ? 'url(#arrow-active)' : `url(#arrow-${node.family})`}
                 style={{
                   opacity: strokeOpacity,
                   transition: 'all var(--transition-normal)',
@@ -369,6 +438,44 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
             background: 'var(--bg-inset)',
           }}
         >
+          <ul
+            aria-label="Topic family colors"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 'var(--space-2) var(--space-4)',
+              listStyle: 'none',
+              margin: '0 auto var(--space-4)',
+              padding: 0,
+              maxWidth: '1100px',
+            }}
+          >
+            {TOPIC_FAMILIES.map((family) => (
+              <li
+                key={family.id}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: 'var(--radius-full)',
+                    background: topicFamilyColor(family.id),
+                  }}
+                />
+                {family.label}
+              </li>
+            ))}
+          </ul>
+
           <svg
             width="1350"
             height="920"
@@ -376,17 +483,21 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
             style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
           >
             <defs>
-              <marker
-                id="arrow-default"
-                viewBox="0 0 10 10"
-                refX="6"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--border-strong)" opacity="0.8" />
-              </marker>
+              {/* One arrowhead per family: SVG markers cannot inherit the path stroke. */}
+              {TOPIC_FAMILIES.map((family) => (
+                <marker
+                  key={family.id}
+                  id={`arrow-${family.id}`}
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill={topicFamilyColor(family.id)} opacity="0.85" />
+                </marker>
+              ))}
               <marker
                 id="arrow-active"
                 viewBox="0 0 10 10"
@@ -428,16 +539,27 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                     width="180"
                     height="60"
                     rx="10"
-                    fill={isHovered ? 'var(--accent-soft)' : 'var(--bg-elevated)'}
+                    fill={isHovered ? 'var(--accent-soft)' : topicFamilyFill(node.family)}
                     stroke={
                       isHovered
                         ? 'var(--border-accent)'
                         : isRelated
-                        ? 'var(--border-strong)'
+                        ? topicFamilyColor(node.family)
                         : 'var(--border-default)'
                     }
                     strokeWidth={isHovered ? 1.5 : 1}
                     style={{ transition: 'all var(--transition-normal)' }}
+                  />
+
+                  {/* Family bar survives the hover/selected treatment, so identity
+                      stays readable while the accent marks interaction. */}
+                  <rect
+                    x="7"
+                    y="14"
+                    width="4"
+                    height="32"
+                    rx="2"
+                    fill={topicFamilyColor(node.family)}
                   />
 
                   <text
@@ -505,6 +627,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 transition: 'background var(--transition-fast), border-color var(--transition-fast)',
                 background: hoveredNodeId === node.id ? 'var(--bg-hover)' : undefined,
                 borderColor: hoveredNodeId === node.id ? 'var(--border-strong)' : undefined,
+                /* Inset bar rather than a border-left longhand: mixing it with the
+                   hover borderColor shorthand makes React fight over the property. */
+                boxShadow: `inset 3px 0 0 ${topicFamilyColor(node.family)}`,
               }}
             >
               <div
@@ -546,7 +671,35 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                     marginTop: 'var(--space-1)',
                   }}
                 >
-                  <Badge variant="neutral">{node.algorithmCount} Topics</Badge>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                    }}
+                  >
+                    <Badge variant="neutral">{node.algorithmCount} Topics</Badge>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-1)',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: 'var(--radius-full)',
+                          background: topicFamilyColor(node.family),
+                        }}
+                      />
+                      {topicFamilyLabel(node.family)}
+                    </span>
+                  </span>
                   <ArrowRight aria-hidden="true" style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
                 </div>
               </div>

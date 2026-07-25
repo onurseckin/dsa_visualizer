@@ -1,6 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { KnowledgeGraph, TOPIC_ROADMAP_NODES } from '../KnowledgeGraph';
+import {
+  KnowledgeGraph,
+  TOPIC_FAMILIES,
+  TOPIC_ROADMAP_NODES,
+  topicFamilyColor,
+  topicFamilyLabel,
+} from '../KnowledgeGraph';
+import { VIZ_SLOT_COUNT } from '../primitives/vizPalette';
 
 describe('KnowledgeGraph Component Spec', () => {
   it('renders SVG region, roadmap heading, and hover hint chrome', () => {
@@ -77,6 +84,7 @@ describe('KnowledgeGraph Component Spec', () => {
 
   it('contains all 21 topic roadmap nodes with valid properties and prerequisite structure', () => {
     expect(TOPIC_ROADMAP_NODES.length).toBe(21);
+    const familyIds = TOPIC_FAMILIES.map((family) => family.id);
     TOPIC_ROADMAP_NODES.forEach((node) => {
       expect(node.id).toBeDefined();
       expect(node.title).toBeDefined();
@@ -85,8 +93,60 @@ describe('KnowledgeGraph Component Spec', () => {
       expect(Array.isArray(node.prerequisites)).toBe(true);
       expect(node.algorithmCount).toBeGreaterThan(0);
       expect(['Easy', 'Medium', 'Hard']).toContain(node.difficulty);
+      expect(familyIds).toContain(node.family);
       expect(typeof node.x).toBe('number');
       expect(typeof node.y).toBe('number');
     });
+  });
+
+  it('assigns every topic family a distinct viz slot in fixed order', () => {
+    expect(TOPIC_FAMILIES.map((family) => family.slot)).toEqual(
+      Array.from({ length: VIZ_SLOT_COUNT }, (_, index) => index)
+    );
+
+    const colors = TOPIC_FAMILIES.map((family) => topicFamilyColor(family.id));
+    expect(colors).toEqual([
+      'var(--viz-1)',
+      'var(--viz-2)',
+      'var(--viz-3)',
+      'var(--viz-4)',
+      'var(--viz-5)',
+      'var(--viz-6)',
+      'var(--viz-7)',
+      'var(--viz-8)',
+    ]);
+    expect(new Set(colors).size).toBe(TOPIC_FAMILIES.length);
+    expect(topicFamilyLabel('graphs')).toBe('Graphs');
+  });
+
+  it('every family is actually used by at least one topic', () => {
+    const usedFamilies = new Set(TOPIC_ROADMAP_NODES.map((node) => node.family));
+    TOPIC_FAMILIES.forEach((family) => {
+      expect(usedFamilies.has(family.id)).toBe(true);
+    });
+  });
+
+  it('renders a family color legend and tints roadmap nodes by family', () => {
+    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+
+    const legend = screen.getByRole('list', { name: /Topic family colors/i });
+    expect(legend).toBeInTheDocument();
+    TOPIC_FAMILIES.forEach((family) => {
+      expect(screen.getAllByText(family.label).length).toBeGreaterThan(0);
+    });
+
+    const graphsNode = screen.getAllByRole('button', { name: /11\. Graph Traversal/i })[0];
+    const familyBar = graphsNode.querySelectorAll('rect')[1];
+    expect(familyBar).toHaveAttribute('fill', topicFamilyColor('graphs'));
+  });
+
+  it('tints prerequisite edges with the unlocked topic family color', () => {
+    const { container } = render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+
+    const strokes = Array.from(container.querySelectorAll('path[stroke]')).map((p) =>
+      p.getAttribute('stroke')
+    );
+    expect(strokes).toContain(topicFamilyColor('graphs'));
+    expect(strokes).toContain(topicFamilyColor('dynamic-programming'));
   });
 });
