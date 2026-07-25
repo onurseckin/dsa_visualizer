@@ -58,7 +58,7 @@ export const generateHuffmanCodingSteps = (
   if (!rawText || rawText.length === 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 16,
+      codeLine: 27,
       explanation: {
         what: 'Empty input text.',
         why: 'No Huffman tree can be constructed for an empty string.',
@@ -76,7 +76,7 @@ export const generateHuffmanCodingSteps = (
     return steps;
   }
 
-  // Line 16: Count frequencies
+  // Line 15: Count frequencies
   const freqMap: Record<string, number> = {};
   for (const char of rawText) {
     freqMap[char] = (freqMap[char] || 0) + 1;
@@ -86,7 +86,7 @@ export const generateHuffmanCodingSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 15,
     explanation: {
       what: `Count character frequencies for text "${rawText}".`,
       why: 'Count frequencies of each character to build min-heap priority queue.',
@@ -110,7 +110,7 @@ export const generateHuffmanCodingSteps = (
     variables: { textLength: rawText.length, uniqueChars: uniqueChars.length },
   });
 
-  // Line 17-18: Initialize heap
+  // Line 16-17: Initialize heap
   let nodeCounter = 0;
   const allNodes = new Map<string, InternalHuffmanNode>();
 
@@ -129,7 +129,7 @@ export const generateHuffmanCodingSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 16,
     explanation: {
       what: `Initialize min-heap with ${heap.length} leaf nodes.`,
       why: 'Heap ordered by frequency allows greedy extraction of the two lowest-frequency nodes.',
@@ -210,7 +210,7 @@ export const generateHuffmanCodingSteps = (
     return { nodes: treeNodes, rootId };
   };
 
-  // Line 20: Combine nodes loop
+  // Line 19: Combine nodes loop
   while (heap.length > 1) {
     const left = heap.shift()!;
     const right = heap.shift()!;
@@ -229,7 +229,7 @@ export const generateHuffmanCodingSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 21,
+      codeLine: 20,
       explanation: {
         what: `Pop two lowest-frequency nodes: ${left.char ? `'${left.char}'` : left.id} (${left.freq}) and ${right.char ? `'${right.char}'` : right.id} (${right.freq}).`,
         why: 'Greedy choice: Merge the two smallest subtrees into a new parent node.',

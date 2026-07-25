@@ -240,7 +240,7 @@ export const NEETCODE_NODES: NeetCodeNode[] = [
     categoryFolder: 'geometry_and_sweep_line',
     description: 'Shoelace Polygon Area, Convex Hull (Monotone Chain)',
     prerequisites: ['math-and-number-theory'],
-    algorithmCount: 3,
+    algorithmCount: 2,
     difficulty: 'Hard',
     x: 400,
     y: 650,
@@ -252,6 +252,8 @@ interface KnowledgeGraphProps {
 }
 
 export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategoryFolder }) => {
+  const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
+
   const renderConnections = () => {
     const lines: React.ReactNode[] = [];
 
@@ -259,16 +261,46 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       node.prerequisites.forEach((prereqId) => {
         const parent = NEETCODE_NODES.find((n) => n.id === prereqId);
         if (parent) {
+          const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
+          const strokeColor = isHighlighted ? 'var(--accent-emerald)' : 'var(--border-subtle)';
+          const strokeWidth = isHighlighted ? 2.5 : 1.5;
+          const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.3) : 0.85;
+
+          let startX = parent.x;
+          let startY = parent.y + 30;
+          let endX = node.x;
+          let endY = node.y - 30;
+
+          if (parent.y === node.y) {
+            if (parent.x < node.x) {
+              startX = parent.x + 90;
+              startY = parent.y;
+              endX = node.x - 90;
+              endY = node.y;
+            } else {
+              startX = parent.x - 90;
+              startY = parent.y;
+              endX = node.x + 90;
+              endY = node.y;
+            }
+          }
+
+          const midY = (startY + endY) / 2;
+          const pathData = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+
           lines.push(
             <g key={`${parent.id}-${node.id}`}>
-              <line
-                x1={parent.x}
-                y1={parent.y + 25}
-                x2={node.x}
-                y2={node.y - 25}
-                stroke="var(--border-subtle)"
-                strokeWidth="2"
-                strokeDasharray="4 4"
+              <path
+                d={pathData}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                strokeDasharray={isHighlighted ? 'none' : '4 4'}
+                markerEnd={isHighlighted ? 'url(#arrow-active)' : 'url(#arrow-default)'}
+                style={{
+                  opacity: strokeOpacity,
+                  transition: 'all 0.2s ease',
+                }}
               />
             </g>
           );
@@ -277,6 +309,13 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
     });
 
     return lines;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, categoryFolder: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelectCategoryFolder(categoryFolder);
+    }
   };
 
   return (
@@ -331,6 +370,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       {/* Interactive SVG Knowledge Graph Container */}
       <div
         className="glass-card"
+        role="region"
+        aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
         style={{
           width: '100%',
           overflowX: 'auto',
@@ -343,54 +384,108 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         <svg
           width="920"
           height="720"
+          viewBox="0 0 920 720"
           style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
         >
+          <defs>
+            <marker
+              id="arrow-default"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--border-subtle)" opacity="0.8" />
+            </marker>
+            <marker
+              id="arrow-active"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent-emerald)" />
+            </marker>
+          </defs>
+
           {renderConnections()}
 
-          {NEETCODE_NODES.map((node) => (
-            <g
-              key={node.id}
-              transform={`translate(${node.x - 90}, ${node.y - 30})`}
-              onClick={() => onSelectCategoryFolder(node.categoryFolder)}
-              style={{ cursor: 'pointer' }}
-            >
-              <rect
-                width="180"
-                height="60"
-                rx="10"
-                fill="var(--bg-surface)"
-                stroke={node.difficulty === 'Hard' ? 'var(--state-swap)' : node.difficulty === 'Medium' ? 'var(--state-compare)' : 'var(--accent-emerald)'}
-                strokeWidth="1.5"
-                style={{
-                  filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))',
-                  transition: 'all 0.2s ease',
-                }}
-              />
+          {NEETCODE_NODES.map((node) => {
+            const isHovered = hoveredNodeId === node.id;
+            const isRelated =
+              hoveredNodeId !== null &&
+              (node.prerequisites.includes(hoveredNodeId) ||
+                NEETCODE_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
 
-              <text
-                x="90"
-                y="24"
-                textAnchor="middle"
-                fill="var(--text-main)"
-                fontSize="11.5"
-                fontWeight="700"
-                fontFamily="var(--font-ui)"
-              >
-                {node.title}
-              </text>
+            const strokeColor = isHovered
+              ? 'var(--accent-emerald)'
+              : isRelated
+              ? 'var(--accent-mint)'
+              : node.difficulty === 'Hard'
+              ? 'var(--state-swap)'
+              : node.difficulty === 'Medium'
+              ? 'var(--state-compare)'
+              : 'var(--accent-emerald)';
 
-              <text
-                x="90"
-                y="44"
-                textAnchor="middle"
-                fill="var(--text-dim)"
-                fontSize="10"
-                fontFamily="var(--font-code)"
+            return (
+              <g
+                key={node.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                transform={`translate(${node.x - 90}, ${node.y - 30})`}
+                onClick={() => onSelectCategoryFolder(node.categoryFolder)}
+                onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                onFocus={() => setHoveredNodeId(node.id)}
+                onBlur={() => setHoveredNodeId(null)}
+                style={{ cursor: 'pointer', outline: 'none' }}
               >
-                {node.algorithmCount} Algs • {node.difficulty}
-              </text>
-            </g>
-          ))}
+                <rect
+                  width="180"
+                  height="60"
+                  rx="10"
+                  fill="var(--bg-surface)"
+                  stroke={strokeColor}
+                  strokeWidth={isHovered ? 2.5 : 1.5}
+                  style={{
+                    filter: isHovered
+                      ? 'drop-shadow(0 0 12px rgba(0, 255, 157, 0.4))'
+                      : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))',
+                    transition: 'all 0.2s ease',
+                  }}
+                />
+
+                <text
+                  x="90"
+                  y="24"
+                  textAnchor="middle"
+                  fill={isHovered ? 'var(--accent-emerald)' : 'var(--text-main)'}
+                  fontSize="11.5"
+                  fontWeight="700"
+                  fontFamily="var(--font-ui)"
+                >
+                  {node.title}
+                </text>
+
+                <text
+                  x="90"
+                  y="44"
+                  textAnchor="middle"
+                  fill="var(--text-dim)"
+                  fontSize="10"
+                  fontFamily="var(--font-code)"
+                >
+                  {node.algorithmCount} Algs • {node.difficulty}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
 
@@ -406,7 +501,15 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
             <div
               key={node.id}
               className="glass-card"
+              role="button"
+              tabIndex={0}
+              aria-label={`${node.title}: ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
               onClick={() => onSelectCategoryFolder(node.categoryFolder)}
+              onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
+              onMouseEnter={() => setHoveredNodeId(node.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
+              onFocus={() => setHoveredNodeId(node.id)}
+              onBlur={() => setHoveredNodeId(null)}
               style={{
                 padding: '1rem',
                 cursor: 'pointer',
@@ -415,6 +518,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 gap: '0.5rem',
+                borderColor: hoveredNodeId === node.id ? 'var(--accent-emerald)' : undefined,
               }}
             >
               <div>

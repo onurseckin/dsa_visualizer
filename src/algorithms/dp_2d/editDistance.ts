@@ -15,24 +15,23 @@ export const DEFAULT_EDIT_DISTANCE_INPUT: EditDistanceInput = {
   word2: 'ros',
 };
 
-export const EDIT_DISTANCE_CODE = `function minDistance(word1: string, word2: string): number {
-  const m = word1.length, n = word2.length;
-  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+export const EDIT_DISTANCE_CODE = `def min_distance(word1: str, word2: str) -> int:
+    m, n = len(word1), len(word2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for i in range(m + 1):
+        dp[i][0] = i
+    for j in range(n + 1):
+        dp[0][j] = j
 
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (word1[i - 1] === word2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-      } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
-  }
-  return dp[m][n];
-}`;
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if word1[i - 1] == word2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1]
+            else:
+                dp[i][j] = 1 + min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+
+    return dp[m][n]`;
 
 export const generateEditDistanceSteps = (
   input: EditDistanceInput
@@ -86,10 +85,10 @@ export const generateEditDistanceSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 3,
     explanation: {
       what: `Initialized DP table of size (${m + 1} x ${n + 1}) with base cases.`,
-      why: 'Converting any word to empty string requires deletion of all characters, and vice versa.',
+      why: 'Converting a word prefix to an empty string requires deleting all characters, and vice versa.',
     },
     primarySnapshot: createGridSnapshot(undefined, [], [0, n]),
     auxiliaryState: {
@@ -107,10 +106,10 @@ export const generateEditDistanceSteps = (
         dp[i][j] = dp[i - 1][j - 1];
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 9,
+          codeLine: 13,
           explanation: {
-            what: `Matching characters '${char1}' === '${char2}' at word1[${i - 1}] and word2[${j - 1}].`,
-            why: `No extra edit needed. Carry over dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
+            what: `Matching characters word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}') at index (${i}, ${j}).`,
+            why: `Since characters match, no extra edit operation is needed. dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot([i, j], [[i - 1, j - 1]], [i, j]),
           auxiliaryState: {
@@ -131,10 +130,10 @@ export const generateEditDistanceSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 11,
+          codeLine: 15,
           explanation: {
-            what: `Mismatch '${char1}' !== '${char2}' at (${i}, ${j}). Min of Delete(${deleteOp}), Insert(${insertOp}), Replace(${replaceOp}) is ${minPrev}.`,
-            why: `1 + min(${deleteOp}, ${insertOp}, ${replaceOp}) = ${dp[i][j]} via optimal ${bestOpName} operation.`,
+            what: `Mismatch word1[${i - 1}] ('${char1}') != word2[${j - 1}] ('${char2}') at index (${i}, ${j}). Compare Delete(${deleteOp}), Insert(${insertOp}), Replace(${replaceOp}).`,
+            why: `Minimum previous cost is ${minPrev} via ${bestOpName}. dp[${i}][${j}] = 1 + ${minPrev} = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot(
             [i, j],
@@ -163,7 +162,7 @@ export const generateEditDistanceSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 17,
     explanation: {
       what: `Edit Distance computation complete. Minimum operations to convert "${word1}" to "${word2}" is ${dp[m][n]}.`,
       why: 'Full 2D tabulation complete. Answer stored in bottom-right cell dp[m][n].',

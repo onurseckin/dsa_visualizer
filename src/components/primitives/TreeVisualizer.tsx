@@ -97,8 +97,9 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     y: number,
     spreadX: number
   ) => {
-    if (!id || !nodeMap.has(id)) return;
-    const item = nodeMap.get(id)!;
+    if (!id) return;
+    const item = nodeMap.get(id);
+    if (!item) return;
 
     const cx = item.x !== undefined ? item.x : x;
     const cy = item.y !== undefined ? item.y : y;

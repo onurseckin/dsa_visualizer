@@ -116,6 +116,8 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
                 onClose();
               }}
               className="btn"
+              title="Close tutorial"
+              aria-label="Close tutorial"
               style={{
                 padding: '2px 8px',
                 fontSize: '0.75rem',

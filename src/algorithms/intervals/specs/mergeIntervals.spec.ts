@@ -40,5 +40,35 @@ describe('mergeIntervals logic spec', () => {
     expect(mergeIntervals.id).toBe('merge-intervals');
     expect(mergeIntervals.category).toBe('intervals');
     expect(mergeIntervals.difficulty).toBe('Medium');
+    expect(mergeIntervals.code).toContain('def merge(intervals):');
+  });
+
+  it('ensures step generator is pure and returns valid code lines and explanations', () => {
+    const input = { ...DEFAULT_MERGE_INTERVALS_INPUT };
+    const originalInputJSON = JSON.stringify(input);
+
+    const steps = generateMergeIntervalsSteps(input);
+
+    // Verify input immutability
+    expect(JSON.stringify(input)).toBe(originalInputJSON);
+
+    // Verify Python code line bounds (1 to 12)
+    const pythonLineCount = mergeIntervals.code.split('\n').length;
+    steps.forEach((step, idx) => {
+      expect(step.stepIndex).toBe(idx);
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(pythonLineCount);
+      expect(step.explanation.what.length).toBeGreaterThan(0);
+      expect(step.explanation.why.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('handles single interval gracefully', () => {
+    const steps = generateMergeIntervalsSteps({
+      intervals: [{ start: 5, end: 10 }],
+    });
+    expect(steps.length).toBe(3);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.auxiliaryState.customState?.mergedResult).toBe('[5, 10]');
   });
 });

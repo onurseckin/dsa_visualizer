@@ -4,28 +4,24 @@ import type {
   ArrayElement,
 } from '../../types/dsa';
 
-export const KADANE_MAX_SUBARRAY_CODE = `function maxSubArray(nums) {
-  let currentMax = nums[0];
-  let globalMax = nums[0];
-  let start = 0, end = 0, tempStart = 0;
+export const KADANE_MAX_SUBARRAY_CODE = `def max_sub_array(nums: list[int]) -> int:
+    current_max = nums[0]
+    global_max = nums[0]
+    start = end = temp_start = 0
 
-  for (let i = 1; i < nums.length; i++) {
-    if (nums[i] > currentMax + nums[i]) {
-      currentMax = nums[i];
-      tempStart = i;
-    } else {
-      currentMax += nums[i];
-    }
+    for i in range(1, len(nums)):
+        if nums[i] > current_max + nums[i]:
+            current_max = nums[i]
+            temp_start = i
+        else:
+            current_max += nums[i]
 
-    if (currentMax > globalMax) {
-      globalMax = currentMax;
-      start = tempStart;
-      end = i;
-    }
-  }
+        if current_max > global_max:
+            global_max = current_max
+            start = temp_start
+            end = i
 
-  return { globalMax, start, end };
-}`;
+    return global_max`;
 
 export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -117,7 +113,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       elements[i].pointers = ['i', 'tempStart'];
 
       addStep(
-        6,
+        7,
         `nums[${i}] (${val}) > currentMax + nums[${i}] (${currentMax + val})`,
         `Discard previous subarray. Start new subarray from index ${i} with currentMax = ${currentMax}.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
@@ -126,7 +122,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       currentMax += val;
 
       addStep(
-        8,
+        11,
         `Extend subarray: currentMax += nums[${i}] (${val}) -> ${currentMax}`,
         `Adding nums[${i}] (${val}) increases/modifies the current subarray sum to ${currentMax}.`,
         { i, 'nums[i]': val, currentMax, globalMax, tempStart }
@@ -139,7 +135,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       end = i;
 
       addStep(
-        13,
+        14,
         `New globalMax found: ${globalMax}`,
         `Updated globalMax to ${globalMax} for subarray from index ${start} to ${end}.`,
         { i, currentMax, globalMax, start, end, tempStart }

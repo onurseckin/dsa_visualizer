@@ -22,9 +22,16 @@ describe('editDistance algorithm logic spec', () => {
   });
 
   it('handles empty strings correctly', () => {
-    const steps = generateEditDistanceSteps({ word1: '', word2: 'hello' });
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.minDistance).toBe(5);
+    const steps1 = generateEditDistanceSteps({ word1: '', word2: 'hello' });
+    expect(steps1[steps1.length - 1].variables.minDistance).toBe(5);
+
+    const steps2 = generateEditDistanceSteps({ word1: 'world', word2: '' });
+    expect(steps2[steps2.length - 1].variables.minDistance).toBe(5);
+  });
+
+  it('handles single character replacements and insertions', () => {
+    const steps1 = generateEditDistanceSteps({ word1: 'a', word2: 'b' });
+    expect(steps1[steps1.length - 1].variables.minDistance).toBe(1);
   });
 
   it('generates grid visual snapshots', () => {

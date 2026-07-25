@@ -54,6 +54,29 @@ html, body {
   border-color: var(--border-glow);
 }
 
+/* Responsive Main Workspace Grid */
+.main-workspace-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+}
+
+.main-workspace-grid.view-mode-split {
+  grid-template-columns: 1fr 1fr;
+}
+
+.main-workspace-grid.view-mode-visual,
+.main-workspace-grid.view-mode-code {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 900px) {
+  .main-workspace-grid.view-mode-split {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

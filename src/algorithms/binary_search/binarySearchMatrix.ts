@@ -9,24 +9,26 @@ export interface BinarySearchMatrixInput {
   target: number;
 }
 
-export const BINARY_SEARCH_MATRIX_CODE = `function searchMatrix(matrix, target) {
-  if (!matrix || matrix.length === 0) return false;
-  const m = matrix.length;
-  const n = matrix[0].length;
-  let low = 0, high = m * n - 1;
+export const BINARY_SEARCH_MATRIX_CODE = `def search_matrix(matrix: list[list[int]], target: int) -> bool:
+    if not matrix or not matrix[0]:
+        return False
+    m, n = len(matrix), len(matrix[0])
+    low, high = 0, m * n - 1
 
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const row = Math.floor(mid / n);
-    const col = mid % n;
-    const midVal = matrix[row][col];
+    while low <= high:
+        mid = (low + high) // 2
+        row = mid // n
+        col = mid % n
+        mid_val = matrix[row][col]
 
-    if (midVal === target) return true;
-    if (midVal < target) low = mid + 1;
-    else high = mid - 1;
-  }
-  return false;
-}`;
+        if mid_val == target:
+            return True
+        elif mid_val < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+    return False`;
 
 export const DEFAULT_BINARY_SEARCH_MATRIX_INPUT: BinarySearchMatrixInput = {
   matrix: [
@@ -134,7 +136,7 @@ export const generateBinarySearchMatrixSteps = (
   };
 
   addStep(
-    4,
+    5,
     `Initialize 2D Binary Search on ${rows}x${cols} matrix`,
     `Total elements: ${totalElements}. Initial search bounds: low = 0, high = ${totalElements - 1}.`,
     0,
@@ -152,9 +154,9 @@ export const generateBinarySearchMatrixSteps = (
     const midVal = matrix[r][c];
 
     addStep(
-      7,
+      8,
       `Compute mid index ${mid} -> matrix[${r}][${c}] = ${midVal}`,
-      `Flattened mid = Math.floor((${low} + ${high}) / 2) = ${mid}. Matrix cell is row ${r}, col ${c}.`,
+      `Flattened mid = (${low} + ${high}) // 2 = ${mid}. Matrix cell is row ${r}, col ${c}.`,
       low,
       high,
       mid,
@@ -165,7 +167,7 @@ export const generateBinarySearchMatrixSteps = (
     if (midVal === target) {
       found = true;
       addStep(
-        11,
+        14,
         `Target ${target} found at matrix[${r}][${c}]!`,
         `matrix[${r}][${c}] (${midVal}) matches target ${target}. Binary search succeeds.`,
         low,
@@ -179,7 +181,7 @@ export const generateBinarySearchMatrixSteps = (
 
     if (midVal < target) {
       addStep(
-        12,
+        16,
         `matrix[${r}][${c}] (${midVal}) < target (${target})`,
         `Target must be in the right half. Update low = mid + 1 = ${mid + 1}.`,
         low,
@@ -191,7 +193,7 @@ export const generateBinarySearchMatrixSteps = (
       low = mid + 1;
     } else {
       addStep(
-        13,
+        18,
         `matrix[${r}][${c}] (${midVal}) > target (${target})`,
         `Target must be in the left half. Update high = mid - 1 = ${mid - 1}.`,
         low,
@@ -206,7 +208,7 @@ export const generateBinarySearchMatrixSteps = (
 
   if (!found) {
     addStep(
-      15,
+      20,
       `Target ${target} not found in matrix`,
       `Search range low (${low}) > high (${high}). Target is absent.`,
       low,
@@ -223,7 +225,7 @@ export const generateBinarySearchMatrixSteps = (
 export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = {
   id: 'binary-search-matrix',
   title: 'Search a 2D Matrix',
-  category: 'fundamentals',
+  category: 'binary_search',
   difficulty: 'Medium',
   description:
     'Searches for a target value in an m x n integer matrix where each row is sorted and the first integer of each row is greater than the last integer of the previous row using 2D binary search.',

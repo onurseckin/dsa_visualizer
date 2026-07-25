@@ -4,7 +4,6 @@ import {
   generateReverseLinkedListSteps,
   reverseLinkedList,
 } from '../reverseLinkedList';
-import type { ArrayVisualSnapshot } from '../../../types/dsa';
 
 describe('reverseLinkedList algorithm spec', () => {
   it('should have correct algorithm metadata', () => {
@@ -27,12 +26,13 @@ describe('reverseLinkedList algorithm spec', () => {
     expect(lastStep.codeLine).toBe(9);
     expect(lastStep.variables.newHead).toBe(5);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe('array');
-    expect(snap.elements).toHaveLength(5);
-    snap.elements.forEach((el) => {
-      expect(el.state).toBe('sorted');
-    });
+    expect(lastStep.primarySnapshot.kind).toBe('array');
+    if (lastStep.primarySnapshot.kind === 'array') {
+      expect(lastStep.primarySnapshot.elements).toHaveLength(5);
+      lastStep.primarySnapshot.elements.forEach((el) => {
+        expect(el.state).toBe('sorted');
+      });
+    }
   });
 
   it('should handle single element linked list', () => {

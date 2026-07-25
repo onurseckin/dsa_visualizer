@@ -3,6 +3,7 @@ import {
   convexHull,
   generateConvexHullSteps,
   DEFAULT_CONVEX_HULL_INPUT,
+  PYTHON_CONVEX_HULL_CODE,
 } from '../convexHull';
 
 describe('convexHull algorithm logic spec', () => {
@@ -37,9 +38,11 @@ describe('convexHull algorithm logic spec', () => {
     expect(steps[0].variables.hullSize).toBe(0);
   });
 
-  it('verifies algorithm definition metadata', () => {
+  it('verifies algorithm definition metadata and Python representation', () => {
     expect(convexHull.id).toBe('convex-hull');
     expect(convexHull.category).toBe('geometry_and_sweep_line');
     expect(convexHull.difficulty).toBe('Hard');
+    expect(convexHull.code).toBe(PYTHON_CONVEX_HULL_CODE);
+    expect(convexHull.code).toContain('def convex_hull(');
   });
 });

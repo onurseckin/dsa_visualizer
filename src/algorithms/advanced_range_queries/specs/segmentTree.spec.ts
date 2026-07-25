@@ -29,4 +29,20 @@ describe('segmentTree algorithm spec', () => {
     expect(resultSteps[0].variables.totalSum).toBe(15);
     expect(resultSteps[1].variables.totalSum).toBe(16);
   });
+
+  it('should handle point update operation correctly', () => {
+    const steps = generateSegmentTreeSteps({
+      array: [10, 20, 30],
+      operations: [{ type: 'update', index: 0, value: 50 }],
+    });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.rootSum).toBe(100);
+  });
+
+  it('should handle empty input array', () => {
+    const steps = generateSegmentTreeSteps({ array: [] });
+    expect(steps.length).toBe(1);
+    expect(steps[0].primarySnapshot.kind).toBe('tree');
+  });
 });

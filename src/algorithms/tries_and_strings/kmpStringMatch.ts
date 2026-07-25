@@ -9,36 +9,38 @@ export interface KmpInput {
   pattern: string;
 }
 
-export const KMP_CODE = `function kmpSearch(text, pattern) {
-  const n = text.length, m = pattern.length;
-  if (m === 0 || n === 0 || m > n) return [];
-  const lps = new Array(m).fill(0);
-  let len = 0, i = 1;
-  while (i < m) {
-    if (pattern[i] === pattern[len]) {
-      len++; lps[i] = len; i++;
-    } else if (len !== 0) {
-      len = lps[len - 1];
-    } else {
-      lps[i] = 0; i++;
-    }
-  }
-  let pIdx = 0, tIdx = 0;
-  const matches = [];
-  while (tIdx < n) {
-    if (pattern[pIdx] === text[tIdx]) {
-      pIdx++; tIdx++;
-    }
-    if (pIdx === m) {
-      matches.push(tIdx - pIdx);
-      pIdx = lps[pIdx - 1];
-    } else if (tIdx < n && pattern[pIdx] !== text[tIdx]) {
-      if (pIdx !== 0) pIdx = lps[pIdx - 1];
-      else tIdx++;
-    }
-  }
-  return matches;
-}`;
+export const KMP_CODE = `def kmp_search(text: str, pattern: str) -> list[int]:
+    n, m = len(text), len(pattern)
+    if m == 0 or n == 0 or m > n:
+        return []
+    lps = [0] * m
+    length = 0
+    i = 1
+    while i < m:
+        if pattern[i] == pattern[length]:
+            length += 1
+            lps[i] = length
+            i += 1
+        elif length != 0:
+            length = lps[length - 1]
+        else:
+            lps[i] = 0
+            i += 1
+    p_idx, t_idx = 0, 0
+    matches = []
+    while t_idx < n:
+        if pattern[p_idx] == text[t_idx]:
+            p_idx += 1
+            t_idx += 1
+        if p_idx == m:
+            matches.append(t_idx - p_idx)
+            p_idx = lps[p_idx - 1]
+        elif t_idx < n and pattern[p_idx] != text[t_idx]:
+            if p_idx != 0:
+                p_idx = lps[p_idx - 1]
+            else:
+                t_idx += 1
+    return matches`;
 
 export const DEFAULT_KMP_INPUT: KmpInput = {
   text: 'ABABDABACDABABCABAB',
@@ -133,7 +135,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   let i = 1;
 
   addStep(
-    4,
+    5,
     'Initialize LPS / Prefix Table',
     `LPS table initialized with 0s for pattern length ${m}.`,
     { len, i, 'lps[0]': 0 },
@@ -145,7 +147,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       len++;
       lps[i] = len;
       addStep(
-        7,
+        9,
         `LPS match found: pattern[${i}] ('${pattern[i]}') === pattern[${len - 1}] ('${pattern[len - 1]}')`,
         `Extending prefix-suffix match length to ${len}. Set LPS[${i}] = ${len}.`,
         { i, len, 'pattern[i]': pattern[i], 'LPS[i]': len },
@@ -156,7 +158,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       const prevLen = len;
       len = lps[len - 1];
       addStep(
-        10,
+        14,
         `LPS mismatch: pattern[${i}] ('${pattern[i]}') !== pattern[${prevLen}] ('${pattern[prevLen]}')`,
         `Fall back length from ${prevLen} to lps[${prevLen - 1}] = ${len}.`,
         { i, len, 'pattern[i]': pattern[i] },
@@ -165,7 +167,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     } else {
       lps[i] = 0;
       addStep(
-        12,
+        16,
         `LPS no match: pattern[${i}] ('${pattern[i]}') !== pattern[0] ('${pattern[0]}')`,
         `No prefix match possible. Set LPS[${i}] = 0.`,
         { i, len: 0, 'LPS[i]': 0 },
@@ -176,7 +178,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   }
 
   addStep(
-    14,
+    18,
     'LPS / Prefix Table complete',
     `LPS table built: [${lps.join(', ')}]. Now starting pattern matching loop in text.`,
     { lps: lps.join(', ') },
@@ -196,7 +198,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     elements[tIdx].pointers = [charT, `i=${tIdx}`, `pat[${pIdx}]=${charP}`];
 
     addStep(
-      16,
+      21,
       `Compare text[${tIdx}] ('${charT}') with pattern[${pIdx}] ('${charP}')`,
       charT === charP
         ? `Characters match! Advance text and pattern pointers.`
@@ -221,7 +223,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       }
 
       addStep(
-        19,
+        25,
         `Pattern match found at index ${matchStart}!`,
         `Pattern "${pattern}" matched text from index ${matchStart} to ${matchStart + m - 1}. Reset pattern pointer via LPS[${pIdx - 1}] = ${lps[pIdx - 1]}.`,
         { matchStart, matchCount: matches.length, nextPIdx: lps[pIdx - 1] },
@@ -238,7 +240,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
         const oldPIdx = pIdx;
         pIdx = lps[pIdx - 1];
         addStep(
-          22,
+          29,
           `Mismatch at text[${tIdx}]: reset pattern index from ${oldPIdx} to LPS[${oldPIdx - 1}] = ${pIdx}`,
           `Skip ${oldPIdx - pIdx} comparisons without rewinding text pointer i (${tIdx}).`,
           { tIdx, oldPIdx, newPIdx: pIdx },
@@ -249,7 +251,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
         const oldTIdx = tIdx;
         tIdx++;
         addStep(
-          23,
+          31,
           `Mismatch at text[${oldTIdx}] with pattern[0]: advance text pointer to ${tIdx}`,
           `Pattern index is 0, cannot fall back further. Advance text index.`,
           { tIdx },
@@ -271,7 +273,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   });
 
   addStep(
-    25,
+    32,
     'KMP Search complete',
     `Found ${matches.length} match(es) at index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}.`,
     { matchesCount: matches.length, matches: matches.join(', ') },

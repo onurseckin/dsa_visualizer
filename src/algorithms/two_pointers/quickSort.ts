@@ -72,7 +72,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       workingElements[0].state = 'sorted';
     }
     addStep(
-      7,
+      1,
       'Quick Sort complete',
       'Array is already sorted.',
       { low: 0, high: Math.max(0, n - 1) }
@@ -116,13 +116,13 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       { low, high }
     );
 
-    // Line 10: Pivot selection
+    // Line 8: Pivot selection
     const pivotVal = workingElements[high].value;
     workingElements[high].state = 'pivot';
     workingElements[high].pointers = ['pivot'];
 
     addStep(
-      10,
+      8,
       `Select pivot arr[${high}] = ${pivotVal}`,
       `Chosen element at index ${high} as pivot for partitioning.`,
       { low, high, pivot: pivotVal }
@@ -130,7 +130,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
 
     let i = low - 1;
     addStep(
-      11,
+      9,
       `Initialize boundary i = ${i}`,
       `Index i tracks the boundary of elements less than pivot (${pivotVal}).`,
       { low, high, i, pivot: pivotVal }
@@ -146,18 +146,18 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
 
       const currentVal = workingElements[j].value;
       addStep(
-        13,
+        11,
         `Compare arr[${j}] (${currentVal}) with pivot (${pivotVal})`,
-        currentVal < pivotVal
-          ? `${currentVal} < ${pivotVal}, element belongs in left partition.`
-          : `${currentVal} >= ${pivotVal}, element stays in right partition.`,
+        currentVal <= pivotVal
+          ? `${currentVal} <= ${pivotVal}, element belongs in left partition.`
+          : `${currentVal} > ${pivotVal}, element stays in right partition.`,
         { low, high, i, j, 'arr[j]': currentVal, pivot: pivotVal }
       );
 
-      if (currentVal < pivotVal) {
+      if (currentVal <= pivotVal) {
         i++;
         addStep(
-          14,
+          12,
           `Increment boundary i to ${i}`,
           `Expand smaller element partition boundary.`,
           { low, high, i, j, 'arr[j]': currentVal, pivot: pivotVal }
@@ -170,7 +170,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
         workingElements[j] = temp;
 
         addStep(
-          15,
+          13,
           `Swap arr[${i}] and arr[${j}]`,
           `Swapped ${workingElements[j].value} and ${workingElements[i].value} to move smaller element left.`,
           { low, high, i, j, 'arr[i]': workingElements[i].value, 'arr[j]': workingElements[j].value }
@@ -194,7 +194,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     workingElements[high].state = 'swap';
 
     addStep(
-      18,
+      14,
       `Swap pivot arr[${high}] (${pivotVal}) into final position arr[${pivotIdx}]`,
       `Place pivot element in its correct sorted index ${pivotIdx}.`,
       { low, high, pivotIdx, pivot: pivotVal }
@@ -212,7 +212,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     }
 
     addStep(
-      19,
+      15,
       `Partition complete. Pivot index is ${pivotIdx}`,
       `All elements before index ${pivotIdx} are <= ${pivotVal}, and all elements after are >= ${pivotVal}.`,
       { low, high, pivotIdx }
@@ -248,7 +248,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   }
 
   addStep(
-    7,
+    1,
     'Quick Sort complete',
     'All recursive calls completed. The array is fully sorted.',
     { low: 0, high: n - 1 }

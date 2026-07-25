@@ -27,4 +27,20 @@ describe('fenwickTree algorithm spec', () => {
     expect(rangeQuerySteps[0].variables.rangeSum).toBe(15);
     expect(rangeQuerySteps[1].variables.rangeSum).toBe(20);
   });
+
+  it('should handle point update correctly', () => {
+    const steps = generateFenwickTreeSteps({
+      array: [1, 2, 3, 4],
+      operations: [{ type: 'update', index: 2, delta: 10 }],
+    });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.explanation.what).toContain('complete');
+  });
+
+  it('should handle empty input array', () => {
+    const steps = generateFenwickTreeSteps({ array: [] });
+    expect(steps.length).toBe(1);
+    expect(steps[0].variables.n).toBe(0);
+  });
 });

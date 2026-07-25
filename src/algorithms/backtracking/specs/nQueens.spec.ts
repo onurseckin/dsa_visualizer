@@ -10,7 +10,7 @@ describe('nQueens algorithm spec', () => {
   it('should have valid definition metadata', () => {
     expect(nQueens.id).toBe('n-queens');
     expect(nQueens.title).toBe('N-Queens Backtracking');
-    expect(nQueens.category).toBe('advanced');
+    expect(nQueens.category).toBe('backtracking');
     expect(nQueens.difficulty).toBe('Hard');
     expect(nQueens.defaultInput).toEqual(DEFAULT_NQUEENS_INPUT);
   });

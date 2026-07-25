@@ -8,30 +8,34 @@ export interface NQueensInput {
   n: number;
 }
 
-export const N_QUEENS_CODE = `function solveNQueens(n) {
-  const board = Array.from({ length: n }, () => Array(n).fill('.'));
-  const cols = new Set(), diag1 = new Set(), diag2 = new Set();
-  const solutions = [];
+export const N_QUEENS_CODE = `def solve_n_queens(n: int) -> list[list[str]]:
+    board = [["."] * n for _ in range(n)]
+    cols, diag1, diag2 = set(), set(), set()
+    solutions = []
 
-  function backtrack(row) {
-    if (row === n) {
-      solutions.push(board.map(r => r.join('')));
-      return;
-    }
-    for (let col = 0; col < n; col++) {
-      if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) continue;
-      board[row][col] = 'Q';
-      cols.add(col); diag1.add(row - col); diag2.add(row + col);
+    def backtrack(row: int):
+        if row == n:
+            solutions.append(["".join(r) for r in board])
+            return
 
-      backtrack(row + 1);
+        for col in range(n):
+            if col in cols or (row - col) in diag1 or (row + col) in diag2:
+                continue
 
-      board[row][col] = '.';
-      cols.delete(col); diag1.delete(row - col); diag2.delete(row + col);
-    }
-  }
-  backtrack(0);
-  return solutions;
-}`;
+            board[row][col] = "Q"
+            cols.add(col)
+            diag1.add(row - col)
+            diag2.add(row + col)
+
+            backtrack(row + 1)
+
+            board[row][col] = "."
+            cols.remove(col)
+            diag1.remove(row - col)
+            diag2.remove(row + col)
+
+    backtrack(0)
+    return solutions`;
 
 export const DEFAULT_NQUEENS_INPUT: NQueensInput = {
   n: 4,
@@ -126,7 +130,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 
   const backtrack = (row: number) => {
     addStep(
-      7,
+      6,
       `Enter backtrack(row = ${row})`,
       row === n
         ? `Reached row ${n}! All ${n} queens placed successfully.`
@@ -172,7 +176,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         diag2.add(d2);
 
         addStep(
-          13,
+          15,
           `Place Queen at (row ${row}, col ${col})`,
           `Added queen to board and marked col ${col}, diag1=${d1}, diag2=${d2} as occupied.`,
           { r: row, c: col, conflict: false },
@@ -188,7 +192,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         diag2.delete(d2);
 
         addStep(
-          17,
+          22,
           `Backtrack: Remove Queen from (row ${row}, col ${col})`,
           `Backtracking from row ${row + 1}. Removed queen from (row ${row}, col ${col}).`,
           { r: row, c: col, conflict: false },
@@ -202,7 +206,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
   backtrack(0);
 
   addStep(
-    21,
+    28,
     `N-Queens Solver Completed`,
     `Found a total of ${totalSolutions} distinct valid solution configurations for N = ${n}.`,
     undefined,
@@ -216,7 +220,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
 export const nQueens: AlgorithmDefinition<NQueensInput> = {
   id: 'n-queens',
   title: 'N-Queens Backtracking',
-  category: 'advanced',
+  category: 'backtracking',
   difficulty: 'Hard',
   description:
     'The N-Queens puzzle requires placing N chess queens on an N×N chessboard so that no two queens threaten each other using recursive backtracking.',

@@ -5,7 +5,6 @@ import {
   generateHuffmanCodingSteps,
   PYTHON_HUFFMAN_CODE,
 } from '../huffmanCoding';
-import type { TreeVisualSnapshot } from '../../../types/dsa';
 
 describe('huffmanCoding spec logic', () => {
   it('has category greedy_algorithms and valid metadata', () => {
@@ -29,15 +28,22 @@ describe('huffmanCoding spec logic', () => {
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
+    expect(firstStep.codeLine).toBe(15);
     expect(firstStep.explanation.what).toContain('abracadabra');
 
+    const secondStep = steps[1];
+    expect(secondStep.codeLine).toBe(16);
+
     const lastStep = steps[steps.length - 1];
+    expect(lastStep.codeLine).toBe(27);
     expect(lastStep.explanation.what).toContain('complete');
     expect(lastStep.variables.rootFrequency).toBe(11);
 
-    const snapshot = lastStep.primarySnapshot as TreeVisualSnapshot;
+    const snapshot = lastStep.primarySnapshot;
     expect(snapshot.kind).toBe('tree');
-    expect(snapshot.nodes.length).toBeGreaterThan(0);
+    if (snapshot.kind === 'tree') {
+      expect(snapshot.nodes.length).toBeGreaterThan(0);
+    }
 
     // Verify derived character codes in auxiliary state
     expect(lastStep.auxiliaryState.hashMap).toBeDefined();
@@ -56,6 +62,7 @@ describe('huffmanCoding spec logic', () => {
   it('handles empty input string gracefully', () => {
     const steps = generateHuffmanCodingSteps({ text: '' });
     expect(steps.length).toBe(1);
+    expect(steps[0].codeLine).toBe(27);
     expect(steps[0].variables.textLength).toBe(0);
   });
 });

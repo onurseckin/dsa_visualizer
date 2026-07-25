@@ -10,7 +10,7 @@ describe('binarySearchMatrix algorithm spec', () => {
   it('should have valid definition metadata', () => {
     expect(binarySearchMatrix.id).toBe('binary-search-matrix');
     expect(binarySearchMatrix.title).toBe('Search a 2D Matrix');
-    expect(binarySearchMatrix.category).toBe('fundamentals');
+    expect(binarySearchMatrix.category).toBe('binary_search');
     expect(binarySearchMatrix.difficulty).toBe('Medium');
     expect(binarySearchMatrix.defaultInput).toEqual(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
   });
@@ -20,7 +20,7 @@ describe('binarySearchMatrix algorithm spec', () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
-    expect(firstStep.codeLine).toBe(4);
+    expect(firstStep.codeLine).toBe(5);
     expect(firstStep.variables.low).toBe(0);
     expect(firstStep.variables.high).toBe(11);
 

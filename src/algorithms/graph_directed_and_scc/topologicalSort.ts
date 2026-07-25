@@ -10,29 +10,27 @@ export interface TopologicalSortInput {
   edges: GraphEdgeItem[];
 }
 
-export const TOPOLOGICAL_SORT_CODE = `function topologicalSort(graph) {
-  const inDegree = {};
-  for (const node of graph.nodes) inDegree[node.id] = 0;
-  for (const edge of graph.edges) inDegree[edge.to]++;
+export const TOPOLOGICAL_SORT_CODE = `from collections import deque, defaultdict
 
-  const queue = [];
-  for (const node of graph.nodes) {
-    if (inDegree[node.id] === 0) queue.push(node.id);
-  }
+def topological_sort(nodes, edges):
+    in_degree = {node: 0 for node in nodes}
+    adj = defaultdict(list)
+    for u, v in edges:
+        adj[u].append(v)
+        in_degree[v] += 1
 
-  const order = [];
-  while (queue.length > 0) {
-    const u = queue.shift();
-    order.push(u);
+    queue = deque([node for node in nodes if in_degree[node] == 0])
+    order = []
 
-    for (const edge of graph.outgoingEdges(u)) {
-      const v = edge.to;
-      inDegree[v]--;
-      if (inDegree[v] === 0) queue.push(v);
-    }
-  }
-  return order.length === graph.nodes.length ? order : [];
-}`;
+    while queue:
+        u = queue.popleft()
+        order.append(u)
+        for v in adj[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                queue.append(v)
+
+    return order if len(order) == len(nodes) else []`;
 
 export const DEFAULT_TOPO_SORT_INPUT: TopologicalSortInput = {
   nodes: [
@@ -102,7 +100,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
       auxiliaryState: {
         hashMap: hashMapInDegree,
         queue: [...queue],
-        stack: [...order], // Using stack field to represent order array
+        stack: [...order],
         visited: [...order],
         customState: {
           'In-Degrees': Object.entries(inDegree)
@@ -117,18 +115,18 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   };
 
   addStep(
-    1,
+    3,
     "Initialize Topological Sort (Kahn's Algorithm)",
     'Beginning process to compute linear ordering of vertices in DAG.',
     { nodeCount: nodes.length, edgeCount: edges.length }
   );
 
   if (nodes.length === 0) {
-    addStep(18, 'Topological Sort complete', 'Graph is empty.', { orderLength: 0 });
+    addStep(21, 'Topological Sort complete', 'Graph is empty.', { orderLength: 0 });
     return steps;
   }
 
-  // Line 2 & 3: Calculate in-degrees
+  // Calculate in-degrees
   for (const n of nodes) {
     inDegree[n.id] = 0;
   }
@@ -139,13 +137,13 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   }
 
   addStep(
-    3,
+    8,
     'Calculate in-degree for all nodes',
     'Computed number of incoming directed edges for each node.',
     { inDegrees: JSON.stringify(inDegree) }
   );
 
-  // Line 6 & 7: Enqueue nodes with in-degree 0
+  // Enqueue nodes with in-degree 0
   for (const n of nodes) {
     if (inDegree[n.id] === 0) {
       queue.push(n.id);
@@ -154,7 +152,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   }
 
   addStep(
-    7,
+    10,
     `Enqueue all nodes with in-degree 0: [${queue.join(', ')}]`,
     'Nodes with 0 incoming dependencies are ready to be processed first.',
     { initialQueueSize: queue.length }
@@ -162,7 +160,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
   while (queue.length > 0) {
     addStep(
-      10,
+      13,
       `Check queue condition (queue size: ${queue.length})`,
       'Queue is not empty. Continue Kahn\'s algorithm iteration.',
       { queueSize: queue.length }
@@ -175,7 +173,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
     }
 
     addStep(
-      11,
+      14,
       `Dequeue node '${u}'`,
       `Extracted '${u}' from front of queue to add to topological order.`,
       { current: u }
@@ -187,7 +185,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
     }
 
     addStep(
-      12,
+      15,
       `Append node '${u}' to topological order`,
       `Node '${u}' is now positioned in the output sequence: [${order.join(', ')}].`,
       { current: u, orderLength: order.length }
@@ -197,7 +195,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
     const outgoingEdges = edges.filter((e) => e.from === u);
 
     addStep(
-      14,
+      16,
       `Explore outgoing edges from node '${u}'`,
       `Node '${u}' has ${outgoingEdges.length} outgoing edge(s).`,
       { current: u, outgoingCount: outgoingEdges.length }
@@ -215,7 +213,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
       inDegree[v]--;
 
       addStep(
-        16,
+        17,
         `Decrement in-degree of neighbor '${v}' to ${inDegree[v]}`,
         `Removed dependency '${u}' -> '${v}'. New in-degree for '${v}' is ${inDegree[v]}.`,
         { u, v, newInDegree: inDegree[v] }
@@ -228,7 +226,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
         }
 
         addStep(
-          17,
+          19,
           `Enqueue neighbor '${v}' (in-degree reached 0)`,
           `Node '${v}' now has 0 remaining incoming dependencies. Added to queue.`,
           { v, queueSize: queue.length }
@@ -242,14 +240,14 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   const hasCycle = order.length < nodes.length;
 
   addStep(
-    10,
+    13,
     'Queue is empty',
     'Finished processing all reachable 0 in-degree nodes.',
     { queueSize: 0 }
   );
 
   addStep(
-    19,
+    21,
     hasCycle
       ? `Cycle detected in graph! Processed ${order.length}/${nodes.length} nodes.`
       : `Topological Sort complete: [${order.join(' -> ')}]`,

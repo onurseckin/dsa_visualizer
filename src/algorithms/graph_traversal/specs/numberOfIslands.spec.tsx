@@ -1,8 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import GridVisualizer from '../../../components/primitives/GridVisualizer';
+import { MainLayout } from '../../../components/MainLayout';
 import {
+  numberOfIslands,
   generateNumberOfIslandsSteps,
   DEFAULT_NUMBER_OF_ISLANDS_INPUT,
 } from '../numberOfIslands';
@@ -28,5 +30,21 @@ describe('numberOfIslands React component spec', () => {
       const { container } = render(<GridVisualizer grid={snapshot.grid} />);
       expect(container.firstChild).toBeInTheDocument();
     }
+  });
+
+  it('renders MainLayout cleanly with numberOfIslands step snapshot', () => {
+    const steps = generateNumberOfIslandsSteps(DEFAULT_NUMBER_OF_ISLANDS_INPUT);
+    render(
+      <MainLayout
+        algorithm={numberOfIslands}
+        currentStep={steps[0]}
+        viewMode="split"
+        showTutorial={true}
+        showAuxiliary={true}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+    expect(screen.getAllByText(/Number of Islands/i)[0]).toBeInTheDocument();
   });
 });

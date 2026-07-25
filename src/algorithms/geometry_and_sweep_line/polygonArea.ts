@@ -122,9 +122,9 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     });
   };
 
-  // Line 1: Start algorithm
+  // Line 6: Check vertex count
   addStep(
-    1,
+    6,
     'Initialize Shoelace Algorithm',
     `Calculate area of polygon with ${n} vertices using the Shoelace (Gauss Area) formula.`,
     getBaseNodes(),
@@ -134,10 +134,10 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     { n }
   );
 
-  // Line 3: Check vertex count
+  // Line 7: Check if n < 3
   if (n < 3) {
     addStep(
-      4,
+      8,
       'Insufficient vertices',
       `A polygon requires at least 3 vertices to enclose an area. Return area = 0.0.`,
       getBaseNodes(),
@@ -152,11 +152,11 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   let areaSum = 0;
   const terms: string[] = [];
 
-  // Line 5: Initialize area_sum
+  // Line 10: Initialize area_sum
   addStep(
-    5,
+    10,
     'Initialize accumulators',
-    'Set area_sum = 0.0 before iterating over polygon edges.',
+    'Set area_sum = 0.0 before iterating over directed polygon edges.',
     getBaseNodes(),
     getBaseEdges(),
     { area_sum: '0.0' },
@@ -178,11 +178,11 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     const nodes = getBaseNodes(i, nextIdx);
     const edges = getBaseEdges(i);
 
-    // Line 9: Cross product computation
+    // Line 14: Cross product computation
     addStep(
-      9,
+      14,
       `Compute cross product for edge P${i} -> P${nextIdx}`,
-      `x1*y2 - x2*y1 = (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}.`,
+      `x1*y2 - x2*y1 = (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}. Accumulated area_sum = ${areaSum}.`,
       nodes,
       edges,
       {
@@ -221,9 +221,9 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     isPath: true,
   }));
 
-  // Line 11: Return final area
+  // Line 17: Return final area
   addStep(
-    11,
+    17,
     'Shoelace Formula Complete',
     `Final polygon area = abs(${areaSum}) / 2.0 = ${finalArea}.`,
     finalNodes,

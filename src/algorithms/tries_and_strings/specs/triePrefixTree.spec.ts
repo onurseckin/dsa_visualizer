@@ -20,7 +20,7 @@ describe('triePrefixTree algorithm spec', () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
-    expect(firstStep.codeLine).toBe(7);
+    expect(firstStep.codeLine).toBe(8);
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.found).toBe(true);

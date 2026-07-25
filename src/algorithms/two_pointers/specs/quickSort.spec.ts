@@ -29,7 +29,7 @@ describe('quickSort algorithm spec', () => {
 
     // Check final step
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(7);
+    expect(lastStep.codeLine).toBe(1);
 
     const finalSnapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
     const finalValues = finalSnapshot.elements.map((el) => el.value);

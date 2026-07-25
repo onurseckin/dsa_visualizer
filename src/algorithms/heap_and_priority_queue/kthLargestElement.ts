@@ -89,7 +89,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     variables: { k, heapSize: 0, processedCount: 0 },
   });
 
-  const siftUp = (heap: number[]): void => {
+  const siftUp = (heap: number[]): number => {
     let curr = heap.length - 1;
     while (curr > 0) {
       const parent = Math.floor((curr - 1) / 2);
@@ -102,6 +102,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         break;
       }
     }
+    return curr;
   };
 
   const siftDown = (heap: number[]): void => {
@@ -128,7 +129,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     const num = nums[i];
 
     minHeap.push(num);
-    siftUp(minHeap);
+    const activeIdx = siftUp(minHeap);
 
     steps.push({
       stepIndex: stepIdx++,
@@ -139,7 +140,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       },
       primarySnapshot: {
         kind: 'array',
-        elements: createArrayElements(minHeap, minHeap.indexOf(num), 'queued'),
+        elements: createArrayElements(minHeap, activeIdx, 'queued'),
       },
       auxiliaryState: {
         customState: {
