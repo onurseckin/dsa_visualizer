@@ -20,6 +20,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
+        height: '100%',
         overflow: 'hidden',
       }}
     >
@@ -32,6 +33,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
           padding: '0.6rem 1rem',
           background: 'var(--bg-darkest)',
           borderBottom: '1px solid var(--border-muted)',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -55,7 +57,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
       <div
         style={{
           padding: '0.75rem 0',
-          maxHeight: '380px',
+          flex: 1,
           overflowY: 'auto',
           background: 'var(--bg-darkest)',
         }}
