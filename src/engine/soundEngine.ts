@@ -1,3 +1,7 @@
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
@@ -7,8 +11,7 @@ class SoundEngine {
 
     if (!this.ctx) {
       const AudioCtxClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        window.AudioContext || (window as WindowWithWebkitAudio).webkitAudioContext;
 
       if (AudioCtxClass) {
         this.ctx = new AudioCtxClass();
