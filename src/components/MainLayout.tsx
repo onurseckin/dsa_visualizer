@@ -101,6 +101,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   const [resetLayoutKey, setResetLayoutKey] = React.useState<number>(0);
 
+  /* While details are expanded the layout leaves viewport-fit mode: the page
+     scrolls and the stage keeps a generous fixed height so panels are never
+     squeezed by the expanded description/constraints/examples. */
+  const [detailsExpanded, setDetailsExpanded] = React.useState<boolean>(false);
+
+  // A fresh problem always starts compact in zero-scroll viewport-fit mode.
+  React.useEffect(() => {
+    setDetailsExpanded(false);
+  }, [algorithm.id]);
+
+  const handleToggleDetails = React.useCallback(() => {
+    setDetailsExpanded((prev) => !prev);
+  }, []);
+
   const handleResetLayout = React.useCallback(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -123,7 +137,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       }}
     >
       {/* Hero visualizer panel: canvas centers, ControlPanel docks at the bottom edge */}
-      <Card padding="none" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Card padding="none" style={{ flex: 1, minHeight: detailsExpanded ? 420 : 0, overflow: 'hidden' }}>
         <div
           style={{
             display: 'flex',
@@ -212,7 +226,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <div
         style={{
           flex: 1,
-          minHeight: 0,
+          minHeight: detailsExpanded ? 420 : 0,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -237,6 +251,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <main
+      data-details-expanded={detailsExpanded ? 'true' : 'false'}
       style={{
         flex: 1,
         minHeight: 0,
@@ -244,11 +259,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         flexDirection: 'column',
         gap: 'var(--space-3)',
         padding: 'var(--space-3) var(--space-4)',
-        overflow: 'hidden',
         boxSizing: 'border-box',
+        // Expanded details switch the page to natural flow with page scrolling;
+        // collapsed keeps the zero-scroll viewport-fit behavior.
+        ...(detailsExpanded
+          ? { overflowY: 'auto' as const, overflowX: 'hidden' as const }
+          : { overflow: 'hidden' as const }),
       }}
     >
-      {/* Compact problem strip (expand/collapse handled inside ProblemHeader) */}
+      {/* Compact problem strip; expansion state lives here so the layout mode follows it */}
       <div style={{ flexShrink: 0 }}>
         <ProblemHeader
           title={algorithm.title}
@@ -259,12 +278,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           examples={algorithm.examples}
           timeComplexity={algorithm.timeComplexity}
           spaceComplexity={algorithm.spaceComplexity}
+          expanded={detailsExpanded}
+          onToggleExpanded={handleToggleDetails}
           onResetLayout={handleResetLayout}
         />
       </div>
 
-      {/* Stage row takes the remaining viewport space; panels scroll internally */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      {/* Collapsed: stage fills the remaining viewport and panels scroll internally.
+          Expanded: stage keeps a generous fixed working height and the page scrolls. */}
+      <div
+        style={
+          detailsExpanded
+            ? { flexShrink: 0, height: '72vh', minHeight: 560 }
+            : { flex: 1, minHeight: 0 }
+        }
+      >
         {viewMode === 'split' && (
           <ResizableLayout
             leftPanel={leftColumnContent}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Badge, Button, Card, difficultyBadgeVariant } from '../../ui';
 import { CategoryType, DifficultyLevel, ProblemExample, TimeComplexity } from '../../types/dsa';
@@ -12,7 +12,10 @@ export interface ProblemHeaderProps {
   examples?: ProblemExample[];
   timeComplexity?: TimeComplexity;
   spaceComplexity?: string;
-  initialExpanded?: boolean;
+  /* Expansion is controlled by the parent so the surrounding layout can switch
+     between viewport-fit and page-scroll modes in sync with the details panel. */
+  expanded: boolean;
+  onToggleExpanded: () => void;
   onResetLayout?: () => void;
 }
 
@@ -28,11 +31,10 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   description,
   constraints,
   examples,
-  initialExpanded = false,
+  expanded,
+  onToggleExpanded,
   onResetLayout,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
-
   return (
     <Card padding="sm">
       <div
@@ -64,9 +66,9 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
 
         <Button
           size="sm"
-          selected={isExpanded}
-          aria-expanded={isExpanded}
-          onClick={() => setIsExpanded(!isExpanded)}
+          selected={expanded}
+          aria-expanded={expanded}
+          onClick={onToggleExpanded}
         >
           Details
         </Button>
@@ -78,7 +80,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         )}
       </div>
 
-      {isExpanded && (
+      {expanded && (
         <div
           style={{
             marginTop: 'var(--space-3)',
