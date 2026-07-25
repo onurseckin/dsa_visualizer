@@ -288,6 +288,63 @@ export const quickSort: AlgorithmDefinition<number[]> = {
     time: 'Each partition pass touches every element in its slice once, and when pivots land near the middle the slices roughly halve at every level, giving about log n levels of n work each — O(n log n) on average. If the pivot keeps landing at an extreme (for example, an already-sorted array with the last element as pivot), one side of every split is empty, the levels grow to n, and the cost degrades to O(n²).',
     space: 'The sorting itself happens in place; the only memory that grows is the recursion stack, which stays around log n frames deep when splits are balanced — O(log n). Badly unbalanced splits can push it toward O(n) frames.',
   },
+  topicGuide: {
+    overview:
+      'Quick Sort is divide-and-conquer applied to sorting, and it is the algorithm most general-purpose library sorts are built on. The whole method rests on partitioning: choose one element as a pivot, rearrange the slice so everything smaller sits left of it and everything larger sits right, and that pivot is now in its final position forever. Two independent smaller problems remain, and recursion finishes them. It is worth studying closely because it is simultaneously the fastest common in-memory sort in practice and the one with the most instructive failure mode.',
+    sections: [
+      {
+        heading: 'The core idea: place one element, split the rest',
+        body: 'Most sorts move elements gradually toward their destinations, but Quick Sort commits one element permanently per partition and then never touches it again. The insight is that you do not need to know where any other element belongs in order to place the pivot correctly: you only need to know how many values are smaller than it. Partitioning discovers that count as a side effect of rearranging, so the pivot lands at the boundary between the two groups, which is exactly its sorted index. Because the left and right groups can never need to exchange elements with each other, they become fully independent subproblems, and that independence is what makes the recursion clean.',
+      },
+      {
+        heading: 'How Lomuto partitioning actually moves elements',
+        body: 'This implementation takes the last element of the slice as the pivot and uses two indices, which is why the problem is grouped with the two-pointer family. The scanning index j walks from low to high minus one, while i marks the end of the region already known to hold values less than or equal to the pivot. Whenever arr[j] is at most the pivot, i advances by one and arr[i] swaps with arr[j], which pushes that small value into the small region and evicts a large value into the scanned-large region. After the scan, one final swap exchanges arr[i + 1] with the pivot at arr[high], seating the pivot right between the two groups, and that index is returned so the caller can recurse on low through pivot minus 1 and pivot plus 1 through high.',
+      },
+      {
+        heading: 'Why it is correct: the three-region invariant',
+        body: 'At every point during the scan, the slice is divided into four labelled stretches: elements from low through i are at most the pivot, elements from i + 1 through j minus 1 are greater than the pivot, elements from j through high minus 1 are unexamined, and arr[high] is the pivot itself. Each iteration preserves this by either extending the greater-than region when arr[j] is large, or by swapping the small value forward so both the at-most and greater-than regions stay contiguous. When the scan ends the unexamined region is empty, so placing the pivot at i + 1 gives it exactly the number of smaller elements to its left that belong there. The recursion is then correct by induction, since each recursive call sorts a strictly shorter slice and slices of length zero or one are trivially sorted.',
+      },
+      {
+        heading: 'When to reach for it versus merge sort or heap sort',
+        body: 'Quick Sort is the right default for sorting a large array in memory when you do not need stability, because it sorts in place and its sequential partition scans are extremely friendly to CPU caches. Choose merge sort instead when you need guaranteed worst-case performance, stable ordering of equal keys, or when data lives in linked nodes or on external storage where sequential merging shines. Choose heap sort when you need in-place sorting with a hard worst-case guarantee and can accept its poorer locality. Real library implementations hedge by combining approaches, switching to insertion sort on small slices and bailing out to heap sort if the recursion depth suggests a pathological pivot pattern.',
+      },
+      {
+        heading: 'Pitfalls and edge cases',
+        body: 'The famous trap is pivot choice: taking a fixed end element means an already-sorted or reverse-sorted array produces one empty side at every level, which is the quadratic worst case and can also overflow the call stack. Randomising the pivot or using the median of the first, middle, and last elements makes that behaviour vanishingly unlikely for real inputs. Arrays with many duplicate values are the other weak spot, because Lomuto sends all equal elements to the same side and the splits become lopsided, which is what three-way partitioning is designed to fix. Watch the base condition too: the recursion must guard on low being strictly less than high, and pivot minus 1 can legitimately be less than low, so your bounds must tolerate empty slices rather than assume non-empty ones. Note also that this partition scheme is not stable, since long-range swaps freely reorder equal keys.',
+      },
+      {
+        heading: 'How partitioning generalises beyond sorting',
+        body: 'Keep only the recursive call that contains the index you care about and Quick Sort becomes Quickselect, which finds the k-th smallest element in linear expected time without sorting anything else. That is how median-finding and top-k selection are usually implemented, and it is the clearest demonstration that partitioning is the valuable primitive here rather than the sorting wrapper. Three-way partitioning, the Dutch national flag arrangement, splits into less-than, equal, and greater-than regions and turns arrays with heavy duplication from a weakness into a strength. The same rearrange-around-a-predicate move shows up all over array work, from moving zeroes to the end to grouping by parity, so once you can write a partition loop confidently you have a tool that reaches well past sorting.',
+      },
+    ],
+    keyTerms: [
+      {
+        term: 'Pivot',
+        definition:
+          'The element a partition organises the slice around. Once partitioning finishes, the pivot occupies its correct final sorted position and is never moved again.',
+      },
+      {
+        term: 'Partition',
+        definition:
+          'The rearrangement step that pushes values at most the pivot to the left and values greater than the pivot to the right. It returns the index where the pivot came to rest.',
+      },
+      {
+        term: 'Divide and conquer',
+        definition:
+          'Solving a problem by splitting it into independent smaller instances, solving those recursively, and combining the results. Quick Sort does all its real work in the divide step, so the combine step is empty.',
+      },
+      {
+        term: 'Recursion depth',
+        definition:
+          'How many nested calls are live at once, which is the height of the partition tree. Balanced splits keep it logarithmic, while consistently lopsided splits let it grow to the array length.',
+      },
+      {
+        term: 'Quickselect',
+        definition:
+          'The single-branch variant that recurses only into the side containing a target rank. It finds order statistics such as the median without fully sorting the array.',
+      },
+    ],
+  },
   defaultInput: [6, 2, 9, 3, 7, 1, 5],
   generateSteps: generateQuickSortSteps,
 };

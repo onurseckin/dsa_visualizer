@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -26,10 +26,11 @@ describe('ValidParentheses React Component Spec', () => {
 
     expect(screen.getByText('Valid Parentheses')).toBeInTheDocument();
 
-    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getAllByText(/Determine if an input string of brackets/i)[0]
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/most recent unfinished thing must be resolved first/i)[0]
     ).toBeInTheDocument();
   });
 

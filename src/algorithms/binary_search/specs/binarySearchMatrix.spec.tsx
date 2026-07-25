@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../binarySearchMatrix';
 
 describe('BinarySearchMatrix React Component Spec', () => {
-  it('renders algorithm title and expands problem details on demand', () => {
+  it('renders algorithm title with problem details expanded by default', () => {
     const steps = generateBinarySearchMatrixSteps(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
     const noop = vi.fn();
 
@@ -26,16 +26,13 @@ describe('BinarySearchMatrix React Component Spec', () => {
 
     expect(screen.getByText('Search a 2D Matrix')).toBeInTheDocument();
 
-    // Description is hidden until the header's Details toggle is expanded.
     expect(
-      screen.queryByText(/Searches for a target value in an m x n integer matrix/i)
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
-
-    expect(
-      screen.getByText(/Searches for a target value in an m x n integer matrix/i)
+      screen.getAllByText(/Searches for a target value in an m x n integer matrix/i)[0]
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Binary search is not really an array algorithm/i)[0]
+    ).toBeInTheDocument();
+    expect(screen.getByText('The flattening idea')).toBeInTheDocument();
   });
 
   it('renders matrix grid visualizer and auxiliary state for search steps', () => {

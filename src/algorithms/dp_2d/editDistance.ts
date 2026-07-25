@@ -211,6 +211,63 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     time: 'The dp table has (M + 1) × (N + 1) cells — one for every pair of prefixes of the two words — and we fill each cell exactly once with a constant amount of comparison work. That makes the total time O(M × N) no matter what the strings look like; matching and mismatching characters cost the same.',
     space: 'The full 2D table stores an answer for every prefix pair, so memory grows with both word lengths — O(M × N). Only the previous row is strictly needed, but we keep the whole table so the computation stays visible.',
   },
+  topicGuide: {
+    overview:
+      'Edit distance, also called Levenshtein distance, measures how far apart two strings are by counting the fewest single-character insertions, deletions, and substitutions that turn one into the other. It is the canonical two-dimensional dynamic program: the state is a pair of prefix lengths, so the table is a grid and the answer waits in the far corner. The move behind it — look at the last characters and branch on the ways they could have been reconciled — recurs in almost every problem about two sequences. Spell checkers, diff tools, fuzzy search, and DNA alignment all rest on this grid or a close relative of it.',
+    sections: [
+      {
+        heading: 'The core idea: the state is a pair of prefixes',
+        body: 'Define dp of i and j as the edit distance between the first i characters of the first word and the first j characters of the second. An index of zero means an empty prefix, which is why the table carries one extra row and one extra column, and why that border can be filled immediately: turning an empty string into a prefix of length j costs j insertions, and the mirror case costs i deletions. Those borders are not decoration, because every interior cell eventually traces its value back to them. The number you actually want sits in the bottom-right cell, where both prefixes have grown into the complete words.',
+      },
+      {
+        heading: 'How the mechanism works: three operations, three neighbours',
+        body: 'Look only at the last character of each prefix. If they are equal they cost nothing, so the distance is whatever it took to align the two shorter prefixes and you copy the value diagonally up and to the left. If they differ you must spend one edit, and there are exactly three ways to spend it: substitute, which consumes a character from each side and reads the diagonal; delete from the first word, which consumes only its character and reads the cell above; or insert into the first word to match the second, which reads the cell to the left. Take the minimum of those three neighbours and add one. Because every cell reads only cells above and to the left, filling the grid row by row from left to right is enough to guarantee its inputs are ready.',
+      },
+      {
+        heading: 'Why the grid is correct',
+        body: 'The invariant is that when you compute a cell, the three cells it reads already hold true minimum distances for their own prefix pairs, which the row-major sweep and the hand-filled borders together guarantee. Correctness then follows from the case analysis being exhaustive: in any optimal edit script the final operation either matches the two last characters or is one of the three edits, and there is no fourth possibility to forget. Each case reduces to a strictly smaller prefix pair, so the recursion bottoms out on the borders rather than running forever. Notice too that overlapping subproblems are the reason a table is needed at all — the plain recursion revisits the same prefix pairs an exponential number of times, and the grid does nothing cleverer than remember each one.',
+      },
+      {
+        heading: 'Reading out the alignment, and trimming memory',
+        body: 'The corner cell gives you a number, but what you often want is the script that achieves it, and you recover that by walking backwards from the corner. A diagonal step on equal characters is a keep, a diagonal step on unequal characters is a substitution, a step upward is a deletion, and a step leftward is an insertion. Keep the whole grid if you need that walk. If you only need the number, observe that no cell ever reads above the previous row, so two rows suffice — or one row plus a saved diagonal value — and that is the standard trick for very long strings. Hirschberg\'s algorithm satisfies both wants at once by recursing on the middle column, giving you a full alignment in linear memory.',
+      },
+      {
+        heading: 'Pitfalls and edge cases',
+        body: 'Two traps dominate in practice. The first is mixing up which axis holds which word, so deletions and insertions swap roles — harmless while both cost one, quietly wrong the moment the costs differ. The second is index confusion: the table is indexed by prefix lengths, which are one-based, while the strings are zero-based, so the characters you compare live at i minus one and j minus one. Beyond that, test the empty inputs deliberately, since the distance from an empty word is just the other word\'s length and a correct border produces that with no special-case code. And resist the urge to short-circuit on equal characters by skipping the minimum, because a match only ever reads the diagonal and adding a guard there is how off-by-one bugs sneak in.',
+      },
+      {
+        heading: 'How the pattern generalises',
+        body: 'The grid is a template rather than a single algorithm. Drop substitution and count matches instead of edits and the same table computes the longest common subsequence; allow a transposition of two adjacent characters and you have Damerau-Levenshtein, which is what spell checkers want for typos. Give the operations unequal costs and the plus-one becomes a per-operation weight, and reward matches instead of penalising edits and you arrive at Needleman-Wunsch sequence alignment from bioinformatics. The reusable skill is recognising that any problem about two sequences advancing independently wants a two-dimensional table indexed by how far you have consumed each one, which is also how regular-expression matching, wildcard matching, and interleaving-string problems all get solved.',
+      },
+    ],
+    keyTerms: [
+      {
+        term: 'Levenshtein distance',
+        definition:
+          'The minimum number of single-character insertions, deletions, and substitutions needed to transform one string into another. It is a true metric, so it is symmetric and satisfies the triangle inequality.',
+      },
+      {
+        term: 'Prefix',
+        definition:
+          'The first i characters of a string, including the empty prefix when i is zero. The whole table is indexed by prefix lengths, which is why it needs a row and column for zero.',
+      },
+      {
+        term: 'Base case',
+        definition:
+          'The pre-filled first row and column, where one prefix is empty. They encode that converting to or from an empty string costs one edit per remaining character.',
+      },
+      {
+        term: 'Overlapping subproblems',
+        definition:
+          'The situation where the same subproblem is reachable through many different recursion paths. It is the property that makes memoising or tabulating pay off, as opposed to plain divide and conquer.',
+      },
+      {
+        term: 'Traceback',
+        definition:
+          'Walking backwards from the final cell along the choices that produced each value in order to recover the actual sequence of edits. It needs the full grid, which is why space-optimised versions can report only the distance.',
+      },
+    ],
+  },
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };

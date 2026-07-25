@@ -269,6 +269,63 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
     time: 'Sorting the intervals by start time dominates the work at O(N log N). After that, we make a single linear pass and compare each interval only with the last merged one, which adds just O(N) more. That is why best, average, and worst case are all O(N log N) — the sort always happens.',
     space: 'The merged output list is what grows: when nothing overlaps it holds all N intervals, so extra memory is O(N).',
   },
+  topicGuide: {
+    overview:
+      'Interval problems come with a hidden gift: an interval is just two numbers, and once you sort by one of them the geometry collapses into a single left-to-right walk. Merging overlapping intervals is the archetype — given a bag of ranges, produce the smallest set of disjoint ranges that covers exactly the same points. The entire technique is sort by start, then sweep forward comparing each interval only against the last one you kept. Learn this pattern and inserting an interval, counting meeting rooms, intersecting two interval lists, and detecting calendar conflicts all become the same short loop with a different decision inside it.',
+    sections: [
+      {
+        heading: 'The core idea: sorting turns pair comparison into a scan',
+        body: 'Unsorted, deciding which ranges overlap looks like it needs every pair examined. Sort by start time and something much stronger becomes true: as you walk forward, every remaining interval begins at or after the current one, so a new interval can only ever touch the block you are currently building and never anything you already sealed off. That is why one comparison per interval is enough, and why the sort rather than the scan is where the work goes. Sorting by end time instead is not wrong, merely a different tool — that is the ordering you want for greedy activity selection and for counting how many intervals to remove.',
+      },
+      {
+        heading: 'How the sweep works: one comparison per interval',
+        body: 'Keep an output list and seed it with the first interval; its last entry is the block currently open. For each following interval, compare its start against the open block\'s end. If the start is less than or equal to that end the two touch or overlap, so you extend the block by setting its end to the larger of the two ends. Otherwise there is a genuine gap, the open block can never grow again, and you append the newcomer as the new open block. Two details do the real work here: comparing against the last kept interval rather than the original neighbour, and taking the maximum of the two ends rather than blindly writing the newer one.',
+      },
+      {
+        heading: 'Why taking the maximum end is what makes it correct',
+        body: 'The maximum is what handles a fully nested interval: merging one to ten with three to four must still end at ten, and copying the newer end straight in would silently shrink the block and lose coverage. State the invariant plainly — after processing k intervals the output list holds disjoint intervals in increasing start order whose union equals the union of those k inputs, and only the last entry can still grow. The sort establishes the invariant for the first interval, and both branches preserve it: extending touches only the open block\'s end, and appending is safe precisely because the new start lies past the sealed end. When the scan finishes, that invariant applied to all the inputs is exactly the required answer, so no cleanup pass is needed.',
+      },
+      {
+        heading: 'Boundary cases that decide the answer',
+        body: 'Whether merely touching intervals merge is a specification question rather than a mathematical one: with a less-than-or-equal test, one to four and four to five become one to five, whereas a strict less-than treats four as a shared endpoint and keeps them separate. Read the problem statement for that, because both conventions are common in practice. Handle the empty input before you reach for the first element, and expect duplicate or identical intervals to fall naturally out of the merge branch with no special code. Zero-length intervals where start equals end are legitimate and should be merged rather than filtered, and if the input is not guaranteed to satisfy start no greater than end you must normalise each interval first, because sorting a malformed interval does not repair it.',
+      },
+      {
+        heading: 'When to sort by start versus other approaches',
+        body: 'Sorting by start is the right default whenever the output is itself a set of intervals, because the sweep produces them already in order. If you only need a count or a maximum rather than the merged ranges, the sweep-line variant is usually cleaner: split every interval into a start event and an end event, sort all events together, and run a counter. If the intervals arrive one at a time and you must answer queries between insertions, a sorted structure such as a balanced tree or an interval tree beats re-sorting, and that is the shape real calendar systems use. Bit sets or difference arrays are worth considering only when the coordinate range is small and dense, since they trade the sort for memory proportional to the coordinate space rather than the interval count.',
+      },
+      {
+        heading: 'How the pattern generalises',
+        body: 'The family generalises by changing what happens at each comparison, not how you scan. Inserting one interval into an already sorted list skips the sort entirely: copy everything that ends before the newcomer, merge the overlapping middle into it, then copy the rest. Finding the minimum number of meeting rooms replaces the merge with a running counter over start and end events, incrementing on a start and decrementing on an end, and the peak the counter reaches is the answer. Intersecting two sorted lists advances two pointers and emits the overlap of the current pair, while removing the fewest intervals to leave the rest disjoint sorts by end and greedily keeps the earliest finisher. In every one of these, sorted order is what licenses a purely local decision to be globally correct.',
+      },
+    ],
+    keyTerms: [
+      {
+        term: 'Overlap',
+        definition:
+          'Two intervals overlap when each one starts before or at the point where the other ends. With the list sorted by start, that test simplifies to comparing the newcomer\'s start against the current block\'s end.',
+      },
+      {
+        term: 'Closed interval',
+        definition:
+          'An interval that includes both of its endpoints, written start to end inclusive. It is what makes touching intervals such as one to four and four to five candidates for merging, unlike half-open intervals where the end is excluded.',
+      },
+      {
+        term: 'Sweep line',
+        definition:
+          'A technique that processes geometric events in sorted coordinate order while maintaining a small amount of state. Merging intervals is the simplest sweep: the state is one open block.',
+      },
+      {
+        term: 'Coalesce',
+        definition:
+          'To replace several overlapping intervals with the single interval spanning them all. Coalescing preserves the union of covered points while reducing how many intervals you must store.',
+      },
+      {
+        term: 'Loop invariant',
+        definition:
+          'A property that holds before and after every iteration and is used to argue correctness. Here it is that the output list is always disjoint, sorted, and equal in coverage to the prefix of inputs already processed.',
+      },
+    ],
+  },
   generateSteps: generateMergeIntervalsSteps,
   defaultInput: DEFAULT_MERGE_INTERVALS_INPUT,
 };

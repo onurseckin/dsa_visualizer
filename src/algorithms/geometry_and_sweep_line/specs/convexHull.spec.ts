@@ -45,4 +45,25 @@ describe('convexHull algorithm logic spec', () => {
     expect(convexHull.code).toBe(PYTHON_CONVEX_HULL_CODE);
     expect(convexHull.code).toContain('def convex_hull(');
   });
+
+  it('teaches the topic through a topicGuide', () => {
+    const guide = convexHull.topicGuide;
+    expect(guide.overview.length).toBeGreaterThan(120);
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+      expect(section.body).not.toMatch(/[*#`_]|^- /);
+    });
+
+    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(' ');
+    expect(allText).toContain('cross product');
+    expect(allText).toContain('collinear');
+
+    expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
+    expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Lower and upper chain');
+  });
 });

@@ -2,6 +2,7 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   ArrayElement,
+  TopicGuide,
 } from '../../types/dsa';
 
 export interface ValidParenthesesInput {
@@ -180,6 +181,64 @@ export const generateValidParenthesesSteps = (
   return steps;
 };
 
+const VALID_PARENTHESES_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    'A stack is the data structure for problems where the most recent unfinished thing must be resolved first, and bracket matching is its canonical example. You read the string once, remember every opener that has not yet been closed, and check each closer against the single opener that is legally allowed to close it, which is always the newest one. The structural idea being tested is nesting: brackets form a hierarchy rather than a list of independent pairs, and a stack is exactly the shape of that hierarchy.',
+  sections: [
+    {
+      heading: 'Why nesting demands last-in-first-out',
+      body: `Valid bracket strings are properly nested, meaning any pair either sits entirely inside another pair or entirely beside it, and pairs never partially overlap. That is why a string like "([)]" is invalid even though the counts of each bracket balance perfectly. Proper nesting means the bracket you must close next is always the most recently opened one still waiting, which is precisely what the top of a stack gives you for free. Counting cannot detect the violation, because you need to remember the order in which contexts were entered and you need to remember it in reverse. Each push records that you have entered a context and each pop records that you have left it, so the stack is a live picture of how deep you currently are.`,
+    },
+    {
+      heading: 'The one-pass procedure',
+      body: `Walk the characters from left to right starting with an empty stack. If the character is an opener you push it and move on, since nothing about it can be decided yet. If it is a closer you look up the opener it requires, and a small map from each closer to its partner makes that a single constant-time lookup instead of a chain of comparisons. Then you compare that requirement against the top of the stack: a mismatch, or an empty stack when a closer arrives, means the string is invalid and you can stop right there. A match means you pop, retiring both brackets together, and at the end the string is valid only if the stack is empty.`,
+    },
+    {
+      heading: 'Three failure modes, three different checks',
+      body: `There are exactly three ways a bracket string can be wrong, and each is caught in a different place. A closer arriving with nothing open fails the empty-stack test, a closer meeting the wrong opener fails the comparison, and openers that are never closed survive all the way to the end. That third case is why returning true requires an empty stack rather than merely surviving the loop, and forgetting it is the single most common bug in this problem, since a string of three open parentheses passes every in-loop test. The mirror mistake is returning true as soon as the stack becomes empty, which would wrongly accept a closer followed by an opener. You must reach the end of the string with no obligations left.`,
+    },
+    {
+      heading: 'The invariant it maintains',
+      body: `At every point in the scan the stack holds, from bottom to top, exactly the openers of the contexts you are currently inside, in the order you entered them. That is a strong statement and it is worth checking against the animation: the stack's depth is the nesting depth and its top is the pending obligation. Both branches preserve it, since a valid pair pushes and later pops, leaving the stack exactly as it found it. Given the invariant the correctness argument becomes one sentence: the string is valid precisely when every closer satisfies the obligation on top and no obligations remain when the input runs out.`,
+    },
+    {
+      heading: 'When a stack is the right instinct',
+      body: `Reach for a stack when a problem involves nesting, matching, undo, or the phrase "the most recent unresolved item". With only one kind of bracket a plain counter would suffice, incrementing on open, decrementing on close, failing on a negative value and requiring zero at the end, and it is worth seeing that the counter is just the degenerate case of a stack over a single symbol. Multiple bracket types break the counter because you must remember identity as well as depth. The same instinct explains why compilers, expression evaluators, and recursion itself lean on stacks, since the call stack is this exact structure recording which invocations are still unfinished.`,
+    },
+    {
+      heading: 'How it generalizes',
+      body: `Once brackets make sense, the sibling problems read as variations on one theme. Min Stack keeps an auxiliary stack of running minima so the extreme value is available in constant time. Evaluate Reverse Polish Notation pushes operands and pops two of them whenever an operator arrives, and Simplify Path pushes directory names and pops when it meets a parent reference. Decode String and Basic Calculator push the pending context, such as a repeat count or a partial sum, before entering a bracket and restore it on the way out, which is the nesting idea with a payload attached. Longest Valid Parentheses uses the same matching but stores indices so it can report which positions were at fault.`,
+    },
+  ],
+  keyTerms: [
+    {
+      term: 'Stack',
+      definition:
+        'A last-in-first-out collection where the item pushed most recently is the first one popped. Here it holds openers awaiting their partners, newest on top.',
+    },
+    {
+      term: 'Top of stack',
+      definition:
+        'The most recently pushed item that is still unresolved. It is the only opener a closing bracket is permitted to match.',
+    },
+    {
+      term: 'Properly nested',
+      definition:
+        'The condition that bracket pairs are either fully contained within one another or completely disjoint, never partially overlapping. This is what separates validity from merely balanced counts.',
+    },
+    {
+      term: 'Nesting depth',
+      definition:
+        'How many bracket contexts you are currently inside, which is exactly the size of the stack at that moment in the scan.',
+    },
+    {
+      term: 'Bracket map',
+      definition:
+        'The lookup table from each closing bracket to the opener it requires, which turns the match test into one constant-time comparison.',
+    },
+  ],
+};
+
 export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   id: 'valid-parentheses',
   title: 'Valid Parentheses',
@@ -219,6 +278,7 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
     time: 'We scan the string once, and each character triggers at most one push or one pop — both constant-time stack operations backed by an O(1) map lookup. That single pass is the entire cost, so the time is O(n); an early mismatch only ends the scan sooner.',
     space: 'The stack is what grows: a string of all openers like "(((((" pushes every character, so in the worst case it holds n brackets — O(n) extra space.',
   },
+  topicGuide: VALID_PARENTHESES_TOPIC_GUIDE,
   defaultInput: DEFAULT_VALID_PARENTHESES_INPUT,
   generateSteps: generateValidParenthesesSteps,
 };

@@ -2,6 +2,7 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   ElementState,
+  TopicGuide,
   TreeNodeItem,
 } from '../../types/dsa';
 
@@ -453,6 +454,64 @@ export const generateSegmentTreeLazySteps = (
   return steps;
 };
 
+const SEGMENT_TREE_LAZY_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    'Lazy propagation is the technique that lets a segment tree modify an entire range as cheaply as it reads one value. Instead of pushing an update down to every affected leaf, you stop at the highest nodes fully covered by the range, fix their aggregates on the spot, and leave a note saying that their descendants still owe this change. That note, the lazy tag, is only paid off later, when some other operation genuinely needs to walk into the subtree below it. The payoff is a structure where range add, range assign, and range query all cost the same small logarithmic amount of work.',
+  sections: [
+    {
+      heading: 'Why a plain segment tree stalls',
+      body: 'In an ordinary segment tree, adding a value to every element of a wide range means rewriting each leaf in the range and repairing all their ancestors, which is linear work. But notice that you never need the leaves to be correct; you only need every answer you eventually report to be correct. If a node\'s whole interval receives the same addition, you can adjust that node\'s cached sum by the value times its interval length in one arithmetic step, and the node is instantly truthful again. The only unfinished business is its children, and right now nobody is looking at them. Lazy propagation is the discipline of writing that unfinished business down instead of doing it.',
+    },
+    {
+      heading: 'The contract a lazy tag makes',
+      body: 'A tag on a node means one specific thing: my own aggregate already includes this pending change, but my children know nothing about it. That deliberate asymmetry is the whole design, and it is why you must push before you descend. Pushing down takes the parent\'s tag, applies it to each child\'s aggregate scaled by that child\'s interval length, since adding a value across k elements raises their sum by the value times k, merges it into the child\'s own tag, and then clears the parent\'s tag. After the push the parent is unchanged and both children are individually truthful, so recursion can safely continue downward.',
+    },
+    {
+      heading: 'Correctness by local truth',
+      body: 'The invariant to hold in your head is that every node\'s aggregate is correct for its own interval at all times, while its tag records only what the subtree beneath it has yet to receive. A range update preserves this because covered nodes are fixed directly and tagged, and straddling nodes push down, recurse, then recompute themselves from their now-correct children. A range query preserves it too, because it pushes down before reading anything beneath a tagged node. Since every value you ever read comes from a locally truthful node, the answers are exact even though most of the tree is deliberately out of date.',
+    },
+    {
+      heading: 'Composing tags, and when order matters',
+      body: 'Range addition is forgiving because additions commute: two pending adds merge by summing them, so a tag can be a single number. Range assignment is not forgiving, because assigning three and then adding one differs from adding one and then assigning three, so a tag must carry enough structure to represent the composition, typically an optional assignment followed by an addition. Before writing any lazy tree, check two things: that your tag type is closed under composition, and that applying a tag to a node can be done in constant time from the interval length alone. If either fails, no amount of pushing will rescue you and you need to redesign what each node summarizes.',
+    },
+    {
+      heading: 'Where it goes wrong in practice',
+      body: 'The most common bug is descending without pushing first, which lets a child answer with a stale aggregate. The second is dropping the interval-length factor, which is invisible on ranges of size one and then quietly wrong everywhere else. Leaves need care because they have no children, so tagging a leaf accomplishes nothing and in some formulations does harm; apply the change and stop there. And after recursing into children you must recompute the current node from them, otherwise the parent keeps a sum that predates the update it just performed.',
+    },
+    {
+      heading: 'The deferral pattern generalizes',
+      body: 'Once you can defer work, whole families of problems open up: range assign with range sum, range add with range minimum, range multiply and add for affine transformations, and flipping a range of bits while tracking how many are set. The same reasoning powers persistent and implicit segment trees, where subtrees are created lazily only when a range is actually touched, letting you index enormous coordinate spaces. Outside data structures the idea recurs constantly: record work as pending at the coarsest level that can express it, and materialize the detail only when someone looks. If you can define how a tag applies to an aggregate and how two tags compose, you can make almost any segment tree lazy.',
+    },
+  ],
+  keyTerms: [
+    {
+      term: 'Lazy tag',
+      definition:
+        'A pending modification parked at a node. It is already reflected in that node\'s own aggregate but has not yet reached any of its descendants.',
+    },
+    {
+      term: 'Push down',
+      definition:
+        'Transferring a node\'s tag to both children by applying it to their aggregates and merging it into their tags, then clearing it. It must happen before any descent below a tagged node.',
+    },
+    {
+      term: 'Covering node',
+      definition:
+        'A node whose interval lies entirely inside the update or query range. Updates stop descending here, and that early stop is where all the savings come from.',
+    },
+    {
+      term: 'Tag composition',
+      definition:
+        'The rule for merging a new pending change into one that is already waiting. Additions compose by summing, while assignments overwrite, which is why assignment tags must be ordered carefully.',
+    },
+    {
+      term: 'Interval-length scaling',
+      definition:
+        'The factor that converts a per-element change into its effect on an aggregate over a whole interval. Adding a value to k elements raises their sum by the value times k.',
+    },
+  ],
+};
+
 export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   id: 'segment-tree-lazy',
   title: 'Segment Tree (Lazy Propagation)',
@@ -483,6 +542,7 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
     time: 'A range update no longer visits every element in the range: once a node\'s interval fits entirely inside the update, we adjust its sum, leave a lazy tag, and stop descending. Each level halves the interval, so both range updates and range queries touch only O(log n) nodes; pending tags get pushed down one level at a time as later operations pass through. Building the tree once up front is O(n).',
     space: 'We keep two arrays of about 4n entries each — the interval sums and their lazy tags — so memory grows linearly with the input, O(n).',
   },
+  topicGuide: SEGMENT_TREE_LAZY_TOPIC_GUIDE,
   defaultInput: DEFAULT_SEGMENT_TREE_LAZY_INPUT,
   generateSteps: generateSegmentTreeLazySteps,
 };

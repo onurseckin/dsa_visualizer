@@ -2,6 +2,7 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   GridCellNode,
+  TopicGuide,
 } from '../../types/dsa';
 
 export interface BinarySearchMatrixInput {
@@ -222,6 +223,64 @@ export const generateBinarySearchMatrixSteps = (
   return steps;
 };
 
+const BINARY_SEARCH_MATRIX_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    'Binary search is not really an array algorithm; it is a technique for any search space you can order so that a single probe tells you which half to throw away. This problem makes that explicit, because the matrix is not a sorted list anywhere in memory, yet its rows are arranged so that reading them one after another would produce one. So you binary search that imaginary list and translate each index back into a grid coordinate on demand. Learning to see the sorted structure a problem only implies, and to search it without ever building it, is the transferable skill here.',
+  sections: [
+    {
+      heading: 'The flattening idea',
+      body: `The matrix comes with two promises: each row is sorted from left to right, and the first value of every row is greater than the last value of the row above it. Concatenating the rows would therefore give one sorted sequence of m times n numbers, but actually building that sequence would cost time and memory you do not need to spend. Instead you search the index range from zero to m times n minus one as if the sequence existed, converting a flat index into a cell by dividing by the column count for the row and taking the remainder for the column. The division recovers how many complete rows the index passes over and the remainder recovers its offset inside its own row. Nothing is copied, you simply reinterpret what a position means.`,
+    },
+    {
+      heading: 'How each probe halves the problem',
+      body: `You keep two bounds, low and high, delimiting the flat indices that could still hold the target, and you loop while low has not passed high. Compute the midpoint, read the cell it denotes, and compare that value with the target. A match ends the search; a value that is too small means every index from low through mid is too small as well, so low becomes mid plus one; a value that is too large triggers the mirror move and high becomes mid minus one. Each comparison retires half the remaining candidates, so even a large grid collapses to a single cell in remarkably few reads, and the loop ends either on a match or when the bounds cross.`,
+    },
+    {
+      heading: 'The invariant, and why termination is not automatic',
+      body: `The invariant is that if the target is present at all, its flat index lies between low and high. Every branch preserves it, because the half being discarded is provably wrong given the sorted order. Correctness also requires the loop to actually finish, and that is where binary search implementations most often break. Pairing the condition that low may equal high with updates of mid plus one and mid minus one guarantees the interval strictly shrinks on every iteration, so it cannot stall; write low equals mid instead and a two-element range will spin forever. It is also worth computing the midpoint as low plus half the gap rather than by adding the bounds, a habit that matters in languages where that sum can overflow.`,
+    },
+    {
+      heading: 'Why the row-boundary promise matters',
+      body: `The flattening trick is legitimate only because rows are strictly increasing across their boundaries. If each row were sorted but the ranges of different rows could overlap, the concatenation would not be sorted, and this algorithm would return wrong answers on inputs it accepts without complaint. That looser variant needs a different idea entirely: start at the top-right corner and step left when the value is too large or down when it is too small, eliminating a whole column or a whole row per step. Knowing which structural promise you have been given is what selects the algorithm, so read the constraints before reaching for a familiar pattern.`,
+    },
+    {
+      heading: 'Pitfalls and edge cases',
+      body: `Guard the degenerate inputs first, because an empty matrix or a matrix whose first row is empty makes the largest flat index negative and the whole index computation meaningless. Use the column count, not the row count, in both the division and the remainder, since swapping them yields plausible-looking coordinates that quietly read the wrong cells on any non-square grid. Remember that this problem only asks for a boolean, so there is no boundary to hunt for; if you instead wanted the insertion position you would run the same loop and return low once it ends. And when duplicates are allowed, a plain binary search finds some occurrence rather than the first, which only matters if the problem asks for a specific one.`,
+    },
+    {
+      heading: 'The pattern beyond arrays',
+      body: `The reusable form of binary search is this: define a space of candidates and a predicate that is false up to some point and true from there onward, then find that boundary. The space does not have to be an array, it can be a range of possible answers. Koko Eating Bananas searches over eating speeds, Split Array Largest Sum over possible values of the largest allowed subarray sum, and Median of Two Sorted Arrays over how many elements to take from the first array. In each of those the array-shaped intuition disappears and only the monotone predicate remains, which is the version of binary search worth internalizing; the sorted array, and this flattened matrix, are simply its easiest instances.`,
+    },
+  ],
+  keyTerms: [
+    {
+      term: 'Monotone search space',
+      definition:
+        'Any ordered set of candidates where probing one of them tells you which side the answer must lie on. It is the only thing binary search genuinely requires.',
+    },
+    {
+      term: 'Virtual flattening',
+      definition:
+        'Treating the grid as a sorted list of all its cells without ever building that list, converting a flat index into a row and column with a division and a remainder.',
+    },
+    {
+      term: 'Search interval',
+      definition:
+        'The range of flat indices between low and high that could still contain the target. The algorithm promises the answer, if it exists, is inside it.',
+    },
+    {
+      term: 'Logarithmic shrink',
+      definition:
+        'The effect of discarding one side of the midpoint each round, which cuts the interval roughly in half per comparison until a single candidate remains.',
+    },
+    {
+      term: 'Strictly increasing rows',
+      definition:
+        'The precondition that each row begins above where the previous row ended. It is exactly what makes the flattened reading order sorted.',
+    },
+  ],
+};
+
 export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = {
   id: 'binary-search-matrix',
   title: 'Search a 2D Matrix',
@@ -258,6 +317,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
     time: 'Every probe compares one cell and throws away half of the remaining virtual list, so the m·n candidates shrink to a single cell in about log₂(m·n) comparisons — O(log(m·n)). The best case is O(1) when the very first midpoint happens to be the target; otherwise the repeated halving carries us to the answer or to an empty range.',
     space: 'We navigate with just the low, high, and mid indices — no copy of the matrix and no recursion — so extra memory is O(1).',
   },
+  topicGuide: BINARY_SEARCH_MATRIX_TOPIC_GUIDE,
   defaultInput: DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
   generateSteps: generateBinarySearchMatrixSteps,
 };

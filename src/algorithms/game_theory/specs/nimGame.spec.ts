@@ -11,6 +11,18 @@ describe('nimGame algorithm logic spec', () => {
     expect(nimGame.defaultInput).toEqual(DEFAULT_NIM_INPUT);
   });
 
+  it('should ship a topic guide teaching the Nim-sum and Grundy values', () => {
+    const guide = nimGame.topicGuide;
+    expect(guide.overview).toContain('Nim-sum');
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(guide.sections.length).toBeLessThanOrEqual(6);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain('Grundy value');
+  });
+
   it('should generate valid steps and calculate XOR sum for default input [3, 4, 5]', () => {
     const steps = generateNimGameSteps(DEFAULT_NIM_INPUT);
     expect(steps.length).toBeGreaterThan(0);

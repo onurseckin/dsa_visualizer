@@ -26,5 +26,8 @@ describe('kruskalMst React component spec', () => {
     );
 
     expect(screen.getByText("Kruskal's Minimum Spanning Tree")).toBeInTheDocument();
+    // Details are expanded by default, so the topic guide renders without any interaction.
+    expect(screen.getByText('Union-find is the engine')).toBeInTheDocument();
+    expect(screen.getByText('Cut property')).toBeInTheDocument();
   });
 });

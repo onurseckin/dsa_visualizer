@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../fordFulkerson';
 
 describe('fordFulkerson React component spec', () => {
-  it('renders algorithm title and expands the description in MainLayout', () => {
+  it('renders algorithm title and the expanded description in MainLayout', () => {
     const steps = generateFordFulkersonSteps(DEFAULT_FORD_FULKERSON_INPUT);
     const noop = vi.fn();
 
@@ -26,8 +26,6 @@ describe('fordFulkerson React component spec', () => {
     );
 
     expect(screen.getByText('Ford-Fulkerson Maximum Flow')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /details/i }));
 
     expect(
       screen.getByText(/Computes the maximum flow from a source vertex S to a sink vertex T/i)
