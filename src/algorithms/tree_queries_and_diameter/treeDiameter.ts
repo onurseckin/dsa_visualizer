@@ -9,7 +9,7 @@ export interface TreeDiameterInput {
   rootId: string;
 }
 
-export const TREE_DIAMETER_CODE = `def tree_diameter(n, adj):
+export const TREE_DIAMETER_CODE = `def tree_diameter(n, adj, start_node=1):
     # DFS function to return (farthest_node, max_distance)
     def dfs(node, parent, dist):
         max_node, max_dist = node, dist
@@ -20,7 +20,7 @@ export const TREE_DIAMETER_CODE = `def tree_diameter(n, adj):
                     max_node, max_dist = cand_node, cand_dist
         return max_node, max_dist
 
-    # DFS 1: Find endpoint A (farthest from root)
+    # DFS 1: Find endpoint A (farthest from start_node)
     node_a, _ = dfs(start_node, None, 0)
     # DFS 2: Find endpoint B and max diameter from A
     node_b, diameter = dfs(node_a, None, 0)
@@ -145,7 +145,7 @@ export const generateTreeDiameterSteps = (
     }
 
     addStep(
-      3,
+      4,
       `DFS 1: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
       `Evaluating current node distance from start root. Max distance so far: ${maxDistA} at Node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}.`,
       u,
@@ -205,7 +205,7 @@ export const generateTreeDiameterSteps = (
     }
 
     addStep(
-      7,
+      4,
       `DFS 2: Exploring Node ${nodeMap.get(u)?.val ?? u} at distance ${dist} from Node A (${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA})`,
       `Traversing tree from endpoint A. Current max distance: ${diameter}.`,
       u,

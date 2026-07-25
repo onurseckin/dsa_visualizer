@@ -55,7 +55,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
       workingElements[0].state = 'sorted';
     }
     addStep(
-      10,
+      7,
       'Bubble Sort complete',
       'Array is already sorted.',
       { n }
@@ -124,7 +124,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     const sortedIdx = n - 1 - i;
     workingElements[sortedIdx].state = 'sorted';
     addStep(
-      8,
+      3,
       `Element at index ${sortedIdx} (${workingElements[sortedIdx].value}) is now sorted`,
       `Pass ${i + 1} completed. The largest unsorted element has bubbled to position ${sortedIdx}.`,
       { i, sortedIdx, sortedValue: workingElements[sortedIdx].value }
@@ -138,7 +138,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   }
 
   addStep(
-    10,
+    7,
     'Bubble Sort complete',
     'All passes complete. The array is fully sorted in ascending order.',
     { n }

@@ -56,6 +56,13 @@ export const DEFAULT_FORD_FULKERSON_INPUT: FordFulkersonInput = {
   sink: 'T',
 };
 
+const DEFAULT_NODE_POSITIONS: Record<string, { x: number; y: number }> = {
+  S: { x: 80, y: 190 },
+  A: { x: 260, y: 80 },
+  B: { x: 260, y: 300 },
+  T: { x: 440, y: 190 },
+};
+
 export const generateFordFulkersonSteps = (
   input: FordFulkersonInput
 ): AlgorithmStep[] => {
@@ -119,7 +126,15 @@ export const generateFordFulkersonSteps = (
       else if (pathNodeSet?.has(id)) state = 'path';
       else if (visitedNodeSet?.has(id)) state = 'visited';
 
-      return { id, label, state };
+      const pos = DEFAULT_NODE_POSITIONS[id];
+
+      return {
+        id,
+        label,
+        state,
+        x: pos?.x,
+        y: pos?.y,
+      };
     });
 
   const getGraphEdges = (
@@ -169,7 +184,7 @@ export const generateFordFulkersonSteps = (
   // Step 1: Initial step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 1,
     explanation: {
       what: `Initialize Ford-Fulkerson Max Flow from source '${source}' to sink '${sink}'`,
       why: 'Residual graph set up with initial flow 0 across all edges.',
@@ -226,7 +241,7 @@ export const generateFordFulkersonSteps = (
     if (!pathResult || pathResult.bottleneck === 0) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 28,
+        codeLine: 30,
         explanation: {
           what: `No more augmenting paths found. Maximum Flow algorithm complete!`,
           why: `Residual graph has no remaining path from source '${source}' to sink '${sink}' with capacity > 0.`,
@@ -256,7 +271,7 @@ export const generateFordFulkersonSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 18,
+      codeLine: 25,
       explanation: {
         what: `Found augmenting path: ${pathNodes.join(' → ')} with bottleneck capacity ${bottleneck}`,
         why: `Minimum available residual capacity along path is ${bottleneck}.`,
@@ -298,7 +313,7 @@ export const generateFordFulkersonSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 29,
+      codeLine: 28,
       explanation: {
         what: `Augmented flow by ${bottleneck}. Updated total Max Flow = ${currentMaxFlow}`,
         why: `Added bottleneck flow along augmenting path and updated residual network edge capacities.`,

@@ -20,7 +20,7 @@ describe('bubbleSort algorithm spec', () => {
     expect(firstStep.explanation.what).toContain('Initialize');
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(10);
+    expect(lastStep.codeLine).toBe(7);
     expect(lastStep.explanation.what).toContain('complete');
 
     const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;

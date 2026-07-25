@@ -9,25 +9,21 @@ export interface TwoPointersInput {
   target: number;
 }
 
-export const TWO_POINTERS_CODE = `function twoPointersSubarraySum(arr, target) {
-  let left = 0;
-  let currentSum = 0;
+export const TWO_POINTERS_CODE = `def two_pointers_subarray_sum(arr: list[int], target: int) -> list[int]:
+    left = 0
+    current_sum = 0
 
-  for (let right = 0; right < arr.length; right++) {
-    currentSum += arr[right];
+    for right in range(len(arr)):
+        current_sum += arr[right]
 
-    while (currentSum > target && left <= right) {
-      currentSum -= arr[left];
-      left++;
-    }
+        while current_sum > target and left <= right:
+            current_sum -= arr[left]
+            left += 1
 
-    if (currentSum === target) {
-      return [left, right];
-    }
-  }
+        if current_sum == target:
+            return [left, right]
 
-  return [-1, -1];
-}`;
+    return [-1, -1]`;
 
 export const DEFAULT_TWO_POINTERS_INPUT: TwoPointersInput = {
   array: [1, 2, 3, 7, 5],
@@ -83,7 +79,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
   if (n === 0) {
     addStep(
-      15,
+      11,
       'Array is empty',
       'No contiguous subarray possible in empty array.',
       { left: -1, right: -1, currentSum: 0, target }
@@ -121,7 +117,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     syncElementStates(left, right);
 
     addStep(
-      6,
+      5,
       `Expand window right = ${right}: add arr[${right}] (${rightVal})`,
       `Extended right pointer. currentSum is now ${currentSum}. Target is ${target}.`,
       { left, right, 'arr[right]': rightVal, currentSum, target }
@@ -131,7 +127,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       const leftVal = elements[left].value;
 
       addStep(
-        8,
+        6,
         `currentSum (${currentSum}) > target (${target}): shrink window from left = ${left}`,
         `Subtracting arr[${left}] (${leftVal}) to reduce sum.`,
         { left, right, 'arr[left]': leftVal, currentSum, target }
@@ -149,7 +145,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       syncElementStates(left, right, true);
 
       addStep(
-        12,
+        10,
         `Found target sum! Subarray range [${left}..${right}]`,
         `Subarray elements [${input.array.slice(left, right + 1).join(', ')}] sum up to ${target}.`,
         { left, right, currentSum, target }
@@ -159,7 +155,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   }
 
   addStep(
-    15,
+    11,
     'No contiguous subarray matches target',
     `Finished scanning array. No contiguous range sums to ${target}.`,
     { left: -1, right: -1, currentSum, target }

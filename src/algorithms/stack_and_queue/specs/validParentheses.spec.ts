@@ -4,7 +4,6 @@ import {
   generateValidParenthesesSteps,
   validParentheses,
 } from '../validParentheses';
-import type { ArrayVisualSnapshot } from '../../../types/dsa';
 
 describe('validParentheses algorithm spec', () => {
   it('should have valid metadata', () => {
@@ -20,8 +19,10 @@ describe('validParentheses algorithm spec', () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
-    const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snapshot.kind).toBe('array');
+    expect(firstStep.primarySnapshot.kind).toBe('array');
+    if (firstStep.primarySnapshot.kind === 'array') {
+      expect(firstStep.primarySnapshot.elements.length).toBeGreaterThan(0);
+    }
 
     const hasStackState = steps.some(
       (s) => s.auxiliaryState.stack !== undefined && s.auxiliaryState.stack.length > 0
@@ -29,7 +30,7 @@ describe('validParentheses algorithm spec', () => {
     expect(hasStackState).toBe(true);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(14);
+    expect(lastStep.codeLine).toBe(11);
     expect(lastStep.variables.isValid).toBe(true);
     expect(lastStep.variables.remainingStackSize).toBe(0);
   });
@@ -46,8 +47,9 @@ describe('validParentheses algorithm spec', () => {
     const input = { s: '(((' };
     const steps = generateValidParenthesesSteps(input);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(14);
+    expect(lastStep.codeLine).toBe(11);
     expect(lastStep.variables.isValid).toBe(false);
     expect(lastStep.variables.remainingStackSize).toBe(3);
   });
 });
+

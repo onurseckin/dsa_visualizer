@@ -11,19 +11,18 @@ export interface BFSGraphInput {
   startNodeId: string;
 }
 
-export const BFS_GRAPH_CODE = `function bfs(graph, startNode) {
-  const visited = new Set([startNode]);
-  const queue = [startNode];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    for (const neighbor of graph.neighbors(current)) {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        queue.push(neighbor);
-      }
-    }
-  }
-}`;
+export const BFS_GRAPH_CODE = `from collections import deque
+
+def bfs(graph, start_node):
+    visited = {start_node}
+    queue = deque([start_node])
+    
+    while queue:
+        current = queue.popleft()
+        for neighbor in graph[current]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)`;
 
 export const DEFAULT_BFS_INPUT: BFSGraphInput = {
   startNodeId: 'A',
@@ -89,15 +88,15 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   const startNodeExists = nodes.some((n) => n.id === startId);
 
   addStep(
-    1,
+    3,
     `Initialize BFS from node ${startId}`,
-    `Starting Breadth-First Search traversal with node '${startId}'.`,
+    `Starting Breadth-First Search traversal with start node '${startId}'.`,
     { startNode: startId }
   );
 
   if (!startNodeExists || nodes.length === 0) {
     addStep(
-      13,
+      3,
       'BFS complete',
       'Start node not found or empty graph.',
       { startNode: startId }
@@ -105,7 +104,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     return steps;
   }
 
-  // Line 2: visited.add(startNode)
+  // Line 4: visited = {start_node}
   visitedSet.add(startId);
   const startNode = nodes.find((n) => n.id === startId);
   if (startNode) {
@@ -113,20 +112,20 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   }
 
   addStep(
-    2,
+    4,
     `Mark start node ${startId} as visited`,
     `Added '${startId}' to visited set to prevent duplicate processing.`,
     { startNode: startId, visitedCount: visitedSet.size }
   );
 
-  // Line 3: queue.push(startNode)
+  // Line 5: queue = deque([start_node])
   queue.push(startId);
   if (startNode) {
     startNode.state = 'queued';
   }
 
   addStep(
-    3,
+    5,
     `Enqueue start node ${startId}`,
     `Pushed '${startId}' into the FIFO queue.`,
     { startNode: startId, queueLength: queue.length }
@@ -144,7 +143,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   while (queue.length > 0) {
     addStep(
-      4,
+      7,
       `Check queue condition (queue length: ${queue.length})`,
       `Queue is not empty. Continue BFS iteration.`,
       { queueLength: queue.length }
@@ -157,7 +156,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     }
 
     addStep(
-      5,
+      8,
       `Dequeue node ${currentId}`,
       `Removed '${currentId}' from front of queue to explore its neighbors.`,
       { current: currentId, queueLength: queue.length }
@@ -166,7 +165,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     const neighbors = getNeighbors(currentId);
 
     addStep(
-      6,
+      9,
       `Explore neighbors of node ${currentId}`,
       `Node '${currentId}' has neighbors: [${neighbors.join(', ')}].`,
       { current: currentId, neighborCount: neighbors.length }
@@ -186,7 +185,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
       const isVisited = visitedSet.has(neighborId);
 
       addStep(
-        7,
+        10,
         `Check if neighbor ${neighborId} is visited`,
         isVisited
           ? `Neighbor '${neighborId}' is already in visited set. Skipping.`
@@ -202,7 +201,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
         }
 
         addStep(
-          8,
+          11,
           `Mark neighbor ${neighborId} as visited`,
           `Added '${neighborId}' to visited set.`,
           { neighbor: neighborId, visitedCount: visitedSet.size }
@@ -214,7 +213,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
         }
 
         addStep(
-          9,
+          12,
           `Enqueue neighbor ${neighborId}`,
           `Pushed '${neighborId}' into the FIFO queue.`,
           { neighbor: neighborId, queueLength: queue.length }
@@ -228,14 +227,14 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   }
 
   addStep(
-    4,
+    7,
     'Check queue condition (queue is empty)',
     'Queue is now empty. No more nodes to process.',
     { queueLength: 0 }
   );
 
   addStep(
-    13,
+    3,
     'BFS Graph Traversal complete',
     `All reachable nodes from '${startId}' have been visited level by level.`,
     { startNode: startId, totalVisited: visitedSet.size }

@@ -10,35 +10,34 @@ export interface KruskalInput {
   edges: GraphEdgeItem[];
 }
 
-export const KRUSKAL_CODE = `function kruskalMST(nodes, edges) {
-  const parent = {};
-  for (const node of nodes) parent[node.id] = node.id;
+export const KRUSKAL_CODE = `class DSU:
+    def __init__(self, nodes):
+        self.parent = {n['id']: n['id'] for n in nodes}
 
-  function find(i) {
-    if (parent[i] === i) return i;
-    return parent[i] = find(parent[i]);
-  }
+    def find(self, i):
+        if self.parent[i] == i:
+            return i
+        self.parent[i] = self.find(self.parent[i])
+        return self.parent[i]
 
-  function union(i, j) {
-    const rootI = find(i);
-    const rootJ = find(j);
-    if (rootI !== rootJ) {
-      parent[rootI] = rootJ;
-      return true;
-    }
-    return false;
-  }
+    def union(self, i, j):
+        root_i = self.find(i)
+        root_j = self.find(j)
+        if root_i != root_j:
+            self.parent[root_i] = root_j
+            return True
+        return False
 
-  const sortedEdges = [...edges].sort((a, b) => (a.weight ?? 0) - (b.weight ?? 0));
-  const mst = [];
+def kruskal_mst(nodes, edges):
+    dsu = DSU(nodes)
+    sorted_edges = sorted(edges, key=lambda e: e.get('weight', 1))
+    mst = []
 
-  for (const edge of sortedEdges) {
-    if (union(edge.from, edge.to)) {
-      mst.push(edge);
-    }
-  }
-  return mst;
-}`;
+    for edge in sorted_edges:
+        if dsu.union(edge['from'], edge['to']):
+            mst.append(edge)
+
+    return mst`;
 
 export const DEFAULT_KRUSKAL_INPUT: KruskalInput = {
   nodes: [
@@ -117,30 +116,30 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   };
 
   addStep(
-    1,
+    19,
     "Initialize Kruskal's Minimum Spanning Tree (MST) Algorithm",
     'Preparing Disjoint Set Union (DSU) parent pointers and edge sorting.',
     { nodeCount: nodes.length, edgeCount: edges.length }
   );
 
   if (nodes.length === 0) {
-    addStep(24, 'Kruskal MST complete', 'Graph has no nodes.', { mstEdgeCount: 0 });
+    addStep(28, 'Kruskal MST complete', 'Graph has no nodes.', { mstEdgeCount: 0 });
     return steps;
   }
 
-  // Line 2 & 3: Initialize DSU parent array
+  // Line 20: Initialize DSU parent array
   for (const n of nodes) {
     parent[n.id] = n.id;
   }
 
   addStep(
-    3,
+    20,
     'Initialize DSU parent array (each node is its own parent set)',
     'Set parent[v] = v for all vertices in the graph.',
     { dsuInitialized: true }
   );
 
-  // Line 5-8: DSU Find helper
+  // DSU Find helper
   const find = (i: string): string => {
     let curr = i;
     while (parent[curr] !== curr) {
@@ -157,7 +156,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     return root;
   };
 
-  // Line 10-18: DSU Union helper
+  // DSU Union helper
   const union = (i: string, j: string): boolean => {
     const rootI = find(i);
     const rootJ = find(j);
@@ -168,13 +167,13 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     return false;
   };
 
-  // Line 20: Sort edges by weight
+  // Line 21: Sort edges by weight
   const sortedEdges = [...edges].sort(
     (a, b) => (a.weight ?? 1) - (b.weight ?? 1)
   );
 
   addStep(
-    20,
+    21,
     `Sort all ${sortedEdges.length} edges in non-decreasing order of weight`,
     `Edges ordered by weight: [${sortedEdges
       .map((e) => `${e.from}-${e.to}(w=${e.weight ?? 1})`)
@@ -182,7 +181,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     { sortedEdgeCount: sortedEdges.length }
   );
 
-  // Line 23: Loop through sorted edges
+  // Line 24: Loop through sorted edges
   for (const edge of sortedEdges) {
     const origEdge = edges.find(
       (e) =>
@@ -204,7 +203,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     const rootV = find(edge.to);
 
     addStep(
-      23,
+      24,
       `Examine edge (${edge.from} - ${edge.to}, weight ${edge.weight ?? 1})`,
       `Finding DSU roots: find('${edge.from}') = '${rootU}', find('${edge.to}') = '${rootV}'.`,
       {
@@ -228,7 +227,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       if (vNode) vNode.state = 'active';
 
       addStep(
-        24,
+        26,
         `Union successful! Add edge (${edge.from} - ${edge.to}) to MST`,
         `Roots '${rootU}' and '${rootV}' are different. Set parent['${rootU}'] = '${rootV}'.`,
         {
@@ -241,7 +240,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       );
     } else {
       addStep(
-        23,
+        25,
         `Union rejected! Edge (${edge.from} - ${edge.to}) forms a cycle`,
         `Both nodes share the same DSU root '${rootU}'. Edge skipped to prevent cycle.`,
         {
@@ -261,7 +260,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const totalMstWeight = mstEdges.reduce((sum, e) => sum + (e.weight ?? 1), 0);
 
   addStep(
-    27,
+    28,
     `Kruskal's MST complete. Total MST weight = ${totalMstWeight}`,
     `Found Minimum Spanning Tree with ${mstEdges.length} edges and total weight ${totalMstWeight}.`,
     {

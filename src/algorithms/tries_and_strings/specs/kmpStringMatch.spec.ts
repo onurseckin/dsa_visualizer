@@ -29,5 +29,43 @@ describe('kmpStringMatch algorithm spec', () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.explanation.what).toContain('KMP Search complete');
     expect(lastStep.variables.matchesCount).toBe(1);
+
+    // Verify AuxiliaryState has LPS / Prefix table
+    const lpsStep = steps.find((s) => s.explanation.what.includes('LPS / Prefix Table complete'));
+    expect(lpsStep).toBeDefined();
+    expect(lpsStep?.auxiliaryState.hashMap).toBeDefined();
+    expect(lpsStep?.auxiliaryState.customState?.lps).toBeDefined();
+  });
+
+  it('should handle multiple matches in text', () => {
+    const steps = generateKmpSteps({ text: 'AAAAA', pattern: 'AA' });
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.matchesCount).toBe(4);
+  });
+
+  it('should handle no match scenario', () => {
+    const steps = generateKmpSteps({ text: 'ABCDEF', pattern: 'XYZ' });
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.matchesCount).toBe(0);
+    expect(lastStep.explanation.what).toContain('complete');
+  });
+
+  it('should handle edge case with empty text or pattern', () => {
+    const steps = generateKmpSteps({ text: '', pattern: 'A' });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.matchesCount).toBe(0);
+  });
+
+  it('should produce correct snapshot element values matching text ASCII codes', () => {
+    const text = 'TEST';
+    const steps = generateKmpSteps({ text, pattern: 'ES' });
+    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    expect(snapshot.elements.map((el) => el.value)).toEqual([
+      'T'.charCodeAt(0),
+      'E'.charCodeAt(0),
+      'S'.charCodeAt(0),
+      'T'.charCodeAt(0),
+    ]);
   });
 });

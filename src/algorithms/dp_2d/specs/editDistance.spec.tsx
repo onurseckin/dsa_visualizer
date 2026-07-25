@@ -1,14 +1,32 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import GridVisualizer from '../../../components/primitives/GridVisualizer';
+import { MainLayout } from '../../../components/MainLayout';
 import {
+  editDistance,
   generateEditDistanceSteps,
   DEFAULT_EDIT_DISTANCE_INPUT,
 } from '../editDistance';
 import type { GridVisualSnapshot } from '../../../types/dsa';
 
 describe('editDistance React component spec', () => {
+  it('renders layout cleanly with MainLayout', () => {
+    const steps = generateEditDistanceSteps(DEFAULT_EDIT_DISTANCE_INPUT);
+    render(
+      <MainLayout
+        algorithm={editDistance}
+        currentStep={steps[0]}
+        viewMode="split"
+        showTutorial={true}
+        showAuxiliary={true}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+    expect(screen.getAllByText(/Edit Distance/i)[0]).toBeInTheDocument();
+  });
+
   it('renders GridVisualizer with initial DP snapshot', () => {
     const steps = generateEditDistanceSteps(DEFAULT_EDIT_DISTANCE_INPUT);
     const snapshot = steps[0].primarySnapshot as GridVisualSnapshot;

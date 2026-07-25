@@ -76,7 +76,9 @@ export function generateMergeIntervalsSteps(
     return steps;
   }
 
-  const intervals = [...rawIntervals].sort((a, b) => a.start - b.start);
+  const intervals = rawIntervals
+    .map((item) => ({ ...item }))
+    .sort((a, b) => a.start - b.start);
   let stepIdx = 0;
 
   steps.push({
@@ -165,7 +167,7 @@ export function generateMergeIntervalsSteps(
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 12,
+        codeLine: 11,
         explanation: {
           what: `No overlap between previous ${formatInterval(prev)} and current ${formatInterval(current)}.`,
           why: `current.start (${current.start}) > prev.end (${prev.end}), so append ${formatInterval(current)} as a new non-overlapping interval.`,
@@ -193,7 +195,7 @@ export function generateMergeIntervalsSteps(
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 14,
+    codeLine: 12,
     explanation: {
       what: `Finished merging. Result: ${merged.map(formatInterval).join(', ')}.`,
       why: 'All non-overlapping merged intervals covering the input range have been produced.',

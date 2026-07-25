@@ -134,7 +134,7 @@ export const generateFloydWarshallSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 3,
     explanation: {
       what: `Initialize ${n}x${n} distance matrix`,
       why: 'Set self-distances dist[i][i] = 0 and direct edge weights. All other pairs default to ∞.',
@@ -158,7 +158,7 @@ export const generateFloydWarshallSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 11,
+      codeLine: 12,
       explanation: {
         what: `Consider intermediate pivot node k = ${pivotNode} (index ${k})`,
         why: `Test if routing paths through pivot '${pivotNode}' offers shorter all-pairs distances.`,
@@ -192,7 +192,7 @@ export const generateFloydWarshallSteps = (
 
             steps.push({
               stepIndex: stepIndex++,
-              codeLine: 16,
+              codeLine: 17,
               explanation: {
                 what: `Update dist['${uNode}']['${vNode}']: ${distIJ === Infinity ? '∞' : distIJ} → ${newDist}`,
                 why: `Path via '${pivotNode}' is shorter: dist['${uNode}']['${pivotNode}'] (${distIK}) + dist['${pivotNode}']['${vNode}'] (${distKJ}) = ${newDist} < ${distIJ === Infinity ? '∞' : distIJ}.`,
@@ -237,7 +237,7 @@ export const generateFloydWarshallSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 19,
     explanation: {
       what: hasNegativeCycle
         ? 'Floyd-Warshall completed with negative cycle detected!'

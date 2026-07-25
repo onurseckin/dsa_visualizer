@@ -1,8 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import GraphVisualizer from '../../../components/primitives/GraphVisualizer';
-import { generateBFSGraphSteps, DEFAULT_BFS_INPUT } from '../bfsGraph';
+import { MainLayout } from '../../../components/MainLayout';
+import { bfsGraph, generateBFSGraphSteps, DEFAULT_BFS_INPUT } from '../bfsGraph';
 
 describe('bfsGraph React component spec', () => {
   it('renders GraphVisualizer with generated graph snapshot', () => {
@@ -20,5 +21,21 @@ describe('bfsGraph React component spec', () => {
     }
 
     expect(screen.getByText('BFS Graph Traversal')).toBeInTheDocument();
+  });
+
+  it('renders MainLayout cleanly with bfsGraph step snapshot', () => {
+    const steps = generateBFSGraphSteps(DEFAULT_BFS_INPUT);
+    render(
+      <MainLayout
+        algorithm={bfsGraph}
+        currentStep={steps[0]}
+        viewMode="split"
+        showTutorial={true}
+        showAuxiliary={true}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />
+    );
+    expect(screen.getAllByText(/BFS Graph Traversal/i)[0]).toBeInTheDocument();
   });
 });

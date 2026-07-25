@@ -6,22 +6,24 @@ import {
   generateHuffmanCodingSteps,
   DEFAULT_HUFFMAN_CODING_INPUT,
 } from '../huffmanCoding';
-import type { TreeVisualSnapshot } from '../../../types/dsa';
 
 describe('huffmanCoding React component spec', () => {
   it('renders TreeVisualizer with generated huffman tree snapshot', () => {
     const steps = generateHuffmanCodingSteps(DEFAULT_HUFFMAN_CODING_INPUT);
     const lastStep = steps[steps.length - 1];
-    const snapshot = lastStep.primarySnapshot as TreeVisualSnapshot;
+    const snapshot = lastStep.primarySnapshot;
 
-    render(
-      <TreeVisualizer
-        nodes={snapshot.nodes}
-        rootId={snapshot.rootId}
-        title="Huffman Coding Tree"
-      />
-    );
+    expect(snapshot.kind).toBe('tree');
+    if (snapshot.kind === 'tree') {
+      render(
+        <TreeVisualizer
+          nodes={snapshot.nodes}
+          rootId={snapshot.rootId}
+          title="Huffman Coding Tree"
+        />
+      );
 
-    expect(screen.getByText('Huffman Coding Tree')).toBeInTheDocument();
+      expect(screen.getByText('Huffman Coding Tree')).toBeInTheDocument();
+    }
   });
 });

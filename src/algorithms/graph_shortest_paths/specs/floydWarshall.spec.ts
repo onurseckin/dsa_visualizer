@@ -21,7 +21,7 @@ describe('floydWarshall algorithm logic spec', () => {
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.codeLine).toBe(2);
+    expect(firstStep.codeLine).toBe(3);
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.explanation.what).toContain('complete');

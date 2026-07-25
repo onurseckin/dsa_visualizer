@@ -18,41 +18,33 @@ export const DEFAULT_NUMBER_OF_ISLANDS_INPUT: NumberOfIslandsInput = {
   ],
 };
 
-export const NUMBER_OF_ISLANDS_CODE = `function numIslands(grid: string[][]): number {
-  if (!grid || grid.length === 0) return 0;
-  let count = 0;
-  const rows = grid.length;
-  const cols = grid[0].length;
-  const visited = new Set<string>();
+export const NUMBER_OF_ISLANDS_CODE = `from collections import deque
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (grid[r][c] === '1' && !visited.has(\`\${r},\${c}\`)) {
-        count++;
-        const queue: [number, number][] = [[r, c]];
-        visited.add(\`\${r},\${c}\`);
-        while (queue.length > 0) {
-          const [cr, cc] = queue.shift()!;
-          const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-          for (const [dr, dc] of dirs) {
-            const nr = cr + dr;
-            const nc = cc + dc;
-            if (
-              nr >= 0 && nr < rows &&
-              nc >= 0 && nc < cols &&
-              grid[nr][nc] === '1' &&
-              !visited.has(\`\${nr},\${nc}\`)
-            ) {
-              visited.add(\`\${nr},\${nc}\`);
-              queue.push([nr, nc]);
-            }
-          }
-        }
-      }
-    }
-  }
-  return count;
-}`;
+def num_islands(grid):
+    if not grid or not grid[0]:
+        return 0
+    
+    rows, cols = len(grid), len(grid[0])
+    visited = set()
+    count = 0
+    
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == "1" and (r, c) not in visited:
+                count += 1
+                visited.add((r, c))
+                queue = deque([(r, c)])
+                
+                while queue:
+                    cr, cc = queue.popleft()
+                    dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                    for dr, dc in dirs:
+                        nr, nc = cr + dr, cc + dc
+                        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == "1" and (nr, nc) not in visited:
+                            visited.add((nr, nc))
+                            queue.append((nr, nc))
+                            
+    return count`;
 
 export const generateNumberOfIslandsSteps = (
   input: NumberOfIslandsInput
@@ -64,7 +56,7 @@ export const generateNumberOfIslandsSteps = (
   if (!rawGrid || rawGrid.length === 0 || rawGrid[0].length === 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 2,
+      codeLine: 5,
       explanation: {
         what: 'Empty grid provided.',
         why: 'No islands can exist in an empty grid.',
@@ -118,7 +110,7 @@ export const generateNumberOfIslandsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 3,
     explanation: {
       what: `Initialize Number of Islands grid scan (${rows}x${cols}).`,
       why: 'Start scanning row by row to discover connected land components.',
@@ -142,7 +134,7 @@ export const generateNumberOfIslandsSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 8,
+          codeLine: 14,
           explanation: {
             what: `Discovered new island #${count} starting at cell (${r}, ${c}).`,
             why: 'Found unvisited land cell. Increment island count and initiate BFS to visit all connected land.',
@@ -163,7 +155,7 @@ export const generateNumberOfIslandsSteps = (
 
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 12,
+            codeLine: 19,
             explanation: {
               what: `Exploring cell (${cr}, ${cc}) on island #${count}.`,
               why: 'Processing neighbors in 4 directions (up, down, left, right).',
@@ -202,7 +194,7 @@ export const generateNumberOfIslandsSteps = (
 
               steps.push({
                 stepIndex: stepIndex++,
-                codeLine: 18,
+                codeLine: 24,
                 explanation: {
                   what: `Neighbor land cell (${nr}, ${nc}) connected to island #${count}.`,
                   why: 'Added neighbor land cell to visited set and BFS queue.',
@@ -224,7 +216,7 @@ export const generateNumberOfIslandsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 26,
+    codeLine: 27,
     explanation: {
       what: `Grid traversal complete. Total islands found: ${count}.`,
       why: 'All cells scanned. Returned total count of connected land components.',

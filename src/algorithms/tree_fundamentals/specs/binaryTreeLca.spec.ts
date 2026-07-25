@@ -4,7 +4,6 @@ import {
   DEFAULT_BINARY_TREE_LCA_INPUT,
   generateBinaryTreeLcaSteps,
 } from '../binaryTreeLca';
-import type { TreeVisualSnapshot } from '../../../types/dsa';
 
 describe('binaryTreeLca algorithm spec', () => {
   it('should have valid definition metadata', () => {
@@ -13,6 +12,8 @@ describe('binaryTreeLca algorithm spec', () => {
     expect(binaryTreeLca.category).toBe('tree_fundamentals');
     expect(binaryTreeLca.difficulty).toBe('Medium');
     expect(binaryTreeLca.defaultInput).toEqual(DEFAULT_BINARY_TREE_LCA_INPUT);
+    expect(binaryTreeLca.constraints).toBeDefined();
+    expect(binaryTreeLca.examples).toBeDefined();
   });
 
   it('should generate steps and find LCA of nodes 5 and 1 as node 3', () => {
@@ -27,12 +28,13 @@ describe('binaryTreeLca algorithm spec', () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.lcaVal).toBe(3);
 
-    const snapshot = lastStep.primarySnapshot as TreeVisualSnapshot;
+    const snapshot = lastStep.primarySnapshot;
     expect(snapshot.kind).toBe('tree');
-    expect(snapshot.nodes).toHaveLength(9);
-
-    const lcaNode = snapshot.nodes.find((n) => n.id === '3');
-    expect(lcaNode?.state).toBe('sorted');
+    if (snapshot.kind === 'tree') {
+      expect(snapshot.nodes).toHaveLength(9);
+      const lcaNode = snapshot.nodes.find((n) => n.id === '3');
+      expect(lcaNode?.state).toBe('sorted');
+    }
   });
 
   it('should find LCA when one node is the ancestor of the other', () => {

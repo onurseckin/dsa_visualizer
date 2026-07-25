@@ -27,6 +27,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   showTutorial,
   showAuxiliary,
   onToggleTutorial,
+  onToggleAuxiliary,
 }) => {
   const primarySnapshot = currentStep?.primarySnapshot;
 
@@ -78,31 +79,39 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
       )}
 
-      {/* Main Workspace Layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns:
-            viewMode === 'split'
-              ? '1fr 1fr'
-              : viewMode === 'visual'
-              ? '1fr'
-              : '1fr',
-          gap: '1.25rem',
-          alignItems: 'start',
-        }}
-      >
+      {/* Main Workspace Layout Grid */}
+      <div className={`main-workspace-grid view-mode-${viewMode}`}>
         {/* Left Column: Visual Canvas & Auxiliary Side Panels */}
         {(viewMode === 'split' || viewMode === 'visual') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Primary Visualizer Canvas */}
             <div className="glass-card" style={{ padding: '1rem', minHeight: '380px' }}>
-              {renderPrimaryVisualizer()}
+              {renderPrimaryVisualizer() || (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '340px',
+                    color: 'var(--text-muted)',
+                    textAlign: 'center',
+                    padding: '2rem',
+                  }}
+                >
+                  <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                    No visual snapshot available
+                  </p>
+                  <p style={{ fontSize: '0.85rem' }}>
+                    Select an algorithm step or click Play to begin visualization.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Auxiliary Side Data Structures (Queue, Call Stack, Visited Set, Hash Map) */}
             {showAuxiliary && currentStep?.auxiliaryState && (
-              <AuxiliaryPanel state={currentStep.auxiliaryState} />
+              <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
             )}
           </div>
         )}
@@ -127,3 +136,4 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     </main>
   );
 };
+

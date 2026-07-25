@@ -21,7 +21,7 @@ describe('fordFulkerson algorithm logic spec', () => {
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.codeLine).toBe(2);
+    expect(firstStep.codeLine).toBe(1);
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.explanation.what).toContain('Maximum Flow algorithm complete');
@@ -32,6 +32,8 @@ describe('fordFulkerson algorithm logic spec', () => {
       expect(snapshot.kind).toBe('graph');
       expect(snapshot.nodes.length).toBe(4);
       expect(snapshot.edges.length).toBe(5);
+      expect(snapshot.nodes[0].x).toBe(80);
+      expect(snapshot.nodes[3].x).toBe(440);
     }
   });
 

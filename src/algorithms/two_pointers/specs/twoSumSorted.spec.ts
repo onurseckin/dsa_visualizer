@@ -20,7 +20,7 @@ describe('twoSumSorted algorithm spec', () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(7);
+    expect(lastStep.codeLine).toBe(9);
     expect(lastStep.variables.resultIdx1).toBe(0);
     expect(lastStep.variables.resultIdx2).toBe(6);
 
@@ -33,7 +33,7 @@ describe('twoSumSorted algorithm spec', () => {
     const input = { nums: [1, 2, 3, 9], target: 12 };
     const steps = generateTwoSumSortedSteps(input);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(7);
+    expect(lastStep.codeLine).toBe(9);
     expect(lastStep.variables.resultIdx1).toBe(2);
     expect(lastStep.variables.resultIdx2).toBe(3);
   });
@@ -42,7 +42,7 @@ describe('twoSumSorted algorithm spec', () => {
     const input = { nums: [1, 2, 4], target: 100 };
     const steps = generateTwoSumSortedSteps(input);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(14);
+    expect(lastStep.codeLine).toBe(15);
     expect(lastStep.explanation.what).toContain('Return empty array');
   });
 });

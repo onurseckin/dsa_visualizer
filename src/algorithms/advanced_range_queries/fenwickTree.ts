@@ -17,29 +17,26 @@ export interface FenwickTreeInput {
   operations?: FenwickTreeOperation[];
 }
 
-export const FENWICK_TREE_CODE = `class FenwickTree {
-  constructor(size) {
-    this.tree = new Array(size + 1).fill(0);
-  }
+export const FENWICK_TREE_CODE = `class FenwickTree:
+    def __init__(self, size: int):
+        self.tree = [0] * (size + 1)
 
-  update(index, delta) {
-    for (let i = index; i < this.tree.length; i += i & -i) {
-      this.tree[i] += delta;
-    }
-  }
+    def update(self, index: int, delta: int):
+        i = index
+        while i < len(self.tree):
+            self.tree[i] += delta
+            i += i & -i
 
-  query(index) {
-    let sum = 0;
-    for (let i = index; i > 0; i -= i & -i) {
-      sum += this.tree[i];
-    }
-    return sum;
-  }
+    def query(self, index: int) -> int:
+        sum_val = 0
+        i = index
+        while i > 0:
+            sum_val += self.tree[i]
+            i -= i & -i
+        return sum_val
 
-  rangeQuery(left, right) {
-    return this.query(right) - this.query(left - 1);
-  }
-}`;
+    def range_query(self, left: int, right: int) -> int:
+        return self.query(right) - self.query(left - 1)`;
 
 export const DEFAULT_FENWICK_INPUT: FenwickTreeInput = {
   array: [3, 2, -1, 6, 5, 4, -3, 37],
@@ -55,11 +52,39 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   let stepIndex = 0;
 
   const n = input.array.length;
+
+  if (n === 0) {
+    steps.push({
+      stepIndex: 0,
+      codeLine: 2,
+      explanation: {
+        what: 'Initialize Fenwick Tree',
+        why: 'Input array is empty. No Fenwick tree constructed.',
+      },
+      primarySnapshot: {
+        kind: 'array',
+        elements: [],
+      },
+      auxiliaryState: {
+        customState: {
+          originalArray: '',
+          treeArray: '',
+        },
+      },
+      variables: { n: 0 },
+    });
+    return steps;
+  }
+
   // 1-indexed tree array of size n + 1
   const tree = new Array<number>(n + 1).fill(0);
 
   // Array elements to represent tree[1..n] for visualization
-  const getElements = (highlightIdx?: number, highlightState: ArrayElement['state'] = 'active', pointers?: Record<number, string[]>): ArrayElement[] => {
+  const getElements = (
+    highlightIdx?: number,
+    highlightState: ArrayElement['state'] = 'active',
+    pointers?: Record<number, string[]>
+  ): ArrayElement[] => {
     const elements: ArrayElement[] = [];
     for (let i = 1; i <= n; i++) {
       let state: ArrayElement['state'] = 'default';
@@ -104,7 +129,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   // Helper point update function
   const updateFenwick = (idx: number, delta: number) => {
     addStep(
-      6,
+      5,
       `Start update at index ${idx} with delta = ${delta}`,
       `Propagate update upward through tree indices using i += i & -i.`,
       { index: idx, delta },
@@ -117,7 +142,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       tree[i] += delta;
 
       addStep(
-        7,
+        8,
         `Update tree[${i}] += ${delta} -> new val = ${tree[i]}`,
         `Lowbit for index ${i} is ${lowbit}. Next index will be ${i} + ${lowbit} = ${i + lowbit}.`,
         { i, lowbit, delta, 'tree[i]': tree[i] },
@@ -146,7 +171,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       sum += tree[i];
 
       addStep(
-        13,
+        15,
         `Add tree[${i}] (${tree[i]}) to prefix sum -> current sum = ${sum}`,
         `Lowbit for index ${i} is ${lowbit}. Next tree index to query will be ${i} - ${lowbit} = ${i - lowbit}.`,
         { i, lowbit, 'tree[i]': tree[i], sum },
@@ -160,7 +185,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   };
 
   addStep(
-    2,
+    3,
     `Initialize Fenwick Tree of size ${n}`,
     `Create binary indexed tree array of length ${n + 1} initialized to 0.`,
     { n },
@@ -176,7 +201,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   }
 
   addStep(
-    4,
+    3,
     'Fenwick Tree construction complete',
     `Tree is fully built from initial array [${input.array.join(', ')}].`,
     { n },
@@ -188,7 +213,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   for (const op of ops) {
     if (op.type === 'update' && op.index !== undefined && op.delta !== undefined) {
       addStep(
-        6,
+        5,
         `Execute Operation: Update index ${op.index} by delta ${op.delta}`,
         `Apply point update of ${op.delta} to position ${op.index}.`,
         { op: 'update', index: op.index, delta: op.delta },
@@ -197,7 +222,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       updateFenwick(op.index, op.delta);
     } else if (op.type === 'query' && op.left !== undefined && op.right !== undefined) {
       addStep(
-        17,
+        19,
         `Execute Operation: Range Query [${op.left}..${op.right}]`,
         `Calculate range sum using prefixQuery(${op.right}) - prefixQuery(${op.left - 1}).`,
         { op: 'query', left: op.left, right: op.right },
@@ -209,7 +234,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       const rangeSum = sumRight - sumLeftMinus1;
 
       addStep(
-        18,
+        20,
         `Range Query [${op.left}..${op.right}] Result = ${rangeSum}`,
         `prefixQuery(${op.right}) [${sumRight}] - prefixQuery(${op.left - 1}) [${sumLeftMinus1}] = ${rangeSum}.`,
         { left: op.left, right: op.right, sumRight, sumLeftMinus1, rangeSum },
@@ -219,7 +244,7 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   }
 
   addStep(
-    19,
+    20,
     'All Fenwick Tree operations complete',
     'Finished processing range queries and point updates.',
     { n },

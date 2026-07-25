@@ -200,8 +200,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           const strokeWidth = edge.isPath ? 4 : edge.isTraversed ? 3 : 2;
           const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : '4 4';
 
-          const midX = (fromNode.x! + toNode.x!) / 2;
-          const midY = (fromNode.y! + toNode.y!) / 2;
+          const midX = (fromNode.x + toNode.x) / 2;
+          const midY = (fromNode.y + toNode.y) / 2;
 
           return (
             <g key={`edge-${edge.from}-${edge.to}-${idx}`}>

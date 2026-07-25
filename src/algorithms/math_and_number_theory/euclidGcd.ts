@@ -2,7 +2,6 @@ import type {
   AlgorithmDefinition,
   AlgorithmStep,
   ArrayElement,
-  ElementState,
 } from '../../types/dsa';
 
 export interface EuclidGcdInput {
@@ -11,10 +10,6 @@ export interface EuclidGcdInput {
 }
 
 export const PYTHON_EUCLID_GCD_CODE = `def euclid_gcd(a: int, b: int) -> int:
-    """
-    Euclidean algorithm to calculate the Greatest Common Divisor (GCD) of a and b.
-    Uses the recurrence gcd(a, b) = gcd(b, a % b) until b becomes 0.
-    """
     while b != 0:
         remainder = a % b
         a = b
@@ -50,13 +45,13 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
       {
         id: 'val-a',
         value: aVal,
-        state: 'active' as ElementState,
+        state: 'active',
         pointers: ['a'],
       },
       {
         id: 'val-b',
         value: bVal,
-        state: 'compare' as ElementState,
+        state: 'compare',
         pointers: ['b'],
       },
     ];
@@ -65,7 +60,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
       elements.push({
         id: 'val-rem',
         value: remVal,
-        state: 'swap' as ElementState,
+        state: 'swap',
         pointers: ['a % b'],
       });
     }
@@ -106,7 +101,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
   addStep(
     1,
     'Initialize Euclidean Algorithm',
-    `Calculate GCD of a = ${currentA} and b = ${currentB}.`,
+    `Calculate Greatest Common Divisor (GCD) of a = ${currentA} and b = ${currentB}.`,
     currentA,
     currentB
   );
@@ -114,11 +109,11 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
   history.push(`gcd(${currentA}, ${currentB})`);
 
   while (currentB !== 0) {
-    // Line 2: Check condition
+    // Line 2: Loop condition check
     addStep(
       2,
-      `Check condition (b != 0)`,
-      `b is currently ${currentB} (not zero), so continue the Euclidean reduction loop.`,
+      `Check loop condition (b != 0)`,
+      `b is currently ${currentB} (non-zero), so continue the Euclidean reduction loop.`,
       currentA,
       currentB
     );
@@ -137,25 +132,38 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
       quotient
     );
 
-    // Line 4 & 5: Update state
+    // Line 4: Update a
+    const prevA = currentA;
     currentA = currentB;
+    addStep(
+      4,
+      `Update a = b`,
+      `Assign previous divisor b = ${currentB} to a (was ${prevA}).`,
+      currentA,
+      currentB,
+      remainder,
+      quotient
+    );
+
+    // Line 5: Update b
+    const prevB = currentB;
     currentB = remainder;
     history.push(`gcd(${currentA}, ${currentB})`);
 
     addStep(
-      4,
-      `Update variables (a = b, b = remainder)`,
-      `Set a = ${currentA} and b = ${currentB}.`,
+      5,
+      `Update b = remainder`,
+      `Assign remainder ${remainder} to b (was ${prevB}). Next state: gcd(${currentA}, ${currentB}).`,
       currentA,
       currentB
     );
   }
 
-  // Line 2: Loop check failed
+  // Line 2: Loop condition check (false)
   addStep(
     2,
-    'Check condition (b == 0)',
-    'b is now 0, exiting the while loop.',
+    'Check loop condition (b == 0)',
+    'b is now 0, so the while loop terminates.',
     currentA,
     currentB
   );
@@ -165,8 +173,8 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
     stepIndex: stepIndex++,
     codeLine: 6,
     explanation: {
-      what: `GCD computed: ${currentA}`,
-      why: `Greatest Common Divisor of ${initialA} and ${initialB} is ${currentA}.`,
+      what: `Return result GCD = ${currentA}`,
+      why: `The Greatest Common Divisor of ${initialA} and ${initialB} is ${currentA}.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -174,7 +182,7 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
         {
           id: 'val-gcd',
           value: currentA,
-          state: 'sorted' as ElementState,
+          state: 'sorted',
           pointers: ['GCD'],
         },
       ],

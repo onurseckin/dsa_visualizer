@@ -4,23 +4,49 @@ import { AuxiliaryState } from '../../types/dsa';
 export interface AuxiliaryPanelProps {
   state?: AuxiliaryState;
   auxiliaryState?: AuxiliaryState;
+  onClose?: () => void;
 }
 
-export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliaryState }) => {
+export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliaryState, onClose }) => {
   const currentAuxState = auxiliaryState || state || {};
   const { stack, queue, visited, hashMap, distanceTable, customState } = currentAuxState;
 
-  const hasStack = stack && stack.length > 0;
-  const hasQueue = queue && queue.length > 0;
-  const hasVisited = visited && visited.length > 0;
-  const hasHashMap = hashMap && Object.keys(hashMap).length > 0;
-  const hasDistance = distanceTable && Object.keys(distanceTable).length > 0;
-  const hasCustom = customState && Object.keys(customState).length > 0;
+  const stackItems = stack || [];
+  const queueItems = queue || [];
+  const visitedItems = visited || [];
+  const hashMapEntries = Object.entries(hashMap || {});
+  const distanceEntries = Object.entries(distanceTable || {});
+  const customEntries = Object.entries(customState || {});
+
+  const hasStack = stackItems.length > 0;
+  const hasQueue = queueItems.length > 0;
+  const hasVisited = visitedItems.length > 0;
+  const hasHashMap = hashMapEntries.length > 0;
+  const hasDistance = distanceEntries.length > 0;
+  const hasCustom = customEntries.length > 0;
 
   if (!hasStack && !hasQueue && !hasVisited && !hasHashMap && !hasDistance && !hasCustom) {
     return (
-      <div className="glass-card" style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-        No active auxiliary data structures at this step.
+      <div className="glass-card" style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>No active auxiliary data structures at this step.</span>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Hide auxiliary panel"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              padding: '0.1rem 0.3rem',
+            }}
+            title="Hide auxiliary panel"
+          >
+            ✕
+          </button>
+        )}
       </div>
     );
   }
@@ -35,10 +61,29 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
         gap: '1rem',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.4rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.4rem' }}>
         <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--accent-mint)' }}>
           Auxiliary Helper Data Structures
         </span>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Hide auxiliary panel"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              padding: '0.1rem 0.4rem',
+              borderRadius: '4px',
+            }}
+            title="Hide auxiliary panel"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
@@ -49,20 +94,20 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               Call Stack (LIFO)
             </div>
             <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem' }}>
-              {stack!.map((item, idx) => (
+              {stackItems.map((item, idx) => (
                 <div
                   key={`stack-${idx}`}
                   style={{
-                    background: idx === stack!.length - 1 ? 'rgba(0, 255, 157, 0.2)' : 'var(--bg-surface)',
-                    border: idx === stack!.length - 1 ? '1px solid var(--accent-emerald)' : '1px solid var(--border-muted)',
+                    background: idx === stackItems.length - 1 ? 'rgba(0, 255, 157, 0.2)' : 'var(--bg-surface)',
+                    border: idx === stackItems.length - 1 ? '1px solid var(--accent-emerald)' : '1px solid var(--border-muted)',
                     borderRadius: '4px',
                     padding: '0.3rem 0.6rem',
                     fontFamily: 'var(--font-code)',
                     fontSize: '0.8rem',
-                    color: idx === stack!.length - 1 ? 'var(--accent-emerald)' : 'var(--text-main)',
+                    color: idx === stackItems.length - 1 ? 'var(--accent-emerald)' : 'var(--text-main)',
                   }}
                 >
-                  [{idx}] {String(item)} {idx === stack!.length - 1 ? '← TOP' : ''}
+                  [{idx}] {String(item)} {idx === stackItems.length - 1 ? '← TOP' : ''}
                 </div>
               ))}
             </div>
@@ -76,7 +121,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               Queue (FIFO)
             </div>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {queue!.map((item, idx) => (
+              {queueItems.map((item, idx) => (
                 <div
                   key={`queue-${idx}`}
                   style={{
@@ -100,10 +145,10 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
         {hasVisited && (
           <div style={{ background: 'var(--bg-darkest)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-emerald)', marginBottom: '0.5rem' }}>
-              Visited Nodes Set ({visited!.length})
+              Visited Nodes Set ({visitedItems.length})
             </div>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {visited!.map((item, idx) => (
+              {visitedItems.map((item, idx) => (
                 <span
                   key={`vis-${idx}`}
                   style={{
@@ -130,7 +175,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               Hash Map State (Key → Value)
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {Object.entries(hashMap!).map(([key, val]) => (
+              {hashMapEntries.map(([key, val]) => (
                 <div
                   key={`hash-${key}`}
                   style={{
@@ -158,7 +203,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               Distance Table
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {Object.entries(distanceTable!).map(([node, dist]) => (
+              {distanceEntries.map(([node, dist]) => (
                 <div
                   key={`dist-${node}`}
                   style={{
@@ -186,7 +231,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, auxiliary
               Custom State
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {Object.entries(customState!).map(([k, val]) => (
+              {customEntries.map(([k, val]) => (
                 <div
                   key={`cust-${k}`}
                   style={{

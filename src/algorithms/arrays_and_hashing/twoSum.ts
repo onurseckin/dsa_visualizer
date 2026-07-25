@@ -9,17 +9,14 @@ export interface TwoSumInput {
   target: number;
 }
 
-export const TWO_SUM_CODE = `function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (map.has(complement)) {
-      return [map.get(complement), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
-}`;
+export const TWO_SUM_CODE = `def two_sum(nums: list[int], target: int) -> list[int]:
+    seen = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in seen:
+            return [seen[complement], i]
+        seen[num] = i
+    return []`;
 
 export const DEFAULT_TWO_SUM_INPUT: TwoSumInput = {
   nums: [2, 7, 11, 15],
@@ -134,7 +131,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     elements[i].pointers = undefined;
 
     addStep(
-      8,
+      7,
       `Store map[${currentVal}] = ${i}`,
       `Recorded value ${currentVal} with its index ${i} into hash map.`,
       { i, 'nums[i]': currentVal }
@@ -142,7 +139,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
   }
 
   addStep(
-    10,
+    8,
     'Return empty array []',
     `No pair in array sums up to target = ${target}.`,
     { target }

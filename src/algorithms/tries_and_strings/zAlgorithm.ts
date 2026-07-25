@@ -177,7 +177,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
   for (let i = 1; i < n; i++) {
     addStep(
-      7,
+      8,
       `Start processing index i = ${i} ('${s[i]}')`,
       `Evaluate Z[${i}] value for suffix starting at S[${i}].`,
       { i, char: s[i], l, r },
@@ -201,7 +201,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
     while (i + z[i] < n && s[z[i]] === s[i + z[i]]) {
       addStep(
-        10,
+        11,
         `Compare S[${z[i]}] ('${s[z[i]]}') with S[${i + z[i]}] ('${s[i + z[i]]}')`,
         `Characters match! Increment Z[${i}] from ${z[i]} to ${z[i] + 1}.`,
         { i, zI: z[i], matchChar: s[z[i]], targetChar: s[i + z[i]] },
@@ -215,7 +215,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
     if (i + z[i] < n) {
       addStep(
-        10,
+        11,
         `Mismatch at S[${z[i]}] ('${s[z[i]]}') vs S[${i + z[i]}] ('${s[i + z[i]]}')`,
         `Comparison stopped. Final Z[${i}] = ${z[i]}.`,
         { i, finalZI: z[i] },
@@ -245,7 +245,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       const textMatchIdx = i - m - 1;
       matches.push(textMatchIdx);
       addStep(
-        16,
+        17,
         `Pattern match found at text index ${textMatchIdx}!`,
         `Z[${i}] = ${m} equals pattern length ${m}. Matched text substring "${text.substring(textMatchIdx, textMatchIdx + m)}".`,
         { i, textMatchIdx, pattern, matchCount: matches.length },
@@ -256,7 +256,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   }
 
   addStep(
-    17,
+    18,
     'Z-Algorithm search complete',
     `Found ${matches.length} pattern match(es) in text at index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}.`,
     { totalMatches: matches.length, matches: matches.join(', ') },

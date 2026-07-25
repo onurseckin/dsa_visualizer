@@ -18,45 +18,41 @@ export interface SegmentTreeInput {
   operations?: SegmentTreeOperation[];
 }
 
-export const SEGMENT_TREE_CODE = `class SegmentTree {
-  constructor(arr) {
-    this.n = arr.length;
-    this.tree = new Array(4 * this.n).fill(0);
-    this.build(arr, 1, 0, this.n - 1);
-  }
+export const SEGMENT_TREE_CODE = `class SegmentTree:
+    def __init__(self, arr: list[int]):
+        self.n = len(arr)
+        self.tree = [0] * (4 * self.n)
+        self.build(arr, 1, 0, self.n - 1)
 
-  build(arr, node, start, end) {
-    if (start === end) {
-      this.tree[node] = arr[start];
-      return;
-    }
-    const mid = Math.floor((start + end) / 2);
-    this.build(arr, 2 * node, start, mid);
-    this.build(arr, 2 * node + 1, mid + 1, end);
-    this.tree[node] = this.tree[2 * node] + this.tree[2 * node + 1];
-  }
+    def build(self, arr: list[int], node: int, start: int, end: int):
+        if start == end:
+            self.tree[node] = arr[start]
+            return
+        mid = (start + end) // 2
+        self.build(arr, 2 * node, start, mid)
+        self.build(arr, 2 * node + 1, mid + 1, end)
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
 
-  update(node, start, end, idx, val) {
-    if (start === end) {
-      this.tree[node] = val;
-      return;
-    }
-    const mid = Math.floor((start + end) / 2);
-    if (idx <= mid) this.update(2 * node, start, mid, idx, val);
-    else this.update(2 * node + 1, mid + 1, end, idx, val);
-    this.tree[node] = this.tree[2 * node] + this.tree[2 * node + 1];
-  }
+    def update(self, node: int, start: int, end: int, idx: int, val: int):
+        if start == end:
+            self.tree[node] = val
+            return
+        mid = (start + end) // 2
+        if idx <= mid:
+            self.update(2 * node, start, mid, idx, val)
+        else:
+            self.update(2 * node + 1, mid + 1, end, idx, val)
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
 
-  query(node, start, end, l, r) {
-    if (r < start || end < l) return 0;
-    if (l <= start && end <= r) return this.tree[node];
-    const mid = Math.floor((start + end) / 2);
-    return (
-      this.query(2 * node, start, mid, l, r) +
-      this.query(2 * node + 1, mid + 1, end, l, r)
-    );
-  }
-}`;
+    def query(self, node: int, start: int, end: int, l: int, r: int) -> int:
+        if r < start or end < l:
+            return 0
+        if l <= start and end <= r:
+            return self.tree[node]
+        mid = (start + end) // 2
+        left_sum = self.query(2 * node, start, mid, l, r)
+        right_sum = self.query(2 * node + 1, mid + 1, end, l, r)
+        return left_sum + right_sum`;
 
 export const DEFAULT_SEGMENT_TREE_INPUT: SegmentTreeInput = {
   array: [1, 3, 5, 7, 9, 11],
@@ -83,7 +79,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   if (n === 0) {
     steps.push({
       stepIndex: 0,
-      codeLine: 1,
+      codeLine: 2,
       explanation: {
         what: 'Initialize Segment Tree',
         why: 'Input array is empty. No segment tree built.',
@@ -156,7 +152,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   };
 
   addStep(
-    1,
+    5,
     `Initialize Segment Tree for array of size ${n}`,
     `Create segment tree structure for input array [${input.array.join(', ')}].`,
     { n }
@@ -165,7 +161,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   // Segment Tree build recursion
   const buildTree = (node: number, start: number, end: number) => {
     addStep(
-      8,
+      7,
       `Build node ${node} covering range [${start}..${end}]`,
       start === end
         ? `Leaf node covering element at index ${start} (val = ${input.array[start]}).`
@@ -177,7 +173,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     if (start === end) {
       treeValues[node] = input.array[start];
       addStep(
-        10,
+        9,
         `Leaf node ${node} set to ${treeValues[node]}`,
         `Assigned arr[${start}] = ${treeValues[node]} to leaf node ${node}.`,
         { node, start, end, val: treeValues[node] },
@@ -193,7 +189,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     treeValues[node] = treeValues[2 * node] + treeValues[2 * node + 1];
 
     addStep(
-      15,
+      14,
       `Node ${node} sum = left (${treeValues[2 * node]}) + right (${treeValues[2 * node + 1]}) = ${treeValues[node]}`,
       `Combined child sums for node ${node} covering range [${start}..${end}].`,
       { node, start, end, leftVal: treeValues[2 * node], rightVal: treeValues[2 * node + 1], val: treeValues[node] },
@@ -204,7 +200,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   buildTree(1, 0, n - 1);
 
   addStep(
-    16,
+    14,
     'Segment Tree Construction Complete',
     'Root node contains total array sum.',
     { totalSum: treeValues[1] }
@@ -214,7 +210,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   const queryTree = (node: number, start: number, end: number, l: number, r: number): number => {
     if (r < start || end < l) {
       addStep(
-        28,
+        29,
         `Query node ${node} [${start}..${end}] is completely outside target [${l}..${r}]`,
         `Range [${start}..${end}] has no overlap with query range [${l}..${r}]. Return sum 0.`,
         { node, start, end, l, r },
@@ -225,7 +221,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     if (l <= start && end <= r) {
       addStep(
-        29,
+        31,
         `Query node ${node} [${start}..${end}] is fully inside target [${l}..${r}]`,
         `Range [${start}..${end}] is fully enclosed by [${l}..${r}]. Return node sum ${treeValues[node]}.`,
         { node, start, end, l, r, val: treeValues[node] },
@@ -237,7 +233,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     const mid = Math.floor((start + end) / 2);
 
     addStep(
-      31,
+      32,
       `Query node ${node} [${start}..${end}] partially overlaps target [${l}..${r}]`,
       `Split query between left child [${start}..${mid}] and right child [${mid + 1}..${end}].`,
       { node, start, end, l, r, mid },
@@ -249,7 +245,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     const result = leftSum + rightSum;
 
     addStep(
-      32,
+      35,
       `Node ${node} [${start}..${end}] query result = ${leftSum} + ${rightSum} = ${result}`,
       `Combined query contributions from left (${leftSum}) and right (${rightSum}) subtrees.`,
       { node, start, end, leftSum, rightSum, result },
@@ -265,7 +261,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       const oldVal = treeValues[node];
       treeValues[node] = val;
       addStep(
-        20,
+        18,
         `Update leaf node ${node} (index ${idx}): ${oldVal} -> ${val}`,
         `Leaf value updated to ${val}.`,
         { node, idx, oldVal, val },
@@ -276,7 +272,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
 
     const mid = Math.floor((start + end) / 2);
     addStep(
-      22,
+      21,
       `Traverse node ${node} [${start}..${end}] towards update index ${idx}`,
       idx <= mid ? `Index ${idx} <= mid ${mid}. Go left.` : `Index ${idx} > mid ${mid}. Go right.`,
       { node, start, end, idx, val },
@@ -292,7 +288,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
     treeValues[node] = treeValues[2 * node] + treeValues[2 * node + 1];
 
     addStep(
-      24,
+      25,
       `Recalculate parent node ${node} [${start}..${end}] sum -> ${treeValues[node]}`,
       `Updated node ${node} sum after child update.`,
       { node, start, end, val: treeValues[node] },
@@ -305,7 +301,7 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
   for (const op of ops) {
     if (op.type === 'query' && op.left !== undefined && op.right !== undefined) {
       addStep(
-        26,
+        27,
         `Execute Query operation for range [${op.left}..${op.right}]`,
         `Start recursive range sum query traversal on Segment Tree.`,
         { op: 'query', left: op.left, right: op.right }
@@ -314,14 +310,14 @@ export const generateSegmentTreeSteps = (input: SegmentTreeInput): AlgorithmStep
       const totalSum = queryTree(1, 0, n - 1, op.left, op.right);
 
       addStep(
-        34,
+        35,
         `Range Query [${op.left}..${op.right}] Result = ${totalSum}`,
         `Range sum calculation complete. Final sum is ${totalSum}.`,
         { left: op.left, right: op.right, totalSum }
       );
     } else if (op.type === 'update' && op.index !== undefined && op.value !== undefined) {
       addStep(
-        18,
+        16,
         `Execute Update operation: set index ${op.index} to ${op.value}`,
         `Update element at index ${op.index} and recalculate parent node sums up to root.`,
         { op: 'update', index: op.index, value: op.value }

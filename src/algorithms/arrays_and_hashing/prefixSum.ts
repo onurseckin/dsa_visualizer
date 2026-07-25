@@ -8,14 +8,12 @@ export interface PrefixSumInput {
   nums: number[];
 }
 
-export const PREFIX_SUM_CODE = `function computePrefixSum(nums) {
-  const n = nums.length;
-  const prefix = new Array(n + 1).fill(0);
-  for (let i = 0; i < n; i++) {
-    prefix[i + 1] = prefix[i] + nums[i];
-  }
-  return prefix;
-}`;
+export const PREFIX_SUM_CODE = `def compute_prefix_sum(nums: list[int]) -> list[int]:
+    n = len(nums)
+    prefix = [0] * (n + 1)
+    for i in range(n):
+        prefix[i + 1] = prefix[i] + nums[i]
+    return prefix`;
 
 export const DEFAULT_PREFIX_SUM_INPUT: PrefixSumInput = {
   nums: [2, 4, 1, 3, 5],
@@ -73,7 +71,7 @@ export const generatePrefixSumSteps = (
   );
 
   addStep(
-    2,
+    3,
     'Allocate Prefix Array',
     `Created prefix array of size ${n + 1} initialized to 0: [${prefixValues.join(', ')}].`,
     { prefixLength: n + 1 }
@@ -89,14 +87,14 @@ export const generatePrefixSumSteps = (
     prefixValues[i + 1] = newPrefix;
 
     addStep(
-      3,
+      4,
       `Inspect index i = ${i} (nums[${i}] = ${currentVal})`,
       `Processing element at index ${i}.`,
       { i, 'nums[i]': currentVal, 'prefix[i]': prevPrefix }
     );
 
     addStep(
-      4,
+      5,
       `Compute prefix[${i + 1}] = prefix[${i}] + nums[${i}]`,
       `prefix[${i + 1}] = ${prevPrefix} + ${currentVal} = ${newPrefix}.`,
       { i, 'prefix[i]': prevPrefix, 'nums[i]': currentVal, 'prefix[i+1]': newPrefix }
@@ -107,7 +105,7 @@ export const generatePrefixSumSteps = (
   }
 
   addStep(
-    5,
+    6,
     'Complete Prefix Sum Array',
     `Computed final prefix sum array: [${prefixValues.join(', ')}].`,
     { result: prefixValues.join(', ') }

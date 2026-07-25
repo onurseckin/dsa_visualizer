@@ -53,7 +53,7 @@ describe('twoSum algorithm spec', () => {
     const customInput = { nums: [1, 2, 3], target: 100 };
     const steps = generateTwoSumSteps(customInput);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(10);
+    expect(lastStep.codeLine).toBe(8);
     expect(lastStep.explanation.what).toContain('empty array');
   });
 });

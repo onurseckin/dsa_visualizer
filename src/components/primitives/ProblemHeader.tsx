@@ -167,12 +167,14 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
                   >
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Input: </span>
-                      <span style={{ color: 'var(--text-main)' }}>{ex.input}</span>
+                      <span style={{ color: 'var(--text-main)' }}>
+                        {typeof ex.input === 'object' ? JSON.stringify(ex.input) : String(ex.input)}
+                      </span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Output: </span>
                       <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>
-                        {ex.output}
+                        {typeof ex.output === 'object' ? JSON.stringify(ex.output) : String(ex.output)}
                       </span>
                     </div>
                     {ex.explanation && (

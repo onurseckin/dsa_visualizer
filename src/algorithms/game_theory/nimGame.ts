@@ -8,23 +8,26 @@ export interface NimInput {
   piles: number[];
 }
 
-export const NIM_GAME_CODE = `function nimGame(piles) {
-  let xorSum = 0;
-  const n = piles.length;
-  for (let i = 0; i < n; i++) {
-    xorSum ^= piles[i];
-  }
-  if (xorSum === 0) {
-    return { winner: 'Second Player', winningPile: -1, targetSize: 0 };
-  }
-  for (let i = 0; i < n; i++) {
-    const targetSize = piles[i] ^ xorSum;
-    if (targetSize < piles[i]) {
-      return { winner: 'First Player', winningPile: i, targetSize, remove: piles[i] - targetSize };
-    }
-  }
-  return { winner: 'First Player', winningPile: -1, targetSize: 0 };
-}`;
+export const NIM_GAME_CODE = `def nim_game(piles):
+    xor_sum = 0
+    n = len(piles)
+    for i in range(n):
+        xor_sum ^= piles[i]
+
+    if xor_sum == 0:
+        return {"winner": "Second Player", "winning_pile": -1, "target_size": 0}
+
+    for i in range(n):
+        target_size = piles[i] ^ xor_sum
+        if target_size < piles[i]:
+            return {
+                "winner": "First Player",
+                "winning_pile": i,
+                "target_size": target_size,
+                "remove": piles[i] - target_size,
+            }
+
+    return {"winner": "Second Player", "winning_pile": -1, "target_size": 0}`;
 
 export const DEFAULT_NIM_INPUT: NimInput = {
   piles: [3, 4, 5],
@@ -116,7 +119,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   if (n === 0) {
     addStep(
-      2,
+      8,
       'Nim Game complete (Empty piles)',
       'No piles present in game.',
       { n, xorSum: 0 },
@@ -136,7 +139,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
     currentXorSum ^= piles[i];
 
     addStep(
-      4,
+      5,
       `XOR pile[${i}] (${piles[i]}) into running Nim-sum`,
       `${prevXor} ^ ${piles[i]} = ${currentXorSum} (binary: 0b${currentXorSum.toString(2)}).`,
       { i, pileSize: piles[i], prevXorSum: prevXor, xorSum: currentXorSum }
@@ -147,7 +150,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   }
 
   addStep(
-    6,
+    7,
     `Final Nim-sum XOR = ${currentXorSum}`,
     `Sprague-Grundy theorem states that if XOR sum is 0, Second Player wins; otherwise First Player wins.`,
     { xorSum: currentXorSum }
@@ -155,7 +158,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   if (currentXorSum === 0) {
     addStep(
-      7,
+      8,
       'XOR Sum is 0: P-Position (Second Player Wins)',
       'No winning move exists for the First Player. Second Player can force a win.',
       { xorSum: 0, winner: 'Second Player' },
@@ -168,7 +171,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   // Find winning move for First Player
   addStep(
-    9,
+    10,
     `XOR Sum is ${currentXorSum} ≠ 0: N-Position (First Player Wins)`,
     'Searching for a pile i such that (pile[i] ^ xorSum) < pile[i] to execute a winning move.',
     { xorSum: currentXorSum, winner: 'First Player' },
@@ -184,7 +187,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
     elements[i].pointers = [`i=${i}`, `target=${targetSize}`];
 
     addStep(
-      10,
+      12,
       `Test pile[${i}] (${piles[i]}): targetSize = ${piles[i]} ^ ${currentXorSum} = ${targetSize}`,
       targetSize < piles[i]
         ? `Target size ${targetSize} < current pile size ${piles[i]}. Winning move found!`
@@ -201,7 +204,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
       elements[i].pointers = ['winning move'];
 
       addStep(
-        12,
+        13,
         `Winning Move: Reduce pile ${i} from ${piles[i]} to ${targetSize} (remove ${removeAmount} objects)`,
         `By making this move, the new XOR sum of all piles becomes 0, passing a losing (P) position to the Second Player.`,
         {

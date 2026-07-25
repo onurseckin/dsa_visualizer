@@ -9,21 +9,21 @@ export interface TwoSumSortedInput {
   target: number;
 }
 
-export const TWO_SUM_SORTED_CODE = `function twoSumSorted(nums, target) {
-  let left = 0;
-  let right = nums.length - 1;
-  while (left < right) {
-    const sum = nums[left] + nums[right];
-    if (sum === target) {
-      return [left, right];
-    } else if (sum < target) {
-      left++;
-    } else {
-      right--;
-    }
-  }
-  return [];
-}`;
+export const TWO_SUM_SORTED_CODE = `def two_sum_sorted(nums: list[int], target: int) -> list[int]:
+    left = 0
+    right = len(nums) - 1
+
+    while left < right:
+        current_sum = nums[left] + nums[right]
+
+        if current_sum == target:
+            return [left, right]
+        elif current_sum < target:
+            left += 1
+        else:
+            right -= 1
+
+    return []`;
 
 export const DEFAULT_TWO_SUM_SORTED_INPUT: TwoSumSortedInput = {
   nums: [1, 3, 4, 6, 8, 10, 13],
@@ -65,8 +65,8 @@ export const generateTwoSumSortedSteps = (
       },
       auxiliaryState: {
         customState: {
-          target,
-          'currentPointers': `left: ${variables.left ?? '-'}, right: ${variables.right ?? '-'}`,
+          target: String(target),
+          currentPointers: `left: ${variables.left ?? '-'}, right: ${variables.right ?? '-'}`,
         },
       },
       variables,
@@ -86,14 +86,14 @@ export const generateTwoSumSortedSteps = (
   addStep(
     2,
     'Initialize Left Pointer',
-    `Set left pointer at index 0 (value ${nums[left]}).`,
+    `Set left pointer at index 0 (value ${nums[left] ?? 'N/A'}).`,
     { left, right, target }
   );
 
   addStep(
     3,
     'Initialize Right Pointer',
-    `Set right pointer at index ${right} (value ${nums[right]}).`,
+    `Set right pointer at index ${right} (value ${nums[right] ?? 'N/A'}).`,
     { left, right, target }
   );
 
@@ -114,15 +114,15 @@ export const generateTwoSumSortedSteps = (
     const sum = nums[left] + nums[right];
 
     addStep(
-      4,
+      5,
       `Evaluate Left < Right (${left} < ${right})`,
       `Loop condition satisfied. Pointers active at indices ${left} and ${right}.`,
       { left, right, 'nums[left]': nums[left], 'nums[right]': nums[right] }
     );
 
     addStep(
-      5,
-      `Calculate Sum = nums[${left}] + nums[${right}]`,
+      6,
+      `Calculate current_sum = nums[${left}] + nums[${right}]`,
       `Sum is ${nums[left]} + ${nums[right]} = ${sum}. Target is ${target}.`,
       { left, right, sum, target }
     );
@@ -134,7 +134,7 @@ export const generateTwoSumSortedSteps = (
       elements[right].pointers = ['R', 'MATCH'];
 
       addStep(
-        7,
+        9,
         `Found Target Sum! Return indices [${left}, ${right}]`,
         `nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${target}.`,
         { resultIdx1: left, resultIdx2: right, target, sum }
@@ -142,7 +142,7 @@ export const generateTwoSumSortedSteps = (
       return steps;
     } else if (sum < target) {
       addStep(
-        9,
+        11,
         `Sum (${sum}) < Target (${target})`,
         `Sum is too small. Increment left pointer from ${left} to ${left + 1} to increase sum.`,
         { left, right, sum, target }
@@ -152,7 +152,7 @@ export const generateTwoSumSortedSteps = (
       left++;
     } else {
       addStep(
-        11,
+        13,
         `Sum (${sum}) > Target (${target})`,
         `Sum is too large. Decrement right pointer from ${right} to ${right - 1} to decrease sum.`,
         { left, right, sum, target }
@@ -164,7 +164,7 @@ export const generateTwoSumSortedSteps = (
   }
 
   addStep(
-    14,
+    15,
     'Return empty array []',
     `No pair in array sums to target ${target}.`,
     { target }

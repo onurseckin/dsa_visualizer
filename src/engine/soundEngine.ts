@@ -1,5 +1,7 @@
-interface WindowWithWebkitAudio extends Window {
-  webkitAudioContext?: typeof AudioContext;
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
 }
 
 class SoundEngine {
@@ -10,17 +12,21 @@ class SoundEngine {
     if (typeof window === 'undefined') return null;
 
     if (!this.ctx) {
-      const AudioCtxClass =
-        window.AudioContext || (window as WindowWithWebkitAudio).webkitAudioContext;
+      try {
+        const AudioCtxClass =
+          window.AudioContext || window.webkitAudioContext;
 
-      if (AudioCtxClass) {
-        this.ctx = new AudioCtxClass();
+        if (AudioCtxClass) {
+          this.ctx = new AudioCtxClass();
+        }
+      } catch {
+        return null;
       }
     }
 
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {
-        // Safe catch for autoplay restrictions
+        // Safe catch for browser autoplay restrictions
       });
     }
 
@@ -52,20 +58,25 @@ class SoundEngine {
     if (!ctx) return;
 
     try {
+      const safeFreq = Math.max(freq, 20);
+      const safeStartGain = Math.max(startGain, 0.0001);
+      const safeEndGain = Math.max(endGain, 0.0001);
+      const durationSec = durationMs / 1000;
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = type;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.setValueAtTime(safeFreq, ctx.currentTime);
 
-      gain.gain.setValueAtTime(startGain, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(endGain, ctx.currentTime + durationMs / 1000);
+      gain.gain.setValueAtTime(safeStartGain, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(safeEndGain, ctx.currentTime + durationSec);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start();
-      osc.stop(ctx.currentTime + durationMs / 1000);
+      osc.stop(ctx.currentTime + durationSec);
     } catch {
       // Ignore audio synthesis errors gracefully
     }
@@ -73,7 +84,11 @@ class SoundEngine {
 
   public playCompare(val?: number, maxVal: number = 100): void {
     if (this.muted) return;
-    const freq = val !== undefined ? 200 + (Math.min(Math.max(val, 0), maxVal) / maxVal) * 600 : 440;
+    const safeMax = maxVal > 0 ? maxVal : 100;
+    const freq =
+      val !== undefined
+        ? 200 + (Math.min(Math.max(val, 0), safeMax) / safeMax) * 600
+        : 440;
     this.playTone(freq, 80, 'sine', 0.08);
   }
 
@@ -83,15 +98,18 @@ class SoundEngine {
     if (!ctx) return;
 
     try {
-      const f1 = val1 !== undefined ? 250 + (val1 % 500) : 300;
-      const f2 = val2 !== undefined ? 350 + (val2 % 500) : 600;
+      const f1 = val1 !== undefined ? 250 + (Math.abs(val1) % 500) : 300;
+      const f2 = val2 !== undefined ? 350 + (Math.abs(val2) % 500) : 600;
+
+      const safeF1 = Math.max(f1, 20);
+      const safeF2 = Math.max(f2, 20);
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(f1, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(f2, ctx.currentTime + 0.12);
+      osc.frequency.setValueAtTime(safeF1, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(safeF2, ctx.currentTime + 0.12);
 
       gain.gain.setValueAtTime(0.12, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
@@ -160,7 +178,7 @@ class SoundEngine {
 
   public playComplete(): void {
     if (this.muted) return;
-    const notes = [523.25, 659.25, 783.99, 1046.50];
+    const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
       setTimeout(() => {
         this.playTone(freq, 220, 'triangle', 0.1);
@@ -171,10 +189,10 @@ class SoundEngine {
 
 export const soundEngine = new SoundEngine();
 
-export const playCompare = (val?: number, maxVal?: number) => soundEngine.playCompare(val, maxVal);
-export const playSwap = (val1?: number, val2?: number) => soundEngine.playSwap(val1, val2);
-export const playPush = () => soundEngine.playPush();
-export const playPop = () => soundEngine.playPop();
-export const playComplete = () => soundEngine.playComplete();
+export const playCompare = (val?: number, maxVal?: number): void => soundEngine.playCompare(val, maxVal);
+export const playSwap = (val1?: number, val2?: number): void => soundEngine.playSwap(val1, val2);
+export const playPush = (): void => soundEngine.playPush();
+export const playPop = (): void => soundEngine.playPop();
+export const playComplete = (): void => soundEngine.playComplete();
 
 export default soundEngine;

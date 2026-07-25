@@ -8,21 +8,17 @@ export interface ValidParenthesesInput {
   s: string;
 }
 
-export const VALID_PARENTHESES_CODE = `function isValid(s) {
-  const stack = [];
-  const map = { ')': '(', '}': '{', ']': '[' };
-  for (let i = 0; i < s.length; i++) {
-    const char = s[i];
-    if (char === '(' || char === '{' || char === '[') {
-      stack.push(char);
-    } else {
-      if (stack.length === 0 || stack.pop() !== map[char]) {
-        return false;
-      }
-    }
-  }
-  return stack.length === 0;
-}`;
+export const VALID_PARENTHESES_CODE = `def is_valid(s: str) -> bool:
+    stack = []
+    bracket_map = {')': '(', '}': '{', ']': '['}
+    for i, char in enumerate(s):
+        if char in '({[':
+            stack.append(char)
+        else:
+            if not stack or stack[-1] != bracket_map[char]:
+                return False
+            stack.pop()
+    return len(stack) == 0`;
 
 export const DEFAULT_VALID_PARENTHESES_INPUT: ValidParenthesesInput = {
   s: '({[]})',
@@ -83,15 +79,22 @@ export const generateValidParenthesesSteps = (
   addStep(
     1,
     'Initialize Valid Parentheses Check',
-    `Validate input string "${s}" using stack-based matching.`,
+    `Validate input string "${s}" using a LIFO stack.`,
     { inputString: s, length: n }
   );
 
   addStep(
     2,
     'Initialize Empty Stack',
-    'Created empty call stack for tracking open brackets.',
+    'Created empty stack for tracking opening brackets.',
     { stackSize: 0 }
+  );
+
+  addStep(
+    3,
+    'Define Bracket Mappings',
+    'Set up bracket map associating each closing bracket with its matching open bracket.',
+    { map: '")":"(", "}":"{", "]":"["' }
   );
 
   for (let i = 0; i < n; i++) {
@@ -106,13 +109,20 @@ export const generateValidParenthesesSteps = (
     );
 
     if (char === '(' || char === '{' || char === '[') {
+      addStep(
+        5,
+        `Check if '${char}' is an open bracket`,
+        `'${char}' is an open bracket, which needs to be pushed onto the stack.`,
+        { i, char, isOpenBracket: true }
+      );
+
       stack.push(char);
       elements[i].state = 'queued';
 
       addStep(
         6,
-        `Push open bracket '${char}' onto stack`,
-        `Opening bracket '${char}' pushed. Stack now contains: [${stack.join(', ')}].`,
+        `Push '${char}' onto stack`,
+        `Pushed open bracket '${char}'. Stack now contains: [${stack.join(', ')}].`,
         { i, char, stackSize: stack.length }
       );
     } else {
@@ -121,9 +131,9 @@ export const generateValidParenthesesSteps = (
 
       addStep(
         8,
-        `Inspect closing bracket '${char}'`,
-        `Closing bracket '${char}' requires matching open bracket '${expectedOpen}'. Top of stack: '${stackTop ?? 'EMPTY'}'.`,
-        { i, char, expectedOpen, stackTop: stackTop ?? 'EMPTY' }
+        `Check matching condition for closing bracket '${char}'`,
+        `Closing bracket '${char}' requires open bracket '${expectedOpen}'. Top of stack: '${stackTop ?? 'EMPTY'}'.`,
+        { i, char, expectedOpen: expectedOpen ?? '', stackTop: stackTop ?? 'EMPTY' }
       );
 
       if (stack.length === 0 || stackTop !== expectedOpen) {
@@ -131,7 +141,7 @@ export const generateValidParenthesesSteps = (
 
         addStep(
           9,
-          `Mismatch or empty stack! Return false`,
+          `Mismatch or empty stack! Return False`,
           `Closing bracket '${char}' does not match top of stack '${stackTop ?? 'EMPTY'}'. String is invalid!`,
           { i, char, stackTop: stackTop ?? 'EMPTY', isValid: false }
         );
@@ -157,8 +167,8 @@ export const generateValidParenthesesSteps = (
   }
 
   addStep(
-    14,
-    `Final Check: Stack is ${isValid ? 'Empty (true)' : 'Non-empty (false)'}`,
+    11,
+    `Final Check: Stack is ${isValid ? 'Empty (True)' : 'Non-empty (False)'}`,
     isValid
       ? 'All open brackets were matched correctly. String is VALID!'
       : `Unmatched open brackets remain in stack: [${stack.join(', ')}]. String is INVALID!`,
@@ -185,3 +195,4 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   defaultInput: DEFAULT_VALID_PARENTHESES_INPUT,
   generateSteps: generateValidParenthesesSteps,
 };
+

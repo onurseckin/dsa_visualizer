@@ -11,15 +11,16 @@ export interface BinaryTreeLcaInput {
   qVal: number;
 }
 
-export const BINARY_TREE_LCA_CODE = `function lowestCommonAncestor(root, p, q) {
-  if (!root || root.val === p || root.val === q) return root;
+export const BINARY_TREE_LCA_CODE = `def lowest_common_ancestor(root, p, q):
+    if not root or root.val == p or root.val == q:
+        return root
 
-  const left = lowestCommonAncestor(root.left, p, q);
-  const right = lowestCommonAncestor(root.right, p, q);
+    left = lowest_common_ancestor(root.left, p, q)
+    right = lowest_common_ancestor(root.right, p, q)
 
-  if (left && right) return root;
-  return left ? left : right;
-}`;
+    if left and right:
+        return root
+    return left if left else right`;
 
 export const DEFAULT_BINARY_TREE_LCA_INPUT: BinaryTreeLcaInput = {
   rootId: '3',
@@ -101,8 +102,11 @@ export const generateBinaryTreeLcaSteps = (
 
   addStep(
     1,
-    `Initialize LCA Search for p=${pVal} and q=${qVal}`,
-    `Starting recursive search for Lowest Common Ancestor from rootId '${rootId}'.`
+    `Initialize Lowest Common Ancestor (LCA) search for p = ${pVal} and q = ${qVal}`,
+    `Begin post-order depth-first search (DFS) starting from root node '${rootId}'.`,
+    undefined,
+    undefined,
+    { p: pVal, q: qVal }
   );
 
   const recurse = (currentId?: string): string | null => {
@@ -116,8 +120,8 @@ export const generateBinaryTreeLcaSteps = (
 
     addStep(
       2,
-      `Evaluate Node(${currentNode.val})`,
-      `Checking if node ${currentNode.val} is null, equals p (${pVal}), or equals q (${qVal}).`,
+      `Evaluate Node(${currentNode.val}) against null/target checks`,
+      `Check if Node(${currentNode.val}) is null, or equals target p (${pVal}) or q (${qVal}).`,
       currentId,
       undefined,
       { current: currentNode.val }
@@ -125,9 +129,9 @@ export const generateBinaryTreeLcaSteps = (
 
     if (currentNode.val === pVal || currentNode.val === qVal) {
       addStep(
-        2,
-        `Node(${currentNode.val}) matches target (${currentNode.val === pVal ? 'p' : 'q'})`,
-        `Base case hit. Returning node ${currentNode.val}.`,
+        3,
+        `Base case met: Node(${currentNode.val}) matches target ${currentNode.val === pVal ? 'p' : 'q'} (${currentNode.val})`,
+        `Return Node(${currentNode.val}) up the call stack to signal target discovery.`,
         currentId,
         undefined,
         { current: currentNode.val, match: true }
@@ -140,9 +144,9 @@ export const generateBinaryTreeLcaSteps = (
     let leftResult: string | null = null;
     if (currentNode.leftId) {
       addStep(
-        4,
+        5,
         `Recurse into left subtree of Node(${currentNode.val})`,
-        `Calling lowestCommonAncestor on left child.`,
+        `Call lowest_common_ancestor on left child Node(${nodeMap.get(currentNode.leftId)?.val}).`,
         currentId,
         undefined,
         { current: currentNode.val, leftChild: nodeMap.get(currentNode.leftId)?.val ?? 'N/A' }
@@ -154,9 +158,9 @@ export const generateBinaryTreeLcaSteps = (
     let rightResult: string | null = null;
     if (currentNode.rightId) {
       addStep(
-        5,
+        6,
         `Recurse into right subtree of Node(${currentNode.val})`,
-        `Calling lowestCommonAncestor on right child.`,
+        `Call lowest_common_ancestor on right child Node(${nodeMap.get(currentNode.rightId)?.val}).`,
         currentId,
         undefined,
         { current: currentNode.val, rightChild: nodeMap.get(currentNode.rightId)?.val ?? 'N/A' }
@@ -166,9 +170,9 @@ export const generateBinaryTreeLcaSteps = (
 
     if (leftResult && rightResult) {
       addStep(
-        7,
-        `Node(${currentNode.val}) receives non-null results from both left and right subtrees!`,
-        `p and q are located in different subtrees under Node(${currentNode.val}). Node(${currentNode.val}) is the LCA!`,
+        8,
+        `LCA Found: Node(${currentNode.val}) received non-null returns from both subtrees!`,
+        `Since p (${pVal}) and q (${qVal}) reside in separate subtrees under Node(${currentNode.val}), Node(${currentNode.val}) is the Lowest Common Ancestor!`,
         currentId,
         currentId,
         { current: currentNode.val, lcaFound: true }
@@ -179,12 +183,12 @@ export const generateBinaryTreeLcaSteps = (
 
     const result = leftResult !== null ? leftResult : rightResult;
     addStep(
-      8,
-      `Node(${currentNode.val}) returns ${result ? `Node(${nodeMap.get(result)?.val})` : 'null'}`,
-      `Bubbling up subtree result.`,
+      10,
+      `Node(${currentNode.val}) returns ${result ? `Node(${nodeMap.get(result)?.val})` : 'None'} up the stack`,
+      `Propagate non-null subtree result upward (or None if neither subtree contained p or q).`,
       currentId,
       undefined,
-      { current: currentNode.val, returned: result ? (nodeMap.get(result)?.val ?? 'null') : 'null' }
+      { current: currentNode.val, returned: result ? (nodeMap.get(result)?.val ?? 'None') : 'None' }
     );
 
     callStack.pop();
@@ -196,17 +200,17 @@ export const generateBinaryTreeLcaSteps = (
   if (finalLcaId) {
     const lcaNode = nodeMap.get(finalLcaId);
     addStep(
-      8,
-      `LCA Computation Complete!`,
-      `The Lowest Common Ancestor of nodes p=${pVal} and q=${qVal} is Node(${lcaNode?.val}).`,
+      10,
+      `LCA Search Complete!`,
+      `The Lowest Common Ancestor of nodes p = ${pVal} and q = ${qVal} is Node(${lcaNode?.val}).`,
       undefined,
       finalLcaId,
       { lcaVal: lcaNode?.val ?? 'Unknown' }
     );
   } else {
     addStep(
-      8,
-      `LCA Computation Complete: No Common Ancestor Found`,
+      10,
+      `LCA Search Complete: No Common Ancestor Found`,
       `Neither p nor q was found in the tree.`,
       undefined,
       undefined,
@@ -224,6 +228,25 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   difficulty: 'Medium',
   description:
     'Given a binary tree and two nodes p and q, find the lowest common ancestor (LCA) node in the tree using bottom-up post-order recursion.',
+  constraints: [
+    'The number of nodes in the tree is in the range [2, 10^5].',
+    '-10^9 <= Node.val <= 10^9',
+    'All Node.val are unique.',
+    'p != q',
+    'p and q will exist in the tree.',
+  ],
+  examples: [
+    {
+      input: 'root = [3,5,1,6,2,0,8,null,null,7,4], p = 5, q = 1',
+      output: '3',
+      explanation: 'The LCA of nodes 5 and 1 is 3.',
+    },
+    {
+      input: 'root = [3,5,1,6,2,0,8,null,null,7,4], p = 5, q = 4',
+      output: '5',
+      explanation: 'The LCA of nodes 5 and 4 is 5, since a node can be a descendant of itself according to the LCA definition.',
+    },
+  ],
   code: BINARY_TREE_LCA_CODE,
   timeComplexity: {
     best: 'O(N)',
