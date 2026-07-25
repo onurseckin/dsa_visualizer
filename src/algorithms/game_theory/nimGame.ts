@@ -112,16 +112,16 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    'Initialize Nim Game Sprague-Grundy XOR Sum',
-    `Evaluating ${n} piles: [${piles.join(', ')}]. Initial Nim-sum XOR = 0.`,
+    `Evaluate ${n} piles: [${piles.join(', ')}]`,
+    `To decide who wins this Nim position we never simulate moves — we compute the Nim-sum, the XOR of every pile size, starting the running total at 0.`,
     { n, piles: piles.join(', ') }
   );
 
   if (n === 0) {
     addStep(
       8,
-      'Nim Game complete (Empty piles)',
-      'No piles present in game. Returns Second Player as winner.',
+      'Game complete: no piles to play',
+      'With no piles there is no legal first move, so the First Player loses on the spot and the Second Player wins by default.',
       { n, xorSum: 0 },
       -1,
       -1,
@@ -140,8 +140,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       5,
-      `XOR pile[${i}] (${piles[i]}) into running Nim-sum`,
-      `${prevXor} ^ ${piles[i]} = ${currentXorSum} (binary: 0b${currentXorSum.toString(2)}).`,
+      `XOR in pile ${i} of size ${piles[i]}`,
+      `We fold pile ${i} into the running total: ${prevXor} ^ ${piles[i]} = ${currentXorSum} (binary 0b${currentXorSum.toString(2)}). Each bit of the Nim-sum tracks whether that power of two appears an odd number of times across the piles.`,
       { i, pileSize: piles[i], prevXorSum: prevXor, xorSum: currentXorSum }
     );
 
@@ -151,16 +151,16 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   addStep(
     7,
-    `Final Nim-sum XOR = ${currentXorSum}`,
-    `By the Sprague-Grundy theorem, if the Nim-sum (bitwise XOR of all pile sizes) is 0, the game is in a P-position (Second Player wins). If Nim-sum > 0, the game is in an N-position (First Player wins).`,
+    `Nim-sum settles at ${currentXorSum}`,
+    `This one number decides the whole game: a Nim-sum of 0 means every available move hands the opponent a winning position, while a non-zero sum means we can strike first and win.`,
     { xorSum: currentXorSum }
   );
 
   if (currentXorSum === 0) {
     addStep(
       8,
-      'XOR Sum is 0: P-Position (Second Player Wins)',
-      'No winning move exists for the First Player. Any valid move made by the First Player will transition the Nim-sum to a non-zero value, allowing Second Player to respond and force a win.',
+      'Nim-sum is 0: Second Player Wins',
+      'Whatever the First Player does, the Nim-sum turns non-zero, and the Second Player can always answer with a move that resets it to 0. Trapped in that cycle, the First Player eventually runs out of moves.',
       { xorSum: 0, winner: 'Second Player' },
       -1,
       -1,
@@ -172,8 +172,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   // Find winning move for First Player
   addStep(
     10,
-    `XOR Sum is ${currentXorSum} ≠ 0: N-Position (First Player Wins)`,
-    'Searching for a pile i such that (pile[i] ^ xorSum) < pile[i] to execute a winning move that reduces the Nim-sum to 0 for the opponent.',
+    `Nim-sum ${currentXorSum} ≠ 0: First Player wins`,
+    `A non-zero Nim-sum guarantees at least one pile can be shrunk so that everything XORs back to 0. We now search for that pile to make the win concrete.`,
     { xorSum: currentXorSum, winner: 'First Player' },
     -1,
     -1,
@@ -188,10 +188,10 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       12,
-      `Test pile[${i}] (${piles[i]}): targetSize = ${piles[i]} ^ ${currentXorSum} = ${targetSize}`,
+      `Test pile ${i}: target size ${targetSize}`,
       targetSize < piles[i]
-        ? `Target size ${targetSize} < current pile size ${piles[i]}. Winning move found!`
-        : `Target size ${targetSize} >= current pile size ${piles[i]}. Cannot reduce this pile.`,
+        ? `XOR-ing pile ${i}'s size ${piles[i]} with the Nim-sum gives ${targetSize}, which is smaller — so we can legally shrink this pile down to it. That is our winning move.`
+        : `XOR-ing ${piles[i]} with the Nim-sum gives ${targetSize}, which is not smaller than the pile, and Nim only lets us remove objects. We move on to the next pile.`,
       { i, pileSize: piles[i], targetSize, isWinningMove: targetSize < piles[i] },
       -1,
       -1,
@@ -205,8 +205,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         13,
-        `Winning Move: Reduce pile ${i} from ${piles[i]} to ${targetSize} (remove ${removeAmount} objects)`,
-        `By making this move, the new XOR sum of all piles becomes 0, passing a losing (P) position to the Second Player.`,
+        `Shrink pile ${i} from ${piles[i]} to ${targetSize}`,
+        `Removing ${removeAmount} objects leaves the piles XOR-ing to exactly 0, handing the opponent the losing position. From here we simply keep restoring a zero Nim-sum after each of their moves until they have nothing left.`,
         {
           winningPile: i,
           originalSize: piles[i],
@@ -234,7 +234,7 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   category: 'game_theory',
   difficulty: 'Medium',
   description:
-    'Nim Game evaluates impartial mathematical games using the Sprague-Grundy theorem. Computes the Nim-sum (bitwise XOR sum of all pile sizes) in O(N) linear time to determine whether the game is in an N-position (First Player forced win) or P-position (Second Player forced win) and calculates the optimal move.',
+    'Nim is the classic impartial game solved by the Sprague-Grundy theorem. Computing the Nim-sum — the bitwise XOR of all pile sizes — instantly reveals whether the position is a forced win for the First Player (non-zero) or the Second Player (zero), and pinpoints the optimal opening move.',
   constraints: [
     '1 <= piles.length <= 10^4',
     '0 <= piles[i] <= 10^9',
@@ -258,6 +258,10 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'We make one pass over the piles to XOR their sizes together, then at most one more pass to find a pile whose size shrinks when XOR-ed with the Nim-sum. Both passes do constant work per pile, so the total is linear in the number of piles — O(n). Notably, no game tree is ever explored; the XOR identity replaces all of that search.',
+    space: 'All we carry is a single running XOR value and a couple of loop variables, so extra memory stays constant at O(1) no matter how many piles there are.',
+  },
   defaultInput: DEFAULT_NIM_INPUT,
   generateSteps: generateNimGameSteps,
 };

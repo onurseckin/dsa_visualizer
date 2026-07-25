@@ -117,13 +117,13 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   addStep(
     19,
-    "Initialize Kruskal's Minimum Spanning Tree (MST) Algorithm",
-    'Preparing Disjoint Set Union (DSU) parent pointers and sorting edge list by non-decreasing weight to enable greedy edge selection.',
+    "Start Kruskal's MST algorithm",
+    'We want the cheapest set of edges that still connects every node. The plan: sort the edges by weight, then greedily keep each one that joins two components that are not yet connected.',
     { nodeCount: nodes.length, edgeCount: edges.length }
   );
 
   if (nodes.length === 0) {
-    addStep(28, 'Kruskal MST complete', 'Graph has 0 nodes.', { mstEdgeCount: 0 });
+    addStep(28, "Kruskal's MST complete", 'With no nodes there is nothing to connect, so the spanning tree is empty.', { mstEdgeCount: 0 });
     return steps;
   }
 
@@ -134,8 +134,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   addStep(
     20,
-    'Initialize DSU parent array (each node is its own parent set)',
-    'Set parent[v] = v for all vertices so that every node starts in its own singleton connected component.',
+    'Make each node its own set',
+    "We give every node parent[v] = v, so each one starts as its own tiny component. From here, union-find can tell us instantly whether an edge's endpoints are already connected.",
     { dsuInitialized: true }
   );
 
@@ -174,10 +174,10 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   addStep(
     21,
-    `Sort all ${sortedEdges.length} edges in non-decreasing order of weight`,
-    `Greedy Choice Strategy: Processing edges in ascending weight order ([${sortedEdges
+    `Sort the ${sortedEdges.length} edges by weight`,
+    `Cheapest-first is the whole greedy idea: [${sortedEdges
       .map((e) => `${e.from}-${e.to}(w=${e.weight ?? 1})`)
-      .join(', ')}]) ensures that the lightest edge bridging two disconnected components is always prioritized.`,
+      .join(', ')}]. The lightest edge that bridges two separate components is always safe to keep, so we want to meet those edges first.`,
     { sortedEdgeCount: sortedEdges.length }
   );
 
@@ -204,8 +204,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
     addStep(
       24,
-      `Examine edge (${edge.from} - ${edge.to}, weight ${edge.weight ?? 1})`,
-      `Finding DSU component roots: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}' to test for cycle creation.`,
+      `Examine edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1})`,
+      `Before deciding, we ask union-find which component each endpoint lives in: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}'. Different roots mean this edge connects new territory.`,
       {
         from: edge.from,
         to: edge.to,
@@ -228,8 +228,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
       addStep(
         26,
-        `Union successful! Add edge (${edge.from} - ${edge.to}) to MST`,
-        `Roots '${rootU}' and '${rootV}' are distinct (find('${edge.from}') != find('${edge.to}')). Edge (${edge.from} - ${edge.to}) bridges two separate components without creating a cycle. Set parent['${rootU}'] = '${rootV}'.`,
+        `Add edge ${edge.from} - ${edge.to} to the MST`,
+        `'${edge.from}' and '${edge.to}' live in different components ('${rootU}' vs '${rootV}'), so this edge connects them without closing a loop. We keep it and merge the two sets by pointing '${rootU}' at '${rootV}'.`,
         {
           from: edge.from,
           to: edge.to,
@@ -241,8 +241,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     } else {
       addStep(
         25,
-        `Union rejected! Edge (${edge.from} - ${edge.to}) forms a cycle`,
-        `Both nodes '${edge.from}' and '${edge.to}' already share DSU root '${rootU}'. Adding this edge would form a cycle, so it is safely skipped.`,
+        `Skip edge ${edge.from} - ${edge.to} (cycle)`,
+        `Both '${edge.from}' and '${edge.to}' already trace back to the same root '${rootU}', so they're connected already. Keeping this edge would only close a loop — and a tree never has one.`,
         {
           from: edge.from,
           to: edge.to,
@@ -261,8 +261,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   addStep(
     28,
-    `Kruskal's MST complete. Total MST weight = ${totalMstWeight}`,
-    `Successfully identified Minimum Spanning Tree containing ${mstEdges.length} edges with minimum cumulative weight of ${totalMstWeight}.`,
+    `Kruskal's MST complete: total weight ${totalMstWeight}`,
+    `We kept ${mstEdges.length} edges that connect every node for a total weight of ${totalMstWeight}, and no cheaper spanning tree exists. Fittingly, the up-front sort was the most expensive part — O(E log E) overall.`,
     {
       totalEdgesInMst: mstEdges.length,
       totalMstWeight,
@@ -278,7 +278,7 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   category: 'graph_spanning_trees',
   difficulty: 'Medium',
   description:
-    'Kruskal\'s algorithm computes the Minimum Spanning Tree (MST) of a connected, undirected weighted graph. An MST is a subset of edges that connects all V vertices together without any cycles while minimizing the total sum of edge weights. The algorithm operates greedily: it sorts all E graph edges in non-decreasing order of weight and iterates through them. For each edge (u, v), a Disjoint Set Union (DSU / Union-Find) data structure with path compression checks if u and v belong to different connected components (find(u) != find(v)). If they belong to distinct sets, the edge is accepted into the MST and the sets are merged (union(u, v)); otherwise, the edge is rejected to prevent a cycle.',
+    "Kruskal's algorithm builds the Minimum Spanning Tree (MST) of a connected, undirected weighted graph — the cheapest possible set of edges that connects all V vertices without any cycles. It works greedily: sort every edge by weight, then walk the list from lightest to heaviest. For each edge (u, v), a union-find (DSU) structure with path compression checks whether u and v already belong to the same component. If they don't, the edge is kept and the two components are merged; if they do, the edge would close a cycle, so it is skipped.",
   constraints: [
     '1 <= Vertices V <= 10^4',
     '0 <= Edges E <= 10^5',
@@ -307,6 +307,10 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
     worst: 'O(E log E)',
   },
   spaceComplexity: 'O(V + E)',
+  complexityAnalysis: {
+    time: 'Sorting the edge list up front dominates everything: O(E log E). After that we walk the sorted edges once, and each union-find query runs in near-constant amortized time thanks to path compression, so the scan adds only about O(E) more. Best and worst case match because the sort always happens in full.',
+    space: 'Union-find stores one parent pointer per vertex, and we keep a sorted copy of the edge list alongside the growing MST, so extra memory is O(V + E).',
+  },
   defaultInput: DEFAULT_KRUSKAL_INPUT,
   generateSteps: generateKruskalSteps,
 };

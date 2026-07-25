@@ -64,15 +64,15 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    'Initialize Two Sum',
-    `Rather than scanning all pairs in O(n²) brute-force time, we use a single-pass Hash Map to find two elements in [${input.nums.join(', ')}] summing to target = ${target}.`,
+    'Start the search',
+    `We want two numbers in [${input.nums.join(', ')}] that add up to ${target}. Rather than testing every pair, we'll walk the array once and remember each value we pass.`,
     { target, length: n }
   );
 
   addStep(
     2,
-    'Initialize Hash Map',
-    'Created an empty hash map to store seen values and their indices {value: index}, enabling O(1) complement lookup during traversal.',
+    'Create an empty map',
+    `This map will remember every value we see and where we saw it, so later elements can ask "has my partner already shown up?" with a single lookup.`,
     { target }
   );
 
@@ -84,8 +84,8 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       3,
-      `Loop index i = ${i} (arr[${i}] = ${currentVal})`,
-      `Inspecting element nums[${i}] = ${currentVal}. We calculate what value is needed to reach target sum ${target}.`,
+      `Visit nums[${i}] = ${currentVal}`,
+      `We're standing at index ${i} looking at ${currentVal}, asking the same question we ask everywhere: which number would pair with this one to reach ${target}?`,
       { i, 'nums[i]': currentVal, target }
     );
 
@@ -93,8 +93,8 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       4,
-      `Calculate complement = target - nums[${i}]`,
-      `Complement equation: ${target} - ${currentVal} = ${complement}. If ${complement} was previously inserted in our hash map, a valid pair exists.`,
+      `Compute the complement ${complement}`,
+      `${target} minus ${currentVal} leaves ${complement} — that's the exact partner ${currentVal} needs. If we've already walked past a ${complement}, this pair is our answer.`,
       { i, 'nums[i]': currentVal, complement, target }
     );
 
@@ -102,10 +102,10 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       5,
-      `Check if hash map contains key '${complement}'`,
+      `Look up ${complement} in the map`,
       hasComplement
-        ? `Complement ${complement} is present in hash map at index ${hashMap[String(complement)]}! Pair found.`
-        : `Complement ${complement} has not been seen yet. We must store current element ${currentVal} for subsequent lookups.`,
+        ? `We have seen ${complement} before — it's sitting at index ${hashMap[String(complement)]}. Together with ${currentVal} it completes the target sum, so the search is over.`
+        : `We haven't met ${complement} yet, so no partner for ${currentVal} exists behind us. We'll remember ${currentVal} and keep walking.`,
       { i, complement, hasComplement }
     );
 
@@ -119,7 +119,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
       addStep(
         6,
         `Return indices [${prevIdx}, ${i}]`,
-        `Found pair nums[${prevIdx}] (${elements[prevIdx].value}) + nums[${i}] (${currentVal}) = ${target}. Algorithm terminates in O(n) time and O(n) space.`,
+        `nums[${prevIdx}] and nums[${i}] give us ${elements[prevIdx].value} + ${currentVal} = ${target}, exactly what we wanted. One pass and a map of what we'd seen was all it took — linear time overall.`,
         { resultIdx1: prevIdx, resultIdx2: i, target }
       );
       return steps;
@@ -132,16 +132,16 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       7,
-      `Store map[${currentVal}] = ${i}`,
-      `Recorded hash_map[${currentVal}] = ${i} so future elements needing complement ${currentVal} can find it in O(1) time.`,
+      `Remember ${currentVal} at index ${i}`,
+      `We store ${currentVal} → ${i} in the map, so if a later number needs ${currentVal} as its partner, it can find it instantly instead of rescanning the array.`,
       { i, 'nums[i]': currentVal }
     );
   }
 
   addStep(
     8,
-    'Return empty array []',
-    `Finished array traversal without finding any two elements summing to target ${target}. Return empty array.`,
+    'Return an empty array',
+    `We walked the whole array and no value ever found its partner for ${target}, so we report that no valid pair exists.`,
     { target }
   );
 
@@ -154,7 +154,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target using a Hash Map for O(1) complement lookup.',
+    "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. A hash map of values we've already seen lets each element check for its partner in constant time.",
   constraints: [
     '2 <= nums.length <= 10^4',
     '-10^9 <= nums[i] <= 10^9',
@@ -185,6 +185,10 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(n)',
+  complexityAnalysis: {
+    time: 'We walk the array once, and each hash-map lookup and insert costs O(1) on average, so the total work grows linearly with the number of elements — O(n). Even in the worst case, where no pair exists, we still make just a single pass.',
+    space: 'The hash map stores up to one entry per element before a pair is found, so extra memory grows linearly with the input — O(n).',
+  },
   defaultInput: DEFAULT_TWO_SUM_INPUT,
   generateSteps: generateTwoSumSteps,
 };

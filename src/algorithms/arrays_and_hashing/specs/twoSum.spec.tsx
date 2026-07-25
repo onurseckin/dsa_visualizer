@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { DEFAULT_TWO_SUM_INPUT, generateTwoSumSteps, twoSum } from '../twoSum';
@@ -21,6 +21,9 @@ describe('TwoSum React Component Spec', () => {
     );
 
     expect(screen.getByText('Two Sum')).toBeInTheDocument();
+
+    // Problem details are collapsed by default; expand them to reveal the description.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getByText(/Given an array of integers nums and an integer target/i)
     ).toBeInTheDocument();

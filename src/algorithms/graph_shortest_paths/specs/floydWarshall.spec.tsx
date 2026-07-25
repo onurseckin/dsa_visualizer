@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../floydWarshall';
 
 describe('floydWarshall React component spec', () => {
-  it('renders algorithm title and description header in MainLayout', () => {
+  it('renders algorithm title and expands the description in MainLayout', () => {
     const steps = generateFloydWarshallSteps(DEFAULT_FLOYD_WARSHALL_INPUT);
     const noop = vi.fn();
 
@@ -27,6 +27,12 @@ describe('floydWarshall React component spec', () => {
 
     expect(
       screen.getByText('Floyd-Warshall All-Pairs Shortest Path')
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+
+    expect(
+      screen.getByText(/shortest path between every pair of vertices in a weighted directed graph/i)
     ).toBeInTheDocument();
   });
 
@@ -47,8 +53,9 @@ describe('floydWarshall React component spec', () => {
       />
     );
 
-    expect(
-      screen.getByText(/Auxiliary Helper Data Structures/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    // The all-pairs matrix flattens into the Distances row of the working-data card.
+    expect(screen.getAllByText('Distances')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('State')[0]).toBeInTheDocument();
   });
 });

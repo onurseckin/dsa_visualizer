@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -25,8 +25,11 @@ describe('ValidParentheses React Component Spec', () => {
     );
 
     expect(screen.getByText('Valid Parentheses')).toBeInTheDocument();
+
+    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Determine if an input string of brackets/i)
+      screen.getAllByText(/Determine if an input string of brackets/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -48,6 +51,8 @@ describe('ValidParentheses React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Call Stack \(LIFO\)/i)).toBeInTheDocument();
+    // Pushed brackets land in the AuxiliaryPanel's "Stack" row of the "Working data" card.
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getAllByText('Stack')[0]).toBeInTheDocument();
   });
 });

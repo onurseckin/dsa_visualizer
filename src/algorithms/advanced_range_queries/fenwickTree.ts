@@ -58,8 +58,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
       stepIndex: 0,
       codeLine: 2,
       explanation: {
-        what: 'Initialize Fenwick Tree',
-        why: 'Input array is empty. No Fenwick tree constructed.',
+        what: 'Check the input array',
+        why: 'The input array is empty, so there is nothing to build — we stop right away.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -130,8 +130,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
   const updateFenwick = (idx: number, delta: number) => {
     addStep(
       5,
-      `Start update at index ${idx} with delta = ${delta}`,
-      `Propagate update upward through tree indices using i += i & -i.`,
+      `Add ${delta} at index ${idx}`,
+      `We only need to touch the cells responsible for position ${idx}: starting here, we climb upward with i += i & -i, updating each range that covers it.`,
       { index: idx, delta },
       getElements(idx, 'compare', { [idx]: ['idx'] })
     );
@@ -143,8 +143,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
       addStep(
         8,
-        `Update tree[${i}] += ${delta} -> new val = ${tree[i]}`,
-        `Lowbit for index ${i} is ${lowbit} (bin: 0b${lowbit.toString(2)}). Next index to update is ${i} + ${lowbit} = ${i + lowbit}.`,
+        `Update tree[${i}] to ${tree[i]}`,
+        `Cell ${i} covers a block that includes our position, so we add ${delta} to it. Its lowbit is ${lowbit}, which sends us up to the next responsible cell at ${i} + ${lowbit} = ${i + lowbit}.`,
         { i, lowbit, delta, 'tree[i]': tree[i] },
         getElements(i, 'swap', { [i]: ['updated'] })
       );
@@ -160,8 +160,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
     addStep(
       11,
-      `Start prefix sum query for index 1..${idx}`,
-      `Accumulate tree values downwards using i -= i & -i.`,
+      `Query the prefix sum up to ${idx}`,
+      `We want the total of positions 1..${idx}, so we hop downward with i -= i & -i, collecting each cell's stored block sum along the way.`,
       { index: idx, sum },
       getElements(idx, 'compare', { [idx]: ['idx'] })
     );
@@ -172,8 +172,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
       addStep(
         15,
-        `Add tree[${i}] (${tree[i]}) to prefix sum -> current sum = ${sum}`,
-        `Lowbit for index ${i} is ${lowbit}. Next tree index to query will be ${i} - ${lowbit} = ${i - lowbit}.`,
+        `Add tree[${i}] = ${tree[i]} to the sum`,
+        `Cell ${i} holds the sum of a block ending at position ${i}, so we fold it in and our running total becomes ${sum}. Stripping the lowbit ${lowbit} jumps us to the previous block at index ${i - lowbit}.`,
         { i, lowbit, 'tree[i]': tree[i], sum },
         getElements(i, 'active', { [i]: ['contrib'] })
       );
@@ -186,8 +186,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
   addStep(
     3,
-    `Initialize Fenwick Tree of size ${n}`,
-    `Create binary indexed tree array of length ${n + 1} initialized to 0.`,
+    `Create an empty tree of size ${n}`,
+    `We start with ${n + 1} zeroed cells (slot 0 stays unused) and will build the structure by feeding in each array value as a point update.`,
     { n },
     getElements()
   );
@@ -202,8 +202,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
   addStep(
     3,
-    'Fenwick Tree construction complete',
-    `Tree is fully built from initial array [${input.array.join(', ')}].`,
+    'Finish building the tree',
+    `Every value from [${input.array.join(', ')}] has been folded in, so each cell now stores the sum of exactly the block it is responsible for.`,
     { n },
     getElements()
   );
@@ -214,8 +214,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
     if (op.type === 'update' && op.index !== undefined && op.delta !== undefined) {
       addStep(
         5,
-        `Execute Operation: Update index ${op.index} by delta ${op.delta}`,
-        `Apply point update of ${op.delta} to position ${op.index}.`,
+        `Run update at index ${op.index}`,
+        `The operation asks us to add ${op.delta} at position ${op.index}, so we let the same upward climb ripple the change through every covering cell.`,
         { op: 'update', index: op.index, delta: op.delta },
         getElements(op.index, 'compare', { [op.index]: ['update'] })
       );
@@ -223,8 +223,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
     } else if (op.type === 'query' && op.left !== undefined && op.right !== undefined) {
       addStep(
         19,
-        `Execute Operation: Range Query [${op.left}..${op.right}]`,
-        `Calculate range sum using prefixQuery(${op.right}) - prefixQuery(${op.left - 1}).`,
+        `Run range query [${op.left}..${op.right}]`,
+        `A Fenwick tree only knows prefix sums, so we compute the range as prefixQuery(${op.right}) minus prefixQuery(${op.left - 1}) — everything before position ${op.left} cancels out.`,
         { op: 'query', left: op.left, right: op.right },
         getElements()
       );
@@ -235,8 +235,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
       addStep(
         20,
-        `Range Query [${op.left}..${op.right}] Result = ${rangeSum}`,
-        `prefixQuery(${op.right}) [${sumRight}] - prefixQuery(${op.left - 1}) [${sumLeftMinus1}] = ${rangeSum}.`,
+        `Range query [${op.left}..${op.right}] equals ${rangeSum}`,
+        `Subtracting the two prefix sums leaves exactly our window: ${sumRight} - ${sumLeftMinus1} = ${rangeSum}.`,
         { left: op.left, right: op.right, sumRight, sumLeftMinus1, rangeSum },
         getElements()
       );
@@ -245,8 +245,8 @@ export const generateFenwickTreeSteps = (input: FenwickTreeInput): AlgorithmStep
 
   addStep(
     20,
-    'All Fenwick Tree operations complete',
-    'Finished processing range queries and point updates.',
+    'All operations complete',
+    'We handled every update and query with just a handful of bit-hops each — that O(log n) cost per operation is the whole appeal of the Fenwick tree.',
     { n },
     getElements()
   );
@@ -260,7 +260,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   category: 'advanced_range_queries',
   difficulty: 'Medium',
   description:
-    'A Binary Indexed Tree (Fenwick Tree) is a compact array-based data structure that supports logarithmic time O(log N) point updates and range sum queries. Each index i covers a sub-interval of length equal to its least significant set bit (i & -i).',
+    'A Binary Indexed Tree (Fenwick Tree) is a compact array-based structure that answers prefix-sum queries and applies point updates in O(log N) time. Each index i is responsible for a block of elements whose length equals its lowest set bit (i & -i), so updates and queries move through the array in short bit-arithmetic hops.',
   constraints: [
     '1 <= N <= 10^5',
     '1 <= Q <= 10^5',
@@ -280,6 +280,10 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
     worst: 'O(log n)',
   },
   spaceComplexity: 'O(n)',
+  complexityAnalysis: {
+    time: 'Every update and prefix query walks the implicit tree by repeatedly adding or stripping the lowest set bit of the index, and an index below n has at most log n set bits to hop through. So each operation touches O(log n) cells regardless of the data — best and worst case are identical. Building the tree by inserting all n values as point updates costs O(n log n) up front.',
+    space: 'The whole structure is one flat array with a single cell per element (plus an unused slot 0), so extra memory grows linearly with the input — O(n).',
+  },
   defaultInput: DEFAULT_FENWICK_INPUT,
   generateSteps: generateFenwickTreeSteps,
 };

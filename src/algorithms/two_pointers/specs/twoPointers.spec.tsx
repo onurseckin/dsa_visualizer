@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import { generateTwoPointersSteps, twoPointers } from '../twoPointers';
@@ -21,8 +21,11 @@ describe('TwoPointers React Component Spec', () => {
     );
 
     expect(screen.getByText('Two Pointers (Subarray Sum)')).toBeInTheDocument();
+
+    // The problem description is collapsed by default; expand it first.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Finds a contiguous subarray whose elements sum up to a target value/i)
+      screen.getAllByText(/Finds a contiguous subarray that sums to a target value/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -43,6 +46,6 @@ describe('TwoPointers React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Found target sum!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Return the window \[1\.\.3\]/i)).toBeInTheDocument();
   });
 });

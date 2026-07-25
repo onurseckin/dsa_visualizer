@@ -91,16 +91,18 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    'Initialize Sieve of Eratosthenes',
-    `Find all prime numbers up to limit n = ${limit}.`,
+    `Start the sieve up to ${limit}`,
+    `We want every prime up to ${limit}. Rather than testing each number for primality one by one, we will cross out composites in bulk and keep whatever survives.`,
     { limit },
     []
   );
 
   addStep(
     2,
-    `Check base case limit < 2`,
-    limit < 2 ? `limit = ${limit} is less than 2.` : `limit = ${limit} >= 2, proceed with algorithm.`,
+    `Check whether limit is below 2`,
+    limit < 2
+      ? `The smallest prime is 2, and our limit is only ${limit}, so there is nothing to search for.`
+      : `The smallest prime is 2 and our limit ${limit} reaches at least that far, so the search is worth running.`,
     { limit },
     []
   );
@@ -108,8 +110,8 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   if (limit < 2) {
     addStep(
       3,
-      'Sieve complete (limit < 2)',
-      `No prime numbers exist for limit ${limit}. Return empty list.`,
+      'Return an empty list',
+      `No number below 2 is prime, so with limit ${limit} we simply return an empty result.`,
       { limit, primeCount: 0 },
       []
     );
@@ -118,24 +120,24 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
   addStep(
     5,
-    'Initialize boolean array is_prime',
-    `Create boolean array of size ${limit + 1} with all elements set to True.`,
+    `Assume all ${limit + 1} numbers are prime`,
+    `We start optimistic: every entry in the boolean array is marked True. The sieve's whole job is to knock out the composites, one prime at a time.`,
     { limit },
     []
   );
 
   addStep(
     6,
-    'Mark 0 and 1 as non-prime',
-    '0 and 1 are defined as neither prime nor composite, so set is_prime[0] = False and is_prime[1] = False.',
+    'Rule out 0 and 1',
+    'Neither 0 nor 1 counts as prime by definition, so we flip both to False before the real work begins.',
     { limit, 'is_prime[0]': false, 'is_prime[1]': false },
     []
   );
 
   addStep(
     8,
-    'Initialize pointer p = 2',
-    'Start testing prime candidates at p = 2 (smallest prime).',
+    'Start scanning at p = 2',
+    'We begin with the smallest prime, 2. Each candidate that survives to this point will get to eliminate its own multiples.',
     { p: 2, limit },
     []
   );
@@ -145,17 +147,17 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
     addStep(
       9,
-      `Check loop condition (p * p <= limit: ${p * p} <= ${limit})`,
-      `p = ${p} is within square root limit boundary. Continue sieve loop.`,
+      `Confirm p² stays in range (${p * p} <= ${limit})`,
+      `Every composite up to ${limit} has a factor no larger than its square root, so we only need base primes while p² is in range — and ${p}² = ${p * p} still is.`,
       { p, 'p*p': p * p, limit }
     );
 
     addStep(
       10,
-      `Check if p = ${p} is prime`,
+      `Ask whether ${p} is still prime`,
       isPrime[p]
-        ? `is_prime[${p}] is True. ${p} is prime; eliminate all of its multiples starting at ${p * p}.`
-        : `is_prime[${p}] is False. ${p} is composite; skip to next candidate.`,
+        ? `Nothing smaller has crossed ${p} out, so it must be prime — any composite this size would already have been hit by a smaller factor. Time to eliminate its multiples, starting at ${p * p}.`
+        : `${p} was already crossed out by a smaller prime factor, so we skip it — its multiples were handled long ago.`,
       { p, 'is_prime[p]': isPrime[p] }
     );
 
@@ -171,10 +173,10 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
         addStep(
           12,
-          `Mark multiple i = ${i} as composite`,
+          `Cross out ${i} as composite`,
           wasPrime
-            ? `${i} is a composite multiple of prime ${p} (${p} x ${i / p}). Set is_prime[${i}] = False. Multiples smaller than p*p were already marked by smaller prime factors.`
-            : `${i} was already marked composite by a smaller prime factor.`,
+            ? `${i} is ${p} × ${i / p}, so it cannot be prime and we mark it False. We started crossing at ${p * p} because smaller multiples of ${p} already fell to smaller primes.`
+            : `${i} was already crossed out by a smaller prime factor, so this mark changes nothing — we just move along.`,
           { p, i, 'is_prime[i]': false }
         );
 
@@ -187,23 +189,23 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
     addStep(
       13,
-      `Increment p (p = ${p + 1})`,
-      `Move to next candidate number ${p + 1}.`,
+      `Move on to p = ${p + 1}`,
+      `We are done with ${p}, so we advance to the next candidate and let the array tell us whether it survived.`,
       { p: p + 1 }
     );
   }
 
   addStep(
     9,
-    `Check loop condition (p * p > limit)`,
-    `Outer loop terminates because p * p exceeds ${limit}. All remaining True entries in the array are guaranteed to be prime.`,
+    `Stop the loop: p² exceeds ${limit}`,
+    `Once p² passes ${limit}, any number still unmarked must be prime — a composite that small would already have been caught by one of its smaller factors.`,
     { limit }
   );
 
   addStep(
     15,
-    'Collect prime numbers',
-    'Iterate through is_prime array from index 2 to limit and collect indices with True.',
+    'Collect the surviving numbers',
+    `We sweep from 2 to ${limit} and gather every index still marked True — those are exactly the primes.`,
     { limit }
   );
 
@@ -217,8 +219,8 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
   addStep(
     20,
-    'Return prime numbers list',
-    `Identified ${primes.length} prime numbers up to ${limit}: ${primes.join(', ')}.`,
+    'Return the list of primes',
+    `We found ${primes.length} primes up to ${limit}: ${primes.join(', ')}. All that crossing-out cost only about n log log n operations — remarkably close to linear.`,
     { limit, primeCount: primes.length, primes: primes.join(', ') },
     primes
   );
@@ -232,7 +234,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   category: 'math_and_number_theory',
   difficulty: 'Easy',
   description:
-    'Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a specified limit. It iteratively marks the multiples of each discovered prime as composite, starting from p*p. It operates in sub-linear O(N log log N) time.',
+    'The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit. Instead of testing numbers individually, it crosses out the multiples of each discovered prime (starting from p²), leaving only primes standing — in nearly linear O(n log log n) time.',
   constraints: [
     '0 <= limit <= 10^5',
   ],
@@ -255,6 +257,10 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
     worst: 'O(n log log n)',
   },
   spaceComplexity: 'O(n)',
+  complexityAnalysis: {
+    time: 'Crossing out the multiples of a prime p costs about n/p work, so the total is n/2 + n/3 + n/5 + … taken over only the primes, and that sum famously grows as n log log n — barely worse than a single linear pass. We also stop taking new base primes once p² exceeds n, so most numbers are never used as a base at all; they just get crossed out once or twice.',
+    space: 'The boolean array keeps one flag per number from 0 to n, so memory grows linearly with the limit — O(n). The final list of primes is smaller and fits within that same bound.',
+  },
   defaultInput: DEFAULT_SIEVE_INPUT,
   generateSteps: generateSieveSteps,
 };

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -25,6 +25,9 @@ describe('NQueens React Component Spec', () => {
     );
 
     expect(screen.getByText('N-Queens Backtracking')).toBeInTheDocument();
+
+    // Problem details are collapsed by default; expand them to reveal the description.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getByText(/placing N chess queens on an N×N chessboard/i)
     ).toBeInTheDocument();
@@ -47,7 +50,11 @@ describe('NQueens React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Place Queen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText(/Place a queen/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    // Backtracking state (n, activeQueens, solutionsFound) renders as chips in the State row.
+    expect(screen.getByText('activeQueens')).toBeInTheDocument();
+    // solutionsFound also appears in the variables readout, so scope to the first match.
+    expect(screen.getAllByText('solutionsFound')[0]).toBeInTheDocument();
   });
 });

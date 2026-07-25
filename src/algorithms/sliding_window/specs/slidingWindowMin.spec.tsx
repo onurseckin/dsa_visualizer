@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -25,8 +25,11 @@ describe('SlidingWindowMin React Component Spec', () => {
     );
 
     expect(screen.getByText('Sliding Window Minimum')).toBeInTheDocument();
+
+    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Find the minimum element in every contiguous sliding window/i)
+      screen.getAllByText(/Finds the minimum element in every contiguous sliding window/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -47,6 +50,8 @@ describe('SlidingWindowMin React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Queue \(FIFO\)/i)).toBeInTheDocument();
+    // The monotonic deque lands in the AuxiliaryPanel's "Queue" row of the "Working data" card.
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getAllByText('Queue')[0]).toBeInTheDocument();
   });
 });

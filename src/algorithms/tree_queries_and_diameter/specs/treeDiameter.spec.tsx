@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -27,6 +27,9 @@ describe('TreeDiameter React Component Spec', () => {
     expect(
       screen.getByText('Tree Diameter (2-DFS Algorithm)')
     ).toBeInTheDocument();
+
+    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
       screen.getAllByText(/longest simple path/i)[0]
     ).toBeInTheDocument();
@@ -50,6 +53,6 @@ describe('TreeDiameter React Component Spec', () => {
     );
 
     expect(screen.getAllByText(/DFS 1/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
   });
 });

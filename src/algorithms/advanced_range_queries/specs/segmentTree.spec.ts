@@ -23,7 +23,7 @@ describe('segmentTree algorithm spec', () => {
     expect(snapshot.nodes).toBeDefined();
 
     const resultSteps = steps.filter((s) =>
-      s.explanation.what.includes('Range Query [1..3] Result')
+      s.explanation.what.includes('Range query [1..3] equals')
     );
     expect(resultSteps.length).toBe(2);
     expect(resultSteps[0].variables.totalSum).toBe(15);

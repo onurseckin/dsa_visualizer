@@ -46,7 +46,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     1,
     'Initialize Bubble Sort',
-    `Bubble Sort iterates through an array of ${n} elements, repeatedly swapping adjacent elements out of order until the largest unsorted element bubbles to the right end on each pass.`,
+    `We'll sweep across these ${n} values again and again, nudging out-of-order neighbours apart. Each sweep floats the biggest remaining value to the right end, like a bubble rising.`,
     { n }
   );
 
@@ -57,7 +57,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       7,
       'Bubble Sort complete',
-      'Array of size <= 1 is trivially sorted.',
+      'An array this small has nothing out of order, so we are done before we start.',
       { n }
     );
     return steps;
@@ -65,16 +65,16 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
   addStep(
     2,
-    `Set array length n = ${n}`,
-    `Array length n = ${n} implies a maximum of ${n - 1} passes are required to sort the array.`,
+    `Note the length n = ${n}`,
+    `Knowing there are ${n} elements tells us at most ${n - 1} passes will be needed — after that many sweeps, every value has had the chance to settle into place.`,
     { n }
   );
 
   for (let i = 0; i < n - 1; i++) {
     addStep(
       3,
-      `Start pass i = ${i}`,
-      `Pass ${i + 1} of ${n - 1}: Comparing adjacent elements from index 0 up to ${n - 2 - i}. The largest unsorted element will settle at index ${n - 1 - i}.`,
+      `Begin pass ${i + 1} of ${n - 1}`,
+      `We compare neighbours from index 0 up to ${n - 2 - i}; everything past that is already settled. By the end of this pass, the largest remaining value will have risen to index ${n - 1 - i}.`,
       { i, n }
     );
 
@@ -90,10 +90,10 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
       addStep(
         5,
-        `Compare arr[${j}] (${valJ}) and arr[${j + 1}] (${valJNext})`,
+        `Compare ${valJ} with ${valJNext}`,
         valJ > valJNext
-          ? `Inversion detected: ${valJ} > ${valJNext}. To maintain non-decreasing order, swap elements at indices ${j} and ${j + 1}.`
-          : `Correct relative order: ${valJ} <= ${valJNext}. No swap needed; proceed to next adjacent pair.`,
+          ? `${valJ} is bigger than its neighbour ${valJNext}, so this pair is out of order — the larger value belongs further right, and a swap will move it there.`
+          : `${valJ} is not bigger than ${valJNext}, so this pair already sits in the right order and we simply slide on to the next one.`,
         { i, j, 'arr[j]': valJ, 'arr[j+1]': valJNext }
       );
 
@@ -107,8 +107,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
         addStep(
           6,
-          `Swap arr[${j}] and arr[${j + 1}]`,
-          `Swapped values ${valJ} and ${valJNext}, advancing the larger element ${valJ} toward the right boundary.`,
+          `Swap ${valJ} and ${valJNext}`,
+          `With the pair flipped, ${valJ} moves one seat closer to the right end, continuing its rise toward where it finally belongs.`,
           { i, j, 'arr[j]': workingElements[j].value, 'arr[j+1]': workingElements[j + 1].value }
         );
       }
@@ -125,8 +125,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     workingElements[sortedIdx].state = 'sorted';
     addStep(
       3,
-      `Element at index ${sortedIdx} (${workingElements[sortedIdx].value}) is now sorted`,
-      `Pass Invariant: Pass ${i + 1} completed. The largest unsorted value (${workingElements[sortedIdx].value}) has bubbled up to its final sorted position at index ${sortedIdx}.`,
+      `Lock in index ${sortedIdx}`,
+      `Pass ${i + 1} is done, and ${workingElements[sortedIdx].value} has bubbled all the way to index ${sortedIdx}. Nothing bigger remains to its left, so it never has to move again.`,
       { i, sortedIdx, sortedValue: workingElements[sortedIdx].value }
     );
   }
@@ -140,7 +140,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     7,
     'Bubble Sort complete',
-    'All passes complete. Every element is finalized in sorted ascending order.',
+    'Every pass has run and every value has settled where it belongs — the array now reads in ascending order from left to right.',
     { n }
   );
 
@@ -153,7 +153,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   category: 'arrays_and_hashing',
   difficulty: 'Easy',
   description:
-    'Bubble Sort is a simple comparison-based sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order until the entire array is sorted.',
+    'Bubble Sort is a simple comparison-based sorting algorithm: it sweeps through the array repeatedly, swapping adjacent neighbours that are out of order, so each sweep floats the largest remaining value to the end.',
   constraints: ['1 <= arr.length <= 10^3', '-10^4 <= arr[i] <= 10^4'],
   examples: [
     {
@@ -174,6 +174,10 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
     worst: 'O(n²)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'Each pass walks the unsorted portion comparing neighbours, and each pass shrinks that portion by one, so in the worst case we make roughly n + (n-1) + … + 1 comparisons — about n²/2, which is O(n²). A reverse-sorted array pays that price in full; with the common early-exit check, an already-sorted array finishes after one swap-free pass, giving the O(n) best case.',
+    space: 'Sorting happens in place by swapping adjacent elements, so we only ever hold a temporary value during a swap plus two loop counters — constant extra memory, O(1).',
+  },
   defaultInput: [5, 2, 8, 1, 4],
   generateSteps: generateBubbleSortSteps,
 };

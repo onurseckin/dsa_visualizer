@@ -22,7 +22,7 @@ describe('fenwickTree algorithm spec', () => {
     const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toBeDefined();
 
-    const rangeQuerySteps = steps.filter((s) => s.explanation.what.includes('Range Query [1..5] Result'));
+    const rangeQuerySteps = steps.filter((s) => s.explanation.what.includes('Range query [1..5] equals'));
     expect(rangeQuerySteps.length).toBe(2);
     expect(rangeQuerySteps[0].variables.rangeSum).toBe(15);
     expect(rangeQuerySteps[1].variables.rangeSum).toBe(20);

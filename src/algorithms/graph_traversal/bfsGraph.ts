@@ -89,16 +89,16 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   addStep(
     3,
-    `Initialize Breadth-First Search (BFS) from source node ${startId}`,
-    `BFS systematically discovers graph nodes in increasing order of distance from source '${startId}' using a FIFO queue to enforce level-order processing.`,
+    `Start BFS from node ${startId}`,
+    `We'll explore the graph in rings of distance from '${startId}': first its direct neighbors, then their neighbors, and so on — a first-in-first-out queue keeps that order for us.`,
     { startNode: startId }
   );
 
   if (!startNodeExists || nodes.length === 0) {
     addStep(
       3,
-      'BFS complete: start node not found or graph empty',
-      'Without a valid source vertex, no connected component can be explored.',
+      'BFS complete — no valid start node',
+      `'${startId}' isn't a vertex of this graph, so there is nothing to explore and we stop right away.`,
       { startNode: startId }
     );
     return steps;
@@ -113,8 +113,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   addStep(
     4,
-    `Mark start node ${startId} as visited`,
-    `Inserting '${startId}' into the visited set prevents cyclic revisit loops during neighbor expansion.`,
+    `Mark ${startId} as visited`,
+    `We record '${startId}' as seen before exploring anything, so if a cycle ever leads back here we won't process it twice.`,
     { startNode: startId, visitedCount: visitedSet.size }
   );
 
@@ -126,8 +126,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   addStep(
     5,
-    `Enqueue start node ${startId} into FIFO queue`,
-    `Placing '${startId}' into the FIFO queue establishes the initial level-0 traversal frontier.`,
+    `Enqueue start node ${startId}`,
+    `The queue now holds our entire frontier — just '${startId}', the only node at distance 0.`,
     { startNode: startId, queueLength: queue.length }
   );
 
@@ -144,8 +144,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   while (queue.length > 0) {
     addStep(
       7,
-      `Check queue frontier state (Queue size: ${queue.length})`,
-      `As long as the FIFO queue is non-empty, unexplored nodes remain in the current level frontier.`,
+      `Check the queue (${queue.length} waiting)`,
+      `The queue still has nodes in it, which means part of the frontier is unexplored — so we keep going.`,
       { queueLength: queue.length }
     );
 
@@ -157,8 +157,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
     addStep(
       8,
-      `Dequeue node ${currentId} from front of queue`,
-      `The FIFO invariant guarantees that node '${currentId}' is expanded at its minimum possible edge distance from source.`,
+      `Dequeue node ${currentId}`,
+      `Because the queue is first-in-first-out, '${currentId}' comes out at the smallest edge distance we could ever reach it — this is exactly why BFS finds shortest paths in unweighted graphs.`,
       { current: currentId, queueLength: queue.length }
     );
 
@@ -166,8 +166,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
     addStep(
       9,
-      `Explore neighbors of node ${currentId}`,
-      `Inspecting all incident edges from node '${currentId}' to discover unvisited adjacent nodes: [${neighbors.join(', ')}].`,
+      `Explore ${currentId}'s neighbors`,
+      `We follow every edge out of '${currentId}' to see which of [${neighbors.join(', ')}] we haven't met yet.`,
       { current: currentId, neighborCount: neighbors.length }
     );
 
@@ -186,10 +186,10 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
       addStep(
         10,
-        `Check if neighbor ${neighborId} is visited`,
+        `Check neighbor ${neighborId}`,
         isVisited
-          ? `Neighbor '${neighborId}' is already in visited set. A shorter or equal path was already discovered; skipping.`
-          : `Neighbor '${neighborId}' is unvisited. Proceed to mark visited and queue for next-level expansion.`,
+          ? `We've already seen '${neighborId}' — an earlier, equally short or shorter path got there first, so we skip it.`
+          : `'${neighborId}' is new to us, so we'll mark it as seen and queue it up for the next ring.`,
         { current: currentId, neighbor: neighborId, isVisited }
       );
 
@@ -203,7 +203,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
         addStep(
           11,
           `Mark neighbor ${neighborId} as visited`,
-          `Immediately marking '${neighborId}' as visited upon discovery prevents duplicate queue insertions from other nodes in the same level.`,
+          `We flag '${neighborId}' the moment we discover it, so another node in this same layer can't add it to the queue a second time.`,
           { neighbor: neighborId, visitedCount: visitedSet.size }
         );
 
@@ -214,8 +214,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
         addStep(
           12,
-          `Enqueue neighbor ${neighborId} into FIFO queue`,
-          `Pushed '${neighborId}' to tail of FIFO queue to schedule it for expansion in the next depth layer.`,
+          `Enqueue neighbor ${neighborId}`,
+          `'${neighborId}' joins the back of the queue, scheduled for expansion after everything already waiting — that's what keeps the layers in order.`,
           { neighbor: neighborId, queueLength: queue.length }
         );
       }
@@ -228,15 +228,15 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   addStep(
     7,
-    'Check queue condition (queue is empty)',
-    'The FIFO queue is empty, confirming all reachable vertices in the current connected component have been visited.',
+    'Queue is empty — stop',
+    `Nothing is left to expand, so every node reachable from '${startId}' has been visited.`,
     { queueLength: 0 }
   );
 
   addStep(
     3,
-    'BFS Graph Traversal complete!',
-    `Successfully visited all ${visitedSet.size} reachable nodes layer by layer starting from source '${startId}'.`,
+    'Traversal complete',
+    `We visited all ${visitedSet.size} reachable nodes, layer by layer, from '${startId}'. Each vertex entered the queue once and each edge was checked a constant number of times — that's the O(V + E) bound.`,
     { startNode: startId, totalVisited: visitedSet.size }
   );
 
@@ -249,7 +249,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   category: 'graph_traversal',
   difficulty: 'Medium',
   description:
-    'Breadth-First Search (BFS) is a fundamental graph traversal algorithm that systematically explores graph vertices layer by layer starting from a source node. Utilizing a First-In-First-Out (FIFO) queue and a visited tracking set, BFS visits all unvisited direct neighbors (distance 1) of the start node before advancing to distance-2 neighbors, distance-3 neighbors, and so on. In unweighted graphs, BFS guarantees finding the shortest path (minimum number of edges) from the source vertex to any reachable destination vertex.',
+    'Breadth-First Search (BFS) explores a graph layer by layer from a source node: all distance-1 neighbors first, then distance-2, and so on. A first-in-first-out queue keeps the layers in order while a visited set stops cycles from causing repeat visits. Because nodes are reached in order of distance, BFS finds the shortest path (fewest edges) from the source to every reachable vertex in an unweighted graph.',
   constraints: [
     '1 <= Number of vertices V <= 10^4',
     '0 <= Number of edges E <= 10^5',
@@ -278,6 +278,10 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
     worst: 'O(V + E)',
   },
   spaceComplexity: 'O(V)',
+  complexityAnalysis: {
+    time: 'Each vertex enters the queue at most once — the visited set guarantees it — and is dequeued and processed once, which accounts for the V term. When a vertex is dequeued we scan its incident edges, and over the whole run every edge is looked at only a constant number of times, adding the E term. The total is O(V + E) in every case, because BFS always sweeps the entire reachable component.',
+    space: 'The visited set can end up holding every vertex, and the queue can hold a whole frontier of vertices at once, so extra memory grows with the vertex count — O(V).',
+  },
   defaultInput: DEFAULT_BFS_INPUT,
   generateSteps: generateBFSGraphSteps,
 };

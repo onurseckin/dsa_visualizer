@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../binarySearchMatrix';
 
 describe('BinarySearchMatrix React Component Spec', () => {
-  it('renders algorithm title and problem header', () => {
+  it('renders algorithm title and expands problem details on demand', () => {
     const steps = generateBinarySearchMatrixSteps(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
     const noop = vi.fn();
 
@@ -25,6 +25,14 @@ describe('BinarySearchMatrix React Component Spec', () => {
     );
 
     expect(screen.getByText('Search a 2D Matrix')).toBeInTheDocument();
+
+    // Description is hidden until the header's Details toggle is expanded.
+    expect(
+      screen.queryByText(/Searches for a target value in an m x n integer matrix/i)
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
+
     expect(
       screen.getByText(/Searches for a target value in an m x n integer matrix/i)
     ).toBeInTheDocument();
@@ -47,7 +55,9 @@ describe('BinarySearchMatrix React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Compute mid index/i)).toBeInTheDocument();
-    expect(screen.getByText(/Auxiliary Helper Data Structures/i)).toBeInTheDocument();
+    expect(screen.getByText(/Probe the middle at index/i)).toBeInTheDocument();
+    expect(screen.getByText('Working data')).toBeInTheDocument();
+    // low/high/mid/target pointers surface in the customState "State" row.
+    expect(screen.getAllByText('State')[0]).toBeInTheDocument();
   });
 });

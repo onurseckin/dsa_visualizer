@@ -52,7 +52,7 @@ export const generateBinarySearchMatrixSteps = (
       codeLine: 2,
       explanation: {
         what: 'Check matrix bounds',
-        why: 'Matrix is empty, target cannot be found.',
+        why: 'The matrix has no elements, so the target cannot possibly be inside. We return False immediately.',
       },
       primarySnapshot: {
         kind: 'grid',
@@ -137,8 +137,8 @@ export const generateBinarySearchMatrixSteps = (
 
   addStep(
     5,
-    `Initialize 2D Binary Search on ${rows}x${cols} matrix`,
-    `Virtual 1D Array Mapping: Because each row is sorted and the first element of each row exceeds the last element of the previous row, we treat the ${rows}x${cols} grid as a single virtual sorted 1D array of ${totalElements} elements with bounds low = 0, high = ${totalElements - 1}.`,
+    'Treat the matrix as one sorted list',
+    `Each row is sorted and every row starts above where the previous one ended, so reading the ${rows}x${cols} grid row by row gives one sorted list of ${totalElements} values. We can binary search that list with low = 0 and high = ${totalElements - 1}.`,
     0,
     totalElements - 1
   );
@@ -155,8 +155,8 @@ export const generateBinarySearchMatrixSteps = (
 
     addStep(
       8,
-      `Compute mid index ${mid} -> matrix[${r}][${c}] = ${midVal}`,
-      `Coordinate Mapping: Virtual midpoint index mid = ${mid} maps to 2D matrix cell row ${r} (mid // ${cols}) and col ${c} (mid % ${cols}), yielding value matrix[${r}][${c}] = ${midVal}.`,
+      `Probe the middle at index ${mid}`,
+      `The virtual index ${mid} converts to row ${r} (${mid} // ${cols}) and column ${c} (${mid} % ${cols}), where the value is ${midVal}. Now we compare it with the target ${target}.`,
       low,
       high,
       mid,
@@ -168,8 +168,8 @@ export const generateBinarySearchMatrixSteps = (
       found = true;
       addStep(
         14,
-        `Target ${target} found at matrix[${r}][${c}]!`,
-        `Target Match: matrix[${r}][${c}] (${midVal}) matches target ${target}. Binary search succeeds in O(log(m * n)) time!`,
+        `Return True — found at [${r}][${c}]`,
+        `matrix[${r}][${c}] is exactly ${target}, so the search is over. Each probe halved the remaining range, which is why we got here in logarithmic time.`,
         low,
         high,
         mid,
@@ -182,8 +182,8 @@ export const generateBinarySearchMatrixSteps = (
     if (midVal < target) {
       addStep(
         16,
-        `matrix[${r}][${c}] (${midVal}) < target (${target})`,
-        `Binary Decision: matrix[${r}][${c}] (${midVal}) is smaller than target ${target}. By monotonic sorted property, all elements in virtual range [0..${mid}] are strictly < ${target}. Eliminate left half: low = mid + 1 (${mid + 1}).`,
+        'Discard the lower half',
+        `${midVal} is smaller than ${target}, and everything at or before index ${mid} is smaller still. Half the candidates vanish in one comparison — we continue with low = ${mid + 1}.`,
         low,
         high,
         mid,
@@ -194,8 +194,8 @@ export const generateBinarySearchMatrixSteps = (
     } else {
       addStep(
         18,
-        `matrix[${r}][${c}] (${midVal}) > target (${target})`,
-        `Binary Decision: matrix[${r}][${c}] (${midVal}) is larger than target ${target}. By monotonic sorted property, all elements in virtual range [${mid}..${totalElements - 1}] are strictly > ${target}. Eliminate right half: high = mid - 1 (${mid - 1}).`,
+        'Discard the upper half',
+        `${midVal} is bigger than ${target}, and everything at or after index ${mid} is bigger still. We drop that half in one comparison and continue with high = ${mid - 1}.`,
         low,
         high,
         mid,
@@ -209,8 +209,8 @@ export const generateBinarySearchMatrixSteps = (
   if (!found) {
     addStep(
       20,
-      `Target ${target} not found in matrix`,
-      `Search Space Exhausted: Search range collapsed (low ${low} > high ${high}) without discovering target ${target}. Target is absent from matrix.`,
+      `Target ${target} not found`,
+      `low (${low}) has crossed past high (${high}), so the search range is empty and no cell ever matched ${target}. The value simply isn't in the matrix, so we return False.`,
       low,
       high,
       undefined,
@@ -228,7 +228,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   category: 'binary_search',
   difficulty: 'Medium',
   description:
-    'Searches for a target value in an m x n integer matrix where each row is sorted and the first element of each row is greater than the last element of the previous row using virtual 1D-to-2D index mapping.',
+    'Searches for a target value in an m x n integer matrix — each row sorted, rows strictly increasing — by binary searching the grid as one virtual sorted 1D array.',
   constraints: [
     'm == matrix.length',
     'n == matrix[i].length',
@@ -254,6 +254,10 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
     worst: 'O(log(m * n))',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'Every probe compares one cell and throws away half of the remaining virtual list, so the m·n candidates shrink to a single cell in about log₂(m·n) comparisons — O(log(m·n)). The best case is O(1) when the very first midpoint happens to be the target; otherwise the repeated halving carries us to the answer or to an empty range.',
+    space: 'We navigate with just the low, high, and mid indices — no copy of the matrix and no recursion — so extra memory is O(1).',
+  },
   defaultInput: DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
   generateSteps: generateBinarySearchMatrixSteps,
 };

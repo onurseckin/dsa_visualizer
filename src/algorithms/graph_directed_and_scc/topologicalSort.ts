@@ -116,13 +116,13 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
   addStep(
     3,
-    "Initialize Topological Sort (Kahn's Algorithm)",
-    "Beginning process to compute linear ordering of vertices in a Directed Acyclic Graph (DAG) such that for every directed edge u -> v, vertex u appears before vertex v.",
+    "Start Kahn's topological sort",
+    "We want a line-up of the nodes where every edge points forward — each node appears only after everything it depends on. Kahn's idea: repeatedly pick off a node that has no remaining prerequisites.",
     { nodeCount: nodes.length, edgeCount: edges.length }
   );
 
   if (nodes.length === 0) {
-    addStep(21, 'Topological Sort complete', 'Graph is empty. Return empty linear ordering.', { orderLength: 0 });
+    addStep(21, 'Topological Sort complete', 'The graph has no nodes, so the ordering is trivially empty.', { orderLength: 0 });
     return steps;
   }
 
@@ -138,8 +138,8 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
   addStep(
     8,
-    'Calculate in-degree for all nodes',
-    'Computed the number of incoming directed edges for each node. Nodes with an in-degree of 0 have no unmet dependencies and can be processed immediately.',
+    'Count incoming edges per node',
+    "A node's in-degree is how many prerequisites it's still waiting on. Anything sitting at 0 depends on nothing, so it can safely go first.",
     { inDegrees: JSON.stringify(inDegree) }
   );
 
@@ -153,16 +153,16 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
   addStep(
     10,
-    `Enqueue all nodes with in-degree 0: [${queue.join(', ')}]`,
-    'Nodes with 0 incoming dependencies are placed into the BFS processing queue as initial candidates for topological ordering.',
+    `Enqueue zero in-degree nodes: [${queue.join(', ')}]`,
+    'These nodes have no incoming edges, meaning nothing needs to come before them. We queue them up as valid starting points for the ordering.',
     { initialQueueSize: queue.length }
   );
 
   while (queue.length > 0) {
     addStep(
       13,
-      `Check queue condition (queue size: ${queue.length})`,
-      'Queue is not empty. Continue extracting zero-dependency nodes in BFS order.',
+      `Check the queue (${queue.length} waiting)`,
+      'The queue still holds dependency-free nodes, so we have more to place before the ordering is done.',
       { queueSize: queue.length }
     );
 
@@ -175,7 +175,7 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
     addStep(
       14,
       `Dequeue node '${u}'`,
-      `Extracted Node '${u}' from the front of the queue. Node '${u}' is free of unfulfilled prerequisite dependencies.`,
+      `We take '${u}' from the front of the queue. Every prerequisite it ever had is already placed in the order, so '${u}' is free to be scheduled next.`,
       { current: u }
     );
 
@@ -186,8 +186,8 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
     addStep(
       15,
-      `Append node '${u}' to topological order`,
-      `Node '${u}' is appended to the output sequence. Current order: [${order.join(' -> ')}].`,
+      `Place '${u}' in the order`,
+      `We commit '${u}' to the output sequence, which now reads [${order.join(' -> ')}].`,
       { current: u, orderLength: order.length }
     );
 
@@ -196,8 +196,8 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
     addStep(
       16,
-      `Explore outgoing edges from node '${u}'`,
-      `Node '${u}' has ${outgoingEdges.length} outgoing edge(s). Removing node '${u}' reduces the in-degree of all its downstream neighbors.`,
+      `Follow edges out of '${u}'`,
+      `Now that '${u}' is placed, its ${outgoingEdges.length} outgoing edge(s) count as satisfied dependencies — each downstream neighbor has one fewer thing to wait for.`,
       { current: u, outgoingCount: outgoingEdges.length }
     );
 
@@ -214,8 +214,8 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
       addStep(
         17,
-        `Decrement in-degree of neighbor '${v}' to ${inDegree[v]}`,
-        `Removed dependency '${u}' -> '${v}'. Neighbor '${v}' now has in-degree ${inDegree[v]}.`,
+        `Drop '${v}' in-degree to ${inDegree[v]}`,
+        `The dependency '${u}' -> '${v}' is now resolved, so '${v}' waits on ${inDegree[v]} prerequisite(s).`,
         { u, v, newInDegree: inDegree[v] }
       );
 
@@ -227,8 +227,8 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
 
         addStep(
           19,
-          `Enqueue neighbor '${v}' (in-degree reached 0)`,
-          `Node '${v}' has no remaining incoming prerequisites. Added to queue for topological sequencing.`,
+          `Enqueue '${v}'`,
+          `'${v}' just hit in-degree 0 — everything it was waiting for has been placed, so it joins the queue as ready to schedule.`,
           { v, queueSize: queue.length }
         );
       } else if (vNode && vNode.state !== 'sorted') {
@@ -242,18 +242,18 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   addStep(
     13,
     'Queue is empty',
-    'Finished processing all reachable 0 in-degree nodes.',
+    "No node with zero remaining prerequisites is left, so we've placed everything we possibly can.",
     { queueSize: 0 }
   );
 
   addStep(
     21,
     hasCycle
-      ? `Cycle detected in graph! Processed ${order.length}/${nodes.length} nodes.`
+      ? `Cycle detected: ${order.length}/${nodes.length} nodes placed`
       : `Topological Sort complete: [${order.join(' -> ')}]`,
     hasCycle
-      ? 'The graph contains at least one directed cycle; impossible to find a valid linear topological ordering.'
-      : 'Successfully computed valid topological ordering for all nodes in the DAG.',
+      ? 'Some nodes never reached in-degree 0 because they are waiting on each other in a loop. A cycle makes a valid linear ordering impossible, so we return an empty result.'
+      : 'Every edge points forward in this sequence, so it is a valid schedule. Since each node and each edge was handled exactly once, the whole run cost O(V + E).',
     { hasCycle, order: order.join(', '), isComplete: !hasCycle }
   );
 
@@ -266,7 +266,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   category: 'graph_directed_and_scc',
   difficulty: 'Medium',
   description:
-    'Computes a linear ordering of vertices in a Directed Acyclic Graph (DAG) using Kahn\'s in-degree queue-based algorithm. For every directed edge u -> v, vertex u appears before vertex v in the ordering. Used for task scheduling, build order dependency resolution, and course prerequisites.',
+    "Kahn's algorithm produces a linear ordering of the vertices in a Directed Acyclic Graph (DAG) such that for every edge u -> v, vertex u appears before vertex v. It works by tracking each node's in-degree and repeatedly dequeuing nodes with no remaining prerequisites. This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning.",
   constraints: [
     '1 <= V <= 10^4',
     '0 <= E <= 2 * 10^4',
@@ -287,6 +287,10 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
     worst: 'O(V + E)',
   },
   spaceComplexity: 'O(V)',
+  complexityAnalysis: {
+    time: "Every vertex enters and leaves the queue exactly once, and every edge is examined exactly once — at the moment its source node is dequeued and the neighbor's in-degree is decremented. That single pass over vertices plus edges gives O(V + E) in every case.",
+    space: 'The in-degree map, the queue, and the output order each hold at most one entry per vertex, so extra memory grows linearly with the vertex count — O(V).',
+  },
   defaultInput: DEFAULT_TOPO_SORT_INPUT,
   generateSteps: generateTopologicalSortSteps,
 };

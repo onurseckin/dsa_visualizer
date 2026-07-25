@@ -79,8 +79,8 @@ export const generateFordFulkersonSteps = (
       stepIndex: 0,
       codeLine: 1,
       explanation: {
-        what: 'Initialize Ford-Fulkerson Maximum Flow',
-        why: 'Empty node set or invalid source/sink provided. Maximum flow is 0.',
+        what: 'Handle the empty network',
+        why: 'There are no usable nodes or the source/sink is missing, so no flow can travel anywhere — the answer is simply 0.',
       },
       primarySnapshot: { kind: 'graph', nodes: [], edges: [] },
       auxiliaryState: { customState: { 'Max Flow': 0 } },
@@ -201,8 +201,8 @@ export const generateFordFulkersonSteps = (
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Initialize Ford-Fulkerson Max Flow from source '${source}' to sink '${sink}'`,
-      why: 'Residual graph set up with initial flow 0 across all edges. Invariant: capacity constraints and conservation of flow are maintained.',
+      what: `Set up flow network from '${source}' to '${sink}'`,
+      why: `Every edge starts carrying 0 of its capacity, and we want to push as much flow as possible from '${source}' to '${sink}'. As long as some path with spare capacity exists, we can still do better.`,
     },
     primarySnapshot: {
       kind: 'graph',
@@ -258,8 +258,8 @@ export const generateFordFulkersonSteps = (
         stepIndex: stepIndex++,
         codeLine: 30,
         explanation: {
-          what: `No more augmenting paths found. Maximum Flow algorithm complete!`,
-          why: `Residual graph has no remaining path from source '${source}' to sink '${sink}' with capacity > 0. By the Max-Flow Min-Cut theorem, current total flow ${currentMaxFlow} is optimal.`,
+          what: `Stop — no augmenting path remains`,
+          why: `We searched the residual graph and found no route from '${source}' to '${sink}' with spare capacity left. The max-flow min-cut theorem tells us that means our total of ${currentMaxFlow} cannot be improved — the saturated edges form a minimum cut sealing off the sink.`,
         },
         primarySnapshot: {
           kind: 'graph',
@@ -288,8 +288,8 @@ export const generateFordFulkersonSteps = (
       stepIndex: stepIndex++,
       codeLine: 25,
       explanation: {
-        what: `Found augmenting path: ${pathNodes.join(' → ')} with bottleneck capacity ${bottleneck}`,
-        why: `The bottleneck capacity is the minimum available residual capacity along the discovered path (${pathNodes.join(' → ')}).`,
+        what: `Find augmenting path ${pathNodes.join(' → ')}`,
+        why: `Every edge along this route still has spare capacity, and the tightest one allows only ${bottleneck} more units — that bottleneck is exactly how much we can push in one go.`,
       },
       primarySnapshot: {
         kind: 'graph',
@@ -330,8 +330,8 @@ export const generateFordFulkersonSteps = (
       stepIndex: stepIndex++,
       codeLine: 28,
       explanation: {
-        what: `Augmented flow by ${bottleneck}. Updated total Max Flow = ${currentMaxFlow}`,
-        why: `Pushed ${bottleneck} units of flow through the augmenting path, updating residual capacities. Forward residual capacity decreases by ${bottleneck}, while reverse capacity increases by ${bottleneck} to allow flow cancellation.`,
+        what: `Push ${bottleneck} units along the path`,
+        why: `We add ${bottleneck} to the flow on each forward edge and record the same amount as reverse capacity, so a later path can undo part of this routing if a better one exists. Total flow is now ${currentMaxFlow}.`,
       },
       primarySnapshot: {
         kind: 'graph',
@@ -382,6 +382,10 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
     worst: 'O(E * MaxFlow)',
   },
   spaceComplexity: 'O(V + E)',
+  complexityAnalysis: {
+    time: 'Each search for an augmenting path is a DFS over the residual graph, costing O(E). With integer capacities every path found pushes at least 1 unit of flow, so there are at most MaxFlow rounds — O(E × MaxFlow) overall. That is why the bound depends on the answer itself: unlucky 1-unit paths can force many rounds, while the best case is a single O(E) search that finds no path at all.',
+    space: 'We store a capacity and flow entry per edge plus a visited set per search — O(V + E). The DFS recursion stack can also reach V frames on a long path.',
+  },
   defaultInput: DEFAULT_FORD_FULKERSON_INPUT,
   generateSteps: generateFordFulkersonSteps,
 };

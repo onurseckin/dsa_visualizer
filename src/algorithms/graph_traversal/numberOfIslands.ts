@@ -58,8 +58,8 @@ export const generateNumberOfIslandsSteps = (
       stepIndex: stepIndex++,
       codeLine: 5,
       explanation: {
-        what: 'Empty grid provided.',
-        why: 'No islands can exist in an empty grid.',
+        what: 'Handle an empty grid',
+        why: "There are no cells at all, so the island count is 0 and we're done before we start.",
       },
       primarySnapshot: {
         kind: 'grid',
@@ -112,8 +112,8 @@ export const generateNumberOfIslandsSteps = (
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialize Number of Islands grid scan (${rows}x${cols}).`,
-      why: 'Scan grid cells row by row, column by column. Encountering an unvisited land cell ("1") signals the root of a new connected component.',
+      what: `Scan the ${rows}x${cols} grid`,
+      why: "We sweep the grid cell by cell, row by row. Whenever we step on land we haven't seen before, we know we've found the corner of a brand-new island.",
     },
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: {
@@ -136,8 +136,8 @@ export const generateNumberOfIslandsSteps = (
           stepIndex: stepIndex++,
           codeLine: 14,
           explanation: {
-            what: `Discovered new island #${count} starting at cell (${r}, ${c}).`,
-            why: 'Encountered unvisited land cell ("1"). Increment island count and launch BFS to visit all 4-directionally connected land cells so they are not re-counted.',
+            what: `Found island #${count} at (${r}, ${c})`,
+            why: `This land cell isn't part of any island we've flooded yet, so we count a new island and launch a BFS to claim every cell connected to it — that way none of them can be counted again.`,
           },
           primarySnapshot: createGridSnapshot([r, c]),
           auxiliaryState: {
@@ -157,8 +157,8 @@ export const generateNumberOfIslandsSteps = (
             stepIndex: stepIndex++,
             codeLine: 19,
             explanation: {
-              what: `Exploring cell (${cr}, ${cc}) on island #${count}.`,
-              why: 'Dequeue cell and evaluate its 4 orthogonal neighbors (up, down, left, right) to expand the current island component boundary.',
+              what: `Explore cell (${cr}, ${cc})`,
+              why: `We take the next cell of island #${count} off the queue and look at its four orthogonal neighbors, pushing the island's known boundary outward.`,
             },
             primarySnapshot: createGridSnapshot([cr, cc], queue),
             auxiliaryState: {
@@ -196,8 +196,8 @@ export const generateNumberOfIslandsSteps = (
                 stepIndex: stepIndex++,
                 codeLine: 24,
                 explanation: {
-                  what: `Neighbor land cell (${nr}, ${nc}) connected to island #${count}.`,
-                  why: 'Cell is valid unvisited land ("1"). Mark visited immediately and push into BFS queue for component traversal.',
+                  what: `Add neighbor (${nr}, ${nc})`,
+                  why: `It's unvisited land touching the current cell, so it belongs to island #${count} — we mark it visited right away and queue it so the flood keeps spreading.`,
                 },
                 primarySnapshot: createGridSnapshot([cr, cc], queue),
                 auxiliaryState: {
@@ -218,8 +218,8 @@ export const generateNumberOfIslandsSteps = (
     stepIndex: stepIndex++,
     codeLine: 27,
     explanation: {
-      what: `Grid traversal complete. Total islands found: ${count}.`,
-      why: 'All matrix cells evaluated. The total number of launched BFS expansions equals the total number of connected land components.',
+      what: `Scan complete — ${count} island(s) found`,
+      why: `Every cell has now been checked, either by the sweep or by a flood. Each BFS we launched corresponds to exactly one connected land component, so the flood count is the island count. Touching each cell a constant number of times is what keeps this O(M * N).`,
     },
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: {
@@ -238,7 +238,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   category: 'graph_traversal',
   difficulty: 'Medium',
   description:
-    'Given an M x N 2D grid matrix representing a map of land cells ("1") and water cells ("0"), count the total number of distinct islands. An island is defined as a connected land component formed by connecting adjacent land cells horizontally or vertically (4-directionally). The algorithm iterates through every grid cell; when an unvisited land cell ("1") is encountered, it increments the island counter and triggers a Breadth-First Search (BFS) or Depth-First Search (DFS) traversal to visit and mark all connected land cells belonging to that same island.',
+    'Given an M x N grid of land cells ("1") and water cells ("0"), count the distinct islands — groups of land cells connected horizontally or vertically. We sweep the grid cell by cell; each time we step on land that no previous flood has claimed, we count one new island and run a BFS (or DFS) flood fill to mark every connected land cell, so the same island is never counted twice.',
   constraints: [
     '1 <= m, n <= 300',
     'grid[i][j] is either "0" (water) or "1" (land)',
@@ -265,6 +265,10 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
     worst: 'O(M * N)',
   },
   spaceComplexity: 'O(M * N)',
+  complexityAnalysis: {
+    time: 'The outer sweep touches each of the M * N cells once, and the BFS floods visit each land cell at most once because cells are marked visited the moment they are enqueued. So no matter how many islands there are, every cell is processed a constant number of times, and the total work is O(M * N).',
+    space: 'The visited set can end up holding every land cell, and in a grid that is nearly all land the BFS queue can also grow to a large fraction of the cells, so extra memory is O(M * N) in the worst case.',
+  },
   defaultInput: DEFAULT_NUMBER_OF_ISLANDS_INPUT,
   generateSteps: generateNumberOfIslandsSteps,
 };

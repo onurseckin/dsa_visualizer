@@ -27,11 +27,11 @@ describe('kmpStringMatch algorithm spec', () => {
     expect(snapshot.kind).toBe('array');
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.explanation.what).toContain('KMP Search complete');
+    expect(lastStep.explanation.what).toContain('Search complete');
     expect(lastStep.variables.matchesCount).toBe(1);
 
     // Verify AuxiliaryState has LPS / Prefix table
-    const lpsStep = steps.find((s) => s.explanation.what.includes('LPS / Prefix Table complete'));
+    const lpsStep = steps.find((s) => s.explanation.what.includes('LPS table complete'));
     expect(lpsStep).toBeDefined();
     expect(lpsStep?.auxiliaryState.hashMap).toBeDefined();
     expect(lpsStep?.auxiliaryState.customState?.lps).toBeDefined();

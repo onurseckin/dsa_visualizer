@@ -112,20 +112,20 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   // Line 1 & 2: Initialization
   addStep(
     1,
-    'Initialize Bellman-Ford Shortest Path Algorithm',
-    `Bellman-Ford iteratively relaxes edges up to V - 1 times because any simple path in a graph with ${rawNodes.length} vertices contains at most ${Math.max(0, rawNodes.length - 1)} edges.`,
+    'Start Bellman-Ford',
+    `Our plan is to sweep over every edge up to ${Math.max(0, rawNodes.length - 1)} times, because a shortest path in a graph with ${rawNodes.length} vertices can use at most ${Math.max(0, rawNodes.length - 1)} edges. Each sweep lets improvements travel one edge further from the source.`,
     { nodeCount: rawNodes.length, edgeCount: rawEdges.length }
   );
 
   if (rawNodes.length === 0) {
-    addStep(18, 'Bellman-Ford execution complete', 'Graph contains 0 nodes.', { completed: true });
+    addStep(18, 'Bellman-Ford complete', 'The graph has no vertices, so there is nothing to relax — we return an empty distance table.', { completed: true });
     return steps;
   }
 
   addStep(
     3,
-    `Set start node dist['${startNode}'] = 0, all other nodes = ∞`,
-    `Distance from source '${startNode}' to itself is initialized to 0, while all other node distances default to positive infinity.`,
+    `Set dist['${startNode}'] to 0`,
+    `We know exactly one distance so far: '${startNode}' is 0 away from itself. Every other node starts at ∞, which is our way of saying "no path found yet."`,
     { startNode, 'dist[startNode]': 0 },
     startNode
   );
@@ -137,8 +137,8 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     let anyRelaxedInPass = false;
     addStep(
       6,
-      `Start Relaxation Pass ${pass + 1} of ${numPasses}`,
-      `Pass ${pass + 1} guarantees finding true shortest paths for all vertices whose optimal path from source contains at most ${pass + 1} edges.`,
+      `Start relaxation pass ${pass + 1} of ${numPasses}`,
+      `Each sweep lets shortest-path information travel one more edge outward from the source. After pass ${pass + 1}, every vertex whose best path uses at most ${pass + 1} edges will have its true distance.`,
       { pass: pass + 1, numPasses }
     );
 
@@ -154,8 +154,8 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
 
         addStep(
           9,
-          `Relax edge (${u} → ${v}, weight ${weight}): dist['${v}'] updated from ${oldDist === Infinity ? '∞' : oldDist} to ${dist[v]}`,
-          `Triangle Inequality Relaxation: dist['${u}'] (${dist[u] - weight}) + weight (${weight}) = ${dist[v]} < previous dist['${v}'] (${oldDist === Infinity ? '∞' : oldDist}). Shorter path discovered to '${v}'.`,
+          `Relax edge ${u} → ${v}`,
+          `Going through '${u}' reaches '${v}' at cost ${dist[v] - weight} + ${weight} = ${dist[v]}, which beats the previous ${oldDist === Infinity ? '∞' : oldDist}. We take the cheaper route and keep sweeping.`,
           { pass: pass + 1, u, v, weight, newDist: dist[v] },
           v,
           { from: u, to: v }
@@ -163,10 +163,10 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       } else {
         addStep(
           8,
-          `Examine edge (${u} → ${v}, weight ${weight}): no relaxation`,
+          `Skip edge ${u} → ${v}`,
           dist[u] === Infinity
-            ? `Source node '${u}' is currently unreachable (dist = ∞), so edge (${u} → ${v}) cannot yield a valid path.`
-            : `Current dist['${v}'] (${dist[v] === Infinity ? '∞' : dist[v]}) is already <= dist['${u}'] (${dist[u]}) + weight ${weight} (${dist[u] + weight}). Edge relaxation skipped.`,
+            ? `We haven't found any path to '${u}' yet — its distance is still ∞ — so this edge can't offer '${v}' a real route this pass.`
+            : `The best known route to '${v}' (${dist[v] === Infinity ? '∞' : dist[v]}) is already at least as good as going through '${u}' (${dist[u]} + ${weight} = ${dist[u] + weight}), so we leave it alone.`,
           { pass: pass + 1, u, v, weight },
           u,
           { from: u, to: v }
@@ -177,8 +177,8 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     if (!anyRelaxedInPass) {
       addStep(
         6,
-        `Early termination after Pass ${pass + 1}`,
-        'No distance updates occurred during this entire pass. All shortest paths have fully converged ahead of V - 1 passes.',
+        `Stop early after pass ${pass + 1}`,
+        'An entire sweep changed nothing, so every distance has already settled. Running the remaining passes would only re-confirm what we know.',
         { convergedEarly: true, pass: pass + 1 }
       );
       break;
@@ -189,8 +189,8 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   let hasNegativeCycle = false;
   addStep(
     12,
-    'Check for negative-weight cycles across all edges',
-    'Running a V-th relaxation check tests if any edge can still decrease distance. If so, a negative-weight cycle exists.',
+    'Check for negative-weight cycles',
+    'After V - 1 passes every true shortest path is settled, so we do one more sweep as a test. If any edge can still improve a distance, the only possible explanation is a cycle with negative total weight.',
     { checkingNegativeCycles: true }
   );
 
@@ -203,8 +203,8 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       hasNegativeCycle = true;
       addStep(
         15,
-        `Negative cycle detected on edge (${u} → ${v}, weight ${weight})!`,
-        `Distance to '${v}' can be further decreased (${dist[u]} + ${weight} < ${dist[v]}), confirming a negative-weight cycle is reachable from source '${startNode}'.`,
+        `Find a negative cycle at ${u} → ${v}`,
+        `Even after all passes, '${v}' can still get cheaper (${dist[u]} + ${weight} < ${dist[v]}). Distances that keep shrinking mean a negative-weight cycle is reachable from '${startNode}'.`,
         { u, v, weight, hasNegativeCycle: true },
         v,
         { from: u, to: v }
@@ -216,15 +216,15 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   if (!hasNegativeCycle) {
     addStep(
       18,
-      `Bellman-Ford complete. Shortest paths computed from source '${startNode}'.`,
-      'No negative-weight cycles detected. Final shortest path distances computed for all reachable vertices.',
+      'Bellman-Ford complete',
+      `No edge can improve any distance, so the table now holds the true shortest path from '${startNode}' to every reachable vertex. In the end we did up to V - 1 sweeps over all E edges — that's the O(V * E) bound.`,
       { hasNegativeCycle: false, completed: true }
     );
   } else {
     addStep(
       18,
-      'Bellman-Ford complete with negative cycle warning.',
-      'Graph contains a negative-weight cycle reachable from source. Shortest paths are undefined (unbounded negative distance).',
+      'Bellman-Ford complete: negative cycle found',
+      'Because a reachable cycle has negative total weight, "shortest path" stops being well-defined — we could loop around that cycle forever, driving the cost down without bound.',
       { hasNegativeCycle: true, completed: true }
     );
   }
@@ -238,7 +238,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   category: 'graph_shortest_paths',
   difficulty: 'Medium',
   description:
-    'Computes single-source shortest paths from a starting vertex to all other vertices in a weighted graph (directed or undirected). Unlike Dijkstra\'s algorithm, Bellman-Ford can handle negative edge weights. By iteratively relaxing all E edges V - 1 times (where V is the vertex count), the algorithm guarantees computing exact shortest paths provided there are no negative-weight cycles. An optional V-th edge relaxation pass is performed to detect whether negative-weight cycles exist: if any edge can still be relaxed after V - 1 passes, a negative cycle is reachable from the source.',
+    "Bellman-Ford computes shortest paths from one source vertex to every other vertex in a weighted graph — and unlike Dijkstra's algorithm, it tolerates negative edge weights. The idea is simple: relax every edge, and repeat that sweep V - 1 times so improvements can propagate along even the longest simple path. A final extra sweep doubles as a detector: if any edge can still be relaxed after V - 1 passes, the graph must contain a negative-weight cycle reachable from the source.",
   constraints: [
     '1 <= Vertices V <= 250',
     '0 <= Edges E <= 2500',
@@ -267,6 +267,10 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
     worst: 'O(V * E)',
   },
   spaceComplexity: 'O(V)',
+  complexityAnalysis: {
+    time: 'Each pass sweeps all E edges once, and we run up to V - 1 passes so that an improvement can travel across the longest possible simple path — that product gives the O(V * E) worst case. When the graph converges early, a pass with zero updates lets us stop, so the best case is a single O(E) sweep.',
+    space: 'We keep one distance value per vertex, so extra memory grows linearly with the vertex count — O(V). The edge list is just the input; nothing else accumulates.',
+  },
   defaultInput: DEFAULT_BELLMAN_FORD_INPUT,
   generateSteps: generateBellmanFordSteps,
 };

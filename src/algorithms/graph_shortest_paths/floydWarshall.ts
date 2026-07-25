@@ -55,8 +55,8 @@ export const generateFloydWarshallSteps = (
       stepIndex: 0,
       codeLine: 1,
       explanation: {
-        what: 'Initialize Floyd-Warshall Algorithm',
-        why: 'Empty node set provided.',
+        what: 'Initialize on an empty graph',
+        why: 'There are no vertices, so the all-pairs table is empty and we are done before we start.',
       },
       primarySnapshot: { kind: 'grid', grid: [] },
       auxiliaryState: { customState: { NodeCount: 0 } },
@@ -136,8 +136,8 @@ export const generateFloydWarshallSteps = (
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialize ${n}x${n} distance matrix`,
-      why: 'Set self-distances dist[i][i] = 0 and populate direct edge weights. All other non-adjacent cell pairs default to ∞.',
+      what: `Initialize the ${n}x${n} distance matrix`,
+      why: 'We seed the table with what we know directly: every node is 0 away from itself, and each edge fills in its own weight. Every other pair starts at ∞ until we discover some route between them.',
     },
     primarySnapshot: {
       kind: 'grid',
@@ -160,8 +160,8 @@ export const generateFloydWarshallSteps = (
       stepIndex: stepIndex++,
       codeLine: 12,
       explanation: {
-        what: `Consider intermediate pivot node k = ${pivotNode} (index ${k})`,
-        why: `Evaluate if routing paths through intermediate pivot node '${pivotNode}' yields shorter paths for any (i, j) cell pair.`,
+        what: `Try node ${pivotNode} as the pivot`,
+        why: `We now allow paths to pass through '${pivotNode}'. For every pair (i, j), we ask the same question: is going i → ${pivotNode} → j cheaper than the best route we've found so far?`,
       },
       primarySnapshot: {
         kind: 'grid',
@@ -194,8 +194,8 @@ export const generateFloydWarshallSteps = (
               stepIndex: stepIndex++,
               codeLine: 17,
               explanation: {
-                what: `Update dist['${uNode}']['${vNode}']: ${distIJ === Infinity ? '∞' : distIJ} → ${newDist}`,
-                why: `Subpath Optimization: Routing via intermediate pivot '${pivotNode}' reduces distance: dist['${uNode}']['${pivotNode}'] (${distIK}) + dist['${pivotNode}']['${vNode}'] (${distKJ}) = ${newDist} < previous dist['${uNode}']['${vNode}'] (${distIJ === Infinity ? '∞' : distIJ}).`,
+                what: `Improve dist['${uNode}']['${vNode}'] to ${newDist}`,
+                why: `Detouring through '${pivotNode}' gets us from '${uNode}' to '${vNode}' for ${distIK} + ${distKJ} = ${newDist}, beating the previous ${distIJ === Infinity ? '∞' : distIJ}. We write the cheaper value into the table.`,
               },
               primarySnapshot: {
                 kind: 'grid',
@@ -240,11 +240,11 @@ export const generateFloydWarshallSteps = (
     codeLine: 19,
     explanation: {
       what: hasNegativeCycle
-        ? 'Floyd-Warshall completed with negative cycle detected!'
-        : 'Floyd-Warshall execution complete.',
+        ? 'Floyd-Warshall complete: negative cycle detected'
+        : 'Floyd-Warshall complete',
       why: hasNegativeCycle
-        ? 'A negative self-distance dist[i][i] < 0 indicates a negative-weight cycle in the graph.'
-        : 'All-pairs shortest path distance matrix fully computed for all node pairs.',
+        ? 'A diagonal entry dist[i][i] dropped below 0, meaning some node can reach itself at negative total cost — a negative-weight cycle. Shortest paths that touch it are unbounded.'
+        : `Every pair has now been tested against all ${n} possible pivots, so the matrix holds the true shortest distance between every pair of nodes. Those three nested loops are exactly where the O(V^3) cost comes from.`,
     },
     primarySnapshot: {
       kind: 'grid',
@@ -269,7 +269,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   category: 'graph_shortest_paths',
   difficulty: 'Medium',
   description:
-    'Floyd-Warshall computes the all-pairs shortest paths for a weighted directed graph using dynamic programming matrix tabulation. It considers every vertex k as a potential intermediate pivot node between every pair of vertices (i, j). If passing through pivot k yields a shorter path distance (dist[i][k] + dist[k][j] < dist[i][j]), the matrix entry is updated. After trying all V possible pivot vertices across all V^2 cell pairs (O(V^3) total iterations), the distance matrix contains the absolute shortest path length between any pair of vertices in the graph.',
+    'Floyd-Warshall computes the shortest path between every pair of vertices in a weighted directed graph using dynamic programming over a distance matrix. It considers each vertex k in turn as a potential intermediate stop between every pair (i, j): whenever routing through k is cheaper (dist[i][k] + dist[k][j] < dist[i][j]), the matrix entry is updated. Once every vertex has had its turn as the pivot, the matrix holds the true shortest distance between every pair of vertices in the graph.',
   constraints: [
     '1 <= Vertices V <= 200',
     '0 <= Edges E <= V * (V - 1)',
@@ -298,6 +298,10 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
     worst: 'O(V^3)',
   },
   spaceComplexity: 'O(V^2)',
+  complexityAnalysis: {
+    time: "The algorithm is three nested loops over the vertices: every pivot k, against every source i, against every target j, doing a constant-time comparison each time. That's V * V * V iterations no matter what the graph looks like, so the running time is O(V^3) in every case — the edge count never even enters the formula.",
+    space: 'The V x V distance matrix dominates memory: one cell for every ordered pair of vertices, updated in place, giving O(V^2).',
+  },
   defaultInput: DEFAULT_FLOYD_WARSHALL_INPUT,
   generateSteps: generateFloydWarshallSteps,
 };

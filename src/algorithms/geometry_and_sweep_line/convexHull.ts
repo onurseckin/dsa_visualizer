@@ -73,8 +73,8 @@ export const generateConvexHullSteps = (
       stepIndex: stepIndex++,
       codeLine: 6,
       explanation: {
-        what: 'No points provided for Convex Hull calculation.',
-        why: 'Convex Hull algorithm requires at least 1 point to compute a boundary.',
+        what: 'Check the input points',
+        why: 'There are no points to wrap, so we stop — a hull needs at least one point to exist.',
       },
       primarySnapshot: { kind: 'graph', nodes: [], edges: [] },
       auxiliaryState: { stack: [], visited: [] },
@@ -141,8 +141,8 @@ export const generateConvexHullSteps = (
     stepIndex: stepIndex++,
     codeLine: 9,
     explanation: {
-      what: `Sorted ${points.length} points lexicographically by X coordinate, then Y coordinate.`,
-      why: "Andrew's Monotone Chain algorithm requires points sorted left-to-right to scan lower and upper boundaries independently in O(N log N) time.",
+      what: `Sort ${points.length} points left to right`,
+      why: 'We order the points by x (then y) so we can sweep across the plane once for the lower boundary and once back for the upper — each half of the hull then builds up with a simple stack.',
     },
     primarySnapshot: createGraphSnapshot(),
     auxiliaryState: {
@@ -167,8 +167,8 @@ export const generateConvexHullSteps = (
         stepIndex: stepIndex++,
         codeLine: 17,
         explanation: {
-          what: `Popped point ${popped.id} from lower hull stack.`,
-          why: `Point ${p.id} creates a non-left turn (cross product = ${crossVal} <= 0) with ${prevO.id} and ${popped.id}. A convex boundary requires strict counter-clockwise (left) turns.`,
+          what: `Pop ${popped.id} from the lower hull`,
+          why: `Walking from ${prevO.id} through ${popped.id} to ${p.id} turns clockwise or goes straight (cross product ${crossVal} <= 0), which would dent the boundary inward — so ${popped.id} can't be a corner of the hull.`,
         },
         primarySnapshot: createGraphSnapshot(p.id, [...lower, p]),
         auxiliaryState: {
@@ -183,8 +183,8 @@ export const generateConvexHullSteps = (
       stepIndex: stepIndex++,
       codeLine: 18,
       explanation: {
-        what: `Pushed point ${p.id} onto lower hull stack.`,
-        why: 'Point forms a valid left turn for the lower perimeter of the convex hull.',
+        what: `Push ${p.id} onto the lower hull`,
+        why: `From here the boundary keeps turning left, so ${p.id} stands as a valid corner of the lower chain — at least until a later point proves otherwise.`,
       },
       primarySnapshot: createGraphSnapshot(p.id, lower),
       auxiliaryState: {
@@ -210,8 +210,8 @@ export const generateConvexHullSteps = (
         stepIndex: stepIndex++,
         codeLine: 23,
         explanation: {
-          what: `Popped point ${popped.id} from upper hull stack.`,
-          why: `Point ${p.id} creates a non-left turn (cross product = ${crossVal} <= 0) during right-to-left scan.`,
+          what: `Pop ${popped.id} from the upper hull`,
+          why: `Scanning right to left now, ${p.id} makes a non-left turn through ${popped.id} (cross product ${crossVal} <= 0), so ${popped.id} sits inside the upper boundary and gets discarded.`,
         },
         primarySnapshot: createGraphSnapshot(p.id, [...upper, p]),
         auxiliaryState: {
@@ -226,8 +226,8 @@ export const generateConvexHullSteps = (
       stepIndex: stepIndex++,
       codeLine: 24,
       explanation: {
-        what: `Pushed point ${p.id} onto upper hull stack.`,
-        why: 'Point forms a valid left turn for the upper perimeter of the convex hull.',
+        what: `Push ${p.id} onto the upper hull`,
+        why: `The turn stays counter-clockwise, so ${p.id} holds a spot on the upper chain for now.`,
       },
       primarySnapshot: createGraphSnapshot(p.id, upper),
       auxiliaryState: {
@@ -247,8 +247,8 @@ export const generateConvexHullSteps = (
     stepIndex: stepIndex++,
     codeLine: 28,
     explanation: {
-      what: `Convex Hull construction complete. Total hull vertices: ${fullHull.length}.`,
-      why: 'Combined lower and upper hull stacks to form the minimal enclosing convex polygon.',
+      what: `Close the hull with ${fullHull.length} vertices`,
+      why: 'We drop each chain\'s duplicated endpoint and stitch the lower and upper chains together into the smallest convex polygon enclosing every point. The initial sort dominated the work, at O(N log N).',
     },
     primarySnapshot: createGraphSnapshot(undefined, fullHull, true),
     auxiliaryState: {
@@ -267,7 +267,7 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   category: 'geometry_and_sweep_line',
   difficulty: 'Hard',
   description:
-    'Finds the smallest convex polygon containing a given set of 2D points using Andrew\'s Monotone Chain algorithm. Points are sorted lexicographically by X then Y coordinate, and lower and upper hulls are constructed using 2D vector cross-product orientation tests to eliminate non-left-turn interior vertices.',
+    'Finds the smallest convex polygon enclosing a set of 2D points using Andrew\'s Monotone Chain algorithm. After sorting the points by x (then y), it sweeps once left-to-right to build the lower boundary and once right-to-left for the upper, using cross-product turn tests to discard any point that would bend the boundary inward.',
   constraints: [
     '1 <= points.length <= 1000',
     '-1000 <= x, y <= 1000',
@@ -286,6 +286,10 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
     worst: 'O(N log N)',
   },
   spaceComplexity: 'O(N)',
+  complexityAnalysis: {
+    time: 'The dominant cost is sorting the points by x (then y), which takes O(N log N) comparisons. The two hull-building sweeps afterward are linear: each point is pushed onto a stack exactly once and can be popped at most once, so both passes together cost O(N). That leaves the sort as the bottleneck, making the whole algorithm O(N log N) in every case.',
+    space: 'The sorted copy of the points and the two hull stacks each hold at most all N points, so extra memory grows linearly — O(N).',
+  },
   defaultInput: DEFAULT_CONVEX_HULL_INPUT,
   generateSteps: generateConvexHullSteps,
 };

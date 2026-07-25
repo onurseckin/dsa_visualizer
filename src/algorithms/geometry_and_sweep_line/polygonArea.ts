@@ -125,8 +125,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   // Line 6: Check vertex count
   addStep(
     6,
-    'Initialize Shoelace Algorithm',
-    `Calculate area of polygon with ${n} vertices using the Shoelace (Gauss Area) formula.`,
+    'Start the shoelace formula',
+    `We'll walk the ${n} vertices in order, cross-multiplying each edge's coordinates; the criss-cross pattern of those products is where the "shoelace" name comes from.`,
     getBaseNodes(),
     getBaseEdges(),
     { Formula: 'Area = 0.5 * |sum(x_i * y_{i+1} - x_{i+1} * y_i)|' },
@@ -138,8 +138,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   if (n < 3) {
     addStep(
       8,
-      'Insufficient vertices',
-      `A polygon requires at least 3 vertices to enclose an area. Return area = 0.0.`,
+      'Stop — too few vertices',
+      `A polygon needs at least 3 vertices to enclose any region, and we only have ${n}, so the area is simply 0.`,
       getBaseNodes(),
       getBaseEdges(),
       { Status: 'Invalid polygon (n < 3)' },
@@ -155,8 +155,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   // Line 10: Initialize area_sum
   addStep(
     10,
-    'Initialize accumulators',
-    'Set area_sum = 0.0 before iterating over directed polygon edges.',
+    'Set the running sum to zero',
+    'Each edge will add its signed cross product here; positive and negative terms partly cancel, and what survives is exactly twice the enclosed area.',
     getBaseNodes(),
     getBaseEdges(),
     { area_sum: '0.0' },
@@ -181,8 +181,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     // Line 14: Cross product computation
     addStep(
       14,
-      `Compute cross product for edge P${i} -> P${nextIdx}`,
-      `x1*y2 - x2*y1 = (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}. Accumulated area_sum = ${areaSum}. Each cross-product represents the signed area of a trapezoid bounded by the edge and coordinate axes.`,
+      `Cross-multiply edge P${i} -> P${nextIdx}`,
+      `This edge sweeps out a signed trapezoid against the axis worth (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}, bringing our running sum to ${areaSum}.`,
       nodes,
       edges,
       {
@@ -224,8 +224,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   // Line 17: Return final area
   addStep(
     17,
-    'Shoelace Formula Complete',
-    `Final polygon area = abs(${areaSum}) / 2.0 = ${finalArea}.`,
+    `Halve the sum: area = ${finalArea}`,
+    `Every edge has been folded in, so the total ${areaSum} is twice the signed area; taking the absolute value and dividing by 2 gives ${finalArea}. One trip around the boundary was all it took — O(n).`,
     finalNodes,
     finalEdges,
     {
@@ -249,7 +249,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   category: 'geometry_and_sweep_line',
   difficulty: 'Medium',
   description:
-    'Calculates the area of a simple non-self-intersecting polygon given its ordered vertices in a 2D plane using the Shoelace formula (Gauss area formula). Sums signed trapezoidal areas formed by cross-multiplying adjacent vertex coordinates along the perimeter in O(N) linear time.',
+    'Calculates the area of a simple (non-self-intersecting) polygon from its ordered vertices using the Shoelace formula, also known as the Gauss area formula. Walking the perimeter once, it cross-multiplies each pair of adjacent vertices and sums the signed trapezoid areas, so the whole computation is a single O(N) pass.',
   constraints: [
     '3 <= vertices.length <= 1000',
     '-1000 <= x, y <= 1000',
@@ -269,6 +269,10 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(1)',
+  complexityAnalysis: {
+    time: 'We make exactly one pass around the polygon: each of the n edges contributes one cross-multiplication and one addition to the running sum. There is no branching, sorting, or backtracking, so best and worst case are the same single loop — O(n).',
+    space: 'Beyond the input vertices we only keep a running sum and a couple of loop variables, so extra memory stays constant — O(1).',
+  },
   defaultInput: DEFAULT_POLYGON_AREA_INPUT,
   generateSteps: generatePolygonAreaSteps,
 };

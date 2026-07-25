@@ -60,8 +60,8 @@ export const generateHuffmanCodingSteps = (
       stepIndex: stepIndex++,
       codeLine: 27,
       explanation: {
-        what: 'Empty input text.',
-        why: 'No Huffman tree can be constructed for an empty string.',
+        what: 'Handle empty input',
+        why: 'There are no characters to encode, so we stop right away — a Huffman tree needs at least one symbol to work with.',
       },
       primarySnapshot: {
         kind: 'tree',
@@ -88,8 +88,8 @@ export const generateHuffmanCodingSteps = (
     stepIndex: stepIndex++,
     codeLine: 15,
     explanation: {
-      what: `Count character frequencies for text "${rawText}".`,
-      why: 'Character frequency counts determine priority. Characters occurring more frequently will be placed closer to the root of the tree, resulting in shorter binary codes.',
+      what: `Count frequencies in "${rawText}"`,
+      why: 'We tally how often each character appears, because frequency drives everything here: common characters should end up near the root with short codes, and rare ones deeper with longer codes.',
     },
     primarySnapshot: {
       kind: 'tree',
@@ -131,8 +131,8 @@ export const generateHuffmanCodingSteps = (
     stepIndex: stepIndex++,
     codeLine: 16,
     explanation: {
-      what: `Initialize min-heap with ${heap.length} leaf nodes.`,
-      why: 'A min-heap priority queue allows greedy $O(\\log K)$ extraction of the two lowest-frequency nodes in each merging step.',
+      what: `Build a min-heap of ${heap.length} leaves`,
+      why: 'Each distinct character becomes a leaf weighted by its count. Keeping the leaves in a min-heap lets us grab the two rarest nodes instantly whenever we need to merge.',
     },
     primarySnapshot: {
       kind: 'tree',
@@ -230,8 +230,8 @@ export const generateHuffmanCodingSteps = (
       stepIndex: stepIndex++,
       codeLine: 20,
       explanation: {
-        what: `Pop two lowest-frequency nodes: ${left.char ? `'${left.char}'` : left.id} (${left.freq}) and ${right.char ? `'${right.char}'` : right.id} (${right.freq}).`,
-        why: 'Greedy choice property: The two least frequent nodes must be siblings at the deepest level of an optimal prefix code tree.',
+        what: `Pop ${left.char ? `'${left.char}'` : left.id} (${left.freq}) and ${right.char ? `'${right.char}'` : right.id} (${right.freq})`,
+        why: `We always merge the two least frequent nodes first — here that means weights ${left.freq} and ${right.freq}. Pushing the rarest symbols deepest is exactly what keeps the average code length as short as possible.`,
       },
       primarySnapshot: {
         kind: 'tree',
@@ -259,8 +259,8 @@ export const generateHuffmanCodingSteps = (
       stepIndex: stepIndex++,
       codeLine: 25,
       explanation: {
-        what: `Merged parent node ${parentId} with frequency ${mergedNode.freq} re-inserted into min-heap.`,
-        why: 'Re-heapify priority queue to prepare for the next greedy merging iteration until a single root remains.',
+        what: `Reinsert merged node weighing ${mergedNode.freq}`,
+        why: `The new parent carries ${left.freq} + ${right.freq} = ${mergedNode.freq} and goes back into the heap, where it competes like any other node. We repeat this until a single root remains.`,
       },
       primarySnapshot: {
         kind: 'tree',
@@ -303,8 +303,8 @@ export const generateHuffmanCodingSteps = (
     stepIndex: stepIndex++,
     codeLine: 27,
     explanation: {
-      what: `Huffman Tree construction complete. Final root frequency = ${rootNode?.freq || 0}.`,
-      why: 'Traversed binary tree (left edge = 0, right edge = 1) to derive optimal variable-length prefix-free binary codes for each character, minimizing total encoded bit length.',
+      what: `Tree complete: read off the codes`,
+      why: `The root's weight is ${rootNode?.freq || 0}, the full text length. We walk down labeling left edges 0 and right edges 1, and each leaf's path becomes its code — frequent characters sit near the top, so the total encoded length comes out provably minimal.`,
     },
     primarySnapshot: {
       kind: 'tree',
@@ -332,7 +332,7 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   category: 'greedy_algorithms',
   difficulty: 'Medium',
   description:
-    'Huffman Coding is a lossless greedy data compression algorithm that constructs an optimal variable-length prefix code tree based on character frequencies. Characters occurring more frequently are assigned shorter binary codes, guaranteeing minimal average code length (approaching theoretical entropy limits).',
+    'Huffman Coding is a greedy, lossless compression algorithm. It builds a binary tree from character frequencies so that common characters get short binary codes and rare ones get longer codes, producing the minimum possible average code length for the text.',
   constraints: [
     '1 <= text.length <= 10^4',
     'Text consists of ASCII characters',
@@ -352,6 +352,10 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     worst: 'O(N log K)',
   },
   spaceComplexity: 'O(K)',
+  complexityAnalysis: {
+    time: 'Counting frequencies takes one pass over all N characters of the text. Building the tree then performs K − 1 merges, where K is the number of distinct characters, and each merge does a constant number of heap pops and pushes costing O(log K) apiece. Together that gives O(N log K), and since K is capped by the alphabet size, the frequency-counting pass usually dominates in practice.',
+    space: 'We store one leaf node per distinct character plus roughly K − 1 merged internal nodes across the heap and the finished tree, so extra memory grows with the alphabet size — O(K), not with the length of the text.',
+  },
   defaultInput: DEFAULT_HUFFMAN_CODING_INPUT,
   generateSteps: generateHuffmanCodingSteps,
 };

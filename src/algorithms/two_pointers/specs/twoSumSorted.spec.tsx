@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -25,8 +25,11 @@ describe('TwoSumSorted React Component Spec', () => {
     );
 
     expect(screen.getByText('Two Sum II (Sorted)')).toBeInTheDocument();
+
+    // The problem description is collapsed by default; expand it first.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Find two numbers in a 1-indexed sorted array/i)
+      screen.getAllByText(/Find two numbers in a sorted array/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -47,7 +50,7 @@ describe('TwoSumSorted React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Found Target Sum!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Return the pair \[0, 6\]/i)).toBeInTheDocument();
     expect(screen.getAllByText('MATCH').length).toBeGreaterThan(0);
   });
 });

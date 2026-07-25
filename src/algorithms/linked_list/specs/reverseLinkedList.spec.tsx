@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '../../../components/MainLayout';
 import {
@@ -25,8 +25,11 @@ describe('ReverseLinkedList React Component Spec', () => {
     );
 
     expect(screen.getByText('Reverse Linked List')).toBeInTheDocument();
+
+    // ProblemHeader is collapsed by default; the description renders only after expanding Details.
+    fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(
-      screen.getByText(/Reverses a singly linked list in O\(n\) time and O\(1\) space/i)
+      screen.getAllByText(/Reverses a singly linked list in O\(n\) time and O\(1\) space/i)[0]
     ).toBeInTheDocument();
   });
 
@@ -47,6 +50,6 @@ describe('ReverseLinkedList React Component Spec', () => {
       />
     );
 
-    expect(screen.getByText(/Return prev \(new head = 5\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Return prev, the new head 5/i)).toBeInTheDocument();
   });
 });

@@ -88,15 +88,15 @@ export const generateSlidingWindowMinSteps = (
 
   addStep(
     3,
-    'Initialize Sliding Window Minimum',
-    `Find the minimum element in every contiguous sliding window of size k = ${k} over array [${nums.join(', ')}] using a Monotonic Increasing Deque in O(n) total time.`,
+    'Set up the sliding window minimum',
+    `We want the smallest value in every window of ${k} consecutive elements of [${nums.join(', ')}]. A deque of indices will let us answer each window without rescanning it.`,
     { k, length: n }
   );
 
   addStep(
     4,
-    'Initialize Data Structures',
-    'Created empty result list and double-ended queue (deque). The deque will store array indices in strictly increasing order of element values.',
+    'Create the result list and deque',
+    "We start with an empty result list and an empty deque. The deque will hold indices whose values stay in increasing order, so each window's minimum is always waiting at the front.",
     { k, dequeSize: 0, resultSize: 0 }
   );
 
@@ -125,8 +125,8 @@ export const generateSlidingWindowMinSteps = (
 
     addStep(
       7,
-      `Iterate index i = ${i} (nums[${i}] = ${currentVal})`,
-      `Window Right Boundary: Processing element nums[${i}] = ${currentVal}. Active window range: [${windowStart}..${i}] containing elements [${nums.slice(windowStart, i + 1).join(', ')}].`,
+      `Look at nums[${i}] = ${currentVal}`,
+      `We slide the right edge to index ${i}, so the window in play is [${windowStart}..${i}] holding [${nums.slice(windowStart, i + 1).join(', ')}]. Now we update the deque to reflect it.`,
       { i, 'nums[i]': currentVal, windowStart, k }
     );
 
@@ -138,8 +138,8 @@ export const generateSlidingWindowMinSteps = (
         removedOut = true;
         addStep(
           10,
-          `Remove index ${removedIdx} from front of deque`,
-          `Boundary Eviction: Index ${removedIdx} is now outside the current sliding window boundary (index <= ${i - k}). Pop from front of deque.`,
+          `Evict index ${removedIdx} — it left the window`,
+          `Index ${removedIdx} now sits outside the window's left edge, so its value can no longer be a candidate. We pop it off the front of the deque.`,
           { i, removedIdx }
         );
       }
@@ -148,8 +148,8 @@ export const generateSlidingWindowMinSteps = (
     if (!removedOut && deque.length > 0) {
       addStep(
         9,
-        'Check front of deque',
-        `Boundary Invariant: Front index ${deque[0]} is valid and within active window bounds (${deque[0]} > ${i - k}).`,
+        'Confirm the deque front still fits',
+        `The front index ${deque[0]} is still inside the window, so its value remains a legitimate minimum candidate. Nothing to evict this round.`,
         { i, dequeFront: deque[0] }
       );
     }
@@ -160,8 +160,8 @@ export const generateSlidingWindowMinSteps = (
       if (poppedIdx !== undefined) {
         addStep(
           14,
-          `Pop index ${poppedIdx} (val: ${nums[poppedIdx]}) from back of deque`,
-          `Monotonic Invariant Violation: nums[${poppedIdx}] (${nums[poppedIdx]}) >= current value nums[${i}] (${currentVal}). Because ${currentVal} is smaller and introduced later, index ${poppedIdx} can NEVER be the minimum for any future window. Pop it from back.`,
+          `Pop index ${poppedIdx} from the back`,
+          `nums[${poppedIdx}] = ${nums[poppedIdx]} is at least as big as the new value ${currentVal}, and ${currentVal} will outlive it in the window. The older value can never be a minimum again, so we discard it.`,
           { i, poppedIdx, 'nums[popped]': nums[poppedIdx] }
         );
       }
@@ -172,8 +172,8 @@ export const generateSlidingWindowMinSteps = (
 
     addStep(
       16,
-      `Push index ${i} to deque`,
-      `Insert Index: Pushed index ${i} (value ${currentVal}) to back of monotonic deque. Deque preserves strictly increasing element values: [${deque.map((idx) => nums[idx]).join(', ')}].`,
+      `Push index ${i} onto the deque`,
+      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(', ')}] — still increasing from front to back.`,
       { i, dequeState: deque.join(', ') }
     );
 
@@ -187,8 +187,8 @@ export const generateSlidingWindowMinSteps = (
 
       addStep(
         20,
-        `Record window minimum: ${minVal}`,
-        `Query Result: Monotonic deque front (index ${minIdx}) provides minimum value (${minVal}) for window [${windowStart}..${i}] in O(1) time. Appended to result list.`,
+        `Record ${minVal} as this window's minimum`,
+        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to the result without rescanning the window.`,
         { windowStart, windowEnd: i, minVal, result: result.join(', ') }
       );
     }
@@ -196,8 +196,8 @@ export const generateSlidingWindowMinSteps = (
 
   addStep(
     22,
-    'Complete Sliding Window Minimum',
-    `Evaluation Complete: Computed minimums for all sliding windows of size k = ${k}: [${result.join(', ')}] in linear O(n) time.`,
+    'Return the list of minimums',
+    `Every window of size ${k} has been answered: [${result.join(', ')}]. Each index entered and left the deque at most once, which is why the whole run stayed linear.`,
     { result: result.join(', ') }
   );
 
@@ -210,7 +210,7 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   category: 'sliding_window',
   difficulty: 'Hard',
   description:
-    'Finds the minimum element in every contiguous sliding window of size k moving across an array using a Monotonic Increasing Deque in optimal O(n) time and O(k) space.',
+    'Finds the minimum element in every contiguous sliding window of size k by maintaining a monotonic increasing deque of candidate indices.',
   constraints: [
     '1 <= nums.length <= 10^5',
     '-10^4 <= nums[i] <= 10^4',
@@ -236,6 +236,10 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     worst: 'O(n)',
   },
   spaceComplexity: 'O(k)',
+  complexityAnalysis: {
+    time: 'Although there are loops inside the main scan, every index is pushed onto the deque exactly once and popped at most once — either from the front when it leaves the window or from the back when a smaller value arrives. Charging each pop to the push that created it bounds the total work at about 2n deque operations, so the time is O(n) rather than O(n·k).',
+    space: 'The deque only ever holds indices from the current window, so it never grows past k entries — O(k) extra space beyond the output list.',
+  },
   defaultInput: DEFAULT_SLIDING_WINDOW_MIN_INPUT,
   generateSteps: generateSlidingWindowMinSteps,
 };

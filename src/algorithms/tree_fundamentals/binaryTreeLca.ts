@@ -102,8 +102,8 @@ export const generateBinaryTreeLcaSteps = (
 
   addStep(
     1,
-    `Initialize bottom-up post-order LCA search for target nodes p = ${pVal} and q = ${qVal}`,
-    `Post-order DFS (left, right, root) allows search status to bubble up from leaves to parents. This allows us to pinpoint the exact node where paths from p and q converge.`,
+    'Begin the LCA search',
+    `We're hunting for the lowest node that has both ${pVal} and ${qVal} beneath it. We'll walk the tree bottom-up, so every parent can ask its two subtrees "did you find one of them?" and combine the answers.`,
     undefined,
     undefined,
     { p: pVal, q: qVal }
@@ -120,8 +120,8 @@ export const generateBinaryTreeLcaSteps = (
 
     addStep(
       2,
-      `Evaluate Node(${currentNode.val}) for base-case target matching`,
-      `Check if Node(${currentNode.val}) is null or matches target p (${pVal}) or q (${qVal}). If matched, return this node upward immediately.`,
+      `Evaluate node ${currentNode.val}`,
+      `We first check whether node ${currentNode.val} is itself one of our targets, ${pVal} or ${qVal}. If it is, we can report it upward right away without searching any deeper.`,
       currentId,
       undefined,
       { current: currentNode.val }
@@ -130,8 +130,8 @@ export const generateBinaryTreeLcaSteps = (
     if (currentNode.val === pVal || currentNode.val === qVal) {
       addStep(
         3,
-        `Base case met: Node(${currentNode.val}) matches target ${currentNode.val === pVal ? 'p' : 'q'} (${currentNode.val})`,
-        `By returning Node(${currentNode.val}), we inform parent callers that target ${currentNode.val === pVal ? 'p' : 'q'} exists in this subtree branch.`,
+        `Found target ${currentNode.val === pVal ? 'p' : 'q'} at node ${currentNode.val}`,
+        `Node ${currentNode.val} is ${currentNode.val === pVal ? 'p' : 'q'} itself, so we return it straight up. Its parent now knows this subtree contains one of the two targets — and if the other target sits below here, this node is already their ancestor.`,
         currentId,
         undefined,
         { current: currentNode.val, match: true }
@@ -145,8 +145,8 @@ export const generateBinaryTreeLcaSteps = (
     if (currentNode.leftId) {
       addStep(
         5,
-        `Recurse into left subtree of Node(${currentNode.val})`,
-        `Explore the left branch under Node(${currentNode.val}) to determine if p (${pVal}) or q (${qVal}) resides within it.`,
+        `Search the left subtree of node ${currentNode.val}`,
+        `We ask node ${currentNode.val}'s left branch whether it contains ${pVal} or ${qVal}. Whatever it finds — a target or nothing — comes back to us as a return value.`,
         currentId,
         undefined,
         { current: currentNode.val, leftChild: nodeMap.get(currentNode.leftId)?.val ?? 'N/A' }
@@ -159,8 +159,8 @@ export const generateBinaryTreeLcaSteps = (
     if (currentNode.rightId) {
       addStep(
         6,
-        `Recurse into right subtree of Node(${currentNode.val})`,
-        `Explore the right branch under Node(${currentNode.val}) to locate the remaining target node.`,
+        `Search the right subtree of node ${currentNode.val}`,
+        `Now the same question goes to the right branch. Once both sides have answered, node ${currentNode.val} has everything it needs to decide what to report.`,
         currentId,
         undefined,
         { current: currentNode.val, rightChild: nodeMap.get(currentNode.rightId)?.val ?? 'N/A' }
@@ -171,8 +171,8 @@ export const generateBinaryTreeLcaSteps = (
     if (leftResult && rightResult) {
       addStep(
         8,
-        `LCA Invariant Triggered! Node(${currentNode.val}) received non-null returns from both subtrees`,
-        `Target p (${pVal}) resides in one subtree and target q (${qVal}) in the other. Therefore, Node(${currentNode.val}) is the unique Lowest Common Ancestor!`,
+        `Node ${currentNode.val} is the answer`,
+        `The left subtree returned one target and the right subtree returned the other, so their paths split exactly here. That makes node ${currentNode.val} the lowest common ancestor — no deeper node can see both ${pVal} and ${qVal}.`,
         currentId,
         currentId,
         { current: currentNode.val, lcaFound: true }
@@ -184,8 +184,10 @@ export const generateBinaryTreeLcaSteps = (
     const result = leftResult !== null ? leftResult : rightResult;
     addStep(
       10,
-      `Node(${currentNode.val}) returns ${result ? `Node(${nodeMap.get(result)?.val})` : 'None'} upward`,
-      `Propagate non-null target reference upward to the parent node so it can check if the other target was found in a parallel branch.`,
+      `Node ${currentNode.val} passes ${result ? `node ${nodeMap.get(result)?.val}` : 'nothing'} upward`,
+      result
+        ? `Only one side found a target, so node ${currentNode.val} simply forwards that answer to its parent. The parent will check whether the other target turns up in its opposite branch.`
+        : `Neither subtree found a target below node ${currentNode.val}, so we report nothing and let the search continue elsewhere.`,
       currentId,
       undefined,
       { current: currentNode.val, returned: result ? (nodeMap.get(result)?.val ?? 'None') : 'None' }
@@ -201,8 +203,8 @@ export const generateBinaryTreeLcaSteps = (
     const lcaNode = nodeMap.get(finalLcaId);
     addStep(
       10,
-      `LCA Search Complete! Lowest Common Ancestor is Node(${lcaNode?.val})`,
-      `The post-order traversal has unwound back to root, confirming Node(${lcaNode?.val}) as the lowest ancestor containing both p (${pVal}) and q (${qVal}).`,
+      `The LCA is node ${lcaNode?.val}`,
+      `The recursion has unwound all the way back to the root, and node ${lcaNode?.val} is the lowest point where the paths to ${pVal} and ${qVal} converge. Each node was visited just once along the way.`,
       undefined,
       finalLcaId,
       { lcaVal: lcaNode?.val ?? 'Unknown' }
@@ -210,8 +212,8 @@ export const generateBinaryTreeLcaSteps = (
   } else {
     addStep(
       10,
-      `LCA Search Complete: No Common Ancestor Found`,
-      `Neither p nor q was present in the binary tree.`,
+      'No common ancestor exists',
+      'Neither target turned up anywhere in the tree, so there is no ancestor to report.',
       undefined,
       undefined,
       { lcaVal: 'None' }
@@ -262,6 +264,10 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
     worst: 'O(N)',
   },
   spaceComplexity: 'O(H)',
+  complexityAnalysis: {
+    time: 'The recursion touches each of the N nodes at most once, and every visit does only constant work: compare the node against p and q, then combine the two child results. Nothing is ever revisited, so the total is O(N). We generally cannot stop early either — until both targets are located, either one could still be hiding in an unexplored subtree.',
+    space: "The only memory that grows is the recursion call stack, which gets as deep as the tree's height — O(H). In a balanced tree that is about log N frames; in a degenerate chain it can reach N.",
+  },
   defaultInput: DEFAULT_BINARY_TREE_LCA_INPUT,
   generateSteps: generateBinaryTreeLcaSteps,
 };

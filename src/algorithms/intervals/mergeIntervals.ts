@@ -61,8 +61,8 @@ export function generateMergeIntervalsSteps(
       stepIndex: 0,
       codeLine: 2,
       explanation: {
-        what: 'Intervals list is empty.',
-        why: 'Return an empty array for empty input.',
+        what: 'Return an empty result',
+        why: 'There are no intervals to merge, so we simply hand back an empty list.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -85,8 +85,8 @@ export function generateMergeIntervalsSteps(
     stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
-      what: `Sort ${intervals.length} intervals by start time.`,
-      why: 'Sorting intervals by their starting boundary guarantees that any potential overlaps occur between adjacent intervals in the sorted sequence, allowing single-pass processing.',
+      what: `Sort ${intervals.length} intervals by start`,
+      why: 'We sort by start time so that any two intervals that overlap end up next to each other. That lets us merge everything in one left-to-right walk.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -110,8 +110,8 @@ export function generateMergeIntervalsSteps(
     stepIndex: stepIdx++,
     codeLine: 5,
     explanation: {
-      what: `Initialize merged list with first interval ${formatInterval(intervals[0])}.`,
-      why: 'The first sorted interval serves as our initial running merged interval against which subsequent intervals are compared.',
+      what: `Start merged list with ${formatInterval(intervals[0])}`,
+      why: 'We take the first sorted interval as our running interval — every later interval will either stretch it or start a fresh one.',
     },
     primarySnapshot: {
       kind: 'array',
@@ -140,8 +140,8 @@ export function generateMergeIntervalsSteps(
         stepIndex: stepIdx++,
         codeLine: 9,
         explanation: {
-          what: `Overlap detected! Current ${formatInterval(current)} overlaps with previous ${formatInterval({ start: prev.start, end: oldEnd })}.`,
-          why: `Since current.start (${current.start}) <= prev.end (${oldEnd}), the intervals overlap. Merge by updating prev.end to max(${oldEnd}, ${current.end}) = ${prev.end}. Merged interval is now ${formatInterval(prev)}.`,
+          what: `Merge overlapping interval ${formatInterval(current)}`,
+          why: `This interval starts at ${current.start}, before the previous one ends at ${oldEnd}, so they overlap. We stretch the running interval's end to max(${oldEnd}, ${current.end}) = ${prev.end}, giving ${formatInterval(prev)}.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -169,8 +169,8 @@ export function generateMergeIntervalsSteps(
         stepIndex: stepIdx++,
         codeLine: 11,
         explanation: {
-          what: `No overlap between previous ${formatInterval(prev)} and current ${formatInterval(current)}.`,
-          why: `current.start (${current.start}) > prev.end (${prev.end}), meaning current interval begins strictly after the previous interval ends. Append ${formatInterval(current)} as a new independent merged interval.`,
+          what: `Start new interval ${formatInterval(current)}`,
+          why: `This interval begins at ${current.start}, after the previous one ends at ${prev.end}, so there is a real gap between them. We close out ${formatInterval(prev)} and start tracking ${formatInterval(current)} on its own.`,
         },
         primarySnapshot: {
           kind: 'array',
@@ -197,8 +197,8 @@ export function generateMergeIntervalsSteps(
     stepIndex: stepIdx++,
     codeLine: 12,
     explanation: {
-      what: `Finished merging. Result: ${merged.map(formatInterval).join(', ')}.`,
-      why: 'All non-overlapping merged intervals covering the full input range have been produced.',
+      what: `Return ${merged.length} merged interval(s)`,
+      why: `Every interval has been folded in, leaving ${merged.map(formatInterval).join(', ')} — non-overlapping pieces that cover exactly the same ground as the input. The sort was the expensive part; the merge itself was a single pass.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -265,6 +265,10 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
     worst: 'O(N log N)',
   },
   spaceComplexity: 'O(N)',
+  complexityAnalysis: {
+    time: 'Sorting the intervals by start time dominates the work at O(N log N). After that, we make a single linear pass and compare each interval only with the last merged one, which adds just O(N) more. That is why best, average, and worst case are all O(N log N) — the sort always happens.',
+    space: 'The merged output list is what grows: when nothing overlaps it holds all N intervals, so extra memory is O(N).',
+  },
   generateSteps: generateMergeIntervalsSteps,
   defaultInput: DEFAULT_MERGE_INTERVALS_INPUT,
 };

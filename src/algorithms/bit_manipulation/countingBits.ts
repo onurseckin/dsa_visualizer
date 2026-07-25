@@ -52,8 +52,8 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
     stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
-      what: `Initialize answer array of length n+1 = ${n + 1} with zeros.`,
-      why: 'ans[0] = 0 because the binary representation of 0 contains 0 set bits (ones).',
+      what: `Create an answer array of ${n + 1} zeros`,
+      why: `We set up one slot per number from 0 to ${n}, and slot 0 is already correct — zero has no binary ones. Every later entry will be built from an earlier one.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -78,8 +78,8 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
       stepIndex: stepIdx++,
       codeLine: 4,
       explanation: {
-        what: `Calculate set bits for i=${i} (binary: ${i.toString(2)}).`,
-        why: `ans[${i}] = ans[${i} >> 1] + (${i} & 1) = ans[${half}] (${ans[half]}) + ${lowestBit} = ${ans[i]}. Shifting right by 1 drops the least significant bit, re-using subproblem ans[${half}].`,
+        what: `Count bits for ${i} (binary ${i.toString(2)})`,
+        why: `Shifting ${i} right one bit gives ${half}, whose count we already know is ${ans[half]}, and the bit we dropped is ${lowestBit}. So we just add them — ${ans[half]} + ${lowestBit} = ${ans[i]} — with no bit-by-bit counting at all.`,
       },
       primarySnapshot: {
         kind: 'array',
@@ -108,8 +108,8 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
     stepIndex: stepIdx++,
     codeLine: 5,
     explanation: {
-      what: `Computed set bits for all numbers from 0 to ${n}.`,
-      why: 'Dynamic programming bit manipulation completes in O(N) linear time and O(1) extra space beyond the output array.',
+      what: `Finish: counts for 0 through ${n}`,
+      why: `The table now holds the number of ones for every value up to ${n}. Because each entry reused a smaller answer in constant time, the whole build took just one linear pass — O(n) overall.`,
     },
     primarySnapshot: {
       kind: 'array',
@@ -140,7 +140,7 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   category: 'bit_manipulation',
   difficulty: 'Easy',
   description:
-    'Given an integer n, returns an array ans of length n + 1 such that for each i (0 <= i <= n), ans[i] is the number of 1s in the binary representation of i. Uses dynamic programming and bitwise right-shift (i >> 1) to achieve linear O(N) time complexity without calling built-in bit-count functions.',
+    'Given an integer n, returns an array ans of length n + 1 where ans[i] is the number of 1s in the binary representation of i. Each count is derived from a smaller, already-solved one via a bitwise right-shift (i >> 1), giving linear time without any built-in bit-count functions.',
   constraints: [
     '0 <= n <= 10^5',
   ],
@@ -167,6 +167,10 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
     worst: 'O(N)',
   },
   spaceComplexity: 'O(N)',
+  complexityAnalysis: {
+    time: 'We fill the answer array in a single pass from 1 to n, and each entry costs constant work: one right shift, one bitwise AND, and one addition that reuses an answer we already computed. There is no inner loop over the bits of each number, which is exactly what beats the naive approach of counting every number\'s bits from scratch — that would cost O(n log n) instead of O(n).',
+    space: 'The answer array itself holds n + 1 entries, so memory grows linearly with n. Beyond the output we keep only a couple of loop variables, so the extra working space is constant.',
+  },
   generateSteps: generateCountingBitsSteps,
   defaultInput: DEFAULT_COUNTING_BITS_INPUT,
 };

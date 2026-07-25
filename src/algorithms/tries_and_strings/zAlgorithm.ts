@@ -48,8 +48,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       stepIndex: 0,
       codeLine: 1,
       explanation: {
-        what: 'Initialize Z-Algorithm Search',
-        why: 'Invalid or empty input text/pattern provided. Search complete with 0 matches.',
+        what: 'Handle an empty or invalid input',
+        why: 'The pattern is empty, longer than the text, or the text is empty — no match is possible, so we finish immediately with zero matches.',
       },
       primarySnapshot: {
         kind: 'array',
@@ -161,16 +161,16 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
   addStep(
     2,
-    'Construct concatenated string S = pattern + "$" + text',
-    `Created string S = "${s}" of total length ${n} (Pattern length m = ${m}). The delimiter '$' prevents matches from extending across string boundaries.`,
+    'Build S = pattern + "$" + text',
+    `We glue the pattern and text into one string S = "${s}" (length ${n}) so a single prefix-matching pass can find every occurrence. The '$' separator can never match a real character, so matches can't leak across the boundary.`,
     { s, n, m, text, pattern },
     'Initialization'
   );
 
   addStep(
     5,
-    'Initialize Z-array and window pointers L = 0, R = 0',
-    'Z[i] stores the length of the longest common prefix between S and the suffix of S starting at index i. Window [L, R] tracks the rightmost matched interval.',
+    'Set up the Z-array and window',
+    `Z[i] will record how many characters starting at position i match the very start of S, and the window [L, R] remembers the rightmost stretch we've already matched — so we never compare the same characters twice.`,
     { l: 0, r: 0, n },
     'Initialization'
   );
@@ -178,8 +178,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   for (let i = 1; i < n; i++) {
     addStep(
       8,
-      `Start processing index i = ${i} ('${s[i]}')`,
-      `Evaluate Z[${i}] value for suffix starting at S[${i}].`,
+      `Move to index ${i} ('${s[i]}')`,
+      `We want Z[${i}]: how long a copy of S's own prefix starts right here at position ${i}.`,
       { i, char: s[i], l, r },
       'Looping',
       i
@@ -191,8 +191,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       z[i] = Math.min(rem, z[k]);
       addStep(
         9,
-        `Index i = ${i} is inside window [L=${l}, R=${r}]`,
-        `Use previously computed Z[${k}] = ${z[k]}. Initialize Z[${i}] = min(R - i + 1, Z[i - L]) = ${z[i]} to avoid redundant comparisons.`,
+        `Reuse work from the window`,
+        `Position ${i} sits inside [L=${l}, R=${r}], a stretch we already know mirrors the prefix, so we copy Z[${k}] = ${z[k]} from the mirrored position — capped at the ${rem} characters left in the window — and start Z[${i}] at ${z[i]} for free.`,
         { i, l, r, k, 'Z[k]': z[k], remaining: rem, 'Z[i]': z[i] },
         'Window Optimization',
         i
@@ -202,8 +202,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     while (i + z[i] < n && s[z[i]] === s[i + z[i]]) {
       addStep(
         11,
-        `Compare S[${z[i]}] ('${s[z[i]]}') with S[${i + z[i]}] ('${s[i + z[i]]}')`,
-        `Characters match! Increment Z[${i}] from ${z[i]} to ${z[i] + 1}.`,
+        `Compare '${s[z[i]]}' with '${s[i + z[i]]}'`,
+        `S[${z[i]}] and S[${i + z[i]}] match, so the prefix copy keeps going — we extend Z[${i}] from ${z[i]} to ${z[i] + 1} and try the next pair.`,
         { i, zI: z[i], matchChar: s[z[i]], targetChar: s[i + z[i]] },
         'Character Comparison',
         i,
@@ -216,8 +216,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     if (i + z[i] < n) {
       addStep(
         11,
-        `Mismatch at S[${z[i]}] ('${s[z[i]]}') vs S[${i + z[i]}] ('${s[i + z[i]]}')`,
-        `Comparison stopped. Final Z[${i}] = ${z[i]}.`,
+        `Stop at a mismatch`,
+        `S[${z[i]}] ('${s[z[i]]}') and S[${i + z[i]}] ('${s[i + z[i]]}') disagree, so the match ends here and Z[${i}] settles at ${z[i]}.`,
         { i, finalZI: z[i] },
         'Character Comparison',
         i,
@@ -233,8 +233,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       r = i + z[i] - 1;
       addStep(
         13,
-        `Update window [L, R] to [${l}, ${r}]`,
-        `Expanded rightmost matched interval beyond old R = ${oldR} to new R = ${r}.`,
+        `Slide the window to [${l}, ${r}]`,
+        `Our new match reaches past the old R = ${oldR}, so we record it as the rightmost known match — later positions that fall inside it can reuse this work instead of comparing again.`,
         { i, oldL, oldR, newL: l, newR: r },
         'Window Update',
         i
@@ -246,8 +246,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       matches.push(textMatchIdx);
       addStep(
         17,
-        `Pattern match found at text index ${textMatchIdx}!`,
-        `Z[${i}] = ${m} equals pattern length ${m}. Matched text substring "${text.substring(textMatchIdx, textMatchIdx + m)}".`,
+        `Pattern match found at text index ${textMatchIdx}`,
+        `Z[${i}] = ${m}, the full pattern length — the pattern appears verbatim here, as the substring "${text.substring(textMatchIdx, textMatchIdx + m)}" starting at text index ${textMatchIdx}.`,
         { i, textMatchIdx, pattern, matchCount: matches.length },
         'Pattern Match Found',
         i
@@ -257,8 +257,8 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
   addStep(
     18,
-    'Z-Algorithm search complete',
-    `Found ${matches.length} pattern match(es) in text at index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}.`,
+    'Finish the scan',
+    `Every position now has its Z-value, and we found ${matches.length} match(es) at text index(es): ${matches.length > 0 ? matches.join(', ') : 'None'}. Because the window's right edge only ever moves forward, the whole scan stayed linear — O(n + m).`,
     { totalMatches: matches.length, matches: matches.join(', ') },
     'Complete'
   );
@@ -272,7 +272,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   category: 'tries_and_strings',
   difficulty: 'Hard',
   description:
-    'The Z-algorithm computes the Z-array for a string S = pattern$text in linear O(N + M) time. Z[i] is the length of the longest substring starting at S[i] that matches the prefix of S. A pattern match occurs whenever Z[i] equals the pattern length M.',
+    'The Z-algorithm scans S = pattern + "$" + text once and computes the Z-array: Z[i] is how long a copy of S\'s own prefix starts at position i. Whenever Z[i] equals the pattern length, the pattern occurs there — so one linear O(n + m) pass finds every match.',
   constraints: [
     '1 <= text.length <= 10^5',
     '1 <= pattern.length <= 10^4',
@@ -292,6 +292,10 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     worst: 'O(n + m)',
   },
   spaceComplexity: 'O(n + m)',
+  complexityAnalysis: {
+    time: "The inner while loop looks like it could blow up, but every character comparison it makes either pushes the window's right edge R further right or ends the loop — and R never moves backwards. So the total number of comparisons across the entire run is bounded by the length of S = pattern + '$' + text, making the algorithm O(n + m). There is no bad case: even highly repetitive strings cannot force R to retreat.",
+    space: 'We store the concatenated string S and its Z-array, each about n + m characters long, so extra memory grows linearly with the combined input size — O(n + m).',
+  },
   defaultInput: DEFAULT_Z_ALGORITHM_INPUT,
   generateSteps: generateZAlgorithmSteps,
 };
