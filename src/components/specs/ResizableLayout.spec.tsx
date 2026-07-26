@@ -2,7 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
-import { ResizableLayout, ResizableRow, ResizableRows } from '../ResizableLayout';
+import {
+  PanelHeightMap,
+  ResizableLayout,
+  ResizableRow,
+  ResizableRows,
+} from '../ResizableLayout';
 
 /* jsdom measures every element as 0x0, so drag paths are exercised by stubbing
    getBoundingClientRect; everything else is asserted on attributes and callbacks. */
@@ -40,8 +45,7 @@ describe('ResizableLayout (horizontal split)', () => {
       <ResizableLayout
         leftPanel={<div>Left Content</div>}
         rightPanel={<div>Right Content</div>}
-        splitPercent={60}
-        defaultSplitPercent={60}
+        splitPercent={70}
         onSplitChange={onSplitChange}
         onSplitCommit={onSplitCommit}
         {...overrides}
@@ -58,7 +62,7 @@ describe('ResizableLayout (horizontal split)', () => {
 
     const handle = screen.getByRole('separator');
     expect(handle).toHaveAttribute('aria-orientation', 'vertical');
-    expect(handle).toHaveAttribute('aria-valuenow', '60');
+    expect(handle).toHaveAttribute('aria-valuenow', '70');
     expect(handle).toHaveAttribute('aria-valuemin', '25');
     expect(handle).toHaveAttribute('aria-valuemax', '80');
     expect(handle).toHaveAttribute('tabindex', '0');
@@ -76,7 +80,7 @@ describe('ResizableLayout (horizontal split)', () => {
   it('nudges the split by 2% with ArrowLeft / ArrowRight and commits each nudge', () => {
     const onSplitCommit = vi.fn();
     const Harness = () => {
-      const [percent, setPercent] = useState(60);
+      const [percent, setPercent] = useState(70);
       return (
         <ResizableLayout
           leftPanel={<div>Left Content</div>}
@@ -91,16 +95,16 @@ describe('ResizableLayout (horizontal split)', () => {
     const handle = screen.getByRole('separator');
 
     fireEvent.keyDown(handle, { key: 'ArrowRight' });
-    expect(handle).toHaveAttribute('aria-valuenow', '62');
+    expect(handle).toHaveAttribute('aria-valuenow', '72');
 
     fireEvent.keyDown(handle, { key: 'ArrowRight' });
-    expect(handle).toHaveAttribute('aria-valuenow', '64');
+    expect(handle).toHaveAttribute('aria-valuenow', '74');
 
     fireEvent.keyDown(handle, { key: 'ArrowLeft' });
-    expect(handle).toHaveAttribute('aria-valuenow', '62');
+    expect(handle).toHaveAttribute('aria-valuenow', '72');
 
     expect(onSplitCommit).toHaveBeenCalledTimes(3);
-    expect(onSplitCommit).toHaveBeenLastCalledWith(62);
+    expect(onSplitCommit).toHaveBeenLastCalledWith(72);
   });
 
   it('ignores unrelated keys', () => {
@@ -119,13 +123,21 @@ describe('ResizableLayout (horizontal split)', () => {
     expect(onSplitChange).toHaveBeenLastCalledWith(80);
   });
 
-  it('restores the default split on double-click', () => {
+  it('restores the graph-focused 70% default split on double-click', () => {
     const { onSplitChange, onSplitCommit } = renderLayout({ splitPercent: 40 });
 
     fireEvent.doubleClick(screen.getByRole('separator'));
 
-    expect(onSplitChange).toHaveBeenLastCalledWith(60);
-    expect(onSplitCommit).toHaveBeenLastCalledWith(60);
+    expect(onSplitChange).toHaveBeenLastCalledWith(70);
+    expect(onSplitCommit).toHaveBeenLastCalledWith(70);
+  });
+
+  it('restores an explicitly provided default split on double-click', () => {
+    const { onSplitChange } = renderLayout({ splitPercent: 40, defaultSplitPercent: 55 });
+
+    fireEvent.doubleClick(screen.getByRole('separator'));
+
+    expect(onSplitChange).toHaveBeenLastCalledWith(55);
   });
 
   it('tracks a mouse drag and commits once on release', () => {
@@ -158,7 +170,7 @@ describe('ResizableLayout (horizontal split)', () => {
       <ResizableLayout
         leftPanel={<div>Left Content</div>}
         rightPanel={<div>Right Content</div>}
-        splitPercent={60}
+        splitPercent={70}
         showLeft={false}
         onSplitChange={vi.fn()}
       />,
@@ -170,152 +182,253 @@ describe('ResizableLayout (horizontal split)', () => {
   });
 });
 
-describe('ResizableRows (vertical split)', () => {
-  const buildRows = (overrides: Partial<Record<string, boolean>> = {}): ResizableRow[] => [
-    { id: 'top', label: 'visualizer', content: <div>Top Row</div>, weight: 60, defaultWeight: 60 },
+describe('ResizableRows (content-hugging rows)', () => {
+  /* The right column after R5.4: two rows, neither greedy, so the code panel is
+     exactly as tall as the solution and the complexity card follows it. */
+  const buildRows = (
+    heights: PanelHeightMap = {},
+    visibility: Partial<Record<string, boolean>> = {},
+  ): ResizableRow[] => [
     {
-      id: 'middle',
-      label: 'tutorial',
-      content: <div>Middle Row</div>,
-      weight: 40,
-      defaultWeight: 40,
-      visible: overrides.middle !== false,
+      id: 'code',
+      label: 'code',
+      content: <div>Code Content</div>,
+      height: heights.code ?? null,
+      visible: visibility.code !== false,
     },
     {
-      id: 'bottom',
-      label: 'auxiliary data',
-      content: <div>Bottom Row</div>,
-      weight: 20,
-      defaultWeight: 20,
-      visible: overrides.bottom !== false,
+      id: 'complexity',
+      label: 'complexity',
+      content: <div>Complexity Content</div>,
+      height: heights.complexity ?? null,
+      visible: visibility.complexity !== false,
     },
   ];
 
   const renderRows = (rows: ResizableRow[]) => {
-    const onWeightsChange = vi.fn();
-    const onWeightsCommit = vi.fn();
+    const onHeightsChange = vi.fn();
+    const onHeightsCommit = vi.fn();
     const utils = render(
       <ResizableRows
         rows={rows}
-        onWeightsChange={onWeightsChange}
-        onWeightsCommit={onWeightsCommit}
+        onHeightsChange={onHeightsChange}
+        onHeightsCommit={onHeightsCommit}
       />,
     );
-    return { ...utils, onWeightsChange, onWeightsCommit };
+    return { ...utils, onHeightsChange, onHeightsCommit };
   };
+
+  const row = (container: HTMLElement, id: string): HTMLElement =>
+    container.querySelector(`[data-row="${id}"]`) as HTMLElement;
 
   it('renders one horizontal separator between each adjacent visible pair', () => {
     renderRows(buildRows());
 
     const handles = screen.getAllByRole('separator');
-    expect(handles).toHaveLength(2);
-    handles.forEach((handle) => {
-      expect(handle).toHaveAttribute('aria-orientation', 'horizontal');
-      expect(handle).toHaveAttribute('tabindex', '0');
-    });
-    expect(handles[0]).toHaveAccessibleName('Resize visualizer and tutorial rows');
-    expect(handles[1]).toHaveAccessibleName('Resize tutorial and auxiliary data rows');
+    expect(handles).toHaveLength(1);
+    expect(handles[0]).toHaveAttribute('aria-orientation', 'horizontal');
+    expect(handles[0]).toHaveAttribute('tabindex', '0');
+    expect(handles[0]).toHaveAccessibleName('Resize code and complexity rows');
   });
 
-  it('reports each row share as the separator value', () => {
-    renderRows(buildRows());
-
-    const handles = screen.getAllByRole('separator');
-    expect(handles[0]).toHaveAttribute('aria-valuenow', '60');
-    expect(handles[0]).toHaveAttribute('aria-valuemin', '4');
-    expect(handles[0]).toHaveAttribute('aria-valuemax', '96');
-  });
-
-  it('applies weights as flex-grow so rows share the stage height', () => {
+  it('gives both rows no imposed height so each hugs its content', () => {
     const { container } = renderRows(buildRows());
 
-    const top = container.querySelector('[data-row="top"]') as HTMLElement;
-    const middle = container.querySelector('[data-row="middle"]') as HTMLElement;
-    expect(top.style.flexGrow).toBe('60');
-    expect(top.style.minHeight).toBe('0');
-    expect(middle.style.flexGrow).toBe('40');
+    for (const id of ['code', 'complexity']) {
+      const element = row(container, id);
+      expect(element).toHaveAttribute('data-height-mode', 'hug');
+      expect(element.style.flexGrow).toBe('0');
+      expect(element.style.flexShrink).toBe('0');
+      expect(element.style.flexBasis).toBe('auto');
+      expect(element.style.height).toBe('');
+      expect(element.style.minHeight).toBe('');
+      // Overflow belongs to the column, never to a hugging panel (R5.4).
+      expect(element.style.overflowY).toBe('visible');
+    }
   });
 
-  it('leaves no row, gap or dead handle for a hidden row', () => {
-    renderRows(buildRows({ middle: false, bottom: false }));
+  it('scrolls the column itself when its hugging rows outgrow it', () => {
+    const { container } = renderRows(buildRows());
 
-    expect(screen.getByText('Top Row')).toBeInTheDocument();
-    expect(screen.queryByText('Middle Row')).not.toBeInTheDocument();
+    const column = row(container, 'code').parentElement as HTMLElement;
+    expect(column.style.overflowY).toBe('auto');
+    expect(column.style.height).toBe('100%');
+    expect(column.style.flexDirection).toBe('column');
+  });
+
+  it('lets a single greedy row absorb the whole column', () => {
+    const { container } = renderRows([
+      {
+        id: 'visualizer',
+        label: 'visualizer',
+        content: <div>Visualizer Content</div>,
+        greedy: true,
+        height: null,
+      },
+    ]);
+
+    const visualizer = row(container, 'visualizer');
+    expect(visualizer).toHaveAttribute('data-height-mode', 'greedy');
+    expect(visualizer.style.flexGrow).toBe('1');
+    expect(visualizer.style.flexBasis).toBe('0%');
+    expect(visualizer.style.minHeight).toBe('var(--panel-min-h)');
+    // One row means no neighbour to resize against.
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
 
-  it('keeps the pair sum constant when nudging with ArrowUp / ArrowDown', () => {
-    const { onWeightsChange, onWeightsCommit } = renderRows(buildRows({ bottom: false }));
-    const handle = screen.getByRole('separator');
+  it('pins a dragged row to an explicit pixel height with its own scroll', () => {
+    const { container } = renderRows(buildRows({ code: 180 }));
 
-    fireEvent.keyDown(handle, { key: 'ArrowDown' });
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 62, middle: 38, bottom: 20 });
-    expect(onWeightsCommit).toHaveBeenLastCalledWith({ top: 62, middle: 38, bottom: 20 });
+    const code = row(container, 'code');
+    expect(code).toHaveAttribute('data-height-mode', 'pinned');
+    expect(code.style.height).toBe('180px');
+    expect(code.style.flexBasis).toBe('180px');
+    expect(code.style.flexGrow).toBe('0');
+    expect(code.style.overflowY).toBe('auto');
 
-    fireEvent.keyDown(handle, { key: 'ArrowUp' });
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 58, middle: 42, bottom: 20 });
+    // The panel that was not dragged keeps hugging.
+    expect(row(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
   });
 
-  it('keeps hidden rows at their stored weight while resizing visible ones', () => {
-    const { onWeightsChange } = renderRows(buildRows({ middle: false }));
+  it('reports the height of the row above on the separator', () => {
+    const { unmount } = renderRows(buildRows({ code: 180 }));
 
-    fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowDown' });
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '180');
+    expect(screen.getByRole('separator')).not.toHaveAttribute('aria-valuetext');
 
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 61.6, middle: 40, bottom: 18.4 });
+    unmount();
+    renderRows(buildRows());
+
+    expect(screen.getByRole('separator')).toHaveAttribute(
+      'aria-valuetext',
+      'Automatic, sized to content',
+    );
   });
 
-  it('restores both default weights of a pair on double-click', () => {
-    const rows = buildRows({ bottom: false });
-    rows[0].weight = 20;
-    rows[1].weight = 80;
-    const { onWeightsChange, onWeightsCommit } = renderRows(rows);
+  it('leaves no row, gap or dead handle for a hidden row', () => {
+    const { container } = renderRows(buildRows({}, { complexity: false }));
 
-    fireEvent.doubleClick(screen.getByRole('separator'));
-
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 60, middle: 40, bottom: 20 });
-    expect(onWeightsCommit).toHaveBeenLastCalledWith({ top: 60, middle: 40, bottom: 20 });
+    expect(screen.getByText('Code Content')).toBeInTheDocument();
+    expect(screen.queryByText('Complexity Content')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-row="complexity"]')).toBeNull();
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
 
-  it('converts a vertical drag into pair weights and commits on release', () => {
+  it('resizes the row above the handle, whose top edge is the drag anchor', () => {
     stubRects({
-      container: rect(0, 400),
-      top: rect(0, 240),
-      middle: rect(248, 400),
+      container: rect(0, 600),
+      code: rect(0, 300),
+      complexity: rect(308, 600),
     });
-    const { onWeightsChange, onWeightsCommit } = renderRows(buildRows({ bottom: false }));
-
-    const handle = screen.getByRole('separator');
-    fireEvent.mouseDown(handle);
-    // Pair spans 0..400px and holds 100 weight, so 100px maps to 25 weight.
-    fireEvent.mouseMove(window, { clientY: 100 });
-
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 25, middle: 75, bottom: 20 });
-    expect(onWeightsCommit).not.toHaveBeenCalled();
-
-    fireEvent.mouseUp(window);
-    expect(onWeightsCommit).toHaveBeenCalledTimes(1);
-  });
-
-  it('clamps a drag past the edge to the minimum row weight', () => {
-    stubRects({
-      container: rect(0, 400),
-      top: rect(0, 240),
-      middle: rect(248, 400),
-    });
-    const { onWeightsChange } = renderRows(buildRows({ bottom: false }));
+    const { onHeightsChange, onHeightsCommit } = renderRows(buildRows());
 
     fireEvent.mouseDown(screen.getByRole('separator'));
-    fireEvent.mouseMove(window, { clientY: -500 });
+    fireEvent.mouseMove(window, { clientY: 420 });
 
-    expect(onWeightsChange).toHaveBeenLastCalledWith({ top: 4, middle: 96, bottom: 20 });
+    expect(onHeightsChange).toHaveBeenLastCalledWith({ code: 420, complexity: null });
+    expect(onHeightsCommit).not.toHaveBeenCalled();
+
+    fireEvent.mouseUp(window);
+    expect(onHeightsCommit).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores drag movement while the stage has no measurable height', () => {
-    const { onWeightsChange } = renderRows(buildRows({ bottom: false }));
+  it('clamps a drag so a pinned row can never swallow the whole column', () => {
+    stubRects({ container: rect(0, 600), code: rect(0, 300), complexity: rect(308, 600) });
+    const { onHeightsChange } = renderRows(buildRows());
+
+    fireEvent.mouseDown(screen.getByRole('separator'));
+    fireEvent.mouseMove(window, { clientY: 1200 });
+
+    // 600px column minus the 64px floor left for the neighbour.
+    expect(onHeightsChange).toHaveBeenLastCalledWith({ code: 536, complexity: null });
+  });
+
+  it('clamps a drag above the row top to the row floor', () => {
+    stubRects({ container: rect(0, 600), code: rect(0, 300), complexity: rect(308, 600) });
+    const { onHeightsChange } = renderRows(buildRows());
+
+    fireEvent.mouseDown(screen.getByRole('separator'));
+    fireEvent.mouseMove(window, { clientY: -200 });
+
+    expect(onHeightsChange).toHaveBeenLastCalledWith({ code: 64, complexity: null });
+  });
+
+  it('ignores drag movement while the row has no measurable height', () => {
+    const { onHeightsChange } = renderRows(buildRows());
 
     fireEvent.mouseDown(screen.getByRole('separator'));
     fireEvent.mouseMove(window, { clientY: 120 });
 
-    expect(onWeightsChange).not.toHaveBeenCalled();
+    expect(onHeightsChange).not.toHaveBeenCalled();
+  });
+
+  it('pins the row above with an arrow-key nudge and commits it', () => {
+    stubRects({ container: rect(0, 600), code: rect(0, 300), complexity: rect(308, 600) });
+    const { onHeightsChange, onHeightsCommit } = renderRows(buildRows());
+
+    // ArrowDown pushes the handle down, which grows the row above it from its
+    // 300px content height.
+    fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowDown' });
+
+    expect(onHeightsChange).toHaveBeenLastCalledWith({ code: 316, complexity: null });
+    expect(onHeightsCommit).toHaveBeenLastCalledWith({ code: 316, complexity: null });
+  });
+
+  it('shrinks the row above when the handle is nudged up', () => {
+    stubRects({ container: rect(0, 600), code: rect(0, 300), complexity: rect(308, 600) });
+    const { onHeightsCommit } = renderRows(buildRows());
+
+    fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowUp' });
+
+    expect(onHeightsCommit).toHaveBeenLastCalledWith({ code: 284, complexity: null });
+  });
+
+  it('nudges a pinned row from its stored height', () => {
+    stubRects({ container: rect(0, 600), code: rect(0, 300), complexity: rect(308, 600) });
+    const { onHeightsCommit } = renderRows(buildRows({ code: 180 }));
+
+    fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowDown' });
+
+    expect(onHeightsCommit).toHaveBeenLastCalledWith({ code: 196, complexity: null });
+  });
+
+  it('restores the row above to automatic on double-click', () => {
+    const { onHeightsChange, onHeightsCommit } = renderRows(buildRows({ code: 180 }));
+
+    fireEvent.doubleClick(screen.getByRole('separator'));
+
+    expect(onHeightsChange).toHaveBeenLastCalledWith({ code: null, complexity: null });
+    expect(onHeightsCommit).toHaveBeenLastCalledWith({ code: null, complexity: null });
+  });
+
+  it('keeps a hidden row at its stored height while resizing the visible ones', () => {
+    /* Rows are a generic list, so a hidden one must keep its pin: toggling a panel
+       off and on again may not discard the size the user dragged it to. */
+    stubRects({ container: rect(0, 600), code: rect(0, 300) });
+    const onHeightsChange = vi.fn();
+    render(
+      <ResizableRows
+        rows={[
+          ...buildRows(),
+          {
+            id: 'scratch',
+            label: 'scratch',
+            content: <div>Scratch Content</div>,
+            height: 220,
+            visible: false,
+          },
+        ]}
+        onHeightsChange={onHeightsChange}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByRole('separator'));
+    fireEvent.mouseMove(window, { clientY: 420 });
+
+    expect(onHeightsChange).toHaveBeenLastCalledWith({
+      code: 420,
+      complexity: null,
+      scratch: 220,
+    });
   });
 });

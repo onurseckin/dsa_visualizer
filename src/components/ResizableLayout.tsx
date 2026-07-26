@@ -1,15 +1,27 @@
 import React from 'react';
 
-/* Resizable workspace primitives (DESIGN.md R3.3).
+/* Resizable workspace primitives (DESIGN.md R5.2 / R5.4).
 
    ResizableLayout splits a stage horizontally (left/right columns);
-   ResizableRows stacks any number of rows vertically with a handle between
-   each adjacent visible pair. Both are controlled: the owner holds the sizes
-   so they can be persisted, and both report a live `change` during a drag plus
-   a single `commit` when the drag ends (persisting on every mousemove would
-   hammer localStorage). */
+   ResizableRows stacks the rows of one column with a handle between each
+   adjacent visible pair. Both are controlled: the owner holds the sizes so they
+   can be persisted, and both report a live `change` during a drag plus a single
+   `commit` when the drag ends (persisting on every mousemove would hammer
+   localStorage).
+
+   Rows have no imposed height by default. A row either hugs its content, or is
+   the column's single greedy row that absorbs the leftover space, or was pinned
+   to an explicit pixel height by a drag. That is what keeps a short panel from
+   rendering blank filler.
+
+   R5.2 moved the tutorial and working-data strips inside the visualizer panel,
+   so the left column is now a single greedy row and the only row handle left is
+   the one between the code and complexity rows. A handle therefore always
+   resizes the row ABOVE it, whose top edge is anchored — dragging the row below
+   instead would chase an edge that moves as the row grows. */
 
 const KEYBOARD_STEP_PERCENT = 2;
+const KEYBOARD_STEP_PX = 16;
 const HANDLE_THICKNESS_PX = 8;
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -24,10 +36,14 @@ interface DragHandleProps {
   valueNow: number;
   valueMin: number;
   valueMax: number;
+  /** Announced in place of the raw number when it is not a real size (automatic rows). */
+  valueText?: string;
+  /** One arrow-key nudge, in the owner's own unit (percent for columns, px for rows). */
+  step: number;
   dragging: boolean;
   onDragStart: () => void;
-  /** Positive delta grows the leading panel (left / top) by that many percent. */
-  onNudge: (deltaPercent: number) => void;
+  /** Positive delta moves the handle down / right. */
+  onNudge: (delta: number) => void;
   onRestoreDefault: () => void;
 }
 
@@ -37,6 +53,8 @@ const DragHandle: React.FC<DragHandleProps> = ({
   valueNow,
   valueMin,
   valueMax,
+  valueText,
+  step,
   dragging,
   onDragStart,
   onNudge,
@@ -48,14 +66,14 @@ const DragHandle: React.FC<DragHandleProps> = ({
   const active = dragging || hovered || focused;
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const shrinkKey = isVertical ? 'ArrowLeft' : 'ArrowUp';
-    const growKey = isVertical ? 'ArrowRight' : 'ArrowDown';
-    if (event.key === shrinkKey) {
+    const backKey = isVertical ? 'ArrowLeft' : 'ArrowUp';
+    const forwardKey = isVertical ? 'ArrowRight' : 'ArrowDown';
+    if (event.key === backKey) {
       event.preventDefault();
-      onNudge(-KEYBOARD_STEP_PERCENT);
-    } else if (event.key === growKey) {
+      onNudge(-step);
+    } else if (event.key === forwardKey) {
       event.preventDefault();
-      onNudge(KEYBOARD_STEP_PERCENT);
+      onNudge(step);
     }
   };
 
@@ -66,6 +84,7 @@ const DragHandle: React.FC<DragHandleProps> = ({
       aria-valuenow={Math.round(valueNow)}
       aria-valuemin={Math.round(valueMin)}
       aria-valuemax={Math.round(valueMax)}
+      aria-valuetext={valueText}
       aria-label={label}
       tabIndex={0}
       onMouseDown={(event) => {
@@ -155,7 +174,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
   leftPanel,
   rightPanel,
   splitPercent,
-  defaultSplitPercent = 60,
+  defaultSplitPercent = 70,
   minLeftPercent = 25,
   maxLeftPercent = 80,
   showLeft = true,
@@ -239,6 +258,7 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
         valueNow={splitPercent}
         valueMin={minLeftPercent}
         valueMax={maxLeftPercent}
+        step={KEYBOARD_STEP_PERCENT}
         dragging={dragging}
         onDragStart={() => setDragging(true)}
         onNudge={(delta) => apply(percentRef.current + delta, true)}
@@ -263,104 +283,128 @@ export const ResizableLayout: React.FC<ResizableLayoutProps> = ({
 
 export interface ResizableRow {
   id: string;
-  /** Used in the aria-label of the handle above this row. */
+  /** Used in the aria-label of the handle next to this row. */
   label: string;
   content: React.ReactNode;
-  /** Relative flex weight; absolute scale is irrelevant, ratios are what matter. */
-  weight: number;
-  /** Double-clicking a handle restores the default weights of its two rows. */
-  defaultWeight: number;
-  /** Hidden rows render nothing at all — no gap, no handle. */
+  /** null = automatic (exactly as tall as its content); a number pins the row. */
+  height: number | null;
+  /** The one row per column that absorbs leftover space while it is automatic. */
+  greedy?: boolean;
+  /** Hidden rows render nothing at all — no wrapper, no gap, no handle. */
   visible?: boolean;
-  /** True for rows whose content does not scroll itself. */
-  scroll?: boolean;
 }
+
+export type PanelHeightMap = Record<string, number | null>;
 
 export interface ResizableRowsProps {
   rows: ResizableRow[];
-  /** Weight floor per row; matches the persistence floor so drags stay storable. */
-  minRowWeight?: number;
-  onWeightsChange: (weights: Record<string, number>) => void;
-  onWeightsCommit?: (weights: Record<string, number>) => void;
+  /** Floor for a pinned row; matches the persistence floor so drags stay storable. */
+  minRowHeight?: number;
+  maxRowHeight?: number;
+  onHeightsChange: (heights: PanelHeightMap) => void;
+  onHeightsCommit?: (heights: PanelHeightMap) => void;
 }
 
 export const ResizableRows: React.FC<ResizableRowsProps> = ({
   rows,
-  minRowWeight = 4,
-  onWeightsChange,
-  onWeightsCommit,
+  minRowHeight = 64,
+  maxRowHeight = 2000,
+  onHeightsChange,
+  onHeightsCommit,
 }) => {
-  const [dragPair, setDragPair] = React.useState<[string, string] | null>(null);
+  /** The id of the row being resized, i.e. the row directly above the handle. */
+  const [dragRowId, setDragRowId] = React.useState<string | null>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const rowElementsRef = React.useRef<Map<string, HTMLDivElement>>(new Map());
 
   const visibleRows = rows.filter((row) => row.visible !== false);
 
-  const weightsRef = React.useRef<Record<string, number>>({});
-  const nextWeights: Record<string, number> = {};
+  /* Hidden rows keep their stored height so toggling a panel off and on again
+     does not silently discard the size the user dragged it to. */
+  const heightsRef = React.useRef<PanelHeightMap>({});
+  const nextHeights: PanelHeightMap = {};
   for (const row of rows) {
-    nextWeights[row.id] = Number.isFinite(row.weight) && row.weight > 0 ? row.weight : row.defaultWeight;
+    nextHeights[row.id] = typeof row.height === 'number' && Number.isFinite(row.height) ? row.height : null;
   }
-  weightsRef.current = nextWeights;
+  heightsRef.current = nextHeights;
 
-  const applyPair = React.useCallback(
-    (topId: string, bottomId: string, topWeight: number, commit: boolean) => {
-      const current = weightsRef.current;
-      const sum = current[topId] + current[bottomId];
-      if (sum <= minRowWeight * 2) return;
-      const nextTop = clamp(topWeight, minRowWeight, sum - minRowWeight);
-      const updated: Record<string, number> = {
-        ...current,
-        [topId]: nextTop,
-        [bottomId]: sum - nextTop,
-      };
-      weightsRef.current = updated;
-      onWeightsChange(updated);
-      if (commit) onWeightsCommit?.(updated);
+  /* A pinned row may never eat the whole column: the remainder has to stay
+     large enough for its neighbours to be grabbable. */
+  const clampRowHeight = React.useCallback(
+    (value: number): number => {
+      const container = containerRef.current;
+      const available = container ? container.getBoundingClientRect().height : 0;
+      const ceiling =
+        available > minRowHeight * 2 ? Math.min(maxRowHeight, available - minRowHeight) : maxRowHeight;
+      return clamp(value, minRowHeight, ceiling);
     },
-    [minRowWeight, onWeightsChange, onWeightsCommit],
+    [minRowHeight, maxRowHeight],
+  );
+
+  const applyHeight = React.useCallback(
+    (id: string, height: number | null, commit: boolean) => {
+      const updated: PanelHeightMap = { ...heightsRef.current, [id]: height };
+      heightsRef.current = updated;
+      onHeightsChange(updated);
+      if (commit) onHeightsCommit?.(updated);
+    },
+    [onHeightsChange, onHeightsCommit],
   );
 
   const onMove = React.useCallback(
     (_clientX: number, clientY: number) => {
-      if (!dragPair) return;
-      const [topId, bottomId] = dragPair;
-      const topElement = rowElementsRef.current.get(topId);
-      const bottomElement = rowElementsRef.current.get(bottomId);
-      if (!topElement || !bottomElement) return;
-      const topRect = topElement.getBoundingClientRect();
-      const bottomRect = bottomElement.getBoundingClientRect();
-      const span = bottomRect.bottom - topRect.top;
-      if (!(span > 0)) return;
-      const ratio = (clientY - topRect.top) / span;
-      const sum = weightsRef.current[topId] + weightsRef.current[bottomId];
-      applyPair(topId, bottomId, sum * ratio, false);
+      if (dragRowId === null) return;
+      const element = rowElementsRef.current.get(dragRowId);
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      // jsdom and a not-yet-laid-out stage both measure 0; there is nothing to drag against.
+      if (!(rect.height > 0)) return;
+      /* The handle rides the row's bottom edge while its top edge stays put, so
+         the pointer's distance from that top edge is the row's new height. */
+      applyHeight(dragRowId, clampRowHeight(clientY - rect.top), false);
     },
-    [dragPair, applyPair],
+    [dragRowId, applyHeight, clampRowHeight],
   );
 
   const onEnd = React.useCallback(() => {
-    setDragPair(null);
-    onWeightsCommit?.(weightsRef.current);
-  }, [onWeightsCommit]);
+    setDragRowId(null);
+    onHeightsCommit?.(heightsRef.current);
+  }, [onHeightsCommit]);
 
-  usePointerDrag(dragPair !== null, onMove, onEnd);
+  usePointerDrag(dragRowId !== null, onMove, onEnd);
+
+  /* An automatic row has no stored height, so a keyboard nudge starts from what
+     the row currently measures and pins it from there. */
+  const nudge = React.useCallback(
+    (id: string, delta: number) => {
+      const stored = heightsRef.current[id];
+      const element = rowElementsRef.current.get(id);
+      const base = stored ?? (element ? element.getBoundingClientRect().height : 0);
+      applyHeight(id, clampRowHeight(base + delta), true);
+    },
+    [applyHeight, clampRowHeight],
+  );
 
   return (
     <div
+      ref={containerRef}
       style={{
         display: 'flex',
         flexDirection: 'column',
         width: '100%',
         height: '100%',
         minHeight: 0,
-        userSelect: dragPair ? 'none' : 'auto',
+        // Hugging rows never shrink, so a column that outgrows the stage scrolls.
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        userSelect: dragRowId !== null ? 'none' : 'auto',
       }}
     >
       {visibleRows.map((row, index) => {
         const previous = index > 0 ? visibleRows[index - 1] : null;
-        const pairSum = previous ? nextWeights[previous.id] + nextWeights[row.id] : 0;
-        const dragging =
-          previous !== null && dragPair !== null && dragPair[0] === previous.id && dragPair[1] === row.id;
+        const targetHeight = previous ? heightsRef.current[previous.id] : null;
+        const height = nextHeights[row.id];
+        const mode = height !== null ? 'pinned' : row.greedy === true ? 'greedy' : 'hug';
 
         return (
           <React.Fragment key={row.id}>
@@ -368,29 +412,15 @@ export const ResizableRows: React.FC<ResizableRowsProps> = ({
               <DragHandle
                 orientation="horizontal"
                 label={`Resize ${previous.label} and ${row.label} rows`}
-                valueNow={(nextWeights[previous.id] / pairSum) * 100}
-                valueMin={(minRowWeight / pairSum) * 100}
-                valueMax={100 - (minRowWeight / pairSum) * 100}
-                dragging={dragging}
-                onDragStart={() => setDragPair([previous.id, row.id])}
-                onNudge={(delta) =>
-                  applyPair(
-                    previous.id,
-                    row.id,
-                    nextWeights[previous.id] + (pairSum * delta) / 100,
-                    true,
-                  )
-                }
-                onRestoreDefault={() => {
-                  const updated: Record<string, number> = {
-                    ...weightsRef.current,
-                    [previous.id]: previous.defaultWeight,
-                    [row.id]: row.defaultWeight,
-                  };
-                  weightsRef.current = updated;
-                  onWeightsChange(updated);
-                  onWeightsCommit?.(updated);
-                }}
+                valueNow={targetHeight ?? minRowHeight}
+                valueMin={minRowHeight}
+                valueMax={maxRowHeight}
+                valueText={targetHeight === null ? 'Automatic, sized to content' : undefined}
+                step={KEYBOARD_STEP_PX}
+                dragging={dragRowId === previous.id}
+                onDragStart={() => setDragRowId(previous.id)}
+                onNudge={(delta) => nudge(previous.id, delta)}
+                onRestoreDefault={() => applyHeight(previous.id, null, true)}
               />
             )}
             <div
@@ -399,15 +429,19 @@ export const ResizableRows: React.FC<ResizableRowsProps> = ({
                 else rowElementsRef.current.delete(row.id);
               }}
               data-row={row.id}
+              data-height-mode={mode}
               style={{
-                flexGrow: nextWeights[row.id],
-                flexShrink: 1,
-                flexBasis: 0,
-                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                overflowY: row.scroll ? 'auto' : 'hidden',
-                overflowX: 'hidden',
+                flexGrow: mode === 'greedy' ? 1 : 0,
+                flexShrink: mode === 'greedy' ? 1 : 0,
+                flexBasis: height !== null ? `${height}px` : mode === 'greedy' ? '0%' : 'auto',
+                height: height !== null ? `${height}px` : undefined,
+                // A pinned row keeps its size and scrolls; the greedy row hands
+                // its overflow to the panel inside it; a hugging row cannot overflow.
+                minHeight: mode === 'greedy' ? 'var(--panel-min-h)' : undefined,
+                overflowX: mode === 'hug' ? 'visible' : 'hidden',
+                overflowY: mode === 'pinned' ? 'auto' : mode === 'greedy' ? 'hidden' : 'visible',
               }}
             >
               {row.content}

@@ -2,17 +2,25 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import { MainLayout } from '../MainLayout';
-import type { AlgorithmDefinition, AlgorithmStep, TopicGuide } from '../../types/dsa';
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  AuxiliaryState,
+  PanelVisibility,
+  StepExplanation,
+  TopicGuide,
+} from '../../types/dsa';
 import type { ControlPanelProps } from '../ControlPanel';
 import {
   DEFAULT_WORKSPACE_LAYOUT,
+  MIN_PANEL_HEIGHT_PX,
   WORKSPACE_LAYOUT_KEY,
   WorkspaceLayout,
 } from '../../app/workspaceLayout';
 
 /* Child panels are owned and rebuilt by other agents. They are mocked here so this
-   spec verifies the layout contract only: composition, conditional rendering per
-   viewMode, prop wiring across the agent boundary, and the persisted geometry.
+   spec verifies the layout contract only: the single-container stage, per-panel
+   visibility, prop wiring across the agent boundary, and the persisted geometry.
    ResizableLayout / ResizableRows and ConfirmDialog stay real. */
 
 vi.mock('../primitives/ProblemHeader', () => ({
@@ -65,6 +73,8 @@ vi.mock('../ControlPanel', () => ({
   ),
 }));
 
+/* The real predicates are mirrored here rather than stubbed to `true`: MainLayout
+   gates each strip on them, so a stub would hide the empty-strip regression. */
 vi.mock('../primitives/TutorialCard', () => ({
   TutorialCard: ({ what, onClose }: { what?: string; onClose?: () => void }) => (
     <div data-testid="tutorial-card">
@@ -72,14 +82,27 @@ vi.mock('../primitives/TutorialCard', () => ({
       <button onClick={onClose}>Dismiss explanation</button>
     </div>
   ),
+  hasTutorialContent: (explanation?: StepExplanation, what?: string, why?: string) =>
+    Boolean((what || explanation?.what || '').trim() || (why || explanation?.why || '').trim()),
 }));
 
 vi.mock('../primitives/AuxiliaryPanel', () => ({
   AuxiliaryPanel: ({ onClose }: { onClose?: () => void }) => (
     <div data-testid="auxiliary-panel">
+      <span>Working data</span>
       <button onClick={onClose}>Hide auxiliary panel</button>
     </div>
   ),
+  hasAuxiliaryContent: (state?: AuxiliaryState) =>
+    Boolean(
+      state &&
+        ((state.stack?.length ?? 0) > 0 ||
+          (state.queue?.length ?? 0) > 0 ||
+          (state.visited?.length ?? 0) > 0 ||
+          Object.keys(state.hashMap ?? {}).length > 0 ||
+          Object.keys(state.distanceTable ?? {}).length > 0 ||
+          Object.keys(state.customState ?? {}).length > 0),
+    ),
 }));
 
 vi.mock('../primitives/CodeBlockViewer', () => ({
@@ -188,6 +211,14 @@ const dummyControlProps: ControlPanelProps = {
   supportsCustomSize: true,
 };
 
+const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
+  visualizer: true,
+  code: true,
+  tutorial: true,
+  auxiliary: true,
+  ...overrides,
+});
+
 const renderLayout = (
   overrides: Partial<ComponentProps<typeof MainLayout>> = {},
 ): ReturnType<typeof render> =>
@@ -195,9 +226,7 @@ const renderLayout = (
     <MainLayout
       algorithm={dummyAlgorithm}
       currentStep={dummyStep}
-      viewMode="split"
-      showTutorial={false}
-      showAuxiliary={false}
+      panels={allPanels()}
       onToggleTutorial={vi.fn()}
       onToggleAuxiliary={vi.fn()}
       {...overrides}
@@ -206,6 +235,22 @@ const renderLayout = (
 
 const columnHandle = (): HTMLElement =>
   screen.getByRole('separator', { name: 'Resize visualizer and code columns' });
+
+const horizontalHandles = (): string[] =>
+  screen
+    .getAllByRole('separator')
+    .filter((handle) => handle.getAttribute('aria-orientation') === 'horizontal')
+    .map((handle) => handle.getAttribute('aria-label') ?? '');
+
+const panelRow = (container: HTMLElement, id: string): HTMLElement | null =>
+  container.querySelector(`[data-row="${id}"]`);
+
+/** The one container the whole left column is made of (DESIGN.md R5.2). */
+const stagePanel = (container: HTMLElement): HTMLElement =>
+  container.querySelector('[data-panel="visualizer"]') as HTMLElement;
+
+const region = (container: HTMLElement, name: string): HTMLElement | null =>
+  container.querySelector(`[data-region="${name}"]`);
 
 const storedLayout = (): WorkspaceLayout | null => {
   const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
@@ -277,9 +322,7 @@ describe('MainLayout Component Spec', () => {
       <MainLayout
         algorithm={{ ...dummyAlgorithm, id: 'insertion-sort' }}
         currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
+        panels={allPanels()}
         onToggleTutorial={vi.fn()}
         onToggleAuxiliary={vi.fn()}
       />,
@@ -288,11 +331,14 @@ describe('MainLayout Component Spec', () => {
     expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
   });
 
-  it('renders visualizer, code viewer, and complexity prose in split viewMode', () => {
+  it('renders visualizer, code viewer and complexity prose when every panel is on', () => {
     renderLayout();
 
     expect(screen.getByTestId('array-visualizer')).toHaveTextContent('3,1,2');
     expect(screen.getByTestId('code-viewer')).toHaveTextContent('def bubble_sort');
+    expect(screen.getByTestId('complexity-card')).toBeInTheDocument();
+    expect(screen.getByTestId('tutorial-card')).toBeInTheDocument();
+    expect(screen.getByTestId('auxiliary-panel')).toBeInTheDocument();
     expect(columnHandle()).toBeInTheDocument();
   });
 
@@ -304,153 +350,340 @@ describe('MainLayout Component Spec', () => {
     expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.space);
   });
 
-  it('embeds playback controls at the bottom edge of the visualizer card when controlProps are provided', () => {
-    renderLayout({ controlProps: dummyControlProps });
-
-    const panel = screen.getByTestId('control-panel');
-    expect(panel).toHaveAttribute('data-variant', 'embedded');
-    expect(panel).toHaveTextContent('0 / 5');
-  });
-
   it('omits playback controls when neither controlProps nor playback callbacks are provided', () => {
     renderLayout();
 
     expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
   });
 
-  it('hides the code column in visual viewMode', () => {
-    renderLayout({ viewMode: 'visual' });
+  describe('one graph-focused stage container', () => {
+    it('nests working data, canvas, tutorial and playback inside the single visualizer panel', () => {
+      const { container } = renderLayout({ controlProps: dummyControlProps });
 
-    expect(screen.getByTestId('array-visualizer')).toBeInTheDocument();
-    expect(screen.queryByTestId('code-viewer')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('complexity-card')).not.toBeInTheDocument();
-  });
+      const panel = stagePanel(container);
+      expect(panel).toBeInTheDocument();
+      expect(panel).toContainElement(screen.getByText('Working data'));
+      expect(panel).toContainElement(screen.getByTestId('array-visualizer'));
+      expect(panel).toContainElement(screen.getByTestId('tutorial-card'));
+      expect(panel).toContainElement(screen.getByTestId('control-panel'));
 
-  it('hides the visualizer column in code viewMode', () => {
-    renderLayout({ viewMode: 'code' });
-
-    expect(screen.getByTestId('code-viewer')).toBeInTheDocument();
-    expect(screen.getByTestId('complexity-card')).toBeInTheDocument();
-    expect(screen.queryByTestId('array-visualizer')).not.toBeInTheDocument();
-  });
-
-  it('toggles the tutorial card and forwards onClose to onToggleTutorial', () => {
-    const handleToggleTutorial = vi.fn();
-    const { rerender } = renderLayout({
-      showTutorial: true,
-      onToggleTutorial: handleToggleTutorial,
+      // Working data on top, canvas in the middle, tutorial then playback below it.
+      const order = Array.from(panel.querySelectorAll('[data-region]')).map((node) =>
+        node.getAttribute('data-region'),
+      );
+      expect(order).toEqual(['working-data', 'canvas', 'tutorial', 'controls']);
     });
 
-    expect(screen.getByText('Comparing elements 3 and 1')).toBeInTheDocument();
+    it('leaves the left column a single row, so nothing is stacked outside the panel', () => {
+      const { container } = renderLayout();
 
-    fireEvent.click(screen.getByText('Dismiss explanation'));
-    expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={handleToggleTutorial}
-        onToggleAuxiliary={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
-  });
-
-  it('toggles the auxiliary panel and forwards onClose to onToggleAuxiliary', () => {
-    const handleToggleAuxiliary = vi.fn();
-    const { rerender } = renderLayout({
-      showAuxiliary: true,
-      onToggleAuxiliary: handleToggleAuxiliary,
+      expect(panelRow(container, 'visualizer')).toContainElement(stagePanel(container));
+      expect(panelRow(container, 'tutorial')).toBeNull();
+      expect(panelRow(container, 'auxiliary')).toBeNull();
+      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
     });
 
-    expect(screen.getByTestId('auxiliary-panel')).toBeInTheDocument();
+    it('integrates each strip with a subtle divider on the edge facing the canvas', () => {
+      const { container } = renderLayout();
 
-    fireEvent.click(screen.getByText('Hide auxiliary panel'));
-    expect(handleToggleAuxiliary).toHaveBeenCalledTimes(1);
+      /* The strip owns the band fill and the one divider; its content draws no
+         edge of its own, so the canvas boundary is a single line. The chrome tier
+         matches the docked playback strip and keeps the --bg-elevated working-data
+         chips from dissolving into the band behind them. */
+      const workingData = region(container, 'working-data') as HTMLElement;
+      expect(workingData.style.borderBottom).toBe('1px solid var(--border-subtle)');
+      expect(workingData.style.borderTop).toBe('');
+      expect(workingData.style.background).toBe('var(--bg-chrome)');
 
-    rerender(
-      <MainLayout
-        algorithm={dummyAlgorithm}
-        currentStep={dummyStep}
-        viewMode="split"
-        showTutorial={false}
-        showAuxiliary={false}
-        onToggleTutorial={vi.fn()}
-        onToggleAuxiliary={handleToggleAuxiliary}
-      />,
-    );
-
-    expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
-  });
-
-  it('renders fallback UI when currentStep is null', () => {
-    renderLayout({ currentStep: null, showTutorial: true, showAuxiliary: true });
-
-    expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
-    expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
-  });
-
-  describe('resizable sections', () => {
-    it('exposes a vertical column handle plus horizontal row handles for every visible row pair', () => {
-      renderLayout({ showTutorial: true, showAuxiliary: true });
-
-      expect(columnHandle()).toHaveAttribute('aria-orientation', 'vertical');
-
-      const rowHandles = screen
-        .getAllByRole('separator')
-        .filter((handle) => handle.getAttribute('aria-orientation') === 'horizontal');
-
-      expect(rowHandles.map((handle) => handle.getAttribute('aria-label'))).toEqual([
-        'Resize visualizer and tutorial rows',
-        'Resize tutorial and auxiliary data rows',
-        'Resize code and complexity rows',
-      ]);
+      const tutorial = region(container, 'tutorial') as HTMLElement;
+      expect(tutorial.style.borderTop).toBe('1px solid var(--border-subtle)');
+      expect(tutorial.style.borderBottom).toBe('');
+      expect(tutorial.style.background).toBe('var(--bg-chrome)');
     });
 
-    it('drops the row handles of hidden rows so no dead handle or empty gap is left', () => {
-      renderLayout({ showTutorial: false, showAuxiliary: false });
+    it('gives the canvas every leftover pixel while the strips keep their own height', () => {
+      const { container } = renderLayout();
 
-      const rowHandles = screen
-        .getAllByRole('separator')
-        .filter((handle) => handle.getAttribute('aria-orientation') === 'horizontal');
+      const canvas = region(container, 'canvas') as HTMLElement;
+      expect(canvas.style.flex).toBe('1 1 0%');
+      // A flex child must be allowed to go below its content to give space back.
+      expect(canvas.style.minHeight).toBe('0');
 
-      expect(rowHandles.map((handle) => handle.getAttribute('aria-label'))).toEqual([
-        'Resize code and complexity rows',
-      ]);
+      for (const name of ['working-data', 'tutorial']) {
+        const strip = region(container, name) as HTMLElement;
+        expect(strip.style.flexShrink).toBe('0');
+        // Capped so a long step can never starve the canvas it belongs to.
+        expect(strip.style.maxHeight).toBe('38%');
+        expect(strip.style.overflowY).toBe('auto');
+      }
+    });
+
+    it('embeds playback controls at the bottom edge of the visualizer panel', () => {
+      renderLayout({ controlProps: dummyControlProps });
+
+      const panel = screen.getByTestId('control-panel');
+      expect(panel).toHaveAttribute('data-variant', 'embedded');
+      expect(panel).toHaveTextContent('0 / 5');
+    });
+
+    it('hands the canvas the space of a hidden strip and renders no wrapper for it', () => {
+      const { container } = renderLayout({
+        panels: allPanels({ tutorial: false, auxiliary: false }),
+      });
+
+      expect(region(container, 'working-data')).toBeNull();
+      expect(region(container, 'tutorial')).toBeNull();
+      expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
+
+      const canvas = region(container, 'canvas') as HTMLElement;
+      expect(canvas.style.flex).toBe('1 1 0%');
+      expect(stagePanel(container)).toContainElement(canvas);
+    });
+  });
+
+  describe('panel visibility', () => {
+    it('renders nothing at all for a hidden strip — no row, no handle, no gap', () => {
+      const { container } = renderLayout({
+        panels: allPanels({ tutorial: false, auxiliary: false }),
+      });
+
+      expect(panelRow(container, 'tutorial')).toBeNull();
+      expect(panelRow(container, 'auxiliary')).toBeNull();
+      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
+    });
+
+    /* The strip components return null when they have no content, so gating the
+       wrapper on "the data object exists" left an empty bordered band with a
+       divider — the dead space R5.2 forbids. Gate on real content instead. */
+    it('renders no working-data strip when the step carries an empty auxiliary state', () => {
+      const { container } = renderLayout({
+        currentStep: { ...dummyStep, auxiliaryState: {} },
+        panels: allPanels(),
+      });
+
+      expect(container.querySelector('[data-region="working-data"]')).toBeNull();
+      expect(screen.queryByTestId('auxiliary-panel')).not.toBeInTheDocument();
+    });
+
+    it('renders no working-data strip when every auxiliary collection is empty', () => {
+      const { container } = renderLayout({
+        currentStep: {
+          ...dummyStep,
+          auxiliaryState: { stack: [], queue: [], visited: [], hashMap: {} },
+        },
+        panels: allPanels(),
+      });
+
+      expect(container.querySelector('[data-region="working-data"]')).toBeNull();
+    });
+
+    it('renders no tutorial strip when the step explanation is blank', () => {
+      const { container } = renderLayout({
+        currentStep: { ...dummyStep, explanation: { what: '   ', why: '' } },
+        panels: allPanels(),
+      });
+
+      expect(container.querySelector('[data-region="tutorial"]')).toBeNull();
+      expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
+    });
+
+    it('drops the whole code column, complexity card and column handle when code is off', () => {
+      const { container } = renderLayout({ panels: allPanels({ code: false }) });
+
+      expect(screen.queryByTestId('code-viewer')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('complexity-card')).not.toBeInTheDocument();
+      expect(panelRow(container, 'code')).toBeNull();
+      expect(
+        screen.queryByRole('separator', { name: 'Resize visualizer and code columns' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('array-visualizer')).toBeInTheDocument();
+    });
+
+    it('drops the canvas but keeps the step strips when the visualizer is off', () => {
+      const { container } = renderLayout({
+        panels: allPanels({ visualizer: false }),
+        controlProps: dummyControlProps,
+      });
+
+      expect(region(container, 'canvas')).toBeNull();
+      expect(screen.queryByTestId('array-visualizer')).not.toBeInTheDocument();
+      expect(screen.getByTestId('code-viewer')).toBeInTheDocument();
+
+      // The strips are the panel's content, so a tutorial toggle still shows one.
+      expect(stagePanel(container)).toContainElement(screen.getByTestId('tutorial-card'));
+      expect(stagePanel(container)).toContainElement(screen.getByTestId('auxiliary-panel'));
+      // With no canvas to absorb it, the panel hugs its strips instead of stretching.
+      expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'hug');
+
+      // Playback has to stay reachable, so it docks under the stage on its own.
+      const panel = screen.getByTestId('control-panel');
+      expect(panel).toHaveAttribute('data-variant', 'standalone');
+      expect(region(container, 'controls')).toBeNull();
+    });
+
+    it('shows a calm empty state instead of a blank stage when every panel is off', () => {
+      const { container } = renderLayout({
+        panels: { visualizer: false, code: false, tutorial: false, auxiliary: false },
+        controlProps: dummyControlProps,
+      });
+
+      expect(screen.getByText('Every panel is hidden')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Turn on Visualizer, Code, Tutorial or Aux data in the navbar/),
+      ).toBeInTheDocument();
+      expect(screen.queryAllByRole('separator')).toHaveLength(0);
+      expect(panelRow(container, 'code')).toBeNull();
+      expect(panelRow(container, 'visualizer')).toBeNull();
+      expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
+      // The problem header is chrome, not a panel: it stays.
+      expect(screen.getByTestId('problem-header')).toBeInTheDocument();
+    });
+
+    it('forwards the tutorial close button to onToggleTutorial', () => {
+      const handleToggleTutorial = vi.fn();
+      renderLayout({ onToggleTutorial: handleToggleTutorial });
+
+      fireEvent.click(screen.getByText('Dismiss explanation'));
+
+      expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
+    });
+
+    it('forwards the auxiliary close button to onToggleAuxiliary', () => {
+      const handleToggleAuxiliary = vi.fn();
+      renderLayout({ onToggleAuxiliary: handleToggleAuxiliary });
+
+      fireEvent.click(screen.getByText('Hide auxiliary panel'));
+
+      expect(handleToggleAuxiliary).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders the canvas fallback and no strips when currentStep is null', () => {
+      const { container } = renderLayout({ currentStep: null });
+
+      expect(screen.getByText('No visual snapshot available')).toBeInTheDocument();
+      expect(region(container, 'working-data')).toBeNull();
+      expect(region(container, 'tutorial')).toBeNull();
+      expect(region(container, 'canvas')).toBeInTheDocument();
+    });
+  });
+
+  describe('the code column hugs its content', () => {
+    it('sizes code and complexity to their content with neither one greedy', () => {
+      const { container } = renderLayout();
+
+      for (const id of ['code', 'complexity']) {
+        const element = panelRow(container, id) as HTMLElement;
+        expect(element).toHaveAttribute('data-height-mode', 'hug');
+        expect(element.style.flexGrow).toBe('0');
+        expect(element.style.flexShrink).toBe('0');
+        expect(element.style.flexBasis).toBe('auto');
+        expect(element.style.height).toBe('');
+        // No trailing empty space and no scroll of its own while it fits (R5.4).
+        expect(element.style.overflowY).toBe('visible');
+      }
+    });
+
+    it('puts the overflow on the column, so the complexity card follows the code directly', () => {
+      const { container } = renderLayout();
+
+      const code = panelRow(container, 'code') as HTMLElement;
+      const complexity = panelRow(container, 'complexity') as HTMLElement;
+      expect(code.nextElementSibling).toHaveAttribute('role', 'separator');
+      expect(code.nextElementSibling?.nextElementSibling).toBe(complexity);
+
+      const column = code.parentElement as HTMLElement;
+      expect(column.style.overflowY).toBe('auto');
+    });
+
+    it('keeps the visualizer as the one greedy panel of the stage', () => {
+      const { container } = renderLayout();
+
+      const visualizer = panelRow(container, 'visualizer') as HTMLElement;
+      expect(visualizer).toHaveAttribute('data-height-mode', 'greedy');
+      expect(visualizer.style.flexGrow).toBe('1');
+      expect(visualizer.style.flexBasis).toBe('0%');
+    });
+
+    it('keeps both columns automatic as step content grows and shrinks', () => {
+      const { container, rerender } = renderLayout();
+
+      rerender(
+        <MainLayout
+          algorithm={dummyAlgorithm}
+          currentStep={{
+            ...dummyStep,
+            auxiliaryState: { stack: ['a', 'b', 'c'], queue: [1, 2], visited: [3, 4, 5] },
+            explanation: {
+              what: 'Comparing elements 3 and 1',
+              why: 'A much longer teacher sentence that wraps onto several lines and therefore makes this strip taller than it was on the previous step.',
+            },
+          }}
+          panels={allPanels()}
+          onToggleTutorial={vi.fn()}
+          onToggleAuxiliary={vi.fn()}
+        />,
+      );
+
+      /* Nothing imposes a height, so content changes need no layout bookkeeping:
+         the strips re-measure inside a panel whose outer size never moved. */
+      expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'greedy');
+      for (const id of ['code', 'complexity']) {
+        const element = panelRow(container, id) as HTMLElement;
+        expect(element).toHaveAttribute('data-height-mode', 'hug');
+        expect(element.style.height).toBe('');
+        expect(element.style.flexBasis).toBe('auto');
+      }
+      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
+    });
+  });
+
+  describe('persisted geometry', () => {
+    it('gives the visualizer column the wider default share of the stage', () => {
+      renderLayout();
+
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '70');
+      expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
     });
 
     it('restores persisted sizes on mount', () => {
       seedLayout({
-        version: 3,
+        version: 5,
         splitPercent: 40,
-        leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
-        rightRows: { code: 55, complexity: 45 },
+        panelHeights: { visualizer: null, code: 320, complexity: 240 },
       });
 
-      const { container } = renderLayout({ showTutorial: true });
+      const { container } = renderLayout();
 
       expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
-      expect((container.querySelector('[data-row="visualizer"]') as HTMLElement).style.flexGrow).toBe(
-        '50',
-      );
-      expect((container.querySelector('[data-row="code"]') as HTMLElement).style.flexGrow).toBe('55');
+      expect((panelRow(container, 'code') as HTMLElement).style.height).toBe('320px');
+      expect((panelRow(container, 'complexity') as HTMLElement).style.height).toBe('240px');
+      expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'greedy');
     });
 
-    it('falls back to defaults when the persisted layout is unusable', () => {
-      localStorage.setItem(WORKSPACE_LAYOUT_KEY, '{"version":1,"splitPercent":90}');
+    it('ignores a payload from the previous v4 schema', () => {
+      localStorage.setItem(
+        WORKSPACE_LAYOUT_KEY,
+        JSON.stringify({
+          version: 4,
+          splitPercent: 40,
+          panelHeights: {
+            visualizer: null,
+            tutorial: 180,
+            auxiliary: null,
+            code: null,
+            complexity: 240,
+          },
+        }),
+      );
 
-      renderLayout();
+      const { container } = renderLayout();
 
       expect(columnHandle()).toHaveAttribute(
         'aria-valuenow',
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
+      expect(panelRow(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
     });
 
     it('persists a keyboard nudge of the column split so it survives a reload', () => {
@@ -458,28 +691,54 @@ describe('MainLayout Component Spec', () => {
 
       fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
 
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '62');
-      expect(storedLayout()?.splitPercent).toBe(62);
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '72');
+      expect(storedLayout()?.splitPercent).toBe(72);
+      expect(storedLayout()?.panelHeights).toEqual(DEFAULT_WORKSPACE_LAYOUT.panelHeights);
     });
 
-    it('persists a keyboard nudge of a row handle', () => {
-      renderLayout();
+    it('pins only the resized panel and leaves every other panel automatic', () => {
+      const { container } = renderLayout();
 
       const rowHandle = screen.getByRole('separator', { name: 'Resize code and complexity rows' });
       fireEvent.keyDown(rowHandle, { key: 'ArrowDown' });
 
-      const stored = storedLayout();
-      expect(stored?.rightRows.code).toBeGreaterThan(DEFAULT_WORKSPACE_LAYOUT.rightRows.code);
-      expect((stored?.rightRows.code ?? 0) + (stored?.rightRows.complexity ?? 0)).toBeCloseTo(100);
+      // jsdom measures 0, so the nudge lands on the floor — the point is that it pins.
+      expect(storedLayout()?.panelHeights).toEqual({
+        visualizer: null,
+        code: MIN_PANEL_HEIGHT_PX,
+        complexity: null,
+      });
+      const code = panelRow(container, 'code') as HTMLElement;
+      expect(code).toHaveAttribute('data-height-mode', 'pinned');
+      expect(code.style.height).toBe(`${MIN_PANEL_HEIGHT_PX}px`);
+      expect(code.style.overflowY).toBe('auto');
+      expect(panelRow(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
+    });
+
+    it('restores a pinned panel to automatic on double-click and persists that', () => {
+      seedLayout({
+        version: 5,
+        splitPercent: 70,
+        panelHeights: { visualizer: null, code: 240, complexity: null },
+      });
+      const { container } = renderLayout();
+
+      expect((panelRow(container, 'code') as HTMLElement).style.height).toBe('240px');
+
+      fireEvent.doubleClick(
+        screen.getByRole('separator', { name: 'Resize code and complexity rows' }),
+      );
+
+      expect(panelRow(container, 'code')).toHaveAttribute('data-height-mode', 'hug');
+      expect(storedLayout()?.panelHeights.code).toBeNull();
     });
   });
 
   describe('reset layout', () => {
     const customLayout: WorkspaceLayout = {
-      version: 3,
+      version: 5,
       splitPercent: 40,
-      leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
-      rightRows: { code: 55, complexity: 45 },
+      panelHeights: { visualizer: null, code: 320, complexity: 240 },
     };
 
     it('asks for confirmation instead of resetting immediately', () => {
@@ -522,9 +781,9 @@ describe('MainLayout Component Spec', () => {
       expect(storedLayout()).toEqual(customLayout);
     });
 
-    it('clears storage and restores every default size only on confirm', () => {
+    it('clears storage and puts every panel back on automatic only on confirm', () => {
       seedLayout(customLayout);
-      const { container } = renderLayout({ showTutorial: true });
+      const { container } = renderLayout();
 
       fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
       fireEvent.click(screen.getByRole('button', { name: 'Reset layout' }));
@@ -535,12 +794,10 @@ describe('MainLayout Component Spec', () => {
         'aria-valuenow',
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
-      expect((container.querySelector('[data-row="visualizer"]') as HTMLElement).style.flexGrow).toBe(
-        String(DEFAULT_WORKSPACE_LAYOUT.leftRows.visualizer),
-      );
-      expect((container.querySelector('[data-row="code"]') as HTMLElement).style.flexGrow).toBe(
-        String(DEFAULT_WORKSPACE_LAYOUT.rightRows.code),
-      );
+      for (const id of ['code', 'complexity']) {
+        expect(panelRow(container, id)).toHaveAttribute('data-height-mode', 'hug');
+        expect((panelRow(container, id) as HTMLElement).style.height).toBe('');
+      }
     });
   });
 });
