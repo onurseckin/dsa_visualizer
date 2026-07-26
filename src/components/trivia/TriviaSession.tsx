@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { RotateCcw, ArrowRight, Check } from 'lucide-react';
-import { Badge, Button } from '../../ui';
+import { Badge, Button, Kbd } from '../../ui';
 import { describeMode, gradeRound } from '../../trivia/triviaEngine';
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from '../../types/trivia';
 import { CodePuzzle } from './CodePuzzle';
@@ -243,27 +243,33 @@ export function TriviaSession({
           size="md"
           icon={<Check aria-hidden="true" />}
           disabled={graded || !allFilled}
+          aria-label="Check answers"
           onClick={handleCheck}
         >
           Check answers
+          <Kbd style={{ marginLeft: 'var(--space-2)' }}>↵</Kbd>
         </Button>
         <Button
           variant={graded ? 'primary' : 'secondary'}
           size="md"
           icon={<ArrowRight aria-hidden="true" />}
           disabled={!graded}
+          aria-label="Next round"
           onClick={handleNext}
         >
           Next round
+          <Kbd style={{ marginLeft: 'var(--space-2)' }}>↵</Kbd>
         </Button>
         {graded && (
           <Button
             variant="secondary"
             size="md"
             icon={<RotateCcw aria-hidden="true" />}
+            aria-label="Retry"
             onClick={handleRetry}
           >
             Retry
+            <Kbd style={{ marginLeft: 'var(--space-2)' }}>⌘R</Kbd>
           </Button>
         )}
         <span role="status" style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>

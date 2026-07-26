@@ -243,7 +243,13 @@ export function CodePuzzle({
             whiteSpace: 'pre',
           }}
         >
-          {text.length > 0 ? text : mode === 'choice' ? 'drop a line here' : 'type the line'}
+          {text.length > 0 ? (
+            highlightPythonLine(text)
+          ) : (
+            <span style={{ color: skin.color }}>
+              {mode === 'choice' ? 'drop a line here' : 'type the line'}
+            </span>
+          )}
         </span>
         {state === 'correct' || state === 'incorrect' ? (
           <span
@@ -281,6 +287,7 @@ export function CodePuzzle({
               variant="ghost"
               size="sm"
               selected={showHint}
+              title="Toggle hint (⌘H)"
               aria-label={`Hint for line ${number}`}
               onClick={() => toggleHint(number)}
             />
@@ -289,6 +296,7 @@ export function CodePuzzle({
             icon={<Eye />}
             variant="ghost"
             size="sm"
+            title="Reveal answer"
             aria-label={`Reveal line ${number}`}
             disabled={graded || revealed.includes(number)}
             onClick={() => onReveal(number)}
@@ -315,10 +323,13 @@ export function CodePuzzle({
               padding: 'var(--space-1) 0 0 3.5em',
               fontFamily: 'var(--font-code)',
               fontSize: 'var(--text-xs)',
-              color: 'var(--success)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
             }}
           >
-            {truthFor(number)}
+            <span style={{ color: 'var(--success)', fontWeight: 600 }}>Expected:</span>
+            {highlightPythonLine(truthFor(number))}
           </div>
         ) : null}
       </div>
