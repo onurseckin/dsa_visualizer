@@ -64,23 +64,6 @@ const warningHintStyle: React.CSSProperties = {
   color: 'var(--warning)',
 };
 
-const sliderRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--space-3)',
-};
-
-const sliderStyle: React.CSSProperties = {
-  flex: '1 1 auto',
-  minWidth: 0,
-};
-
-const deckLinesBadgeStyle: React.CSSProperties = {
-  ...PANEL_BORDER,
-  flexShrink: 0,
-  whiteSpace: 'nowrap',
-};
-
 export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
   config,
   onChange,
@@ -123,11 +106,16 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
       icon={<SlidersHorizontal aria-hidden="true" />}
       style={PANEL_BORDER}
       actions={
-        <Badge variant="neutral" style={PANEL_BORDER}>
-          {minBlanks === maxBlanks
-            ? `${minBlanks} blank${minBlanks === 1 ? '' : 's'}`
-            : `${minBlanks}–${maxBlanks} blanks`}
-        </Badge>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <Badge variant="neutral" style={PANEL_BORDER}>
+            {deckLinesLabel}
+          </Badge>
+          <Badge variant="neutral" style={PANEL_BORDER}>
+            {minBlanks === maxBlanks
+              ? `${minBlanks} blank${minBlanks === 1 ? '' : 's'}`
+              : `${minBlanks}–${maxBlanks} blanks`}
+          </Badge>
+        </div>
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -159,19 +147,13 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
         </div>
 
         <div style={fieldStyle}>
-          <div style={sliderRowStyle}>
-            <Slider
-              label="Hardest level"
-              value={maxBlanks}
-              min={minBlanks}
-              max={MAX_BLANKS_CEILING}
-              onChange={handleMax}
-              style={sliderStyle}
-            />
-            <Badge variant="neutral" style={deckLinesBadgeStyle}>
-              {deckLinesLabel}
-            </Badge>
-          </div>
+          <Slider
+            label="Hardest level"
+            value={maxBlanks}
+            min={minBlanks}
+            max={MAX_BLANKS_CEILING}
+            onChange={handleMax}
+          />
           <span style={hintStyle}>
             The drill finishes once every line has been drilled at this many blanks. It can never
             drop below the starting blanks.
