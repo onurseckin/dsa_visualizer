@@ -434,10 +434,40 @@ function TriviaPage() {
               </span>
             )}
 
-            {/* Single-column stack — deck builder above settings — per
-                TASKS.md 9.8: Setup has no side-by-side region to divide, so
-                height-only resizing suffices here, unlike the Drill screen's
-                puzzle+TileTray row. */}
+            {/* Single-column stack — drill settings above the deck builder,
+                so the settings a learner needs before picking algorithms are
+                the first thing on screen rather than buried below a
+                potentially long algorithm list (a user reported never
+                realising settings existed at all). No side-by-side region to
+                divide (TASKS.md 9.8), so height-only resizing suffices. */}
+            <div
+              ref={settingsPanel.ref}
+              style={{
+                flexShrink: 0,
+                height:
+                  layout.panelHeights.settings !== null ? `${layout.panelHeights.settings}px` : undefined,
+                overflow: layout.panelHeights.settings !== null ? 'auto' : 'visible',
+              }}
+            >
+              <TriviaSettings config={config} onChange={applyConfig} deckLineCounts={deckLineCounts} />
+            </div>
+
+            <DragHandle
+              orientation="horizontal"
+              label="Resize drill settings and deck builder"
+              valueNow={layout.panelHeights.settings ?? MIN_PANEL_HEIGHT_PX}
+              valueMin={MIN_PANEL_HEIGHT_PX}
+              valueMax={MAX_PANEL_HEIGHT_PX}
+              valueText={
+                layout.panelHeights.settings === null ? 'Automatic, sized to content' : undefined
+              }
+              step={16}
+              dragging={settingsPanel.dragging}
+              onDragStart={() => settingsPanel.setDragging(true)}
+              onNudge={settingsPanel.nudge}
+              onRestoreDefault={settingsPanel.restoreDefault}
+            />
+
             <div
               ref={deckBuilderPanel.ref}
               style={{
@@ -450,34 +480,6 @@ function TriviaPage() {
               }}
             >
               <TriviaDeckBuilder deck={config.deck} onChange={(deck) => applyConfig({ deck })} />
-            </div>
-
-            <DragHandle
-              orientation="horizontal"
-              label="Resize deck builder and drill settings"
-              valueNow={layout.panelHeights.deckBuilder ?? MIN_PANEL_HEIGHT_PX}
-              valueMin={MIN_PANEL_HEIGHT_PX}
-              valueMax={MAX_PANEL_HEIGHT_PX}
-              valueText={
-                layout.panelHeights.deckBuilder === null ? 'Automatic, sized to content' : undefined
-              }
-              step={16}
-              dragging={deckBuilderPanel.dragging}
-              onDragStart={() => deckBuilderPanel.setDragging(true)}
-              onNudge={deckBuilderPanel.nudge}
-              onRestoreDefault={deckBuilderPanel.restoreDefault}
-            />
-
-            <div
-              ref={settingsPanel.ref}
-              style={{
-                flexShrink: 0,
-                height:
-                  layout.panelHeights.settings !== null ? `${layout.panelHeights.settings}px` : undefined,
-                overflow: layout.panelHeights.settings !== null ? 'auto' : 'visible',
-              }}
-            >
-              <TriviaSettings config={config} onChange={applyConfig} deckLineCounts={deckLineCounts} />
             </div>
           </>
         ) : progress.completed ? (

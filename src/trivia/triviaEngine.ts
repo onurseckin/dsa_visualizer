@@ -20,7 +20,9 @@ export const DEFAULT_TRIVIA_CONFIG: TriviaConfig = {
   mode: 'choice',
   minBlanks: 1,
   maxBlanks: 3,
-  includeDistractors: true,
+  // Off by default — a learner who wants the extra recognition challenge opts
+  // into distractor tiles rather than being opted in automatically.
+  includeDistractors: false,
 };
 
 /* The floor stays at 1, never 0: a 0-blank round would ask pickRound for zero

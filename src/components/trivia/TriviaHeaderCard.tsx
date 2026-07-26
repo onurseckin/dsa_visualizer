@@ -5,20 +5,6 @@ import { Badge, Button, Card, IconButton, Input } from '../../ui';
 
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
-const hintStyle: React.CSSProperties = {
-  fontSize: 'var(--text-xs)',
-  color: 'var(--text-muted)',
-  lineHeight: 1.5,
-};
-
-const barTrackStyle: React.CSSProperties = {
-  height: 'var(--space-2-5)',
-  borderRadius: 'var(--radius-full)',
-  background: 'var(--bg-inset)',
-  border: '1px solid var(--border-default)',
-  overflow: 'hidden',
-};
-
 /* Only ever mounted while setup is showing (see routes/trivia.tsx) — drill mode
    has its own header on TriviaSession, so there is no "showSetup" branch left
    to carry here and exactly one action: entering the drill. */
@@ -78,6 +64,7 @@ export function TriviaHeaderCard({
 
   return (
     <Card
+      padding="none"
       style={PANEL_BORDER}
       icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
       title={
@@ -187,34 +174,6 @@ export function TriviaHeaderCard({
           </Button>
         </div>
       }
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <div
-          role="progressbar"
-          aria-label="Deck coverage"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={coverage}
-          aria-valuetext={`${coverage}% of the deck drilled`}
-          style={barTrackStyle}
-        >
-          <div
-            style={{
-              width: `${coverage}%`,
-              height: '100%',
-              background: 'var(--accent)',
-              transition: 'width var(--transition-normal)',
-            }}
-          />
-        </div>
-        <span style={hintStyle}>
-          {`${coverage}% of the deck drilled at levels ${config.minBlanks}–${config.maxBlanks} · `}
-          {isDeckEmpty
-            ? 'the deck is empty'
-            : `${sourcesCount} algorithm${sourcesCount === 1 ? '' : 's'} in the deck`}
-          {`. Level ${level} hides ${level} line${level === 1 ? '' : 's'} at a time and only advances once every line has been met at it.`}
-        </span>
-      </div>
-    </Card>
+    />
   );
 }
