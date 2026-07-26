@@ -75,7 +75,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     <main
       data-problem-expanded={layoutState.problemExpanded ? "true" : "false"}
       data-solution-expanded={layoutState.solutionExpanded ? "true" : "false"}
-      className="flex-1 min-h-0 flex flex-col gap-3 p-3 px-4 box-border overflow-y-auto overflow-x-hidden"
+      className="w-full max-w-full p-6 md:p-8 flex-1 flex flex-col gap-4 min-h-0 box-border overflow-y-auto overflow-x-hidden"
       style={{ display: "flex", overflowY: "auto" }}
     >
       <ProblemSection

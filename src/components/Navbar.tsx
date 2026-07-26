@@ -30,17 +30,32 @@ export interface NavbarProps {
 }
 
 const APP_VIEW_OPTIONS = [
-  { value: "tree", label: "Knowledge Tree", icon: <Network /> },
-  { value: "list", label: "Problem List", icon: <List /> },
-  { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft /> },
-  { value: "trivia", label: "Trivia", icon: <Brain /> },
+  { value: "tree", label: "Knowledge Tree", icon: <Network className="w-4 h-4" /> },
+  { value: "list", label: "Problem List", icon: <List className="w-4 h-4" /> },
+  { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft className="w-4 h-4" /> },
+  { value: "trivia", label: "Trivia", icon: <Brain className="w-4 h-4" /> },
 ];
 
 const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [
-  { key: "visualizer", label: "Visualizer", icon: <Eye />, hint: "visualizer panel" },
-  { key: "code", label: "Code", icon: <Code2 />, hint: "code panel" },
-  { key: "tutorial", label: "Tutorial", icon: <BookOpen />, hint: "tutorial panel" },
-  { key: "auxiliary", label: "Aux data", icon: <Layers />, hint: "working data panel" },
+  {
+    key: "visualizer",
+    label: "Visualizer",
+    icon: <Eye className="w-3.5 h-3.5" />,
+    hint: "visualizer panel",
+  },
+  { key: "code", label: "Code", icon: <Code2 className="w-3.5 h-3.5" />, hint: "code panel" },
+  {
+    key: "tutorial",
+    label: "Tutorial",
+    icon: <BookOpen className="w-3.5 h-3.5" />,
+    hint: "tutorial panel",
+  },
+  {
+    key: "auxiliary",
+    label: "Aux data",
+    icon: <Layers className="w-3.5 h-3.5" />,
+    hint: "working data panel",
+  },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -75,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between h-[var(--navbar-h)] shrink-0 px-4 gap-3 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
+    <header className="flex items-center justify-between h-[var(--navbar-h)] shrink-0 px-6 gap-4 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
       <nav aria-label="Main Navigation" className="flex items-center gap-3 min-w-0">
         <IconButton
           icon={<Network className="w-[18px] h-[18px]" />}
@@ -118,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span aria-hidden="true" className="w-px h-4 bg-[var(--border-subtle)] shrink-0" />
             <Button
               size="sm"
-              icon={<RotateCcw />}
+              icon={<RotateCcw className="w-3.5 h-3.5" />}
               aria-label="Reset layout"
               onClick={() => setIsResetDialogOpen(true)}
               title="Restore the default panel sizes and details state"

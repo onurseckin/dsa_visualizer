@@ -18,9 +18,9 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({
   const keyTerms = topicGuide.keyTerms ?? [];
 
   return (
-    <Card padding="sm" className="border-[var(--border-default)]">
-      <div className="flex items-center flex-wrap gap-2">
-        <h2 className="m-0 text-lg font-semibold text-[var(--text-primary)]">Solution approach</h2>
+    <Card padding="md" className="p-6 md:p-8 border-[var(--border-default)]">
+      <div className="flex items-center flex-wrap gap-3 py-1 px-1">
+        <h2 className="m-0 text-xl font-bold text-[var(--text-primary)]">Solution approach</h2>
 
         <div className="flex-1" />
 
@@ -39,7 +39,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({
         <div
           id="solution-approach-details"
           data-testid="solution-approach-details"
-          className="mt-3 pt-3 flex flex-col gap-5"
+          className="mt-6 pt-6 border-t border-[var(--border-default)] flex flex-col gap-6"
           style={{ borderTop: "1px solid var(--border-default)" }}
         >
           <p

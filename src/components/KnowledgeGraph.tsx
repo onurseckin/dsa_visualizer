@@ -26,11 +26,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
   return (
     <main
       aria-label="Algorithm Roadmap"
-      className="flex flex-col items-center p-5 w-full max-w-[1400px] mx-auto box-border flex-1 overflow-y-auto"
+      className="flex flex-col items-center justify-start text-center p-6 md:p-10 lg:p-12 w-full max-w-full mx-auto box-border flex-1 gap-8 overflow-y-auto"
     >
-      <div className="w-full mb-4 flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Knowledge Tree</h1>
-        <p className="text-sm text-[var(--text-secondary)]">
+      <div className="flex flex-col items-center justify-center text-center mx-auto w-full max-w-3xl gap-2 py-5 px-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mb-2">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Knowledge Tree</h1>
+        <p className="text-base text-[var(--text-secondary)]">
           Interactive Data Structures and Algorithms Prerequisite Roadmap
         </p>
       </div>
@@ -38,28 +38,29 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       <div
         role="region"
         aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        className="w-full overflow-x-auto relative p-4 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center"
+        className="w-full relative p-8 md:p-10 lg:p-12 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-lg flex flex-col items-center justify-center mx-auto overflow-hidden"
       >
         <KnowledgeGraphLegend />
 
-        <svg
-          width="1350"
-          height="920"
-          viewBox="0 0 1350 920"
-          className="block mx-auto max-w-full h-auto overflow-visible"
-        >
-          <KnowledgeGraphConnections hoveredNodeId={hoveredNodeId} />
+        <div className="w-full p-6 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-lg)] flex items-center justify-center overflow-auto py-6 mx-auto">
+          <svg
+            viewBox="0 0 1350 920"
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-auto max-w-full mx-auto block"
+          >
+            <KnowledgeGraphConnections hoveredNodeId={hoveredNodeId} />
 
-          {TOPIC_ROADMAP_NODES.map((node) => (
-            <KnowledgeGraphNode
-              key={node.id}
-              node={node}
-              hoveredNodeId={hoveredNodeId}
-              onSelectCategoryFolder={onSelectCategoryFolder}
-              onHover={setHoveredNodeId}
-            />
-          ))}
-        </svg>
+            {TOPIC_ROADMAP_NODES.map((node) => (
+              <KnowledgeGraphNode
+                key={node.id}
+                node={node}
+                hoveredNodeId={hoveredNodeId}
+                onSelectCategoryFolder={onSelectCategoryFolder}
+                onHover={setHoveredNodeId}
+              />
+            ))}
+          </svg>
+        </div>
       </div>
     </main>
   );

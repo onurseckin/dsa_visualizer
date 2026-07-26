@@ -124,11 +124,10 @@ export function QuickAccessDrawer({
             {groups.map((group) => (
               <Collapsible
                 key={group.category.id}
+                className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden shadow-sm"
                 title={group.category.label}
-                className="border-[var(--border-default)]"
-                style={{ borderColor: "var(--border-default)" }}
                 meta={
-                  <Badge size="sm" variant="neutral" className="border-[var(--border-default)]">
+                  <Badge size="sm" variant="neutral">
                     {isSearching ? group.algorithms.length : group.totalCount}
                   </Badge>
                 }
@@ -137,18 +136,21 @@ export function QuickAccessDrawer({
                   if (isSearching) return;
                   setOpenMap((prev) => ({ ...prev, [group.category.id]: open }));
                 }}
+                contentClassName="!p-0"
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col p-1.5 gap-1 bg-[var(--bg-inset)]">
                   {group.algorithms.map((alg) => {
                     const isActive = alg.id === activeAlgorithmId;
                     return (
                       <Button
                         key={alg.id}
-                        fullWidth
                         selected={isActive}
-                        icon={isActive ? <Check /> : undefined}
+                        variant={isActive ? "primary" : "ghost"}
+                        size="sm"
+                        fullWidth
+                        icon={isActive ? <Check className="w-3.5 h-3.5 shrink-0" /> : undefined}
                         onClick={() => handleSelect(alg.id, alg.category)}
-                        className="justify-start"
+                        className="justify-start text-left font-normal"
                       >
                         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
                           {alg.title}

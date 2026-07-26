@@ -27,7 +27,9 @@ const renderTriviaRoute = async () => {
     routeTree,
     history: createMemoryHistory({ initialEntries: ["/trivia"] }),
   });
-  return render(<RouterProvider router={router} />);
+  const res = render(<RouterProvider router={router} />);
+  await router.load();
+  return res;
 };
 
 const readActiveSessionRecord = (): TriviaSessionRecord => {

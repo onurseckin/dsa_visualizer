@@ -1,5 +1,4 @@
 import React from "react";
-import { ExternalLink, Home, SlidersHorizontal } from "lucide-react";
 import { Badge, Button } from "../../../ui";
 
 interface TriviaSessionHeaderProps {
@@ -51,40 +50,25 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
           }}
         >
           {onStudyInWorkspace ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<ExternalLink aria-hidden="true" />}
-              onClick={() => onStudyInWorkspace(algorithmId)}
-            >
+            <Button size="sm" variant="secondary" onClick={() => onStudyInWorkspace(algorithmId)}>
               Study in workspace
             </Button>
           ) : null}
           {onEditSettings ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<SlidersHorizontal aria-hidden="true" />}
-              onClick={onEditSettings}
-            >
+            <Button size="sm" variant="secondary" onClick={onEditSettings}>
               Edit deck & settings
             </Button>
           ) : null}
           {onBackToHome ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Home aria-hidden="true" />}
-              onClick={onBackToHome}
-            >
+            <Button size="sm" variant="secondary" onClick={onBackToHome}>
               Back to Trivia Home
             </Button>
           ) : null}
         </div>
       </div>
-      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+      <div className="flex items-center gap-2 mt-2 p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap">
         {`Level ${level} · ${coverage}% covered`}
-      </span>
+      </div>
     </header>
   );
 };

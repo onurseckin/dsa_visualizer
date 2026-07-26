@@ -7,20 +7,12 @@ export const KnowledgeGraphLegend: React.FC = () => {
   return (
     <ul
       aria-label="Topic family colors"
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: "var(--space-2) var(--space-4)",
-        listStyle: "none",
-        margin: "0 auto var(--space-4)",
-        padding: 0,
-        maxWidth: "1100px",
-      }}
+      className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 max-w-[1100px] mx-auto pt-3 pb-3 px-6 mb-8 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] list-none text-center"
     >
       {TOPIC_FAMILIES.map((family) => (
         <li
           key={family.id}
+          className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)] text-center"
           style={{
             display: "inline-flex",
             alignItems: "center",

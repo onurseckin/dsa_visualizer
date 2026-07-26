@@ -16,7 +16,7 @@ export const SLOT_SKIN: Record<SlotState, SlotSkin> = {
     border: "var(--border-strong)",
     borderStyle: "dashed",
     background: "var(--bg-inset)",
-    color: "var(--text-faint)",
+    color: "var(--text-muted)",
   },
   filled: {
     border: "var(--border-default)",

@@ -86,6 +86,11 @@
   color: var(--accent);
 }
 
+.ui-btn--selected:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .ui-btn--sm {
   height: var(--control-h-sm);
   padding: 0 var(--space-2);
@@ -501,6 +506,18 @@
   background: var(--accent-soft);
   border-color: var(--border-accent);
   color: var(--accent);
+}
+
+.ui-segmented__btn--selected:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ui-segmented__btn:focus-visible,
+.ui-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  z-index: 1;
 }
 
 .ui-segmented__icon {

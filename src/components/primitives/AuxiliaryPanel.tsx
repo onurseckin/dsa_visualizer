@@ -1,6 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
-import { Card, Chip, IconButton } from "../../ui";
+import { Chip, IconButton } from "../../ui";
 import { AuxiliaryState } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
@@ -138,36 +138,29 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
   if (groups.length === 0) return null;
 
   return (
-    <Card padding="none" className="bg-transparent border-0 rounded-none shadow-none">
-      <div className="flex flex-col gap-2 py-2 px-3 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-[var(--text-secondary)] whitespace-nowrap">
-            Working Data & Variables
-          </span>
-          <div className="flex-1 min-w-0" />
-          {onClose && (
-            <IconButton
-              icon={<X />}
-              size="sm"
-              aria-label="Hide auxiliary panel"
-              onClick={onClose}
-            />
-          )}
-        </div>
-
-        {groups.map((group) => (
-          <div
-            key={group.key}
-            className="grid grid-cols-[minmax(5.5rem,max-content)_1fr] items-baseline gap-x-2 gap-y-1 min-w-0"
-          >
-            <span className="text-sm text-[var(--text-muted)] whitespace-nowrap">
-              {group.label}
-            </span>
-            <div className="flex flex-wrap items-center gap-1 min-w-0">{group.chips}</div>
-          </div>
-        ))}
+    <div className="ui-card flex flex-col gap-4 p-6 min-w-0 bg-[var(--bg-surface)]">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-[var(--text-secondary)] whitespace-nowrap">
+          Working Data & Variables
+        </span>
+        <div className="flex-1 min-w-0" />
+        {onClose && (
+          <IconButton icon={<X />} size="sm" aria-label="Hide auxiliary panel" onClick={onClose} />
+        )}
       </div>
-    </Card>
+
+      {groups.map((group) => (
+        <div
+          key={group.key}
+          className="grid grid-cols-[minmax(5.5rem,max-content)_1fr] items-baseline gap-x-3 gap-y-1.5 min-w-0"
+        >
+          <span className="text-sm text-[var(--text-muted)] whitespace-nowrap font-medium">
+            {group.label}
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">{group.chips}</div>
+        </div>
+      ))}
+    </div>
   );
 };
 

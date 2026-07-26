@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Brain, Plus } from "lucide-react";
+import { Brain } from "lucide-react";
 import type { PuzzleLine, TriviaSessionRecord } from "../../types/trivia";
 import { Button, ConfirmDialog } from "../../ui";
 import { coverageRatio, parsePuzzleLines } from "../../trivia/triviaEngine";
@@ -68,7 +68,7 @@ export function TriviaSessionsManager({
     <div className="flex flex-col gap-5 min-h-0">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="m-0 text-xl font-bold text-[var(--text-primary)]">Trivia</h1>
-        <Button variant="primary" icon={<Plus aria-hidden="true" />} onClick={onCreateNewSession}>
+        <Button variant="primary" onClick={onCreateNewSession}>
           New session
         </Button>
       </div>
@@ -79,7 +79,7 @@ export function TriviaSessionsManager({
           <p className="m-0 text-lg font-semibold text-[var(--text-primary)]">
             Build your first trivia deck
           </p>
-          <Button variant="primary" icon={<Plus aria-hidden="true" />} onClick={onCreateNewSession}>
+          <Button variant="primary" onClick={onCreateNewSession}>
             New session
           </Button>
         </div>

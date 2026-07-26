@@ -53,6 +53,7 @@ export function TileTray({
         {tiles.map((tile) => {
           const isUsed = used.has(tile.id);
           const isSelected = tile.id === selectedTileId && !isUsed;
+          const isDragging = tile.id === draggingTileId;
           return (
             <Button
               key={tile.id}
@@ -66,14 +67,17 @@ export function TileTray({
               onClick={() => onActivate(tile.id)}
               onDragStart={handleDragStart(tile.id)}
               onDragEnd={handleDragEnd}
-              className={`justify-start font-mono text-sm font-normal overflow-hidden text-ellipsis ${
-                isUsed ? "cursor-not-allowed line-through" : "cursor-grab"
-              } ${tile.id === draggingTileId ? "opacity-50" : ""}`}
+              className={`justify-start font-mono text-sm font-normal overflow-hidden text-ellipsis transition-all ${
+                isUsed
+                  ? "cursor-not-allowed line-through opacity-40 bg-[var(--bg-subtle)]"
+                  : "cursor-grab active:cursor-grabbing hover:bg-[var(--bg-hover)]"
+              } ${isDragging ? "opacity-50 scale-[0.98] border-dashed border-[var(--accent)]" : ""}`}
               style={{
                 fontFamily: "var(--font-code)",
                 fontSize: "var(--text-sm)",
+                padding: "var(--space-2) var(--space-3)",
                 textDecoration: isUsed ? "line-through" : "none",
-                cursor: isUsed ? "not-allowed" : "grab",
+                cursor: isUsed ? "not-allowed" : isDragging ? "grabbing" : "grab",
               }}
             >
               {tile.text}

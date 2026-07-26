@@ -10,7 +10,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "graphs",
-    x: 400,
+    x: 415,
     y: 580,
   },
   {
@@ -22,7 +22,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Hard",
     family: "graphs",
-    x: 140,
+    x: 155,
     y: 710,
   },
   {
@@ -34,7 +34,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Medium",
     family: "graphs",
-    x: 400,
+    x: 415,
     y: 710,
   },
   {
@@ -46,7 +46,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Hard",
     family: "graphs",
-    x: 660,
+    x: 675,
     y: 710,
   },
   {
@@ -58,7 +58,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Hard",
     family: "graphs",
-    x: 140,
+    x: 155,
     y: 840,
   },
   {
@@ -70,7 +70,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "dynamic-programming",
-    x: 920,
+    x: 935,
     y: 580,
   },
   {
@@ -82,7 +82,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Hard",
     family: "dynamic-programming",
-    x: 920,
+    x: 935,
     y: 710,
   },
   {
@@ -94,7 +94,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Hard",
     family: "dynamic-programming",
-    x: 920,
+    x: 935,
     y: 840,
   },
   {
@@ -106,7 +106,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Easy",
     family: "math-and-geometry",
-    x: 920,
+    x: 935,
     y: 190,
   },
   {
@@ -118,7 +118,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "math-and-geometry",
-    x: 1180,
+    x: 1195,
     y: 190,
   },
   {
@@ -130,7 +130,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     algorithmCount: 2,
     difficulty: "Hard",
     family: "math-and-geometry",
-    x: 1180,
+    x: 1195,
     y: 320,
   },
 ];

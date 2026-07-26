@@ -27,15 +27,8 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
 }) => {
   return (
     <Card padding="sm" style={PANEL_BORDER}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-3)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: 1, minWidth: "240px" }}>
+      <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+        <div className="flex-1 min-w-[240px]">
           <Input
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
@@ -46,7 +39,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div className="flex items-center gap-2">
           <label
             style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}
           >
@@ -77,7 +70,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           </select>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div className="flex items-center gap-2">
           <label
             style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}
           >

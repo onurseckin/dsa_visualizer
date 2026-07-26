@@ -23,7 +23,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Easy",
     family: "foundations",
-    x: 660,
+    x: 675,
     y: 60,
   },
   {
@@ -35,7 +35,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Easy",
     family: "foundations",
-    x: 140,
+    x: 155,
     y: 190,
   },
   {
@@ -47,7 +47,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Easy",
     family: "linear-structures",
-    x: 400,
+    x: 415,
     y: 190,
   },
   {
@@ -59,7 +59,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Easy",
     family: "searching",
-    x: 660,
+    x: 675,
     y: 190,
   },
   {
@@ -71,7 +71,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Medium",
     family: "foundations",
-    x: 140,
+    x: 155,
     y: 320,
   },
   {
@@ -83,7 +83,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Easy",
     family: "linear-structures",
-    x: 400,
+    x: 415,
     y: 320,
   },
   {
@@ -95,7 +95,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "trees-and-heaps",
-    x: 660,
+    x: 675,
     y: 320,
   },
   {
@@ -107,7 +107,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "trees-and-heaps",
-    x: 140,
+    x: 155,
     y: 450,
   },
   {
@@ -119,7 +119,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 3,
     difficulty: "Medium",
     family: "trees-and-heaps",
-    x: 400,
+    x: 415,
     y: 450,
   },
   {
@@ -131,7 +131,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     algorithmCount: 4,
     difficulty: "Medium",
     family: "recursion",
-    x: 660,
+    x: 675,
     y: 450,
   },
 ];

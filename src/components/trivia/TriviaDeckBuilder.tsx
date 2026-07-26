@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Layers, ListPlus, Search, Trash2, Filter } from "lucide-react";
+import { Layers, Search } from "lucide-react";
 import type { CategoryType, DifficultyLevel } from "../../types/dsa";
 import { CATEGORIES } from "../../app/categories";
 import { getAllAlgorithms } from "../../algorithms/registry";
@@ -80,22 +80,13 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     <Card
       title="Build your deck"
       icon={<Layers aria-hidden="true" />}
-      className="border-[var(--border-default)]"
+      className="p-6 md:p-8 border-[var(--border-default)]"
       actions={
         <ButtonGroup gap="sm" className="flex-wrap">
-          <Badge variant="neutral" size="md" className="border-[var(--border-default)]">
-            {deck.length} in deck
-          </Badge>
-          <Button size="sm" icon={<ListPlus aria-hidden="true" />} onClick={addEverything}>
+          <Button size="sm" onClick={addEverything}>
             Add every algorithm
           </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            icon={<Trash2 aria-hidden="true" />}
-            onClick={clearDeck}
-            disabled={deck.length === 0}
-          >
+          <Button size="sm" variant="danger" onClick={clearDeck} disabled={deck.length === 0}>
             Clear deck
           </Button>
         </ButtonGroup>
@@ -141,18 +132,22 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-[var(--text-muted)]">
-            {deck.length} of {algorithms.length} algorithms selected
-            {search.trim().length > 0 || categoryFilter !== "ALL" || difficultyFilter !== "ALL"
-              ? ` · ${visibleIds.length} shown`
-              : ""}
-          </span>
+        <div className="flex justify-between items-center p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Badge variant="neutral" size="sm">
+              {deck.length} in deck
+            </Badge>
+            <span className="text-xs text-[var(--text-muted)]">
+              {deck.length} of {algorithms.length} algorithms selected
+              {search.trim().length > 0 || categoryFilter !== "ALL" || difficultyFilter !== "ALL"
+                ? ` · ${visibleIds.length} shown`
+                : ""}
+            </span>
+          </div>
           {(search || categoryFilter !== "ALL" || difficultyFilter !== "ALL") && (
             <Button
               size="sm"
               variant="secondary"
-              icon={<Filter aria-hidden="true" />}
               onClick={() => {
                 setSearch("");
                 setCategoryFilter("ALL");

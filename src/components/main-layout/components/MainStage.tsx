@@ -6,7 +6,6 @@ import { CodeBlockViewer } from "../../primitives/CodeBlockViewer";
 import { ComplexityCard } from "../../ComplexityCard";
 import { ControlPanel, ControlPanelProps } from "../../ControlPanel";
 import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../ResizableLayout";
-import { Card } from "../../../ui";
 import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
@@ -49,7 +48,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       height: layoutState.layout.panelHeights.tutorial,
       content:
         currentStep?.explanation !== undefined ? (
-          <Card padding="sm" className="h-full border-[var(--border-default)] overflow-auto">
+          <div className="h-full border border-[var(--border-default)] rounded-[var(--radius-md)] bg-[var(--bg-surface)] overflow-auto">
             <TutorialCard
               explanation={currentStep.explanation}
               what={currentStep.explanation.what}
@@ -58,7 +57,7 @@ export const MainStage: React.FC<MainStageProps> = ({
               totalSteps={totalSteps}
               onClose={onToggleTutorial}
             />
-          </Card>
+          </div>
         ) : null,
     },
     {
@@ -68,13 +67,13 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: !panels.visualizer,
       height: layoutState.layout.panelHeights.auxiliary,
       content: (
-        <Card padding="sm" className="h-full border-[var(--border-default)] overflow-auto">
+        <div className="h-full border border-[var(--border-default)] rounded-[var(--radius-md)] bg-[var(--bg-surface)] overflow-auto">
           <AuxiliaryPanel
             state={currentStep?.auxiliaryState}
             variables={currentStep?.variables}
             onClose={onToggleAuxiliary}
           />
-        </Card>
+        </div>
       ),
     },
     {

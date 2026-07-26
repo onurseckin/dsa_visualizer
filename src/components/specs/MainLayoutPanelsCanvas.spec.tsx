@@ -180,7 +180,7 @@ describe("MainLayoutPanelsCanvas Component Spec", () => {
     expect(canvas.style.minHeight).toBe("0");
     expect(canvas.style.alignItems).toBe("");
     expect(canvas.style.justifyContent).toBe("");
-    expect(canvas.style.padding).toBe("var(--space-2)");
+    expect(canvas.style.padding).toBe("var(--space-6)");
     expect(canvas.style.overflowY).toBe("hidden");
     expect(canvas.style.overflowX).toBe("auto");
   });

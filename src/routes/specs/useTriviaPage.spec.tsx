@@ -10,6 +10,7 @@ const renderTriviaRoute = async (initialPath = "/trivia") => {
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   });
   const view = render(<RouterProvider router={router} />);
+  await router.load();
   return { router, view };
 };
 

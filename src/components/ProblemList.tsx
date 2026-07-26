@@ -31,40 +31,36 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      style={{
-        padding: "var(--space-6)",
-        maxWidth: "1280px",
-        margin: "0 auto",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
+      className="flex flex-col items-center justify-start p-6 md:p-10 w-full max-w-full mx-auto box-border flex-1 gap-8 overflow-y-auto"
     >
-      <div className="flex flex-col gap-1 mb-2">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Algorithm Directory</h1>
-        <p className="text-sm text-[var(--text-secondary)]">
+      <div className="flex flex-col items-center justify-center text-center mx-auto w-full max-w-3xl gap-2 py-5 px-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mb-4">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Algorithm Directory</h1>
+        <p className="text-base text-[var(--text-secondary)]">
           Explore algorithms, data structures, and interactive visualizations
         </p>
       </div>
 
-      <ProblemListFilterToolbar
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        selectedCategory={selectedCategory}
-        onCategorySelect={handleCategorySelect}
-        selectedDifficulty={selectedDifficulty}
-        onDifficultySelect={setSelectedDifficulty}
-        filteredCount={filteredAlgorithms.length}
-        stats={stats}
-      />
+      <div className="w-full flex flex-col gap-6">
+        <ProblemListFilterToolbar
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
+          selectedDifficulty={selectedDifficulty}
+          onDifficultySelect={setSelectedDifficulty}
+          filteredCount={filteredAlgorithms.length}
+          stats={stats}
+        />
+      </div>
 
-      <ProblemTable
-        filteredAlgorithms={filteredAlgorithms}
-        sortBy={sortBy}
-        onToggleSort={toggleSort}
-        onSelectAlgorithm={onSelectAlgorithm}
-      />
+      <div className="w-full mt-2">
+        <ProblemTable
+          filteredAlgorithms={filteredAlgorithms}
+          sortBy={sortBy}
+          onToggleSort={toggleSort}
+          onSelectAlgorithm={onSelectAlgorithm}
+        />
+      </div>
     </main>
   );
 };

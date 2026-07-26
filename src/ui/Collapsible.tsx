@@ -9,6 +9,7 @@ export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  contentClassName?: string;
 }
 
 export function CollapsibleHeader({
@@ -50,13 +51,15 @@ export function CollapsibleTitle({ children }: { children: ReactNode }): React.R
 
 export function CollapsibleContent({
   id,
+  className,
   children,
 }: {
   id?: string;
+  className?: string;
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <div id={id} className="ui-collapsible__content">
+    <div id={id} className={cx("ui-collapsible__content", className)}>
       {children}
     </div>
   );
@@ -69,6 +72,7 @@ export function Collapsible({
   open,
   onOpenChange,
   className,
+  contentClassName,
   children,
   ...rest
 }: CollapsibleProps): React.ReactElement {
@@ -91,7 +95,11 @@ export function Collapsible({
         title={title}
         meta={meta}
       />
-      {isOpen ? <CollapsibleContent id={contentId}>{children}</CollapsibleContent> : null}
+      {isOpen ? (
+        <CollapsibleContent id={contentId} className={contentClassName}>
+          {children}
+        </CollapsibleContent>
+      ) : null}
     </div>
   );
 }
