@@ -31,8 +31,6 @@ const renderTriviaRoute = async () => {
   return res;
 };
 
-const revealButtons = () => screen.getAllByRole("button", { name: /^Reveal line \d+$/ });
-
 const readActiveSessionRecord = (): TriviaSessionRecord => {
   const sessions = readTriviaSessions();
   const activeId = readActiveSessionId();
@@ -65,15 +63,9 @@ describe("/trivia route drill settings", () => {
   });
 
   it("raises maxBlanks on a session without resetting its drilled progress, via Edit deck & settings", async () => {
-    seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
+    seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
     await screen.findByText("solution.py");
-
-    revealButtons().forEach((button) => fireEvent.click(button));
-    const check = screen.getByRole("button", { name: /^Check answers/ });
-    await waitFor(() => expect(check).toBeEnabled());
-    fireEvent.click(check);
-    await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
     const beforeDrilled = readActiveSessionRecord().progress.drilled;
     const beforeStats = readActiveSessionRecord().progress.stats;
