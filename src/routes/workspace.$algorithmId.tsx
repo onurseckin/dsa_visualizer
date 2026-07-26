@@ -19,15 +19,7 @@ export const Route = createFileRoute('/workspace/$algorithmId')({
 
 function WorkspacePage() {
   const { algorithmId } = Route.useParams();
-  const {
-    viewMode,
-    showTutorial,
-    setShowTutorial,
-    showAuxiliary,
-    setShowAuxiliary,
-    soundEnabled,
-    setLastAlgorithmId,
-  } = useSettings();
+  const { panels, setPanel, soundEnabled, setLastAlgorithmId } = useSettings();
 
   const [dataSize, setDataSize] = useState<number>(10);
   const [inputSeed, setInputSeed] = useState<number>(1);
@@ -111,11 +103,9 @@ function WorkspacePage() {
     <MainLayout
       algorithm={algorithm}
       currentStep={currentStep}
-      viewMode={viewMode}
-      showTutorial={showTutorial}
-      showAuxiliary={showAuxiliary}
-      onToggleTutorial={() => setShowTutorial(false)}
-      onToggleAuxiliary={() => setShowAuxiliary(!showAuxiliary)}
+      panels={panels}
+      onToggleTutorial={() => setPanel('tutorial', false)}
+      onToggleAuxiliary={() => setPanel('auxiliary', false)}
       controlProps={{
         isPlaying,
         onPlayPause: togglePlay,

@@ -32,12 +32,8 @@ function RootShell() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const {
-    viewMode,
-    setViewMode,
-    showTutorial,
-    setShowTutorial,
-    showAuxiliary,
-    setShowAuxiliary,
+    panels,
+    togglePanel,
     soundEnabled,
     setSoundEnabled,
     lastAlgorithmId,
@@ -77,12 +73,8 @@ function RootShell() {
         categories={CATEGORIES}
         activeAlgorithmId={lastAlgorithmId}
         onGlobalSelectAlgorithm={handleGlobalSelectAlgorithm}
-        viewMode={viewMode}
-        onSetViewMode={setViewMode}
-        showTutorial={showTutorial}
-        onToggleTutorial={() => setShowTutorial(!showTutorial)}
-        showAuxiliary={showAuxiliary}
-        onToggleAuxiliary={() => setShowAuxiliary(!showAuxiliary)}
+        panels={panels}
+        onTogglePanel={togglePanel}
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(!soundEnabled)}
       />

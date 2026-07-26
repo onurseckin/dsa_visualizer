@@ -16,6 +16,32 @@ describe('ProblemList Component Spec', () => {
     expect(screen.getByText(/Hard:/i)).toHaveClass('ui-badge--danger');
   });
 
+  it('gives every panel a visible border and puts the sort strip on chrome', () => {
+    const { container } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    const cards = Array.from(container.querySelectorAll<HTMLElement>('.ui-card'));
+    expect(cards.length).toBe(3);
+    cards.forEach((card) => {
+      expect(card.style.borderColor).toBe('var(--border-default)');
+    });
+
+    // The header row holds the sort buttons, so it is a chrome control strip.
+    const headerRow = container.querySelector<HTMLElement>('thead tr');
+    expect(headerRow?.style.background).toBe('var(--bg-chrome)');
+  });
+
+  it('keeps the directory chrome achromatic while badges keep semantic color', () => {
+    const { container } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    // The header icon inherits the card's neutral tone — no accent tint override.
+    const headerIcon = container.querySelector('.ui-card__icon svg');
+    expect(headerIcon).not.toBeNull();
+    expect(headerIcon?.getAttribute('style')).toBeNull();
+
+    // Difficulty is status, which R5.1 still allows to carry hue in badges.
+    expect(screen.getByText(/Hard:/i)).toHaveClass('ui-badge--danger');
+  });
+
   it('filters table rows dynamically when typing in the ui search input', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);

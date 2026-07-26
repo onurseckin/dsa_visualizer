@@ -319,6 +319,15 @@ interface KnowledgeGraphProps {
   onSelectCategoryFolder: (folder: string) => void;
 }
 
+/* ui.css defaults cards and neutral badges to --border-subtle, which disappears
+   against the near-black page; panels here carry a --border-default edge and
+   promote to --border-strong on hover (DESIGN.md R5.1). */
+const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
+/* Legend/identity dots share one size so every family swatch reads the same.
+   The swatch fill is the roadmap's data key — the one place hue survives in this
+   view, since the shell around it (headers, hints, cards, badges) is neutral. */
+const SWATCH_SIZE = '10px';
+
 export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategoryFolder }) => {
   const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 
@@ -403,7 +412,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
     >
       {/* Interactive SVG roadmap */}
       <Card
-        icon={<Network aria-hidden="true" style={{ color: 'var(--accent)' }} />}
+        icon={<Network />}
         title={
           <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
             Topic prerequisite roadmap
@@ -419,23 +428,25 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
               color: 'var(--text-muted)',
             }}
           >
-            <MousePointerClick aria-hidden="true" style={{ width: '14px', height: '14px' }} />
+            <MousePointerClick aria-hidden="true" size={14} />
             Hover to trace prerequisites, click to open a topic
           </span>
         }
         padding="none"
-        style={{ width: '100%' }}
+        style={{ width: '100%', ...PANEL_BORDER }}
       >
         <div
           role="region"
           aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
+          /* An inset well sized by the roadmap it holds — the old 950px floor only
+             added blank space under short viewports. */
           style={{
             width: '100%',
             overflowX: 'auto',
             position: 'relative',
             padding: 'var(--space-6) var(--space-4)',
-            minHeight: '950px',
             background: 'var(--bg-inset)',
+            borderTop: '1px solid var(--border-default)',
           }}
         >
           <ul
@@ -465,8 +476,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 <span
                   aria-hidden="true"
                   style={{
-                    width: '10px',
-                    height: '10px',
+                    width: SWATCH_SIZE,
+                    height: SWATCH_SIZE,
                     borderRadius: 'var(--radius-full)',
                     background: topicFamilyColor(family.id),
                   }}
@@ -604,7 +615,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
             gap: 'var(--space-2)',
           }}
         >
-          <Network aria-hidden="true" style={{ width: '16px', height: '16px' }} />
+          <Network aria-hidden="true" size={16} />
           All Categorized Topic Modules
         </h3>
 
@@ -626,7 +637,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                 cursor: 'pointer',
                 transition: 'background var(--transition-fast), border-color var(--transition-fast)',
                 background: hoveredNodeId === node.id ? 'var(--bg-hover)' : undefined,
-                borderColor: hoveredNodeId === node.id ? 'var(--border-strong)' : undefined,
+                borderColor:
+                  hoveredNodeId === node.id ? 'var(--border-strong)' : 'var(--border-default)',
                 /* Inset bar rather than a border-left longhand: mixing it with the
                    hover borderColor shorthand makes React fight over the property. */
                 boxShadow: `inset 3px 0 0 ${topicFamilyColor(node.family)}`,
@@ -666,7 +678,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    borderTop: '1px solid var(--border-subtle)',
+                    borderTop: '1px solid var(--border-default)',
                     paddingTop: 'var(--space-2)',
                     marginTop: 'var(--space-1)',
                   }}
@@ -678,7 +690,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                       gap: 'var(--space-2)',
                     }}
                   >
-                    <Badge variant="neutral">{node.algorithmCount} Topics</Badge>
+                    <Badge variant="neutral" style={PANEL_BORDER}>
+                      {node.algorithmCount} Topics
+                    </Badge>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -691,8 +705,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                       <span
                         aria-hidden="true"
                         style={{
-                          width: '8px',
-                          height: '8px',
+                          width: SWATCH_SIZE,
+                          height: SWATCH_SIZE,
                           borderRadius: 'var(--radius-full)',
                           background: topicFamilyColor(node.family),
                         }}
@@ -700,7 +714,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
                       {topicFamilyLabel(node.family)}
                     </span>
                   </span>
-                  <ArrowRight aria-hidden="true" style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+                  {/* The card hovers to --bg-hover, where muted drops below AA. */}
+                  <ArrowRight aria-hidden="true" size={14} style={{ color: 'var(--text-secondary)' }} />
                 </div>
               </div>
             </Card>

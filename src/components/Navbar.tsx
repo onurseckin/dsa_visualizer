@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Code2,
   Eye,
-  Columns,
+  LayoutPanelLeft,
   Volume2,
   VolumeX,
   BookOpen,
@@ -11,8 +12,8 @@ import {
   Network,
   List,
 } from 'lucide-react';
-import { ViewMode, CategoryType, AppView } from '../types/dsa';
-import { Button, IconButton, Segmented } from '../ui';
+import { CategoryType, AppView, PanelKey, PanelVisibility } from '../types/dsa';
+import { Button, Segmented } from '../ui';
 import { SearchTrigger } from './SearchTrigger';
 import { QuickAccessDrawer } from './QuickAccessDrawer';
 
@@ -20,18 +21,10 @@ export interface NavbarProps {
   appView: AppView;
   onSetAppView: (view: AppView) => void;
   categories?: { id: CategoryType; label: string }[];
-  activeCategory?: CategoryType;
-  onSelectCategory?: (cat: CategoryType) => void;
-  algorithmIds?: { id: string; title: string; difficulty?: string }[];
   activeAlgorithmId?: string;
-  onSelectAlgorithm?: (id: string) => void;
   onGlobalSelectAlgorithm: (id: string, categoryFolder?: CategoryType) => void;
-  viewMode: ViewMode;
-  onSetViewMode: (mode: ViewMode) => void;
-  showTutorial: boolean;
-  onToggleTutorial: () => void;
-  showAuxiliary: boolean;
-  onToggleAuxiliary: () => void;
+  panels: PanelVisibility;
+  onTogglePanel: (key: PanelKey) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
 }
@@ -40,13 +33,16 @@ export interface NavbarProps {
 const APP_VIEW_OPTIONS = [
   { value: 'tree', label: 'Knowledge Tree', icon: <Network /> },
   { value: 'list', label: 'Problem List', icon: <List /> },
-  { value: 'workspace', label: 'Workspace', icon: <Code2 /> },
+  { value: 'workspace', label: 'Workspace', icon: <LayoutPanelLeft /> },
 ];
 
-const VIEW_MODE_OPTIONS = [
-  { value: 'split', label: 'Split', icon: <Columns /> },
-  { value: 'visual', label: 'Visual', icon: <Eye /> },
-  { value: 'code', label: 'Code', icon: <Code2 /> },
+/* Five independent toggles, one visual treatment (DESIGN.md R4.4): each shows or
+   hides exactly one thing, so none of them is a mode switch. */
+const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [
+  { key: 'visualizer', label: 'Visualizer', icon: <Eye />, hint: 'visualizer panel' },
+  { key: 'code', label: 'Code', icon: <Code2 />, hint: 'code panel' },
+  { key: 'tutorial', label: 'Tutorial', icon: <BookOpen />, hint: 'tutorial panel' },
+  { key: 'auxiliary', label: 'Aux data', icon: <Layers />, hint: 'working data panel' },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -55,12 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   categories,
   activeAlgorithmId,
   onGlobalSelectAlgorithm,
-  viewMode,
-  onSetViewMode,
-  showTutorial,
-  onToggleTutorial,
-  showAuxiliary,
-  onToggleAuxiliary,
+  panels,
+  onTogglePanel,
   soundEnabled,
   onToggleSound,
 }) => {
@@ -94,31 +86,23 @@ export const Navbar: React.FC<NavbarProps> = ({
         flexShrink: 0,
         padding: '0 var(--space-4)',
         gap: 'var(--space-3)',
-        // Navy chrome tier: keeps the navbar visibly separate from the page and
-        // from the emerald content cards below it.
+        // Chrome tier: the toolbar strip the page sits under. Chrome and page are
+        // only ~1.8x apart, so the bottom border is what draws the seam.
         background: 'var(--bg-chrome)',
         borderBottom: '1px solid var(--border-default)',
       }}
     >
       {/* Brand + app-view switcher */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', minWidth: 0 }}>
-        <button
-          type="button"
-          onClick={() => onSetAppView('tree')}
+        {/* The wordmark is text, not a selection, so it stays on the neutral text
+            ramp — the accent is reserved for interaction state (R5.1). */}
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<Sparkles />}
           aria-label="DSA Visualizer home"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            background: 'transparent',
-            border: 'none',
-            padding: 'var(--space-1)',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
+          onClick={() => onSetAppView('tree')}
         >
-          <Sparkles style={{ width: '18px', height: '18px', color: 'var(--accent)' }} aria-hidden="true" />
           <span
             style={{
               fontFamily: 'var(--font-code)',
@@ -128,57 +112,53 @@ export const Navbar: React.FC<NavbarProps> = ({
               color: 'var(--text-primary)',
             }}
           >
-            DSA<span style={{ color: 'var(--accent)' }}>.Visualizer</span>
+            DSA<span style={{ color: 'var(--text-secondary)' }}>.Visualizer</span>
           </span>
-        </button>
+        </Button>
 
+        {/* Mutually exclusive routing stays a Segmented — it is not a toggle set. */}
         <Segmented
           aria-label="App view"
+          size="sm"
           options={APP_VIEW_OPTIONS}
           value={appView}
           onChange={(value) => onSetAppView(value as AppView)}
         />
       </div>
 
-      {/* Workspace controls + search */}
+      {/* Toggles + search — every control in this row is size sm (DESIGN.md R4.5). */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-        {appView === 'workspace' && (
-          <Segmented
-            aria-label="View mode"
+        <div
+          role="group"
+          aria-label="Panel and sound toggles"
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+        >
+          {appView === 'workspace' &&
+            PANEL_TOGGLES.map(({ key, label, icon, hint }) => (
+              <Button
+                key={key}
+                size="sm"
+                selected={panels[key]}
+                aria-pressed={panels[key]}
+                icon={icon}
+                onClick={() => onTogglePanel(key)}
+                title={`${panels[key] ? 'Hide' : 'Show'} the ${hint}`}
+              >
+                {label}
+              </Button>
+            ))}
+
+          <Button
             size="sm"
-            options={VIEW_MODE_OPTIONS}
-            value={viewMode}
-            onChange={(value) => onSetViewMode(value as ViewMode)}
-          />
-        )}
-
-        <Button
-          size="sm"
-          selected={showTutorial}
-          icon={<BookOpen />}
-          onClick={onToggleTutorial}
-          title="Toggle tutorial panel"
-        >
-          Tutorial
-        </Button>
-
-        <Button
-          size="sm"
-          selected={showAuxiliary}
-          icon={<Layers />}
-          onClick={onToggleAuxiliary}
-          title="Toggle auxiliary data panels"
-        >
-          Aux Data
-        </Button>
-
-        <IconButton
-          size="sm"
-          selected={soundEnabled}
-          icon={soundEnabled ? <Volume2 /> : <VolumeX />}
-          onClick={onToggleSound}
-          aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
-        />
+            selected={soundEnabled}
+            aria-pressed={soundEnabled}
+            icon={soundEnabled ? <Volume2 /> : <VolumeX />}
+            onClick={onToggleSound}
+            title={soundEnabled ? 'Mute step sounds' : 'Play a sound on every step'}
+          >
+            Sound
+          </Button>
+        </div>
 
         <SearchTrigger onOpenDrawer={() => setIsDrawerOpen(true)} />
       </div>

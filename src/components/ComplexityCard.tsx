@@ -12,8 +12,11 @@ export interface ComplexityCardProps {
 interface BigOChip {
   label: string;
   value: string;
-  color: string;
 }
+
+/* The ui.css defaults sit at --border-subtle, which disappears on the near-black
+   palette; every edge inside this panel is promoted to --border-default. */
+const CHIP_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
 const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
@@ -25,6 +28,8 @@ const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
           flexDirection: 'column',
           gap: 'var(--space-1)',
           padding: 'var(--space-1) var(--space-2)',
+          /* A metric well rather than a raised chip: the elevated tier is only
+             1.68x the surface behind it, while the inset tier reads instantly. */
           background: 'var(--bg-inset)',
           border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-sm)',
@@ -37,7 +42,7 @@ const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
             fontFamily: 'var(--font-code)',
             fontSize: 'var(--text-sm)',
             fontWeight: 600,
-            color: chip.color,
+            color: 'var(--text-primary)',
           }}
         >
           {chip.value}
@@ -78,17 +83,21 @@ export const ComplexityCard: React.FC<ComplexityCardProps> = ({
   complexityAnalysis,
   variableState,
 }) => {
+  /* Big-O readouts are panel content, not badges or data marks, so they stay on
+     the neutral ramp (R5.1) — the label above each value carries the meaning. */
   const chips: BigOChip[] = [
-    { label: 'Best', value: timeComplexity.best, color: 'var(--success)' },
-    { label: 'Avg', value: timeComplexity.average, color: 'var(--text-primary)' },
-    { label: 'Worst', value: timeComplexity.worst, color: 'var(--warning)' },
-    { label: 'Space', value: spaceComplexity, color: 'var(--info)' },
+    { label: 'Best', value: timeComplexity.best },
+    { label: 'Avg', value: timeComplexity.average },
+    { label: 'Worst', value: timeComplexity.worst },
+    { label: 'Space', value: spaceComplexity },
   ];
 
   const variables = variableState ? Object.entries(variableState) : [];
 
   return (
-    <Collapsible title="Complexity" defaultOpen>
+    // No height of its own: the panel is exactly as tall as the prose it holds
+    // so the workspace column can hug it (DESIGN.md R4.2).
+    <Collapsible title="Complexity" defaultOpen style={{ borderColor: 'var(--border-default)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <BigOChipRow chips={chips} />
         <ProseBlock label="Time" body={complexityAnalysis.time} />
@@ -96,7 +105,7 @@ export const ComplexityCard: React.FC<ComplexityCardProps> = ({
         {variables.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
             {variables.map(([key, value]) => (
-              <span key={key} className="ui-chip">
+              <span key={key} className="ui-chip" style={CHIP_BORDER}>
                 <span style={{ color: 'var(--text-muted)' }}>{key}:</span>
                 <span style={{ color: 'var(--text-primary)' }}>{String(value)}</span>
               </span>

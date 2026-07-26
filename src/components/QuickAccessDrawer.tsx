@@ -138,8 +138,11 @@ export function QuickAccessDrawer({
               <Collapsible
                 key={group.category.id}
                 title={group.category.label}
+                // Category sections are content panels on the drawer surface, so the
+                // only thing separating them from it is a --border-default edge.
+                style={{ borderColor: 'var(--border-default)' }}
                 meta={
-                  <Badge size="sm" variant="neutral">
+                  <Badge size="sm" variant="neutral" style={{ borderColor: 'var(--border-default)' }}>
                     {isSearching ? group.algorithms.length : group.totalCount}
                   </Badge>
                 }

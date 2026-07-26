@@ -104,6 +104,37 @@ describe('QuickAccessDrawer Component Spec', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it('gives every category section a visible border against the drawer surface', () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
+
+    // The drawer portals out of the render container, so query the document.
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('.ui-collapsible'));
+    expect(sections.length).toBe(25);
+    sections.forEach((section) => {
+      // Section and drawer share --bg-surface, so only the border separates them.
+      expect(section.style.borderColor).toBe('var(--border-default)');
+    });
+  });
+
+  it('keeps rows on the neutral button tier while difficulty badges keep hue', () => {
+    render(
+      <QuickAccessDrawer
+        isOpen={true}
+        onClose={vi.fn()}
+        onSelectAlgorithm={vi.fn()}
+        activeAlgorithmId="two-sum"
+      />,
+    );
+
+    const row = screen.getByRole('button', { name: /Two Sum/i });
+    expect(row).toHaveClass('ui-btn');
+
+    // Difficulty is status, the one thing R5.1 still lets carry color in a list.
+    const badges = row.querySelectorAll('.ui-badge');
+    expect(badges).toHaveLength(1);
+    expect(badges[0]).toHaveClass('ui-badge--success', 'ui-badge--sm');
+  });
+
   it('closes via the close button, backdrop click, and Escape key', () => {
     const handleClose = vi.fn();
 
