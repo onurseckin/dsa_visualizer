@@ -5,6 +5,7 @@ import type {
   GraphEdgeItem,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface DijkstraInput {
   nodes: string[];
@@ -243,6 +244,29 @@ const DIJKSTRA_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const DIJKSTRA_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'heapq gives an O(log n) binary min-heap — the priority queue that always hands back the frontier vertex with the smallest tentative distance next.',
+    3: 'Entry point: takes the vertex list, the weighted edge list, and the single source to compute shortest distances from.',
+    4: 'Every distance starts unknown (infinity) except where proven otherwise — we only trust a distance once some actual path has produced it.',
+    5: 'The one distance known for certain before any work begins: the source is zero away from itself.',
+    6: 'Seeds the priority queue with the source at distance 0, so it is the very first vertex popped.',
+    7: 'Tracks vertices whose shortest distance is already finalized, so we never waste work relaxing edges out of the same vertex twice.',
+    9: 'Keeps processing as long as some discovered vertex still awaits finalization.',
+    10: 'Pops the smallest tentative distance in the whole queue — the greedy choice that is only safe because no edge weight is negative.',
+    11: 'Detects a stale queue entry left behind by an earlier, since-improved distance to u.',
+    12: 'Discards that stale entry instead of reprocessing a vertex that has already been finalized.',
+    13: 'Locks in u\'s distance as final: with non-negative weights, no future path could ever beat what was just popped.',
+    15: "Scans the edge list for every edge, since this implementation has no adjacency-list index to jump straight to u's outgoing edges.",
+    16: "Filters down to just the edges leaving u — the only edges relaxation from u can possibly affect.",
+    17: 'Unpacks the neighbor and the cost of stepping onto it from u.',
+    18: 'The relaxation test: does routing through u beat the best route to v found so far?',
+    19: "Records the cheaper route the instant one is found, improving v's tentative distance.",
+    20: "Pushes the improved (distance, vertex) pair as a new entry rather than updating the old one in place — lazy deletion, which keeps the heap simple at the cost of a few stale duplicates.",
+    22: 'The queue is empty, so every reachable vertex has been popped and finalized — the table now holds true shortest distances.',
+  },
+};
+
 export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   id: 'dijkstra-shortest-path',
   title: "Dijkstra's Shortest Path Algorithm",
@@ -279,6 +303,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     space: 'The distance table and visited set each hold one entry per vertex, and the priority queue can briefly hold one stale entry per edge relaxation, so extra memory grows as O(V + E).',
   },
   topicGuide: DIJKSTRA_TOPIC_GUIDE,
+  trivia: DIJKSTRA_TRIVIA,
   defaultInput: DEFAULT_DIJKSTRA_INPUT,
   generateSteps: generateDijkstraSteps,
 };

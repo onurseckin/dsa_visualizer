@@ -89,6 +89,8 @@ export interface TriviaMeta {
   distractors?: string[];
   /** Nudges shown on request, keyed by line number. */
   hints?: { line: number; hint: string }[];
+  /** Comprehensive line-by-line educational explanations keyed by 1-based line number. */
+  lineExplanations?: Record<number, string>;
 }
 
 export type TriviaSessionStatus = 'active' | 'paused' | 'completed';

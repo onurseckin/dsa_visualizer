@@ -22,7 +22,7 @@ export const Route = createFileRoute('/workspace/$algorithmId')({
   component: WorkspacePage,
 });
 
-function WorkspacePage() {
+function WorkspacePage(): React.ReactElement {
   const { algorithmId } = Route.useParams();
   const { panels, setPanel, setLastAlgorithmId } = useSettings();
 

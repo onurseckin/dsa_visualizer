@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   GridCellNode,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface NQueensInput {
   n: number;
@@ -217,6 +218,33 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
   return steps;
 };
 
+const N_QUEENS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Signature: place n queens on an n by n board so none attacks another, and return every distinct valid arrangement.',
+    2: 'Build an n by n grid of empty squares to represent the chessboard as it fills in.',
+    3: 'Three sets tracking which columns and diagonals are already occupied, so checking whether a square is safe costs a constant-time lookup instead of scanning the whole board.',
+    4: 'Collects a snapshot of every complete, valid board found during the search.',
+    6: 'The recursive search: try to place a safe queen somewhere in this row, then recurse into the next row.',
+    7: 'Base case: every row from 0 up to n-1 already holds a queen, so the board is complete.',
+    8: 'Save a copy of the finished board as one valid solution — a copy, not a reference, since the live board keeps changing as the search backtracks.',
+    9: "Stop this branch here; there's nothing left to place, so unwind back up and let the caller try other columns.",
+    11: 'Try every column in this row as a candidate spot for the current queen.',
+    12: 'Check all three ways a square can be attacked at once: same column as an existing queen, or on either diagonal of one — row minus col identifies one diagonal direction, row plus col the other.',
+    13: 'This square is attacked, so skip it without placing anything and move on to the next column — this is the pruning that keeps the search from exploring doomed branches.',
+    15: 'The square is safe, so commit to placing a queen here.',
+    16: 'Mark this column as occupied so no later row tries to reuse it.',
+    17: 'Mark this diagonal (the row-minus-col family) as occupied.',
+    18: 'Mark the other diagonal (the row-plus-col family) as occupied too — together with cols, these three sets fully describe every square this queen now threatens.',
+    20: 'Recurse into the next row with this queen locked in, continuing to build on top of this choice.',
+    22: 'Undo the placement: once everything that could follow from this queen has been explored, clear the square so the next candidate column starts from a clean board.',
+    23: 'Free this column back up, since a different queen placement two levels up might need it.',
+    24: 'Free this diagonal, mirroring the add two lines above exactly.',
+    25: 'Free the other diagonal too — restoring all three sets is what lets the same shared state be reused correctly for every sibling branch.',
+    27: 'Kick off the search starting from row 0, with the board and all three sets still empty.',
+    28: 'Hand back every complete, valid arrangement discovered by the search.',
+  },
+};
+
 export const nQueens: AlgorithmDefinition<NQueensInput> = {
   id: 'n-queens',
   title: 'N-Queens Backtracking',
@@ -307,6 +335,7 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
       },
     ],
   },
+  trivia: N_QUEENS_TRIVIA,
   defaultInput: DEFAULT_NQUEENS_INPUT,
   generateSteps: generateNQueensSteps,
 };

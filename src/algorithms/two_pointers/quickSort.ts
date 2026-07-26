@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export const QUICK_SORT_CODE = `def quick_sort(arr: list[int], low: int, high: int):
     if low < high:
@@ -257,6 +258,25 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   return steps;
 };
 
+const QUICK_SORT_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the recursive sort: given a slice bounded by low and high, quick_sort leaves it fully ordered in place.',
+    2: 'Guards the recursion: a slice with fewer than two elements (low >= high) is already sorted, so there is nothing left to do.',
+    3: "Partitions the slice around a pivot and captures the index where that pivot ends up — everything left of it is at most the pivot, everything right is greater.",
+    4: "Recursively sorts the left slice, from low up to just before the pivot's final position.",
+    5: "Recursively sorts the right slice, from just after the pivot's final position up to high.",
+    7: "Declares the helper that rearranges one slice around a pivot and returns the pivot's final resting index.",
+    8: 'Chooses the last element of the slice as the pivot, the yardstick every other value in the slice will be judged against.',
+    9: 'Initializes i one step before low, marking that the "small values" zone is currently empty.',
+    10: 'Scans j across the slice from low up to (but not including) high, so the pivot itself is never re-examined during the scan.',
+    11: 'Tests whether the current element belongs in the small-or-equal-to-pivot zone.',
+    12: 'Advances i, opening the next seat in the small-values zone to receive arr[j].',
+    13: 'Swaps arr[i] and arr[j], moving the qualifying value into the small zone and evicting whatever was there into the scanned-large region.',
+    14: 'After the scan, swaps the pivot at arr[high] into position i + 1, placing it exactly on the boundary between the two regions it just created.',
+    15: "Returns i + 1, the pivot's final sorted index, so the caller knows where to split the two recursive halves.",
+  },
+};
+
 export const quickSort: AlgorithmDefinition<number[]> = {
   id: 'quick-sort',
   title: 'Quick Sort',
@@ -345,6 +365,7 @@ export const quickSort: AlgorithmDefinition<number[]> = {
       },
     ],
   },
+  trivia: QUICK_SORT_TRIVIA,
   defaultInput: [6, 2, 9, 3, 7, 1, 5],
   generateSteps: generateQuickSortSteps,
 };

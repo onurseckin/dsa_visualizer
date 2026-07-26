@@ -274,6 +274,18 @@ const BFS_GRAPH_TRIVIA: TriviaMeta = {
       hint: 'Claim the neighbour the moment it is discovered, not when it is later processed, or it can enter the frontier twice.',
     },
   ],
+  lineExplanations: {
+    1: 'deque supplies an O(1) popleft/append pair, which is exactly what a FIFO queue needs — BFS depends on that cheap front-pop to keep vertices coming out in discovery order.',
+    3: "Declares the traversal's entry point: an adjacency-style graph and the vertex to start the layer-by-layer expansion from.",
+    4: "Seeds the visited set with the start node immediately, so it can never be rediscovered and queued a second time later.",
+    5: 'Initializes the FIFO frontier holding only the start node — the sole vertex at distance 0 from itself.',
+    7: 'Keeps expanding as long as any discovered-but-unprocessed vertex remains in the frontier.',
+    8: "Pops from the front, so vertices come out in the exact order they were discovered — that FIFO discipline is the entire reason BFS finds shortest paths in unweighted graphs.",
+    9: "Scans every edge leaving the current vertex to find candidates for the next layer out.",
+    10: 'Filters out neighbors already discovered, so no vertex is ever queued twice.',
+    11: "Marks the neighbor visited the instant it's discovered — not when it's later dequeued and processed — which is what stops two frontier vertices sharing a neighbor from both queueing it.",
+    12: 'Appends to the back of the queue, placing this neighbor one layer behind everything already queued and preserving the layer order.',
+  },
 };
 
 export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {

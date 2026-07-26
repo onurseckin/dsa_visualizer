@@ -127,13 +127,15 @@ export function clampPanelHeight(value: number | null): number | null {
   return Math.min(MAX_PANEL_HEIGHT_PX, Math.max(MIN_PANEL_HEIGHT_PX, value));
 }
 
+type WorkspaceValue = string | number | boolean | null | WorkspaceLayout | WorkspacePanelHeights | Record<string, number | null | string | boolean> | Array<number | string>;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isInRange = (value: unknown, min: number, max: number): value is number =>
+const isInRange = (value: WorkspaceValue, min: number, max: number): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
 
-const readPanelHeights = (value: unknown): WorkspacePanelHeights | null => {
+const readPanelHeights = (value: WorkspaceValue): WorkspacePanelHeights | null => {
   if (!isRecord(value)) return null;
   const result = {} as WorkspacePanelHeights;
   for (const key of WORKSPACE_PANEL_KEYS) {
@@ -170,7 +172,7 @@ export function readWorkspaceLayout(): WorkspaceLayout {
   }
   if (raw === null) return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 
-  let parsed: unknown;
+  let parsed: WorkspaceValue;
   try {
     parsed = JSON.parse(raw);
   } catch {

@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TwoPointersInput {
   array: number[];
@@ -228,6 +229,22 @@ const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const TWO_POINTERS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the function: given a non-negative array and a target, return the bounds of a contiguous run summing to it.',
+    2: 'Starts the left edge of the window at index 0, before any elements have been considered for eviction.',
+    3: 'Starts the running sum at 0, since the window begins empty.',
+    5: 'Advances the right edge one index at a time across the whole array, growing the window by exactly one element per iteration.',
+    6: 'Folds arr[right] into the running sum, extending the window to include the newly admitted element.',
+    8: "Shrinks the window while the sum has overshot the target and the window still holds at least one element — safe only because every element is non-negative, so growing the window can never fix an overshoot.",
+    9: 'Subtracts arr[left] from the running sum as that element leaves the window from the left.',
+    10: 'Advances left by one, formally evicting the element whose value was just subtracted.',
+    12: "Checks whether the window's sum now matches the target exactly.",
+    13: 'Returns the current window bounds the moment the sum matches, since no larger or smaller window is needed once a hit is found.',
+    15: 'Returns [-1, -1] once right has scanned the whole array without any window ever landing on target, proving no such subarray exists.',
+  },
+};
+
 export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   id: 'two-pointers',
   title: 'Two Pointers (Subarray Sum)',
@@ -264,6 +281,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     space: 'The window is tracked with just two indices and one running sum, so extra memory stays constant at O(1) regardless of input size.',
   },
   topicGuide: TWO_POINTERS_TOPIC_GUIDE,
+  trivia: TWO_POINTERS_TRIVIA,
   defaultInput: DEFAULT_TWO_POINTERS_INPUT,
   generateSteps: generateTwoPointersSteps,
 };

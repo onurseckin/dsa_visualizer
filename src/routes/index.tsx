@@ -6,7 +6,7 @@ export const Route = createFileRoute('/')({
   component: KnowledgeTreePage,
 });
 
-function KnowledgeTreePage() {
+function KnowledgeTreePage(): React.ReactElement {
   const navigate = useNavigate();
 
   return (

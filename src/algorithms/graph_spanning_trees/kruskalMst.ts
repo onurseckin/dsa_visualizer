@@ -5,6 +5,7 @@ import type {
   GraphNodeItem,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface KruskalInput {
   nodes: GraphNodeItem[];
@@ -331,6 +332,34 @@ const KRUSKAL_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const KRUSKAL_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Packages the union-find (disjoint-set) structure that answers "are these two nodes already connected?" in near-constant time — the engine the whole greedy algorithm runs on.',
+    2: 'Constructor: sets up one parent pointer per node before any edges are considered.',
+    3: 'Every node starts as its own parent — its own singleton component — since nothing has been merged yet.',
+    5: 'Answers which component a node belongs to by walking parent pointers up to the root.',
+    6: 'A node that is its own parent is the root of its component — the base case of the walk.',
+    7: "Found the root; hand it back as the component's identity.",
+    8: 'Path compression: rewires this node to point straight at the root it just found, so future find() calls on it are near-instant.',
+    9: 'Returns the (now directly linked) root after compression.',
+    11: 'Merges the components containing i and j, but only if they are not already the same component.',
+    12: 'Looks up which component the first endpoint belongs to.',
+    13: 'Looks up which component the second endpoint belongs to.',
+    14: 'The critical test: different roots mean this edge would connect two previously separate pieces rather than close a cycle.',
+    15: 'Fuses the two components by pointing one root at the other.',
+    16: 'Signals that a real merge happened — this edge belongs in the spanning tree.',
+    17: 'Same-root case: the endpoints were already connected, so keeping this edge would only create a cycle.',
+    19: 'Entry point: builds the minimum spanning tree from every node and every weighted edge.',
+    20: 'Creates the union-find structure, starting every node in its own component.',
+    21: 'Sorts edges cheapest-first — the whole greedy idea depends on always considering the lightest possible connector before any heavier one.',
+    22: 'The growing set of accepted edges that will form the spanning tree.',
+    24: 'Walks the edges in increasing weight order, exactly the order the cut-property argument requires.',
+    25: 'Accepts the edge only if its endpoints were in different components — union both tests and merges in one call.',
+    26: 'Keeps this edge: it was the cheapest way to connect its two components, so including it can never turn out to be a mistake.',
+    28: 'Once every edge has been considered, the accepted set is a minimum spanning tree — cheapest total weight, no cycles.',
+  },
+};
+
 export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   id: 'kruskal-mst',
   title: "Kruskal's Minimum Spanning Tree",
@@ -371,6 +400,7 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
     space: 'Union-find stores one parent pointer per vertex, and we keep a sorted copy of the edge list alongside the growing MST, so extra memory is O(V + E).',
   },
   topicGuide: KRUSKAL_TOPIC_GUIDE,
+  trivia: KRUSKAL_TRIVIA,
   defaultInput: DEFAULT_KRUSKAL_INPUT,
   generateSteps: generateKruskalSteps,
 };

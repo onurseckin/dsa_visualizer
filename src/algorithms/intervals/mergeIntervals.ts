@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   ElementState,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface IntervalItem {
   start: number;
@@ -223,6 +224,23 @@ export function generateMergeIntervalsSteps(
   return steps;
 }
 
+const MERGE_INTERVALS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines merge(intervals): produces the smallest set of non-overlapping intervals that covers the same points as the input.',
+    2: 'Guards the empty-input case before touching intervals[0] anywhere below.',
+    3: 'Nothing to merge, so returns an empty list immediately.',
+    4: 'Sorts intervals by their start value — this is the entire trick that turns an all-pairs overlap question into a single left-to-right scan, since afterward any interval can only ever touch the block currently being built, never one already sealed off.',
+    5: "Seeds the result with the first sorted interval as the currently \"open\" block that later intervals will either extend or leave behind.",
+    6: 'Walks every remaining interval in sorted order, deciding one at a time whether it extends the open block or starts a new one.',
+    7: "Grabs the last interval in the merged list — the currently open block — since that's the only one a new interval could possibly overlap once the list is sorted by start.",
+    8: "Checks whether the current interval's start falls at or before the open block's end — if so, the two touch or overlap and must be merged.",
+    9: "Extends the open block's end to whichever is bigger — this max is essential for fully-nested intervals, since blindly copying the new interval's end could shrink the block and lose coverage.",
+    10: 'Otherwise there is a genuine gap: the current interval starts after the open block truly ends.',
+    11: "The open block can't grow anymore, so appends the current interval as a fresh open block of its own.",
+    12: 'Returns the fully merged, disjoint list — one pass after the sort was all it took.',
+  },
+};
+
 export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   id: 'merge-intervals',
   title: 'Merge Intervals',
@@ -326,6 +344,7 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
       },
     ],
   },
+  trivia: MERGE_INTERVALS_TRIVIA,
   generateSteps: generateMergeIntervalsSteps,
   defaultInput: DEFAULT_MERGE_INTERVALS_INPUT,
 };

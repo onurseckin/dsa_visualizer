@@ -4,6 +4,7 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface FordFulkersonInput {
   nodes: string[];
@@ -354,6 +355,38 @@ export const generateFordFulkersonSteps = (
   return steps;
 };
 
+const FORD_FULKERSON_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Function signature: takes the graph's nodes, directed edges with capacities, and the two special vertices whose max flow we want to compute.",
+    2: 'Comment marking the setup phase where we translate the edge list into fast lookup tables before doing any searching.',
+    3: 'A dictionary mapping each directed edge (u, v) to its capacity, giving O(1) capacity lookups during the search instead of scanning the edge list.',
+    4: 'A parallel dictionary tracking how much flow currently rides on each edge, starting every edge at zero since no flow has been pushed yet.',
+    5: 'Walk the input edge list once to populate both tables.',
+    6: 'Record the capacity ceiling for this directed edge, keyed by its (u, v) pair.',
+    7: "Initialize this edge's flow to zero, matching the invariant that no traffic has moved yet.",
+    9: "A depth-first search over the residual graph that tries to find any path from u to target with spare capacity, threading the smallest capacity seen so far.",
+    10: "Base case: if we've reached the sink, the search succeeded.",
+    11: 'Report the bottleneck capacity accumulated along the path that got us here — that is the most we can push along this route.',
+    12: 'Mark this node as visited so the DFS never revisits it and loops forever on cycles.',
+    13: 'Scan every edge in the network looking for ones that leave the current node u (a linear scan stands in for a proper adjacency list here).',
+    14: "Only consider edges that start at u and lead to a node we haven't already explored on this path.",
+    15: 'Compute the residual capacity: how much more this edge can carry before it saturates.',
+    16: "Only step into a neighbor if the edge still has spare capacity — no point exploring a saturated edge.",
+    17: 'Recurse into the neighbor, tightening current_flow to whichever is smaller — the flow already committed, or this edge\'s residual — since the whole path can only carry as much as its narrowest link.',
+    18: 'A positive bottleneck means the recursive call found a path to the sink.',
+    19: "Propagate that successful path's bottleneck straight back up the call stack without exploring any other neighbors.",
+    20: 'Every neighbor was exhausted without reaching the sink, so this branch is a dead end and reports zero.',
+    22: 'Running total of flow pushed from source to sink so far.',
+    23: 'Keep searching for augmenting paths for as long as one exists; the loop only stops when a search comes up empty.',
+    24: 'Reset the visited set for a fresh search — nodes explored on a previous augmenting path must be explorable again this round.',
+    25: 'Search from scratch for a new augmenting path, starting with unlimited flow potential since no edge has been committed on this attempt yet.',
+    26: 'A bottleneck of zero means the search found no path with any spare capacity left.',
+    27: 'No augmenting path remains, so by the max-flow min-cut theorem the current total is already optimal — stop the loop.',
+    28: "Add this round's bottleneck to the running total, since we just confirmed that much additional flow can travel from source to sink.",
+    30: 'Hand back the final maximum flow once no further augmenting path can be found.',
+  },
+};
+
 export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   id: 'ford-fulkerson',
   title: 'Ford-Fulkerson Maximum Flow',
@@ -443,6 +476,7 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
       },
     ],
   },
+  trivia: FORD_FULKERSON_TRIVIA,
   defaultInput: DEFAULT_FORD_FULKERSON_INPUT,
   generateSteps: generateFordFulkersonSteps,
 };

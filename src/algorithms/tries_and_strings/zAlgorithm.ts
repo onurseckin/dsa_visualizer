@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   ElementState,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface ZAlgorithmInput {
   text: string;
@@ -266,6 +267,28 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   return steps;
 };
 
+const Z_ALGORITHM_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Signature: find every index in text where pattern occurs, returned as a list of starting positions.',
+    2: 'Glue the pattern in front of the text with a separator between them, so a single self-similarity scan of s can double as a pattern search.',
+    3: "Cache the combined string's length and the pattern's length, both needed repeatedly throughout the scan.",
+    4: "Allocate the Z-array, one entry per position in s; z[i] will record how long a copy of s's own prefix starts at position i.",
+    5: 'The Z-box: the interval of the most recently found match against the prefix, which lets later positions reuse work instead of recomputing it from scratch.',
+    6: 'Collects the text indices where the pattern was found.',
+    8: 'Compute a Z-value for every position except index 0, which trivially matches the whole prefix and carries no useful information.',
+    9: 'Check whether position i falls inside the window of characters already known to mirror the prefix.',
+    10: 'Reuse the previously computed Z-value from the mirrored position inside the prefix, capped at how much of the window is left — this is the shortcut that keeps the whole algorithm linear.',
+    11: 'Extend the match past whatever was reused (or start from scratch if nothing was) by comparing characters directly, one at a time.',
+    12: 'Each successful comparison extends the known match by one more character.',
+    13: 'Check whether this position\'s match reaches further right than anything found before it.',
+    14: 'Update the window\'s left edge to this new, farther-reaching match.',
+    15: "Update the window's right edge, so later positions inside this new range can reuse today's work.",
+    16: 'A Z-value exactly equal to the pattern length, found past the pattern-plus-separator portion of s, means the whole pattern reappeared starting here.',
+    17: 'Convert the combined-string index back into a text index by subtracting the pattern length and the separator character.',
+    18: 'Hand back every text position where the pattern was found, all discovered in one linear pass over s.',
+  },
+};
+
 export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   id: 'z-algorithm',
   title: 'Z-Algorithm String Matching',
@@ -353,6 +376,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
       },
     ],
   },
+  trivia: Z_ALGORITHM_TRIVIA,
   defaultInput: DEFAULT_Z_ALGORITHM_INPUT,
   generateSteps: generateZAlgorithmSteps,
 };

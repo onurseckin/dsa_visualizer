@@ -178,6 +178,15 @@ const BUBBLE_SORT_TRIVIA: TriviaMeta = {
       hint: 'Exchange the two neighbours in one statement — Python needs no temporary here.',
     },
   ],
+  lineExplanations: {
+    1: 'Declares the function signature: it takes an array and returns it sorted in place, the contract every call in this file relies on.',
+    2: "Caches the array's length in n so the loop bounds below don't recompute len(arr) on every iteration.",
+    3: 'The outer loop counts passes; after i full passes, the i largest elements are already parked at the tail end of the array.',
+    4: "The inner loop walks the still-unsorted prefix, stopping short of the tail that earlier passes already sorted, so index j + 1 never runs off the array's end.",
+    5: 'Compares two neighbours: a strict greater-than means this pair is inverted and needs swapping, while equal values are left untouched so the sort stays stable.',
+    6: "Swaps arr[j] and arr[j + 1] in a single tuple assignment, nudging the larger value one seat closer to its final position on the right.",
+    7: 'Returns the now-sorted array once every pass has finished.',
+  },
 };
 
 export const bubbleSort: AlgorithmDefinition<number[]> = {

@@ -5,6 +5,7 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TriePrefixTreeInput {
   wordsToInsert: string[];
@@ -352,6 +353,39 @@ export const generateTriePrefixTreeSteps = (
   return steps;
 };
 
+const TRIE_PREFIX_TREE_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines a single node in the trie: a small object holding child links and a marker for whether a word ends here.',
+    2: 'Constructor run every time a new node is created — every node starts identically empty.',
+    3: 'A dictionary from a single character to the child node reached by that character — this is what lets shared prefixes branch off from a common path.',
+    4: 'Marks whether some inserted word stops exactly at this node; without it the trie could only answer "does this prefix exist", not "is this a real stored word".',
+    6: 'The container that owns the whole tree and exposes insert, search, and starts_with as its public operations.',
+    7: 'Constructor for the trie itself.',
+    8: 'The root represents the empty string — every inserted word grows as a path of characters down from this single starting point.',
+    10: 'Adds a word to the trie by walking (and extending) the path that spells it out one character at a time.',
+    11: 'Start every insertion at the root, since every word begins as an extension of the empty prefix.',
+    12: 'Walk the word one character at a time, descending one tree level per character.',
+    13: 'Check whether a path for this character already exists at the current node.',
+    14: 'No such child exists yet, so create one — this is the moment the trie actually grows to accommodate a new branch.',
+    15: "Step into the child for this character, whether it just got created or already existed from an earlier word.",
+    16: "After placing every character of the word, flag the node we landed on as a genuine word ending, distinguishing it from a node that's merely a prefix of something else.",
+    18: 'Checks whether an exact word was previously inserted into the trie.',
+    19: 'Begin the walk at the root, same starting point as insertion.',
+    20: "Follow the word's character path exactly as insert would, but this time only reading, never creating.",
+    21: 'If the path breaks — no child exists for this character — the word was never inserted.',
+    22: "Report failure immediately rather than continuing to search a path that can't lead anywhere.",
+    23: "The character's child exists, so step into it and keep matching the rest of the word.",
+    24: "Having matched every character, the word was inserted only if this final node is actually flagged as a word ending — matching the path alone isn't enough, since it might just be someone else's prefix.",
+    26: "Checks whether any inserted word begins with the given prefix — unlike search, it doesn't care whether the prefix itself is a complete word.",
+    27: 'Start the walk at the root, exactly as the other two operations do.',
+    28: "Follow the prefix's character path one step at a time.",
+    29: 'If the path breaks partway through, no stored word can possibly continue with this prefix.',
+    30: 'Report immediately that no word starts with this prefix.',
+    31: 'The child exists, so descend into it and keep matching the rest of the prefix.',
+    32: 'Every prefix character was found along a real path, so at least one stored word begins with it — no end-of-word flag needs to be checked here, unlike search.',
+  },
+};
+
 export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   id: 'trie-prefix-tree',
   title: 'Trie (Prefix Tree)',
@@ -439,6 +473,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
       },
     ],
   },
+  trivia: TRIE_PREFIX_TREE_TRIVIA,
   defaultInput: DEFAULT_TRIE_INPUT,
   generateSteps: generateTriePrefixTreeSteps,
 };

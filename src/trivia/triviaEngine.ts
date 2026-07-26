@@ -258,9 +258,27 @@ export const buildTiles = (
   return shuffle([...answers, ...decoys], rng);
 };
 
-/** Whitespace-insensitive at the edges; everything inside the line must match. */
+/**
+ * Collapses each run of internal whitespace down to a single space, after
+ * trimming the ends. A *run* can only ever be collapsed, never invented or
+ * deleted outright, so this tolerates cosmetic spacing choices (extra space
+ * around an operator, extra space between items in a bracket/tuple literal)
+ * without starting to treat "no separator" and "one separator" as the same
+ * thing — a submission that omits whitespace the solution has (or adds
+ * whitespace where the solution has none) still fails, which keeps this from
+ * ever accepting structurally different code as correct.
+ */
+const normalizeWhitespace = (value: string): string => value.trim().replace(/\s+/g, ' ');
+
+/**
+ * Whitespace-tolerant equality: leading/trailing space never matters, and any
+ * run of internal whitespace grades the same regardless of its length (so
+ * `total  =  0` and `total = 0` are equivalent). Everything else — the actual
+ * characters, casing, and whether a given spot has whitespace at all — must
+ * still match exactly.
+ */
 export const isAnswerCorrect = (submitted: string, expected: string): boolean =>
-  submitted.trim() === expected.trim();
+  normalizeWhitespace(submitted) === normalizeWhitespace(expected);
 
 export const gradeRound = (
   round: TriviaRound,

@@ -312,6 +312,25 @@ const BINARY_SEARCH_MATRIX_TRIVIA: TriviaMeta = {
       hint: 'Handle the case where the probe came in under the target, so everything at or below it can be discarded.',
     },
   ],
+  lineExplanations: {
+    1: 'Defines search_matrix(matrix, target) -> bool: treats the whole 2D grid as one sorted list and binary searches it without ever building that list.',
+    2: 'Guards the degenerate cases — an empty matrix or a matrix whose first row is empty — since the index math below would be meaningless without at least one element.',
+    3: "An empty matrix can't contain the target, so returns False immediately rather than falling through into index arithmetic on a zero-sized grid.",
+    4: 'Caches the row count m and column count n — needed to convert between a flat index and its (row, column) coordinate.',
+    5: 'Opens the binary search window over the flattened index space: low starts at the first cell, high at the last of the m*n virtual positions.',
+    7: 'Loops while the window is non-empty — the same halting condition as a normal binary search, just over virtual indices instead of array indices.',
+    8: 'Picks the midpoint of the current window — the next flat index to probe.',
+    9: 'Converts the flat index to its row by integer division by the row width n — dividing off complete rows recovers which row the index falls in.',
+    10: "Converts the flat index to its column via the remainder after that division — whatever's left over is the offset within that row.",
+    11: 'Reads the actual matrix cell at (row, col) — the value the flattened index was standing in for.',
+    13: 'Checks whether the probed value equals the target.',
+    14: 'A match ends the search immediately — True, found.',
+    15: 'If the probed value is smaller than the target, the target (if present) must live strictly after this position, since the flattened order is fully sorted.',
+    16: 'Discards the entire lower half by moving low just past mid — everything at or before mid is now known to be too small.',
+    17: 'Introduces the remaining case — the probed value must be greater than the target — since the two prior branches were exhaustive.',
+    18: 'Symmetric to the low branch: the probed value was too large, so drops the upper half by pulling high back to just before mid.',
+    20: "The window closed with no match ever found, so the target genuinely isn't anywhere in the matrix — returns False.",
+  },
 };
 
 export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = {

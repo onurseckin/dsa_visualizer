@@ -7,6 +7,7 @@ import type {
   GraphVisualSnapshot,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface Point2D {
   x: number;
@@ -320,6 +321,32 @@ const CONVEX_HULL_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const CONVEX_HULL_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Defines the function signature: it takes a list of 2D points and returns the hull's vertices in boundary order.",
+    3: "Documents that this implements Andrew's Monotone Chain algorithm for finding the convex hull.",
+    5: 'Caches the point count to decide whether any hull-building is even needed.',
+    6: 'With three or fewer points every point is trivially already on (or defines) the hull, so there is nothing to eliminate.',
+    7: 'Short-circuits with the input unchanged when a hull computation would do no useful work.',
+    9: 'Sorts points left to right, breaking ties by y, so the lower and upper boundaries can each be built with one directional sweep.',
+    11: 'Defines the orientation test used to decide whether three points turn clockwise, counter-clockwise, or lie on one line.',
+    12: "Computes the signed cross product of vectors o→a and o→b; its sign alone reveals the turn direction, with no trigonometry or floating-point angles needed.",
+    14: 'Starts an empty stack that will hold the lower boundary of the hull.',
+    15: 'Sweeps left to right through the sorted points to build the lower chain.',
+    16: 'Keeps popping while the last two kept points plus the new one fail to turn left — a non-left turn would dent the boundary inward.',
+    17: "Discards the middle point of that triple, since a point that dents the boundary inward can't be a true hull vertex.",
+    18: 'Accepts the current point as a (provisional) corner of the lower chain.',
+    20: 'Starts a second empty stack, this time for the upper boundary.',
+    21: 'Sweeps back right to left so the identical turn logic traces the top of the hull.',
+    22: 'Applies the same non-left-turn check, now on the reverse sweep.',
+    23: 'Removes points that would dent the upper boundary inward.',
+    24: 'Keeps the current point as a candidate corner of the upper chain.',
+    26: "Drops the lower chain's last point, which duplicates the upper chain's starting point (the rightmost point).",
+    27: "Drops the upper chain's last point for the same reason, avoiding a duplicated leftmost point.",
+    28: 'Concatenates the two chains — already in boundary order — into the final hull polygon.',
+  },
+};
+
 export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   id: 'convex-hull',
   title: 'Convex Hull (Monotone Chain)',
@@ -350,6 +377,7 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
     space: 'The sorted copy of the points and the two hull stacks each hold at most all N points, so extra memory grows linearly — O(N).',
   },
   topicGuide: CONVEX_HULL_TOPIC_GUIDE,
+  trivia: CONVEX_HULL_TRIVIA,
   defaultInput: DEFAULT_CONVEX_HULL_INPUT,
   generateSteps: generateConvexHullSteps,
 };

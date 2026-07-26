@@ -21,7 +21,7 @@ export function Collapsible({
   className,
   children,
   ...rest
-}: CollapsibleProps) {
+}: CollapsibleProps): React.ReactElement {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : uncontrolledOpen;

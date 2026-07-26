@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface SieveInput {
   limit: number;
@@ -287,6 +288,27 @@ const SIEVE_PRIMES_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const SIEVE_PRIMES_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines the function signature: it takes a limit and returns every prime number up to and including it.',
+    2: 'Guards the trivial case — the smallest prime is 2, so any limit below that can never contain one.',
+    3: 'Short-circuits with an empty list when no prime can possibly exist below the limit.',
+    5: 'Allocates one boolean flag per integer from 0 to limit, optimistically marking every number as a candidate prime.',
+    6: 'Manually excludes 0 and 1, which are not prime by definition but would otherwise stay marked True from the previous line.',
+    8: 'Starts the elimination sweep at the smallest prime, 2 — everything from here on is either a base prime or already crossed out by one.',
+    9: 'Stops the outer loop once p squared exceeds limit, because any composite that size must already have a factor no larger than its own square root, so it would already be marked.',
+    10: "Only treats p as a base prime if nothing smaller has crossed it out yet — an unmarked number this far in must be prime.",
+    11: "Walks p's multiples starting at p squared rather than 2p, since every smaller multiple already carries a smaller prime factor and was eliminated earlier.",
+    12: 'Marks each of those multiples as composite, since a number with a factor of p greater than 1 can never be prime.',
+    13: 'Advances to the next candidate regardless of whether p turned out to be prime, keeping the outer sweep moving.',
+    15: 'Prepares the output list that will collect every surviving (still-True) index.',
+    16: 'Sweeps every number from 2 through limit to harvest the final results.',
+    17: 'Only numbers that were never crossed out qualify — anything still True is prime.',
+    18: 'Records i as one of the discovered primes.',
+    20: 'Returns the completed list of primes up to limit.',
+  },
+};
+
 export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   id: 'sieve-primes',
   title: 'Sieve of Eratosthenes',
@@ -321,6 +343,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
     space: 'The boolean array keeps one flag per number from 0 to n, so memory grows linearly with the limit — O(n). The final list of primes is smaller and fits within that same bound.',
   },
   topicGuide: SIEVE_PRIMES_TOPIC_GUIDE,
+  trivia: SIEVE_PRIMES_TRIVIA,
   defaultInput: DEFAULT_SIEVE_INPUT,
   generateSteps: generateSieveSteps,
 };

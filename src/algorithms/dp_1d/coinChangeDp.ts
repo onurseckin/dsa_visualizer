@@ -1,4 +1,5 @@
 import type { AlgorithmDefinition, AlgorithmStep } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface CoinChangeInput {
   coins: number[];
@@ -121,6 +122,19 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
   return steps;
 };
 
+const COIN_CHANGE_DP_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Defines coin_change(coins, amount) -> int: builds a table of best-known answers for every amount from 0 up to the target.",
+    2: "Allocates dp with amount + 1 slots, each initialized to infinity, meaning \"no combination found yet\" — infinity is a safe sentinel because any real answer is smaller, so min() just works with no special-casing.",
+    3: "Sets the base case: making amount 0 costs zero coins, since the empty selection trivially reaches it, and every other entry ultimately depends on this one.",
+    5: "Sweeps amounts upward from 1 to amount, guaranteeing that whenever dp[i] is computed, every smaller amount i - coin has already been finalized.",
+    6: "For each amount i, tries every denomination as a candidate for \"the last coin used\" — taking the minimum over all these choices is what makes greedy unnecessary.",
+    7: "Only considers a coin if spending it doesn't overshoot past zero — i - coin must stay within the table's valid range.",
+    8: "Relaxes dp[i] to the smaller of its current value and dp[i - coin] + 1 — \"pay this coin, then solve the remainder optimally\" — accumulating the true minimum across every coin choice for this amount.",
+    10: "Returns dp[amount], unless it's still infinity — meaning no combination of coins ever reached the target — in which case -1 signals that it's unreachable.",
+  },
+};
+
 export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   id: 'coin-change-dp',
   title: 'Coin Change Minimum Coins (Dynamic Programming)',
@@ -209,6 +223,7 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
       },
     ],
   },
+  trivia: COIN_CHANGE_DP_TRIVIA,
   defaultInput: DEFAULT_COIN_CHANGE_INPUT,
   generateSteps: generateCoinChangeSteps,
 };

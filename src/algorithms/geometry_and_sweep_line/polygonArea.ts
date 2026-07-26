@@ -7,6 +7,7 @@ import type {
   GraphVisualSnapshot,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface Point2D {
   x: number;
@@ -302,6 +303,24 @@ const POLYGON_AREA_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const POLYGON_AREA_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines the function signature: takes ordered polygon vertices and returns a float area.',
+    3: 'Documents that this implements the Shoelace formula for a simple, non-self-intersecting polygon.',
+    4: 'Documents the expected input shape: an ordered list of (x, y) vertex tuples walking the boundary.',
+    6: 'Caches the vertex count, needed both for the validity check and for wrapping the index in the main loop.',
+    7: 'A polygon needs at least three vertices to enclose any region.',
+    8: 'With fewer than three vertices there is no enclosed area, so we return zero immediately.',
+    10: "Initializes the running total that will accumulate each edge's signed cross-product term.",
+    11: 'Walks every edge of the polygon exactly once.',
+    12: "Unpacks the current vertex's coordinates.",
+    13: "Unpacks the next vertex's coordinates, wrapping around to vertex 0 after the last one so the polygon closes.",
+    14: "Computes this edge's signed contribution — twice the signed area of the triangle it forms with the origin — so terms outside the polygon cancel and terms inside it add up.",
+    15: "Folds this edge's term into the running total.",
+    17: "The sign only reflected which way we walked the boundary, so taking the absolute value and halving (undoing the doubled cross product) yields the true enclosed area.",
+  },
+};
+
 export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   id: 'polygon-area',
   title: 'Polygon Area (Shoelace Formula)',
@@ -333,6 +352,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
     space: 'Beyond the input vertices we only keep a running sum and a couple of loop variables, so extra memory stays constant — O(1).',
   },
   topicGuide: POLYGON_AREA_TOPIC_GUIDE,
+  trivia: POLYGON_AREA_TRIVIA,
   defaultInput: DEFAULT_POLYGON_AREA_INPUT,
   generateSteps: generatePolygonAreaSteps,
 };

@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TwoSumSortedInput {
   nums: number[];
@@ -235,6 +236,23 @@ const TWO_SUM_SORTED_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const TWO_SUM_SORTED_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the function: given a sorted array and a target, return the indices of two numbers that sum to it.',
+    2: 'Places the left pointer at index 0, the smallest value in the sorted array — advancing it is the only way to increase the pair sum.',
+    3: 'Places the right pointer at the last index, the largest value — pulling it inward is the only way to decrease the pair sum.',
+    5: "Loops while the pointers haven't crossed; once left meets or passes right, every possible pair has already been considered.",
+    6: 'Adds the values at both pointers together, producing the one number that decides which direction to move next.',
+    8: 'Checks whether the sum lands exactly on the target — if so, the search is over.',
+    9: 'Returns the two indices immediately, since their values are confirmed to sum to target.',
+    10: 'Checks whether the sum fell short of the target, meaning the pair needs a larger left value.',
+    11: 'Advances left by one to bring in a bigger number, since nums[left] paired with anything smaller than nums[right] would only fall shorter.',
+    12: 'Otherwise the sum overshot the target, meaning the pair needs a smaller right value.',
+    13: 'Pulls right back by one to bring in a smaller number, since nums[right] paired with anything bigger than nums[left] would only overshoot more.',
+    15: 'Returns an empty list once the pointers meet without ever hitting the target, proving no valid pair exists.',
+  },
+};
+
 export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   id: 'two-sum-sorted',
   title: 'Two Sum II (Sorted)',
@@ -272,6 +290,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
     space: 'We keep only two index variables and a running sum no matter how large the array gets, so extra memory is constant — O(1).',
   },
   topicGuide: TWO_SUM_SORTED_TOPIC_GUIDE,
+  trivia: TWO_SUM_SORTED_TRIVIA,
   defaultInput: DEFAULT_TWO_SUM_SORTED_INPUT,
   generateSteps: generateTwoSumSortedSteps,
 };

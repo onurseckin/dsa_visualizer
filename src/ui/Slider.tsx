@@ -28,7 +28,7 @@ export function Slider({
   style,
   id,
   ...rest
-}: SliderProps) {
+}: SliderProps): React.ReactElement {
   const autoId = useId();
   const inputId = id ?? autoId;
   const display = formatValue ? formatValue(value) : String(value);

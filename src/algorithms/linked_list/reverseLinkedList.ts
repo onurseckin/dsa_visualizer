@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface ReverseLinkedListInput {
   nodes: number[];
@@ -193,6 +194,20 @@ export const generateReverseLinkedListSteps = (
   return steps;
 };
 
+const REVERSE_LINKED_LIST_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Signature: takes the head of a singly linked list and returns the head of the same list with every link reversed.',
+    2: 'Starts as the head of the already-reversed portion, which is empty at first — it also becomes the new tail\'s terminator, since the old head will end up pointing at None.',
+    3: 'The node currently being processed; the walk begins at the original head and moves forward one node at a time.',
+    4: 'Keep flipping links until curr falls off the end of the list, meaning every node has been processed.',
+    5: "Stash a reference to the next node before we overwrite curr's link — without this save, the rest of the list would become unreachable the moment we rewrite curr.next.",
+    6: 'The actual reversal: point curr backward at prev instead of forward, turning one link around.',
+    7: "Slide prev onto the node we just flipped, since it's now the head of the reversed portion.",
+    8: 'Advance curr to the node we saved earlier, so the same flip can be repeated on the rest of the untouched list.',
+    9: 'Once curr runs out, prev is sitting on the old tail — which is exactly the new head of the reversed list.',
+  },
+};
+
 export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   id: 'reverse-linked-list',
   title: 'Reverse Linked List',
@@ -289,6 +304,7 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
       },
     ],
   },
+  trivia: REVERSE_LINKED_LIST_TRIVIA,
   defaultInput: DEFAULT_REVERSE_LINKED_LIST_INPUT,
   generateSteps: generateReverseLinkedListSteps,
 };

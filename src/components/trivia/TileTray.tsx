@@ -9,22 +9,29 @@ export interface TileTrayProps {
   /** Ids of tiles already sitting in a slot; they stay visible but spent. */
   usedTileIds?: readonly string[];
   selectedTileId?: string | null;
-  /** Click or drag-start: both mean "this is the tile I am holding". */
+  /** Drag-start: this tile becomes the held selection, so a drop elsewhere
+      (or a later click on a specific slot) still resolves it. */
   onSelect: (tileId: string) => void;
+  /** Plain click: commit this tile straight to the lowest-numbered still-
+      empty blank — no second click on a slot required. */
+  onActivate: (tileId: string) => void;
   /** Locked once the round is graded. */
   disabled?: boolean;
 }
 
 /**
- * The shuffled candidate lines. Dragging is the flourish, not the mechanism:
- * a drag-start selects the tile and the drop reuses the click placement path, so
- * the tray is fully usable by keyboard and mouse alone.
+ * The shuffled candidate lines. A plain click is a commit, not a hold: it
+ * fills the next empty blank immediately. Dragging remains the deliberate,
+ * still-fully-supported way to place a tile into a specific (possibly
+ * out-of-order) blank — a drag-start selects the tile the same way it
+ * always has, so the drop has a held tileId to fall back on.
  */
 export function TileTray({
   tiles,
   usedTileIds = [],
   selectedTileId = null,
   onSelect,
+  onActivate,
   disabled = false,
 }: TileTrayProps) {
   const [draggingTileId, setDraggingTileId] = useState<string | null>(null);
@@ -38,8 +45,9 @@ export function TileTray({
       transfer.effectAllowed = 'move';
     }
     setDraggingTileId(tileId);
-    // Selecting on drag-start is what lets the drop and the click share one path;
-    // the guard keeps a drag from toggling a tile that is already held off again.
+    // Selecting on drag-start is what lets the drop and a later slot click
+    // share one path; the guard keeps a drag from toggling a tile that is
+    // already held off again.
     if (tileId !== selectedTileId) onSelect(tileId);
   };
 
@@ -64,7 +72,7 @@ export function TileTray({
           color: 'var(--text-muted)',
         }}
       >
-        Click a tile, then click a blank. Dragging works too.
+        Click a tile to fill the next empty line — or drag it to a specific one.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {tiles.map((tile) => {
@@ -82,7 +90,7 @@ export function TileTray({
               aria-label={`Tile ${tile.text}${isUsed ? ' (placed)' : ''}`}
               disabled={isUsed || disabled}
               draggable={!isUsed && !disabled}
-              onClick={() => onSelect(tile.id)}
+              onClick={() => onActivate(tile.id)}
               onDragStart={handleDragStart(tile.id)}
               onDragEnd={handleDragEnd}
               style={{

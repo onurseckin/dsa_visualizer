@@ -375,6 +375,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           code={algorithm.code}
           activeLine={currentStep?.codeLine || 1}
           variables={currentStep?.variables}
+          lineExplanations={algorithm.trivia?.lineExplanations}
         />
       ),
     },

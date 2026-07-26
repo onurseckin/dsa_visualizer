@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface ValidParenthesesInput {
   s: string;
@@ -239,6 +240,22 @@ const VALID_PARENTHESES_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const VALID_PARENTHESES_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines is_valid(s) -> bool: checks whether the bracket string s is properly nested using a stack of open brackets.',
+    2: "Starts with an empty stack — it will hold every opener that hasn't found its closing partner yet, most recent on top.",
+    3: "Builds a lookup from each closing bracket to the opener it must match, so verifying a pair later is a single dictionary lookup instead of a chain of if/elif comparisons.",
+    4: 'Walks the string left to right, visiting each character (and its index) exactly once.',
+    5: 'Checks whether the current character is one of the three openers.',
+    6: "An opener can't be resolved yet, so it's pushed onto the stack to wait for its closing partner — the most recently pushed opener will be the first one checked against a later closer.",
+    7: "Otherwise the character must be a closer, since the string only ever contains brackets, so falls through to the matching logic.",
+    8: 'A closer is only valid if the stack isn\'t empty and its top matches the opener this closer requires — checking both conditions here catches both "nothing to close" and "wrong bracket type" in one guard.',
+    9: 'Either failure — an empty stack or a mismatched opener — means the nesting is broken beyond repair, so bails out immediately with False.',
+    10: "The top of the stack correctly matches, so that opener's job is done — pops it off, closing the pair.",
+    11: 'After the whole string is consumed, the string is valid only if the stack is empty — any leftover opener never found its closer, which a mid-loop check could never catch.',
+  },
+};
+
 export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   id: 'valid-parentheses',
   title: 'Valid Parentheses',
@@ -279,6 +296,7 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
     space: 'The stack is what grows: a string of all openers like "(((((" pushes every character, so in the worst case it holds n brackets — O(n) extra space.',
   },
   topicGuide: VALID_PARENTHESES_TOPIC_GUIDE,
+  trivia: VALID_PARENTHESES_TRIVIA,
   defaultInput: DEFAULT_VALID_PARENTHESES_INPUT,
   generateSteps: generateValidParenthesesSteps,
 };

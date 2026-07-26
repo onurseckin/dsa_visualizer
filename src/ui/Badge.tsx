@@ -21,7 +21,7 @@ export function difficultyBadgeVariant(difficulty: DifficultyLevel): BadgeVarian
   }
 }
 
-export function Badge({ variant = 'neutral', size = 'sm', className, children, ...rest }: BadgeProps) {
+export function Badge({ variant = 'neutral', size = 'sm', className, children, ...rest }: BadgeProps): React.ReactElement {
   return (
     <span
       className={cx('ui-badge', `ui-badge--${variant}`, `ui-badge--${size}`, className)}
