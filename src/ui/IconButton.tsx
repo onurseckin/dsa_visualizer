@@ -4,7 +4,7 @@ import { cx } from "./cx";
 import type { ButtonVariant, ControlSize } from "./Button";
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  icon: ReactNode;
+  icon?: ReactNode;
   variant?: ButtonVariant;
   size?: ControlSize;
   selected?: boolean;
@@ -20,6 +20,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
     selected = false,
     className,
     type = "button",
+    children,
     ...rest
   }: IconButtonProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
@@ -39,9 +40,12 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-pressed={selected || undefined}
       {...rest}
     >
-      <span className="ui-btn__icon" aria-hidden="true">
-        {icon}
-      </span>
+      {icon ? (
+        <span className="ui-btn__icon" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
+      {children}
     </button>
   );
 });

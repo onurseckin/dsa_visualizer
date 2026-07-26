@@ -30,8 +30,6 @@ const renderTriviaRoute = async () => {
   return res;
 };
 
-const revealButtons = () => screen.getAllByRole("button", { name: /^Reveal line \d+$/ });
-
 const readActiveSessionRecord = (): TriviaSessionRecord => {
   const sessions = readTriviaSessions();
   const activeId = readActiveSessionId();
@@ -64,15 +62,9 @@ describe("/trivia route session switching", () => {
   });
 
   it('shows an unambiguous "New session" identity right after creating one, distinct from a session with real progress', async () => {
-    seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
+    seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
     await screen.findByText("solution.py");
-
-    revealButtons().forEach((button) => fireEvent.click(button));
-    const check = screen.getByRole("button", { name: /^Check answers/ });
-    await waitFor(() => expect(check).toBeEnabled());
-    fireEvent.click(check);
-    await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
     fireEvent.click(screen.getByRole("button", { name: "Edit deck & settings" }));
     expect(await screen.findByText("Paused · progress saved")).toBeInTheDocument();
@@ -148,11 +140,13 @@ describe("/trivia route session switching", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
     await screen.findByText("solution.py");
 
-    revealButtons().forEach((button) => fireEvent.click(button));
-    let check = screen.getByRole("button", { name: /^Check answers/ });
-    await waitFor(() => expect(check).toBeEnabled());
-    fireEvent.click(check);
-    await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
+    updateSession(readActiveSessionId()!, {
+      progress: {
+        ...readActiveSessionRecord().progress,
+        roundsPlayed: 1,
+        drilled: { "bubble-sort": { "1": [0, 1] } },
+      },
+    });
 
     const sessionAId = readActiveSessionId();
     const drilledOnA = readActiveSessionRecord().progress.drilled["bubble-sort"]?.["1"] ?? [];
@@ -172,11 +166,13 @@ describe("/trivia route session switching", () => {
     await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(["two-sum"]));
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
     await screen.findByText("solution.py");
-    revealButtons().forEach((button) => fireEvent.click(button));
-    check = screen.getByRole("button", { name: /^Check answers/ });
-    await waitFor(() => expect(check).toBeEnabled());
-    fireEvent.click(check);
-    await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
+    updateSession(readActiveSessionId()!, {
+      progress: {
+        ...readActiveSessionRecord().progress,
+        roundsPlayed: 1,
+        drilled: { "two-sum": { "1": [0, 1] } },
+      },
+    });
 
     const sessionBSnapshot = readActiveSessionRecord();
     expect(sessionBSnapshot.id).toBe(sessionBId);

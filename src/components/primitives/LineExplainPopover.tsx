@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { Info } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { IconButton } from "../../ui";
 
 export interface CodeExplainToggleProps {
@@ -12,7 +12,7 @@ export interface CodeExplainToggleProps {
 export function CodeExplainToggle({ enabled, onToggle }: CodeExplainToggleProps): ReactElement {
   return (
     <IconButton
-      icon={<Info />}
+      icon={<Lightbulb />}
       variant="secondary"
       size="sm"
       selected={enabled}

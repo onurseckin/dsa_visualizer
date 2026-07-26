@@ -33,7 +33,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       aria-label="Problem directory"
       style={{
         padding: "var(--space-6)",
-        maxWidth: "1200px",
+        maxWidth: "1280px",
         margin: "0 auto",
         width: "100%",
         display: "flex",
@@ -41,6 +41,13 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         gap: "var(--space-4)",
       }}
     >
+      <div className="flex flex-col gap-1 mb-2">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Algorithm Directory</h1>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Explore algorithms, data structures, and interactive visualizations
+        </p>
+      </div>
+
       <ProblemListFilterToolbar
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
