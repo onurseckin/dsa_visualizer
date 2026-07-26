@@ -134,19 +134,23 @@ export function TriviaSession({
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [grade, setGrade] = useState<TriviaGrade | null>(null);
   const [openHints, setOpenHints] = useState<readonly number[]>([]);
-  const [problemExpanded, setProblemExpanded] = useState(true);
 
   /* Resizable, persisted trivia layout (TASKS.md 9.8): the problem/puzzle
-     row heights and the puzzle+TileTray width split, mirroring how
-     MainLayout owns WorkspaceLayout. */
+     row heights, the puzzle+TileTray width split, and whether the problem
+     panel is open, mirroring how MainLayout owns WorkspaceLayout. */
   const [layout, setLayout] = useState<TriviaLayout>(() => readTriviaLayout());
   const layoutRef = useRef<TriviaLayout>(layout);
   layoutRef.current = layout;
+  const problemExpanded = layout.problemExpanded;
 
   useEffect(() => {
     const reload = () => setLayout(readTriviaLayout());
     window.addEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
     return () => window.removeEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
+  }, []);
+
+  const handleToggleProblemExpanded = useCallback(() => {
+    setLayout(writeTriviaLayout({ problemExpanded: !layoutRef.current.problemExpanded }));
   }, []);
 
   const applyPanelHeights = useCallback(
@@ -478,7 +482,7 @@ export function TriviaSession({
             constraints={algorithm.constraints}
             examples={algorithm.examples}
             expanded={problemExpanded}
-            onToggleExpanded={() => setProblemExpanded((current) => !current)}
+            onToggleExpanded={handleToggleProblemExpanded}
           />
         </div>
       )}

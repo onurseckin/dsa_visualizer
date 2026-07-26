@@ -710,8 +710,8 @@ describe('MainLayout Component Spec', () => {
     it('gives the visualizer column the wider default share of the stage', () => {
       renderLayout();
 
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '70');
-      expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '60');
+      expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(60);
     });
 
     it('restores persisted sizes on mount, including the step rows', () => {
@@ -778,8 +778,8 @@ describe('MainLayout Component Spec', () => {
 
       fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
 
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '72');
-      expect(storedLayout()?.splitPercent).toBe(72);
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '62');
+      expect(storedLayout()?.splitPercent).toBe(62);
       expect(storedLayout()?.panelHeights).toEqual(DEFAULT_WORKSPACE_LAYOUT.panelHeights);
     });
 
@@ -1035,7 +1035,7 @@ describe('MainLayout Component Spec', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
       fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
 
-      expect(storedLayout()?.splitPercent).toBe(72);
+      expect(storedLayout()?.splitPercent).toBe(62);
       expect(storedLayout()?.problemExpanded).toBe(false);
       expect(problemExpandedAttr()).toBe('false');
     });

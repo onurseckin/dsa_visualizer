@@ -19,11 +19,22 @@
    Width: `puzzleSplitPercent` is the one width control trivia needs — the
    drill screen's puzzle+TileTray row is trivia's only genuine side-by-side
    region; Home and Setup are single-column stacks of full-width cards with
-   nothing to divide horizontally, so height-only suffices there. */
+   nothing to divide horizontally, so height-only suffices there.
 
-export const TRIVIA_LAYOUT_KEY = 'dsa_visualizer_trivia_layout_v1';
+   v2 adds `problemExpanded`: whether the Drill screen's problem-description
+   panel is open is a manual adjustment like any drag or resize, so it
+   belongs under this same persisted key instead of resetting to expanded
+   every session — the same reasoning workspaceLayout.ts's v6 applied to its
+   own `detailsExpanded` (later split into `problemExpanded` /
+   `solutionExpanded` at v8). Because this reshapes the persisted record
+   instead of just adding an optional key, and the version-mismatch read path
+   below discards wholesale rather than partially migrating, a stored v1
+   value is not carried forward — the panel simply reopens at its true
+   default (expanded). */
 
-export const TRIVIA_LAYOUT_VERSION = 1;
+export const TRIVIA_LAYOUT_KEY = 'dsa_visualizer_trivia_layout_v2';
+
+export const TRIVIA_LAYOUT_VERSION = 2;
 
 /* Reset is a navbar action but the layout state lives in the trivia route, so
    the two are joined by a window event rather than a shared React parent —
@@ -60,6 +71,8 @@ export interface TriviaLayout {
   puzzleSplitPercent: number;
   /** Pixel height per panel; null = automatic (hug content). */
   panelHeights: TriviaPanelHeights;
+  /** Whether the Drill screen's problem-description panel is open (v2). */
+  problemExpanded: boolean;
 }
 
 /* In a patch, an absent key (or `undefined`) means "leave it alone" while an
@@ -68,6 +81,7 @@ export interface TriviaLayout {
 export interface TriviaLayoutPatch {
   puzzleSplitPercent?: number;
   panelHeights?: Partial<TriviaPanelHeights>;
+  problemExpanded?: boolean;
 }
 
 export const MIN_SPLIT_PERCENT = 40;
@@ -92,6 +106,8 @@ const DEFAULT_LAYOUT: TriviaLayout = {
     problem: null,
     puzzle: null,
   },
+  // First drill opens the panel: the learner should not have to hunt for it.
+  problemExpanded: true,
 };
 
 export function cloneTriviaLayout(layout: TriviaLayout): TriviaLayout {
@@ -99,6 +115,7 @@ export function cloneTriviaLayout(layout: TriviaLayout): TriviaLayout {
     version: TRIVIA_LAYOUT_VERSION,
     puzzleSplitPercent: layout.puzzleSplitPercent,
     panelHeights: { ...layout.panelHeights },
+    problemExpanded: layout.problemExpanded,
   };
 }
 
@@ -177,10 +194,14 @@ export function readTriviaLayout(): TriviaLayout {
   const panelHeights = readPanelHeights(parsed.panelHeights);
   if (!panelHeights) return cloneTriviaLayout(DEFAULT_LAYOUT);
 
+  if (typeof parsed.problemExpanded !== 'boolean') return cloneTriviaLayout(DEFAULT_LAYOUT);
+
+  // Rebuilt field by field so unknown keys in storage never reach app state.
   return {
     version: TRIVIA_LAYOUT_VERSION,
     puzzleSplitPercent: parsed.puzzleSplitPercent,
     panelHeights,
+    problemExpanded: parsed.problemExpanded,
   };
 }
 
@@ -199,6 +220,8 @@ export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
     version: TRIVIA_LAYOUT_VERSION,
     puzzleSplitPercent: clampSplitPercent(patch.puzzleSplitPercent ?? current.puzzleSplitPercent),
     panelHeights,
+    // `??` and not `||`: collapsing the panel patches an explicit false.
+    problemExpanded: patch.problemExpanded ?? current.problemExpanded,
   };
 
   const storage = getStorage();

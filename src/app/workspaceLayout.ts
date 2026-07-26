@@ -101,10 +101,10 @@ export const MAX_SPLIT_PERCENT = 80;
 export const MIN_PANEL_HEIGHT_PX = 64;
 export const MAX_PANEL_HEIGHT_PX = 2000;
 
-/* The visualizer is the stage the learner actually watches, so it gets the bulk
-   of the width by default (DESIGN.md R5.2); the code column only needs enough
-   room for a listing. */
-const DEFAULT_SPLIT_PERCENT = 70;
+/* The visualizer is the stage the learner actually watches, so it gets the
+   larger share of the width by default; a 60/40 split still leaves the code
+   column enough room for a listing without the split feeling lopsided. */
+const DEFAULT_SPLIT_PERCENT = 60;
 
 const DEFAULT_LAYOUT: WorkspaceLayout = {
   version: WORKSPACE_LAYOUT_VERSION,

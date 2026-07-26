@@ -1,6 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProblemList } from '../ProblemList';
+
+/* Difficulty filter and sort order now persist to localStorage (flat,
+   versionless keys — see ProblemList.tsx); isolate every test from whatever
+   an earlier test wrote. */
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 describe('ProblemList Component Spec', () => {
   it('renders filter controls and problems table', () => {
@@ -72,5 +79,59 @@ describe('ProblemList Component Spec', () => {
     const select = screen.getByRole('combobox', { name: /Filter by Category/i }) as HTMLSelectElement;
     expect(select.value).toBe('two_pointers');
     expect(screen.queryByText('Bubble Sort')).not.toBeInTheDocument();
+  });
+
+  it('round-trips the sort field, sort direction, and difficulty filter across a reload', () => {
+    const categoryButtonName = /Sort by topic \/ category/i;
+    const firstRowTitle = () => screen.getAllByRole('row')[1]?.textContent ?? '';
+
+    const { unmount } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    // Title is the default sort column, so switching to a different one is what
+    // actually exercises (and persists) a change to sort_by.
+    fireEvent.click(screen.getByRole('button', { name: categoryButtonName }));
+    const ascendingFirstTitle = firstRowTitle();
+
+    // Same column again flips asc -> desc.
+    fireEvent.click(screen.getByRole('button', { name: categoryButtonName }));
+    const descendingFirstTitle = firstRowTitle();
+    expect(descendingFirstTitle).not.toBe(ascendingFirstTitle);
+
+    fireEvent.change(screen.getByRole('combobox', { name: /Filter by Difficulty/i }), {
+      target: { value: 'Hard' },
+    });
+
+    expect(window.localStorage.getItem('dsa_visualizer_problem_list_sort_by')).toBe('"category"');
+    expect(window.localStorage.getItem('dsa_visualizer_problem_list_sort_order')).toBe('"desc"');
+    expect(window.localStorage.getItem('dsa_visualizer_problem_list_difficulty')).toBe('"Hard"');
+
+    unmount();
+    render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    expect((screen.getByRole('combobox', { name: /Filter by Difficulty/i }) as HTMLSelectElement).value).toBe(
+      'Hard',
+    );
+    expect(screen.getByRole('button', { name: categoryButtonName })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('falls back to defaults, including sort direction, when stored problem-list preferences are malformed', () => {
+    const clean = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+    const cleanFirstRowTitle = screen.getAllByRole('row')[1]?.textContent ?? '';
+    clean.unmount();
+
+    window.localStorage.setItem('dsa_visualizer_problem_list_difficulty', '{not json');
+    window.localStorage.setItem('dsa_visualizer_problem_list_sort_by', JSON.stringify('bogus'));
+    window.localStorage.setItem('dsa_visualizer_problem_list_sort_order', JSON.stringify(42));
+
+    render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    expect((screen.getByRole('combobox', { name: /Filter by Difficulty/i }) as HTMLSelectElement).value).toBe(
+      'All',
+    );
+    expect(screen.getByRole('button', { name: /Sort by problem title/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getAllByRole('row')[1]?.textContent ?? '').toBe(cleanFirstRowTitle);
   });
 });

@@ -24,7 +24,7 @@ function readStored<T>(key: string, fallback: T, isValid: (value: unknown) => va
   }
 }
 
-function writeStored(key: string, value: boolean | string): void {
+function writeStored(key: string, value: boolean | string | number): void {
   try {
     window.localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
   } catch {
@@ -36,6 +36,20 @@ const isBoolean = (value: unknown): value is boolean => typeof value === 'boolea
 const isString = (value: unknown): value is string => typeof value === 'string';
 const isLegacyViewMode = (value: unknown): value is ViewMode | null =>
   value === null || value === 'split' || value === 'visual' || value === 'code';
+
+/* Mirrors the ControlPanel Speed slider's own min/max (50-1000ms delay per
+   step); an out-of-range or non-numeric stored value is exactly as
+   untrustworthy as garbage JSON, so it falls back to the default rather than
+   being clamped. */
+export const MIN_PLAYBACK_SPEED_MS = 50;
+export const MAX_PLAYBACK_SPEED_MS = 1000;
+export const DEFAULT_PLAYBACK_SPEED_MS = 300;
+
+const isPlaybackSpeed = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  value >= MIN_PLAYBACK_SPEED_MS &&
+  value <= MAX_PLAYBACK_SPEED_MS;
 
 /* Builds before R4.4 stored one mutually exclusive `view_mode` for the stage;
    map it onto the two stage panels so an upgrading user keeps what they had. */
@@ -68,9 +82,13 @@ function readPanelVisibility(): PanelVisibility {
 export interface SettingsContextValue {
   panels: PanelVisibility;
   lastAlgorithmId: string;
+  /** Playback speed (ms delay per step), shared across every algorithm's
+      workspace — a media-player-style preference the user sets once. */
+  speed: number;
   setPanel: (key: PanelKey, visible: boolean) => void;
   togglePanel: (key: PanelKey) => void;
   setLastAlgorithmId: (id: string) => void;
+  setSpeed: (speed: number) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -79,6 +97,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [panels, setPanelsState] = useState<PanelVisibility>(readPanelVisibility);
   const [lastAlgorithmId, setLastAlgorithmIdState] = useState<string>(() =>
     readStored('last_algorithm_id', 'bubble-sort', isString)
+  );
+  const [speed, setSpeedState] = useState<number>(() =>
+    readStored('playback_speed', DEFAULT_PLAYBACK_SPEED_MS, isPlaybackSpeed)
   );
 
   const setPanel = useCallback((key: PanelKey, visible: boolean) => {
@@ -102,20 +123,29 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     writeStored('last_algorithm_id', id);
   }, []);
 
+  const setSpeed = useCallback((next: number) => {
+    setSpeedState(next);
+    writeStored('playback_speed', next);
+  }, []);
+
   const value = useMemo(
     () => ({
       panels,
       lastAlgorithmId,
+      speed,
       setPanel,
       togglePanel,
       setLastAlgorithmId,
+      setSpeed,
     }),
     [
       panels,
       lastAlgorithmId,
+      speed,
       setPanel,
       togglePanel,
       setLastAlgorithmId,
+      setSpeed,
     ]
   );
 

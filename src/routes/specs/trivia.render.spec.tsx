@@ -92,17 +92,30 @@ describe('/trivia route', () => {
     vi.restoreAllMocks();
   });
 
-  it('lands on Trivia Home with the empty state on a genuine first visit — no forced session', async () => {
+  it('auto-creates and enters "Session 1" on a genuine first visit, landing directly on Setup', async () => {
     await renderTriviaRoute();
 
-    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
-    expect(screen.getByText('Build your first trivia deck')).toBeInTheDocument();
-    expect(readTriviaSessions()).toEqual([]);
-    expect(readActiveSessionId()).toBeNull();
+    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
+    expect(screen.getByText('Now editing session')).toBeInTheDocument();
+    expect(screen.getByText('Session 1')).toBeInTheDocument();
+    expect(screen.getByText('0 in deck')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start drilling' })).toBeDisabled();
+
+    const sessions = readTriviaSessions();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].name).toBe('Session 1');
+    expect(sessions[0].lastScreen).toBe('setup');
+    expect(sessions[0].config.deck).toEqual([]);
+    expect(readActiveSessionId()).toBe(sessions[0].id);
   });
 
   it('creates a new session from Home and lands directly on its empty Setup screen', async () => {
+    // Fresh render auto-creates and enters "Session 1"; step back out to
+    // Home first so this test can prove the *from-Home* creation path on a
+    // real Home screen with an existing, unselected session already on it.
     await renderTriviaRoute();
+    await screen.findByText('Build your deck');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
     await screen.findByRole('heading', { name: 'Trivia' });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
@@ -114,15 +127,15 @@ describe('/trivia route', () => {
     expect(screen.getByRole('button', { name: 'Start drilling' })).toBeDisabled();
 
     const created = readActiveSessionRecord();
-    expect(created.name).toBe('Session 1');
+    expect(created.name).toBe('Session 2');
     expect(created.lastScreen).toBe('setup');
     expect(created.config.deck).toEqual([]);
   });
 
   it('starts a session with a code puzzle once an algorithm is picked', async () => {
+    // A fresh render already auto-creates and enters "Session 1" on Setup —
+    // no need to create one by hand first (that path is covered above).
     await renderTriviaRoute();
-    await screen.findByRole('heading', { name: 'Trivia' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
     await screen.findByText('Build your deck');
 
     fireEvent.change(screen.getByLabelText('Filter algorithms'), {
@@ -301,12 +314,12 @@ describe('/trivia route', () => {
   });
 
   it('keeps two sessions fully independent: switching back and forth via Home restores each one exactly as left', async () => {
+    // Fresh render auto-creates and enters "Session 1" directly on Setup —
+    // that becomes Session A below, no manual creation needed.
     await renderTriviaRoute();
-    await screen.findByRole('heading', { name: 'Trivia' });
+    await screen.findByText('Build your deck');
 
     // Session A, drilled for one real round.
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
-    await screen.findByText('Build your deck');
     fireEvent.change(screen.getByLabelText('Filter algorithms'), { target: { value: 'bubble' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add all Arrays & Hashing' }));
     await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(['bubble-sort']));
@@ -481,10 +494,9 @@ describe('/trivia route', () => {
   });
 
   it('keeps the sessions list and active pointer consistent through rename, delete, and create in quick succession, all from Home', async () => {
+    // Fresh render auto-creates and enters "Session 1" directly on Setup —
+    // that becomes Session A below, no manual creation needed.
     await renderTriviaRoute();
-    await screen.findByRole('heading', { name: 'Trivia' });
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
     await screen.findByText('Build your deck');
     const sessionA = readActiveSessionRecord();
 
@@ -538,10 +550,11 @@ describe('/trivia route', () => {
   });
 
   it('deleting every session returns Home to its empty state — zero sessions is legitimate now', async () => {
+    // Fresh render auto-creates and enters "Session 1" directly on Setup —
+    // step back out to Home so there is exactly one session to delete; the
+    // deletion itself (mid-mount, not bootstrap-driven) is unaffected by the
+    // bootstrap change.
     await renderTriviaRoute();
-    await screen.findByRole('heading', { name: 'Trivia' });
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
     await screen.findByText('Build your deck');
     fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
     await screen.findByRole('heading', { name: 'Trivia' });
@@ -586,7 +599,11 @@ describe('/trivia route', () => {
      DragHandle for it). A reload has to see the pinned height, not just the
      same render. */
   it('persists a resized Home session-list panel height across a reload', async () => {
+    // Fresh render auto-creates and enters "Session 1" directly on Setup —
+    // step back out to Home first so there is a real Home screen to resize.
     const { unmount } = await renderTriviaRoute();
+    await screen.findByText('Build your deck');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
     await screen.findByRole('heading', { name: 'Trivia' });
 
     const handle = screen.getByRole('separator', { name: 'Resize the trivia session list' });
@@ -608,9 +625,17 @@ describe('/trivia route', () => {
   });
 
   it('never renders a ghost-variant button anywhere on the /trivia route (9.5)', async () => {
+    // Checked on both screens a fresh visit actually reaches: the
+    // auto-created session's Setup screen first, then Home once backed out
+    // of it — a strict superset of the single screen this used to check.
     await renderTriviaRoute();
-    await screen.findByRole('heading', { name: 'Trivia' });
+    await screen.findByText('Build your deck');
+    screen.getAllByRole('button').forEach((button) => {
+      expect(button.className).not.toMatch(/ui-btn--ghost/);
+    });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
     screen.getAllByRole('button').forEach((button) => {
       expect(button.className).not.toMatch(/ui-btn--ghost/);
     });

@@ -40,6 +40,50 @@ const CATEGORY_LABELS: Partial<Record<CategoryType, string>> = {
   geometry_and_sweep_line: 'Geometry & Sweep Line',
 };
 
+/* Difficulty filter and sort order are preferences the user sets once and
+   expects kept across reloads, same defensive discipline as
+   SettingsContext.tsx (try/catch reads that validate and fall back, best-effort
+   writes) but kept local to this component rather than routed through that
+   context: nothing else in the app reads or writes these three values, and
+   they need no versioned schema — just flat, validated key/value pairs. */
+const PROBLEM_LIST_STORAGE_PREFIX = 'dsa_visualizer_problem_list_';
+
+function readStoredProblemListValue<T>(
+  key: string,
+  fallback: T,
+  isValid: (value: unknown) => value is T
+): T {
+  try {
+    const raw = window.localStorage.getItem(PROBLEM_LIST_STORAGE_PREFIX + key);
+    if (raw === null) return fallback;
+    const parsed: unknown = JSON.parse(raw);
+    return isValid(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStoredProblemListValue(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(PROBLEM_LIST_STORAGE_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // Persistence is best-effort; failing to write must never break the UI.
+  }
+}
+
+type ProblemListDifficulty = 'All' | 'Easy' | 'Medium' | 'Hard';
+type ProblemListSortField = 'title' | 'difficulty' | 'category';
+type ProblemListSortOrder = 'asc' | 'desc';
+
+const isProblemListDifficulty = (value: unknown): value is ProblemListDifficulty =>
+  value === 'All' || value === 'Easy' || value === 'Medium' || value === 'Hard';
+
+const isProblemListSortField = (value: unknown): value is ProblemListSortField =>
+  value === 'title' || value === 'difficulty' || value === 'category';
+
+const isProblemListSortOrder = (value: unknown): value is ProblemListSortOrder =>
+  value === 'asc' || value === 'desc';
+
 const cellPadding = 'var(--space-3) var(--space-4)';
 
 /* ui.css defaults cards and neutral badges to --border-subtle, which is only
@@ -57,8 +101,15 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   onCategoryChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
+  const [selectedDifficulty, setSelectedDifficultyState] = useState<ProblemListDifficulty>(() =>
+    readStoredProblemListValue('difficulty', 'All', isProblemListDifficulty)
+  );
   const [internalCategory, setInternalCategory] = useState<CategoryType | 'All'>('All');
+
+  const setSelectedDifficulty = (next: ProblemListDifficulty) => {
+    setSelectedDifficultyState(next);
+    writeStoredProblemListValue('difficulty', next);
+  };
 
   // Controlled when the prop is present; uncontrolled falls back to local state.
   const selectedCategory = category ?? internalCategory;
@@ -70,8 +121,22 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       setInternalCategory(next);
     }
   };
-  const [sortBy, setSortBy] = useState<'title' | 'difficulty' | 'category'>('title');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortByState] = useState<ProblemListSortField>(() =>
+    readStoredProblemListValue('sort_by', 'title', isProblemListSortField)
+  );
+  const [sortOrder, setSortOrderState] = useState<ProblemListSortOrder>(() =>
+    readStoredProblemListValue('sort_order', 'asc', isProblemListSortOrder)
+  );
+
+  const setSortBy = (next: ProblemListSortField) => {
+    setSortByState(next);
+    writeStoredProblemListValue('sort_by', next);
+  };
+
+  const setSortOrder = (next: ProblemListSortOrder) => {
+    setSortOrderState(next);
+    writeStoredProblemListValue('sort_order', next);
+  };
 
   const algorithms = useMemo(() => getAllAlgorithms(), []);
 
@@ -120,9 +185,9 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     });
   }, [algorithms, searchTerm, selectedDifficulty, selectedCategory, sortBy, sortOrder]);
 
-  const toggleSort = (field: 'title' | 'difficulty' | 'category') => {
+  const toggleSort = (field: ProblemListSortField) => {
     if (sortBy === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
       setSortOrder('asc');
