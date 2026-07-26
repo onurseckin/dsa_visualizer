@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { RotateCcw, ArrowRight, Check } from 'lucide-react';
 import { Badge, Button } from '../../ui';
 import { describeMode, gradeRound } from '../../trivia/triviaEngine';
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from '../../types/trivia';
@@ -30,13 +31,6 @@ const omit = (source: Readonly<Record<number, string>>, line: number): Record<nu
   return next;
 };
 
-/**
- * One round, start to finish: fill the blanks, check, then move on.
- *
- * Grading is never re-implemented here — `gradeRound` from the engine is the only
- * judge, and a revealed blank is submitted as an empty answer so that giving up
- * reads as a miss for both the on-screen feedback and the caller's `recordRound`.
- */
 export function TriviaSession({
   round,
   algorithmTitle,
@@ -45,14 +39,12 @@ export function TriviaSession({
   onNext,
   hints,
 }: TriviaSessionProps) {
-  /** line -> tile id, so the tray can show which tiles are spent. */
   const [placements, setPlacements] = useState<Record<number, string>>({});
   const [typed, setTyped] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<readonly number[]>([]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [grade, setGrade] = useState<TriviaGrade | null>(null);
 
-  // A new round (or a mode switch) is a fresh board.
   useEffect(() => {
     setPlacements({});
     setTyped({});
@@ -78,8 +70,6 @@ export function TriviaSession({
     if (text !== undefined) filled[line] = text;
   });
 
-  /* What the engine sees. Revealed blanks submit nothing: the truth is on screen
-     to be learned, not to be scored. */
   const submission: Record<number, string> = {};
   round.blanks.forEach((line) => {
     submission[line] = revealed.includes(line) ? '' : (filled[line] ?? '');
@@ -88,15 +78,11 @@ export function TriviaSession({
   const allFilled = round.blanks.every((line) => (filled[line] ?? '').trim().length > 0);
   const usedTileIds = Object.values(placements);
 
-  /* The single placement path. Clicking a slot and dropping a tile on it both end
-     up here, which is what keeps the mouse-free route honest. */
   const placeTile = (line: number, tileId: string): void => {
     if (graded) return;
     if (!round.tiles.some((tile) => tile.id === tileId)) return;
     setPlacements((current) => {
       const next: Record<number, string> = {};
-      // A tile lives in one slot at a time, so moving it empties its old home and
-      // any tile it displaces goes back to the tray.
       Object.entries(current).forEach(([key, id]) => {
         if (id !== tileId && Number(key) !== line) next[Number(key)] = id;
       });
@@ -119,8 +105,6 @@ export function TriviaSession({
       placeTile(line, selectedTileId);
       return;
     }
-    // Nothing in hand: activating an occupied slot empties it again (a revealed
-    // line included, so changing your mind and typing it is still possible).
     if ((filled[line] ?? '').length > 0) clearSlot(line);
   };
 
@@ -149,13 +133,35 @@ export function TriviaSession({
     onSubmit(submission);
   };
 
+  const handleRetry = (): void => {
+    setPlacements({});
+    setTyped({});
+    setRevealed([]);
+    setSelectedTileId(null);
+    setGrade(null);
+  };
+
   const handleNext = (): void => {
-    if (!graded) return;
     onNext();
   };
 
-  // Escape drops the held tile — the keyboard equivalent of putting a piece down.
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+  // Keyboard navigation & shortcuts
+  useEffect(() => {
+    const onGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        handleRetry();
+        return;
+      }
+      if (e.key === 'Escape' && selectedTileId !== null) {
+        setSelectedTileId(null);
+      }
+    };
+    window.addEventListener('keydown', onGlobalKeyDown);
+    return () => window.removeEventListener('keydown', onGlobalKeyDown);
+  }, [selectedTileId]);
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape' && selectedTileId !== null) setSelectedTileId(null);
   };
 
@@ -178,7 +184,7 @@ export function TriviaSession({
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
           {algorithmTitle}
         </h2>
-        <Badge>{hiddenLabel}</Badge>
+        <Badge size="md">{hiddenLabel}</Badge>
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
           {describeMode(mode)}
         </span>
@@ -205,6 +211,8 @@ export function TriviaSession({
             onTileDrop={placeTile}
             onTypeAnswer={handleTypeAnswer}
             onReveal={handleReveal}
+            onSubmit={handleCheck}
+            onRetry={handleRetry}
             hints={hints}
           />
         </div>
@@ -221,27 +229,46 @@ export function TriviaSession({
         ) : null}
       </div>
 
+      {/* Button Flow: Check answers -> Next round & Retry */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--space-2)',
+          gap: 'var(--space-3)',
           flexWrap: 'wrap',
         }}
       >
         <Button
           variant={graded ? 'secondary' : 'primary'}
+          size="md"
+          icon={<Check aria-hidden="true" />}
           disabled={graded || !allFilled}
           onClick={handleCheck}
         >
           Check answers
         </Button>
-        <Button variant={graded ? 'primary' : 'secondary'} disabled={!graded} onClick={handleNext}>
+        <Button
+          variant={graded ? 'primary' : 'secondary'}
+          size="md"
+          icon={<ArrowRight aria-hidden="true" />}
+          disabled={!graded}
+          onClick={handleNext}
+        >
           Next round
         </Button>
+        {graded && (
+          <Button
+            variant="secondary"
+            size="md"
+            icon={<RotateCcw aria-hidden="true" />}
+            onClick={handleRetry}
+          >
+            Retry
+          </Button>
+        )}
         <span role="status" style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
           {grade !== null ? (
-            <Badge variant={grade.allCorrect ? 'success' : 'danger'}>
+            <Badge variant={grade.allCorrect ? 'success' : 'danger'} size="md">
               {correctCount} of {round.blanks.length} correct
             </Badge>
           ) : null}

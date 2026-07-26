@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, DragEvent } from 'react';
 import { Check, Eye, Lightbulb, X } from 'lucide-react';
 import { Button, Card, IconButton, Input } from '../../ui';
@@ -9,10 +9,8 @@ import type {
   TriviaMode,
   TriviaRound,
 } from '../../types/trivia';
+import { highlightPythonLine } from '../primitives/CodeBlockViewer';
 
-/* The drag payload is the tile id. `text/plain` is the only format every browser
-   and jsdom agree on, and a drag that arrives empty falls back to the held tile,
-   so the drop route ends up in exactly the same placement call a click makes. */
 export const TILE_MIME = 'text/plain';
 
 type SlotState = 'empty' | 'filled' | 'correct' | 'incorrect';
@@ -24,8 +22,6 @@ interface SlotSkin {
   color: string;
 }
 
-/* Colour is meaning only: the graded edges are --success/--danger, everything
-   else is neutral chrome on the darkest fill (DESIGN.md R7.1, R8.4). */
 const SLOT_SKIN: Record<SlotState, SlotSkin> = {
   empty: {
     border: 'var(--border-strong)',
@@ -71,36 +67,24 @@ const INDENT: CSSProperties = {
   color: 'var(--text-faint)',
 };
 
-/* The Input's field takes its family from --font-ui and ui.css belongs to the UI
-   library, so the code font is scoped through the token on the wrapper instead of
-   restyling the field. */
 const MONO_INPUT = { '--font-ui': 'var(--font-code)' } as CSSProperties;
 
 export interface CodePuzzleProps {
   round: TriviaRound;
   mode: TriviaMode;
-  /** Line number -> the text currently occupying that blank (tile, typed text or revealed truth). */
   filled: Readonly<Record<number, string>>;
-  /** Blanks the learner gave up on: shown complete, never credited. */
   revealed?: readonly number[];
-  /** Null until the round has been checked. */
   grade?: TriviaGrade | null;
-  /** True while a tile is held, so empty slots can advertise themselves as targets. */
   hasSelection?: boolean;
-  /** Click/keyboard route: place the held tile, or take back the tile already there. */
   onSlotActivate: (line: number) => void;
-  /** Native-DnD route into the same placement call. */
   onTileDrop: (line: number, tileId: string) => void;
   onTypeAnswer: (line: number, text: string) => void;
   onReveal: (line: number) => void;
+  onSubmit?: () => void;
+  onRetry?: () => void;
   hints?: TriviaMeta['hints'];
 }
 
-/**
- * The solution as a puzzle board: visible lines read as code, hidden lines become
- * slots. Indentation is printed as a fixed prefix in front of every slot because
- * the engine grades content only — retyping leading spaces would test typing.
- */
 export function CodePuzzle({
   round,
   mode,
@@ -112,13 +96,26 @@ export function CodePuzzle({
   onTileDrop,
   onTypeAnswer,
   onReveal,
+  onSubmit,
+  onRetry,
   hints,
 }: CodePuzzleProps) {
   const [openHints, setOpenHints] = useState<readonly number[]>([]);
+  const inputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
   const blanks = new Set(round.blanks);
   const graded = grade !== null;
 
   const filledCount = round.blanks.filter((line) => (filled[line] ?? '').trim().length > 0).length;
+
+  // Auto-focus the first blank input when in type-from-memory mode
+  useEffect(() => {
+    if (mode !== 'type' || graded || round.blanks.length === 0) return;
+    const firstLine = round.blanks[0];
+    const timer = setTimeout(() => {
+      inputRefs.current.get(firstLine)?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [round, mode, graded]);
 
   const slotState = (line: number): SlotState => {
     if (grade !== null) return grade.perBlank[line] ? 'correct' : 'incorrect';
@@ -143,7 +140,6 @@ export function CodePuzzle({
 
   const allowDrop = (event: DragEvent<HTMLButtonElement>): void => {
     if (graded) return;
-    // A drop target that does not cancel dragover is refused by the browser.
     event.preventDefault();
   };
 
@@ -161,7 +157,7 @@ export function CodePuzzle({
 
   const toggleHint = (line: number): void => {
     setOpenHints((current) =>
-      current.includes(line) ? current.filter((n) => n !== line) : [...current, line],
+      current.includes(line) ? current.filter((n) => n !== line) : [...current, line]
     );
   };
 
@@ -170,6 +166,24 @@ export function CodePuzzle({
 
   const truthFor = (line: number): string =>
     round.lines.find((candidate) => candidate.number === line)?.content ?? '';
+
+  const handleInputKeyDown = (line: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onSubmit?.();
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r') {
+      event.preventDefault();
+      onRetry?.();
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'h' || event.key.toLowerCase() === 'i')) {
+      event.preventDefault();
+      toggleHint(line);
+      return;
+    }
+  };
 
   const renderSlot = (line: number) => {
     const state = slotState(line);
@@ -181,18 +195,21 @@ export function CodePuzzle({
       return (
         <Input
           size="sm"
+          ref={(el) => {
+            if (el) inputRefs.current.set(line, el);
+            else inputRefs.current.delete(line);
+          }}
           aria-label={`Line ${line} — type the missing line`}
           placeholder="type the line"
           value={text}
           onChange={(event) => onTypeAnswer(line, event.target.value)}
+          onKeyDown={(event) => handleInputKeyDown(line, event)}
           style={{ ...MONO_INPUT, flex: '1 1 auto', minWidth: 0 }}
         />
       );
     }
 
     const skin = SLOT_SKIN[state];
-    /* An empty slot brightens its edge while a tile is held: the board tells you
-       where the piece can go before you commit to it. */
     const edge = state === 'empty' && hasSelection ? 'var(--border-accent)' : skin.border;
 
     return (
@@ -254,7 +271,6 @@ export function CodePuzzle({
       <div key={number} className="ui-code-line" data-testid={`blank-row-${number}`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
           <span style={GUTTER}>{number}</span>
-          {/* The indent is scenery, never an answer, so it is not announced. */}
           <span aria-hidden="true" data-testid={`indent-${number}`} style={INDENT}>
             {line.indent}
           </span>
@@ -269,8 +285,6 @@ export function CodePuzzle({
               onClick={() => toggleHint(number)}
             />
           ) : null}
-          {/* Reveal sits on the row it uncovers: at level 3 a single global reveal
-              cannot say which blank it means. */}
           <IconButton
             icon={<Eye />}
             variant="ghost"
@@ -314,7 +328,7 @@ export function CodePuzzle({
   const renderCodeRow = (line: PuzzleLine) => (
     <div key={line.number} className="ui-code-line" data-testid={`code-row-${line.number}`}>
       <span style={GUTTER}>{line.number}</span>
-      {line.text}
+      {highlightPythonLine(line.text)}
     </div>
   );
 
@@ -357,7 +371,7 @@ export function CodePuzzle({
         }}
       >
         {round.lines.map((line) =>
-          blanks.has(line.number) ? renderBlankRow(line) : renderCodeRow(line),
+          blanks.has(line.number) ? renderBlankRow(line) : renderCodeRow(line)
         )}
       </div>
     </Card>
