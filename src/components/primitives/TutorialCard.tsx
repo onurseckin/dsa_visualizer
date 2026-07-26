@@ -12,7 +12,7 @@ export interface TutorialCardProps {
   onClose?: () => void;
 }
 
-/* This lives inside the visualizer panel now (DESIGN.md R5.2), so it is a flush
+/* This is the visualizer panel's header now (DESIGN.md R6.4), so it is a flush
    band rather than a card: the panel strip that wraps it owns the band fill and
    the single divider facing the canvas, so drawing a border, radius, shadow or
    background here would double the edge and hide that fill. No height of its own. */
@@ -23,6 +23,21 @@ const STRIP: React.CSSProperties = {
   borderWidth: 0,
   borderRadius: 0,
   boxShadow: 'none',
+};
+
+/* This is the one thing the learner reads on every single step, so it is sized as
+   prose and not as a caption: --text-md at 1.6, which is the same measure the
+   lesson body in ProblemHeader uses. --text-xs and --text-sm are deliberately
+   absent from this component. */
+const PROSE: React.CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--text-md)',
+  lineHeight: 1.6,
+  color: 'var(--text-secondary)',
+  /* Two lines are reserved so the canvas boundary stops jumping every time a
+     step's sentence is one line longer than the last one's. Beyond three lines
+     the wrapping strip scrolls; nothing here truncates. */
+  minHeight: 'calc(var(--text-md) * 1.6 * 2)',
 };
 
 /* Single source of truth for "is there anything to show" — see the matching
@@ -59,63 +74,60 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
 
   return (
     <Card padding="none" style={STRIP}>
-      {/* One row: the step counter sits beside the prose instead of above it, so
-          the strip is exactly as tall as the sentence it shows. */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
-          gap: 'var(--space-2)',
-          padding: 'var(--space-1) var(--space-2)',
+          flexDirection: 'column',
+          gap: 'var(--space-1)',
+          padding: 'var(--space-3)',
           minWidth: 0,
         }}
       >
-        <span
-          aria-hidden="true"
+        {/* The counter and the dismiss control sit on their own row so the prose
+            below them gets the panel's full measure instead of a leftover column. */}
+        <div
           style={{
-            display: 'inline-flex',
-            flexShrink: 0,
-            color: 'var(--text-secondary)',
-            marginTop: '3px',
-          }}
-        >
-          <GraduationCap size={14} />
-        </span>
-
-        {stepLabel && (
-          <span
-            style={{
-              flexShrink: 0,
-              marginTop: '2px',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--text-muted)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {stepLabel}
-          </span>
-        )}
-
-        <p
-          style={{
-            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
             minWidth: 0,
-            margin: 0,
-            fontSize: 'var(--text-sm)',
-            lineHeight: 1.45,
-            color: 'var(--text-secondary)',
           }}
         >
-          {lead && <strong style={{ color: 'var(--text-primary)' }}>{lead}</strong>}
+          <span
+            aria-hidden="true"
+            style={{ display: 'inline-flex', flexShrink: 0, color: 'var(--text-secondary)' }}
+          >
+            <GraduationCap size={16} />
+          </span>
+
+          {stepLabel && (
+            <span
+              style={{
+                flexShrink: 0,
+                fontSize: 'var(--text-md)',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {stepLabel}
+            </span>
+          )}
+
+          <div style={{ flex: 1, minWidth: 0 }} />
+
+          {onClose && (
+            /* Bordered rather than ghost: a transparent-edged button is invisible on
+               the near-black surface (DESIGN.md R6.2). */
+            <IconButton icon={<X />} aria-label="Hide tutorial" size="sm" onClick={onClose} />
+          )}
+        </div>
+
+        <p style={PROSE}>
+          {lead && <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{lead}</strong>}
           {lead && whyText ? ' ' : ''}
           {whyText}
         </p>
-
-        {onClose && (
-          /* Bordered rather than ghost: a transparent-edged button is invisible on
-             the near-black surface (DESIGN.md R5.1). */
-          <IconButton icon={<X />} aria-label="Hide tutorial" size="sm" onClick={onClose} />
-        )}
       </div>
     </Card>
   );

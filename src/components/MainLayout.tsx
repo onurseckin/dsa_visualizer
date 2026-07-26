@@ -10,18 +10,24 @@ import { CodeBlockViewer } from './primitives/CodeBlockViewer';
 import { ProblemHeader } from './primitives/ProblemHeader';
 import { ComplexityCard } from './ComplexityCard';
 import { ControlPanel, ControlPanelProps } from './ControlPanel';
-import { PanelHeightMap, ResizableLayout, ResizableRow, ResizableRows } from './ResizableLayout';
-import { Card, ConfirmDialog } from '../ui';
+import {
+  DragHandle,
+  PanelHeightMap,
+  ResizableLayout,
+  ResizableRow,
+  ResizableRows,
+  usePointerDrag,
+} from './ResizableLayout';
+import { Card } from '../ui';
 import {
   DEFAULT_WORKSPACE_LAYOUT,
   MAX_PANEL_HEIGHT_PX,
   MAX_SPLIT_PERCENT,
   MIN_PANEL_HEIGHT_PX,
   MIN_SPLIT_PERCENT,
+  WORKSPACE_LAYOUT_RESET_EVENT,
   WorkspaceLayout,
   WorkspacePanelHeights,
-  clearWorkspaceLayout,
-  cloneWorkspaceLayout,
   readWorkspaceLayout,
   writeWorkspaceLayout,
 } from '../app/workspaceLayout';
@@ -43,36 +49,38 @@ const HEADER_STRIP_H = 'var(--control-h-sm) + var(--space-2) * 2 + 2px';
 const STAGE_CHROME = `var(--navbar-h) + (${HEADER_STRIP_H}) + var(--space-3) * 3`;
 const STAGE_HEIGHT = `max(var(--stage-min-h), calc(100dvh - (${STAGE_CHROME})))`;
 
-/* A strip is capped so a long explanation or a wide working set can never starve
-   the canvas it belongs to; past the cap the strip scrolls inside itself and the
-   panel's outer size still does not move. */
-const STRIP_MAX_HEIGHT = '38%';
+const STEP_BAND_MAX_HEIGHT = '45%';
 
 interface PanelStripProps {
   region: string;
-  /** The edge facing the canvas — that is where the divider belongs. */
-  dividerEdge: 'top' | 'bottom';
+  /** Whether the strip may give height back when the band cap binds. */
+  greedy: boolean;
+  /** False for the last strip of the panel, whose edge is the card's own. */
+  divider: boolean;
   children: React.ReactNode;
 }
 
 /* Step context is part of the visualizer panel, not a card floating next to it:
    a --border-subtle divider plus a band fill is all that separates a strip from
-   the canvas (DESIGN.md R5.2). The strip owns both, and its content renders
-   border-free inside it, so the canvas edge is exactly one line.
+   what follows it (DESIGN.md R6.4). The strip owns both, and its content renders
+   border-free inside it, so each seam is exactly one line. Every strip is above
+   the canvas now, so every divider faces down.
 
-   The band is the chrome tier, matching the playback strip docked below it: the
-   working-data chips are --bg-elevated and would dissolve into an equally
-   elevated band. */
-const PanelStrip: React.FC<PanelStripProps> = ({ region, dividerEdge, children }) => (
+   The band shares the card's darkest fill (R7.2): these strips are reading
+   surfaces like the code and complexity panels, so lifting them to the chrome
+   tier made the Step section look like a different, lighter component than
+   Solution and Complexity. The divider alone marks the seam. */
+const PanelStrip: React.FC<PanelStripProps> = ({ region, greedy, divider, children }) => (
   <div
     data-region={region}
     style={{
-      flexShrink: 0,
-      maxHeight: STRIP_MAX_HEIGHT,
+      // The prose strip absorbs the squeeze; the single-row data strip keeps its size.
+      flex: greedy ? '1 1 auto' : '0 0 auto',
+      minHeight: 0,
       overflowY: 'auto',
-      background: 'var(--bg-chrome)',
-      borderTop: dividerEdge === 'top' ? '1px solid var(--border-subtle)' : undefined,
-      borderBottom: dividerEdge === 'bottom' ? '1px solid var(--border-subtle)' : undefined,
+      overflowX: 'hidden',
+      background: 'var(--bg-surface)',
+      borderBottom: divider ? '1px solid var(--border-subtle)' : undefined,
     }}
   >
     {children}
@@ -81,7 +89,7 @@ const PanelStrip: React.FC<PanelStripProps> = ({ region, dividerEdge, children }
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
-  currentStep: AlgorithmStep | null;
+  currentStep?: AlgorithmStep | null;
   /** Independent on/off per workspace panel (DESIGN.md R4.4) — no view modes. */
   panels: PanelVisibility;
   onToggleTutorial: () => void;
@@ -162,17 +170,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     }
   };
 
+  /* Every manual adjustment — the column split, each pinned height and whether
+     the details panel is open — lives in this one persisted record (R6.5). */
   const [layout, setLayout] = React.useState<WorkspaceLayout>(() => readWorkspaceLayout());
-  const [detailsExpanded, setDetailsExpanded] = React.useState<boolean>(true);
-  const [resetDialogOpen, setResetDialogOpen] = React.useState<boolean>(false);
+  const detailsExpanded = layout.detailsExpanded;
 
   /* Drag handlers fire from window listeners, so they read the newest layout
      from a ref rather than closing over a stale render's state. */
   const layoutRef = React.useRef<WorkspaceLayout>(layout);
   layoutRef.current = layout;
 
+  /* Reset is a navbar action on state this component owns, so the navbar clears
+     storage and announces it; re-reading is how the reset takes effect live
+     instead of only after a reload. */
+  React.useEffect(() => {
+    const reload = () => setLayout(readWorkspaceLayout());
+    window.addEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
+    return () => window.removeEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
+  }, []);
+
   const handleToggleDetails = React.useCallback(() => {
-    setDetailsExpanded((prev) => !prev);
+    setLayout(writeWorkspaceLayout({ detailsExpanded: !layoutRef.current.detailsExpanded }));
   }, []);
 
   const handleSplitChange = React.useCallback((percent: number) => {
@@ -211,6 +229,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     [applyPanelHeights],
   );
 
+  /* The step strips inside the visualizer panel: dragging one pins its height and
+     the canvas absorbs the difference, which is how the graph area gets a height
+     control instead of only a width one (R7.4). */
+  const handleRowHeightsChange = React.useCallback(
+    (heights: PanelHeightMap) => {
+      applyPanelHeights(
+        { tutorial: heights.tutorial ?? null, auxiliary: heights.auxiliary ?? null },
+        false,
+      );
+    },
+    [applyPanelHeights],
+  );
+
+  const handleRowHeightsCommit = React.useCallback(
+    (heights: PanelHeightMap) => {
+      applyPanelHeights(
+        { tutorial: heights.tutorial ?? null, auxiliary: heights.auxiliary ?? null },
+        true,
+      );
+    },
+    [applyPanelHeights],
+  );
+
   const applyRightHeights = React.useCallback(
     (heights: PanelHeightMap, commit: boolean) => {
       applyPanelHeights({ code: heights.code ?? null, complexity: heights.complexity ?? null }, commit);
@@ -218,33 +259,41 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     [applyPanelHeights],
   );
 
-  const handleResetLayout = React.useCallback(() => {
-    setResetDialogOpen(true);
-  }, []);
+  /* Stage height: pinned by its own handle, otherwise the viewport calculation.
+     The drag measures against the stage's own top edge so the pointer stays on
+     the handle rather than drifting as the element grows. */
+  const stageRef = React.useRef<HTMLDivElement | null>(null);
+  const [stageDragging, setStageDragging] = React.useState(false);
+  const stagePinned = layout.panelHeights.stage;
 
-  const handleCancelReset = React.useCallback(() => {
-    setResetDialogOpen(false);
-  }, []);
+  const nudgeStage = React.useCallback(
+    (delta: number) => {
+      const current =
+        layoutRef.current.panelHeights.stage ?? stageRef.current?.getBoundingClientRect().height ?? 0;
+      applyPanelHeights({ stage: current + delta }, true);
+    },
+    [applyPanelHeights],
+  );
 
-  // The only path that is allowed to drop the persisted sizes.
-  const handleConfirmReset = React.useCallback(() => {
-    clearWorkspaceLayout();
-    setLayout(cloneWorkspaceLayout(DEFAULT_WORKSPACE_LAYOUT));
-    setResetDialogOpen(false);
-  }, []);
+  const dragStageTo = React.useCallback(
+    (_x: number, y: number) => {
+      const top = stageRef.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      applyPanelHeights({ stage: y - top }, false);
+    },
+    [applyPanelHeights],
+  );
 
-  /* A strip is shown when its toggle is on AND the current step actually has
-     something for it — an empty tutorial or working-data strip would be dead
-     space inside the panel. Both child components return null when they have
-     nothing, so the presence of the data object is not enough: ask their own
-     predicates, which are the same ones they render by. */
+  const endStageDrag = React.useCallback(() => {
+    setStageDragging(false);
+    applyPanelHeights({ stage: layoutRef.current.panelHeights.stage }, true);
+  }, [applyPanelHeights]);
+
+  usePointerDrag(stageDragging, dragStageTo, endStageDrag);
+
   const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
   const showAuxiliary = panels.auxiliary && hasAuxiliaryContent(currentStep?.auxiliaryState);
 
-  /* One container for the whole stage (DESIGN.md R5.2): working data pinned at
-     the top, the canvas taking every remaining pixel, the tutorial above the
-     docked playback strip. Nothing here changes the panel's outer size, so a step
-     that adds an aux row or a longer sentence only moves the canvas boundary. */
   const stagePanel = (
     <Card
       data-panel="visualizer"
@@ -253,15 +302,64 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         flex: panels.visualizer ? 1 : '0 0 auto',
         minHeight: 0,
         overflow: 'hidden',
-        // Near-black surfaces need a real edge or the panel dissolves (R5.1).
         borderColor: 'var(--border-default)',
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-        {showAuxiliary && currentStep?.auxiliaryState && (
-          <PanelStrip region="working-data" dividerEdge="bottom">
-            <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
-          </PanelStrip>
+        {(showTutorial || showAuxiliary) && (
+          <div
+            data-band="step-context"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexShrink: 0,
+              minHeight: 0,
+              maxHeight: STEP_BAND_MAX_HEIGHT,
+              overflow: 'hidden',
+            }}
+          >
+            <ResizableRows
+              rows={[
+                {
+                  id: 'tutorial',
+                  label: 'tutorial',
+                  visible: showTutorial && Boolean(currentStep?.explanation),
+                  greedy: true,
+                  height: layout.panelHeights.tutorial,
+                  content:
+                    currentStep?.explanation !== undefined ? (
+                      <PanelStrip region="tutorial" greedy divider={showAuxiliary || panels.visualizer}>
+                        <TutorialCard
+                          explanation={currentStep.explanation}
+                          what={currentStep.explanation.what}
+                          why={currentStep.explanation.why}
+                          stepIndex={currentStep.stepIndex}
+                          totalSteps={totalSteps}
+                          onClose={onToggleTutorial}
+                        />
+                      </PanelStrip>
+                    ) : null,
+                },
+                {
+                  id: 'auxiliary',
+                  label: 'working data',
+                  visible: showAuxiliary && Boolean(currentStep?.auxiliaryState),
+                  greedy: false,
+                  height: layout.panelHeights.auxiliary,
+                  content:
+                    currentStep?.auxiliaryState !== undefined ? (
+                      <PanelStrip region="working-data" greedy={false} divider={panels.visualizer}>
+                        <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
+                      </PanelStrip>
+                    ) : null,
+                },
+              ]}
+              minRowHeight={MIN_PANEL_HEIGHT_PX}
+              maxRowHeight={MAX_PANEL_HEIGHT_PX}
+              onHeightsChange={handleRowHeightsChange}
+              onHeightsCommit={handleRowHeightsCommit}
+            />
+          </div>
         )}
 
         {panels.visualizer && (
@@ -271,19 +369,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               flex: 1,
               minHeight: 0,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'auto',
-              padding: 'var(--space-3)',
+              flexDirection: 'column',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              padding: 'var(--space-2)',
             }}
           >
             {renderPrimaryVisualizer() || (
               <div
                 style={{
+                  margin: 'auto',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: 'var(--space-2)',
                   color: 'var(--text-muted)',
                   textAlign: 'center',
@@ -299,19 +397,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               </div>
             )}
           </div>
-        )}
-
-        {showTutorial && currentStep?.explanation && (
-          <PanelStrip region="tutorial" dividerEdge="top">
-            <TutorialCard
-              explanation={currentStep.explanation}
-              what={currentStep.explanation.what}
-              why={currentStep.explanation.why}
-              stepIndex={currentStep.stepIndex}
-              totalSteps={totalSteps}
-              onClose={onToggleTutorial}
-            />
-          </PanelStrip>
         )}
 
         {/* The embedded ControlPanel brings its own --border-default top edge. */}
@@ -427,16 +512,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           description={algorithm.description}
           constraints={algorithm.constraints}
           examples={algorithm.examples}
-          timeComplexity={algorithm.timeComplexity}
-          spaceComplexity={algorithm.spaceComplexity}
           topicGuide={algorithm.topicGuide}
           expanded={detailsExpanded}
           onToggleExpanded={handleToggleDetails}
-          onResetLayout={handleResetLayout}
         />
       </div>
 
-      <div data-stage="workspace" style={{ flexShrink: 0, height: STAGE_HEIGHT }}>
+      <div
+        ref={stageRef}
+        data-stage="workspace"
+        style={{
+          flexShrink: 0,
+          /* A pinned stage wins over the viewport calculation: the graph area is a
+             section like any other and owns a height handle (R7.4). */
+          height: stagePinned !== null ? `${stagePinned}px` : STAGE_HEIGHT,
+        }}
+      >
         {stageEmpty ? (
           <div
             style={{
@@ -446,7 +537,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               height: '100%',
             }}
           >
-            <Card style={{ maxWidth: '42ch', textAlign: 'center' }}>
+            <Card
+              style={{
+                maxWidth: '42ch',
+                textAlign: 'center',
+                borderColor: 'var(--border-default)',
+              }}
+            >
               <p
                 style={{
                   fontSize: 'var(--text-lg)',
@@ -479,6 +576,26 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </div>
 
+      {/* The stage is a single row, so ResizableRows renders no separator for it.
+          This standalone handle pins the stage height directly, which is how the
+          graph area gets a height control and not only a width one (R7.4).
+          Double-click restores the viewport-derived automatic height. */}
+      {!stageEmpty && (
+        <DragHandle
+          orientation="horizontal"
+          label="Resize the stage height"
+          valueNow={stagePinned ?? 0}
+          valueMin={MIN_PANEL_HEIGHT_PX}
+          valueMax={MAX_PANEL_HEIGHT_PX}
+          valueText={stagePinned === null ? 'Automatic, sized to the viewport' : undefined}
+          step={16}
+          dragging={stageDragging}
+          onDragStart={() => setStageDragging(true)}
+          onNudge={nudgeStage}
+          onRestoreDefault={() => applyPanelHeights({ stage: null }, true)}
+        />
+      )}
+
       {/* Playback lives at the visualizer's bottom edge; with the visualizer
           hidden it still has to be reachable, so it docks under the stage. */}
       {resolvedControlProps && !panels.visualizer && !stageEmpty && (
@@ -486,17 +603,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           <ControlPanel {...resolvedControlProps} variant="standalone" />
         </div>
       )}
-
-      <ConfirmDialog
-        isOpen={resetDialogOpen}
-        title="Reset workspace layout?"
-        message="Your custom panel sizes will be lost and every panel goes back to sizing itself to its content. This cannot be undone."
-        confirmLabel="Reset layout"
-        cancelLabel="Keep my layout"
-        destructive
-        onConfirm={handleConfirmReset}
-        onCancel={handleCancelReset}
-      />
     </main>
   );
 };

@@ -1,3 +1,5 @@
+import type { TriviaMeta } from './trivia';
+
 export type ElementState =
   | 'default'
   | 'compare'
@@ -225,9 +227,12 @@ export interface AlgorithmDefinition<TInput = unknown> {
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis;
   topicGuide: TopicGuide;
+  /* Optional trivia sharpening (skip lines, decoys, hints). A solution with no
+     metadata still drills correctly straight from `code` — see types/trivia.ts. */
+  trivia?: TriviaMeta;
   generateSteps: (input: TInput) => AlgorithmStep[];
   defaultInput: TInput;
 }
 
-export type AppView = 'tree' | 'list' | 'workspace';
+export type AppView = 'tree' | 'list' | 'workspace' | 'trivia';
 

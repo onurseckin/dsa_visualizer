@@ -3,50 +3,37 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProblemList } from '../ProblemList';
 
 describe('ProblemList Component Spec', () => {
-  it('renders problem directory title, stat count badges, and problems table', () => {
+  it('renders filter controls and problems table', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
-    expect(screen.getByText(/All Categorized Problems & Algorithms/i)).toBeInTheDocument();
-
-    const totalBadge = screen.getByText(/Total:/i);
-    expect(totalBadge).toHaveClass('ui-badge', 'ui-badge--neutral');
-    expect(screen.getByText(/Easy:/i)).toHaveClass('ui-badge--success');
-    expect(screen.getByText(/Medium:/i)).toHaveClass('ui-badge--warning');
-    expect(screen.getByText(/Hard:/i)).toHaveClass('ui-badge--danger');
+    expect(screen.getByRole('textbox', { name: /Filter problems/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Filter by Category/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Filter by Difficulty/i })).toBeInTheDocument();
   });
 
-  it('gives every panel a visible border and puts the sort strip on chrome', () => {
+  it('gives every panel a visible border and recesses the sort strip', () => {
     const { container } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
 
     const cards = Array.from(container.querySelectorAll<HTMLElement>('.ui-card'));
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(2);
     cards.forEach((card) => {
       expect(card.style.borderColor).toBe('var(--border-default)');
     });
 
-    // The header row holds the sort buttons, so it is a chrome control strip.
     const headerRow = container.querySelector<HTMLElement>('thead tr');
-    expect(headerRow?.style.background).toBe('var(--bg-chrome)');
-  });
+    expect(headerRow?.style.background).toBe('var(--bg-inset)');
+    expect(headerRow?.style.borderBottom).toBe('1px solid var(--border-default)');
 
-  it('keeps the directory chrome achromatic while badges keep semantic color', () => {
-    const { container } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
-
-    // The header icon inherits the card's neutral tone — no accent tint override.
-    const headerIcon = container.querySelector('.ui-card__icon svg');
-    expect(headerIcon).not.toBeNull();
-    expect(headerIcon?.getAttribute('style')).toBeNull();
-
-    // Difficulty is status, which R5.1 still allows to carry hue in badges.
-    expect(screen.getByText(/Hard:/i)).toHaveClass('ui-badge--danger');
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('tbody tr'));
+    expect(rows.length).toBeGreaterThan(10);
   });
 
   it('filters table rows dynamically when typing in the ui search input', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
-    const input = screen.getByPlaceholderText(/Filter problems by title/i);
+    const input = screen.getByPlaceholderText(/Search problems by title/i);
     expect(input).toHaveClass('ui-input__field');
     fireEvent.change(input, { target: { value: 'Bubble Sort' } });
 
@@ -57,31 +44,13 @@ describe('ProblemList Component Spec', () => {
     expect(input).toHaveValue('');
   });
 
-  it('marks the difficulty filter button as selected and filters rows', () => {
+  it('filters rows via category select dropdown', () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
-    const easyBtn = screen.getByRole('button', { name: 'Easy' });
-    expect(easyBtn).toHaveClass('ui-btn', 'ui-btn--sm');
-    fireEvent.click(easyBtn);
+    const select = screen.getByRole('combobox', { name: /Filter by Category/i });
+    fireEvent.change(select, { target: { value: 'arrays_and_hashing' } });
 
-    expect(easyBtn).toHaveClass('ui-btn--selected');
-    expect(easyBtn).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getAllByText('Easy')[0]).toBeInTheDocument();
-  });
-
-  it('filters rows via category chip buttons with selected treatment', () => {
-    const onSelectMock = vi.fn();
-    render(<ProblemList onSelectAlgorithm={onSelectMock} />);
-
-    const allChip = screen.getByRole('button', { name: 'All categories' });
-    expect(allChip).toHaveClass('ui-btn--selected');
-
-    const arraysChip = screen.getByRole('button', { name: 'Arrays & Hashing' });
-    fireEvent.click(arraysChip);
-
-    expect(arraysChip).toHaveClass('ui-btn--selected');
-    expect(allChip).not.toHaveClass('ui-btn--selected');
     expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
   });
 
@@ -100,38 +69,8 @@ describe('ProblemList Component Spec', () => {
       <ProblemList onSelectAlgorithm={vi.fn()} category="two_pointers" onCategoryChange={vi.fn()} />,
     );
 
-    expect(screen.getByRole('button', { name: 'Two Pointers' })).toHaveClass('ui-btn--selected');
-    expect(screen.getByRole('button', { name: 'All categories' })).not.toHaveClass('ui-btn--selected');
-    expect(screen.queryByText('Bubble Sort')).not.toBeInTheDocument();
-  });
-
-  it('reports chip clicks through onCategoryChange without mutating its own selection', () => {
-    const onCategoryChange = vi.fn();
-    render(
-      <ProblemList onSelectAlgorithm={vi.fn()} category="All" onCategoryChange={onCategoryChange} />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Arrays & Hashing' }));
-    expect(onCategoryChange).toHaveBeenCalledWith('arrays_and_hashing');
-
-    fireEvent.click(screen.getByRole('button', { name: 'All categories' }));
-    expect(onCategoryChange).toHaveBeenCalledWith('All');
-
-    // Selection stays put until the parent feeds a new category prop back in.
-    expect(screen.getByRole('button', { name: 'All categories' })).toHaveClass('ui-btn--selected');
-    expect(screen.getByRole('button', { name: 'Arrays & Hashing' })).not.toHaveClass('ui-btn--selected');
-  });
-
-  it('re-renders the filter when the controlled category prop changes', () => {
-    const { rerender } = render(
-      <ProblemList onSelectAlgorithm={vi.fn()} category="All" onCategoryChange={vi.fn()} />,
-    );
-    expect(screen.getByText('Bubble Sort')).toBeInTheDocument();
-
-    rerender(
-      <ProblemList onSelectAlgorithm={vi.fn()} category="backtracking" onCategoryChange={vi.fn()} />,
-    );
-    expect(screen.getByRole('button', { name: 'Backtracking' })).toHaveClass('ui-btn--selected');
+    const select = screen.getByRole('combobox', { name: /Filter by Category/i }) as HTMLSelectElement;
+    expect(select.value).toBe('two_pointers');
     expect(screen.queryByText('Bubble Sort')).not.toBeInTheDocument();
   });
 });

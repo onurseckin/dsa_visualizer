@@ -29,7 +29,7 @@ const clamp = (value: number, min: number, max: number): number =>
 
 type HandleOrientation = 'vertical' | 'horizontal';
 
-interface DragHandleProps {
+export interface DragHandleProps {
   /** Orientation of the separator line itself, per the ARIA separator role. */
   orientation: HandleOrientation;
   label: string;
@@ -47,7 +47,7 @@ interface DragHandleProps {
   onRestoreDefault: () => void;
 }
 
-const DragHandle: React.FC<DragHandleProps> = ({
+export const DragHandle: React.FC<DragHandleProps> = ({
   orientation,
   label,
   valueNow,
@@ -127,7 +127,7 @@ const DragHandle: React.FC<DragHandleProps> = ({
 
 /* Shared window-level drag wiring: pointer events must be tracked on the window
    so a fast drag that leaves the 8px handle keeps resizing. */
-const usePointerDrag = (
+export const usePointerDrag = (
   dragging: boolean,
   onMove: (clientX: number, clientY: number) => void,
   onEnd: () => void,

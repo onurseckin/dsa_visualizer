@@ -161,15 +161,14 @@ describe('ProblemHeader', () => {
     expect(onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the reset-layout button only when a handler is supplied', () => {
-    const onResetLayout = vi.fn();
-    const { unmount } = renderHeader();
-    expect(screen.queryByRole('button', { name: /reset layout/i })).toBeNull();
-    unmount();
+  /* Reset governs the whole workspace, not this strip, so it lives in the navbar
+     now (R6.5) and this header offers exactly one control. */
+  it('renders no reset-layout control, leaving Details as its only button', () => {
+    renderHeader({ expanded: true });
 
-    renderHeader({ onResetLayout });
-    fireEvent.click(screen.getByRole('button', { name: /reset layout/i }));
-    expect(onResetLayout).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /reset/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /layout/i })).toBeNull();
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Details']);
   });
 
   it('omits constraints and examples blocks when they are empty', () => {

@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TwoSumInput {
   nums: number[];
@@ -148,6 +149,37 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
   return steps;
 };
 
+/* Line 1 is the signature the problem statement hands you, so drilling it tests
+   typing out type annotations rather than recalling the technique. */
+const TWO_SUM_TRIVIA: TriviaMeta = {
+  skipLines: [1],
+  distractors: [
+    'complement = num - target',
+    'if num in seen:',
+    'return [i, seen[num]]',
+    'seen[i] = num',
+    'for i in range(len(nums)):',
+  ],
+  hints: [
+    {
+      line: 4,
+      hint: 'Name the one value that would finish the pair with the current number — pure arithmetic, no lookup yet.',
+    },
+    {
+      line: 5,
+      hint: 'Ask the map a membership question about that partner, and ask it before anything new is recorded.',
+    },
+    {
+      line: 6,
+      hint: 'Answer with two positions: the one the map remembered for the partner, then where you are standing now.',
+    },
+    {
+      line: 7,
+      hint: 'Make the current number findable by whoever comes later — the value is the key, the position is the payload.',
+    },
+  ],
+};
+
 export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   id: 'two-sum',
   title: 'Two Sum',
@@ -246,6 +278,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
       },
     ],
   },
+  trivia: TWO_SUM_TRIVIA,
   defaultInput: DEFAULT_TWO_SUM_INPUT,
   generateSteps: generateTwoSumSteps,
 };

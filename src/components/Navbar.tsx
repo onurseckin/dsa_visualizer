@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
+  Brain,
   Code2,
   Eye,
   LayoutPanelLeft,
-  Volume2,
-  VolumeX,
   BookOpen,
   Layers,
   Sparkles,
   Network,
   List,
+  RotateCcw,
 } from 'lucide-react';
 import { CategoryType, AppView, PanelKey, PanelVisibility } from '../types/dsa';
-import { Button, Segmented } from '../ui';
+import { Button, ConfirmDialog, Segmented } from '../ui';
+import { resetWorkspaceLayout } from '../app/workspaceLayout';
+import { isDialogOpen, isTypingTarget } from '../app/keyboardGuards';
 import { SearchTrigger } from './SearchTrigger';
 import { QuickAccessDrawer } from './QuickAccessDrawer';
 
@@ -25,8 +27,6 @@ export interface NavbarProps {
   onGlobalSelectAlgorithm: (id: string, categoryFolder?: CategoryType) => void;
   panels: PanelVisibility;
   onTogglePanel: (key: PanelKey) => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
 }
 
 /* Icon sizing comes from ui.css (14/16/18 per control size) — no inline sizes. */
@@ -34,10 +34,11 @@ const APP_VIEW_OPTIONS = [
   { value: 'tree', label: 'Knowledge Tree', icon: <Network /> },
   { value: 'list', label: 'Problem List', icon: <List /> },
   { value: 'workspace', label: 'Workspace', icon: <LayoutPanelLeft /> },
+  { value: 'trivia', label: 'Trivia', icon: <Brain /> },
 ];
 
-/* Five independent toggles, one visual treatment (DESIGN.md R4.4): each shows or
-   hides exactly one thing, so none of them is a mode switch. */
+/* One visual treatment for every toggle (DESIGN.md R4.4): each shows or hides
+   exactly one thing, so none of them is a mode switch. */
 const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [
   { key: 'visualizer', label: 'Visualizer', icon: <Eye />, hint: 'visualizer panel' },
   { key: 'code', label: 'Code', icon: <Code2 />, hint: 'code panel' },
@@ -53,28 +54,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   onGlobalSelectAlgorithm,
   panels,
   onTogglePanel,
-  soundEnabled,
-  onToggleSound,
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   // Global "/" shortcut: open the search drawer unless the user is typing somewhere.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== '/') return;
-      const target = e.target;
-      if (target instanceof HTMLElement) {
-        const tag = target.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
-          return;
-        }
-      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+      if (isDialogOpen()) return;
       e.preventDefault();
       setIsDrawerOpen(true);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  /* The only path allowed to drop the persisted geometry. resetWorkspaceLayout
+     owns both halves — clearing storage AND announcing it — so the workspace
+     re-reads defaults live instead of waiting for a reload, and the clear and the
+     announcement cannot drift apart here (DESIGN.md R6.5). */
+  const handleConfirmReset = () => {
+    resetWorkspaceLayout();
+    setIsResetDialogOpen(false);
+  };
 
   return (
     <header
@@ -130,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
         <div
           role="group"
-          aria-label="Panel and sound toggles"
+          aria-label="Panel toggles"
           style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
         >
           {appView === 'workspace' &&
@@ -147,18 +152,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {label}
               </Button>
             ))}
-
-          <Button
-            size="sm"
-            selected={soundEnabled}
-            aria-pressed={soundEnabled}
-            icon={soundEnabled ? <Volume2 /> : <VolumeX />}
-            onClick={onToggleSound}
-            title={soundEnabled ? 'Mute step sounds' : 'Play a sound on every step'}
-          >
-            Sound
-          </Button>
         </div>
+
+        {/* Reset is an action, not a toggle, so it sits outside the toggle group
+            with a hairline between them — same sm scale and border, no
+            aria-pressed (DESIGN.md R6.5). */}
+        {appView === 'workspace' && (
+          <>
+            <span
+              aria-hidden="true"
+              style={{
+                width: '1px',
+                height: 'var(--space-4)',
+                background: 'var(--border-subtle)',
+                flexShrink: 0,
+              }}
+            />
+            <Button
+              size="sm"
+              icon={<RotateCcw />}
+              aria-label="Reset layout"
+              onClick={() => setIsResetDialogOpen(true)}
+              title="Restore the default panel sizes and details state"
+            >
+              Reset layout
+            </Button>
+          </>
+        )}
 
         <SearchTrigger onOpenDrawer={() => setIsDrawerOpen(true)} />
       </div>
@@ -169,6 +189,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         onSelectAlgorithm={onGlobalSelectAlgorithm}
         activeAlgorithmId={activeAlgorithmId}
         categories={categories}
+      />
+
+      <ConfirmDialog
+        isOpen={isResetDialogOpen}
+        title="Reset workspace layout?"
+        message="Your custom panel sizes and whether the details panel is expanded will be lost — every panel goes back to sizing itself. This cannot be undone."
+        confirmLabel="Reset to defaults"
+        cancelLabel="Keep my layout"
+        destructive
+        onConfirm={handleConfirmReset}
+        onCancel={() => setIsResetDialogOpen(false)}
       />
     </header>
   );

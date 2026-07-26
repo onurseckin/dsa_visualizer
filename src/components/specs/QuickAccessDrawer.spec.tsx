@@ -113,6 +113,10 @@ describe('QuickAccessDrawer Component Spec', () => {
     sections.forEach((section) => {
       // Section and drawer share --bg-surface, so only the border separates them.
       expect(section.style.borderColor).toBe('var(--border-default)');
+      /* Deliberately unpainted: on the inverted surfaces --bg-inset is 1.03:1 from
+         --bg-surface, so recessing a section would buy nothing while destroying the
+         1.19:1 pop its --bg-elevated rows get from the drawer surface. */
+      expect(section.style.background).toBe('');
     });
   });
 

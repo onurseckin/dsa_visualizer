@@ -13,7 +13,10 @@
   padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
+  /* Interactive controls take the darkest fill and rely on their border to read
+     (DESIGN.md R7.1); hover/active step LIGHTER, which is the only direction
+     available once the resting state is already the floor. */
+  background: var(--bg-inset);
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
@@ -29,12 +32,13 @@
 }
 
 .ui-btn:hover:not(:disabled):not(.ui-btn--selected):not(.ui-btn--primary) {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
   color: var(--text-primary);
 }
 
 .ui-btn:active:not(:disabled):not(.ui-btn--selected):not(.ui-btn--primary) {
-  background: var(--bg-pressed);
+  background: var(--bg-elevated);
 }
 
 .ui-btn:disabled {
@@ -42,15 +46,20 @@
   cursor: not-allowed;
 }
 
+/* Primary is the emphasised action, not the brightest surface: a black fill with
+   a bright edge and ink reads as "the button to press" without turning into a
+   light slab on a dark page. */
 .ui-btn--primary {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--text-on-accent);
+  background: var(--bg-inset);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .ui-btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  color: var(--text-on-accent);
+  background: var(--bg-surface);
+  border-color: var(--accent-hover);
+  color: var(--text-primary);
 }
 
 .ui-btn--ghost {
@@ -152,7 +161,7 @@
 }
 
 .ui-badge--neutral {
-  background: var(--bg-elevated);
+  background: var(--bg-inset);
   border-color: var(--border-subtle);
   color: var(--text-secondary);
 }
@@ -199,12 +208,17 @@
   box-shadow: none;
 }
 
+/* The card body is the darkest reading surface, so the header band steps LIGHTER
+   to make section titles ("solution.py", "Complexity") clearly visible instead of
+   dissolving into the panel (DESIGN.md R7.2). */
 .ui-card__header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-default);
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
 }
 
 .ui-card__icon {
@@ -441,7 +455,7 @@
   gap: var(--space-1);
   padding: var(--space-1);
   background: var(--bg-inset);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
 }
 
@@ -640,13 +654,15 @@
 
 /* ---------- Kbd ---------- */
 
+/* Interactive/data affordances take the darkest fill like every other control
+   (DESIGN.md R7.1); the border is what makes them legible. */
 .ui-kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-1);
   min-width: calc(var(--space-4) + var(--space-1));
-  background: var(--bg-elevated);
+  background: var(--bg-inset);
   border: 1px solid var(--border-default);
   border-bottom-width: 2px;
   border-radius: var(--radius-sm);
@@ -684,13 +700,23 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   font-family: var(--font-code);
   font-size: var(--text-xs);
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.ui-chip--md {
+  height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  min-width: 72px;
+  justify-content: center;
 }
 
 /* ---------- ConfirmDialog ---------- */

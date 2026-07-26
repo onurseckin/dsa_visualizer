@@ -7,48 +7,27 @@ import {
   topicFamilyColor,
   topicFamilyLabel,
 } from '../KnowledgeGraph';
-import { VIZ_SLOT_COUNT } from '../primitives/vizPalette';
+import { VIZ_SLOT_COUNT, vizSlotBg } from '../primitives/vizPalette';
 
 describe('KnowledgeGraph Component Spec', () => {
-  it('renders SVG region, roadmap heading, and hover hint chrome', () => {
+  it('renders SVG region and interactive roadmap nodes', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
 
-    expect(screen.getByText('Topic prerequisite roadmap')).toBeInTheDocument();
-    expect(screen.getByText('All Categorized Topic Modules')).toBeInTheDocument();
-    expect(screen.getByText(/Hover to trace prerequisites/i)).toBeInTheDocument();
     expect(
       screen.getByRole('region', { name: /Interactive Data Structures and Algorithms Prerequisite Roadmap/i })
     ).toBeInTheDocument();
   });
 
-  it('renders grid topic cards as ui Cards with difficulty badges', () => {
-    const onSelectMock = vi.fn();
-    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
-
-    const gridCard = screen.getAllByRole('button', { name: /1\. Arrays & Hashing:/i })[0];
-    expect(gridCard).toHaveClass('ui-card');
-
-    // Grid card shows an Easy difficulty badge and a neutral topic-count badge
-    const easyBadges = screen.getAllByText('Easy');
-    expect(easyBadges.some((el) => el.classList.contains('ui-badge--success'))).toBe(true);
-    const countBadges = screen.getAllByText('4 Topics');
-    expect(countBadges.some((el) => el.classList.contains('ui-badge--neutral'))).toBe(true);
-  });
-
-  it('triggers category selection when SVG node or grid card is clicked', () => {
+  it('triggers category selection when SVG node is clicked', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
 
     const buttons = screen.getAllByRole('button', { name: /1\. Arrays & Hashing/i });
-    expect(buttons.length).toBeGreaterThanOrEqual(2);
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
 
     // Click SVG node button
     fireEvent.click(buttons[0]);
-    expect(onSelectMock).toHaveBeenCalledWith('arrays_and_hashing');
-
-    // Click Grid card button
-    fireEvent.click(buttons[1]);
     expect(onSelectMock).toHaveBeenCalledWith('arrays_and_hashing');
   });
 
@@ -62,23 +41,9 @@ describe('KnowledgeGraph Component Spec', () => {
     fireEvent.keyDown(twoPointersButtons[0], { key: 'Enter' });
     expect(onSelectMock).toHaveBeenCalledWith('two_pointers');
 
-    // Press Space on grid card
-    fireEvent.keyDown(twoPointersButtons[1], { key: ' ' });
+    // Press Space on SVG node
+    fireEvent.keyDown(twoPointersButtons[0], { key: ' ' });
     expect(onSelectMock).toHaveBeenCalledWith('two_pointers');
-  });
-
-  it('borders every topic card by default and strengthens the edge on hover', () => {
-    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
-
-    const card = screen.getAllByRole('button', { name: /1\. Arrays & Hashing:/i })[0];
-    expect(card.style.borderColor).toBe('var(--border-default)');
-
-    fireEvent.mouseEnter(card);
-    expect(card.style.borderColor).toBe('var(--border-strong)');
-    expect(card.style.background).toBe('var(--bg-hover)');
-
-    fireEvent.mouseLeave(card);
-    expect(card.style.borderColor).toBe('var(--border-default)');
   });
 
   it('handles mouse enter, mouse leave, focus, and blur events on interactive elements', () => {
@@ -154,19 +119,38 @@ describe('KnowledgeGraph Component Spec', () => {
     expect(familyBar).toHaveAttribute('fill', topicFamilyColor('graphs'));
   });
 
-  it('keeps the roadmap chrome neutral while family swatches stay the data key', () => {
-    const { container } = render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
-
-    // Card header icon inherits the neutral card tone instead of an accent tint.
-    const headerIcon = container.querySelector('.ui-card__icon svg');
-    expect(headerIcon).not.toBeNull();
-    expect(headerIcon?.getAttribute('style')).toBeNull();
+  it('keeps family swatches as the data key', () => {
+    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
 
     const swatches = screen
       .getByRole('list', { name: /Topic family colors/i })
       .querySelectorAll<HTMLElement>('span[aria-hidden="true"]');
     expect(Array.from(swatches).map((swatch) => swatch.style.background)).toEqual(
       TOPIC_FAMILIES.map((family) => topicFamilyColor(family.id))
+    );
+  });
+
+  it('fills roadmap nodes with their family hue and keeps that hue on hover', () => {
+    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+
+    // The graphs family owns slot 5, so its nodes mix --viz-6 into the raised tier.
+    const node = screen.getAllByRole('button', { name: /11\. Graph Traversal/i })[0];
+    expect(node.querySelectorAll('rect')[0]).toHaveAttribute(
+      'fill',
+      vizSlotBg(5, 26, 'var(--bg-elevated)')
+    );
+
+    fireEvent.mouseEnter(node);
+    // Hover strengthens the same mix instead of washing the family out to accent.
+    expect(node.querySelectorAll('rect')[0]).toHaveAttribute(
+      'fill',
+      vizSlotBg(5, 40, 'var(--bg-elevated)')
+    );
+
+    fireEvent.mouseLeave(node);
+    expect(node.querySelectorAll('rect')[0]).toHaveAttribute(
+      'fill',
+      vizSlotBg(5, 26, 'var(--bg-elevated)')
     );
   });
 

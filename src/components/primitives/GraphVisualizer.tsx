@@ -6,7 +6,16 @@ import {
   vizSlotBg,
   vizSlotColor,
 } from './vizPalette';
-import { Point, clamp, fitBox, tightViewBox, useCanvasBox, viewBoxAttr } from './vizGeometry';
+import {
+  Point,
+  boxViewBox,
+  clamp,
+  ellipsePoints,
+  minPointSpacing,
+  spreadToBox,
+  useCanvasBox,
+  viewBoxAttr,
+} from './vizGeometry';
 
 export interface GraphVisualizerProps {
   nodes: GraphNodeItem[];
@@ -28,9 +37,13 @@ const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
 
 /* Radius floor equals the old fixed radius, so a laid-out graph can only grow. */
 const MIN_NODE_R = 28;
-const MAX_NODE_R = 44;
+const MAX_NODE_R = 72;
+/* Share of the closest node-to-node distance one node's diameter may take: 0.38
+   means two neighbours fill 76% of the gap between them, which is as large as
+   they can be drawn while the edge between them stays visible. */
+const SPACING_SHARE = 0.38;
 const GROUP_RING_GAP = 5;
-/* The ring is the outermost ink; 3 more units keep the stroke off the viewBox edge. */
+/* The ring is the outermost ink; 3 more units keep the stroke off the canvas edge. */
 const EDGE_MARGIN = 3;
 const SHAPE_TRANSITION =
   'fill var(--transition-normal), stroke var(--transition-normal), stroke-width var(--transition-normal), opacity var(--transition-normal)';
@@ -75,45 +88,56 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   title,
 }) => {
   /* The width/height props are the fallback box: an unmeasured canvas (jsdom,
-     first paint) keeps the layout the old fixed viewBox produced. */
+     first paint) still lays out sensibly. */
   const { ref, box } = useCanvasBox({ width, height });
   /* Markers are shared by id, so two graphs on one page would otherwise inherit
      each other's arrowhead offset once that offset became radius-dependent. */
   const markerScope = React.useId().replace(/:/g, '');
 
   const needsAutoLayout = nodes.some((node) => node.x === undefined || node.y === undefined);
+  const authored: Point[] = nodes.map((node) => ({ x: node.x ?? Number.NaN, y: node.y ?? Number.NaN }));
 
-  /* Only an auto-laid-out graph may resize its nodes: authored coordinates carry
-     real geometry (hulls, polygons) that a recomputed radius would misrepresent. */
-  const ringRadius = Math.max(Math.min(box.width, box.height) / 2 - MIN_NODE_R - 6, MIN_NODE_R);
-  const angularSpacing =
-    nodes.length > 1 ? (2 * Math.PI * ringRadius) / nodes.length : ringRadius;
-  const nodeRadius = needsAutoLayout
-    ? clamp(angularSpacing * 0.42, MIN_NODE_R, MAX_NODE_R)
-    : MIN_NODE_R;
-  const layoutRadius = needsAutoLayout
-    ? Math.max(Math.min(box.width, box.height) / 2 - nodeRadius - 6, nodeRadius)
-    : ringRadius;
+  /* Both layouts fill the measured box in BOTH axes (DESIGN.md R6.1): authored
+     coordinates are spread per-axis so a 300x100 authored drawing reaches the
+     edges of a 950x520 panel, and a coordinate-free graph goes on the ellipse
+     inscribed in the box — a circle would leave the wide panel's sides empty.
+     The radius stays uniform in both, so no node is squashed by the stretch.
+
+     One node missing its coordinates sends the WHOLE graph to the ellipse: the
+     old per-node fallback dropped a ring on top of the authored points, and every
+     algorithm that authors coordinates authors all of them. */
+  const place = (radius: number): Point[] => {
+    const pad = radius + GROUP_RING_GAP + EDGE_MARGIN;
+    /* The ellipse fixes the angular order; spreading its points afterwards is what
+       makes a 3- or 5-node ring touch all four insets instead of leaving the arc
+       between two nodes as empty height. An affine stretch of an ellipse is still
+       an ellipse, and both axis scales are >= 1, so nothing is brought closer. */
+    return spreadToBox(
+      needsAutoLayout ? ellipsePoints(nodes.length, box, pad) : authored,
+      box,
+      pad
+    );
+  };
+
+  /* Sizing the node off the box alone would let two neighbours grow into each
+     other, so the radius comes from the spacing the layout actually produced.
+     The two depend on each other (the radius is the layout's inset), so this
+     walks DOWN from the cap: a bigger radius always means a tighter layout, so
+     each pass is a safe upper bound and the loop settles in two or three. */
+  let radius = MAX_NODE_R;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const spacing = minPointSpacing(place(radius), Math.min(box.width, box.height));
+    const supported = clamp(spacing * SPACING_SHARE, MIN_NODE_R, MAX_NODE_R);
+    if (supported >= radius) break;
+    radius = supported;
+  }
+  const nodeRadius = radius;
+  const positions = place(nodeRadius);
 
   const nodeMap = new Map<string, NodePosition & GraphNodeItem>();
-  const centerX = box.width / 2;
-  const centerY = box.height / 2;
-
   nodes.forEach((node, index) => {
-    let px = node.x;
-    let py = node.y;
-
-    if (px === undefined || py === undefined) {
-      const angle = (2 * Math.PI * index) / Math.max(nodes.length, 1) - Math.PI / 2;
-      px = centerX + layoutRadius * Math.cos(angle);
-      py = centerY + layoutRadius * Math.sin(angle);
-    }
-
-    nodeMap.set(node.id, {
-      ...node,
-      x: px,
-      y: py,
-    });
+    const point = positions[index] ?? { x: box.width / 2, y: box.height / 2 };
+    nodeMap.set(node.id, { ...node, x: point.x, y: point.y });
   });
 
   const positioned = Array.from(nodeMap.values());
@@ -144,16 +168,37 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return from !== undefined && from === to ? from : undefined;
   };
 
-  /* One uniform padding around the real node bounds — no fixed ratio, so the
-     viewBox never contains a band the drawing does not use. */
-  const points: Point[] = positioned.map((node) => ({ x: node.x, y: node.y }));
-  const viewBox = tightViewBox(points, nodeRadius + GROUP_RING_GAP + EDGE_MARGIN, nodeRadius * 2);
-  const svgSize = fitBox({ width: viewBox.width, height: viewBox.height }, box);
-
-  const labelFont = clamp(nodeRadius * 0.55, 9, 22);
-  const weightFont = clamp(nodeRadius * 0.44, 8, 16);
-  const weightW = weightFont * 2.4;
+  /* Ink weights scale with the node so a big panel gets a proportionally drawn
+     graph instead of hairlines between huge circles. Labels also have to fit the
+     circle they sit in: ~1.7r of chord at mid-height, ~0.6em per mono glyph, which
+     is what keeps a `A (∞)` style label from spilling out of its node. */
+  const longestLabel = nodes.reduce(
+    (longest, node) => Math.max(longest, String(node.label || node.id).length),
+    1
+  );
+  const longestWeight = edges.reduce(
+    (longest, edge) => Math.max(longest, edge.weight === undefined ? 0 : String(edge.weight).length),
+    1
+  );
+  const labelFont = clamp(
+    Math.min(nodeRadius * 0.55, (nodeRadius * 2.83) / longestLabel),
+    9,
+    40
+  );
+  const weightFont = clamp(nodeRadius * 0.4, 9, 18);
+  const weightW = weightFont * (0.62 * longestWeight + 1.1);
   const weightH = weightFont * 1.7;
+  const plainStroke = clamp(nodeRadius * 0.06, 1.6, 3);
+  const traversedStroke = clamp(nodeRadius * 0.09, 2.5, 4.5);
+  const pathStroke = clamp(nodeRadius * 0.13, 4, 7);
+  const dash = clamp(nodeRadius * 0.18, 5, 10);
+  const nodeStroke = clamp(nodeRadius * 0.07, 2, 3.6);
+  /* userSpaceOnUse, because the default markerUnits multiplies by the line's own
+     stroke width — one shared marker would then sit at three different distances
+     from the node for the plain/traversed/path weights. */
+  const arrowW = clamp(nodeRadius * 0.34, 9, 18);
+  const arrowH = arrowW * 0.72;
+  const arrowRefX = nodeRadius + arrowW;
 
   const groupSlots = Array.from(
     new Set(
@@ -193,8 +238,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
+        flex: '1 1 auto',
+        alignSelf: 'stretch',
         width: '100%',
         height: '100%',
         minHeight: 0,
@@ -208,66 +253,67 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             fontWeight: 600,
             color: 'var(--text-muted)',
             marginBottom: 'var(--space-1)',
+            textAlign: 'center',
           }}
         >
           {title}
         </div>
       )}
+      {/* The well carries the border and is the measured element: with no padding
+          of its own its client box IS the svg viewport, so the viewBox matches it
+          exactly and the inset surface reaches every edge of the canvas. */}
       <div
         ref={ref}
         style={{
           flex: '1 1 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           minWidth: 0,
           minHeight: 0,
           overflow: 'hidden',
+          background: 'var(--bg-inset)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-default)',
         }}
       >
         <svg
-          width={Math.round(svgSize.width)}
-          height={Math.round(svgSize.height)}
-          viewBox={viewBoxAttr(viewBox)}
-          preserveAspectRatio="xMidYMid meet"
-          style={{
-            display: 'block',
-            background: 'var(--bg-inset)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-default)',
-          }}
+          width="100%"
+          height="100%"
+          viewBox={viewBoxAttr(boxViewBox(box))}
+          style={{ display: 'block' }}
         >
           <defs>
             <marker
               id={`arrowhead-${markerScope}`}
-              markerWidth="10"
-              markerHeight="7"
-              refX={nodeRadius + 10}
-              refY="3.5"
+              markerUnits="userSpaceOnUse"
+              markerWidth={arrowW}
+              markerHeight={arrowH}
+              refX={arrowRefX}
+              refY={arrowH / 2}
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="var(--border-default)" />
+              <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--border-default)" />
             </marker>
             <marker
               id={`arrowhead-traversed-${markerScope}`}
-              markerWidth="10"
-              markerHeight="7"
-              refX={nodeRadius + 10}
-              refY="3.5"
+              markerUnits="userSpaceOnUse"
+              markerWidth={arrowW}
+              markerHeight={arrowH}
+              refX={arrowRefX}
+              refY={arrowH / 2}
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="var(--state-active)" />
+              <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--state-active)" />
             </marker>
             <marker
               id={`arrowhead-path-${markerScope}`}
-              markerWidth="11"
-              markerHeight="8"
-              refX={nodeRadius + 9}
-              refY="4"
+              markerUnits="userSpaceOnUse"
+              markerWidth={arrowW}
+              markerHeight={arrowH}
+              refX={arrowRefX}
+              refY={arrowH / 2}
               orient="auto"
             >
-              <polygon points="0 0, 11 4, 0 8" fill="var(--state-path)" />
+              <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--state-path)" />
             </marker>
           </defs>
 
@@ -288,8 +334,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               ? 'var(--state-active)'
               : restColor;
 
-            const strokeWidth = edge.isPath ? 4 : edge.isTraversed ? 2.5 : 1.6;
-            const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : '5 5';
+            const strokeWidth = edge.isPath
+              ? pathStroke
+              : edge.isTraversed
+              ? traversedStroke
+              : plainStroke;
+            const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : `${dash} ${dash}`;
             const strokeOpacity = edge.isTraversed || edge.isPath ? 1 : 0.75;
             const markerId = edge.isPath
               ? `url(#arrowhead-path-${markerScope})`
@@ -371,7 +421,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     r={nodeRadius + GROUP_RING_GAP}
                     fill="none"
                     stroke={vizSlotColor(slot)}
-                    strokeWidth="2.5"
+                    strokeWidth={nodeStroke}
                     strokeOpacity="0.9"
                     style={{ transition: SHAPE_TRANSITION }}
                   />
@@ -380,7 +430,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   r={nodeRadius}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={inSemanticState ? 2.5 : 2}
+                  strokeWidth={inSemanticState ? nodeStroke * 1.25 : nodeStroke}
                   style={{ transition: SHAPE_TRANSITION }}
                 />
                 <text

@@ -519,3 +519,229 @@ drawing. Fix the *cause*, not the symptom:
   pulls it up rather than leaving a gap.
 - Neither panel is greedy. If the two together exceed the column height, the
   column itself scrolls.
+
+---
+
+# Round 6 — kill the canvas bands, integrate the tutorial, invert the surfaces
+
+Supersedes conflicting guidance in every earlier round.
+
+## R6.1 Canvas whitespace: the architecture, not a tweak
+
+Two previous attempts failed and BOTH are forbidden now:
+- a viewBox from fixed constants rendered into a 100%-sized `<svg>` — `meet`
+  centred the drawing and left dead bands *inside* the svg;
+- sizing the `<svg>` to the content's aspect ratio (`fitBox`, now deleted) —
+  which moved the identical dead bands *outside* the svg, into the panel. This is
+  what the user is still seeing.
+
+**The contract:** `viewBox = boxViewBox(measuredBox)` — literally
+`0 0 box.width box.height` — with `<svg width="100%" height="100%">`. User units
+are CSS pixels, so the viewBox and the element can never disagree and
+`preserveAspectRatio` has nothing to letterbox. Every visualizer lays its content
+out in real pixels inside that box and is responsible for spreading across BOTH
+axes:
+
+- **Array**: bars span the full width; the tallest bar spans the full height.
+- **Tree**: depths spread over the full height, leaf slots over the full width.
+- **Graph with authored x/y**: run the points through `spreadToBox()` so they
+  reach the edges. Positions scale per-axis; the node radius stays uniform, so
+  nothing is squashed.
+- **Graph without coordinates**: lay out on an **ellipse** inscribed in the box,
+  not a circle — a circle in a wide panel wastes the horizontal margin.
+- **Grid**: square cells cannot fill an arbitrary aspect. Size cells from the
+  HEIGHT (`box.height / rows`, capped for sanity) so vertical space is always
+  consumed, and let any horizontal remainder centre or scroll.
+
+Where a shape constraint leaves slack it goes horizontal and centred. Vertical
+slack is the defect being fixed — it must be zero. The canvas region must not
+centre a shrunken child: no `alignItems: center` around a 100%-sized svg, and no
+padding large enough to read as a band.
+
+## R6.2 Surfaces are inverted: cards are darker than the page
+
+- `--bg-page` `#17171b` is **carbon** — the interactive backdrop.
+- `--bg-surface` `#0a0a0c` is **near-black** and DARKER than the page, because
+  cards are where the eye rests (code, tutorial, topic guide).
+- `--bg-inset` `#050506` is deepest (code wells, inputs).
+- Controls raised on a card step *lighter*: `--bg-elevated` `#1e1e24`, hover
+  `#282830`, pressed `#32323b`. `--bg-chrome` `#1c1c21` is the navbar.
+- **Primary buttons are black-filled** (`.ui-btn--primary` = `--bg-inset` fill,
+  `--accent` border, `--text-primary` ink, weight 600) — never a light slab.
+
+## R6.3 Colour comes back where it carries meaning
+
+The achromatic sweep went too far. Restore and keep:
+- **Problem list**: difficulty badges and any status/count badges are coloured
+  (`--success` / `--warning` / `--danger` / `--info` via `difficultyBadgeVariant`).
+- **Knowledge map**: keep the full `--viz-1..8` cluster colouring exactly as is.
+- **Visualizers**: `--state-*` marks and `--viz-*` group colours stay.
+Chrome, panels, inputs, toolbars and body text remain neutral.
+
+## R6.4 The tutorial is the panel's header, and it is readable
+
+- The tutorial moves to the **TOP** of the visualizer panel, as its header, so
+  the panel reads top-to-bottom: tutorial → working data → canvas → controls.
+- It must be **readable, not a caption**: body at `--text-md` minimum,
+  line-height ~1.6, `--text-primary` for the lead sentence and
+  `--text-secondary` for the rest, real padding (`--space-3`), and enough room
+  for two or three lines without clipping. It is the thing the user reads on
+  every step — size it accordingly.
+- It is visually part of the panel (band fill + one divider facing the canvas),
+  not a floating card.
+
+## R6.5 Every manual adjustment persists; reset lives in the navbar
+
+Persist and restore across reloads and dev-server restarts:
+- the column split percentage,
+- every user-pinned panel height,
+- **whether the details panel is expanded or collapsed**.
+
+All of it under the versioned workspace-layout key, restored on mount, and only
+cleared by an explicit confirmed reset. **The "Reset layout" button moves out of
+ProblemHeader and into the navbar**, next to the panel toggles, because it
+governs the whole workspace. It still opens `ConfirmDialog` first.
+
+## R6.6 Keyboard control of playback
+
+Global shortcuts on the workspace, active whenever focus is not in an
+input/textarea/select/contenteditable:
+- `ArrowRight` / `ArrowLeft` — step forward / step back
+- `Space` — play/pause (must `preventDefault` so the page does not scroll)
+
+Do not hijack these while the drawer is open or a dialog has focus, and keep the
+existing `/` search shortcut working. Announce them in the control panel via
+`title`/`aria-keyshortcuts` so they are discoverable.
+
+---
+
+# Round 7 — sound removed, all sections resizable, colour consistency
+
+## R7.1 Interactive controls take the DARKEST fill
+
+Buttons, icon buttons, segmented options, neutral badges, chips and inputs rest on
+`--bg-inset` (the darkest tier) and rely on their border to read. Hover and active
+step *lighter* (`--bg-surface`, then `--bg-elevated`) because the resting state is
+already the floor. Primary buttons stay black-filled with an `--accent` edge.
+
+## R7.2 Section fills are consistent; only headers lift
+
+- Every panel body — code, complexity, tutorial, working data, visualizer — uses
+  the same darkest reading fill `--bg-surface`. A panel that lifted itself to
+  `--bg-chrome` looked like a different component; that is the inconsistency the
+  user reported between "Step" and "Solution / Complexity".
+- **Card headers step lighter** (`--bg-elevated` + `--border-default` bottom) so
+  section titles like `solution.py` and `Complexity` are clearly visible against
+  the near-black body. Header lifts; body never does.
+- Seams between strips inside a panel are a single `--border-subtle` divider, not
+  a fill change.
+
+## R7.3 Working data wraps; it never scrolls sideways
+
+The one-line horizontal chip track is gone. Each structure is a labelled row in a
+two-column grid (label column ~5.5rem, values column `1fr`), and the values
+**wrap** onto additional lines. Horizontal scrolling hid values off-screen and made
+the learner drag a track mid-step; wrapping keeps every value visible at once and
+lets the rows align into a readable table.
+
+## R7.4 Every section has BOTH width and height control
+
+Width comes from the column split. Height now has a handle for every section:
+- `tutorial` and `auxiliary` are resizable rows inside the visualizer panel, so
+  dragging either one changes the canvas height (the canvas is the greedy row).
+- `code` and `complexity` keep their row handle.
+- `stage` pins the whole stage row, so the graph area can be made taller or
+  shorter instead of being fixed to the viewport calculation.
+
+All six slots (`stage`, `visualizer`, `tutorial`, `auxiliary`, `code`,
+`complexity`) persist as `number | null` under
+`dsa_visualizer_workspace_layout_v7`; `null` means automatic, double-click a
+handle to restore automatic, and only a confirmed navbar reset clears them.
+
+## R7.5 Sound is removed from the product
+
+`soundEngine.ts`, `stepSound.ts` and their specs are deleted. `SettingsContext`
+has no `soundEnabled`, `NavbarProps` has no sound props, the navbar has no Sound
+toggle, and `useStepEngine` takes no `soundEnabled` option. `onStepChange` and its
+StrictMode dedupe remain — they now exist purely for per-step side effects, of
+which there are currently none. Do not reintroduce audio.
+
+---
+
+# Round 8 — Trivia: progressive code-occlusion drill
+
+A fourth app view (`/trivia`) for memorising solutions before interviews.
+
+## R8.1 The technique
+
+Cloze deletion over source lines, escalated by **coverage, not time**:
+
+- At **level N** the drill hides N lines of a solution at once.
+- The level only advances to N+1 once **every blankable line of every deck entry**
+  has been drilled at level N. You therefore meet every line at every difficulty
+  before the work gets harder, instead of re-drilling whatever the shuffle likes.
+- Within a level, line selection prefers undrilled lines, then weights by
+  `misses + 1`, so fumbled lines resurface sooner (Leitner, reduced to its core).
+- A revealed line counts as drilled **and** as a miss, so giving up schedules it
+  again rather than skipping it.
+- Levels run from `minBlanks` to `maxBlanks`, both user-configurable; the drill
+  reports `completed` when the ceiling is covered.
+- An algorithm with fewer blankable lines than the current level cannot supply
+  that many blanks, so it is treated as satisfied instead of blocking the deck.
+
+## R8.2 Two answer modes
+
+- **`choice`** (the intermediate step): the blanks are empty slots and the tray
+  offers shuffled tiles to drag in. Decoys are **other real lines from the same
+  solution** — far harder to reject than random text — plus any author-supplied
+  `distractors`. One decoy per blank keeps the tray proportional to difficulty.
+- **`type`**: write the line from memory, no tiles.
+
+Both modes share one `TriviaRound`. Indentation is displayed as a fixed prefix and
+is never graded — Python needs it, but retyping leading spaces tests typing, not
+recall. Grading trims the ends and requires an exact match inside.
+
+## R8.3 Engine contract (`src/trivia/triviaEngine.ts`)
+
+Pure, React-free, RNG-injectable so every escalation rule is unit-testable:
+
+```ts
+parsePuzzleLines(code, meta?)   // -> PuzzleLine[] (indent/content split, blankable)
+createProgress(config)          // -> TriviaProgress
+pickRound({ config, progress, sources, meta?, rng? })  // -> TriviaRound | null
+gradeRound(round, answers)      // -> TriviaGrade
+recordRound(progress, round, grade, config, sources)   // -> next TriviaProgress
+isLevelCovered / remainingAt / coverageRatio / buildTiles / isAnswerCorrect
+```
+
+`sources` is `Map<algorithmId, PuzzleLine[]>`; `pickRound` returns null on an
+empty deck or a completed drill. Never call `Math.random` inside a component —
+take it from the engine so tests stay deterministic.
+
+## R8.4 UI
+
+`/trivia` route with two states: **deck builder** and **session**.
+
+- **Deck builder**: multi-select over the whole registry with *quick multi-add* —
+  add a whole category at once, add all, clear, and per-category counts. Difficulty
+  badges keep their semantic colour (R6.3).
+- **Session**: the solution renders as a code panel where blanked lines become
+  drop slots; the tile tray sits beside it. Drag and drop uses native HTML5 DnD
+  (no new dependency) and **must also work by keyboard and click** — select a
+  tile, then activate a slot — so the drill is usable without a mouse and is
+  testable in jsdom.
+- Controls: check answers, reveal a blank, next round, and a visible
+  level/coverage indicator.
+- **Settings**: mode, `minBlanks`, `maxBlanks`, distractors on/off. Persisted with
+  the deck and progress under versioned `dsa_visualizer_trivia_*` keys, restored on
+  mount, cleared only by an explicit confirmed reset.
+- Styling follows the existing system: neutral chrome, darkest fill on interactive
+  controls, card headers lifted, colour only for correctness feedback
+  (`--success` / `--danger`) and difficulty badges.
+
+## R8.5 Algorithm metadata
+
+`AlgorithmDefinition` gains **optional** `trivia?: TriviaMeta`
+(`skipLines`, `distractors`, `hints`). Optional by design: any solution drills
+correctly straight from its `code` string, so the feature works for all 40
+algorithms immediately and authors only add metadata to sharpen a specific drill.

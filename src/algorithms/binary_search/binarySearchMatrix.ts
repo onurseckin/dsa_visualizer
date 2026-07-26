@@ -4,6 +4,7 @@ import type {
   GridCellNode,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface BinarySearchMatrixInput {
   matrix: number[][];
@@ -281,6 +282,38 @@ const BINARY_SEARCH_MATRIX_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+/* Skips the given signature and the bare `else:` — a branch keyword carries no
+   recall value. The row/col distractors are deliberately the swapped pair, which
+   is the mistake that survives on square matrices and fails on rectangular ones. */
+const BINARY_SEARCH_MATRIX_TRIVIA: TriviaMeta = {
+  skipLines: [1, 17],
+  distractors: [
+    'low, high = 0, m * n',
+    'while low < high:',
+    'row = mid % n',
+    'elif mid_val > target:',
+    'high = mid',
+  ],
+  hints: [
+    {
+      line: 5,
+      hint: 'Open the window over the flattened index space — the last valid position, not the number of cells.',
+    },
+    {
+      line: 9,
+      hint: 'Recover which row a flat index lands in by dividing it by the row width.',
+    },
+    {
+      line: 10,
+      hint: 'Recover the column from the same flat index using what is left over after that division.',
+    },
+    {
+      line: 15,
+      hint: 'Handle the case where the probe came in under the target, so everything at or below it can be discarded.',
+    },
+  ],
+};
+
 export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = {
   id: 'binary-search-matrix',
   title: 'Search a 2D Matrix',
@@ -318,6 +351,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
     space: 'We navigate with just the low, high, and mid indices — no copy of the matrix and no recursion — so extra memory is O(1).',
   },
   topicGuide: BINARY_SEARCH_MATRIX_TOPIC_GUIDE,
+  trivia: BINARY_SEARCH_MATRIX_TRIVIA,
   defaultInput: DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
   generateSteps: generateBinarySearchMatrixSteps,
 };

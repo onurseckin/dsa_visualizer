@@ -12,10 +12,15 @@ export interface ComplexityCardProps {
 interface BigOChip {
   label: string;
   value: string;
+  /* Colour on the VALUE, because the value is the measurement being judged:
+     best case is the win, worst case is the cost to watch, space is a different
+     axis entirely. The average has no verdict attached, so it stays neutral. */
+  tone: string;
 }
 
-/* The ui.css defaults sit at --border-subtle, which disappears on the near-black
-   palette; every edge inside this panel is promoted to --border-default. */
+/* The ui.css defaults sit at --border-subtle, which is 1.35:1 against the
+   near-black card fill; every edge inside this panel is promoted to
+   --border-default. */
 const CHIP_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
 const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
@@ -28,8 +33,8 @@ const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
           flexDirection: 'column',
           gap: 'var(--space-1)',
           padding: 'var(--space-1) var(--space-2)',
-          /* A metric well rather than a raised chip: the elevated tier is only
-             1.68x the surface behind it, while the inset tier reads instantly. */
+          /* A metric well recessed into the near-black card, matching how the
+             code body and inputs read on the inverted surfaces (R6.2). */
           background: 'var(--bg-inset)',
           border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-sm)',
@@ -42,7 +47,7 @@ const BigOChipRow: React.FC<{ chips: BigOChip[] }> = ({ chips }) => (
             fontFamily: 'var(--font-code)',
             fontSize: 'var(--text-sm)',
             fontWeight: 600,
-            color: 'var(--text-primary)',
+            color: chip.tone,
           }}
         >
           {chip.value}
@@ -83,13 +88,12 @@ export const ComplexityCard: React.FC<ComplexityCardProps> = ({
   complexityAnalysis,
   variableState,
 }) => {
-  /* Big-O readouts are panel content, not badges or data marks, so they stay on
-     the neutral ramp (R5.1) — the label above each value carries the meaning. */
+  /* Verified on --bg-inset: --success 11.7:1, --warning 12.2:1, --info 12.2:1. */
   const chips: BigOChip[] = [
-    { label: 'Best', value: timeComplexity.best },
-    { label: 'Avg', value: timeComplexity.average },
-    { label: 'Worst', value: timeComplexity.worst },
-    { label: 'Space', value: spaceComplexity },
+    { label: 'Best', value: timeComplexity.best, tone: 'var(--success)' },
+    { label: 'Avg', value: timeComplexity.average, tone: 'var(--text-primary)' },
+    { label: 'Worst', value: timeComplexity.worst, tone: 'var(--warning)' },
+    { label: 'Space', value: spaceComplexity, tone: 'var(--info)' },
   ];
 
   const variables = variableState ? Object.entries(variableState) : [];

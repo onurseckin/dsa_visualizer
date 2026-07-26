@@ -1,46 +1,50 @@
 /* Design tokens — single source of truth for the DSA Visualizer theme.
-   Black / carbon / smoke: an achromatic dark shell where COLOR IS RESERVED FOR
-   DATA. Chrome, panels, buttons and text are neutral; hue appears only in
-   algorithm-state marks, the categorical graph palette, and semantic badges.
 
-   Every value below was verified numerically, not by eye:
-   - text tones clear WCAG AA on every surface they sit on (primary >= 12:1)
-   - because the surfaces are near-black and only ~1.09x apart, BORDERS carry
-     the edge definition: --border-default 2.31:1 vs surface, --border-strong
-     3.49:1 (WCAG's bar for UI component boundaries)
-   - --viz-1..8 passed the categorical gates against the carbon surface
-     (OKLCH lightness band, chroma floor, protan/deutan/tritan separation, 3:1)
+   Black + carbon + smoke, with the reading surfaces DARKEST:
+   - the page is carbon (#17171b) — the interactive backdrop the app sits on
+   - cards and panels are near-black (#0a0a0c), darker than the page, because
+     that is where the eye rests for long stretches (code, tutorials, guides)
+   - controls raised ON those cards step lighter (--bg-elevated and up)
+   - code wells and inputs go deepest (--bg-inset)
+
+   Colour is reserved for meaning, never decoration: algorithm --state-* marks,
+   the categorical --viz-* palette in graphs and the knowledge map, and semantic
+   --success/--warning/--danger/--info on badges and status. Chrome is neutral.
+
+   Verified numerically, not by eye: text >= AA on every surface it is used on
+   (primary >= 11.6:1), --border-default 2.49:1 vs card / 2.25:1 vs page,
+   --border-strong 4.34:1 vs card, and --viz-1..8 pass the categorical gates
+   (lightness band, chroma floor, protan/deutan/tritan separation, 3:1).
 
    Documented in docs/planning/ui-overhaul/DESIGN.md. */
 
 :root {
   color-scheme: dark;
 
-  /* Surfaces — black page, carbon containers, smoke for raised controls.
-     Nesting order: inset (wells) < page < chrome < surface < elevated. */
-  --bg-inset: #030304;
-  --bg-page: #08080a;
-  --bg-chrome: #0e0e11;
-  --bg-surface: #141417;
-  --bg-elevated: #1c1c21;
-  --bg-hover: #26262c;
-  --bg-pressed: #303037;
-  --bg-backdrop: rgba(2, 2, 3, 0.8);
+  /* Surfaces — page is carbon, cards are darker than the page, wells deepest. */
+  --bg-inset: #050506;
+  --bg-surface: #0a0a0c;
+  --bg-page: #17171b;
+  --bg-chrome: #1c1c21;
+  --bg-elevated: #1e1e24;
+  --bg-hover: #282830;
+  --bg-pressed: #32323b;
+  --bg-backdrop: rgba(3, 3, 4, 0.82);
 
-  /* Borders — the surfaces are near-black and barely separated, so borders do
-     almost all of the edge work. Every card/panel/button must carry one. */
-  --border-subtle: #303037;
-  --border-default: #50505a;
-  --border-strong: #6b6b76;
-  --border-accent: #e9e9ef;
+  /* Borders carry the edge definition on near-black cards. */
+  --border-subtle: #2a2a31;
+  --border-default: #50505b;
+  --border-strong: #75757f;
+  --border-accent: #d8d8e0;
 
-  /* Accent — bright smoke. Marks interaction and selection only; the shell
-     stays achromatic so data color is never competing with chrome. */
-  --accent: #e9e9ef;
-  --accent-hover: #ffffff;
-  --accent-soft: rgba(233, 233, 239, 0.1);
-  --accent-softer: rgba(233, 233, 239, 0.05);
-  --text-on-accent: #0a0a0c;
+  /* Accent — light smoke for selection, emphasis text and active borders.
+     Primary buttons stay BLACK-backed (see .ui-btn--primary in ui.css); this
+     token is the ink and edge on them, not their fill. */
+  --accent: #d8d8e0;
+  --accent-hover: #f2f2f6;
+  --accent-soft: rgba(216, 216, 224, 0.1);
+  --accent-softer: rgba(216, 216, 224, 0.05);
+  --text-on-accent: #f5f5f7;
   --accent-secondary: #b9b9c2;
 
   /* Text */
@@ -49,7 +53,7 @@
   --text-muted: #9e9ea7;
   --text-faint: #7d7d86;
 
-  /* Semantic feedback — one of the few places hue is allowed (badges, status) */
+  /* Semantic feedback — hue is allowed here (badges, difficulty, status). */
   --success: #4ade80;
   --success-soft: rgba(74, 222, 128, 0.15);
   --warning: #fbbf24;
@@ -59,8 +63,8 @@
   --info: #7dd3fc;
   --info-soft: rgba(125, 211, 252, 0.15);
 
-  /* Algorithm element states — the OTHER place hue is allowed. Untouched
-     elements stay carbon-neutral so any color means "the algorithm acted here". */
+  /* Algorithm element states — hue allowed. Untouched elements read neutral so
+     any colour means "the algorithm acted here". */
   --state-default: #5a5a64;
   --state-default-bg: #1e1e23;
   --state-compare: #fbbf24;

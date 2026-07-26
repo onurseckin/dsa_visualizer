@@ -69,9 +69,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           onClick={onReset}
           disabled={isPlaying}
         />
+        {/* The three playback controls double as the discovery surface for the
+            global keys wired in the workspace route (DESIGN.md R6.6): the tooltip
+            teaches, aria-keyshortcuts announces. */}
         <IconButton
           icon={<SkipBack />}
           aria-label="Step backward"
+          aria-keyshortcuts="ArrowLeft"
+          title="Step backward (Left arrow)"
           onClick={onStepBack}
           disabled={isPlaying || currentStep <= 0}
         />
@@ -80,22 +85,25 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           icon={isPlaying ? <Pause /> : <Play />}
           onClick={onPlayPause}
           aria-label={isPlaying ? 'Pause playback' : 'Play all steps'}
+          aria-keyshortcuts="Space"
+          title={isPlaying ? 'Pause playback (Space)' : 'Play all steps (Space)'}
         >
           {isPlaying ? 'Pause' : 'Play'}
         </Button>
         <IconButton
           icon={<SkipForward />}
           aria-label="Step forward"
+          aria-keyshortcuts="ArrowRight"
+          title="Step forward (Right arrow)"
           onClick={onStepForward}
           disabled={isPlaying || currentStep >= totalSteps - 1}
         />
       </div>
 
-      {/* The readout is a raised chip like the buttons beside it, so it keeps the
-          ui-chip elevated fill and only promotes its edge to a visible border. */}
+      {/* The readout is a raised chip matching the height and border radius of adjacent buttons */}
       <span
         aria-label={`Step ${displayStep} of ${totalSteps}`}
-        className="ui-chip"
+        className="ui-chip ui-chip--md"
         style={{ borderColor: 'var(--border-default)' }}
       >
         <span style={{ color: 'var(--text-primary)' }}>{displayStep}</span>
