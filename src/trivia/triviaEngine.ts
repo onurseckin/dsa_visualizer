@@ -23,8 +23,11 @@ export const DEFAULT_TRIVIA_CONFIG: TriviaConfig = {
   includeDistractors: true,
 };
 
+/* The floor stays at 1, never 0: a 0-blank round would ask pickRound for zero
+   hidden lines, leaving buildTiles/grading nothing to check — not a drill at
+   all — and eligible/blankableLines below assume at least one blank per round. */
 export const MIN_BLANKS_FLOOR = 1;
-export const MAX_BLANKS_CEILING = 8;
+export const MAX_BLANKS_CEILING = 100;
 
 const clampInt = (value: number, min: number, max: number): number => {
   if (!Number.isFinite(value)) return min;

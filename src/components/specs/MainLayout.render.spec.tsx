@@ -25,29 +25,45 @@ import {
    visibility, prop wiring across the agent boundary, and the persisted state.
    ResizableLayout / ResizableRows stay real. */
 
-vi.mock('../primitives/ProblemHeader', () => ({
-  ProblemHeader: ({
+vi.mock('../primitives/ProblemDescriptionCard', () => ({
+  ProblemDescriptionCard: ({
     title,
     difficulty,
     description,
-    topicGuide,
     expanded,
     onToggleExpanded,
   }: {
     title: string;
     difficulty?: string;
     description: string;
+    expanded: boolean;
+    onToggleExpanded: () => void;
+  }) => (
+    <div data-testid="problem-description-card">
+      <span>{title}</span>
+      <span>{difficulty}</span>
+      <button aria-expanded={expanded} onClick={onToggleExpanded}>
+        Problem Details
+      </button>
+      {expanded && <p>{description}</p>}
+    </div>
+  ),
+}));
+
+vi.mock('../primitives/SolutionApproachCard', () => ({
+  SolutionApproachCard: ({
+    topicGuide,
+    expanded,
+    onToggleExpanded,
+  }: {
     topicGuide: TopicGuide;
     expanded: boolean;
     onToggleExpanded: () => void;
   }) => (
-    <div data-testid="problem-header" data-topic-sections={topicGuide.sections.length}>
-      <span>{title}</span>
-      <span>{difficulty}</span>
+    <div data-testid="solution-approach-card" data-topic-sections={topicGuide.sections.length}>
       <button aria-expanded={expanded} onClick={onToggleExpanded}>
-        Details
+        Solution Details
       </button>
-      {expanded && <p>{description}</p>}
       {expanded && <p>{topicGuide.overview}</p>}
     </div>
   ),
@@ -265,14 +281,25 @@ afterEach(() => {
 });
 
 describe('MainLayout Component Spec', () => {
-  it('renders the problem header strip with algorithm identity and the topic guide', () => {
+  it('renders the problem description card with algorithm identity above the stage', () => {
     renderLayout();
 
-    expect(screen.getByTestId('problem-header')).toBeInTheDocument();
+    expect(screen.getByTestId('problem-description-card')).toBeInTheDocument();
     expect(screen.getByText('Bubble Sort Algorithm')).toBeInTheDocument();
     expect(screen.getByText('Easy')).toBeInTheDocument();
-    expect(screen.getByTestId('problem-header')).toHaveAttribute('data-topic-sections', '2');
+  });
+
+  it('renders the solution approach card with the topic guide, below every other section', () => {
+    renderLayout();
+
+    const solutionCard = screen.getByTestId('solution-approach-card');
+    expect(solutionCard).toHaveAttribute('data-topic-sections', '2');
     expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
+
+    // "Below all sections" (9.6) means last in main's own children, not merely present.
+    const main = screen.getByRole('main');
+    const mainChildren = Array.from(main.children);
+    expect(mainChildren[mainChildren.length - 1].contains(solutionCard)).toBe(true);
   });
 
   it('never blocks page scrolling: main keeps overflow-y auto in every state', () => {
@@ -281,11 +308,13 @@ describe('MainLayout Component Spec', () => {
     const main = screen.getByRole('main');
     expect(main).toHaveStyle({ display: 'flex', overflowY: 'auto' });
     expect(main.style.overflow).not.toBe('hidden');
-    expect(main).toHaveAttribute('data-details-expanded', 'true');
+    expect(main).toHaveAttribute('data-problem-expanded', 'true');
+    expect(main).toHaveAttribute('data-solution-expanded', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
 
-    expect(main).toHaveAttribute('data-details-expanded', 'false');
+    expect(main).toHaveAttribute('data-problem-expanded', 'false');
+    expect(main).toHaveAttribute('data-solution-expanded', 'true');
     expect(main).toHaveStyle({ overflowY: 'auto' });
     expect(main.style.overflow).not.toBe('hidden');
   });
@@ -304,18 +333,34 @@ describe('MainLayout Component Spec', () => {
 
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
     expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
   });
 
-  it('keeps the details panel collapsed across an algorithm change once the user collapsed it', () => {
+  it('shows solution details expanded by default and lets the toggle collapse them, independently of the problem panel', () => {
+    renderLayout();
+
+    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solution Details' }));
+    expect(screen.queryByText(dummyTopicGuide.overview)).not.toBeInTheDocument();
+    // Collapsing the solution panel must not disturb the problem panel.
+    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solution Details' }));
+    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
+  });
+
+  it('keeps each details panel collapsed across an algorithm change once the user collapsed it', () => {
     const { rerender } = renderLayout();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
-    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
+    fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Solution Details' }));
+    expect(screen.getByRole('main')).toHaveAttribute('data-problem-expanded', 'false');
+    expect(screen.getByRole('main')).toHaveAttribute('data-solution-expanded', 'false');
 
     rerender(
       <MainLayout
@@ -327,7 +372,8 @@ describe('MainLayout Component Spec', () => {
       />,
     );
 
-    expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
+    expect(screen.getByRole('main')).toHaveAttribute('data-problem-expanded', 'false');
+    expect(screen.getByRole('main')).toHaveAttribute('data-solution-expanded', 'false');
   });
 
   it('renders visualizer, code viewer and complexity prose when every panel is on', () => {
@@ -453,9 +499,13 @@ describe('MainLayout Component Spec', () => {
       expect(panelRow(container, 'tutorial')).toBeNull();
       expect(panelRow(container, 'auxiliary')).toBeNull();
       // No step rows means no handle between them; the stage handle is not theirs.
+      // The problem/solution panels get their own standalone handles regardless
+      // of step-row visibility (TASKS.md 9.6: they are chrome, not step rows).
       expect(horizontalHandles()).toEqual([
+        'Resize the problem description height',
         'Resize code and complexity rows',
         'Resize the stage height',
+        'Resize the solution approach height',
       ]);
     });
 
@@ -536,12 +586,19 @@ describe('MainLayout Component Spec', () => {
       expect(
         screen.getByText(/Turn on Visualizer, Code, Tutorial or Aux data in the navbar/),
       ).toBeInTheDocument();
-      expect(screen.queryAllByRole('separator')).toHaveLength(0);
+      // The stage itself renders no separator when it's empty (no step rows, no
+      // stage handle) — but the problem/solution chrome sections keep their own
+      // standalone handles, since their resizability has nothing to do with
+      // whether the stage panels are on (TASKS.md 9.6).
+      expect(
+        screen.getAllByRole('separator').map((handle) => handle.getAttribute('aria-label')),
+      ).toEqual(['Resize the problem description height', 'Resize the solution approach height']);
       expect(panelRow(container, 'code')).toBeNull();
       expect(panelRow(container, 'visualizer')).toBeNull();
       expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
-      // The problem header is chrome, not a panel: it stays.
-      expect(screen.getByTestId('problem-header')).toBeInTheDocument();
+      // The problem/solution cards are chrome, not panels: they stay.
+      expect(screen.getByTestId('problem-description-card')).toBeInTheDocument();
+      expect(screen.getByTestId('solution-approach-card')).toBeInTheDocument();
     });
 
     it('forwards the tutorial close button to onToggleTutorial', () => {
@@ -639,10 +696,12 @@ describe('MainLayout Component Spec', () => {
         expect(element.style.flexBasis).toBe('auto');
       }
       expect(horizontalHandles()).toEqual([
+        'Resize the problem description height',
         'Resize tutorial and working data & variables rows',
         'Resize working data & variables and graph visualizer canvas rows',
         'Resize code and complexity rows',
         'Resize the stage height',
+        'Resize the solution approach height',
       ]);
     });
   });
@@ -657,7 +716,7 @@ describe('MainLayout Component Spec', () => {
 
     it('restores persisted sizes on mount, including the step rows', () => {
       seedLayout({
-        version: 7,
+        version: 8,
         splitPercent: 40,
         panelHeights: {
           stage: null,
@@ -666,8 +725,11 @@ describe('MainLayout Component Spec', () => {
           auxiliary: null,
           code: 320,
           complexity: 240,
+          problem: null,
+          solution: null,
         },
-        detailsExpanded: true,
+        problemExpanded: true,
+        solutionExpanded: true,
       });
 
       const { container } = renderLayout();
@@ -682,13 +744,20 @@ describe('MainLayout Component Spec', () => {
       expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'greedy');
     });
 
-    it('ignores a payload from the previous v6 schema', () => {
+    it('ignores a payload from the previous v7 schema', () => {
       localStorage.setItem(
         WORKSPACE_LAYOUT_KEY,
         JSON.stringify({
-          version: 6,
+          version: 7,
           splitPercent: 40,
-          panelHeights: { visualizer: null, code: null, complexity: 240 },
+          panelHeights: {
+            stage: null,
+            visualizer: null,
+            tutorial: null,
+            auxiliary: null,
+            code: null,
+            complexity: 240,
+          },
           detailsExpanded: false,
         }),
       );
@@ -700,7 +769,8 @@ describe('MainLayout Component Spec', () => {
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
       expect(panelRow(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
-      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
+      expect(screen.getByRole('main')).toHaveAttribute('data-problem-expanded', 'true');
+      expect(screen.getByRole('main')).toHaveAttribute('data-solution-expanded', 'true');
     });
 
     it('persists a keyboard nudge of the column split so it survives a reload', () => {
@@ -727,6 +797,8 @@ describe('MainLayout Component Spec', () => {
         auxiliary: null,
         code: MIN_PANEL_HEIGHT_PX,
         complexity: null,
+        problem: null,
+        solution: null,
       });
       const code = panelRow(container, 'code') as HTMLElement;
       expect(code).toHaveAttribute('data-height-mode', 'pinned');
@@ -752,6 +824,8 @@ describe('MainLayout Component Spec', () => {
         auxiliary: null,
         code: null,
         complexity: null,
+        problem: null,
+        solution: null,
       });
       const tutorial = panelRow(container, 'tutorial') as HTMLElement;
       expect(tutorial).toHaveAttribute('data-height-mode', 'pinned');
@@ -780,9 +854,100 @@ describe('MainLayout Component Spec', () => {
       expect(stage.style.height).toContain('max(var(--stage-min-h)');
     });
 
+    /* TASKS.md 9.6: "those fields should also be width and height adjustable and
+       scroll supporting" — the problem panel has its own standalone handle, just
+       like the stage, so it can be pinned, persisted and made to scroll instead
+       of growing unbounded. */
+    it('pins the problem panel height from its own handle, scrolls it, and restores automatic on double-click', () => {
+      renderLayout();
+
+      const problemWrapper = screen.getByTestId('problem-description-card')
+        .parentElement as HTMLElement;
+      const problemHandle = screen.getByRole('separator', {
+        name: 'Resize the problem description height',
+      });
+
+      expect(problemWrapper).toHaveAttribute('data-height-mode', 'hug');
+      expect(problemWrapper.style.height).toBe('');
+
+      fireEvent.keyDown(problemHandle, { key: 'ArrowDown' });
+
+      expect(storedLayout()?.panelHeights.problem).toBe(MIN_PANEL_HEIGHT_PX);
+      expect(problemWrapper).toHaveAttribute('data-height-mode', 'pinned');
+      expect(problemWrapper.style.height).toBe(`${MIN_PANEL_HEIGHT_PX}px`);
+      expect(problemWrapper.style.overflowY).toBe('auto');
+      // Pinning the problem panel must not disturb the solution panel's slot.
+      expect(storedLayout()?.panelHeights.solution).toBeNull();
+
+      fireEvent.doubleClick(problemHandle);
+
+      expect(storedLayout()?.panelHeights.problem).toBeNull();
+      expect(problemWrapper).toHaveAttribute('data-height-mode', 'hug');
+      expect(problemWrapper.style.height).toBe('');
+      expect(problemWrapper.style.overflowY).toBe('');
+    });
+
+    it('pins the solution panel height from its own handle, scrolls it, and restores automatic on double-click', () => {
+      renderLayout();
+
+      const solutionWrapper = screen.getByTestId('solution-approach-card')
+        .parentElement as HTMLElement;
+      const solutionHandle = screen.getByRole('separator', {
+        name: 'Resize the solution approach height',
+      });
+
+      expect(solutionWrapper).toHaveAttribute('data-height-mode', 'hug');
+
+      fireEvent.keyDown(solutionHandle, { key: 'ArrowDown' });
+
+      expect(storedLayout()?.panelHeights.solution).toBe(MIN_PANEL_HEIGHT_PX);
+      expect(solutionWrapper).toHaveAttribute('data-height-mode', 'pinned');
+      expect(solutionWrapper.style.height).toBe(`${MIN_PANEL_HEIGHT_PX}px`);
+      expect(solutionWrapper.style.overflowY).toBe('auto');
+      // Pinning the solution panel must not disturb the problem panel's slot.
+      expect(storedLayout()?.panelHeights.problem).toBeNull();
+
+      fireEvent.doubleClick(solutionHandle);
+
+      expect(storedLayout()?.panelHeights.solution).toBeNull();
+      expect(solutionWrapper).toHaveAttribute('data-height-mode', 'hug');
+      expect(solutionWrapper.style.overflowY).toBe('');
+    });
+
+    it('restores a pinned problem/solution height on mount from a stored v8 payload', () => {
+      seedLayout({
+        version: 8,
+        splitPercent: 70,
+        panelHeights: {
+          stage: null,
+          visualizer: null,
+          tutorial: null,
+          auxiliary: null,
+          code: null,
+          complexity: null,
+          problem: 180,
+          solution: 220,
+        },
+        problemExpanded: true,
+        solutionExpanded: true,
+      });
+
+      renderLayout();
+
+      const problemWrapper = screen.getByTestId('problem-description-card')
+        .parentElement as HTMLElement;
+      const solutionWrapper = screen.getByTestId('solution-approach-card')
+        .parentElement as HTMLElement;
+
+      expect(problemWrapper.style.height).toBe('180px');
+      expect(problemWrapper.style.overflowY).toBe('auto');
+      expect(solutionWrapper.style.height).toBe('220px');
+      expect(solutionWrapper.style.overflowY).toBe('auto');
+    });
+
     it('restores a pinned panel to automatic on double-click and persists that', () => {
       seedLayout({
-        version: 7,
+        version: 8,
         splitPercent: 70,
         panelHeights: {
           stage: null,
@@ -791,8 +956,11 @@ describe('MainLayout Component Spec', () => {
           auxiliary: null,
           code: 240,
           complexity: null,
+          problem: null,
+          solution: null,
         },
-        detailsExpanded: true,
+        problemExpanded: true,
+        solutionExpanded: true,
       });
       const { container } = renderLayout();
 
@@ -807,27 +975,31 @@ describe('MainLayout Component Spec', () => {
     });
   });
 
-  /* R6.5: whether the lesson is open is a manual adjustment like any drag, so it
-     lives under the same versioned key and survives a reload. */
+  /* R6.5, TASKS.md 9.6: whether each panel is open is a manual adjustment like
+     any drag, so it lives under the same versioned key and survives a reload —
+     and the two panels are independent of each other. */
   describe('persisted details state', () => {
-    const detailsExpandedAttr = (): string | null =>
-      screen.getByRole('main').getAttribute('data-details-expanded');
+    const problemExpandedAttr = (): string | null =>
+      screen.getByRole('main').getAttribute('data-problem-expanded');
+    const solutionExpandedAttr = (): string | null =>
+      screen.getByRole('main').getAttribute('data-solution-expanded');
 
-    it('persists a collapse to the v7 key without disturbing the geometry', () => {
+    it('persists a collapse to the v8 key without disturbing the geometry', () => {
       renderLayout();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
 
-      expect(detailsExpandedAttr()).toBe('false');
-      expect(storedLayout()?.detailsExpanded).toBe(false);
-      expect(storedLayout()?.version).toBe(7);
+      expect(problemExpandedAttr()).toBe('false');
+      expect(storedLayout()?.problemExpanded).toBe(false);
+      expect(storedLayout()?.solutionExpanded).toBe(true);
+      expect(storedLayout()?.version).toBe(8);
       expect(storedLayout()?.splitPercent).toBe(DEFAULT_WORKSPACE_LAYOUT.splitPercent);
       expect(storedLayout()?.panelHeights).toEqual(DEFAULT_WORKSPACE_LAYOUT.panelHeights);
     });
 
-    it('restores a collapsed details panel on mount, and reopening persists too', () => {
+    it('restores a collapsed problem panel on mount, and reopening persists too', () => {
       seedLayout({
-        version: 7,
+        version: 8,
         splitPercent: 55,
         panelHeights: {
           stage: null,
@@ -836,49 +1008,71 @@ describe('MainLayout Component Spec', () => {
           auxiliary: null,
           code: null,
           complexity: null,
+          problem: null,
+          solution: null,
         },
-        detailsExpanded: false,
+        problemExpanded: false,
+        solutionExpanded: true,
       });
 
       renderLayout();
 
-      expect(detailsExpandedAttr()).toBe('false');
+      expect(problemExpandedAttr()).toBe('false');
       expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
       expect(columnHandle()).toHaveAttribute('aria-valuenow', '55');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
 
-      expect(detailsExpandedAttr()).toBe('true');
-      expect(storedLayout()?.detailsExpanded).toBe(true);
+      expect(problemExpandedAttr()).toBe('true');
+      expect(storedLayout()?.problemExpanded).toBe(true);
       // Reopening must not drop the split the user dragged.
       expect(storedLayout()?.splitPercent).toBe(55);
     });
 
-    it('keeps the details state through a later geometry drag', () => {
+    it('keeps the problem panel state through a later geometry drag', () => {
       renderLayout();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Problem Details' }));
       fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
 
       expect(storedLayout()?.splitPercent).toBe(72);
-      expect(storedLayout()?.detailsExpanded).toBe(false);
-      expect(detailsExpandedAttr()).toBe('false');
+      expect(storedLayout()?.problemExpanded).toBe(false);
+      expect(problemExpandedAttr()).toBe('false');
     });
 
-    it('opens details when the stored payload is from an older schema', () => {
+    it('collapsing the solution panel never disturbs the problem panel, and vice versa', () => {
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Solution Details' }));
+
+      expect(solutionExpandedAttr()).toBe('false');
+      expect(problemExpandedAttr()).toBe('true');
+      expect(storedLayout()?.solutionExpanded).toBe(false);
+      expect(storedLayout()?.problemExpanded).toBe(true);
+    });
+
+    it('opens both panels when the stored payload is from an older schema', () => {
       localStorage.setItem(
         WORKSPACE_LAYOUT_KEY,
         JSON.stringify({
-          version: 6,
+          version: 7,
           splitPercent: 40,
-          panelHeights: { visualizer: null, code: null, complexity: 240 },
+          panelHeights: {
+            stage: null,
+            visualizer: null,
+            tutorial: null,
+            auxiliary: null,
+            code: null,
+            complexity: 240,
+          },
           detailsExpanded: false,
         }),
       );
 
       renderLayout();
 
-      expect(detailsExpandedAttr()).toBe('true');
+      expect(problemExpandedAttr()).toBe('true');
+      expect(solutionExpandedAttr()).toBe('true');
     });
   });
 
@@ -886,7 +1080,7 @@ describe('MainLayout Component Spec', () => {
      panel owns no dialog any more and re-reads on the announcement. */
   describe('reset announced from the navbar', () => {
     const customLayout: WorkspaceLayout = {
-      version: 7,
+      version: 8,
       splitPercent: 40,
       panelHeights: {
         stage: null,
@@ -895,8 +1089,11 @@ describe('MainLayout Component Spec', () => {
         auxiliary: null,
         code: 320,
         complexity: 240,
+        problem: null,
+        solution: null,
       },
-      detailsExpanded: false,
+      problemExpanded: false,
+      solutionExpanded: false,
     };
 
     it('renders no reset control and no confirm dialog of its own', () => {
@@ -912,7 +1109,8 @@ describe('MainLayout Component Spec', () => {
       const { container } = renderLayout();
 
       expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
-      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
+      expect(screen.getByRole('main')).toHaveAttribute('data-problem-expanded', 'false');
+      expect(screen.getByRole('main')).toHaveAttribute('data-solution-expanded', 'false');
 
       // Exactly what the navbar does on a confirmed reset.
       clearWorkspaceLayout();
@@ -923,7 +1121,8 @@ describe('MainLayout Component Spec', () => {
         'aria-valuenow',
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
-      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
+      expect(screen.getByRole('main')).toHaveAttribute('data-problem-expanded', 'true');
+      expect(screen.getByRole('main')).toHaveAttribute('data-solution-expanded', 'true');
       for (const id of ['code', 'complexity']) {
         expect(panelRow(container, id)).toHaveAttribute('data-height-mode', 'hug');
         expect((panelRow(container, id) as HTMLElement).style.height).toBe('');

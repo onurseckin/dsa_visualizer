@@ -21,7 +21,7 @@ export function CodeExplainToggle({ enabled, onToggle }: CodeExplainToggleProps)
   return (
     <IconButton
       icon={<Info />}
-      variant="ghost"
+      variant="secondary"
       size="sm"
       selected={enabled}
       title="Toggle line explanations (hover a line to preview)"

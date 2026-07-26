@@ -9,6 +9,9 @@ const config = (patch: Partial<TriviaConfig> = {}): TriviaConfig => ({
   ...patch,
 });
 
+// Deliberately uneven so min/max in "Deck lines: N–M" are never the same number.
+const DECK_LINE_COUNTS = [3, 5, 9];
+
 const slider = (label: RegExp): HTMLInputElement => {
   const input = screen.getByLabelText(label);
   return input as HTMLInputElement;
@@ -17,7 +20,13 @@ const slider = (label: RegExp): HTMLInputElement => {
 describe('TriviaSettings', () => {
   it('emits a mode patch from the segmented control and explains the mode', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ mode: 'choice' })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ mode: 'choice' })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     const choice = screen.getByRole('button', { name: 'Drag tiles' });
     expect(choice).toHaveAttribute('aria-pressed', 'true');
@@ -28,7 +37,13 @@ describe('TriviaSettings', () => {
   });
 
   it('explains the typing mode when it is the active one', () => {
-    render(<TriviaSettings config={config({ mode: 'type' })} onChange={vi.fn()} />);
+    render(
+      <TriviaSettings
+        config={config({ mode: 'type' })}
+        onChange={vi.fn()}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     expect(screen.getByRole('button', { name: 'Type from memory' })).toHaveAttribute(
       'aria-pressed',
@@ -39,7 +54,13 @@ describe('TriviaSettings', () => {
 
   it('does not re-emit the mode already selected', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ mode: 'choice' })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ mode: 'choice' })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Drag tiles' }));
     expect(onChange).not.toHaveBeenCalled();
@@ -47,7 +68,13 @@ describe('TriviaSettings', () => {
 
   it('emits a minBlanks patch alone while it stays under the ceiling', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ minBlanks: 1, maxBlanks: 4 })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 4 })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     fireEvent.change(slider(/starting blanks/i), { target: { value: '3' } });
     expect(onChange).toHaveBeenCalledWith({ minBlanks: 3 });
@@ -55,7 +82,13 @@ describe('TriviaSettings', () => {
 
   it('pushes the ceiling up when the floor is raised past it', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ minBlanks: 1, maxBlanks: 2 })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 2 })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     fireEvent.change(slider(/starting blanks/i), { target: { value: '5' } });
     expect(onChange).toHaveBeenCalledWith({ minBlanks: 5, maxBlanks: 5 });
@@ -63,7 +96,13 @@ describe('TriviaSettings', () => {
 
   it('never lets the ceiling drop below the floor', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ minBlanks: 3, maxBlanks: 5 })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 3, maxBlanks: 5 })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
     const max = slider(/hardest level/i);
     // The range itself refuses the invalid span, not only the handler.
@@ -76,9 +115,17 @@ describe('TriviaSettings', () => {
 
   it('keeps both blank counts inside the engine range', () => {
     const onChange = vi.fn();
-    render(<TriviaSettings config={config({ minBlanks: 2, maxBlanks: 4 })} onChange={onChange} />);
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 2, maxBlanks: 4 })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
 
-    fireEvent.change(slider(/hardest level/i), { target: { value: '99' } });
+    // Comfortably past the 100-wide range, so the range input's own clamp
+    // (not just the handler) is what pins the emitted value to the ceiling.
+    fireEvent.change(slider(/hardest level/i), { target: { value: String(MAX_BLANKS_CEILING + 500) } });
     expect(onChange).toHaveBeenLastCalledWith({ maxBlanks: MAX_BLANKS_CEILING });
 
     fireEvent.change(slider(/starting blanks/i), { target: { value: '0' } });
@@ -87,18 +134,32 @@ describe('TriviaSettings', () => {
 
   it('shows the configured span in the header', () => {
     const { rerender } = render(
-      <TriviaSettings config={config({ minBlanks: 2, maxBlanks: 5 })} onChange={vi.fn()} />,
+      <TriviaSettings
+        config={config({ minBlanks: 2, maxBlanks: 5 })}
+        onChange={vi.fn()}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
     );
     expect(screen.getByText('2–5 blanks')).toBeInTheDocument();
 
-    rerender(<TriviaSettings config={config({ minBlanks: 1, maxBlanks: 1 })} onChange={vi.fn()} />);
+    rerender(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 1 })}
+        onChange={vi.fn()}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
     expect(screen.getByText('1 blank')).toBeInTheDocument();
   });
 
   it('toggles distractors off and back on, reporting state through aria-pressed', () => {
     const onChange = vi.fn();
     const { rerender } = render(
-      <TriviaSettings config={config({ includeDistractors: true })} onChange={onChange} />,
+      <TriviaSettings
+        config={config({ includeDistractors: true })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
     );
 
     const on = screen.getByRole('button', { name: /distractors on/i });
@@ -106,7 +167,13 @@ describe('TriviaSettings', () => {
     fireEvent.click(on);
     expect(onChange).toHaveBeenCalledWith({ includeDistractors: false });
 
-    rerender(<TriviaSettings config={config({ includeDistractors: false })} onChange={onChange} />);
+    rerender(
+      <TriviaSettings
+        config={config({ includeDistractors: false })}
+        onChange={onChange}
+        deckLineCounts={DECK_LINE_COUNTS}
+      />,
+    );
     const off = screen.getByRole('button', { name: /distractors off/i });
     expect(off).not.toHaveClass('ui-btn--selected');
     fireEvent.click(off);
@@ -114,7 +181,9 @@ describe('TriviaSettings', () => {
   });
 
   it('explains every control in one line', () => {
-    render(<TriviaSettings config={config()} onChange={vi.fn()} />);
+    render(
+      <TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={DECK_LINE_COUNTS} />,
+    );
 
     expect(screen.getByText(/how many lines the first level hides/i)).toBeInTheDocument();
     expect(screen.getByText(/the drill finishes once every line has been drilled/i)).toBeInTheDocument();
@@ -122,10 +191,85 @@ describe('TriviaSettings', () => {
   });
 
   it('keeps the panel neutral with token colours and no raw hex', () => {
-    const { container } = render(<TriviaSettings config={config()} onChange={vi.fn()} />);
+    const { container } = render(
+      <TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={DECK_LINE_COUNTS} />,
+    );
 
     const card = container.querySelector<HTMLElement>('.ui-card');
     expect(card?.style.borderColor).toBe('var(--border-default)');
     expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+
+  it('surfaces the deck line-count range next to the hardest-level slider', () => {
+    render(<TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={[7, 2, 15]} />);
+
+    expect(screen.getByText('Deck lines: 2–15')).toBeInTheDocument();
+  });
+
+  it('falls back to a dash for the deck range when the deck is empty', () => {
+    render(<TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={[]} />);
+
+    expect(screen.getByText('Deck lines: —')).toBeInTheDocument();
+  });
+
+  it('warns when some deck algorithms have the hardest level or fewer lines, without blocking the slider', () => {
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 8 })}
+        onChange={vi.fn()}
+        deckLineCounts={[3, 8, 20]}
+      />,
+    );
+
+    // 3 (< 8) and 8 (== 8) both qualify: an algorithm with exactly as many
+    // blankable lines as the hardest level still gets every one of them
+    // hidden the moment the drill reaches that level — full-blank, not
+    // merely "short".
+    expect(
+      screen.getByText(
+        '2 of 3 questions in this deck have 8 lines or fewer and will be shown fully blank at this level.',
+      ),
+    ).toBeInTheDocument();
+    expect(slider(/hardest level/i)).not.toBeDisabled();
+  });
+
+  it('warns on the exact boundary: a question with precisely maxBlanks lines is fully blanked too', () => {
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 5 })}
+        onChange={vi.fn()}
+        deckLineCounts={[5, 12]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        '1 of 2 questions in this deck have 5 lines or fewer and will be shown fully blank at this level.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('omits the short-deck warning once every algorithm strictly exceeds the hardest level', () => {
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 3 })}
+        onChange={vi.fn()}
+        deckLineCounts={[4, 8, 20]}
+      />,
+    );
+
+    expect(screen.queryByText(/questions in this deck have .* lines or fewer/i)).not.toBeInTheDocument();
+  });
+
+  it('omits the short-deck warning when the deck is empty', () => {
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 3 })}
+        onChange={vi.fn()}
+        deckLineCounts={[]}
+      />,
+    );
+
+    expect(screen.queryByText(/questions in this deck have .* lines or fewer/i)).not.toBeInTheDocument();
   });
 });

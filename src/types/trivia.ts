@@ -93,7 +93,14 @@ export interface TriviaMeta {
   lineExplanations?: Record<number, string>;
 }
 
-export type TriviaSessionStatus = 'active' | 'paused' | 'completed';
+/* Round 3 session IA (TASKS.md 9.1): `status` never told a caller *which
+   screen* a session was left on, only a derived active/paused label — that
+   ambiguity is the root of "I still see Setup related to session one" after
+   Exit. `lastScreen` replaces it outright: it is the one durable fact "which
+   screen does Resume land on", vs. `activeSessionId` (page-level, not stored
+   per-session) which is the one durable fact "is any session even open right
+   now". Screen is always derived from the pair, never hand-set. */
+export type TriviaScreen = 'setup' | 'drill';
 
 export interface TriviaSessionRecord {
   id: string;
@@ -102,6 +109,7 @@ export interface TriviaSessionRecord {
   updatedAt: number;
   config: TriviaConfig;
   progress: TriviaProgress;
-  status: TriviaSessionStatus;
+  /** Which screen Resume returns to. Set on every exit, not just on entry. */
+  lastScreen: TriviaScreen;
 }
 

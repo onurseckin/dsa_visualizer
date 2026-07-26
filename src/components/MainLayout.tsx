@@ -7,7 +7,8 @@ import { TreeVisualizer } from './primitives/TreeVisualizer';
 import { AuxiliaryPanel, hasAuxiliaryContent } from './primitives/AuxiliaryPanel';
 import { TutorialCard, hasTutorialContent } from './primitives/TutorialCard';
 import { CodeBlockViewer } from './primitives/CodeBlockViewer';
-import { ProblemHeader } from './primitives/ProblemHeader';
+import { ProblemDescriptionCard } from './primitives/ProblemDescriptionCard';
+import { SolutionApproachCard } from './primitives/SolutionApproachCard';
 import { ComplexityCard } from './ComplexityCard';
 import { ControlPanel, ControlPanelProps } from './ControlPanel';
 import {
@@ -133,9 +134,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   /* Every manual adjustment — the column split, each pinned height and whether
-     the details panel is open — lives in this one persisted record (R6.5). */
+     the problem/solution panels are open — lives in this one persisted record
+     (R6.5). The two panels are independently expandable (TASKS.md 9.6). */
   const [layout, setLayout] = React.useState<WorkspaceLayout>(() => readWorkspaceLayout());
-  const detailsExpanded = layout.detailsExpanded;
+  const problemExpanded = layout.problemExpanded;
+  const solutionExpanded = layout.solutionExpanded;
 
   /* Drag handlers fire from window listeners, so they read the newest layout
      from a ref rather than closing over a stale render's state. */
@@ -151,8 +154,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     return () => window.removeEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
   }, []);
 
-  const handleToggleDetails = React.useCallback(() => {
-    setLayout(writeWorkspaceLayout({ detailsExpanded: !layoutRef.current.detailsExpanded }));
+  const handleToggleProblemExpanded = React.useCallback(() => {
+    setLayout(writeWorkspaceLayout({ problemExpanded: !layoutRef.current.problemExpanded }));
+  }, []);
+
+  const handleToggleSolutionExpanded = React.useCallback(() => {
+    setLayout(writeWorkspaceLayout({ solutionExpanded: !layoutRef.current.solutionExpanded }));
   }, []);
 
   const handleSplitChange = React.useCallback((percent: number) => {
@@ -236,6 +243,72 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   }, [applyPanelHeights]);
 
   usePointerDrag(stageDragging, dragStageTo, endStageDrag);
+
+  /* Problem/solution height: same standalone pinned-height pattern as the stage
+     above (R6.5, TASKS.md 9.6) — the schema already carried these two slots, but
+     nothing read or wrote them, so neither panel could actually be resized or
+     scroll-clipped at a pinned height. Automatic (null) still just hugs content. */
+  const problemRef = React.useRef<HTMLDivElement | null>(null);
+  const [problemDragging, setProblemDragging] = React.useState(false);
+  const problemPinned = layout.panelHeights.problem;
+
+  const nudgeProblem = React.useCallback(
+    (delta: number) => {
+      const current =
+        layoutRef.current.panelHeights.problem ??
+        problemRef.current?.getBoundingClientRect().height ??
+        0;
+      applyPanelHeights({ problem: current + delta }, true);
+    },
+    [applyPanelHeights],
+  );
+
+  const dragProblemTo = React.useCallback(
+    (_x: number, y: number) => {
+      const top = problemRef.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      applyPanelHeights({ problem: y - top }, false);
+    },
+    [applyPanelHeights],
+  );
+
+  const endProblemDrag = React.useCallback(() => {
+    setProblemDragging(false);
+    applyPanelHeights({ problem: layoutRef.current.panelHeights.problem }, true);
+  }, [applyPanelHeights]);
+
+  usePointerDrag(problemDragging, dragProblemTo, endProblemDrag);
+
+  const solutionRef = React.useRef<HTMLDivElement | null>(null);
+  const [solutionDragging, setSolutionDragging] = React.useState(false);
+  const solutionPinned = layout.panelHeights.solution;
+
+  const nudgeSolution = React.useCallback(
+    (delta: number) => {
+      const current =
+        layoutRef.current.panelHeights.solution ??
+        solutionRef.current?.getBoundingClientRect().height ??
+        0;
+      applyPanelHeights({ solution: current + delta }, true);
+    },
+    [applyPanelHeights],
+  );
+
+  const dragSolutionTo = React.useCallback(
+    (_x: number, y: number) => {
+      const top = solutionRef.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      applyPanelHeights({ solution: y - top }, false);
+    },
+    [applyPanelHeights],
+  );
+
+  const endSolutionDrag = React.useCallback(() => {
+    setSolutionDragging(false);
+    applyPanelHeights({ solution: layoutRef.current.panelHeights.solution }, true);
+  }, [applyPanelHeights]);
+
+  usePointerDrag(solutionDragging, dragSolutionTo, endSolutionDrag);
 
   const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
   const showAuxiliary =
@@ -423,7 +496,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <main
-      data-details-expanded={detailsExpanded ? 'true' : 'false'}
+      data-problem-expanded={problemExpanded ? 'true' : 'false'}
+      data-solution-expanded={solutionExpanded ? 'true' : 'false'}
       style={{
         flex: 1,
         minHeight: 0,
@@ -432,24 +506,48 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         gap: 'var(--space-3)',
         padding: 'var(--space-3) var(--space-4)',
         boxSizing: 'border-box',
-        // Page scrolling is never blocked, whatever the details panel is doing.
+        // Page scrolling is never blocked, whatever the problem/solution panels are doing.
         overflowY: 'auto',
         overflowX: 'hidden',
       }}
     >
-      <div style={{ flexShrink: 0 }}>
-        <ProblemHeader
+      <div
+        ref={problemRef}
+        data-height-mode={problemPinned !== null ? 'pinned' : 'hug'}
+        style={{
+          flexShrink: 0,
+          height: problemPinned !== null ? `${problemPinned}px` : undefined,
+          overflowY: problemPinned !== null ? 'auto' : undefined,
+        }}
+      >
+        <ProblemDescriptionCard
           title={algorithm.title}
           category={algorithm.category}
           difficulty={algorithm.difficulty}
           description={algorithm.description}
           constraints={algorithm.constraints}
           examples={algorithm.examples}
-          topicGuide={algorithm.topicGuide}
-          expanded={detailsExpanded}
-          onToggleExpanded={handleToggleDetails}
+          expanded={problemExpanded}
+          onToggleExpanded={handleToggleProblemExpanded}
         />
       </div>
+
+      {/* Standalone handle mirroring the stage's own (R7.4): the problem panel is
+          a single full-width section, not a row inside ResizableRows, so it gets
+          a height control the same direct way the stage does. */}
+      <DragHandle
+        orientation="horizontal"
+        label="Resize the problem description height"
+        valueNow={problemPinned ?? 0}
+        valueMin={MIN_PANEL_HEIGHT_PX}
+        valueMax={MAX_PANEL_HEIGHT_PX}
+        valueText={problemPinned === null ? 'Automatic, sized to its content' : undefined}
+        step={16}
+        dragging={problemDragging}
+        onDragStart={() => setProblemDragging(true)}
+        onNudge={nudgeProblem}
+        onRestoreDefault={() => applyPanelHeights({ problem: null }, true)}
+      />
 
       <div
         ref={stageRef}
@@ -536,6 +634,44 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           <ControlPanel {...resolvedControlProps} variant="standalone" />
         </div>
       )}
+
+      {/* Last in main's vertical flow, below every other section (TASKS.md 9.6):
+          the deep topic lesson is not the problem statement above the stage, so
+          it earns its own place at the very bottom, still inside main's
+          overflowY:auto so the whole page scrolls rather than clipping it. */}
+      <div style={{ flexShrink: 0 }}>
+        <div
+          ref={solutionRef}
+          data-height-mode={solutionPinned !== null ? 'pinned' : 'hug'}
+          style={{
+            height: solutionPinned !== null ? `${solutionPinned}px` : undefined,
+            overflowY: solutionPinned !== null ? 'auto' : undefined,
+          }}
+        >
+          <SolutionApproachCard
+            topicGuide={algorithm.topicGuide}
+            expanded={solutionExpanded}
+            onToggleExpanded={handleToggleSolutionExpanded}
+          />
+        </div>
+
+        {/* Nested in the same wrapper (not a sibling) so this remains main's last
+            child: the solution panel stays literally below every other section
+            (TASKS.md 9.6) while still getting its own standalone height handle. */}
+        <DragHandle
+          orientation="horizontal"
+          label="Resize the solution approach height"
+          valueNow={solutionPinned ?? 0}
+          valueMin={MIN_PANEL_HEIGHT_PX}
+          valueMax={MAX_PANEL_HEIGHT_PX}
+          valueText={solutionPinned === null ? 'Automatic, sized to its content' : undefined}
+          step={16}
+          dragging={solutionDragging}
+          onDragStart={() => setSolutionDragging(true)}
+          onNudge={nudgeSolution}
+          onRestoreDefault={() => applyPanelHeights({ solution: null }, true)}
+        />
+      </div>
     </main>
   );
 };

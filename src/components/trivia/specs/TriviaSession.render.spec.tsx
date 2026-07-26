@@ -21,7 +21,11 @@ const ANSWER_5 = 'return [seen[target - n], i]';
 const DECOY = 'seen[n] = i';
 
 /* Hand-built rather than picked, so the tray contents and ids are fixed: the
-   engine's shuffling is its own spec's problem, not this component's. */
+   engine's shuffling is its own spec's problem, not this component's.
+   algorithmId is a real registry id ('two-sum') on purpose — TriviaSession
+   now also renders that algorithm's ProblemDescriptionCard above the puzzle
+   (TASKS.md 9.7), so this proves the real getAlgorithm lookup wires through,
+   not a stub. */
 const choiceRound = (blanks: number[] = [2, 5]): TriviaRound => ({
   algorithmId: 'two-sum',
   level: blanks.length,
@@ -47,7 +51,8 @@ const setup = (
   round: TriviaRound,
   mode: TriviaMode = 'choice',
   extra: {
-    onExitToSetup?: () => void;
+    onEditSettings?: () => void;
+    onBackToHome?: () => void;
     onStudyInWorkspace?: (algorithmId?: string) => void;
     hints?: TriviaMeta['hints'];
   } = {},
@@ -63,7 +68,8 @@ const setup = (
       coverage={43}
       onSubmit={onSubmit}
       onNext={onNext}
-      onExitToSetup={extra.onExitToSetup}
+      onEditSettings={extra.onEditSettings}
+      onBackToHome={extra.onBackToHome}
       onStudyInWorkspace={extra.onStudyInWorkspace}
       hints={extra.hints}
     />,
@@ -78,9 +84,13 @@ const placedTile = (text: string): HTMLElement =>
   screen.getByRole('button', { name: `Tile ${text} (placed)` });
 const field = (line: number): HTMLElement =>
   screen.getByRole('textbox', { name: new RegExp(`^Line ${line} `) });
-const checkButton = (): HTMLElement => screen.getByRole('button', { name: /^Check answer/i });
-const nextButton = (): HTMLElement => screen.getByRole('button', { name: /^(Next round|Try again)/i });
-const retryButton = (): HTMLElement => screen.getByRole('button', { name: /^Retry/i });
+const checkButton = (): HTMLElement => screen.getByRole('button', { name: /^Check answers/ });
+const nextButton = (): HTMLElement => screen.getByRole('button', { name: /^Next round/ });
+const retryButton = (): HTMLElement => screen.getByRole('button', { name: /^Retry/ });
+/** The round's own <h2> title — disambiguated from ProblemDescriptionCard's
+    own <h1> "Two Sum" above the puzzle, which shares the same accessible
+    name. */
+const roundHeading = (): HTMLElement => screen.getByRole('heading', { level: 2, name: 'Two Sum' });
 
 /** A dataTransfer stub that actually carries its payload between the two events. */
 const makeTransfer = () => {
@@ -106,7 +116,7 @@ describe('TriviaSession Component Spec', () => {
   it('names the algorithm, states the level and explains the mode', () => {
     setup(choiceRound());
 
-    expect(screen.getByRole('heading', { name: 'Two Sum' })).toBeInTheDocument();
+    expect(roundHeading()).toBeInTheDocument();
     expect(screen.getByText('Hiding 2 lines')).toBeInTheDocument();
     expect(screen.getByText(/Drag the matching line into each blank/i)).toBeInTheDocument();
     expect(screen.getByText('Tiles')).toBeInTheDocument();
@@ -117,26 +127,48 @@ describe('TriviaSession Component Spec', () => {
     expect(screen.getByText('Hiding 1 line')).toBeInTheDocument();
   });
 
-  it('shows a single trailing "Level N · X% covered" line, replacing the setup badge row', () => {
+  it('shows the trailing "Level N · X% covered" line instead of a badge row', () => {
     setup(choiceRound());
     expect(screen.getByText('Level 2 · 43% covered')).toBeInTheDocument();
   });
 
-  it('renders no exit control when onExitToSetup is not provided', () => {
+  it('renders the drilled algorithm\'s problem description above the puzzle, expanded by default', () => {
     setup(choiceRound());
-    expect(
-      screen.queryByRole('button', { name: 'Exit to setup' }),
-    ).not.toBeInTheDocument();
+
+    // ProblemDescriptionCard's own header strip, distinct from the round's h2.
+    expect(screen.getByRole('heading', { level: 1, name: 'Two Sum' })).toBeInTheDocument();
+    expect(screen.getByTestId('problem-description-details')).toBeInTheDocument();
   });
 
-  it('renders "Exit to setup" (not "Pause") and fires the handler on click', () => {
-    const onExitToSetup = vi.fn();
-    setup(choiceRound(), 'choice', { onExitToSetup });
-
+  it('renders neither "Edit deck & settings" nor "Back to Trivia Home" when no handler is given', () => {
+    setup(choiceRound());
+    expect(screen.queryByRole('button', { name: 'Edit deck & settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to Trivia Home' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Exit to setup' })).not.toBeInTheDocument();
     expect(screen.queryByText(/pause/i)).not.toBeInTheDocument();
-    const exitBtn = screen.getByRole('button', { name: 'Exit to setup' });
-    fireEvent.click(exitBtn);
-    expect(onExitToSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires onEditSettings and onBackToHome as two separate, never-shared handlers (TASKS.md 9.1)', () => {
+    const onEditSettings = vi.fn();
+    const onBackToHome = vi.fn();
+    setup(choiceRound(), 'choice', { onEditSettings, onBackToHome });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit deck & settings' }));
+    expect(onEditSettings).toHaveBeenCalledTimes(1);
+    expect(onBackToHome).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    expect(onBackToHome).toHaveBeenCalledTimes(1);
+    expect(onEditSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('never renders a ghost-variant button anywhere on the drill screen (9.5)', () => {
+    setup(choiceRound(), 'choice', { onEditSettings: vi.fn(), onBackToHome: vi.fn() });
+    place(ANSWER_2, 2);
+
+    screen.getAllByRole('button').forEach((button) => {
+      expect(button.className).not.toMatch(/ui-btn--ghost/);
+    });
   });
 
   it('fills the next empty blank directly on a plain tile click — no second click on a slot required', () => {
@@ -257,11 +289,11 @@ describe('TriviaSession Component Spec', () => {
     expect(slot(2).style.borderColor).toBe('var(--success)');
     expect(slot(5).style.borderColor).toBe('var(--danger)');
     expect(screen.getByTestId('expected-5')).toHaveTextContent(ANSWER_5);
-    expect(screen.getByText(/1 of 2 correct/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
 
-    // A graded round replaces Check with Next/Try again — it does not just
-    // disable Check in place — and locks the board and the tray.
-    expect(screen.queryByRole('button', { name: /^Check answer/i })).not.toBeInTheDocument();
+    // A graded round replaces Check with Next round — it is not merely
+    // disabled in place — and locks the board and the tray.
+    expect(screen.queryByRole('button', { name: /^Check answers/ })).not.toBeInTheDocument();
     expect(slot(2)).toBeDisabled();
     expect(placedTile(DECOY)).toBeDisabled();
     expect(tile('return seen')).toBeDisabled();
@@ -287,7 +319,7 @@ describe('TriviaSession Component Spec', () => {
     fireEvent.click(checkButton());
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: `  ${ANSWER_2}  `, 5: `\t${ANSWER_5}` });
-    expect(screen.getByText(/2 of 2 correct/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 of 2 correct/)).toBeInTheDocument();
     expect(slot(2).style.borderColor).toBe('var(--success)');
     expect(slot(5).style.borderColor).toBe('var(--success)');
   });
@@ -305,9 +337,7 @@ describe('TriviaSession Component Spec', () => {
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: ANSWER_2, 5: '' });
     expect(slot(5)).toHaveAttribute('data-state', 'incorrect');
-    expect(screen.getByText(/1 of 2 correct/i)).toBeInTheDocument();
-    // The slot's own accessible name is what actually tells you the blank was
-    // revealed rather than answered — there is no separate legend copy.
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
     expect(slot(5)).toHaveAttribute(
       'aria-label',
       expect.stringMatching(/revealed, not credited/i),
@@ -317,7 +347,7 @@ describe('TriviaSession Component Spec', () => {
   it('advances only once the round has been graded', () => {
     const { onNext } = setup(choiceRound());
 
-    expect(screen.queryByRole('button', { name: /^(Next round|Try again)/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Next round/ })).not.toBeInTheDocument();
     expect(onNext).not.toHaveBeenCalled();
 
     place(ANSWER_2, 2);
@@ -350,7 +380,7 @@ describe('TriviaSession Component Spec', () => {
     fireEvent.click(checkButton());
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: ANSWER_2, 5: ANSWER_5 });
-    expect(screen.getByText(/All correct/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 of 2 correct/)).toBeInTheDocument();
   });
 
   it('never lets one tile occupy two slots', () => {
@@ -382,7 +412,7 @@ describe('TriviaSession Component Spec', () => {
     place(ANSWER_2, 2);
     fireEvent.click(screen.getByRole('button', { name: 'Reveal line 5' }));
     fireEvent.click(checkButton());
-    expect(screen.getByText(/1 of 2 correct/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
 
     view.rerender(
       <TriviaSession
@@ -403,7 +433,7 @@ describe('TriviaSession Component Spec', () => {
     expect(screen.getByText('4 left')).toBeInTheDocument();
   });
 
-  it('marks the current shortcut-target blank so ⌘E/⌘H are discoverable near the row they act on', () => {
+  it('marks the current shortcut-target blank so ⌘E/⌘I are discoverable directly on the Eye/Hint buttons themselves', () => {
     setup(choiceRound());
     expect(screen.getByTestId('shortcut-target-2')).toBeInTheDocument();
     expect(screen.queryByTestId('shortcut-target-5')).not.toBeInTheDocument();

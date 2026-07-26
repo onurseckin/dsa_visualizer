@@ -24,7 +24,7 @@ const seed = (value: TestPayload): void => {
 };
 
 const customLayout: WorkspaceLayout = {
-  version: 7,
+  version: 8,
   splitPercent: 42,
   panelHeights: {
     stage: null,
@@ -33,8 +33,11 @@ const customLayout: WorkspaceLayout = {
     auxiliary: null,
     code: 180,
     complexity: 240,
+    problem: null,
+    solution: null,
   },
-  detailsExpanded: false,
+  problemExpanded: false,
+  solutionExpanded: false,
 };
 
 afterEach(() => {
@@ -43,15 +46,15 @@ afterEach(() => {
 });
 
 describe('workspaceLayout persistence contract', () => {
-  it('uses the v7 versioned localStorage key', () => {
-    expect(WORKSPACE_LAYOUT_KEY).toBe('dsa_visualizer_workspace_layout_v7');
-    expect(WORKSPACE_LAYOUT_VERSION).toBe(7);
-    expect(DEFAULT_WORKSPACE_LAYOUT.version).toBe(7);
+  it('uses the v8 versioned localStorage key', () => {
+    expect(WORKSPACE_LAYOUT_KEY).toBe('dsa_visualizer_workspace_layout_v8');
+    expect(WORKSPACE_LAYOUT_VERSION).toBe(8);
+    expect(DEFAULT_WORKSPACE_LAYOUT.version).toBe(8);
   });
 
-  /* v7: every workspace section carries a height handle, not just a width one —
-     the tutorial and working-data strips are resizable rows again and `stage`
-     pins the whole stage. Each one starts automatic. */
+  /* v8: ProblemHeader split into ProblemDescriptionCard and SolutionApproachCard
+     (TASKS.md 9.6), so `problem` and `solution` join every other section's height
+     slot. Each one starts automatic. */
   it('keeps a height slot for every resizable section, all automatic by default', () => {
     expect(DEFAULT_WORKSPACE_LAYOUT.panelHeights).toEqual({
       stage: null,
@@ -60,6 +63,8 @@ describe('workspaceLayout persistence contract', () => {
       auxiliary: null,
       code: null,
       complexity: null,
+      problem: null,
+      solution: null,
     });
     expect(WORKSPACE_PANEL_KEYS).toEqual([
       'stage',
@@ -68,6 +73,8 @@ describe('workspaceLayout persistence contract', () => {
       'auxiliary',
       'code',
       'complexity',
+      'problem',
+      'solution',
     ]);
   });
 
@@ -75,22 +82,31 @@ describe('workspaceLayout persistence contract', () => {
     expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
   });
 
-  it('opens the details panel by default', () => {
-    expect(DEFAULT_WORKSPACE_LAYOUT.detailsExpanded).toBe(true);
-    expect(readWorkspaceLayout().detailsExpanded).toBe(true);
+  it('opens both the problem and solution panels by default', () => {
+    expect(DEFAULT_WORKSPACE_LAYOUT.problemExpanded).toBe(true);
+    expect(DEFAULT_WORKSPACE_LAYOUT.solutionExpanded).toBe(true);
+    expect(readWorkspaceLayout().problemExpanded).toBe(true);
+    expect(readWorkspaceLayout().solutionExpanded).toBe(true);
   });
 
   it('returns defaults when nothing is stored', () => {
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  it('ignores a payload left behind by the v6 key', () => {
+  it('ignores a payload left behind by the v7 key', () => {
     localStorage.setItem(
-      'dsa_visualizer_workspace_layout_v6',
+      'dsa_visualizer_workspace_layout_v7',
       JSON.stringify({
-        version: 6,
+        version: 7,
         splitPercent: 40,
-        panelHeights: { visualizer: null, code: null, complexity: 240 },
+        panelHeights: {
+          stage: null,
+          visualizer: null,
+          tutorial: null,
+          auxiliary: null,
+          code: null,
+          complexity: 240,
+        },
         detailsExpanded: false,
       }),
     );
@@ -98,37 +114,63 @@ describe('workspaceLayout persistence contract', () => {
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  it('ignores a v6-shaped payload written under the v7 key', () => {
-    seed({
-      version: 6,
-      splitPercent: 40,
-      panelHeights: { visualizer: null, code: null, complexity: 240 },
-      detailsExpanded: false,
-    });
-
-    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
-  });
-
-  /* A v7 payload that predates one of the new row slots is a partial shape, not a
-     usable layout: the missing key would read back as undefined. */
-  it('ignores a v7-versioned payload that predates the tutorial and auxiliary slots', () => {
+  it('ignores a v7-shaped payload written under the v8 key', () => {
     seed({
       version: 7,
       splitPercent: 40,
-      panelHeights: { stage: null, visualizer: null, code: null, complexity: 240 },
+      panelHeights: {
+        stage: null,
+        visualizer: null,
+        tutorial: null,
+        auxiliary: null,
+        code: null,
+        complexity: 240,
+      },
       detailsExpanded: false,
     });
 
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  it('ignores a v7-versioned payload that predates detailsExpanded', () => {
-    seed({ version: 7, splitPercent: 40, panelHeights: customLayout.panelHeights });
+  /* A v8 payload that predates the problem/solution slots is a partial shape,
+     not a usable layout: the missing keys would read back as undefined. */
+  it('ignores a v8-versioned payload that predates the problem and solution height slots', () => {
+    seed({
+      version: 8,
+      splitPercent: 40,
+      panelHeights: {
+        stage: null,
+        visualizer: null,
+        tutorial: null,
+        auxiliary: null,
+        code: null,
+        complexity: 240,
+      },
+      problemExpanded: true,
+      solutionExpanded: true,
+    });
 
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  it('ignores an old weight-shaped payload written under the v7 key', () => {
+  it('ignores a v8-versioned payload that predates problemExpanded and solutionExpanded', () => {
+    seed({ version: 8, splitPercent: 40, panelHeights: customLayout.panelHeights });
+
+    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  });
+
+  it('ignores a v8-versioned payload that predates solutionExpanded only', () => {
+    seed({
+      version: 8,
+      splitPercent: 40,
+      panelHeights: customLayout.panelHeights,
+      problemExpanded: true,
+    });
+
+    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  });
+
+  it('ignores an old weight-shaped payload written under the v8 key', () => {
     seed({
       version: 3,
       splitPercent: 40,
@@ -143,11 +185,13 @@ describe('workspaceLayout persistence contract', () => {
     const first = readWorkspaceLayout();
     first.splitPercent = 11;
     first.panelHeights.code = 999;
-    first.detailsExpanded = false;
+    first.problemExpanded = false;
+    first.solutionExpanded = false;
 
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
     expect(DEFAULT_WORKSPACE_LAYOUT.panelHeights.code).toBeNull();
-    expect(DEFAULT_WORKSPACE_LAYOUT.detailsExpanded).toBe(true);
+    expect(DEFAULT_WORKSPACE_LAYOUT.problemExpanded).toBe(true);
+    expect(DEFAULT_WORKSPACE_LAYOUT.solutionExpanded).toBe(true);
   });
 
   it('restores a previously written layout across a fresh read (reload / dev-server restart)', () => {
@@ -157,27 +201,37 @@ describe('workspaceLayout persistence contract', () => {
     expect(readWorkspaceLayout()).toEqual(customLayout);
   });
 
-  it('round-trips a collapsed details panel and reopening it', () => {
-    expect(writeWorkspaceLayout({ detailsExpanded: false }).detailsExpanded).toBe(false);
-    expect(readWorkspaceLayout().detailsExpanded).toBe(false);
+  it('round-trips a collapsed problem panel and reopening it', () => {
+    expect(writeWorkspaceLayout({ problemExpanded: false }).problemExpanded).toBe(false);
+    expect(readWorkspaceLayout().problemExpanded).toBe(false);
 
-    expect(writeWorkspaceLayout({ detailsExpanded: true }).detailsExpanded).toBe(true);
-    expect(readWorkspaceLayout().detailsExpanded).toBe(true);
+    expect(writeWorkspaceLayout({ problemExpanded: true }).problemExpanded).toBe(true);
+    expect(readWorkspaceLayout().problemExpanded).toBe(true);
   });
 
-  it('keeps the details state when a later patch only touches geometry', () => {
-    writeWorkspaceLayout({ detailsExpanded: false });
+  it('round-trips a collapsed solution panel independently of the problem panel', () => {
+    expect(writeWorkspaceLayout({ solutionExpanded: false }).solutionExpanded).toBe(false);
+    expect(readWorkspaceLayout().problemExpanded).toBe(true);
+
+    expect(writeWorkspaceLayout({ solutionExpanded: true }).solutionExpanded).toBe(true);
+    expect(readWorkspaceLayout().solutionExpanded).toBe(true);
+  });
+
+  it('keeps both expansion flags when a later patch only touches geometry', () => {
+    writeWorkspaceLayout({ problemExpanded: false, solutionExpanded: false });
 
     const merged = writeWorkspaceLayout({ splitPercent: 55, panelHeights: { code: 200 } });
 
-    expect(merged.detailsExpanded).toBe(false);
-    expect(readWorkspaceLayout().detailsExpanded).toBe(false);
+    expect(merged.problemExpanded).toBe(false);
+    expect(merged.solutionExpanded).toBe(false);
+    expect(readWorkspaceLayout().problemExpanded).toBe(false);
+    expect(readWorkspaceLayout().solutionExpanded).toBe(false);
   });
 
-  it('keeps the geometry when a later patch only toggles details', () => {
+  it('keeps the geometry when a later patch only toggles the panels', () => {
     writeWorkspaceLayout(customLayout);
 
-    const merged = writeWorkspaceLayout({ detailsExpanded: true });
+    const merged = writeWorkspaceLayout({ problemExpanded: true, solutionExpanded: true });
 
     expect(merged.splitPercent).toBe(customLayout.splitPercent);
     expect(merged.panelHeights).toEqual(customLayout.panelHeights);
@@ -203,21 +257,33 @@ describe('workspaceLayout persistence contract', () => {
       auxiliary: null,
       code: 150,
       complexity: null,
+      problem: null,
+      solution: null,
     });
   });
 
-  it('pins a step row without disturbing the stage or the code column', () => {
-    const merged = writeWorkspaceLayout({ panelHeights: { tutorial: 120 } });
+  it('pins the problem panel height without disturbing the stage or the code column', () => {
+    const merged = writeWorkspaceLayout({ panelHeights: { problem: 120 } });
 
     expect(merged.panelHeights).toEqual({
       stage: null,
       visualizer: null,
-      tutorial: 120,
+      tutorial: null,
       auxiliary: null,
       code: null,
       complexity: null,
+      problem: 120,
+      solution: null,
     });
-    expect(readWorkspaceLayout().panelHeights.tutorial).toBe(120);
+    expect(readWorkspaceLayout().panelHeights.problem).toBe(120);
+  });
+
+  it('pins the solution panel height without disturbing the problem panel', () => {
+    const merged = writeWorkspaceLayout({ panelHeights: { solution: 300 } });
+
+    expect(merged.panelHeights.solution).toBe(300);
+    expect(merged.panelHeights.problem).toBeNull();
+    expect(readWorkspaceLayout().panelHeights.solution).toBe(300);
   });
 
   it('treats an explicit null as "back to automatic" and an absent key as "unchanged"', () => {
@@ -262,7 +328,12 @@ describe('workspaceLayout persistence contract', () => {
     ['a non-object payload', 42],
     [
       'a missing splitPercent',
-      { version: 7, panelHeights: customLayout.panelHeights, detailsExpanded: true },
+      {
+        version: 8,
+        panelHeights: customLayout.panelHeights,
+        problemExpanded: true,
+        solutionExpanded: true,
+      },
     ],
     ['a null panelHeights group', { ...customLayout, panelHeights: null }],
     ['an array panelHeights group', { ...customLayout, panelHeights: [180, 240] }],
@@ -289,11 +360,15 @@ describe('workspaceLayout persistence contract', () => {
           tutorial: null,
           auxiliary: null,
           code: 180,
+          problem: null,
+          solution: null,
         },
       },
     ],
-    ['a string detailsExpanded', { ...customLayout, detailsExpanded: 'true' }],
-    ['a null detailsExpanded', { ...customLayout, detailsExpanded: null }],
+    ['a string problemExpanded', { ...customLayout, problemExpanded: 'true' }],
+    ['a null problemExpanded', { ...customLayout, problemExpanded: null }],
+    ['a string solutionExpanded', { ...customLayout, solutionExpanded: 'true' }],
+    ['a null solutionExpanded', { ...customLayout, solutionExpanded: null }],
   ];
 
   it.each(invalidPayloads)('falls back to defaults for %s', (_label, payload) => {
@@ -303,7 +378,7 @@ describe('workspaceLayout persistence contract', () => {
 
   it('drops unknown keys found in storage', () => {
     /* `band` is a slot a hand-edited or future payload might carry; it is not one
-       of the six the app renders, so it must not survive the read. */
+       of the eight the app renders, so it must not survive the read. */
     seed({
       ...customLayout,
       rogue: 'value',
@@ -314,8 +389,9 @@ describe('workspaceLayout persistence contract', () => {
 
     expect(layout).toEqual(customLayout);
     expect(Object.keys(layout).sort()).toEqual([
-      'detailsExpanded',
       'panelHeights',
+      'problemExpanded',
+      'solutionExpanded',
       'splitPercent',
       'version',
     ]);
@@ -323,6 +399,8 @@ describe('workspaceLayout persistence contract', () => {
       'auxiliary',
       'code',
       'complexity',
+      'problem',
+      'solution',
       'stage',
       'tutorial',
       'visualizer',
@@ -369,10 +447,12 @@ describe('workspaceLayout persistence contract', () => {
   it('clones deeply so nested panel heights are not shared', () => {
     const copy = cloneWorkspaceLayout(customLayout);
     copy.panelHeights.code = 1;
-    copy.detailsExpanded = true;
+    copy.problemExpanded = true;
+    copy.solutionExpanded = true;
 
     expect(customLayout.panelHeights.code).toBe(180);
-    expect(customLayout.detailsExpanded).toBe(false);
+    expect(customLayout.problemExpanded).toBe(false);
+    expect(customLayout.solutionExpanded).toBe(false);
   });
 
   describe('reset announced to the workspace', () => {

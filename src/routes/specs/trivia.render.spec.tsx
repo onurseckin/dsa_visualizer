@@ -3,23 +3,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router';
 import { routeTree } from '../../routeTree.gen';
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../../types/trivia';
-import { TRIVIA_CONFIG_KEY, TRIVIA_PROGRESS_KEY, writeTriviaConfig } from '../../trivia/triviaStorage';
 import {
-  TRIVIA_SESSIONS_KEY,
   createSession,
   readActiveSessionId,
   readTriviaSessions,
+  updateSession,
+  writeActiveSessionId,
 } from '../../trivia/triviaSessions';
-import { blankableLines, parsePuzzleLines } from '../../trivia/triviaEngine';
+import { blankableLines, createProgress, parsePuzzleLines } from '../../trivia/triviaEngine';
+import { MIN_PANEL_HEIGHT_PX, TRIVIA_LAYOUT_KEY } from '../../trivia/triviaLayout';
 import { ALGORITHM_REGISTRY } from '../../algorithms/registry';
 
-/* Route-level integration for /trivia (DESIGN.md R8.4).
+/* Route-level integration for /trivia (DESIGN.md R8.4, TASKS.md 9.1).
 
    Driven through a real router over the generated route tree rather than by
-   rendering the page component directly: createFileRoute only produces a usable
-   component once it is mounted by a router, and the route is the thing under
-   test — the deck/settings/session composition and the storage round-trip that
-   nothing else in the tree performs. */
+   rendering the page component directly: createFileRoute only produces a
+   usable component once it is mounted by a router, and the route is the
+   thing under test — the Home/Setup/Drill composition and the storage
+   round-trip that nothing else in the tree performs.
+
+   Round-3 IA (TASKS.md 9.1): the page now has a real third screen — Home —
+   derived purely from `activeSessionId` (null = Home). These tests exercise
+   the exact enter/exit/resume scenarios the design spec calls out, most
+   pointedly the user's own repeated complaint: exiting a session must land
+   somewhere that is not "editing session N", and that has to survive a
+   reload, not just an in-memory navigate. */
 
 const DECK: TriviaConfig = {
   deck: ['bubble-sort'],
@@ -29,35 +37,6 @@ const DECK: TriviaConfig = {
   includeDistractors: false,
 };
 
-const renderTriviaRoute = async () => {
-  const router = createRouter({
-    routeTree,
-    history: createMemoryHistory({ initialEntries: ['/trivia'] }),
-  });
-  const view = render(<RouterProvider router={router} />);
-  // Route components are code-split, so the first paint is the router's pending
-  // state; the "Sessions" trigger in the slim top bar is the one element every
-  // trivia view renders, in both setup and drill mode.
-  await screen.findByRole('button', { name: /^Sessions/ });
-  return view;
-};
-
-const revealButtons = () => screen.getAllByRole('button', { name: /^Reveal line \d+$/ });
-
-/** Sessions are the only unit of state now — this reads the one the page has
-    active, the same way trivia.tsx itself does. */
-const readActiveSessionRecord = (): TriviaSessionRecord => {
-  const sessions = readTriviaSessions();
-  const activeId = readActiveSessionId();
-  return sessions.find((s) => s.id === activeId) ?? sessions[0];
-};
-
-/** Everything but Start drilling/Check/Next now lives behind the "Sessions"
-    popover: new session, rename, delete, and the destructive reset. */
-const openSessionsPopover = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Sessions/ }));
-};
-
 /* The four algorithms carrying authored trivia metadata — the deck the drill is
    meant to be exercised on, and the one the engine flow spec proves out. */
 const FOUR_DECK: TriviaConfig = {
@@ -65,6 +44,40 @@ const FOUR_DECK: TriviaConfig = {
   deck: ['two-sum', 'bubble-sort', 'binary-search-matrix', 'bfs-graph'],
   minBlanks: 1,
   maxBlanks: 3,
+};
+
+const renderTriviaRoute = async () => {
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: ['/trivia'] }),
+  });
+  return render(<RouterProvider router={router} />);
+};
+
+const revealButtons = () => screen.getAllByRole('button', { name: /^Reveal line \d+$/ });
+
+const readActiveSessionRecord = (): TriviaSessionRecord => {
+  const sessions = readTriviaSessions();
+  const activeId = readActiveSessionId();
+  const found = activeId !== null ? sessions.find((s) => s.id === activeId) : undefined;
+  if (!found) throw new Error('No active session — test assumed one was selected');
+  return found;
+};
+
+/** Seeds a fully-formed session directly through the session store (bypassing
+    the UI) and makes it the active one on whichever screen `lastScreen`
+    names — the fast path for tests that need to start mid-Setup or
+    mid-Drill rather than walking through Home. */
+const seedActiveSession = (
+  name: string,
+  config: TriviaConfig,
+  progress: TriviaProgress,
+  lastScreen: 'setup' | 'drill' = 'setup',
+): TriviaSessionRecord => {
+  const created = createSession(name, config, progress);
+  const updated = updateSession(created.id, { lastScreen });
+  writeActiveSessionId(created.id);
+  return updated ?? created;
 };
 
 describe('/trivia route', () => {
@@ -79,44 +92,45 @@ describe('/trivia route', () => {
     vi.restoreAllMocks();
   });
 
-  it('opens on deck setup with an empty deck and no drill to run', async () => {
+  it('lands on Trivia Home with the empty state on a genuine first visit — no forced session', async () => {
     await renderTriviaRoute();
 
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
+    expect(screen.getByText('Build your first trivia deck')).toBeInTheDocument();
+    expect(readTriviaSessions()).toEqual([]);
+    expect(readActiveSessionId()).toBeNull();
+  });
+
+  it('creates a new session from Home and lands directly on its empty Setup screen', async () => {
+    await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.getByText('Drill settings')).toBeInTheDocument();
+    expect(screen.getByText('Now editing session')).toBeInTheDocument();
+    expect(screen.getByText('New session')).toBeInTheDocument();
     expect(screen.getByText('0 in deck')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start drilling' })).toBeDisabled();
-    expect(screen.getByText(/Add at least one algorithm to the deck/i)).toBeInTheDocument();
 
-    expect(screen.queryByText('solution.py')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Check answers/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Deck coverage' })).toHaveAttribute(
-      'aria-valuenow',
-      '0',
-    );
-
-    // A first visit auto-creates and activates one session — the page never
-    // has a "no session selected" state — but merely looking never writes the
-    // legacy bare config/progress keys.
-    expect(window.localStorage.getItem(TRIVIA_CONFIG_KEY)).toBeNull();
-    expect(window.localStorage.getItem(TRIVIA_PROGRESS_KEY)).toBeNull();
     const created = readActiveSessionRecord();
     expect(created.name).toBe('Session 1');
+    expect(created.lastScreen).toBe('setup');
     expect(created.config.deck).toEqual([]);
-    expect(created.progress.roundsPlayed).toBe(0);
   });
 
   it('starts a session with a code puzzle once an algorithm is picked', async () => {
     await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
 
-    fireEvent.change(await screen.findByLabelText('Filter algorithms'), {
+    fireEvent.change(screen.getByLabelText('Filter algorithms'), {
       target: { value: 'bubble' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add all Arrays & Hashing' }));
 
     expect(await screen.findByText('1 in deck')).toBeInTheDocument();
-    // The deck is persisted as it is edited, before any drill has run — inside
-    // the active session's own record now, not a bare config key.
     await waitFor(() => {
       expect(readActiveSessionRecord().config.deck).toEqual(['bubble-sort']);
     });
@@ -124,23 +138,20 @@ describe('/trivia route', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start drilling' }));
 
     expect(await screen.findByText('solution.py')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Bubble Sort' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Bubble Sort' })).toBeInTheDocument();
     expect(screen.getByTestId('code-puzzle-well')).toBeInTheDocument();
     expect(screen.getByText('Tiles')).toBeInTheDocument();
-    // Nothing is filled yet, so the round cannot be checked.
     expect(screen.getByRole('button', { name: /^Check answers/ })).toBeDisabled();
     expect(screen.queryByText('Build your deck')).not.toBeInTheDocument();
 
-    // Default config: one blank per round, ceiling of three. Drill mode shows
-    // the level/coverage as TriviaSession's own trailing line now, not the
-    // setup screen's badge row.
     expect(screen.getByText('Level 1 · 0% covered')).toBeInTheDocument();
     expect(screen.getByText('Hiding 1 line')).toBeInTheDocument();
     expect(revealButtons()).toHaveLength(1);
+    expect(readActiveSessionRecord().lastScreen).toBe('drill');
   });
 
-  it('restores the stored deck and reports the configured minBlanks as the level', async () => {
-    writeTriviaConfig(DECK);
+  it('restores a session seeded mid-Drill and reports the configured minBlanks as the level', async () => {
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
 
     await renderTriviaRoute();
 
@@ -149,13 +160,12 @@ describe('/trivia route', () => {
     expect(screen.getByText('Hiding 3 lines')).toBeInTheDocument();
     expect(revealButtons()).toHaveLength(3);
     expect(readActiveSessionRecord().progress.roundsPlayed).toBe(0);
-
-    // A stored deck skips setup entirely.
     expect(screen.queryByText('Build your deck')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Trivia' })).not.toBeInTheDocument();
   });
 
   it('drills a four-algorithm deck, serving a real solution from the deck each round', async () => {
-    writeTriviaConfig(FOUR_DECK);
+    seedActiveSession('Session 1', FOUR_DECK, createProgress(FOUR_DECK), 'drill');
     await renderTriviaRoute();
     await screen.findByText('solution.py');
 
@@ -176,9 +186,6 @@ describe('/trivia route', () => {
       fireEvent.click(check);
 
       await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(round + 1));
-      // Revealing every blank means nothing was actually recalled, so the
-      // round grades as incorrect and the button reads "Try again" — it still
-      // advances to a fresh round underneath (see TriviaSession's handleNext).
       fireEvent.click(screen.getByRole('button', { name: /^(Next round|Try again)/ }));
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /^Check answers/ })).toBeDisabled();
@@ -189,12 +196,10 @@ describe('/trivia route', () => {
   });
 
   it('grades a submitted round, persists the progress, and serves the next one', async () => {
-    writeTriviaConfig(DECK);
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
     await renderTriviaRoute();
     await screen.findByText('solution.py');
 
-    // Revealing every blank is the mouse-cheap way to complete a round; the
-    // engine records the reveals as misses, which is exactly what we assert.
     revealButtons().forEach((button) => fireEvent.click(button));
 
     const check = screen.getByRole('button', { name: /^Check answers/ });
@@ -202,20 +207,15 @@ describe('/trivia route', () => {
     fireEvent.click(check);
 
     await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
-    expect(window.localStorage.getItem(TRIVIA_PROGRESS_KEY)).toBeNull();
-    expect(window.localStorage.getItem(TRIVIA_SESSIONS_KEY)).not.toBeNull();
 
     const drilled = readActiveSessionRecord().progress.drilled['bubble-sort']?.['3'] ?? [];
     expect(drilled).toHaveLength(3);
 
-    // Coverage is derived from that progress, so the trailing line moved off 0%.
     await waitFor(() => {
       expect(screen.getByText(/^Level 3 · \d+% covered$/)).toBeInTheDocument();
       expect(screen.queryByText('Level 3 · 0% covered')).not.toBeInTheDocument();
     });
 
-    // Every blank was revealed, so this round grades as incorrect and the
-    // button reads "Try again" — it still advances to a fresh round.
     fireEvent.click(screen.getByRole('button', { name: /^(Next round|Try again)/ }));
 
     await waitFor(() => {
@@ -225,95 +225,94 @@ describe('/trivia route', () => {
     expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1);
   });
 
-  it('reopens deck setup from a running session without losing the deck', async () => {
-    writeTriviaConfig(DECK);
+  it('"Edit deck & settings" returns to Setup without losing the deck or leaving the session', async () => {
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
     await renderTriviaRoute();
+    const sessionId = readActiveSessionId();
     await screen.findByText('solution.py');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit deck & settings' }));
 
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
     expect(screen.getByText('1 in deck')).toBeInTheDocument();
     expect(screen.queryByText('solution.py')).not.toBeInTheDocument();
+    // Same session stays active — this is not the Home exit.
+    expect(readActiveSessionId()).toBe(sessionId);
+    expect(readActiveSessionRecord().lastScreen).toBe('setup');
 
     fireEvent.click(screen.getByRole('button', { name: 'Start drilling' }));
     expect(await screen.findByText('solution.py')).toBeInTheDocument();
   });
 
-  it('reopens on setup after a remount, not a fresh drill round, once a session was left paused', async () => {
-    writeTriviaConfig(DECK);
+  it('"Back to Trivia Home" from Setup lands on Home, and a remount stays on Home — the user\'s exact repeated complaint', async () => {
+    // roundsPlayed > 0 so the Home card reads "Paused · Setup" rather than
+    // "New" — the point under test is which screen it resumes to, which
+    // "New" (a session with no progress) does not distinguish.
+    seedActiveSession('Session 1', DECK, { ...createProgress(DECK), roundsPlayed: 1 }, 'setup');
     await renderTriviaRoute();
-    await screen.findByText('solution.py');
+    await screen.findByText('Build your deck');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
-    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
 
-    // Simulate a page reload: the deck config makes this session non-empty,
-    // so mount-time state must also consult the session's persisted status
-    // (like handleSelectSession does) rather than only the deck length —
-    // otherwise a paused session with a real deck resumes straight into a
-    // brand-new drill round instead of reopening setup.
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
+    expect(screen.queryByText('Build your deck')).not.toBeInTheDocument();
+    expect(readActiveSessionId()).toBeNull();
+
+    // The exact scenario from the round-3 complaint: "When I go back, I still
+    // see Setup related to session one." A real reload is just another read
+    // of the same activeSessionId pointer — it must still say Home, not
+    // silently re-enter session one's setup screen.
     cleanup();
     await renderTriviaRoute();
 
-    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.queryByText('solution.py')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
+    expect(screen.queryByText('Build your deck')).not.toBeInTheDocument();
+    expect(screen.getByText('Session 1')).toBeInTheDocument();
+    expect(screen.getByText('Paused · Setup')).toBeInTheDocument();
   });
 
-  it('clears trivia storage only after the reset is confirmed', async () => {
-    writeTriviaConfig(DECK);
+  it('"Back to Trivia Home" from Drill records lastScreen: drill, so Resume returns to Drill next time, with a fresh round (never claiming to restore exact blanks)', async () => {
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
     await renderTriviaRoute();
     await screen.findByText('solution.py');
 
-    // Drill one round for real first, so there is something worth resetting —
-    // the "Reset progress" action is scoped to a session with progress.
+    // Real, earned progress first, so the Home card reads "Paused ·
+    // Drilling" rather than "New".
     revealButtons().forEach((button) => fireEvent.click(button));
     const check = screen.getByRole('button', { name: /^Check answers/ });
     await waitFor(() => expect(check).toBeEnabled());
     fireEvent.click(check);
     await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset progress' }));
-    expect(screen.getByRole('dialog')).toHaveTextContent(/Reset trivia progress\?/i);
-    // Nothing is wiped until the destructive action is actually confirmed.
-    expect(readActiveSessionRecord().config.deck).toEqual(['bubble-sort']);
-    expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Keep drilling' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1);
-    expect(screen.getByText('solution.py')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
+    expect(screen.getByText('Paused · Drilling')).toBeInTheDocument();
+    // Resume's own copy never overpromises exact restoration.
+    expect(screen.getByRole('button', { name: 'Resume' })).toHaveAttribute(
+      'title',
+      expect.stringMatching(/Resumes at Level \d+ with a new round/),
+    );
 
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset progress' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete my progress' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
 
-    expect(window.localStorage.getItem(TRIVIA_CONFIG_KEY)).toBeNull();
-    expect(window.localStorage.getItem(TRIVIA_PROGRESS_KEY)).toBeNull();
-    const resetSession = readActiveSessionRecord();
-    expect(resetSession.config.deck).toEqual([]);
-    expect(resetSession.progress.roundsPlayed).toBe(0);
-    // Back to an empty deck, so setup is the only view left.
-    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.getByText('0 in deck')).toBeInTheDocument();
-    expect(screen.queryByText('solution.py')).not.toBeInTheDocument();
+    expect(await screen.findByText('solution.py')).toBeInTheDocument();
+    expect(readActiveSessionRecord().lastScreen).toBe('drill');
   });
 
-  /* Round-trip proof for the user's own bug report: "I created the previous
-     session system to make sure that I can have different sessions ... they
-     should all be there." This drives two whole sessions through the real
-     UI — deck, drill, exit, switch — rather than unit-testing the storage
-     helpers in isolation, because the reported break was in how trivia.tsx
-     wires activeId/activeSession/config/progress together, not in any one
-     function. */
-  it('keeps two sessions fully independent: switching back and forth restores each one exactly as left', async () => {
-    writeTriviaConfig(DECK);
+  it('keeps two sessions fully independent: switching back and forth via Home restores each one exactly as left', async () => {
     await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    // Session A, drilled for one real round.
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
+    fireEvent.change(screen.getByLabelText('Filter algorithms'), { target: { value: 'bubble' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add all Arrays & Hashing' }));
+    await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(['bubble-sort']));
+    fireEvent.click(screen.getByRole('button', { name: 'Start drilling' }));
     await screen.findByText('solution.py');
 
-    // Drill session A ("Session 1") for one real round so it has genuine,
-    // non-zero progress worth protecting.
     revealButtons().forEach((button) => fireEvent.click(button));
     let check = screen.getByRole('button', { name: /^Check answers/ });
     await waitFor(() => expect(check).toBeEnabled());
@@ -321,27 +320,22 @@ describe('/trivia route', () => {
     await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
     const sessionAId = readActiveSessionId();
-    const drilledOnA = readActiveSessionRecord().progress.drilled['bubble-sort']?.['3'] ?? [];
+    const drilledOnA = readActiveSessionRecord().progress.drilled['bubble-sort']?.['1'] ?? [];
     expect(drilledOnA.length).toBeGreaterThan(0);
 
-    // Exit A to setup — this alone must be the auto-save; there is no
-    // separate "save" action anywhere in the UI.
-    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
-    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
 
-    // Create session B from the Sessions drawer and give it a different deck.
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'New session' }));
-    await waitFor(() => expect(readActiveSessionId()).not.toBe(sessionAId));
+    // Session B, a different deck, drilled differently.
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
     const sessionBId = readActiveSessionId();
-    expect(screen.getByText('Session 2')).toBeInTheDocument();
+    expect(sessionBId).not.toBe(sessionAId);
     expect(readActiveSessionRecord().config.deck).toEqual([]);
 
     fireEvent.change(screen.getByLabelText('Filter algorithms'), { target: { value: 'two' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add all Arrays & Hashing' }));
     await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(['two-sum']));
-
-    // Drill B differently from A (default settings: 1 blank, ceiling 3).
     fireEvent.click(screen.getByRole('button', { name: 'Start drilling' }));
     await screen.findByText('solution.py');
     revealButtons().forEach((button) => fireEvent.click(button));
@@ -354,32 +348,31 @@ describe('/trivia route', () => {
     expect(sessionBSnapshot.id).toBe(sessionBId);
     expect(sessionBSnapshot.config.deck).toEqual(['two-sum']);
 
-    // Switch back to A via the Sessions drawer's "Resume" button — only one
-    // non-active session is listed at this point, so the button is unique.
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    // Back to Home, then Resume A from its own card specifically — both
+    // cards are on Home at once, so the card is found by its own name first
+    // and the Resume button scoped to that card, rather than assuming order.
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    const sessionAName = readTriviaSessions().find((s) => s.id === sessionAId)?.name ?? '';
+    const sessionACard = screen.getByText(sessionAName).closest('.ui-card');
+    if (!sessionACard) throw new Error('Session A card not found on Home');
+    fireEvent.click(within(sessionACard as HTMLElement).getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(readActiveSessionId()).toBe(sessionAId));
 
-    // A's exact deck, settings, level and drilled-line progress must come
-    // back untouched — not B's, and not a blank/fresh one.
     const resumedA = readActiveSessionRecord();
     expect(resumedA.config.deck).toEqual(['bubble-sort']);
-    expect(resumedA.config.minBlanks).toBe(3);
-    expect(resumedA.config.maxBlanks).toBe(4);
     expect(resumedA.progress.roundsPlayed).toBe(1);
-    expect(resumedA.progress.drilled['bubble-sort']?.['3']).toEqual(drilledOnA);
+    expect(resumedA.progress.drilled['bubble-sort']?.['1']).toEqual(drilledOnA);
     expect(resumedA.progress.drilled['two-sum']).toBeUndefined();
-    expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.getByText('1 in deck')).toBeInTheDocument();
 
-    // B is untouched in storage too, not silently merged or dropped.
     const sessionBAfter = readTriviaSessions().find((s) => s.id === sessionBId);
     expect(sessionBAfter?.config.deck).toEqual(['two-sum']);
     expect(sessionBAfter?.progress.roundsPlayed).toBe(1);
   });
 
-  it('raises maxBlanks on session A without resetting its drilled progress', async () => {
-    writeTriviaConfig(DECK);
+  it('raises maxBlanks on a session without resetting its drilled progress, via Edit deck & settings', async () => {
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
     await renderTriviaRoute();
     await screen.findByText('solution.py');
 
@@ -393,7 +386,7 @@ describe('/trivia route', () => {
     const beforeStats = readActiveSessionRecord().progress.stats;
     const beforeLevel = readActiveSessionRecord().progress.level;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit deck & settings' }));
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
 
     // Raise the hardest level — the user's own words: "without losing my
@@ -427,13 +420,11 @@ describe('/trivia route', () => {
       completed: true,
       roundsPlayed: allBlankable.length,
     };
-    createSession('Finished Deck', finishedConfig, finishedProgress);
+    seedActiveSession('Finished Deck', finishedConfig, finishedProgress, 'drill');
 
     await renderTriviaRoute();
     expect(await screen.findByText('Deck complete')).toBeInTheDocument();
 
-    // The completion card itself has no controls — this is the one way back
-    // to settings without losing the session or its history.
     fireEvent.click(screen.getByRole('button', { name: 'Adjust settings to keep going' }));
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
 
@@ -451,65 +442,120 @@ describe('/trivia route', () => {
     expect(screen.queryByText('Deck complete')).not.toBeInTheDocument();
   });
 
-  it('keeps the sessions list and active pointer consistent through rename, delete, and create in quick succession', async () => {
+  it('offers "Back to Trivia Home" as a distinct exit from the completion card, not just "Adjust settings"', async () => {
+    const bubbleSort = ALGORITHM_REGISTRY['bubble-sort'];
+    const allBlankable = blankableLines(parsePuzzleLines(bubbleSort.code, bubbleSort.trivia));
+
+    const finishedConfig: TriviaConfig = {
+      deck: ['bubble-sort'],
+      mode: 'choice',
+      minBlanks: 1,
+      maxBlanks: 1,
+      includeDistractors: false,
+    };
+    const finishedProgress: TriviaProgress = {
+      level: 1,
+      drilled: { 'bubble-sort': { '1': allBlankable } },
+      stats: {},
+      completed: true,
+      roundsPlayed: allBlankable.length,
+    };
+    // lastScreen: 'drill' — a finished session reached via drilling, not
+    // via Setup, so this exercises the completion card as it is actually
+    // reached: there is no Setup detour already on screen to fall back on.
+    seedActiveSession('Finished Deck', finishedConfig, finishedProgress, 'drill');
+
     await renderTriviaRoute();
+    expect(await screen.findByText('Deck complete')).toBeInTheDocument();
+
+    // Both actions present and distinctly labelled — never the same button
+    // asked to both "edit" and "leave entirely".
+    expect(screen.getByRole('button', { name: 'Adjust settings to keep going' })).toBeInTheDocument();
+    const homeBtn = screen.getByRole('button', { name: 'Back to Trivia Home' });
+
+    fireEvent.click(homeBtn);
+
+    expect(await screen.findByRole('heading', { name: 'Trivia' })).toBeInTheDocument();
+    expect(readActiveSessionId()).toBeNull();
+    expect(screen.getByText('Deck complete')).toBeInTheDocument(); // now the card's status badge on the Home card
+  });
+
+  it('keeps the sessions list and active pointer consistent through rename, delete, and create in quick succession, all from Home', async () => {
+    await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
     const sessionA = readActiveSessionRecord();
 
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'New session' }));
-    await waitFor(() => expect(readTriviaSessions()).toHaveLength(2));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
     const sessionB = readActiveSessionRecord();
 
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'New session' }));
-    await waitFor(() => expect(readTriviaSessions()).toHaveLength(3));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
     const sessionC = readActiveSessionRecord();
-    expect(readActiveSessionId()).toBe(sessionC.id);
 
-    // Rename the active session (C) ... scoped to the drawer itself, since
-    // the active session's name is also a rename button's accessible name
-    // on the setup screen sitting behind this overlay (TriviaHeaderCard).
-    openSessionsPopover();
-    const dialog = screen.getByRole('dialog', { name: 'Sessions' });
-    fireEvent.click(within(dialog).getByRole('button', { name: `Rename ${sessionC.name}` }));
-    fireEvent.change(within(dialog).getByDisplayValue(sessionC.name), {
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+    await waitFor(() => expect(readTriviaSessions()).toHaveLength(3));
+
+    // Rename C ...
+    fireEvent.click(screen.getByRole('button', { name: `Rename ${sessionC.name}` }));
+    fireEvent.change(screen.getByDisplayValue(sessionC.name), {
       target: { value: 'Focus Session' },
     });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Save session name' }));
-    expect(await within(dialog).findByText('Focus Session')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save session name' }));
+    expect(await screen.findByText('Focus Session')).toBeInTheDocument();
 
-    // ...immediately delete a different, non-active session (B) ...
-    fireEvent.click(within(dialog).getByRole('button', { name: `Delete ${sessionB.name}` }));
+    // ...immediately delete a different session (B) ...
+    fireEvent.click(screen.getByRole('button', { name: `Delete ${sessionB.name}` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete session' }));
     await waitFor(() => expect(readTriviaSessions()).toHaveLength(2));
-    expect(readActiveSessionId()).toBe(sessionC.id);
 
-    // ...then immediately create yet another new one, all without closing
-    // and reopening the drawer in between the rename and the delete.
-    fireEvent.click(within(dialog).getByRole('button', { name: 'New session' }));
+    // ...then immediately create yet another new one.
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
     await waitFor(() => expect(readTriviaSessions()).toHaveLength(3));
     const sessionD = readActiveSessionRecord();
 
     const finalSessions = readTriviaSessions();
-    // B is genuinely gone, not merely hidden.
     expect(finalSessions.find((s) => s.id === sessionB.id)).toBeUndefined();
-    // A survived, untouched by any of the rename/delete/create traffic.
     const finalA = finalSessions.find((s) => s.id === sessionA.id);
     expect(finalA).toBeDefined();
     expect(finalA?.name).toBe(sessionA.name);
-    // C survived under its new name.
     const finalC = finalSessions.find((s) => s.id === sessionC.id);
     expect(finalC?.name).toBe('Focus Session');
-    // The active pointer landed on the newest session — not the one just
-    // deleted, and not stuck on a stale id.
     expect(readActiveSessionId()).toBe(sessionD.id);
     expect(sessionD.id).not.toBe(sessionB.id);
     expect(finalSessions.map((s) => s.id).sort()).toEqual(
-      [sessionA.id, sessionC.id, sessionD.id].sort()
+      [sessionA.id, sessionC.id, sessionD.id].sort(),
     );
   });
 
+  it('deleting every session returns Home to its empty state — zero sessions is legitimate now', async () => {
+    await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
+    await screen.findByText('Build your deck');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    expect(screen.getByRole('button', { name: /^Delete /})).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: /^Delete /}));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete session' }));
+
+    expect(await screen.findByText('Build your first trivia deck')).toBeInTheDocument();
+    expect(readTriviaSessions()).toEqual([]);
+  });
+
   it('shows an unambiguous "New session" identity right after creating one, distinct from a session with real progress', async () => {
-    writeTriviaConfig(DECK);
+    seedActiveSession('Session 1', DECK, createProgress(DECK), 'drill');
     await renderTriviaRoute();
     await screen.findByText('solution.py');
 
@@ -519,22 +565,54 @@ describe('/trivia route', () => {
     fireEvent.click(check);
     await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit deck & settings' }));
     expect(await screen.findByText('Now editing session')).toBeInTheDocument();
-    // Session 1 has real, earned progress now, so it must read as a resume,
-    // never as a blank slate the user could mistake for a fresh start.
     expect(screen.getByText('Paused · progress saved')).toBeInTheDocument();
     expect(screen.queryByText('New session')).not.toBeInTheDocument();
 
-    openSessionsPopover();
-    fireEvent.click(screen.getByRole('button', { name: 'New session' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
+    await screen.findByRole('heading', { name: 'Trivia' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
 
-    // The moment a brand-new session is created, the setup screen must make
-    // it unmistakable this is the new (default-named) session, not Session 1.
-    expect(await screen.findByText('Session 2')).toBeInTheDocument();
-    expect(screen.getByText('New session')).toBeInTheDocument();
-    expect(screen.queryByText('Session 1')).not.toBeInTheDocument();
+    expect(await screen.findByText('New session')).toBeInTheDocument();
     expect(screen.queryByText('Paused · progress saved')).not.toBeInTheDocument();
     expect(readActiveSessionRecord().config.deck).toEqual([]);
+  });
+
+  /* TASKS.md 9.8: "I want this width and height adjustment on sections
+     supported inside of trivia sections as well, like the trivia main page"
+     — Home is the one screen that previously had no resize handle wired to
+     it at all (the schema reserved the slot but nothing rendered a
+     DragHandle for it). A reload has to see the pinned height, not just the
+     same render. */
+  it('persists a resized Home session-list panel height across a reload', async () => {
+    const { unmount } = await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    const handle = screen.getByRole('separator', { name: 'Resize the trivia session list' });
+    expect(handle).toHaveAttribute('aria-valuetext', 'Automatic, sized to content');
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+
+    const stored = JSON.parse(window.localStorage.getItem(TRIVIA_LAYOUT_KEY) ?? 'null');
+    expect(stored?.panelHeights.sessionList).toBe(MIN_PANEL_HEIGHT_PX);
+    expect(handle).toHaveAttribute('aria-valuenow', String(MIN_PANEL_HEIGHT_PX));
+
+    unmount();
+    await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    const reloadedHandle = screen.getByRole('separator', { name: 'Resize the trivia session list' });
+    expect(reloadedHandle).toHaveAttribute('aria-valuenow', String(MIN_PANEL_HEIGHT_PX));
+    expect(reloadedHandle).not.toHaveAttribute('aria-valuetext');
+  });
+
+  it('never renders a ghost-variant button anywhere on the /trivia route (9.5)', async () => {
+    await renderTriviaRoute();
+    await screen.findByRole('heading', { name: 'Trivia' });
+
+    screen.getAllByRole('button').forEach((button) => {
+      expect(button.className).not.toMatch(/ui-btn--ghost/);
+    });
   });
 });

@@ -1,19 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Layers } from 'lucide-react';
+import { Home, SlidersHorizontal } from 'lucide-react';
 import type {
   PuzzleLine,
   TriviaConfig,
   TriviaMeta,
   TriviaProgress,
   TriviaRound,
+  TriviaScreen,
   TriviaSessionRecord,
-  TriviaSessionStatus,
 } from '../types/trivia';
 import {
-  DEFAULT_TRIVIA_CONFIG,
+  blankableLines,
   coverageRatio,
-  createProgress,
   gradeRound,
   isLevelCovered,
   normalizeConfig,
@@ -21,18 +20,25 @@ import {
   pickRound,
   recordRound,
 } from '../trivia/triviaEngine';
-import { clearTrivia } from '../trivia/triviaStorage';
 import {
   createSession,
   deleteSession,
-  ensureActiveSession,
-  readActiveSessionId,
+  loadTriviaBootstrap,
   readTriviaSessions,
   updateSession,
   writeActiveSessionId,
 } from '../trivia/triviaSessions';
+import {
+  MAX_PANEL_HEIGHT_PX,
+  MIN_PANEL_HEIGHT_PX,
+  TRIVIA_LAYOUT_RESET_EVENT,
+  readTriviaLayout,
+  writeTriviaLayout,
+} from '../trivia/triviaLayout';
+import type { TriviaLayout, TriviaPanelHeights } from '../trivia/triviaLayout';
+import { DragHandle, usePointerDrag } from '../components/ResizableLayout';
 import { getAlgorithm } from '../algorithms/registry';
-import { Button, Card, ConfirmDialog } from '../ui';
+import { Button, Card } from '../ui';
 import { TriviaHeaderCard } from '../components/trivia/TriviaHeaderCard';
 import { TriviaSessionsManager } from '../components/trivia/TriviaSessionsManager';
 import { TriviaCompletionCard } from '../components/trivia/TriviaCompletionCard';
@@ -54,19 +60,7 @@ const pageStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--space-5)',
-};
-
-const topBarStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--space-2)',
-};
-
-const setupGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-  gap: 'var(--space-5)',
-  alignItems: 'start',
+  minHeight: 0,
 };
 
 const hintStyle: React.CSSProperties = {
@@ -79,11 +73,6 @@ interface DeckSources {
   sources: Map<string, PuzzleLine[]>;
   meta: Map<string, TriviaMeta | undefined>;
 }
-
-/* Status is never hand-set: it is always the direct image of isSetupOpen, so
-   the "Active"/"Paused" badge can never say something the page isn't doing. */
-const sessionStatusFor = (setupOpen: boolean): TriviaSessionStatus =>
-  setupOpen ? 'paused' : 'active';
 
 /**
  * `progress.completed` only ever means "nothing left at the config it was
@@ -124,76 +113,132 @@ const reviveProgressForConfig = (
   return priorProgress;
 };
 
+/* Pins one Setup-screen panel's height with its own DragHandle — the same
+   standalone-pinned-section pattern TriviaSession.tsx uses for its
+   problem/puzzle rows (which itself mirrors MainLayout's `stage` row), not
+   routed through ResizableRows' viewport-bound column algorithm since this
+   route is a naturally-scrolling page (TASKS.md 9.8). */
+function usePinnedPanelHeight(
+  pinned: number | null,
+  applyPanelHeights: (patch: Partial<TriviaPanelHeights>, commit: boolean) => void,
+  buildPatch: (value: number | null) => Partial<TriviaPanelHeights>,
+) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const pinnedRef = useRef(pinned);
+  pinnedRef.current = pinned;
+
+  const dragTo = useCallback(
+    (_x: number, y: number) => {
+      const top = ref.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      applyPanelHeights(buildPatch(y - top), false);
+    },
+    [applyPanelHeights, buildPatch],
+  );
+
+  const endDrag = useCallback(() => {
+    setDragging(false);
+    applyPanelHeights(buildPatch(pinnedRef.current), true);
+  }, [applyPanelHeights, buildPatch]);
+
+  usePointerDrag(dragging, dragTo, endDrag);
+
+  const nudge = useCallback(
+    (delta: number) => {
+      const current = pinnedRef.current ?? ref.current?.getBoundingClientRect().height ?? 0;
+      applyPanelHeights(buildPatch(current + delta), true);
+    },
+    [applyPanelHeights, buildPatch],
+  );
+
+  const restoreDefault = useCallback(() => {
+    applyPanelHeights(buildPatch(null), true);
+  }, [applyPanelHeights, buildPatch]);
+
+  return { ref, dragging, setDragging, nudge, restoreDefault };
+}
+
+const buildSessionListPatch = (value: number | null): Partial<TriviaPanelHeights> => ({
+  sessionList: value,
+});
+const buildDeckBuilderPatch = (value: number | null): Partial<TriviaPanelHeights> => ({
+  deckBuilder: value,
+});
+const buildSettingsPatch = (value: number | null): Partial<TriviaPanelHeights> => ({ settings: value });
+
 function TriviaPage() {
   const navigate = useNavigate();
 
-  /* The one bootstrap read: guarantees a session exists (seeding it from any
-     pre-session bare-key progress on first visit) before the first render, so
-     nothing downstream ever has to handle "no session selected". */
-  const [bootstrap] = useState(ensureActiveSession);
+  /* The one bootstrap read: zero sessions is a legitimate, permanent state
+     now (Home's own empty state) — nothing here manufactures a session just
+     so the page has something to render (TASKS.md 9.1). */
+  const [bootstrap] = useState(loadTriviaBootstrap);
   const [sessions, setSessions] = useState<TriviaSessionRecord[]>(bootstrap.sessions);
-  const [activeId, setActiveId] = useState<string>(bootstrap.active.id);
+  /* The one fact that decides the screen: null is Home, a real id is
+     Setup/Drill (chosen below by that session's own lastScreen). Never a
+     third hand-set flag alongside it. */
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(bootstrap.activeId);
 
-  const activeSession = useMemo<TriviaSessionRecord>(
-    () => sessions.find((s) => s.id === activeId) ?? sessions[0],
-    [sessions, activeId]
+  const activeSession: TriviaSessionRecord | null = useMemo(
+    () => (activeSessionId === null ? null : sessions.find((s) => s.id === activeSessionId) ?? null),
+    [sessions, activeSessionId]
   );
 
-  // Session is the only unit of state — config/progress are read straight off
-  // it every render rather than mirrored into their own useState.
-  const config = activeSession.config;
-  const progress = activeSession.progress;
+  const config = activeSession?.config ?? null;
+  const progress = activeSession?.progress ?? null;
 
   const [round, setRound] = useState<TriviaRound | null>(null);
-  // Matches handleSelectSession's formula: a session left mid-setup (status
-  // 'paused') must reopen on setup, not just one whose deck happens to be
-  // empty — otherwise reloading the page after "Exit to setup" throws the
-  // learner straight back into a freshly generated drill round.
-  const [isSetupOpen, setIsSetupOpen] = useState(
-    () => bootstrap.active.config.deck.length === 0 || bootstrap.active.status !== 'active'
-  );
-  const [isResetOpen, setIsResetOpen] = useState(false);
-  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
 
   const { sources, meta } = useMemo<DeckSources>(() => {
     const nextSources = new Map<string, PuzzleLine[]>();
     const nextMeta = new Map<string, TriviaMeta | undefined>();
-    config.deck.forEach((id) => {
+    (config?.deck ?? []).forEach((id) => {
       const algorithm = getAlgorithm(id);
       if (algorithm === undefined) return;
       nextSources.set(id, parsePuzzleLines(algorithm.code, algorithm.trivia));
       nextMeta.set(id, algorithm.trivia);
     });
     return { sources: nextSources, meta: nextMeta };
-  }, [config.deck]);
+  }, [config]);
 
-  const isDeckEmpty = sources.size === 0;
-  const showSetup = isSetupOpen || isDeckEmpty;
+  const deckLineCounts = useMemo(
+    () => [...sources.values()].map((lines) => blankableLines(lines).length),
+    [sources]
+  );
+
+  const isDeckEmpty = activeSession !== null && sources.size === 0;
+
+  /* Screen is always derived, never hand-set: null session -> Home; a forced
+     Setup while the deck is empty (there is nothing to drill yet); otherwise
+     whichever screen the session's own lastScreen names (TASKS.md 9.1). */
+  const screen: TriviaScreen | 'home' =
+    activeSession === null ? 'home' : isDeckEmpty ? 'setup' : activeSession.lastScreen;
 
   const level =
-    round?.level ?? Math.min(Math.max(progress.level, config.minBlanks), config.maxBlanks);
-  const coverage = Math.round(coverageRatio(progress, sources, config) * 100);
-
-  const canReset =
-    progress.roundsPlayed > 0 || coverage > 0 || Object.keys(progress.drilled).length > 0;
+    round?.level ?? Math.min(Math.max(progress?.level ?? 1, config?.minBlanks ?? 1), config?.maxBlanks ?? 1);
+  const coverage =
+    config && progress ? Math.round(coverageRatio(progress, sources, config) * 100) : 0;
 
   useEffect(() => {
     if (round !== null && !sources.has(round.algorithmId)) setRound(null);
   }, [round, sources]);
 
   useEffect(() => {
-    if (showSetup || round !== null || progress.completed || isDeckEmpty) return;
+    if (screen !== 'drill' || round !== null || !config || !progress || progress.completed) return;
     setRound(pickRound({ config, progress, sources, meta }));
-  }, [showSetup, round, progress, config, sources, meta, isDeckEmpty]);
+  }, [screen, round, config, progress, sources, meta]);
 
-  /** Every mutation is one updateSession(activeId, patch) call, then a resync
+  /* Every mutation is one updateSession(activeId, patch) call, then a resync
       of the sessions list — never a bare storage write plus a session patch. */
   const applySessionPatch = (patch: Partial<Omit<TriviaSessionRecord, 'id'>>) => {
-    updateSession(activeId, patch);
+    if (activeSessionId === null) return;
+    updateSession(activeSessionId, patch);
     setSessions(readTriviaSessions());
   };
 
   const applyConfig = (patch: Partial<TriviaConfig>) => {
+    if (!config || !progress) return;
     const nextConfig = normalizeConfig({ ...config, ...patch });
     const nextProgress = reviveProgressForConfig(progress, nextConfig);
     // Same-reference check, not a value comparison: reviveProgressForConfig
@@ -208,7 +253,7 @@ function TriviaPage() {
   };
 
   const handleSubmit = (answers: Record<number, string>) => {
-    if (round === null) return;
+    if (round === null || !config || !progress) return;
     const grade = gradeRound(round, answers);
     const updatedProgress = recordRound(progress, round, grade, config, sources);
     applySessionPatch({ progress: updatedProgress });
@@ -218,51 +263,45 @@ function TriviaPage() {
   };
 
   const handleNext = () => {
+    if (!config || !progress) return;
     setRound(pickRound({ config, progress, sources, meta }));
   };
 
-  /** The one enter/exit handler. Every call performs all three steps —
-      isSetupOpen flips, the round clears, and status derives from the new
-      isSetupOpen — never two of three. TriviaHeaderCard's "Start drilling"
-      and TriviaSession's "Exit to setup" both call this. */
-  const handleToggleDrillMode = () => {
-    const next = !isSetupOpen;
-    setIsSetupOpen(next);
+  const handleStartDrilling = () => {
+    applySessionPatch({ lastScreen: 'drill' });
     setRound(null);
-    applySessionPatch({ status: sessionStatusFor(next) });
   };
 
-  const handleConfirmReset = () => {
-    clearTrivia();
-    applySessionPatch({
-      config: DEFAULT_TRIVIA_CONFIG,
-      progress: createProgress(DEFAULT_TRIVIA_CONFIG),
-      status: sessionStatusFor(true),
-    });
+  /** "Edit deck & settings" (TASKS.md 9.1): same session stays active, only
+      the screen changes — never touches progress. Also the completion
+      card's only way back in. */
+  const handleEditSettings = () => {
+    applySessionPatch({ lastScreen: 'setup' });
     setRound(null);
-    setIsSetupOpen(true);
-    setIsResetOpen(false);
+  };
+
+  /** "Back to Trivia Home" — the one unambiguous exit, from either screen.
+      `fromScreen` records which screen to land Resume back on later, so the
+      session's own state survives the round-trip through Home exactly as
+      the user left it. */
+  const handleBackToHome = (fromScreen: TriviaScreen) => {
+    applySessionPatch({ lastScreen: fromScreen });
+    writeActiveSessionId(null);
+    setActiveSessionId(null);
+    setRound(null);
   };
 
   const handleCreateNewSession = () => {
     const created = createSession();
-    // A new session always lands on setup, so its status must say so too —
-    // createSession's own default ('active') would otherwise let the badge
-    // claim "Active" while the setup screen is what's actually on screen.
-    updateSession(created.id, { status: sessionStatusFor(true) });
     setSessions(readTriviaSessions());
-    setActiveId(created.id);
+    setActiveSessionId(created.id);
     setRound(null);
-    setIsSetupOpen(true);
-    setIsSessionsOpen(false);
   };
 
-  const handleSelectSession = (s: TriviaSessionRecord) => {
-    writeActiveSessionId(s.id);
-    setActiveId(s.id);
+  const handleResumeSession = (session: TriviaSessionRecord) => {
+    writeActiveSessionId(session.id);
+    setActiveSessionId(session.id);
     setRound(null);
-    setIsSetupOpen(s.config.deck.length === 0 || s.status !== 'active');
-    setIsSessionsOpen(false);
   };
 
   const handleRenameSession = (id: string, newName: string) => {
@@ -271,136 +310,248 @@ function TriviaPage() {
   };
 
   const handleDeleteSession = (id: string) => {
-    // The page never has a "no session selected" state, so the last
-    // remaining session cannot be deleted — TriviaSessionsManager also
-    // disables the control, this is the belt to that suspenders.
-    if (sessions.length <= 1) return;
     deleteSession(id);
-    const remaining = readTriviaSessions();
-    setSessions(remaining);
-    if (id === activeId) {
-      const nextActiveId = readActiveSessionId() ?? remaining[0].id;
-      const nextSession = remaining.find((s) => s.id === nextActiveId) ?? remaining[0];
-      setActiveId(nextSession.id);
-      setRound(null);
-      setIsSetupOpen(nextSession.config.deck.length === 0 || nextSession.status !== 'active');
-    }
+    setSessions(readTriviaSessions());
   };
 
   const handleStudyInWorkspace = (algorithmId?: string) => {
-    const targetId = algorithmId ?? round?.algorithmId ?? config.deck[0] ?? 'bubble-sort';
+    const targetId = algorithmId ?? round?.algorithmId ?? config?.deck[0] ?? 'bubble-sort';
     navigate({ to: '/workspace/$algorithmId', params: { algorithmId: targetId } });
   };
 
   const activeTitle =
     round === null ? '' : getAlgorithm(round.algorithmId)?.title ?? round.algorithmId;
 
+  /* Resizable, persisted trivia layout (TASKS.md 9.8): the Setup screen's
+     deck-builder/settings row heights, mirroring how TriviaSession owns the
+     same TriviaLayout record for the Drill screen's rows. */
+  const [layout, setLayout] = useState<TriviaLayout>(() => readTriviaLayout());
+  const layoutRef = useRef<TriviaLayout>(layout);
+  layoutRef.current = layout;
+
+  useEffect(() => {
+    const reload = () => setLayout(readTriviaLayout());
+    window.addEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
+    return () => window.removeEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
+  }, []);
+
+  const applyPanelHeights = useCallback((patch: Partial<TriviaPanelHeights>, commit: boolean) => {
+    if (!commit) {
+      setLayout((prev) => ({ ...prev, panelHeights: { ...prev.panelHeights, ...patch } }));
+      return;
+    }
+    setLayout(
+      writeTriviaLayout({
+        puzzleSplitPercent: layoutRef.current.puzzleSplitPercent,
+        panelHeights: { ...layoutRef.current.panelHeights, ...patch },
+      }),
+    );
+  }, []);
+
+  const sessionListPanel = usePinnedPanelHeight(
+    layout.panelHeights.sessionList,
+    applyPanelHeights,
+    buildSessionListPatch,
+  );
+  const deckBuilderPanel = usePinnedPanelHeight(
+    layout.panelHeights.deckBuilder,
+    applyPanelHeights,
+    buildDeckBuilderPatch,
+  );
+  const settingsPanel = usePinnedPanelHeight(
+    layout.panelHeights.settings,
+    applyPanelHeights,
+    buildSettingsPatch,
+  );
+
   return (
     <div style={pageStyle}>
-      {/* Slim utility bar, present in both modes: the one door into the
-          sessions popover so switching, renaming, deleting and creating
-          sessions never costs permanent vertical space. */}
-      <div style={topBarStyle}>
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<Layers aria-hidden="true" />}
-          onClick={() => setIsSessionsOpen(true)}
-        >
-          {`Sessions · ${activeSession.name}`}
-        </Button>
-      </div>
-
-      {showSetup ? (
+      {screen === 'home' ? (
         <>
-          <TriviaHeaderCard
-            activeSession={activeSession}
-            level={level}
-            config={config}
-            progress={progress}
-            sourcesCount={sources.size}
-            coverage={coverage}
-            isDeckEmpty={isDeckEmpty}
-            onStartDrilling={handleToggleDrillMode}
-            onRenameSession={handleRenameSession}
+          {/* Home gets the same pinned-height + DragHandle treatment as every
+              other trivia panel (TASKS.md 9.8: "I want this width and height
+              adjustment on sections supported inside of trivia sections as
+              well, like the trivia main page"). It is the only panel on this
+              screen, so there is nothing to divide space *against* — the
+              handle still lets a user pin its height and have that height
+              survive a reload, exactly like deckBuilder/settings below. */}
+          <div
+            ref={sessionListPanel.ref}
+            style={{
+              flexShrink: 0,
+              minHeight: 0,
+              height:
+                layout.panelHeights.sessionList !== null
+                  ? `${layout.panelHeights.sessionList}px`
+                  : undefined,
+              overflow: layout.panelHeights.sessionList !== null ? 'auto' : 'visible',
+            }}
+          >
+            <TriviaSessionsManager
+              sessions={sessions}
+              onCreateNewSession={handleCreateNewSession}
+              onResumeSession={handleResumeSession}
+              onRenameSession={handleRenameSession}
+              onDeleteSession={handleDeleteSession}
+            />
+          </div>
+
+          <DragHandle
+            orientation="horizontal"
+            label="Resize the trivia session list"
+            valueNow={layout.panelHeights.sessionList ?? MIN_PANEL_HEIGHT_PX}
+            valueMin={MIN_PANEL_HEIGHT_PX}
+            valueMax={MAX_PANEL_HEIGHT_PX}
+            valueText={
+              layout.panelHeights.sessionList === null ? 'Automatic, sized to content' : undefined
+            }
+            step={16}
+            dragging={sessionListPanel.dragging}
+            onDragStart={() => sessionListPanel.setDragging(true)}
+            onNudge={sessionListPanel.nudge}
+            onRestoreDefault={sessionListPanel.restoreDefault}
           />
-
-          {isDeckEmpty && (
-            <span style={hintStyle}>
-              Add at least one algorithm to the deck to start drilling.
-            </span>
-          )}
-          <div style={setupGridStyle}>
-            <TriviaDeckBuilder deck={config.deck} onChange={(deck) => applyConfig({ deck })} />
-            <TriviaSettings config={config} onChange={applyConfig} />
-          </div>
         </>
-      ) : progress.completed ? (
-        <>
-          <TriviaCompletionCard sourcesCount={sources.size} maxBlanks={config.maxBlanks} />
-          {/* The completion card has no controls of its own — without this,
-              a finished session is a dead end: raising maxBlanks to keep
-              going (which the card's own copy invites) requires the setup
-              screen, and nothing else on this branch can reach it. */}
-          <div style={{ display: 'flex' }}>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<ArrowLeft aria-hidden="true" />}
-              onClick={handleToggleDrillMode}
+      ) : activeSession && config && progress ? (
+        screen === 'setup' ? (
+          <>
+            <TriviaHeaderCard
+              activeSession={activeSession}
+              level={level}
+              config={config}
+              progress={progress}
+              sourcesCount={sources.size}
+              coverage={coverage}
+              isDeckEmpty={isDeckEmpty}
+              onStartDrilling={handleStartDrilling}
+              onBackToHome={() => handleBackToHome('setup')}
+              onRenameSession={handleRenameSession}
+            />
+
+            {isDeckEmpty && (
+              <span style={hintStyle}>
+                Add at least one algorithm to the deck to start drilling.
+              </span>
+            )}
+
+            {/* Single-column stack — deck builder above settings — per
+                TASKS.md 9.8: Setup has no side-by-side region to divide, so
+                height-only resizing suffices here, unlike the Drill screen's
+                puzzle+TileTray row. */}
+            <div
+              ref={deckBuilderPanel.ref}
+              style={{
+                flexShrink: 0,
+                height:
+                  layout.panelHeights.deckBuilder !== null
+                    ? `${layout.panelHeights.deckBuilder}px`
+                    : undefined,
+                overflow: layout.panelHeights.deckBuilder !== null ? 'auto' : 'visible',
+              }}
             >
-              Adjust settings to keep going
-            </Button>
-          </div>
-        </>
-      ) : round !== null ? (
-        <TriviaSession
-          round={round}
-          algorithmTitle={activeTitle}
-          mode={config.mode}
-          level={level}
-          coverage={coverage}
-          onSubmit={handleSubmit}
-          onNext={handleNext}
-          onExitToSetup={handleToggleDrillMode}
-          onStudyInWorkspace={handleStudyInWorkspace}
-          hints={meta.get(round.algorithmId)?.hints}
-          lineExplanations={meta.get(round.algorithmId)?.lineExplanations}
-        />
-      ) : (
-        <Card style={PANEL_BORDER} title="Nothing to drill at this level">
-          <span style={hintStyle}>
-            {`No algorithm in the deck has ${level} lines to hide at once. Add a longer solution or lower the hardest level in the deck setup.`}
-          </span>
-        </Card>
-      )}
+              <TriviaDeckBuilder deck={config.deck} onChange={(deck) => applyConfig({ deck })} />
+            </div>
 
-      <TriviaSessionsManager
-        isOpen={isSessionsOpen}
-        onClose={() => setIsSessionsOpen(false)}
-        sessions={sessions}
-        activeId={activeId}
-        onSelectSession={handleSelectSession}
-        onRenameSession={handleRenameSession}
-        onDeleteSession={handleDeleteSession}
-        onCreateNewSession={handleCreateNewSession}
-        onOpenReset={() => {
-          setIsSessionsOpen(false);
-          setIsResetOpen(true);
-        }}
-        canReset={canReset}
-      />
+            <DragHandle
+              orientation="horizontal"
+              label="Resize deck builder and drill settings"
+              valueNow={layout.panelHeights.deckBuilder ?? MIN_PANEL_HEIGHT_PX}
+              valueMin={MIN_PANEL_HEIGHT_PX}
+              valueMax={MAX_PANEL_HEIGHT_PX}
+              valueText={
+                layout.panelHeights.deckBuilder === null ? 'Automatic, sized to content' : undefined
+              }
+              step={16}
+              dragging={deckBuilderPanel.dragging}
+              onDragStart={() => deckBuilderPanel.setDragging(true)}
+              onNudge={deckBuilderPanel.nudge}
+              onRestoreDefault={deckBuilderPanel.restoreDefault}
+            />
 
-      <ConfirmDialog
-        isOpen={isResetOpen}
-        title="Reset trivia progress?"
-        message="Your deck, drill settings, level and every line you have drilled will be deleted. The drill starts over from an empty deck and default settings. This cannot be undone."
-        confirmLabel="Delete my progress"
-        cancelLabel="Keep drilling"
-        destructive
-        onConfirm={handleConfirmReset}
-        onCancel={() => setIsResetOpen(false)}
-      />
+            <div
+              ref={settingsPanel.ref}
+              style={{
+                flexShrink: 0,
+                height:
+                  layout.panelHeights.settings !== null ? `${layout.panelHeights.settings}px` : undefined,
+                overflow: layout.panelHeights.settings !== null ? 'auto' : 'visible',
+              }}
+            >
+              <TriviaSettings config={config} onChange={applyConfig} deckLineCounts={deckLineCounts} />
+            </div>
+          </>
+        ) : progress.completed ? (
+          <>
+            <TriviaCompletionCard sourcesCount={sources.size} maxBlanks={config.maxBlanks} />
+            {/* The completion card has no controls of its own. Two distinct
+                actions, never one overloaded button (TASKS.md 9.1): editing
+                settings to keep going stays in this session, while Back to
+                Trivia Home is the unambiguous exit — this screen is still
+                reached with lastScreen: 'drill', so without its own exit a
+                finished session had no way out except detouring through
+                Setup first. */}
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<SlidersHorizontal aria-hidden="true" />}
+                onClick={handleEditSettings}
+              >
+                Adjust settings to keep going
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Home aria-hidden="true" />}
+                onClick={() => handleBackToHome('drill')}
+              >
+                Back to Trivia Home
+              </Button>
+            </div>
+          </>
+        ) : round !== null ? (
+          <TriviaSession
+            round={round}
+            algorithmTitle={activeTitle}
+            mode={config.mode}
+            level={level}
+            coverage={coverage}
+            onSubmit={handleSubmit}
+            onNext={handleNext}
+            onEditSettings={handleEditSettings}
+            onBackToHome={() => handleBackToHome('drill')}
+            onStudyInWorkspace={handleStudyInWorkspace}
+            hints={meta.get(round.algorithmId)?.hints}
+            lineExplanations={meta.get(round.algorithmId)?.lineExplanations}
+          />
+        ) : (
+          <Card style={PANEL_BORDER} title="Nothing to drill at this level">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <span style={hintStyle}>
+                {`No algorithm in the deck has ${level} lines to hide at once. Add a longer solution or lower the hardest level in the deck setup.`}
+              </span>
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<SlidersHorizontal aria-hidden="true" />}
+                  onClick={handleEditSettings}
+                >
+                  Edit deck & settings
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Home aria-hidden="true" />}
+                  onClick={() => handleBackToHome('drill')}
+                >
+                  Back to Trivia Home
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )
+      ) : null}
     </div>
   );
 }

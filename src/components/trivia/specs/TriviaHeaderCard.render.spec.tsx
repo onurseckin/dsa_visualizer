@@ -22,7 +22,7 @@ describe('TriviaHeaderCard', () => {
           updatedAt: Date.now(),
           config,
           progress: { ...progress, roundsPlayed: 1 },
-          status: 'paused',
+          lastScreen: 'setup',
         }}
         level={1}
         config={config}
@@ -31,6 +31,7 @@ describe('TriviaHeaderCard', () => {
         coverage={50}
         isDeckEmpty={false}
         onStartDrilling={onStartDrilling}
+        onBackToHome={vi.fn()}
       />
     );
 
@@ -47,10 +48,69 @@ describe('TriviaHeaderCard', () => {
     expect(onStartDrilling).toHaveBeenCalled();
 
     // Everything else (new session, reset, study in workspace) now lives in
-    // the sessions popover or TriviaSession's own header, not here.
+    // the Home screen or TriviaSession's own header, not here.
     expect(screen.queryByRole('button', { name: /new session/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reset progress' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Study in workspace' })).not.toBeInTheDocument();
+  });
+
+  it('renders the unambiguous "Back to Trivia Home" exit (TASKS.md 9.1) and fires it on click', () => {
+    const onBackToHome = vi.fn();
+
+    render(
+      <TriviaHeaderCard
+        activeSession={{
+          id: 's1',
+          name: 'Session 1',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          config,
+          progress,
+          lastScreen: 'setup',
+        }}
+        level={1}
+        config={config}
+        progress={progress}
+        sourcesCount={2}
+        coverage={50}
+        isDeckEmpty={false}
+        onStartDrilling={vi.fn()}
+        onBackToHome={onBackToHome}
+      />
+    );
+
+    const homeBtn = screen.getByRole('button', { name: 'Back to Trivia Home' });
+    fireEvent.click(homeBtn);
+    expect(onBackToHome).toHaveBeenCalledTimes(1);
+  });
+
+  it('never renders a ghost-variant button anywhere on the card (9.5)', () => {
+    render(
+      <TriviaHeaderCard
+        activeSession={{
+          id: 's1',
+          name: 'Session 1',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          config,
+          progress,
+          lastScreen: 'setup',
+        }}
+        level={1}
+        config={config}
+        progress={progress}
+        sourcesCount={2}
+        coverage={50}
+        isDeckEmpty={false}
+        onStartDrilling={vi.fn()}
+        onBackToHome={vi.fn()}
+        onRenameSession={vi.fn()}
+      />
+    );
+
+    screen.getAllByRole('button').forEach((button) => {
+      expect(button.className).not.toMatch(/ui-btn--ghost/);
+    });
   });
 
   it('disables "Start drilling" while the deck is empty, and labels a never-drilled session "New"', () => {
@@ -63,7 +123,7 @@ describe('TriviaHeaderCard', () => {
           updatedAt: Date.now(),
           config,
           progress,
-          status: 'active',
+          lastScreen: 'setup',
         }}
         level={1}
         config={config}
@@ -72,6 +132,7 @@ describe('TriviaHeaderCard', () => {
         coverage={0}
         isDeckEmpty
         onStartDrilling={vi.fn()}
+        onBackToHome={vi.fn()}
       />
     );
 
@@ -95,7 +156,7 @@ describe('TriviaHeaderCard', () => {
           updatedAt: Date.now(),
           config,
           progress,
-          status: 'active',
+          lastScreen: 'setup',
         }}
         level={1}
         config={config}
@@ -104,6 +165,7 @@ describe('TriviaHeaderCard', () => {
         coverage={50}
         isDeckEmpty={false}
         onStartDrilling={vi.fn()}
+        onBackToHome={vi.fn()}
         onRenameSession={onRenameSession}
       />
     );

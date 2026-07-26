@@ -198,7 +198,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
           {(search || categoryFilter !== 'ALL' || difficultyFilter !== 'ALL') && (
             <Button
               size="sm"
-              variant="ghost"
+              variant="secondary"
               icon={<Filter aria-hidden="true" />}
               onClick={() => {
                 setSearch('');

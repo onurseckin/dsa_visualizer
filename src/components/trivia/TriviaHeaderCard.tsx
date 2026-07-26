@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Brain, Check as CheckIcon, Edit2, Play, X as CancelIcon } from 'lucide-react';
+import { Brain, Check as CheckIcon, Edit2, Home, Play, X as CancelIcon } from 'lucide-react';
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../../types/trivia';
-import { Badge, Button, Card, Input } from '../../ui';
+import { Badge, Button, Card, IconButton, Input } from '../../ui';
 
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
@@ -31,6 +31,11 @@ export interface TriviaHeaderCardProps {
   coverage: number;
   isDeckEmpty: boolean;
   onStartDrilling: () => void;
+  /** Round-3 IA fix (TASKS.md 9.1): the exit this screen actually needs — a
+      real, unambiguous return to Home, replacing the old top-bar "Sessions ·
+      name" button that never made clear whether you were on a main page or
+      still editing a session. */
+  onBackToHome: () => void;
   onRenameSession?: (id: string, newName: string) => void;
 }
 
@@ -43,6 +48,7 @@ export function TriviaHeaderCard({
   coverage,
   isDeckEmpty,
   onStartDrilling,
+  onBackToHome,
   onRenameSession,
 }: TriviaHeaderCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -103,16 +109,16 @@ export function TriviaHeaderCard({
                   }}
                   aria-label="Rename active session"
                 />
-                <Button
+                <IconButton
                   size="sm"
-                  variant="ghost"
+                  variant="secondary"
                   icon={<CheckIcon size={14} />}
                   onClick={handleSaveRename}
                   aria-label="Save session name"
                 />
-                <Button
+                <IconButton
                   size="sm"
-                  variant="ghost"
+                  variant="secondary"
                   icon={<CancelIcon size={14} />}
                   onClick={() => setIsEditingTitle(false)}
                   aria-label="Cancel rename"
@@ -126,9 +132,9 @@ export function TriviaHeaderCard({
                   {activeSession.name}
                 </span>
                 {onRenameSession && (
-                  <Button
+                  <IconButton
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     icon={<Edit2 size={14} />}
                     onClick={handleStartRename}
                     aria-label={`Rename ${activeSession.name}`}
@@ -156,6 +162,18 @@ export function TriviaHeaderCard({
           <Badge variant={coverage >= 100 ? 'success' : 'neutral'} size="md" style={PANEL_BORDER}>
             {coverage}% covered
           </Badge>
+
+          {/* The unambiguous exit (TASKS.md 9.1): always visible, never
+              buried behind a "Sessions" popover that left it unclear whether
+              closing it meant leaving the session or just hiding a panel. */}
+          <Button
+            variant="secondary"
+            size="md"
+            icon={<Home aria-hidden="true" />}
+            onClick={onBackToHome}
+          >
+            Back to Trivia Home
+          </Button>
 
           {/* The one primary action this screen offers. */}
           <Button

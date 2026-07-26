@@ -49,7 +49,8 @@ export function readTriviaSessions(): TriviaSessionRecord[] {
         typeof item.createdAt === 'number' &&
         typeof item.updatedAt === 'number' &&
         typeof item.config === 'object' &&
-        typeof item.progress === 'object'
+        typeof item.progress === 'object' &&
+        (item.lastScreen === 'setup' || item.lastScreen === 'drill')
     );
   } catch {
     return [];
@@ -105,7 +106,9 @@ export function createSession(
     updatedAt: now,
     config: cloneTriviaConfig(config ?? readTriviaConfig()),
     progress: cloneTriviaProgress(progress ?? readTriviaProgress()),
-    status: 'active',
+    // Every new session always lands on Setup first (TASKS.md 9.1) — there is
+    // no "drill" a session could start on before it has ever been configured.
+    lastScreen: 'setup',
   };
   const updated = [newSession, ...existing];
   writeTriviaSessions(updated);
@@ -142,39 +145,65 @@ export function deleteSession(id: string): void {
   }
 }
 
-export interface ActiveSessionBootstrap {
+export interface TriviaBootstrap {
   sessions: TriviaSessionRecord[];
-  active: TriviaSessionRecord;
+  /** null means Home — the page's own third screen, not "editing session N"
+      (TASKS.md 9.1). Zero sessions is a legitimate, permanent state now, not
+      something this bootstrap patches over by manufacturing a session. */
+  activeId: string | null;
 }
 
 /**
- * Guarantees a session exists and is active, so the trivia page never has a
- * "nothing selected" state to render around. Three cases, in order:
+ * Replaces the old `ensureActiveSession`'s "always guarantee an active
+ * session" invariant (TASKS.md 9.1's Round-3 fix): a session is no longer
+ * conjured into existence just so the page has something to render — Home's
+ * empty state is the legitimate zero-session view now.
  *
- * 1. Sessions already exist and the stored active id points at one of them —
- *    used as-is.
- * 2. Sessions exist but the active-id pointer is missing or stale (cleared
- *    storage, a deleted session) — the most recent session becomes active.
- * 3. No sessions exist at all. This is either a first visit, or a pre-sessions
- *    install that only has the bare `triviaConfig`/`triviaProgress` keys. The
- *    one session created here is seeded FROM those bare keys (which safely
- *    read as engine defaults when absent), so a returning user's deck and
- *    drilled coverage carries over instead of silently resetting — then the
- *    bare keys are retired since the session record is now their only owner.
+ * Two cases:
+ *
+ * 1. Sessions already exist. Whatever the stored active-id pointer says is
+ *    trusted as-is, including `null` (an explicit "Back to Trivia Home" —
+ *    exactly the user's repeated complaint: exiting a session should land
+ *    somewhere that isn't "editing session N", and that has to survive a
+ *    reload, not just an in-memory navigate). A stale id (pointing at a
+ *    session that no longer exists) falls back to Home, never to a silently
+ *    substituted session — surprising the user with the wrong session open
+ *    is worse than showing them the session list.
+ * 2. No sessions exist. This is either a genuine first visit, or a
+ *    pre-sessions install that only has the bare `triviaConfig`/
+ *    `triviaProgress` keys. Those bare keys are migrated into a real session
+ *    ONLY if they hold actual earned data (a non-empty deck, or real
+ *    progress) — a first-time user's untouched defaults are not "data",
+ *    they are nothing, and migrating them would recreate exactly the forced
+ *    auto-session this fix removes. Either way the bare keys are retired:
+ *    the migrated session becomes their only owner, and an empty first
+ *    visit had nothing worth keeping. The migrated session (if any) is left
+ *    unselected — Home shows it as a card to resume, rather than dropping
+ *    the user straight into editing it.
  */
-export function ensureActiveSession(): ActiveSessionBootstrap {
+export function loadTriviaBootstrap(): TriviaBootstrap {
   const existing = readTriviaSessions();
 
   if (existing.length > 0) {
     const activeId = readActiveSessionId();
     const active = activeId !== null ? existing.find((s) => s.id === activeId) : undefined;
-    if (active) return { sessions: existing, active };
-
-    writeActiveSessionId(existing[0].id);
-    return { sessions: existing, active: existing[0] };
+    return { sessions: existing, activeId: active ? active.id : null };
   }
 
-  const seeded = createSession(undefined, readTriviaConfig(), readTriviaProgress());
+  const legacyConfig = readTriviaConfig();
+  const legacyProgress = readTriviaProgress();
+  const hasLegacyData =
+    legacyConfig.deck.length > 0 ||
+    legacyProgress.roundsPlayed > 0 ||
+    Object.keys(legacyProgress.drilled).length > 0;
+
+  if (!hasLegacyData) {
+    clearTrivia();
+    return { sessions: [], activeId: null };
+  }
+
+  const seeded = createSession(undefined, legacyConfig, legacyProgress);
   clearTrivia();
-  return { sessions: [seeded], active: seeded };
+  writeActiveSessionId(null);
+  return { sessions: [seeded], activeId: null };
 }
