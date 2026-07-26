@@ -1,0 +1,214 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/specs/numberOfIslands.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8667, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8667, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 620, "endOffset": 3253, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 698, "endOffset": 1341, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1413, "endOffset": 1720, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1794, "endOffset": 2091, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2154, "endOffset": 2398, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2486, "endOffset": 2857, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2931, "endOffset": 3249, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/numberOfIslands/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1557, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1557, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/numberOfIslands/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 33580, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 33580, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 833, "endOffset": 880, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13238, "endOffset": 13269, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/numberOfIslands/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3133, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3133, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1240, "endOffset": 1278, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/numberOfIslands/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20422, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20422, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateNumberOfIslandsSteps",
+          "ranges": [
+            { "startOffset": 400, "endOffset": 6121, "count": 6 },
+            { "startOffset": 456, "endOffset": 462, "count": 5 },
+            { "startOffset": 463, "endOffset": 524, "count": 1 },
+            { "startOffset": 586, "endOffset": 612, "count": 5 },
+            { "startOffset": 614, "endOffset": 1031, "count": 2 },
+            { "startOffset": 1031, "endOffset": 2507, "count": 4 },
+            { "startOffset": 2507, "endOffset": 5491, "count": 12 },
+            { "startOffset": 2544, "endOffset": 5487, "count": 50 },
+            { "startOffset": 2638, "endOffset": 2661, "count": 20 },
+            { "startOffset": 2663, "endOffset": 5481, "count": 7 },
+            { "startOffset": 3470, "endOffset": 5473, "count": 20 },
+            { "startOffset": 4330, "endOffset": 5463, "count": 80 },
+            { "startOffset": 4467, "endOffset": 4479, "count": 73 },
+            { "startOffset": 4480, "endOffset": 4490, "count": 66 },
+            { "startOffset": 4491, "endOffset": 4503, "count": 60 },
+            { "startOffset": 4504, "endOffset": 4530, "count": 56 },
+            { "startOffset": 4531, "endOffset": 4562, "count": 34 },
+            { "startOffset": 4564, "endOffset": 5451, "count": 13 },
+            { "startOffset": 5487, "endOffset": 5491, "count": 50 },
+            { "startOffset": 5491, "endOffset": 6120, "count": 12 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createGridSnapshot",
+          "ranges": [
+            { "startOffset": 1191, "endOffset": 2022, "count": 48 },
+            { "startOffset": 1368, "endOffset": 1972, "count": 160 },
+            { "startOffset": 1434, "endOffset": 1934, "count": 732 },
+            { "startOffset": 1598, "endOffset": 1619, "count": 632 },
+            { "startOffset": 1620, "endOffset": 1641, "count": 176 },
+            { "startOffset": 1806, "endOffset": 1818, "count": 182 },
+            { "startOffset": 1846, "endOffset": 1856, "count": 40 },
+            { "startOffset": 1857, "endOffset": 1914, "count": 692 },
+            { "startOffset": 1868, "endOffset": 1878, "count": 29 },
+            { "startOffset": 1879, "endOffset": 1914, "count": 663 },
+            { "startOffset": 1891, "endOffset": 1902, "count": 113 },
+            { "startOffset": 1903, "endOffset": 1914, "count": 550 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1306, "endOffset": 1329, "count": 29 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3984, "endOffset": 4013, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5167, "endOffset": 5196, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6239, "endOffset": 6283, "count": 7 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

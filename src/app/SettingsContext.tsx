@@ -1,13 +1,13 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { PanelKey, PanelVisibility, ViewMode } from '../types/dsa';
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { PanelKey, PanelVisibility, ViewMode } from "../types/dsa";
 
-const STORAGE_PREFIX = 'dsa_visualizer_';
+const STORAGE_PREFIX = "dsa_visualizer_";
 
 const PANEL_STORAGE_KEYS: Record<PanelKey, string> = {
-  visualizer: 'panel_visualizer',
-  code: 'panel_code',
-  tutorial: 'panel_tutorial',
-  auxiliary: 'panel_auxiliary',
+  visualizer: "panel_visualizer",
+  code: "panel_code",
+  tutorial: "panel_tutorial",
+  auxiliary: "panel_auxiliary",
 };
 
 /* localStorage can throw (private browsing, quota, disabled storage) and can
@@ -32,10 +32,10 @@ function writeStored(key: string, value: boolean | string | number): void {
   }
 }
 
-const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
-const isString = (value: unknown): value is string => typeof value === 'string';
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
+const isString = (value: unknown): value is string => typeof value === "string";
 const isLegacyViewMode = (value: unknown): value is ViewMode | null =>
-  value === null || value === 'split' || value === 'visual' || value === 'code';
+  value === null || value === "split" || value === "visual" || value === "code";
 
 /* Mirrors the ControlPanel Speed slider's own min/max (50-1000ms delay per
    step); an out-of-range or non-numeric stored value is exactly as
@@ -46,7 +46,7 @@ export const MAX_PLAYBACK_SPEED_MS = 1000;
 export const DEFAULT_PLAYBACK_SPEED_MS = 300;
 
 const isPlaybackSpeed = (value: unknown): value is number =>
-  typeof value === 'number' &&
+  typeof value === "number" &&
   Number.isFinite(value) &&
   value >= MIN_PLAYBACK_SPEED_MS &&
   value <= MAX_PLAYBACK_SPEED_MS;
@@ -60,21 +60,25 @@ const LEGACY_STAGE_PANELS: Record<ViewMode, { visualizer: boolean; code: boolean
 };
 
 function readPanelVisibility(): PanelVisibility {
-  const legacyViewMode = readStored<ViewMode | null>('view_mode', null, isLegacyViewMode);
+  const legacyViewMode = readStored<ViewMode | null>("view_mode", null, isLegacyViewMode);
   const legacyStage = legacyViewMode === null ? null : LEGACY_STAGE_PANELS[legacyViewMode];
   // Tutorial and auxiliary were already independent flags, so they migrate 1:1.
   return {
-    visualizer: readStored(PANEL_STORAGE_KEYS.visualizer, legacyStage?.visualizer ?? true, isBoolean),
+    visualizer: readStored(
+      PANEL_STORAGE_KEYS.visualizer,
+      legacyStage?.visualizer ?? true,
+      isBoolean,
+    ),
     code: readStored(PANEL_STORAGE_KEYS.code, legacyStage?.code ?? true, isBoolean),
     tutorial: readStored(
       PANEL_STORAGE_KEYS.tutorial,
-      readStored('show_tutorial', true, isBoolean),
-      isBoolean
+      readStored("show_tutorial", true, isBoolean),
+      isBoolean,
     ),
     auxiliary: readStored(
       PANEL_STORAGE_KEYS.auxiliary,
-      readStored('show_auxiliary', true, isBoolean),
-      isBoolean
+      readStored("show_auxiliary", true, isBoolean),
+      isBoolean,
     ),
   };
 }
@@ -96,36 +100,36 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [panels, setPanelsState] = useState<PanelVisibility>(readPanelVisibility);
   const [lastAlgorithmId, setLastAlgorithmIdState] = useState<string>(() =>
-    readStored('last_algorithm_id', 'bubble-sort', isString)
+    readStored("last_algorithm_id", "bubble-sort", isString),
   );
   const [speed, setSpeedState] = useState<number>(() =>
-    readStored('playback_speed', DEFAULT_PLAYBACK_SPEED_MS, isPlaybackSpeed)
+    readStored("playback_speed", DEFAULT_PLAYBACK_SPEED_MS, isPlaybackSpeed),
   );
 
   const setPanel = useCallback((key: PanelKey, visible: boolean) => {
     setPanelsState((prev) => {
-      const next: PanelVisibility = { ...prev };
-      next[key] = visible;
-      return next;
+      if (prev[key] === visible) return prev;
+      writeStored(PANEL_STORAGE_KEYS[key], visible);
+      return { ...prev, [key]: visible };
     });
-    writeStored(PANEL_STORAGE_KEYS[key], visible);
   }, []);
 
-  const togglePanel = useCallback(
-    (key: PanelKey) => {
-      setPanel(key, !panels[key]);
-    },
-    [panels, setPanel]
-  );
+  const togglePanel = useCallback((key: PanelKey) => {
+    setPanelsState((prev) => {
+      const nextVis = !prev[key];
+      writeStored(PANEL_STORAGE_KEYS[key], nextVis);
+      return { ...prev, [key]: nextVis };
+    });
+  }, []);
 
   const setLastAlgorithmId = useCallback((id: string) => {
     setLastAlgorithmIdState(id);
-    writeStored('last_algorithm_id', id);
+    writeStored("last_algorithm_id", id);
   }, []);
 
   const setSpeed = useCallback((next: number) => {
     setSpeedState(next);
-    writeStored('playback_speed', next);
+    writeStored("playback_speed", next);
   }, []);
 
   const value = useMemo(
@@ -138,15 +142,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLastAlgorithmId,
       setSpeed,
     }),
-    [
-      panels,
-      lastAlgorithmId,
-      speed,
-      setPanel,
-      togglePanel,
-      setLastAlgorithmId,
-      setSpeed,
-    ]
+    [panels, lastAlgorithmId, speed, setPanel, togglePanel, setLastAlgorithmId, setSpeed],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
@@ -154,8 +150,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export function useSettings(): SettingsContextValue {
   const ctx = useContext(SettingsContext);
-  if (!ctx) {
-    throw new Error('useSettings must be used within a SettingsProvider');
-  }
-  return ctx;
+  if (ctx) return ctx;
+  throw new Error("useSettings must be used within a SettingsProvider");
 }

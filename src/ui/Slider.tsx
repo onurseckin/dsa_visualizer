@@ -1,12 +1,11 @@
-import { useId } from 'react';
-import type { InputHTMLAttributes, ReactNode } from 'react';
-import { cx } from './cx';
+import { useId } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
+import { cx } from "./cx";
 
-export interface SliderProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    'value' | 'onChange' | 'min' | 'max' | 'step' | 'size' | 'type'
-  > {
+export interface SliderProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange" | "min" | "max" | "step" | "size" | "type"
+> {
   label?: ReactNode;
   value: number;
   min: number;
@@ -33,7 +32,7 @@ export function Slider({
   const inputId = id ?? autoId;
   const display = formatValue ? formatValue(value) : String(value);
   return (
-    <div className={cx('ui-slider', className)} style={style}>
+    <div className={cx("ui-slider", className)} style={style}>
       <div className="ui-slider__header">
         {label !== undefined ? (
           <label className="ui-slider__label" htmlFor={inputId}>

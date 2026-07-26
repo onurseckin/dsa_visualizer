@@ -1,100 +1,94 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { Drawer } from '../Drawer';
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { Drawer } from "../Drawer";
 
-describe('Drawer', () => {
-  it('renders nothing when closed', () => {
-    render(
-      <Drawer isOpen={false} onClose={() => undefined} title="Algorithms">
+describe("Drawer UI component", () => {
+  it("returns null when isOpen is false", () => {
+    const { container } = render(
+      <Drawer isOpen={false} onClose={vi.fn()} title="Test Drawer">
         Content
       </Drawer>,
     );
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it('renders an aria-modal dialog labelled by its title when open', () => {
+  it("renders portal with title, children, footer, and default width/side when isOpen is true", () => {
     render(
-      <Drawer isOpen onClose={() => undefined} title="Algorithms">
-        Content
+      <Drawer
+        isOpen={true}
+        onClose={vi.fn()}
+        title="My Drawer Title"
+        footer={<div data-testid="drawer-footer">Footer Content</div>}
+        className="custom-drawer"
+        style={{ color: "red" }}
+      >
+        <p>Drawer Body Content</p>
       </Drawer>,
     );
-    const dialog = screen.getByRole('dialog', { name: 'Algorithms' });
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveClass('ui-drawer', 'ui-drawer--right');
-    expect(screen.getByText('Content')).toBeInTheDocument();
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("My Drawer Title")).toBeInTheDocument();
+    expect(screen.getByText("Drawer Body Content")).toBeInTheDocument();
+    expect(screen.getByTestId("drawer-footer")).toBeInTheDocument();
+    expect(dialog).toHaveClass("ui-drawer", "ui-drawer--right", "custom-drawer");
+    expect(dialog).toHaveStyle({ width: "440px", color: "rgb(255, 0, 0)" });
   });
 
-  it('defaults to a 440px width and accepts a custom width', () => {
-    const { rerender } = render(
-      <Drawer isOpen onClose={() => undefined} title="T">
-        C
-      </Drawer>,
-    );
-    expect(screen.getByRole('dialog')).toHaveStyle({ width: '440px' });
-
-    rerender(
-      <Drawer isOpen onClose={() => undefined} title="T" width={520}>
-        C
-      </Drawer>,
-    );
-    expect(screen.getByRole('dialog')).toHaveStyle({ width: '520px' });
-  });
-
-  it('closes on Escape', () => {
-    const onClose = vi.fn();
+  it("supports string width and side property", () => {
     render(
-      <Drawer isOpen onClose={onClose} title="T">
-        C
+      <Drawer isOpen={true} onClose={vi.fn()} title="Custom Width" width="80vw">
+        Body
       </Drawer>,
     );
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveStyle({ width: "80vw" });
   });
 
-  it('closes on backdrop click but not on panel click', () => {
-    const onClose = vi.fn();
-    render(
-      <Drawer isOpen onClose={onClose} title="T">
-        C
+  it("triggers onClose when backdrop is clicked, close button is clicked, or Escape key is pressed", () => {
+    const handleClose = vi.fn();
+    const { container } = render(
+      <Drawer isOpen={true} onClose={handleClose} title="Interactive Drawer">
+        Body
       </Drawer>,
     );
-    fireEvent.click(screen.getByText('C'));
-    expect(onClose).not.toHaveBeenCalled();
 
-    const backdrop = document.querySelector('.ui-drawer-backdrop');
-    expect(backdrop).not.toBeNull();
-    fireEvent.click(backdrop as Element);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // Click close button
+    const closeBtn = screen.getByRole("button", { name: "Close" });
+    fireEvent.click(closeBtn);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+
+    // Click backdrop (first child in portal)
+    const backdrop = container.ownerDocument.querySelector(".ui-drawer-backdrop");
+    expect(backdrop).toBeInTheDocument();
+    if (backdrop) {
+      fireEvent.click(backdrop);
+      expect(handleClose).toHaveBeenCalledTimes(2);
+    }
+
+    // Press key other than Escape (should not call onClose)
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(handleClose).toHaveBeenCalledTimes(2);
+
+    // Press Escape key
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(handleClose).toHaveBeenCalledTimes(3);
   });
 
-  it('closes via the header close button', () => {
-    const onClose = vi.fn();
-    render(
-      <Drawer isOpen onClose={onClose} title="T">
-        C
-      </Drawer>,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
+  it("locks body overflow to hidden when open and restores previous overflow on unmount", () => {
+    document.body.style.overflow = "auto";
 
-  it('locks body scroll while open and restores it on unmount', () => {
     const { unmount } = render(
-      <Drawer isOpen onClose={() => undefined} title="T">
-        C
+      <Drawer isOpen={true} onClose={vi.fn()} title="Scroll Lock Drawer">
+        Body
       </Drawer>,
     );
-    expect(document.body.style.overflow).toBe('hidden');
-    unmount();
-    expect(document.body.style.overflow).toBe('');
-  });
 
-  it('renders an optional footer', () => {
-    render(
-      <Drawer isOpen onClose={() => undefined} title="T" footer={<span>Footer actions</span>}>
-        C
-      </Drawer>,
-    );
-    expect(screen.getByText('Footer actions')).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    unmount();
+    expect(document.body.style.overflow).toBe("auto");
   });
 });

@@ -32,14 +32,14 @@
    value is not carried forward — the panel simply reopens at its true
    default (expanded). */
 
-export const TRIVIA_LAYOUT_KEY = 'dsa_visualizer_trivia_layout_v2';
+export const TRIVIA_LAYOUT_KEY = "dsa_visualizer_trivia_layout_v2";
 
 export const TRIVIA_LAYOUT_VERSION = 2;
 
 /* Reset is a navbar action but the layout state lives in the trivia route, so
    the two are joined by a window event rather than a shared React parent —
    same convention as WORKSPACE_LAYOUT_RESET_EVENT. */
-export const TRIVIA_LAYOUT_RESET_EVENT = 'dsa:trivia-layout-reset';
+export const TRIVIA_LAYOUT_RESET_EVENT = "dsa:trivia-layout-reset";
 
 export interface TriviaPanelHeights {
   /** Home screen's session-card grid. */
@@ -57,11 +57,11 @@ export interface TriviaPanelHeights {
 export type TriviaPanelKey = keyof TriviaPanelHeights;
 
 export const TRIVIA_PANEL_KEYS: readonly TriviaPanelKey[] = [
-  'sessionList',
-  'deckBuilder',
-  'settings',
-  'problem',
-  'puzzle',
+  "sessionList",
+  "deckBuilder",
+  "settings",
+  "problem",
+  "puzzle",
 ] as const;
 
 export interface TriviaLayout {
@@ -136,10 +136,10 @@ export function clampPanelHeight(value: number | null): number | null {
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const isInRange = (value: unknown, min: number, max: number): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
+  typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
 
 const readPanelHeights = (value: unknown): TriviaPanelHeights | null => {
   if (!isRecord(value)) return null;
@@ -158,7 +158,7 @@ const readPanelHeights = (value: unknown): TriviaPanelHeights | null => {
 
 const getStorage = (): Storage | null => {
   try {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === "undefined") return null;
     return window.localStorage ?? null;
   } catch {
     return null;
@@ -194,7 +194,7 @@ export function readTriviaLayout(): TriviaLayout {
   const panelHeights = readPanelHeights(parsed.panelHeights);
   if (!panelHeights) return cloneTriviaLayout(DEFAULT_LAYOUT);
 
-  if (typeof parsed.problemExpanded !== 'boolean') return cloneTriviaLayout(DEFAULT_LAYOUT);
+  if (typeof parsed.problemExpanded !== "boolean") return cloneTriviaLayout(DEFAULT_LAYOUT);
 
   // Rebuilt field by field so unknown keys in storage never reach app state.
   return {
@@ -213,7 +213,9 @@ export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
   for (const key of TRIVIA_PANEL_KEYS) {
     const patched = patch.panelHeights?.[key];
     panelHeights[key] =
-      patched === undefined ? clampPanelHeight(current.panelHeights[key]) : clampPanelHeight(patched);
+      patched === undefined
+        ? clampPanelHeight(current.panelHeights[key])
+        : clampPanelHeight(patched);
   }
 
   const merged: TriviaLayout = {
@@ -253,7 +255,7 @@ export function clearTriviaLayout(): void {
  */
 export function resetTriviaLayout(): TriviaLayout {
   clearTriviaLayout();
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(TRIVIA_LAYOUT_RESET_EVENT));
   }
   return cloneTriviaLayout(DEFAULT_LAYOUT);

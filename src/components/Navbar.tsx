@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import React, { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Brain,
   Code2,
@@ -10,13 +10,13 @@ import {
   List,
   Network,
   RotateCcw,
-} from 'lucide-react';
-import { CategoryType, AppView, PanelKey, PanelVisibility } from '../types/dsa';
-import { Button, ConfirmDialog, Segmented } from '../ui';
-import { resetWorkspaceLayout } from '../app/workspaceLayout';
-import { isDialogOpen, isTypingTarget } from '../app/keyboardGuards';
-import { SearchTrigger } from './SearchTrigger';
-import { QuickAccessDrawer } from './QuickAccessDrawer';
+} from "lucide-react";
+import { CategoryType, AppView, PanelKey, PanelVisibility } from "../types/dsa";
+import { Button, ButtonGroup, ConfirmDialog, IconButton, Segmented } from "../ui";
+import { resetWorkspaceLayout } from "../app/workspaceLayout";
+import { isDialogOpen, isTypingTarget } from "../app/keyboardGuards";
+import { SearchTrigger } from "./SearchTrigger";
+import { QuickAccessDrawer } from "./QuickAccessDrawer";
 
 export interface NavbarProps {
   appView: AppView;
@@ -28,21 +28,18 @@ export interface NavbarProps {
   onTogglePanel: (key: PanelKey) => void;
 }
 
-/* Icon sizing comes from ui.css (14/16/18 per control size) — no inline sizes. */
 const APP_VIEW_OPTIONS = [
-  { value: 'tree', label: 'Knowledge Tree', icon: <Network /> },
-  { value: 'list', label: 'Problem List', icon: <List /> },
-  { value: 'workspace', label: 'Workspace', icon: <LayoutPanelLeft /> },
-  { value: 'trivia', label: 'Trivia', icon: <Brain /> },
+  { value: "tree", label: "Knowledge Tree", icon: <Network /> },
+  { value: "list", label: "Problem List", icon: <List /> },
+  { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft /> },
+  { value: "trivia", label: "Trivia", icon: <Brain /> },
 ];
 
-/* One visual treatment for every toggle (DESIGN.md R4.4): each shows or hides
-   exactly one thing, so none of them is a mode switch. */
 const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [
-  { key: 'visualizer', label: 'Visualizer', icon: <Eye />, hint: 'visualizer panel' },
-  { key: 'code', label: 'Code', icon: <Code2 />, hint: 'code panel' },
-  { key: 'tutorial', label: 'Tutorial', icon: <BookOpen />, hint: 'tutorial panel' },
-  { key: 'auxiliary', label: 'Aux data', icon: <Layers />, hint: 'working data panel' },
+  { key: "visualizer", label: "Visualizer", icon: <Eye />, hint: "visualizer panel" },
+  { key: "code", label: "Code", icon: <Code2 />, hint: "code panel" },
+  { key: "tutorial", label: "Tutorial", icon: <BookOpen />, hint: "tutorial panel" },
+  { key: "auxiliary", label: "Aux data", icon: <Layers />, hint: "working data panel" },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,73 +54,37 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
-  // Global "/" and "Cmd+K" shortcuts: open the search drawer unless the user is typing somewhere.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isCmdK = e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey);
-      const isSlash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
+      const isCmdK = e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey);
+      const isSlash = e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey;
       if (!isCmdK && !isSlash) return;
       if (isTypingTarget(e.target)) return;
       if (isDialogOpen()) return;
       e.preventDefault();
       setIsDrawerOpen(true);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  /* The only path allowed to drop the persisted geometry. resetWorkspaceLayout
-     owns both halves — clearing storage AND announcing it — so the workspace
-     re-reads defaults live instead of waiting for a reload, and the clear and the
-     announcement cannot drift apart here (DESIGN.md R6.5). */
   const handleConfirmReset = () => {
     resetWorkspaceLayout();
     setIsResetDialogOpen(false);
   };
 
   return (
-    <header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: 'var(--navbar-h)',
-        flexShrink: 0,
-        padding: '0 var(--space-4)',
-        gap: 'var(--space-3)',
-        // Chrome tier: the toolbar strip the page sits under. Chrome and page are
-        // only ~1.8x apart, so the bottom border is what draws the seam.
-        background: 'var(--bg-chrome)',
-        borderBottom: '1px solid var(--border-default)',
-      }}
-    >
-      {/* Brand + app-view switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
-        <button
-          type="button"
+    <header className="flex items-center justify-between h-[var(--navbar-h)] shrink-0 px-4 gap-3 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
+      <nav aria-label="Main Navigation" className="flex items-center gap-3 min-w-0">
+        <IconButton
+          icon={<Network className="w-[18px] h-[18px]" />}
           aria-label="DSA Visualizer home"
           title="Go to Knowledge Tree"
-          onClick={() => onSetAppView('tree')}
-          className="ui-btn ui-btn--secondary ui-btn--md"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 'var(--control-h-md)',
-            height: 'var(--control-h-md)',
-            padding: 0,
-            borderRadius: 'var(--radius-md)',
-            borderColor: 'var(--border-default)',
-            background: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          <Network style={{ width: '18px', height: '18px' }} />
-        </button>
+          onClick={() => onSetAppView("tree")}
+          size="md"
+          className="rounded-[var(--radius-md)] border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)]"
+        />
 
-        {/* Mutually exclusive routing stays a Segmented — it is not a toggle set. */}
         <Segmented
           aria-label="App view"
           size="md"
@@ -131,16 +92,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           value={appView}
           onChange={(value) => onSetAppView(value as AppView)}
         />
-      </div>
+      </nav>
 
-      {/* Toggles + search — every control in this row is size sm (DESIGN.md R4.5). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-        <div
-          role="group"
-          aria-label="Panel toggles"
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
-        >
-          {appView === 'workspace' &&
+      <div className="flex items-center gap-2">
+        <ButtonGroup role="group" aria-label="Panel toggles" gap="sm">
+          {appView === "workspace" &&
             PANEL_TOGGLES.map(({ key, label, icon, hint }) => (
               <Button
                 key={key}
@@ -149,27 +105,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 aria-pressed={panels[key]}
                 icon={icon}
                 onClick={() => onTogglePanel(key)}
-                title={`${panels[key] ? 'Hide' : 'Show'} the ${hint}`}
+                title={`${panels[key] ? "Hide" : "Show"} the ${hint}`}
               >
                 {label}
               </Button>
             ))}
-        </div>
+        </ButtonGroup>
 
-        {/* Reset is an action, not a toggle, so it sits outside the toggle group
-            with a hairline between them — same sm scale and border, no
-            aria-pressed (DESIGN.md R6.5). */}
-        {appView === 'workspace' && (
+        {appView === "workspace" && (
           <>
-            <span
-              aria-hidden="true"
-              style={{
-                width: '1px',
-                height: 'var(--space-4)',
-                background: 'var(--border-subtle)',
-                flexShrink: 0,
-              }}
-            />
+            <span aria-hidden="true" className="w-px h-4 bg-[var(--border-subtle)] shrink-0" />
             <Button
               size="sm"
               icon={<RotateCcw />}

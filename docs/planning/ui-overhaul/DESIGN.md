@@ -14,7 +14,7 @@ duplicate hex values in components — always reference tokens).
 - The visualizer workspace focuses on **visualization + code**; the primary stage fits
   the viewport; secondary details are compact/collapsible.
 - Step tutorials read like a teacher talking (1–2 sentences per step), and complexity
-  gets plain-English *why* explanations, for all 40 algorithms.
+  gets plain-English _why_ explanations, for all 40 algorithms.
 
 ## 2. Theme tokens (defined in `src/styles/theme.css`)
 
@@ -29,24 +29,25 @@ values (`#00ff9d`, `rgba(0, 255, 157, …)`, `#ff0055`, `#ffb703`).
 
 New token groups (see theme.css for exact values):
 
-| Group | Tokens |
-|---|---|
-| Surfaces | `--bg-page`, `--bg-surface`, `--bg-elevated`, `--bg-inset`, `--bg-hover`, `--bg-pressed`, `--bg-backdrop` |
-| Borders | `--border-subtle`, `--border-default`, `--border-strong`, `--border-accent` |
-| Accent | `--accent`, `--accent-hover`, `--accent-soft`, `--accent-softer`, `--text-on-accent`, `--accent-secondary` |
-| Text | `--text-primary`, `--text-secondary`, `--text-muted`, `--text-faint` |
-| Semantic | `--success`, `--warning`, `--danger`, `--info` + `-soft` background variants |
+| Group          | Tokens                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Surfaces       | `--bg-page`, `--bg-surface`, `--bg-elevated`, `--bg-inset`, `--bg-hover`, `--bg-pressed`, `--bg-backdrop`                                        |
+| Borders        | `--border-subtle`, `--border-default`, `--border-strong`, `--border-accent`                                                                      |
+| Accent         | `--accent`, `--accent-hover`, `--accent-soft`, `--accent-softer`, `--text-on-accent`, `--accent-secondary`                                       |
+| Text           | `--text-primary`, `--text-secondary`, `--text-muted`, `--text-faint`                                                                             |
+| Semantic       | `--success`, `--warning`, `--danger`, `--info` + `-soft` background variants                                                                     |
 | Element states | `--state-<name>` + `--state-<name>-bg` for every `ElementState` (default, compare, swap, sorted, active, pivot, visited, queued, in-stack, path) |
-| Type scale | `--text-xs/sm/md/lg/xl/2xl`; fonts `--font-ui`, `--font-code` |
-| Spacing | `--space-1..8` on a 4px grid |
-| Controls | `--control-h-sm` (28px), `--control-h-md` (34px), `--control-h-lg` (40px) |
-| Radius | `--radius-sm/md/lg/full` |
-| Elevation | `--shadow-sm/md/lg` (neutral, subtle — no colored glows) |
-| Focus | `--focus-ring` |
-| Motion | `--transition-fast`, `--transition-normal` |
-| Z-index | `--z-dropdown`, `--z-drawer`, `--z-modal`, `--z-tooltip` |
+| Type scale     | `--text-xs/sm/md/lg/xl/2xl`; fonts `--font-ui`, `--font-code`                                                                                    |
+| Spacing        | `--space-1..8` on a 4px grid                                                                                                                     |
+| Controls       | `--control-h-sm` (28px), `--control-h-md` (34px), `--control-h-lg` (40px)                                                                        |
+| Radius         | `--radius-sm/md/lg/full`                                                                                                                         |
+| Elevation      | `--shadow-sm/md/lg` (neutral, subtle — no colored glows)                                                                                         |
+| Focus          | `--focus-ring`                                                                                                                                   |
+| Motion         | `--transition-fast`, `--transition-normal`                                                                                                       |
+| Z-index        | `--z-dropdown`, `--z-drawer`, `--z-modal`, `--z-tooltip`                                                                                         |
 
 Usage rules:
+
 - Surfaces nest: page → surface (cards) → elevated (nested panels, chips) → inset (code
   wells, input fields). Hover always `--bg-hover`.
 - Text hierarchy: primary for headings/values, secondary for body, muted for labels,
@@ -63,18 +64,18 @@ BEM-ish: `.ui-btn`, `.ui-btn--primary`, `.ui-btn--sm`, `.ui-btn--selected`). Bar
 export from `src/ui/index.ts`. Specs in `src/ui/specs/*.spec.tsx`. All components
 forward native props and accept `className`/`style` overrides for flexibility.
 
-| Component | API (all sizes default `md`) |
-|---|---|
-| `Button` | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?: boolean`, `icon?: ReactNode`, `fullWidth?: boolean` + native button props. Labels never wrap (`white-space: nowrap`). |
-| `IconButton` | Square button, `icon: ReactNode`, `size?`, `variant?`, `selected?`; `aria-label` required. |
-| `Badge` | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`. Export helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger. No uppercase-all-the-things; sentence case text. |
-| `Card` | Surface panel: `title?`, `icon?`, `actions?: ReactNode`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?: boolean`. Replaces `.glass-card` (no backdrop blur on ordinary cards). |
-| `Input` | Text input, `leadingIcon?`, `onClear?` (shows clear button when value non-empty), sizes. |
-| `Slider` | Labeled range input: `label?`, `value`, `min`, `max`, `step?`, `onChange(value: number)`, `formatValue?`. |
-| `Segmented` | `options: { value: string; label: string; icon?: ReactNode }[]`, `value`, `onChange`, `size?`. Single accent-selected segment; replaces hand-rolled toggle groups. |
-| `Collapsible` | `title: ReactNode`, `meta?: ReactNode` (right side of header), `defaultOpen?`, `open?/onOpenChange?` (controlled optional), chevron rotates; header is a real `<button>`. |
-| `Drawer` | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `children`, `footer?`. Renders backdrop (`--bg-backdrop`), closes on ESC + backdrop click, `role="dialog"` `aria-modal`, uses `--z-drawer`. |
-| `Kbd` | Small keycap chip for shortcut hints, e.g. `/`. |
+| Component     | API (all sizes default `md`)                                                                                                                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`      | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?: boolean`, `icon?: ReactNode`, `fullWidth?: boolean` + native button props. Labels never wrap (`white-space: nowrap`).        |
+| `IconButton`  | Square button, `icon: ReactNode`, `size?`, `variant?`, `selected?`; `aria-label` required.                                                                                                                                                                 |
+| `Badge`       | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`. Export helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger. No uppercase-all-the-things; sentence case text. |
+| `Card`        | Surface panel: `title?`, `icon?`, `actions?: ReactNode`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?: boolean`. Replaces `.glass-card` (no backdrop blur on ordinary cards).                                                                               |
+| `Input`       | Text input, `leadingIcon?`, `onClear?` (shows clear button when value non-empty), sizes.                                                                                                                                                                   |
+| `Slider`      | Labeled range input: `label?`, `value`, `min`, `max`, `step?`, `onChange(value: number)`, `formatValue?`.                                                                                                                                                  |
+| `Segmented`   | `options: { value: string; label: string; icon?: ReactNode }[]`, `value`, `onChange`, `size?`. Single accent-selected segment; replaces hand-rolled toggle groups.                                                                                         |
+| `Collapsible` | `title: ReactNode`, `meta?: ReactNode` (right side of header), `defaultOpen?`, `open?/onOpenChange?` (controlled optional), chevron rotates; header is a real `<button>`.                                                                                  |
+| `Drawer`      | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `children`, `footer?`. Renders backdrop (`--bg-backdrop`), closes on ESC + backdrop click, `role="dialog"` `aria-modal`, uses `--z-drawer`.                                                      |
+| `Kbd`         | Small keycap chip for shortcut hints, e.g. `/`.                                                                                                                                                                                                            |
 
 Shared classes in `ui.css` (for app components that are not worth a dedicated component):
 `.ui-code-line` / `.ui-code-line--active` (code viewer rows: active row = `--accent-soft`
@@ -95,7 +96,7 @@ jumping), `.ui-chip` (small mono key/value chip used for live variables and aux 
 
 - Workspace fills `calc(100vh - <navbar height>)`; the **stage row** (visualizer left,
   code right, ResizableLayout split) takes the flexible space. Panels scroll
-  *internally*; the page itself should not need scrolling at ≥1280×800 with the
+  _internally_; the page itself should not need scrolling at ≥1280×800 with the
   problem header collapsed.
 - Left column: visualizer canvas (hero, flex-1) with the playback ControlPanel attached
   at its bottom edge; below it the TutorialCard (compact, 1–2 lines); below it the
@@ -112,7 +113,7 @@ jumping), `.ui-chip` (small mono key/value chip used for live variables and aux 
 
 ## 5. Navbar, search trigger, drawer
 
-- Navbar right side: a **search trigger** that *looks* like an input —
+- Navbar right side: a **search trigger** that _looks_ like an input —
   `[🔍 Search 40 algorithms…  ⟨/⟩]` (Kbd chip) — but is a button that opens the
   QuickAccessDrawer. The old dropdown-results search UI is deleted.
 - Pressing `/` anywhere (except when typing in an input/textarea/contenteditable)
@@ -128,6 +129,7 @@ jumping), `.ui-chip` (small mono key/value chip used for live variables and aux 
 ## 6. Tutorial voice (step explanations)
 
 Each `AlgorithmStep.explanation` is `{ what, why }`:
+
 - `what`: short present-tense action label (≤ 8 words), e.g. `Compute the complement`.
 - `why`: **the teacher's sentence(s)** — 1–2 conversational sentences explaining why this
   step happens and what it means, using the actual runtime values interpolated into the
@@ -136,9 +138,10 @@ Each `AlgorithmStep.explanation` is `{ what, why }`:
   the final step is fine).
 
 Example (Two Sum, checking the map):
+
 - what: `Look up 7 in the map`
 - why: `We need a partner for 2 that reaches 9, so we check whether 7 has already been
-  seen. It hasn't yet — so we remember 2 and keep walking.`
+seen. It hasn't yet — so we remember 2 and keep walking.`
 
 Keep the existing step structure, `codeLine` mappings, snapshots, and variables
 untouched — only the explanation text (and `description` clarity, lightly) changes.
@@ -149,17 +152,18 @@ untouched — only the explanation text (and `description` clarity, lightly) cha
 
 ```ts
 export interface ComplexityAnalysis {
-  time: string;  // 2–4 plain-English sentences: why the time complexity is what it is
+  time: string; // 2–4 plain-English sentences: why the time complexity is what it is
   space: string; // 1–3 sentences: what memory grows and why
 }
 ```
 
 Example (Two Sum):
+
 - time: `We walk the array once, and each hash-map lookup and insert costs O(1) on
-  average, so the total work grows linearly with the number of elements — O(n). Even
-  in the worst case, where no pair exists, we still make just a single pass.`
+average, so the total work grows linearly with the number of elements — O(n). Even
+in the worst case, where no pair exists, we still make just a single pass.`
 - space: `The hash map stores up to one entry per element before a pair is found, so
-  extra memory grows linearly with the input — O(n).`
+extra memory grows linearly with the input — O(n).`
 
 The `ComplexityCard` renders the Big-O chips plus these paragraphs.
 
@@ -169,7 +173,7 @@ The `ComplexityCard` renders the Big-O chips plus these paragraphs.
   `src/styles/index.css`, `index.html`, and `src/types/dsa.ts` are already done — read,
   don't touch. Only the UI-library agent edits `src/styles/ui.css` and `src/ui/**`.
 - TypeScript: no `any` in any form, no `@ts-ignore`/`@ts-expect-error`/`eslint-disable`.
-  Comments only for non-obvious *why*.
+  Comments only for non-obvious _why_.
 - Tests: update the spec files you own to match new behavior/text; run only your own
   spec files (`bunx vitest run <paths>`) — never the full suite. Keep them passing.
 - Don't start dev servers or browsers. Don't commit — the orchestrator commits.
@@ -200,7 +204,7 @@ No token was renamed, so components keep compiling; values and intent changed:
   `--text-muted` or `--text-faint` on `--bg-hover`/`--bg-pressed` (they lose
   contrast there) — use `--text-secondary`/`--text-primary` on hover states.
 - **`--viz-1` … `--viz-8`**: a validated categorical palette for telling
-  *groups* apart. Assign in fixed slot order, never cycle past 8 (fold extras
+  _groups_ apart. Assign in fixed slot order, never cycle past 8 (fold extras
   into `--state-default`). Do not invent new chart colors — this set passed
   colorblind-separation gates as an ordered set and substitutions break it.
 - Element `--state-*` tokens stay semantic (algorithm state, not identity).
@@ -237,13 +241,13 @@ Persistence contract — one versioned key, written on every commit of a drag:
 
 ```ts
 // src/app/workspaceLayout.ts
-export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v3';
+export const WORKSPACE_LAYOUT_KEY = "dsa_visualizer_workspace_layout_v3";
 
 export interface WorkspaceLayout {
   version: 3;
-  splitPercent: number;                                               // left column width %
+  splitPercent: number; // left column width %
   leftRows: { visualizer: number; tutorial: number; auxiliary: number }; // flex weights
-  rightRows: { code: number; complexity: number };                    // flex weights
+  rightRows: { code: number; complexity: number }; // flex weights
 }
 ```
 
@@ -263,9 +267,9 @@ does the key get removed and the layout return to defaults.
 
 ```ts
 export interface TopicGuide {
-  overview: string;                                     // what this topic IS
-  sections: { heading: string; body: string }[];        // the teaching body
-  keyTerms?: { term: string; definition: string }[];    // vocabulary
+  overview: string; // what this topic IS
+  sections: { heading: string; body: string }[]; // the teaching body
+  keyTerms?: { term: string; definition: string }[]; // vocabulary
 }
 ```
 
@@ -275,6 +279,7 @@ whole subject behind the problem so the details panel is a reference you could
 study from with the animation paused.
 
 Required shape per algorithm:
+
 - `overview`: 2–4 sentences orienting the learner — what the technique/data
   structure is and what class of problem it solves.
 - `sections`: **4–6** sections, each `body` being 3–6 full sentences. Cover, in
@@ -298,8 +303,17 @@ did — not silence for most steps as before.
 ```ts
 // src/engine/stepSound.ts
 export type SoundCueKind =
-  | 'advance' | 'compare' | 'swap' | 'push' | 'pop' | 'visit'
-  | 'enqueue' | 'dequeue' | 'relax' | 'match' | 'complete';
+  | "advance"
+  | "compare"
+  | "swap"
+  | "push"
+  | "pop"
+  | "visit"
+  | "enqueue"
+  | "dequeue"
+  | "relax"
+  | "match"
+  | "complete";
 
 export interface SoundCue {
   kind: SoundCueKind;
@@ -338,18 +352,18 @@ Supersedes conflicting details in Rounds 1–3.
 
 The previous palette was still too light. New anchors, all validated numerically:
 
-| Token | Value | Relative luminance |
-|---|---|---|
-| `--bg-inset` | `#01060a` | 0.0016 |
-| `--bg-page` | `#030b11` | 0.0030 |
-| `--bg-chrome` | `#05121a` | 0.0054 |
-| `--bg-surface` | `#071c13` | 0.0092 |
-| `--bg-elevated` | `#0c2619` | 0.0153 |
-| `--bg-hover` | `#113022` | 0.0235 |
-| `--bg-pressed` | `#153a2a` | 0.0335 |
+| Token           | Value     | Relative luminance |
+| --------------- | --------- | ------------------ |
+| `--bg-inset`    | `#01060a` | 0.0016             |
+| `--bg-page`     | `#030b11` | 0.0030             |
+| `--bg-chrome`   | `#05121a` | 0.0054             |
+| `--bg-surface`  | `#071c13` | 0.0092             |
+| `--bg-elevated` | `#0c2619` | 0.0153             |
+| `--bg-hover`    | `#113022` | 0.0235             |
+| `--bg-pressed`  | `#153a2a` | 0.0335             |
 
 For scale: Tailwind slate-950 is 0.0021, green-950 is 0.0204, green-900 is 0.0652.
-The page sits just above pure black; containers step up by a *small* amount, not a
+The page sits just above pure black; containers step up by a _small_ amount, not a
 full Tailwind stop. Navy = near-black blues (`inset`/`page`/`chrome`),
 emerald = near-black greens (`surface`/`elevated`/`hover`/`pressed`).
 
@@ -387,8 +401,9 @@ short. New rule:
 ```ts
 export interface WorkspaceLayout {
   version: 4;
-  splitPercent: number;                    // left/right column split, still a %
-  panelHeights: {                          // null = hug content (default)
+  splitPercent: number; // left/right column split, still a %
+  panelHeights: {
+    // null = hug content (default)
     visualizer: number | null;
     tutorial: number | null;
     auxiliary: number | null;
@@ -415,7 +430,10 @@ in the workspace by `PanelVisibility` (`src/types/dsa.ts`):
 
 ```ts
 export interface PanelVisibility {
-  visualizer: boolean; code: boolean; tutorial: boolean; auxiliary: boolean;
+  visualizer: boolean;
+  code: boolean;
+  tutorial: boolean;
+  auxiliary: boolean;
 }
 ```
 
@@ -454,15 +472,15 @@ Supersedes ALL earlier color guidance and the Round 4 panel arrangement.
 `theme.css` is rewritten and FINISHED (read-only). The app is now black / carbon /
 smoke, and **hue only appears where it carries meaning**.
 
-| Token | Value | L | Role |
-|---|---|---|---|
-| `--bg-inset` | `#030304` | 0.0009 | code wells, inputs |
-| `--bg-page` | `#08080a` | 0.0025 | page (black) |
-| `--bg-chrome` | `#0e0e11` | 0.0045 | navbar, toolbars |
-| `--bg-surface` | `#141417` | 0.0071 | containers (carbon) |
+| Token           | Value     | L      | Role                   |
+| --------------- | --------- | ------ | ---------------------- |
+| `--bg-inset`    | `#030304` | 0.0009 | code wells, inputs     |
+| `--bg-page`     | `#08080a` | 0.0025 | page (black)           |
+| `--bg-chrome`   | `#0e0e11` | 0.0045 | navbar, toolbars       |
+| `--bg-surface`  | `#141417` | 0.0071 | containers (carbon)    |
 | `--bg-elevated` | `#1c1c21` | 0.0119 | buttons, chips (smoke) |
-| `--bg-hover` | `#26262c` | 0.0198 | hover |
-| `--bg-pressed` | `#303037` | 0.0302 | pressed |
+| `--bg-hover`    | `#26262c` | 0.0198 | hover                  |
+| `--bg-pressed`  | `#303037` | 0.0302 | pressed                |
 
 - **No green, teal, or navy anywhere in the shell.** Chrome, panels, cards,
   buttons, inputs, drawers, navbar, sidebars and text are all neutral.
@@ -480,7 +498,7 @@ smoke, and **hue only appears where it carries meaning**.
 ## R5.2 The workspace is graph-focused: one stage, nothing stacked outside it
 
 The left column is **a single container** — the visualizer panel — with the step
-context living *inside* it. Top to bottom, inside that one panel:
+context living _inside_ it. Top to bottom, inside that one panel:
 
 1. **Working data** strip (the auxiliary/aux-data content) pinned at the top.
 2. **The visualization canvas** in the middle, taking all remaining height.
@@ -499,7 +517,7 @@ gives its space to the canvas and renders no wrapper, divider or gap.
 ## R5.3 Trim the canvas letterboxing — without shrinking graphs
 
 Visualizations currently waste large bands of empty space above and below the
-drawing. Fix the *cause*, not the symptom:
+drawing. Fix the _cause_, not the symptom:
 
 - Compute the viewBox tightly around actual content bounds (plus a small,
   uniform padding), then let the SVG scale to fill its box.
@@ -529,10 +547,11 @@ Supersedes conflicting guidance in every earlier round.
 ## R6.1 Canvas whitespace: the architecture, not a tweak
 
 Two previous attempts failed and BOTH are forbidden now:
+
 - a viewBox from fixed constants rendered into a 100%-sized `<svg>` — `meet`
-  centred the drawing and left dead bands *inside* the svg;
+  centred the drawing and left dead bands _inside_ the svg;
 - sizing the `<svg>` to the content's aspect ratio (`fitBox`, now deleted) —
-  which moved the identical dead bands *outside* the svg, into the panel. This is
+  which moved the identical dead bands _outside_ the svg, into the panel. This is
   what the user is still seeing.
 
 **The contract:** `viewBox = boxViewBox(measuredBox)` — literally
@@ -564,7 +583,7 @@ padding large enough to read as a band.
 - `--bg-surface` `#0a0a0c` is **near-black** and DARKER than the page, because
   cards are where the eye rests (code, tutorial, topic guide).
 - `--bg-inset` `#050506` is deepest (code wells, inputs).
-- Controls raised on a card step *lighter*: `--bg-elevated` `#1e1e24`, hover
+- Controls raised on a card step _lighter_: `--bg-elevated` `#1e1e24`, hover
   `#282830`, pressed `#32323b`. `--bg-chrome` `#1c1c21` is the navbar.
 - **Primary buttons are black-filled** (`.ui-btn--primary` = `--bg-inset` fill,
   `--accent` border, `--text-primary` ink, weight 600) — never a light slab.
@@ -572,11 +591,12 @@ padding large enough to read as a band.
 ## R6.3 Colour comes back where it carries meaning
 
 The achromatic sweep went too far. Restore and keep:
+
 - **Problem list**: difficulty badges and any status/count badges are coloured
   (`--success` / `--warning` / `--danger` / `--info` via `difficultyBadgeVariant`).
 - **Knowledge map**: keep the full `--viz-1..8` cluster colouring exactly as is.
 - **Visualizers**: `--state-*` marks and `--viz-*` group colours stay.
-Chrome, panels, inputs, toolbars and body text remain neutral.
+  Chrome, panels, inputs, toolbars and body text remain neutral.
 
 ## R6.4 The tutorial is the panel's header, and it is readable
 
@@ -593,6 +613,7 @@ Chrome, panels, inputs, toolbars and body text remain neutral.
 ## R6.5 Every manual adjustment persists; reset lives in the navbar
 
 Persist and restore across reloads and dev-server restarts:
+
 - the column split percentage,
 - every user-pinned panel height,
 - **whether the details panel is expanded or collapsed**.
@@ -606,6 +627,7 @@ governs the whole workspace. It still opens `ConfirmDialog` first.
 
 Global shortcuts on the workspace, active whenever focus is not in an
 input/textarea/select/contenteditable:
+
 - `ArrowRight` / `ArrowLeft` — step forward / step back
 - `Space` — play/pause (must `preventDefault` so the page does not scroll)
 
@@ -621,7 +643,7 @@ existing `/` search shortcut working. Announce them in the control panel via
 
 Buttons, icon buttons, segmented options, neutral badges, chips and inputs rest on
 `--bg-inset` (the darkest tier) and rely on their border to read. Hover and active
-step *lighter* (`--bg-surface`, then `--bg-elevated`) because the resting state is
+step _lighter_ (`--bg-surface`, then `--bg-elevated`) because the resting state is
 already the floor. Primary buttons stay black-filled with an `--accent` edge.
 
 ## R7.2 Section fills are consistent; only headers lift
@@ -647,6 +669,7 @@ lets the rows align into a readable table.
 ## R7.4 Every section has BOTH width and height control
 
 Width comes from the column split. Height now has a handle for every section:
+
 - `tutorial` and `auxiliary` are resizable rows inside the visualizer panel, so
   dragging either one changes the canvas height (the canvas is the greedy row).
 - `code` and `complexity` keep their row handle.
@@ -722,7 +745,7 @@ take it from the engine so tests stay deterministic.
 
 `/trivia` route with two states: **deck builder** and **session**.
 
-- **Deck builder**: multi-select over the whole registry with *quick multi-add* —
+- **Deck builder**: multi-select over the whole registry with _quick multi-add_ —
   add a whole category at once, add all, clear, and per-category counts. Difficulty
   badges keep their semantic colour (R6.3).
 - **Session**: the solution renders as a code panel where blanked lines become

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from "react";
 
 /* Canvas geometry for the visualizers (DESIGN.md R6.1).
 
@@ -28,6 +28,7 @@ export interface Size {
   width: number;
   height: number;
 }
+export type CanvasBox = Size;
 
 export interface Point {
   x: number;
@@ -63,7 +64,7 @@ const axisPad = (pad: number, extent: number): number =>
   Math.max(Math.min(Number.isFinite(pad) ? pad : 0, (extent - 1) / 2), 0);
 
 export const viewBoxAttr = (viewBox: ViewBox): string =>
-  [viewBox.minX, viewBox.minY, viewBox.width, viewBox.height].map(round2).join(' ');
+  [viewBox.minX, viewBox.minY, viewBox.width, viewBox.height].map(round2).join(" ");
 
 /**
  * The viewBox that makes user units equal CSS pixels. Pair it with an <svg> at
@@ -89,11 +90,7 @@ export const boxViewBox = (box: Size): ViewBox => ({
  * A degenerate axis (every point sharing an x, a single node) centres on that
  * axis rather than dividing by zero.
  */
-export const spreadToBox = (
-  points: readonly Point[],
-  box: Size,
-  pad: number
-): Point[] => {
+export const spreadToBox = (points: readonly Point[], box: Size, pad: number): Point[] => {
   const width = Math.max(box.width, 1);
   const height = Math.max(box.height, 1);
   const padX = axisPad(pad, width);
@@ -187,7 +184,7 @@ export const fitSlots = (
   available: number,
   gap: number,
   min: number,
-  max: number
+  max: number,
 ): SlotFit => {
   const slots = Math.max(Math.floor(count) || 0, 1);
   const gaps = slots - 1;
@@ -221,7 +218,7 @@ export interface TidyTree {
  */
 export const tidyTreeSlots = (
   roots: readonly string[],
-  childrenOf: (id: string) => readonly string[]
+  childrenOf: (id: string) => readonly string[],
 ): TidyTree => {
   const slots: TidySlot[] = [];
   const placed = new Map<string, number>();
@@ -276,7 +273,7 @@ export const useCanvasBox = (fallback: Size) => {
 
   useLayoutEffect(() => {
     const element = ref.current;
-    if (!element || typeof ResizeObserver === 'undefined') return;
+    if (!element || typeof ResizeObserver === "undefined") return;
 
     const measure = () => {
       const width = element.clientWidth;

@@ -1,0 +1,854 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/specs/triviaStorageProgress.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 23553, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 23553, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "storeRaw",
+          "ranges": [{ "startOffset": 807, "endOffset": 865, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "storeProgressRaw",
+          "ranges": [{ "startOffset": 892, "endOffset": 988, "count": 13 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1264, "endOffset": 1350, "count": 23 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1415, "endOffset": 5312, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1513, "endOffset": 1897, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1976, "endOffset": 2235, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2337, "endOffset": 2592, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2683, "endOffset": 3139, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3220, "endOffset": 3504, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3570, "endOffset": 3820, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4662, "endOffset": 4971, "count": 11 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5082, "endOffset": 5308, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5383, "endOffset": 8899, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5478, "endOffset": 6170, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5715, "endOffset": 5770, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5806, "endOffset": 5852, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6251, "endOffset": 6852, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6359, "endOffset": 6413, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6931, "endOffset": 7178, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7026, "endOffset": 7081, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7117, "endOffset": 7158, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7249, "endOffset": 8216, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 8292, "endOffset": 8895, "count": 1 },
+            { "startOffset": 8762, "endOffset": 8771, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/triviaEngine.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1874, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1874, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/engine/triviaEngineConfig.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4221, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4221, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 567, "endOffset": 604, "count": 43 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 740, "endOffset": 772, "count": 43 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 914, "endOffset": 948, "count": 43 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampInt",
+          "ranges": [
+            { "startOffset": 969, "endOffset": 1094, "count": 76 },
+            { "startOffset": 1023, "endOffset": 1034, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1192, "endOffset": 1216, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "normalizeConfig",
+          "ranges": [{ "startOffset": 1244, "endOffset": 1470, "count": 38 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1575, "endOffset": 1606, "count": 38 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/engine/triviaEngineParser.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3415, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3415, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "parsePuzzleLines",
+          "ranges": [{ "startOffset": 210, "endOffset": 653, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 759, "endOffset": 791, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "blankableLines",
+          "ranges": [{ "startOffset": 818, "endOffset": 894, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 998, "endOffset": 1028, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/engine/triviaEngineProgress.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8142, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8142, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createProgress",
+          "ranges": [{ "startOffset": 489, "endOffset": 638, "count": 33 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 742, "endOffset": 772, "count": 33 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "levelKey",
+          "ranges": [{ "startOffset": 793, "endOffset": 817, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 915, "endOffset": 939, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "drilledAt",
+          "ranges": [{ "startOffset": 961, "endOffset": 1049, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1148, "endOffset": 1173, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "statFor",
+          "ranges": [{ "startOffset": 1193, "endOffset": 1299, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1396, "endOffset": 1419, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "remainingAt",
+          "ranges": [{ "startOffset": 1443, "endOffset": 1634, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1735, "endOffset": 1762, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isLevelCovered",
+          "ranges": [{ "startOffset": 1789, "endOffset": 2071, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2175, "endOffset": 2205, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "coverageRatio",
+          "ranges": [{ "startOffset": 2231, "endOffset": 2747, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2850, "endOffset": 2879, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1659",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/engine/triviaEngineRound.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 16158, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 16158, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "shuffle",
+          "ranges": [{ "startOffset": 642, "endOffset": 858, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "pickWeighted",
+          "ranges": [{ "startOffset": 881, "endOffset": 1446, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "pickRound",
+          "ranges": [{ "startOffset": 1466, "endOffset": 2991, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3090, "endOffset": 3115, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "buildTiles",
+          "ranges": [{ "startOffset": 3138, "endOffset": 3933, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4033, "endOffset": 4059, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "describeMode",
+          "ranges": [{ "startOffset": 4084, "endOffset": 4193, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4295, "endOffset": 4323, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1660",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/engine/triviaEngineGrading.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9881, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9881, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "normalizeWhitespace",
+          "ranges": [{ "startOffset": 519, "endOffset": 563, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isAnswerCorrect",
+          "ranges": [{ "startOffset": 589, "endOffset": 678, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 783, "endOffset": 814, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "gradeRound",
+          "ranges": [{ "startOffset": 837, "endOffset": 1174, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1274, "endOffset": 1300, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "recordRound",
+          "ranges": [{ "startOffset": 1324, "endOffset": 2590, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2691, "endOffset": 2718, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1661",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/triviaStorage.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1265, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1265, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1662",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/storage/storageHelpers.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 15415, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 15415, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 501, "endOffset": 534, "count": 37 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 710, "endOffset": 745, "count": 47 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 893, "endOffset": 931, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cloneTriviaConfig",
+          "ranges": [{ "startOffset": 935, "endOffset": 1156, "count": 29 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1262, "endOffset": 1295, "count": 29 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cloneTriviaProgress",
+          "ranges": [
+            { "startOffset": 1299, "endOffset": 1998, "count": 8 },
+            { "startOffset": 1434, "endOffset": 1576, "count": 16 },
+            { "startOffset": 1743, "endOffset": 1819, "count": 16 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2106, "endOffset": 2141, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isRecord",
+          "ranges": [
+            { "startOffset": 2162, "endOffset": 2241, "count": 69 },
+            { "startOffset": 2199, "endOffset": 2216, "count": 68 },
+            { "startOffset": 2217, "endOffset": 2241, "count": 68 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2339, "endOffset": 2363, "count": 51 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isMode",
+          "ranges": [
+            { "startOffset": 2382, "endOffset": 2431, "count": 2 },
+            { "startOffset": 2412, "endOffset": 2431, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2527, "endOffset": 2549, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isBlankCount",
+          "ranges": [
+            { "startOffset": 2574, "endOffset": 2741, "count": 36 },
+            { "startOffset": 2638, "endOffset": 2688, "count": 35 },
+            { "startOffset": 2689, "endOffset": 2741, "count": 34 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2843, "endOffset": 2871, "count": 36 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isTally",
+          "ranges": [
+            { "startOffset": 2891, "endOffset": 2968, "count": 41 },
+            { "startOffset": 2928, "endOffset": 2954, "count": 40 },
+            { "startOffset": 2955, "endOffset": 2968, "count": 39 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3065, "endOffset": 3088, "count": 41 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampLevel",
+          "ranges": [
+            { "startOffset": 3111, "endOffset": 3333, "count": 8 },
+            { "startOffset": 3155, "endOffset": 3201, "count": 1 },
+            { "startOffset": 3201, "endOffset": 3332, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3433, "endOffset": 3459, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readDeck",
+          "ranges": [
+            { "startOffset": 3480, "endOffset": 3724, "count": 4 },
+            { "startOffset": 3522, "endOffset": 3534, "count": 0 },
+            { "startOffset": 3583, "endOffset": 3707, "count": 2 },
+            { "startOffset": 3642, "endOffset": 3654, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3822, "endOffset": 3846, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readLineNumbers",
+          "ranges": [
+            { "startOffset": 3874, "endOffset": 4163, "count": 16 },
+            { "startOffset": 3916, "endOffset": 3928, "count": 0 },
+            { "startOffset": 3978, "endOffset": 4123, "count": 23 },
+            { "startOffset": 4014, "endOffset": 4041, "count": 22 },
+            { "startOffset": 4042, "endOffset": 4054, "count": 22 },
+            { "startOffset": 4056, "endOffset": 4068, "count": 2 },
+            { "startOffset": 4068, "endOffset": 4119, "count": 21 },
+            { "startOffset": 4123, "endOffset": 4162, "count": 14 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4144, "endOffset": 4159, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4268, "endOffset": 4299, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getStorage",
+          "ranges": [
+            { "startOffset": 4322, "endOffset": 4464, "count": 62 },
+            { "startOffset": 4377, "endOffset": 4389, "count": 0 },
+            { "startOffset": 4421, "endOffset": 4428, "count": 0 },
+            { "startOffset": 4434, "endOffset": 4462, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4564, "endOffset": 4590, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readVersioned",
+          "ranges": [
+            { "startOffset": 4616, "endOffset": 5015, "count": 47 },
+            { "startOffset": 4675, "endOffset": 4687, "count": 0 },
+            { "startOffset": 4750, "endOffset": 4778, "count": 4 },
+            { "startOffset": 4778, "endOffset": 4799, "count": 43 },
+            { "startOffset": 4799, "endOffset": 4811, "count": 24 },
+            { "startOffset": 4811, "endOffset": 4868, "count": 19 },
+            { "startOffset": 4868, "endOffset": 4896, "count": 1 },
+            { "startOffset": 4896, "endOffset": 4922, "count": 18 },
+            { "startOffset": 4922, "endOffset": 4934, "count": 0 },
+            { "startOffset": 4934, "endOffset": 4984, "count": 18 },
+            { "startOffset": 4984, "endOffset": 4996, "count": 1 },
+            { "startOffset": 4996, "endOffset": 5014, "count": 17 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5118, "endOffset": 5147, "count": 47 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeVersioned",
+          "ranges": [
+            { "startOffset": 5174, "endOffset": 5366, "count": 13 },
+            { "startOffset": 5242, "endOffset": 5249, "count": 0 },
+            { "startOffset": 5353, "endOffset": 5364, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5470, "endOffset": 5500, "count": 13 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1663",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/storage/configStorage.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8081, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8081, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readTriviaConfig",
+          "ranges": [
+            { "startOffset": 565, "endOffset": 1803, "count": 26 },
+            { "startOffset": 713, "endOffset": 805, "count": 24 },
+            { "startOffset": 805, "endOffset": 887, "count": 2 },
+            { "startOffset": 887, "endOffset": 979, "count": 0 },
+            { "startOffset": 979, "endOffset": 1030, "count": 2 },
+            { "startOffset": 1030, "endOffset": 1122, "count": 0 },
+            { "startOffset": 1122, "endOffset": 1239, "count": 2 },
+            { "startOffset": 1241, "endOffset": 1343, "count": 0 },
+            { "startOffset": 1343, "endOffset": 1387, "count": 2 },
+            { "startOffset": 1387, "endOffset": 1479, "count": 0 },
+            { "startOffset": 1479, "endOffset": 1534, "count": 2 },
+            { "startOffset": 1534, "endOffset": 1636, "count": 0 },
+            { "startOffset": 1636, "endOffset": 1802, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1908, "endOffset": 1940, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeTriviaConfig",
+          "ranges": [
+            { "startOffset": 1944, "endOffset": 2839, "count": 5 },
+            { "startOffset": 2055, "endOffset": 2069, "count": 3 },
+            { "startOffset": 2070, "endOffset": 2130, "count": 2 },
+            { "startOffset": 2115, "endOffset": 2130, "count": 0 },
+            { "startOffset": 2220, "endOffset": 2235, "count": 2 },
+            { "startOffset": 2268, "endOffset": 2288, "count": 3 },
+            { "startOffset": 2321, "endOffset": 2341, "count": 4 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2945, "endOffset": 2978, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1664",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/storage/progressStorage.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13156, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 13156, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readDrilled",
+          "ranges": [
+            { "startOffset": 767, "endOffset": 1362, "count": 11 },
+            { "startOffset": 826, "endOffset": 838, "count": 1 },
+            { "startOffset": 838, "endOffset": 922, "count": 10 },
+            { "startOffset": 922, "endOffset": 1342, "count": 17 },
+            { "startOffset": 973, "endOffset": 985, "count": 0 },
+            { "startOffset": 1131, "endOffset": 1143, "count": 1 },
+            { "startOffset": 1143, "endOffset": 1248, "count": 16 },
+            { "startOffset": 1248, "endOffset": 1260, "count": 2 },
+            { "startOffset": 1260, "endOffset": 1342, "count": 14 },
+            { "startOffset": 1342, "endOffset": 1361, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1463, "endOffset": 1490, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "readStats",
+          "ranges": [
+            { "startOffset": 1512, "endOffset": 2224, "count": 7 },
+            { "startOffset": 1571, "endOffset": 1583, "count": 1 },
+            { "startOffset": 1583, "endOffset": 2206, "count": 6 },
+            { "startOffset": 1714, "endOffset": 1726, "count": 0 },
+            { "startOffset": 1804, "endOffset": 2169, "count": 10 },
+            { "startOffset": 1849, "endOffset": 1861, "count": 0 },
+            { "startOffset": 1911, "endOffset": 1923, "count": 0 },
+            { "startOffset": 2028, "endOffset": 2040, "count": 1 },
+            { "startOffset": 2040, "endOffset": 2080, "count": 9 },
+            { "startOffset": 2080, "endOffset": 2092, "count": 1 },
+            { "startOffset": 2092, "endOffset": 2169, "count": 8 },
+            { "startOffset": 2169, "endOffset": 2206, "count": 4 },
+            { "startOffset": 2206, "endOffset": 2223, "count": 4 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2323, "endOffset": 2348, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "readTriviaProgress",
+          "ranges": [
+            { "startOffset": 2352, "endOffset": 3458, "count": 21 },
+            { "startOffset": 2504, "endOffset": 2590, "count": 6 },
+            { "startOffset": 2590, "endOffset": 2648, "count": 15 },
+            { "startOffset": 2648, "endOffset": 2734, "count": 1 },
+            { "startOffset": 2734, "endOffset": 2780, "count": 14 },
+            { "startOffset": 2780, "endOffset": 2866, "count": 1 },
+            { "startOffset": 2866, "endOffset": 2926, "count": 13 },
+            { "startOffset": 2926, "endOffset": 3012, "count": 2 },
+            { "startOffset": 3012, "endOffset": 3084, "count": 11 },
+            { "startOffset": 3084, "endOffset": 3170, "count": 4 },
+            { "startOffset": 3170, "endOffset": 3234, "count": 7 },
+            { "startOffset": 3234, "endOffset": 3320, "count": 3 },
+            { "startOffset": 3320, "endOffset": 3457, "count": 4 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3565, "endOffset": 3599, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeTriviaProgress",
+          "ranges": [
+            { "startOffset": 3603, "endOffset": 4171, "count": 8 },
+            { "startOffset": 3810, "endOffset": 3813, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4279, "endOffset": 4314, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clearTrivia",
+          "ranges": [
+            { "startOffset": 4318, "endOffset": 4578, "count": 2 },
+            { "startOffset": 4413, "endOffset": 4420, "count": 0 },
+            { "startOffset": 4565, "endOffset": 4576, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4678, "endOffset": 4705, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

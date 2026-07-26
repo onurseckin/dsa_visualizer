@@ -1,6 +1,7 @@
 # Master Execution Plan V2: Trivia UX, Session Flow, Line Cues & Shared Workspace Integration
 
 ## Executive Overview
+
 This master plan addresses user feedback regarding the Trivia session lifecycle, control flow logic, category badge visual alignment, line-level explanation cues, and seamless integration between Trivia and the Workspace code viewer.
 
 ---
@@ -8,6 +9,7 @@ This master plan addresses user feedback regarding the Trivia session lifecycle,
 ## Execution Streams
 
 ### Stream 1: Session Lifecycle & Control Flow Logic Refinement
+
 - **Target Files**: `src/routes/trivia.tsx`, `src/components/trivia/TriviaHeaderCard.tsx`, `src/components/trivia/TriviaSessionsManager.tsx`, `src/trivia/triviaSessions.ts`
 - **Tasks**:
   1. Fix conflicting control buttons: Disambiguate "Start Drilling", "Pause Drilling", "New Session", and "Reset Progress".
@@ -21,6 +23,7 @@ This master plan addresses user feedback regarding the Trivia session lifecycle,
      - Gracefully handle session exit/pause so progress is never lost.
 
 ### Stream 2: Deck Builder Search, Select & Badge Geometry Uniformity
+
 - **Target Files**: `src/components/trivia/TriviaDeckBuilder.tsx`, `src/components/trivia/TriviaSettings.tsx`, `src/styles/ui.css`
 - **Tasks**:
   1. Search & Filter Integration: Ensure live search input works seamlessly alongside category and difficulty filter pills.
@@ -29,6 +32,7 @@ This master plan addresses user feedback regarding the Trivia session lifecycle,
   3. Visual Polish: Ensure proper carbon dark surfaces (`--bg-surface`), borders (`--border-default`), and zero layout shifts on expand/collapse.
 
 ### Stream 3: Shared Line-Level Educational Cues & Workspace Integration
+
 - **Target Files**: `src/types/dsa.ts`, `src/types/trivia.ts`, `src/components/trivia/CodePuzzle.tsx`, `src/components/trivia/TriviaSession.tsx`, `src/components/primitives/CodeBlockViewer.tsx`, `src/algorithms/**/*.ts`
 - **Tasks**:
   1. Shared Line Explanation Schema: Ensure `TriviaMeta` / `AlgorithmDefinition` includes comprehensive line-by-line educational explanations (`hints` / `lineExplanations`).
@@ -42,6 +46,7 @@ This master plan addresses user feedback regarding the Trivia session lifecycle,
      - Add a "Study in Workspace" button (`<Button icon={ExternalLink}>`) in `TriviaSession.tsx` and `TriviaHeaderCard.tsx` that routes to `/workspace/:algorithmId` to let learners inspect visualizations before resuming trivia.
 
 ### Stream 4: 100% Unit & Render Test Coverage Audit
+
 - **Target Files**: `src/routes/specs/*.tsx`, `src/components/trivia/specs/*.tsx`, `src/components/primitives/specs/*.tsx`, `src/trivia/specs/*.ts`
 - **Tasks**:
   1. Write unit and component render tests for session naming, pause/resume flow, line cues in `CodePuzzle`, line popovers in `CodeBlockViewer`, and jump-to-workspace navigation.
@@ -51,6 +56,7 @@ This master plan addresses user feedback regarding the Trivia session lifecycle,
 ---
 
 ## Quality Requirements
+
 - **TypeScript**: 0 `any` / 0 `unknown` / 0 suppression comments (`@ts-ignore`).
 - **Styling**: Standard design tokens from `src/styles/theme.css` and `ui.css`.
 - **Verification**: All changes must pass `bun run check`.

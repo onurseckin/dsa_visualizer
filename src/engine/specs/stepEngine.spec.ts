@@ -1,14 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { StrictMode } from 'react';
-import { useStepEngine } from '../stepEngine';
-import { AlgorithmStep } from '../../types/dsa';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { StrictMode } from "react";
+import { useStepEngine } from "../stepEngine";
+import { AlgorithmStep } from "../../types/dsa";
 
 const makeStep = (stepIndex: number): AlgorithmStep => ({
   stepIndex,
   codeLine: stepIndex + 1,
-  explanation: { what: `step ${stepIndex}`, why: 'spec fixture' },
-  primarySnapshot: { kind: 'array', elements: [] },
+  explanation: { what: `step ${stepIndex}`, why: "spec fixture" },
+  primarySnapshot: { kind: "array", elements: [] },
   auxiliaryState: {},
   variables: {},
 });
@@ -19,25 +19,26 @@ const makeSteps = (count: number): AlgorithmStep[] =>
 interface HookProps {
   steps: AlgorithmStep[];
   onStepChange?: (step: AlgorithmStep) => void;
+  defaultSpeed?: number;
 }
 
 // StrictMode wrapper mirrors the app's dev-mode double-invoked effects, the
 // original source of double-fired sounds.
 const renderEngine = (initialProps: HookProps) =>
   renderHook(
-    ({ steps, onStepChange }: HookProps) =>
-      useStepEngine({ steps, onStepChange }),
-    { initialProps, wrapper: StrictMode }
+    ({ steps, onStepChange, defaultSpeed }: HookProps) =>
+      useStepEngine({ steps, onStepChange, defaultSpeed }),
+    { initialProps, wrapper: StrictMode },
   );
 
-describe('useStepEngine onStepChange notifications', () => {
-  it('does not fire onStepChange on mount', () => {
+describe("useStepEngine onStepChange notifications", () => {
+  it("does not fire onStepChange on mount", () => {
     const onStepChange = vi.fn();
     renderEngine({ steps: makeSteps(3), onStepChange });
     expect(onStepChange).not.toHaveBeenCalled();
   });
 
-  it('fires exactly once per index change despite StrictMode double rendering', () => {
+  it("fires exactly once per index change despite StrictMode double rendering", () => {
     const steps = makeSteps(3);
     const onStepChange = vi.fn();
     const { result } = renderEngine({ steps, onStepChange });
@@ -48,7 +49,7 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(onStepChange).toHaveBeenCalledWith(steps[1]);
   });
 
-  it('does not fire again for the same index', () => {
+  it("does not fire again for the same index", () => {
     const steps = makeSteps(4);
     const onStepChange = vi.fn();
     const { result } = renderEngine({ steps, onStepChange });
@@ -60,7 +61,7 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(onStepChange).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fire when stepping backward at the lower boundary', () => {
+  it("does not fire when stepping backward at the lower boundary", () => {
     const onStepChange = vi.fn();
     const { result } = renderEngine({ steps: makeSteps(3), onStepChange });
 
@@ -69,7 +70,7 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(result.current.currentStepIndex).toBe(0);
   });
 
-  it('fires on stepForward, stepBackward, and goToStep', () => {
+  it("fires on stepForward, stepBackward, and goToStep", () => {
     const steps = makeSteps(5);
     const onStepChange = vi.fn();
     const { result } = renderEngine({ steps, onStepChange });
@@ -92,7 +93,7 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(onStepChange).toHaveBeenCalledTimes(5);
   });
 
-  it('resets silently when the steps array changes', () => {
+  it("resets silently when the steps array changes", () => {
     const stepsA = makeSteps(3);
     const stepsB = makeSteps(4);
     const onStepChange = vi.fn();
@@ -114,7 +115,7 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(onStepChange).toHaveBeenLastCalledWith(stepsB[1]);
   });
 
-  it('supports omitting onStepChange entirely', () => {
+  it("supports omitting onStepChange entirely", () => {
     const { result } = renderEngine({ steps: makeSteps(2) });
     expect(() => {
       act(() => result.current.stepForward());
@@ -126,7 +127,7 @@ describe('useStepEngine onStepChange notifications', () => {
 /* The actions the ArrowRight/ArrowLeft/Space shortcuts bind to (DESIGN.md R6.6).
    Fake timers keep the playback interval from firing on its own, so each
    assertion is about the action rather than about wall-clock luck. */
-describe('useStepEngine actions behind the playback shortcuts', () => {
+describe("useStepEngine actions behind the playback shortcuts", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -135,7 +136,7 @@ describe('useStepEngine actions behind the playback shortcuts', () => {
     vi.useRealTimers();
   });
 
-  it('togglePlay starts playback without moving the index, then stops it', () => {
+  it("togglePlay starts playback without moving the index, then stops it", () => {
     const { result } = renderEngine({ steps: makeSteps(4) });
 
     act(() => result.current.togglePlay());
@@ -147,7 +148,7 @@ describe('useStepEngine actions behind the playback shortcuts', () => {
     expect(result.current.currentStepIndex).toBe(0);
   });
 
-  it('advances one step per interval while playing and notifies once each', () => {
+  it("advances one step per interval while playing and notifies once each", () => {
     const steps = makeSteps(4);
     const onStepChange = vi.fn();
     const { result } = renderEngine({ steps, onStepChange });
@@ -175,7 +176,7 @@ describe('useStepEngine actions behind the playback shortcuts', () => {
     expect(onStepChange).toHaveBeenCalledTimes(2);
   });
 
-  it('stops playback at the last step so Space restarts from the beginning', () => {
+  it("stops playback at the last step so Space restarts from the beginning", () => {
     const { result } = renderEngine({ steps: makeSteps(3) });
 
     act(() => result.current.goToStep(2));
@@ -192,7 +193,7 @@ describe('useStepEngine actions behind the playback shortcuts', () => {
     expect(result.current.isPlaying).toBe(true);
   });
 
-  it('clamps stepForward at the last step and stepBackward at the first', () => {
+  it("clamps stepForward at the last step and stepBackward at the first", () => {
     const { result } = renderEngine({ steps: makeSteps(2) });
 
     act(() => result.current.stepBackward());
@@ -201,5 +202,70 @@ describe('useStepEngine actions behind the playback shortcuts', () => {
     act(() => result.current.stepForward());
     act(() => result.current.stepForward());
     expect(result.current.currentStepIndex).toBe(1);
+
+    act(() => result.current.stepBackward());
+    expect(result.current.currentStepIndex).toBe(0);
+  });
+
+  it("handles empty steps array gracefully across all controls", () => {
+    const { result } = renderEngine({ steps: [] });
+
+    expect(result.current.totalSteps).toBe(0);
+    expect(result.current.currentStep).toBeNull();
+
+    act(() => result.current.play());
+    expect(result.current.isPlaying).toBe(false);
+
+    act(() => result.current.togglePlay());
+    expect(result.current.isPlaying).toBe(false);
+
+    act(() => result.current.stepForward());
+    expect(result.current.currentStepIndex).toBe(0);
+
+    act(() => result.current.stepBackward());
+    expect(result.current.currentStepIndex).toBe(0);
+
+    act(() => result.current.goToStep(2));
+    expect(result.current.currentStepIndex).toBe(0);
+  });
+
+  it("resets, changes speed, and ignores out-of-bound goToStep indices", () => {
+    const { result } = renderEngine({ steps: makeSteps(5), defaultSpeed: 300 });
+
+    expect(result.current.speed).toBe(300);
+    act(() => result.current.setSpeed(150));
+    expect(result.current.speed).toBe(150);
+
+    act(() => result.current.goToStep(3));
+    expect(result.current.currentStepIndex).toBe(3);
+
+    act(() => result.current.goToStep(-1));
+    expect(result.current.currentStepIndex).toBe(3);
+
+    act(() => result.current.goToStep(100));
+    expect(result.current.currentStepIndex).toBe(3);
+
+    act(() => result.current.reset());
+    expect(result.current.currentStepIndex).toBe(0);
+    expect(result.current.isPlaying).toBe(false);
+  });
+
+  it("rewinds to 0 when play() is called while at the end of the steps array", () => {
+    const { result } = renderEngine({ steps: makeSteps(3) });
+
+    act(() => result.current.goToStep(2));
+    expect(result.current.currentStepIndex).toBe(2);
+
+    act(() => result.current.play());
+    expect(result.current.currentStepIndex).toBe(0);
+    expect(result.current.isPlaying).toBe(true);
+  });
+
+  it("starts playback without moving index when play() is called at step 0 of 3", () => {
+    const { result } = renderEngine({ steps: makeSteps(3) });
+
+    act(() => result.current.play());
+    expect(result.current.isPlaying).toBe(true);
+    expect(result.current.currentStepIndex).toBe(0);
   });
 });

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlgorithmStep } from '../types/dsa';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { AlgorithmStep } from "../types/dsa";
 
 interface UseStepEngineOptions {
   steps: AlgorithmStep[];
@@ -98,14 +98,11 @@ export function useStepEngine({
   }, []);
 
   // Go to explicit step
-  const goToStep = useCallback(
-    (index: number) => {
-      if (index >= 0 && index < stepsRef.current.length) {
-        setCurrentStepIndex(index);
-      }
-    },
-    []
-  );
+  const goToStep = useCallback((index: number) => {
+    if (index >= 0 && index < stepsRef.current.length) {
+      setCurrentStepIndex(index);
+    }
+  }, []);
 
   // Reset to step 0
   const reset = useCallback(() => {
@@ -116,20 +113,26 @@ export function useStepEngine({
   // Play playback
   const play = useCallback(() => {
     if (stepsRef.current.length === 0) return;
-    if (currentStepIndex >= stepsRef.current.length - 1) {
-      setCurrentStepIndex(0);
-    }
+    setCurrentStepIndex((prev) => (prev >= stepsRef.current.length - 1 ? 0 : prev));
     setIsPlaying(true);
-  }, [currentStepIndex]);
+  }, []);
 
   // Toggle play/pause
   const togglePlay = useCallback(() => {
-    if (isPlaying) {
-      pause();
-    } else {
-      play();
-    }
-  }, [isPlaying, pause, play]);
+    setIsPlaying((prevIsPlaying) => {
+      if (prevIsPlaying) {
+        stopTimer();
+        return false;
+      }
+      if (stepsRef.current.length > 0) {
+        setCurrentStepIndex((prevIndex) =>
+          prevIndex >= stepsRef.current.length - 1 ? 0 : prevIndex,
+        );
+        return true;
+      }
+      return false;
+    });
+  }, [stopTimer]);
 
   // Set speed
   const setSpeed = useCallback((newSpeed: number) => {

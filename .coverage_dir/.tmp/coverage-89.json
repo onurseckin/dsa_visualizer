@@ -1,0 +1,257 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/advanced_range_queries/specs/fenwickTree.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13262, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 13262, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 571, "endOffset": 4752, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 648, "endOffset": 1169, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1248, "endOffset": 2067, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1768, "endOffset": 1831, "count": 46 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2137, "endOffset": 2506, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2571, "endOffset": 2783, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2886, "endOffset": 3579, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3656, "endOffset": 4748, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3996, "endOffset": 4266, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4328, "endOffset": 4341, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4699, "endOffset": 4712, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/advanced_range_queries/fenwickTree/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2269, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2269, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 457, "endOffset": 512, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 805, "endOffset": 867, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1175, "endOffset": 1234, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1337, "endOffset": 1386, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1485, "endOffset": 1530, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/advanced_range_queries/fenwickTree/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2200, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2200, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 864, "endOffset": 897, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/advanced_range_queries/fenwickTree/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 19636, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 19636, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateFenwickTreeSteps",
+          "ranges": [
+            { "startOffset": 218, "endOffset": 5679, "count": 5 },
+            { "startOffset": 319, "endOffset": 726, "count": 1 },
+            { "startOffset": 726, "endOffset": 3608, "count": 4 },
+            { "startOffset": 3608, "endOffset": 3705, "count": 19 },
+            { "startOffset": 3661, "endOffset": 3701, "count": 17 },
+            { "startOffset": 3705, "endOffset": 3969, "count": 4 },
+            { "startOffset": 3969, "endOffset": 3974, "count": 1 },
+            { "startOffset": 4000, "endOffset": 5423, "count": 12 },
+            { "startOffset": 4031, "endOffset": 4053, "count": 4 },
+            { "startOffset": 4054, "endOffset": 4076, "count": 4 },
+            { "startOffset": 4078, "endOffset": 4489, "count": 3 },
+            { "startOffset": 4489, "endOffset": 5419, "count": 9 },
+            { "startOffset": 4519, "endOffset": 4540, "count": 7 },
+            { "startOffset": 4541, "endOffset": 4563, "count": 6 },
+            { "startOffset": 4565, "endOffset": 5419, "count": 5 },
+            { "startOffset": 5011, "endOffset": 5038, "count": 1 },
+            { "startOffset": 5039, "endOffset": 5042, "count": 4 },
+            { "startOffset": 5423, "endOffset": 5678, "count": 4 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getElements",
+          "ranges": [
+            { "startOffset": 790, "endOffset": 1199, "count": 102 },
+            { "startOffset": 905, "endOffset": 1174, "count": 587 },
+            { "startOffset": 966, "endOffset": 1007, "count": 77 },
+            { "startOffset": 1121, "endOffset": 1135, "count": 474 },
+            { "startOffset": 1136, "endOffset": 1149, "count": 77 },
+            { "startOffset": 1150, "endOffset": 1158, "count": 510 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1219, "endOffset": 1604, "count": 102 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "updateFenwick",
+          "ranges": [
+            { "startOffset": 1630, "endOffset": 2456, "count": 20 },
+            { "startOffset": 1993, "endOffset": 2452, "count": 42 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "queryFenwick",
+          "ranges": [
+            { "startOffset": 2481, "endOffset": 3339, "count": 6 },
+            { "startOffset": 2841, "endOffset": 3319, "count": 9 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5793, "endOffset": 5833, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/advanced_range_queries/fenwickTree/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 29016, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 29016, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 858, "endOffset": 895, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11398, "endOffset": 11425, "count": 7 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

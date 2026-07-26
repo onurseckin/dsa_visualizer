@@ -1,15 +1,15 @@
-import { useEffect, useId } from 'react';
-import { createPortal } from 'react-dom';
-import type { CSSProperties, ReactNode } from 'react';
-import { X } from 'lucide-react';
-import { cx } from './cx';
-import { IconButton } from './IconButton';
+import { useEffect, useId } from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties, ReactNode } from "react";
+import { X } from "lucide-react";
+import { cx } from "./cx";
+import { IconButton } from "./IconButton";
 
 export interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: ReactNode;
-  side?: 'right';
+  side?: "right";
   /* Numbers are px. The panel is always capped at 92vw by .ui-drawer. */
   width?: number | string;
   children?: ReactNode;
@@ -22,7 +22,7 @@ export function Drawer({
   isOpen,
   onClose,
   title,
-  side = 'right',
+  side = "right",
   width = 440,
   children,
   footer,
@@ -34,16 +34,16 @@ export function Drawer({
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === "Escape") onClose();
     };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previousOverflow;
     };
@@ -51,7 +51,7 @@ export function Drawer({
 
   if (!isOpen) return null;
 
-  const resolvedWidth = typeof width === 'number' ? `${width}px` : width;
+  const resolvedWidth = typeof width === "number" ? `${width}px` : width;
 
   return createPortal(
     <>
@@ -60,7 +60,7 @@ export function Drawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={cx('ui-drawer', `ui-drawer--${side}`, className)}
+        className={cx("ui-drawer", `ui-drawer--${side}`, className)}
         style={{ width: resolvedWidth, ...style }}
       >
         <div className="ui-drawer__header">

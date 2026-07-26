@@ -1,0 +1,123 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/resizable-layout/specs/usePointerDrag.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8875, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8875, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 688, "endOffset": 3157, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 762, "endOffset": 1309, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "__vite_ssr_import_0__.renderHook.initialProps.dragging",
+          "ranges": [{ "startOffset": 906, "endOffset": 985, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1410, "endOffset": 2184, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "__vite_ssr_import_0__.renderHook.initialProps.dragging",
+          "ranges": [{ "startOffset": 1582, "endOffset": 1661, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2286, "endOffset": 3153, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "__vite_ssr_import_0__.renderHook.initialProps.dragging",
+          "ranges": [{ "startOffset": 2430, "endOffset": 2509, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1669",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/resizable-layout/hooks/usePointerDrag.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3985, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3985, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "usePointerDrag",
+          "ranges": [{ "startOffset": 329, "endOffset": 1180, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 402, "endOffset": 1149, "count": 4 },
+            { "startOffset": 429, "endOffset": 1148, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleMouseMove",
+          "ranges": [{ "startOffset": 465, "endOffset": 512, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleTouchMove",
+          "ranges": [
+            { "startOffset": 542, "endOffset": 672, "count": 2 },
+            { "startOffset": 593, "endOffset": 671, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 898, "endOffset": 1144, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1284, "endOffset": 1314, "count": 4 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

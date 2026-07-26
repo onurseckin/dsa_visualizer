@@ -1,0 +1,932 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/geometry_and_sweep_line/specs/polygonAreaRender.spec.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5837, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5837, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1013, "endOffset": 2743, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1108, "endOffset": 1937, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2019, "endOffset": 2739, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1671",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/GraphVisualizer.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 15541, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 15541, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "GraphVisualizer",
+          "ranges": [
+            { "startOffset": 1346, "endOffset": 7410, "count": 2 },
+            { "startOffset": 2003, "endOffset": 2610, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 4000, "endOffset": 5471, "count": 8 },
+            { "startOffset": 4197, "endOffset": 4209, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5515, "endOffset": 6270, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7515, "endOffset": 7546, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1672",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/vizGeometry.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [
+            { "startOffset": 348, "endOffset": 435, "count": 18 },
+            { "startOffset": 418, "endOffset": 423, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 530, "endOffset": 551, "count": 18 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "round2",
+          "ranges": [{ "startOffset": 570, "endOffset": 610, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isFinitePoint",
+          "ranges": [{ "startOffset": 634, "endOffset": 697, "count": 40 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "axisPad",
+          "ranges": [
+            { "startOffset": 742, "endOffset": 830, "count": 8 },
+            { "startOffset": 804, "endOffset": 807, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "viewBoxAttr",
+          "ranges": [{ "startOffset": 852, "endOffset": 946, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1074, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "boxViewBox",
+          "ranges": [{ "startOffset": 1097, "endOffset": 1200, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1300, "endOffset": 1326, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "spreadToBox",
+          "ranges": [
+            { "startOffset": 1350, "endOffset": 2295, "count": 4 },
+            { "startOffset": 1743, "endOffset": 1769, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "centre",
+          "ranges": [{ "startOffset": 1628, "endOffset": 1667, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1794, "endOffset": 1812, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1839, "endOffset": 1857, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2024, "endOffset": 2291, "count": 16 },
+            { "startOffset": 2068, "endOffset": 2084, "count": 0 },
+            { "startOffset": 2176, "endOffset": 2187, "count": 0 },
+            { "startOffset": 2268, "endOffset": 2280, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2396, "endOffset": 2423, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "minPointSpacing",
+          "ranges": [
+            { "startOffset": 2451, "endOffset": 2816, "count": 2 },
+            { "startOffset": 2593, "endOffset": 2758, "count": 8 },
+            { "startOffset": 2646, "endOffset": 2754, "count": 12 },
+            { "startOffset": 2803, "endOffset": 2813, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2921, "endOffset": 2952, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ellipsePoints",
+          "ranges": [{ "startOffset": 2978, "endOffset": 3593, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3696, "endOffset": 3725, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "fitSlots",
+          "ranges": [{ "startOffset": 3746, "endOffset": 4117, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4215, "endOffset": 4239, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "tidyTreeSlots",
+          "ranges": [{ "startOffset": 4265, "endOffset": 5139, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5242, "endOffset": 5271, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "useCanvasBox",
+          "ranges": [{ "startOffset": 5296, "endOffset": 6009, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 5468, "endOffset": 5978, "count": 2 },
+            { "startOffset": 5575, "endOffset": 5977, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "measure",
+          "ranges": [{ "startOffset": 5596, "endOffset": 5837, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5946, "endOffset": 5973, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6111, "endOffset": 6139, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1673",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/layoutEngine.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 17197, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 17197, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "computeGraphLayout",
+          "ranges": [
+            { "startOffset": 794, "endOffset": 5240, "count": 2 },
+            { "startOffset": 1710, "endOffset": 1738, "count": 0 },
+            { "startOffset": 2200, "endOffset": 2206, "count": 0 },
+            { "startOffset": 4573, "endOffset": 4589, "count": 1 },
+            { "startOffset": 4591, "endOffset": 4703, "count": 0 },
+            { "startOffset": 4724, "endOffset": 4837, "count": 0 },
+            { "startOffset": 4853, "endOffset": 4960, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 856, "endOffset": 904, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 936, "endOffset": 1000, "count": 8 },
+            { "startOffset": 959, "endOffset": 972, "count": 0 },
+            { "startOffset": 984, "endOffset": 997, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "place",
+          "ranges": [
+            { "startOffset": 1019, "endOffset": 1307, "count": 4 },
+            { "startOffset": 1202, "endOffset": 1263, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1868, "endOffset": 2032, "count": 8 },
+            { "startOffset": 1922, "endOffset": 1964, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2130, "endOffset": 2161, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2277, "endOffset": 2288, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "groupOf",
+          "ranges": [
+            { "startOffset": 2435, "endOffset": 2598, "count": 32 },
+            { "startOffset": 2472, "endOffset": 2502, "count": 0 },
+            { "startOffset": 2528, "endOffset": 2538, "count": 0 },
+            { "startOffset": 2540, "endOffset": 2575, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "edgeGroupOf",
+          "ranges": [
+            { "startOffset": 2622, "endOffset": 2816, "count": 8 },
+            { "startOffset": 2665, "endOffset": 2683, "count": 0 },
+            { "startOffset": 2781, "endOffset": 2795, "count": 0 },
+            { "startOffset": 2796, "endOffset": 2802, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2859, "endOffset": 2933, "count": 8 },
+            { "startOffset": 2914, "endOffset": 2924, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2988, "endOffset": 3081, "count": 8 },
+            { "startOffset": 3052, "endOffset": 3080, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3984, "endOffset": 4010, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4019, "endOffset": 4044, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4061, "endOffset": 4076, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 4113, "endOffset": 4155, "count": 8 },
+            { "startOffset": 4140, "endOffset": 4155, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4187, "endOffset": 4208, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4246, "endOffset": 4289, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4333, "endOffset": 4534, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5348, "endOffset": 5382, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1674",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/vizPalette.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 10933, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 10933, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 313, "endOffset": 343, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 504, "endOffset": 538, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 696, "endOffset": 727, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isVizSlot",
+          "ranges": [{ "startOffset": 749, "endOffset": 819, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 918, "endOffset": 943, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "vizSlotColor",
+          "ranges": [{ "startOffset": 968, "endOffset": 1041, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1143, "endOffset": 1171, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "vizSlotBg",
+          "ranges": [{ "startOffset": 1193, "endOffset": 1340, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1439, "endOffset": 1464, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "deriveConnectedComponents",
+          "ranges": [
+            { "startOffset": 1502, "endOffset": 2731, "count": 2 },
+            { "startOffset": 2721, "endOffset": 2724, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1586, "endOffset": 1612, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "find",
+          "ranges": [
+            { "startOffset": 1630, "endOffset": 2000, "count": 24 },
+            { "startOffset": 1719, "endOffset": 1735, "count": 36 },
+            { "startOffset": 1737, "endOffset": 1794, "count": 12 },
+            { "startOffset": 1874, "endOffset": 1890, "count": 36 },
+            { "startOffset": 1892, "endOffset": 1979, "count": 12 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2018, "endOffset": 2192, "count": 8 },
+            { "startOffset": 2086, "endOffset": 2093, "count": 0 },
+            { "startOffset": 2171, "endOffset": 2188, "count": 6 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2331, "endOffset": 2588, "count": 8 },
+            { "startOffset": 2433, "endOffset": 2529, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2846, "endOffset": 2887, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "componentTintingAddsInformation",
+          "ranges": [
+            { "startOffset": 2931, "endOffset": 3062, "count": 2 },
+            { "startOffset": 2977, "endOffset": 3023, "count": 0 },
+            { "startOffset": 3024, "endOffset": 3062, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3183, "endOffset": 3230, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1675",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/graphTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4012, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4012, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "stateColor",
+          "ranges": [{ "startOffset": 204, "endOffset": 238, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 338, "endOffset": 364, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "stateBg",
+          "ranges": [{ "startOffset": 384, "endOffset": 421, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 518, "endOffset": 541, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 666, "endOffset": 692, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 817, "endOffset": 843, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 976, "endOffset": 1005, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1137, "endOffset": 1167, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1293, "endOffset": 1320, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1592, "endOffset": 1624, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1814, "endOffset": 1845, "count": 8 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1676",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/GraphDefs.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 7101, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 7101, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "GraphDefs",
+          "ranges": [{ "startOffset": 333, "endOffset": 3306, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3405, "endOffset": 3430, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1677",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/GraphEdge.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 12249, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 12249, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "GraphEdge",
+          "ranges": [
+            { "startOffset": 637, "endOffset": 4638, "count": 8 },
+            { "startOffset": 866, "endOffset": 913, "count": 0 },
+            { "startOffset": 975, "endOffset": 996, "count": 4 },
+            { "startOffset": 997, "endOffset": 1051, "count": 4 },
+            { "startOffset": 1016, "endOffset": 1039, "count": 0 },
+            { "startOffset": 1087, "endOffset": 1099, "count": 4 },
+            { "startOffset": 1100, "endOffset": 1150, "count": 4 },
+            { "startOffset": 1119, "endOffset": 1136, "count": 0 },
+            { "startOffset": 1210, "endOffset": 1218, "count": 4 },
+            { "startOffset": 1219, "endOffset": 1238, "count": 4 },
+            { "startOffset": 1296, "endOffset": 1299, "count": 4 },
+            { "startOffset": 1300, "endOffset": 1306, "count": 4 },
+            { "startOffset": 1339, "endOffset": 1378, "count": 4 },
+            { "startOffset": 1379, "endOffset": 1477, "count": 4 },
+            { "startOffset": 1398, "endOffset": 1442, "count": 0 },
+            { "startOffset": 1620, "endOffset": 1623, "count": 0 },
+            { "startOffset": 1659, "endOffset": 1662, "count": 0 },
+            { "startOffset": 2321, "endOffset": 2331, "count": 0 },
+            { "startOffset": 2671, "endOffset": 4452, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4737, "endOffset": 4762, "count": 8 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1678",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/GraphNode.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 7843, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 7843, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "GraphNode",
+          "ranges": [
+            { "startOffset": 689, "endOffset": 3500, "count": 8 },
+            { "startOffset": 875, "endOffset": 887, "count": 4 },
+            { "startOffset": 932, "endOffset": 971, "count": 0 },
+            { "startOffset": 1006, "endOffset": 1018, "count": 4 },
+            { "startOffset": 1066, "endOffset": 1108, "count": 0 },
+            { "startOffset": 1143, "endOffset": 1161, "count": 0 },
+            { "startOffset": 1393, "endOffset": 2043, "count": 0 },
+            { "startOffset": 2237, "endOffset": 2256, "count": 4 },
+            { "startOffset": 2257, "endOffset": 2269, "count": 4 },
+            { "startOffset": 2998, "endOffset": 3008, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3599, "endOffset": 3624, "count": 8 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1679",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/graph/GraphLegend.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5892, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5892, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "legendSwatch",
+          "ranges": [
+            { "startOffset": 336, "endOffset": 1200, "count": 1 },
+            { "startOffset": 370, "endOffset": 785, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "GraphLegend",
+          "ranges": [
+            { "startOffset": 1222, "endOffset": 2381, "count": 2 },
+            { "startOffset": 1267, "endOffset": 2380, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1646, "endOffset": 2164, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2482, "endOffset": 2509, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1680",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/geometry_and_sweep_line/polygonArea/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2308, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2308, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 472, "endOffset": 534, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 828, "endOffset": 890, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1209, "endOffset": 1273, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1376, "endOffset": 1425, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1524, "endOffset": 1569, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1681",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/geometry_and_sweep_line/polygonArea/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2141, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2141, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 846, "endOffset": 886, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1682",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/geometry_and_sweep_line/polygonArea/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 16618, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 16618, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generatePolygonAreaSteps",
+          "ranges": [
+            { "startOffset": 218, "endOffset": 4621, "count": 2 },
+            { "startOffset": 2008, "endOffset": 2329, "count": 0 },
+            { "startOffset": 2705, "endOffset": 3739, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getBaseNodes",
+          "ranges": [{ "startOffset": 353, "endOffset": 764, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 404, "endOffset": 758, "count": 48 },
+            { "startOffset": 444, "endOffset": 458, "count": 0 },
+            { "startOffset": 489, "endOffset": 522, "count": 0 },
+            { "startOffset": 584, "endOffset": 619, "count": 8 },
+            { "startOffset": 619, "endOffset": 687, "count": 40 },
+            { "startOffset": 651, "endOffset": 687, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getBaseEdges",
+          "ranges": [
+            { "startOffset": 789, "endOffset": 1202, "count": 12 },
+            { "startOffset": 825, "endOffset": 835, "count": 0 },
+            { "startOffset": 890, "endOffset": 1180, "count": 48 },
+            { "startOffset": 926, "endOffset": 936, "count": 0 },
+            { "startOffset": 980, "endOffset": 1000, "count": 0 },
+            { "startOffset": 1144, "endOffset": 1164, "count": 32 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1222, "endOffset": 1636, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3815, "endOffset": 3957, "count": 8 },
+            { "startOffset": 3845, "endOffset": 3857, "count": 0 },
+            { "startOffset": 3879, "endOffset": 3891, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3992, "endOffset": 4116, "count": 8 },
+            { "startOffset": 4024, "endOffset": 4036, "count": 0 },
+            { "startOffset": 4071, "endOffset": 4093, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4735, "endOffset": 4775, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1683",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/geometry_and_sweep_line/polygonArea/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26894, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26894, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 939, "endOffset": 981, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10512, "endOffset": 10539, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

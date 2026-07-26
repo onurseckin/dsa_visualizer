@@ -184,7 +184,7 @@ is the "same information button for every line" the user is rejecting.
       `highlightPythonLine(...)` as a **direct child of a `display:flex` row
       div** — per the CSS Flexbox spec, a whitespace-only anonymous text run
       between flex items is not rendered at all, so every line's indentation
-      collapses and the file reads as flush-left. `renderBlankRow`'s *slot*
+      collapses and the file reads as flush-left. `renderBlankRow`'s _slot_
       already avoids this correctly by rendering `line.indent` through its own
       dedicated `white-space: pre` `<span>` (the `INDENT` constant) — apply
       that same pattern to `renderCodeRow` (render `line.indent` via `INDENT`,
@@ -234,7 +234,7 @@ so retry already works globally; ⌘E and ⌘H do not.
       `currentTargetLine` = the first blank that is neither filled nor
       revealed, falling back to `round.blanks[0]` once everything is
       filled/revealed. Made discoverable via a one-time (not per-row) `<Kbd>⌘E
-      ⌘H</Kbd>` badge rendered only on that row (`activeShortcutLine` prop,
+  ⌘H</Kbd>` badge rendered only on that row (`activeShortcutLine` prop,
       `data-testid="shortcut-target-N"`). Verified in
       `TriviaSession.spec.tsx`/`.render.spec.tsx` (⌘E/⌘H/⌘R/⌘Enter all fire with
       nothing focused; target moves to the next blank once the first fills).
@@ -328,7 +328,7 @@ so retry already works globally; ⌘E and ⌘H do not.
       padding). Verified in `CodePuzzle.spec.tsx` (exact-row drop, row-wide
       drop away from the button, and the nearest-row fallback with mocked
       rects — note: jsdom has no native `DragEvent`, so `fireEvent.drop(el,
-      {clientY})` silently drops `clientY`; the fallback test builds the event
+  {clientY})` silently drops `clientY`; the fallback test builds the event
       via `createEvent.drop` + `Object.defineProperty` to work around that
       test-environment gap, not a production issue).
 - [x] **5.2** Change click behavior on an available tile in `TileTray`: a plain
@@ -364,7 +364,7 @@ broken:
       blank state.
       Independently re-verified by a reviewing agent (not just trusting the
       implementer's summary): traced `activeSession = sessions.find(s => s.id
-      === activeId) ?? sessions[0]` and `applySessionPatch` in
+  === activeId) ?? sessions[0]` and `applySessionPatch` in
       `routes/trivia.tsx` line-by-line, ran the full 5-file test command
       myself (66/66 green), and confirmed `createSession()`'s no-arg default
       reads the bare legacy `triviaConfig`/`triviaProgress` keys — which are
@@ -401,7 +401,7 @@ broken:
       genuinely-uncovered level only when the new config leaves material to
       drill, leaving `drilled`/`stats` byte-identical otherwise. The ordinary
       (non-completed) config-only patch path was confirmed to send `{ config
-      }` alone via reference-identity (`nextProgress === progress`), never
+  }` alone via reference-identity (`nextProgress === progress`), never
       naming `progress` in the patch at all. Both paths covered by
       `trivia.render.spec.tsx`'s "raises maxBlanks on session A without
       resetting" and "resumes a session that finished its deck" tests; both
@@ -494,14 +494,14 @@ and for any other component rendering per-line code.
 
 **Seam-risk questions, answered directly from code:**
 
-- *Does the trivia Info icon reuse Lane 1's popover, or is it a second
-  implementation?* Reuses it exactly: `CodePuzzle.tsx:13` imports
+- _Does the trivia Info icon reuse Lane 1's popover, or is it a second
+  implementation?_ Reuses it exactly: `CodePuzzle.tsx:13` imports
   `CodeExplainToggle, LineExplainPopover, useHoveredCodeLine` from
   `../primitives/LineExplainPopover` (Lane 1's file) and renders
   `<LineExplainPopover side="right" .../>` (`CodePuzzle.tsx:558-565`) with the
   same component Lane 1 built for the hover case — no parallel popover markup
   exists anywhere in `CodePuzzle.tsx`.
-- *Any remaining per-line repeated icon anywhere?* Grepped the whole repo for
+- _Any remaining per-line repeated icon anywhere?_ Grepped the whole repo for
   `LineExplainer` and `EXPLAIN_SLOT` — zero hits. Also checked every other
   component that renders algorithm code or line data
   (`AuxiliaryPanel.tsx`, `TutorialCard.tsx`, `ProblemHeader.tsx`) — none
@@ -510,30 +510,30 @@ and for any other component rendering per-line code.
   scoped to blank/fill rows only (a handful of lines per round, not every
   line) and is the icon the user explicitly asked for "left next to the eye
   icon" — not the anti-pattern being removed.
-- *Does the indentation fix hold in both files?* Yes, independently
+- _Does the indentation fix hold in both files?_ Yes, independently
   confirmed in both. `CodeBlockViewer.tsx` splits via `splitIndent()`
   (`:34-37`) and renders `indent`/`content` through separate elements
   (`:243-246`); its row (`.ui-code-line`, `ui.css:684-693`) is `display:block`
   so this is defense-in-depth. `CodePuzzle.tsx`'s `renderBlankRow` (`:383-385`)
   and `renderCodeRow` (`:490-493`) both render `line.indent` through the
-  `INDENT` (`white-space:pre`) span as an actual child *element*, never a bare
+  `INDENT` (`white-space:pre`) span as an actual child _element_, never a bare
   text node, inside their `display:flex` row — since only anonymous
   whitespace-only text runs (not wrapped elements) collapse under the
   flexbox spec, this correctly sidesteps the bug in the one file where the
   row genuinely is flex.
-- *Are Check/Next/Retry/Reveal/Hint shortcuts wired independent of focus?*
+- _Are Check/Next/Retry/Reveal/Hint shortcuts wired independent of focus?_
   Yes. `TriviaSession.tsx:204-245` is one `window.addEventListener('keydown', ...)`
   with no element-focus dependency at all — confirmed it is attached to
   `window`, not any input or row, so ⌘R/⌘E/⌘I(⌘H)/⌘Enter all fire with
   nothing focused. Retry is now a real always-visible button (`:380-387`),
-  not shortcut-only. Note the Hint shortcut's *displayed* badge is `⌘I`, not
+  not shortcut-only. Note the Hint shortcut's _displayed_ badge is `⌘I`, not
   `⌘H` (`CodePuzzle.tsx:394-403`) — a documented, deliberate deviation from
   the user's own "⌘H" example, because Cmd+H is unconditionally "Hide
   `<App>`" at the OS/browser-chrome level on macOS and can never reach page
   JS; `'h'` is still silently accepted as a harmless fallback
   (`TriviaSession.tsx:225`).
-- *Does whitespace-tolerant grading actually run end-to-end from the real
-  submit path, not a stale copy?* Confirmed by tracing the call graph, not
+- _Does whitespace-tolerant grading actually run end-to-end from the real
+  submit path, not a stale copy?_ Confirmed by tracing the call graph, not
   assuming it: `TriviaSession.handleCheck` (`:170-175`) builds `submission`
   from live `filled`/`typed`/`revealed` state and calls the real
   `gradeRound` (imported from `triviaEngine.ts`) both for its own local
@@ -543,8 +543,8 @@ and for any other component rendering per-line code.
   sites resolve to the one exported function in `triviaEngine.ts:280-281` —
   grepped for any second `.trim()`/regex comparison anywhere in
   `CodePuzzle.tsx`/`TriviaSession.tsx`/`routes/trivia.tsx`; none exists.
-- *Does "raise the level without losing progress" work through the real UI
-  path, not just a unit test?* Traced the full chain:
+- _Does "raise the level without losing progress" work through the real UI
+  path, not just a unit test?_ Traced the full chain:
   `TriviaSettings.tsx`'s "Hardest level" `Slider` → `handleMax` (`:66-68`) →
   `onChange({ maxBlanks })` → `routes/trivia.tsx`'s `applyConfig` (`:196-208`,
   wired at `:335`) → `reviveProgressForConfig` (reference-identity check) →
@@ -559,6 +559,7 @@ and for any other component rendering per-line code.
 
 **Verification commands run directly by this gate (not reproduced from a
 transcript):**
+
 - `bun run typecheck` → clean, zero errors, whole repo.
 - `bun run lint` (`eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0`) → clean, zero warnings/errors, whole repo.
 - `bunx vitest run src/components/primitives/specs src/components/trivia/specs src/routes/specs/trivia.render.spec.tsx src/trivia/specs/triviaEngine.spec.ts src/trivia/specs/triviaSessions.spec.ts src/trivia/specs/triviaStorage.spec.ts src/trivia/specs/triviaFlow.spec.ts` → **28 test files, 426 tests, all passing.**
@@ -668,20 +669,21 @@ process items (7.2, 7.3's cross-lane note) that were open or incomplete.
 > trivia question solving subpages.
 >
 > I give you a very long prompt. It has so many things to do. I want you to:
+>
 > 1. Save it to some kind of a temporary place. 2. Create proper planning and
-> to-do lists. 3. Create accurate agents. 4. Assign work to each agent.
-> Agents should also be able to deploy some sub-agents if more specialized
-> work needs to be done for a specific thing. Also, there has to be one
-> orchestrator agent. The orchestrator should collect all of the feedback
-> from what all other agents did. Based on that, it should evaluate whether
-> all of the demands are satisfied or whether any future improvements are
-> required. There should also be work reviewing agents collaborating with
-> the orchestrator to review the work and detect whether any future
-> improvement is needed or can be found by imagining how the user would
-> interact with the application. Please start this non-stop working flow.
-> It's on auto mode. We don't need to show many plans directly. Jump on
-> planning and implementing this by yourself using this multiple agent
-> workflow.
+>    to-do lists. 3. Create accurate agents. 4. Assign work to each agent.
+>    Agents should also be able to deploy some sub-agents if more specialized
+>    work needs to be done for a specific thing. Also, there has to be one
+>    orchestrator agent. The orchestrator should collect all of the feedback
+>    from what all other agents did. Based on that, it should evaluate whether
+>    all of the demands are satisfied or whether any future improvements are
+>    required. There should also be work reviewing agents collaborating with
+>    the orchestrator to review the work and detect whether any future
+>    improvement is needed or can be found by imagining how the user would
+>    interact with the application. Please start this non-stop working flow.
+>    It's on auto mode. We don't need to show many plans directly. Jump on
+>    planning and implementing this by yourself using this multiple agent
+>    workflow.
 
 ### Root causes already confirmed by direct code inspection (before dispatching agents)
 
@@ -758,7 +760,7 @@ process items (7.2, 7.3's cross-lane note) that were open or incomplete.
       `triviaEngine.ts`; `TriviaSettings` takes `deckLineCounts`, computed in
       `routes/trivia.tsx` from the same parsed `sources` map the engine
       already builds (`[...sources.values()].map((lines) =>
-      blankableLines(lines).length)`), rendering a `Deck lines: min–max`
+  blankableLines(lines).length)`), rendering a `Deck lines: min–max`
       badge and a non-blocking amber warning. Verified by
       `TriviaSettings.spec.tsx`/`.render.spec.tsx` and the full route spec.
 - [x] **9.3** Fix blank-row alignment so the gutter+indent+input group never
@@ -866,7 +868,7 @@ process items (7.2, 7.3's cross-lane note) that were open or incomplete.
       the new `triviaLayout.ts` module) executed and verified in sequence by
       the one orchestrator, who then integrated all of them, re-ran
       `bunx vitest run src/routes/specs/trivia.render.spec.tsx
-      src/components/trivia/specs` (205/205 passing, up from a partial
+  src/components/trivia/specs` (205/205 passing, up from a partial
       run before the IA rewrite), `bun run typecheck` and `bunx eslint` on
       every touched file (clean), and cross-checked every demand in section
       9 above item-by-item against the actual code, not a summary. Flagged
@@ -913,16 +915,17 @@ going" button, never one overloaded control (`trivia.tsx:415-553`,
 `TriviaHeaderCard.tsx:169-187`, `TriviaSession.tsx:432-451`). Every step has
 an obvious, unambiguous answer. **Genuinely satisfied — the third round on
 this exact complaint is closed**, not another provisional patch.
+
 - [x] **9.1** — orchestrator-confirmed above; also re-ran
       `bunx vitest run src/routes/specs/trivia.render.spec.tsx
-      src/components/trivia/specs src/trivia/specs` myself: 34 files/667
+  src/components/trivia/specs src/trivia/specs` myself: 34 files/667
       tests, all green (includes the "Back to Trivia Home ... lands on Home,
       and a remount stays on Home" regression test and the completion-card
       dual-exit-button test).
 - [x] **9.2** — re-confirmed `MIN_BLANKS_FLOOR=1`/`MAX_BLANKS_CEILING=100`
       (`triviaEngine.ts:29-30`), the live `deckLineCounts` badge and the
       `<=`-boundary short-algorithm warning (`TriviaSettings.tsx:91-103,
-      171-183`) — the user's literal "20 lines / 21 starting blanks" edge
+  171-183`) — the user's literal "20 lines / 21 starting blanks" edge
       case is covered because raising "Starting blanks" past a deck's max
       pushes `maxBlanks` up too (`TriviaSettings.tsx:111-114`), which is what
       the warning keys off. `TriviaSettings.spec.tsx`/`.render.spec.tsx`
@@ -935,7 +938,7 @@ this exact complaint is closed**, not another provisional patch.
       own `IconButton` (`CodePuzzle.tsx:107-111, 434-489`), not a detached
       badge.
 - [x] **9.5** — repo grep (`grep -rn 'variant="ghost"' src/components/trivia
-      src/components/primitives src/routes/trivia.tsx src/trivia`) → zero
+  src/components/primitives src/routes/trivia.tsx src/trivia`) → zero
       real usages, only a comment mention at `TriviaSession.tsx:578`.
       `src/ui/ConfirmDialog.tsx` and `src/ui/Drawer.tsx` remain the only
       real ghost-variant buttons left in the repo — confirmed still
@@ -968,10 +971,10 @@ this exact complaint is closed**, not another provisional patch.
       explicitly (9.7/9.8), and `bun run typecheck` (clean, whole repo),
       `bun run lint` (clean, whole repo, `--max-warnings 0`), and
       `bunx vitest run src/components/primitives/specs
-      src/components/trivia/specs src/routes/specs/trivia.render.spec.tsx
-      src/trivia/specs src/app/specs/workspaceLayout.spec.ts
-      src/components/specs/MainLayout.render.spec.tsx
-      src/components/specs/MainLayout.spec.tsx` → **34 test files, 667 tests,
+  src/components/trivia/specs src/routes/specs/trivia.render.spec.tsx
+  src/trivia/specs src/app/specs/workspaceLayout.spec.ts
+  src/components/specs/MainLayout.render.spec.tsx
+  src/components/specs/MainLayout.spec.tsx` → **34 test files, 667 tests,
       all passing** were run directly by this gate, not reproduced from a
       transcript. No gap requiring a code fix was found at this pass; the two
       pre-existing out-of-scope items (`ConfirmDialog.tsx`/`Drawer.tsx` ghost

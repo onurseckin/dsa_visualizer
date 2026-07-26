@@ -1,18 +1,18 @@
-import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../types/trivia';
+import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../types/trivia";
 import {
   clearTrivia,
   cloneTriviaConfig,
   cloneTriviaProgress,
   readTriviaConfig,
   readTriviaProgress,
-} from './triviaStorage';
+} from "./triviaStorage";
 
-export const TRIVIA_SESSIONS_KEY = 'dsa_visualizer_trivia_sessions_v1';
-export const TRIVIA_ACTIVE_SESSION_KEY = 'dsa_visualizer_active_trivia_session_v1';
+export const TRIVIA_SESSIONS_KEY = "dsa_visualizer_trivia_sessions_v1";
+export const TRIVIA_ACTIVE_SESSION_KEY = "dsa_visualizer_active_trivia_session_v1";
 
 const getStorage = (): Storage | null => {
   try {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === "undefined") return null;
     return window.localStorage ?? null;
   } catch {
     return null;
@@ -42,15 +42,15 @@ export function readTriviaSessions(): TriviaSessionRecord[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (item): item is TriviaSessionRecord =>
-        typeof item === 'object' &&
+        typeof item === "object" &&
         item !== null &&
-        typeof item.id === 'string' &&
-        typeof item.name === 'string' &&
-        typeof item.createdAt === 'number' &&
-        typeof item.updatedAt === 'number' &&
-        typeof item.config === 'object' &&
-        typeof item.progress === 'object' &&
-        (item.lastScreen === 'setup' || item.lastScreen === 'drill')
+        typeof item.id === "string" &&
+        typeof item.name === "string" &&
+        typeof item.createdAt === "number" &&
+        typeof item.updatedAt === "number" &&
+        typeof item.config === "object" &&
+        typeof item.progress === "object" &&
+        (item.lastScreen === "setup" || item.lastScreen === "drill"),
     );
   } catch {
     return [];
@@ -94,10 +94,11 @@ export function writeActiveSessionId(id: string | null): void {
 export function createSession(
   name?: string,
   config?: TriviaConfig,
-  progress?: TriviaProgress
+  progress?: TriviaProgress,
 ): TriviaSessionRecord {
   const existing = readTriviaSessions();
-  const sessionName = name && name.trim().length > 0 ? name.trim() : generateNextSessionName(existing);
+  const sessionName =
+    name && name.trim().length > 0 ? name.trim() : generateNextSessionName(existing);
   const now = Date.now();
   const newSession: TriviaSessionRecord = {
     id: `session_${now}_${Math.random().toString(36).slice(2, 7)}`,
@@ -108,7 +109,7 @@ export function createSession(
     progress: cloneTriviaProgress(progress ?? readTriviaProgress()),
     // Every new session always lands on Setup first (TASKS.md 9.1) — there is
     // no "drill" a session could start on before it has ever been configured.
-    lastScreen: 'setup',
+    lastScreen: "setup",
   };
   const updated = [newSession, ...existing];
   writeTriviaSessions(updated);
@@ -118,7 +119,7 @@ export function createSession(
 
 export function updateSession(
   id: string,
-  patch: Partial<Omit<TriviaSessionRecord, 'id'>>
+  patch: Partial<Omit<TriviaSessionRecord, "id">>,
 ): TriviaSessionRecord | null {
   const existing = readTriviaSessions();
   const index = existing.findIndex((s) => s.id === id);

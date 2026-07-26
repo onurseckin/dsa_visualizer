@@ -23,7 +23,7 @@ const isEditableTarget = (element: HTMLElement): boolean =>
 export const isTypingTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || isEditableTarget(target);
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || isEditableTarget(target);
 };
 
 /**
@@ -32,4 +32,4 @@ export const isTypingTarget = (target: EventTarget | null): boolean => {
  * fired underneath an open dialog would act on a workspace the user cannot see.
  */
 export const isDialogOpen = (): boolean =>
-  typeof document !== 'undefined' && document.querySelector('[role="dialog"]') !== null;
+  typeof document !== "undefined" && document.querySelector('[role="dialog"]') !== null;

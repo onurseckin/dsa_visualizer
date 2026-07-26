@@ -1,12 +1,15 @@
 <!-- intent-skills:start -->
+
 ## Skill Loading
 
 Before editing files for a substantial task:
+
 - Run `bunx @tanstack/intent@latest list` from the workspace root to see available local skills.
 - If a listed skill matches the task, run `bunx @tanstack/intent@latest load <package>#<skill>` before changing files.
 - Use the loaded `SKILL.md` guidance while making the change.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+
 <!-- intent-skills:end -->
 
 # AGENTS.md — Contributor Playbook for the DSA Visualizer
@@ -46,16 +49,16 @@ repeated in context below:
    dead space must be zero**; slack a shape constraint cannot spend goes horizontal and
    centred (section 2.8).
 2. **Two failure modes are forbidden by name, because both shipped and both were wrong:**
-   a viewBox from fixed constants inside a 100%-sized svg (dead bands *inside* the svg),
+   a viewBox from fixed constants inside a 100%-sized svg (dead bands _inside_ the svg),
    and sizing the svg to the content's aspect ratio (`fitBox` — deleted; it moved the
-   identical bands *outside* the svg into the panel). Never reintroduce either
+   identical bands _outside_ the svg into the panel). Never reintroduce either
    (section 2.8).
 3. **Surfaces are INVERTED: cards are darker than the page.** The page is carbon
    `#17171b`, cards and panels are near-black `#0a0a0c`, wells are `#050506`, and
-   controls raised on a card step *lighter*. Reading happens on the cards, so the cards
+   controls raised on a card step _lighter_. Reading happens on the cards, so the cards
    are where the eye rests (section 2.5).
 4. **Every card, panel, well, chip and button MUST carry a visible border token.** The
-   ladder steps are small and the interactive tier sits *above* the reading tier, so
+   ladder steps are small and the interactive tier sits _above_ the reading tier, so
    borders carry the edge definition. A borderless container is a bug, not minimalism
    (section 2.5).
 5. **Primary buttons are black-filled** (`--bg-inset` fill, `--accent` border,
@@ -64,10 +67,10 @@ repeated in context below:
    badges (semantic tokens), `--viz-1..8` identity in graphs, trees and the knowledge
    map, and `--state-*` algorithm marks inside visualizers. Chrome, panels, inputs,
    toolbars and body text stay neutral (section 2.5).
-7. **React component specs are named `*.render.spec.tsx`, never a `*.spec.tsx` sharing a
-   basename with a `*.spec.ts` sibling.** TypeScript silently drops the duplicate from
-   `include`, which once excluded all 40 component specs from typecheck (section 4.10 and
-   the top of section 6 — read it before you name a new spec file).
+7. **React component specs are named `*.spec.tsx` (do NOT use `.render.spec.tsx`).** If a
+   `.spec.ts` (pure TS logic) exists in the same directory, use a distinct descriptive
+   basename for the component spec (e.g. `quickSortRender.spec.tsx`) to avoid duplicate
+   basename collisions in TypeScript (section 4.10 and section 6).
 8. **There is no `ViewMode` in the workspace**, and **"Reset layout" lives in the
    NAVBAR**, behind `ConfirmDialog`. Panel visibility is four independent booleans driven
    by five identical navbar toggles (section 2.11); the layout reset clears one versioned
@@ -132,16 +135,16 @@ to any static host.
 
 **Scripts** (always via bun):
 
-| Command | What it does |
-|---|---|
-| `bun run dev` | Vite dev server (agents: don't run this — the user verifies UI) |
-| `bun run typecheck` | `tsc --noEmit` |
-| `bun run generate-routes` | `tsr generate` — regenerates `src/routeTree.gen.ts` |
-| `bun run lint` | ESLint, zero warnings allowed |
-| `bun run test` | Full vitest run (~760 tests in 114 spec files — final gate only) |
-| `bunx vitest run <paths>` | Scoped test run — **use this during iteration** |
-| `bun run build` | `tsc && vite build` → `dist/` |
-| `bun run check` | typecheck + lint + full tests + build — the master quality gate |
+| Command                   | What it does                                                     |
+| ------------------------- | ---------------------------------------------------------------- |
+| `bun run dev`             | Vite dev server (agents: don't run this — the user verifies UI)  |
+| `bun run typecheck`       | `tsc --noEmit`                                                   |
+| `bun run generate-routes` | `tsr generate` — regenerates `src/routeTree.gen.ts`              |
+| `bun run lint`            | ESLint, zero warnings allowed                                    |
+| `bun run test`            | Full vitest run (~760 tests in 114 spec files — final gate only) |
+| `bunx vitest run <paths>` | Scoped test run — **use this during iteration**                  |
+| `bun run build`           | `tsc && vite build` → `dist/`                                    |
+| `bun run check`           | typecheck + lint + full tests + build — the master quality gate  |
 
 ---
 
@@ -244,7 +247,7 @@ on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
   entries.
 - **`trivia.tsx`** renders the code-occlusion drill (section 2.13). No params, no search
   params: the deck, the settings and the progress all come from `localStorage` through
-  `src/trivia/triviaStorage.ts`, read during the *first* render (not in an effect, which
+  `src/trivia/triviaStorage.ts`, read during the _first_ render (not in an effect, which
   would paint an empty deck for a frame and read as "my progress is gone"). `AppView`
   includes `'trivia'` and `Navbar`'s app-view `Segmented` carries the fourth option, so
   the pathname ↔ view mapping in `__root.tsx` and the `navigate()` for it live there like
@@ -279,20 +282,20 @@ Panel keys are stored one boolean each: `panel_visualizer`, `panel_code`,
 **Legacy settings migrate on read, in `readPanelVisibility()`:** the pre-R4.4
 mutually exclusive `view_mode` value is mapped through `LEGACY_STAGE_PANELS`
 (`split` → visualizer+code both on, `visual` → visualizer only, `code` → code only)
-and used as the *fallback* for the two stage panels, while the old independent
+and used as the _fallback_ for the two stage panels, while the old independent
 `show_tutorial` / `show_auxiliary` flags fall through 1:1. A stored new-style key
 always wins over the legacy fallback. `ViewMode` still exists in `src/types/dsa.ts`
 **only** so this migration can type its input — no component takes it as a prop.
 
-**`src/app/workspaceLayout.ts`** owns every *manual adjustment to the workspace* under
+**`src/app/workspaceLayout.ts`** owns every _manual adjustment to the workspace_ under
 **one versioned key**, and **v6** adds `detailsExpanded` to the geometry, because
 whether the lesson panel is open is a manual adjustment like any drag (R6.5) rather
 than something that should snap back to open on every reload:
 
 ```ts
-export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v6';
+export const WORKSPACE_LAYOUT_KEY = "dsa_visualizer_workspace_layout_v6";
 export const WORKSPACE_LAYOUT_VERSION = 6;
-export const WORKSPACE_LAYOUT_RESET_EVENT = 'dsa:workspace-layout-reset';
+export const WORKSPACE_LAYOUT_RESET_EVENT = "dsa:workspace-layout-reset";
 
 export interface WorkspacePanelHeights {
   visualizer: number | null;
@@ -302,9 +305,9 @@ export interface WorkspacePanelHeights {
 
 export interface WorkspaceLayout {
   version: typeof WORKSPACE_LAYOUT_VERSION;
-  splitPercent: number;                // left column width %
+  splitPercent: number; // left column width %
   panelHeights: WorkspacePanelHeights; // null = automatic (hug / absorb leftover)
-  detailsExpanded: boolean;            // is the problem/lesson panel open
+  detailsExpanded: boolean; // is the problem/lesson panel open
 }
 ```
 
@@ -315,7 +318,7 @@ export interface WorkspaceLayout {
   first visit should not have to hunt for the lesson).
   `DEFAULT_WORKSPACE_LAYOUT` is exported **frozen** — call `cloneWorkspaceLayout()`
   for a writable copy. `WORKSPACE_PANEL_KEYS` is the canonical iteration order, and the
-  `tutorial`/`auxiliary` slots are deliberately absent: those strips live *inside* the
+  `tutorial`/`auxiliary` slots are deliberately absent: those strips live _inside_ the
   visualizer panel, so they have no handle and no height of their own to remember.
 - Bounds: `MIN_SPLIT_PERCENT` 25 / `MAX_SPLIT_PERCENT` 80,
   `MIN_PANEL_HEIGHT_PX` 64 / `MAX_PANEL_HEIGHT_PX` 2000 — the same bounds the reader
@@ -399,19 +402,19 @@ existing token, not a new value.
 **THE SURFACE LAW (R6.2): the hierarchy is inverted — the reading surfaces are the
 darkest, and the page is the interactive backdrop they sit on.**
 
-| Token | Value | Role |
-|---|---|---|
-| `--bg-inset` | `#050506` | deepest: code wells, SVG canvases, inputs |
-| `--bg-surface` | `#0a0a0c` | cards and panels — **near-black, darker than the page** |
-| `--bg-page` | `#17171b` | the page itself — **carbon**, the backdrop |
-| `--bg-chrome` | `#1c1c21` | navbar, toolbars, the in-panel strips |
-| `--bg-elevated` | `#1e1e24` | controls raised on a card: buttons, chips |
-| `--bg-hover` | `#282830` | hover |
-| `--bg-pressed` | `#32323b` | pressed |
+| Token           | Value     | Role                                                    |
+| --------------- | --------- | ------------------------------------------------------- |
+| `--bg-inset`    | `#050506` | deepest: code wells, SVG canvases, inputs               |
+| `--bg-surface`  | `#0a0a0c` | cards and panels — **near-black, darker than the page** |
+| `--bg-page`     | `#17171b` | the page itself — **carbon**, the backdrop              |
+| `--bg-chrome`   | `#1c1c21` | navbar, toolbars, the in-panel strips                   |
+| `--bg-elevated` | `#1e1e24` | controls raised on a card: buttons, chips               |
+| `--bg-hover`    | `#282830` | hover                                                   |
+| `--bg-pressed`  | `#32323b` | pressed                                                 |
 
 **Why inverted, and why not to "fix" it:** the learner reads code, tutorial prose and
 the topic guide for long stretches, and those all live on cards — so the cards are the
-calm, dark places the eye rests, while the page around them is carbon and the *controls*
+calm, dark places the eye rests, while the page around them is carbon and the _controls_
 step lighter as they rise off the card. That is the opposite of the conventional
 "elevation = lighter" ladder, and it is deliberate. `--bg-backdrop` dims behind drawers
 and dialogs.
@@ -440,7 +443,7 @@ interaction and selection only. Selected = `--accent-soft` background +
 **Primary buttons are BLACK-FILLED, not a light slab.** `.ui-btn--primary` is
 `--bg-inset` fill + `--accent` border + `--text-primary` ink at weight 600; hover fills
 `--bg-surface` and brightens the border to `--accent-hover`. The accent token is the
-*edge and ink* on a primary button, never its fill — a bright fill on this palette reads
+_edge and ink_ on a primary button, never its fill — a bright fill on this palette reads
 as a hole punched in the page.
 
 **Text pairing rules (AA, non-negotiable):** `--text-primary` `#f5f5f7` for headings and
@@ -453,7 +456,7 @@ lighter smokes. Hover and pressed states use `--text-secondary` or `--text-prima
 
 The Round 5 achromatic sweep went too far and stripped colour that was doing real work.
 The policy now is: **chrome, panels, inputs, toolbars, drawers and body text are
-neutral**, and hue appears in exactly three places — all three of them *data*:
+neutral**, and hue appears in exactly three places — all three of them _data_:
 
 1. **Difficulty and status badges.** `difficultyBadgeVariant(difficulty)` →
    Easy=`success`, Medium=`warning`, Hard=`danger`, and count/status badges use the
@@ -466,7 +469,7 @@ neutral**, and hue appears in exactly three places — all three of them *data*:
    every node, edge and legend entry from it (section 2.9). The knowledge map's full
    cluster colouring stays exactly as it is; only the shell around it (headers, hints,
    buttons) is neutral.
-3. **Algorithm-state marks** — `--state-*` on elements *inside* a visualizer
+3. **Algorithm-state marks** — `--state-*` on elements _inside_ a visualizer
    (`GridVisualizer` also reuses `--state-sorted`/`--state-swap` for start/end cells).
 
 Anything else coloured is a bug: a tinted panel, a hued heading, an accent-coloured
@@ -514,7 +517,7 @@ and `GlobalSearchBar` is gone.
 There is **no layout mode switch**. One system handles every viewport.
 
 **The left column is ONE container.** `MainLayout` renders a single
-`Card data-panel="visualizer"` and everything about the current step lives *inside* it.
+`Card data-panel="visualizer"` and everything about the current step lives _inside_ it.
 Top to bottom (R6.4 — the tutorial moved from the bottom to the top):
 
 1. `data-region="tutorial"` — the teacher explanation, **as the panel's header**.
@@ -523,7 +526,7 @@ Top to bottom (R6.4 — the tutorial moved from the bottom to the top):
 4. `data-region="controls"` — `ControlPanel variant="embedded"`, docked at the very
    bottom edge.
 
-**Why this shape**, and why not to undo it: the panel's *outer* size is stable, so a
+**Why this shape**, and why not to undo it: the panel's _outer_ size is stable, so a
 step that adds an aux row or a longer sentence never resizes or reflows the surrounding
 layout (no width/height twitching between steps), and the learner reads the explanation
 first, then sees the working data and the graph together without scrolling. **The canvas
@@ -538,7 +541,7 @@ Mechanics worth knowing before you touch them:
   the panel, no step can move the panel's outer size — only the canvas boundary inside
   it. Inside the band the tutorial is the greedy strip (`flex: 1 1 auto`, it absorbs the
   squeeze) and the single-row working-data strip keeps its size (`flex: 0 0 auto`).
-- The local `PanelStrip` helper owns the *whole* separation from what follows it: a
+- The local `PanelStrip` helper owns the _whole_ separation from what follows it: a
   `--bg-chrome` band fill plus one `--border-subtle` divider on the bottom edge. Every
   strip is above the canvas now, so every divider faces down; the last strip drops its
   divider when there is no canvas beneath it to divide from. `TutorialCard` and
@@ -559,7 +562,7 @@ Mechanics worth knowing before you touch them:
   predicates, `hasTutorialContent(...)` and `hasAuxiliaryContent(...)`, because an empty
   strip would be dead space with a divider. Hiding one gives its space to the canvas and
   renders **no wrapper, divider or gap** at all.
-- The visualizer row is visible while *any* of the canvas or the two strips is on, and
+- The visualizer row is visible while _any_ of the canvas or the two strips is on, and
   it is `greedy` only while the canvas is there to absorb leftovers; with the canvas
   toggled off the panel is just its strips and hugs them.
 
@@ -586,7 +589,7 @@ would otherwise fit exactly) and `--space-3`×3. On a tall monitor the subtracti
 and everything fits with no scrolling; on a short one the floor wins and the page
 scrolls. Inner panels keep `min-height: 0` and scroll internally. **Expanding the
 details panel adds content above the stage and lets the page scroll — it never shrinks
-the stage**, which is why the subtraction always uses the *collapsed* strip height.
+the stage**, which is why the subtraction always uses the _collapsed_ strip height.
 
 **Row sizing: no panel is given a height it does not need.** Each row in
 `ResizableRows` resolves to exactly one of three modes, exposed on the DOM as
@@ -682,7 +685,7 @@ very element that was measured, **user units are CSS pixels**, the viewBox and t
 can never disagree on aspect ratio, and `preserveAspectRatio` has nothing to letterbox.
 Empty bands become structurally impossible rather than something to tune away. The
 measured element must be the svg's own parent **with no padding** — it carries the
-border, `--bg-inset` fill, `border-radius` and `overflow: hidden`, and its client box *is*
+border, `--bg-inset` fill, `border-radius` and `overflow: hidden`, and its client box _is_
 the svg viewport.
 
 **The two forbidden failure modes.** Both of these shipped, both were sold as fixes, and
@@ -694,7 +697,7 @@ both are banned:
    `preserveAspectRatio="xMidYMid meet"` centred the drawing and painted the leftover as
    inset well: **dead bands inside the svg**.
 2. **Sizing the `<svg>` element to the content's aspect ratio** (the deleted `fitBox`
-   helper). This did not remove the bands, it *moved* them: the same empty space
+   helper). This did not remove the bands, it _moved_ them: the same empty space
    reappeared **outside the svg, inside the panel**. Whitespace was relocated, not
    deleted — which is exactly the complaint that produced Round 6.
 
@@ -715,7 +718,7 @@ Consequences that follow, and that you must preserve:
   `overflow-y: hidden`, and **no `alignItems: center`** around the 100%-sized svg. Only
   the "no visual snapshot" empty state centres itself, and it has nothing to squash.
 - Every visualizer root is `width/height: 100%`, `minWidth/minHeight: 0`, `flex: 1 1
-  auto`, with **no height of its own**. The only `minHeight` allowed around a canvas is
+auto`, with **no height of its own**. The only `minHeight` allowed around a canvas is
   `0` (the flexbox shrink enabler).
 
 **How each kind spreads across both axes** (this is the per-visualizer half of the law):
@@ -724,14 +727,14 @@ Consequences that follow, and that you must preserve:
   into the bars first (`fitSlots` between `MIN_BAR_W` 10 and `MAX_BAR_W` 160) and then
   into the gaps (up to `MAX_GAP_RATIO` 0.25 of a bar) before any of it is left as margin;
   a dense run gives up its gap before it goes under the bar floor, because clipping bars
-  loses data. Vertically, the label insets are capped as a *share* of the height (pointer
+  loses data. Vertically, the label insets are capped as a _share_ of the height (pointer
   chips ≤32%, index labels ≤18%) and **the band is every remaining pixel**, with the
   tallest bar spanning it and its baseline at the band's bottom. Type sizes, radii and
   strokes derive from the bar width via `clamp`, so a wide panel gets bigger numbers
   rather than the same small ones with more air. `mode="box"` is the single place vertical
   slack is unavoidable (one row of squares), and it is centred in the band.
 - **Tree** (`TreeVisualizer`): with no authored coordinates, `tidyTreeSlots(roots,
-  childrenOf)` produces an **abstract** layout (fractional leaf column, depth) which
+childrenOf)` produces an **abstract** layout (fractional leaf column, depth) which
   `spreadToBox` then stretches, so **depths own the full height and leaf slots the full
   width** — a shallow tree fills the canvas instead of stopping at a fixed per-level
   band. The helper is cycle-safe and forest-safe: ids already placed are skipped, so a
@@ -740,7 +743,7 @@ Consequences that follow, and that you must preserve:
   collide) and get the same `spreadToBox` treatment.
 - **Graph with authored `x`/`y`** (`GraphVisualizer`): the points go through
   `spreadToBox(points, box, pad)`, which scales the two axes **independently** so a
-  300×100 authored drawing reaches the edges of a 950×520 panel. It is the *positions*
+  300×100 authored drawing reaches the edges of a 950×520 panel. It is the _positions_
   that stretch — the node radius stays uniform, so no node is squashed. A degenerate axis
   (all points sharing an x, a single node) centres on that axis instead of dividing by
   zero, and float-noise spans below `SPAN_EPSILON` count as degenerate.
@@ -754,7 +757,7 @@ Consequences that follow, and that you must preserve:
   a ring on top of the authored points.
 - **Grid** (`GridVisualizer`): square cells cannot match an arbitrary canvas ratio, so
   the cell is sized from the **HEIGHT** (`fitSlots(rows, box.height − PAD*2, GAP,
-  MIN_CELL 8, MAX_CELL 180)`) and only min'd with the column fit where a grid wider than
+MIN_CELL 8, MAX_CELL 180)`) and only min'd with the column fit where a grid wider than
   the panel's ratio would otherwise push cells off the canvas. `MAX_CELL` is a sanity cap
   so a 1–2 row grid does not mint half-panel squares; from three rows up in a normal panel
   it never binds and the height is fully spent. When the floor binds the gap goes first,
@@ -762,7 +765,7 @@ Consequences that follow, and that you must preserve:
   (`originX`/`originY`), which is what makes `PAD` reappear as the inset on a fully spent
   axis; horizontal remainder may also scroll (the canvas region is `overflow-x: auto`).
 
-Node radii are solved against the layout rather than guessed: because the radius *is* the
+Node radii are solved against the layout rather than guessed: because the radius _is_ the
 layout's inset, `GraphVisualizer` and `TreeVisualizer` walk **down** from their cap
 (`MAX_NODE_R` 72 / 46) using `minPointSpacing(points, fallback) * SPACING_SHARE`
 (0.38 / 0.45) — a bigger radius always means a tighter layout, so each pass is a safe
@@ -784,13 +787,13 @@ deterministic.
 **Standing rules for any sizing change:**
 
 - **A sizing change must never make a visualization smaller.** Every mechanism above
-  *enlarges* the drawing into space it previously wasted. If nodes, bars or cells come
+  _enlarges_ the drawing into space it previously wasted. If nodes, bars or cells come
   out smaller than before, the change is wrong — verify per snapshot kind (array, grid,
   graph, tree).
 - **Never reintroduce a fixed-ratio viewBox, and never size the svg to the content.**
   Those are the two forbidden modes above.
 - Colours inside a canvas are tokens only. Font sizes, radii and stroke widths are the
-  one place scalar geometry is *computed* (via `clamp`) rather than tokenised — that is
+  one place scalar geometry is _computed_ (via `clamp`) rather than tokenised — that is
   what keeps a big graph legible while a small one grows.
 - `vizGeometry` is pure except for `useCanvasBox`, and it is unit-tested in
   `src/components/primitives/specs/vizGeometry.spec.ts` (the viewBox law, both-axis
@@ -799,8 +802,8 @@ deterministic.
 
 ### 2.9 Categorical group coloring (`--viz-1..8` + `vizPalette`)
 
-`--viz-1..8` is a **separate axis from `--state-*`**: state says *what the algorithm is
-doing right now*, a viz slot says *which group something belongs to* — connected
+`--viz-1..8` is a **separate axis from `--state-*`**: state says _what the algorithm is
+doing right now_, a viz slot says _which group something belongs to_ — connected
 component, SCC id, MST tree, island index, trie branch, partition, roadmap topic
 family. The set was validated for colorblind separation **as an ordered set**, so:
 
@@ -811,14 +814,14 @@ family. The set was validated for colorblind separation **as an ordered set**, s
 
 `src/components/primitives/vizPalette.ts` is the only sanctioned way to touch them:
 
-| Export | Purpose |
-|---|---|
-| `VIZ_SLOT_COUNT` (8) | Number of validated slots |
-| `isVizSlot(slot)` | True for integers in `[0, 8)` |
-| `vizSlotColor(slot)` | `var(--viz-N)` (1-based token from a 0-based slot); out of range → `VIZ_OVERFLOW_COLOR` (`var(--state-default)`) |
-| `vizSlotBg(slot, percent = 22, base = 'transparent')` | Translucent companion via `color-mix` from the same token; pass a surface token as `base` when the fill sits on an opaque panel. Out of range → `VIZ_OVERFLOW_BG` |
-| `deriveConnectedComponents(nodeIds, edges)` | Weakly-connected components via union-find (direction ignored, unknown edge endpoints skipped, isolated nodes form their own component) → `{ componentOf, componentCount, largestComponentSize }` |
-| `componentTintingAddsInformation(components)` | Whether derived tinting is worth showing: >1 component, ≤8 components, largest component >1 node (an edgeless point cloud would just become confetti) |
+| Export                                                | Purpose                                                                                                                                                                                           |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VIZ_SLOT_COUNT` (8)                                  | Number of validated slots                                                                                                                                                                         |
+| `isVizSlot(slot)`                                     | True for integers in `[0, 8)`                                                                                                                                                                     |
+| `vizSlotColor(slot)`                                  | `var(--viz-N)` (1-based token from a 0-based slot); out of range → `VIZ_OVERFLOW_COLOR` (`var(--state-default)`)                                                                                  |
+| `vizSlotBg(slot, percent = 22, base = 'transparent')` | Translucent companion via `color-mix` from the same token; pass a surface token as `base` when the fill sits on an opaque panel. Out of range → `VIZ_OVERFLOW_BG`                                 |
+| `deriveConnectedComponents(nodeIds, edges)`           | Weakly-connected components via union-find (direction ignored, unknown edge endpoints skipped, isolated nodes form their own component) → `{ componentOf, componentCount, largestComponentSize }` |
+| `componentTintingAddsInformation(components)`         | Whether derived tinting is worth showing: >1 component, ≤8 components, largest component >1 node (an edgeless point cloud would just become confetti)                                             |
 
 **Rendering precedence** in `GraphVisualizer` and `TreeVisualizer`: algorithm state
 outranks identity. A node in a non-`default` state keeps its `--state-*` skin and its
@@ -863,7 +866,10 @@ was removed and replaced by four independent booleans:
 ```ts
 // src/types/dsa.ts
 export interface PanelVisibility {
-  visualizer: boolean; code: boolean; tutorial: boolean; auxiliary: boolean;
+  visualizer: boolean;
+  code: boolean;
+  tutorial: boolean;
+  auxiliary: boolean;
 }
 export type PanelKey = keyof PanelVisibility;
 ```
@@ -891,11 +897,11 @@ a confirm calls `resetWorkspaceLayout()` (sections 2.2 and 2.7). While that dial
 open the `/` shortcut stands down (section 2.12).
 
 **The app-view navigation stays a `Segmented`** (Knowledge Tree / Problem List /
-Workspace, `size="sm"`): that one *is* mutually exclusive routing, not a toggle set.
+Workspace, `size="sm"`): that one _is_ mutually exclusive routing, not a toggle set.
 
 **All-off empty state.** The complexity card follows the **code** toggle (it is the code
 column's companion and has no navbar switch of its own), and the tutorial/auxiliary
-*strips inside the visualizer panel* (section 2.7) additionally require the current step
+_strips inside the visualizer panel_ (section 2.7) additionally require the current step
 to actually have content for them. When every workspace panel resolves to hidden,
 `MainLayout` renders a calm centered `Card` reading "Every panel is hidden" plus
 instructions to turn one back on in the navbar — **never a blank stage and never a
@@ -913,12 +919,12 @@ toggling it off in the navbar (`MainLayout` receives them as `onToggleTutorial` 
 Two owners bind window-level keys, and they share their guards through
 **`src/app/keyboardGuards.ts`** so they can never disagree about when to stand down:
 
-| Key | Owner | Effect |
-|---|---|---|
-| `ArrowRight` | `workspace.$algorithmId.tsx` | `pause()` then `stepForward()` |
-| `ArrowLeft` | `workspace.$algorithmId.tsx` | `pause()` then `stepBackward()` |
+| Key                                   | Owner                        | Effect                                  |
+| ------------------------------------- | ---------------------------- | --------------------------------------- |
+| `ArrowRight`                          | `workspace.$algorithmId.tsx` | `pause()` then `stepForward()`          |
+| `ArrowLeft`                           | `workspace.$algorithmId.tsx` | `pause()` then `stepBackward()`         |
 | `Space` (`' '` / legacy `'Spacebar'`) | `workspace.$algorithmId.tsx` | `togglePlay()`, with `preventDefault()` |
-| `/` | `Navbar.tsx` | opens `QuickAccessDrawer` |
+| `/`                                   | `Navbar.tsx`                 | opens `QuickAccessDrawer`               |
 
 **The guard rules — all of them apply to every shortcut:**
 
@@ -926,7 +932,7 @@ Two owners bind window-level keys, and they share their guards through
   anything inside a contenteditable region. `input[type=range]` and `select` count on
   purpose: arrow keys already adjust a focused slider or option list, which is exactly
   what the playback keys would steal. (The predicate checks
-  `element.isContentEditable === true` *and* a `[contenteditable]` ancestor lookup,
+  `element.isContentEditable === true` _and_ a `[contenteditable]` ancestor lookup,
   because jsdom leaves `isContentEditable` undefined.)
 - **`isDialogOpen()`** → bail. Any mounted `[role="dialog"]` counts, which covers both
   the search drawer and every `ConfirmDialog`; a shortcut firing underneath an open
@@ -956,7 +962,7 @@ never bind a key that arrows/space already own inside a field.
 The fourth app view is a study tool for memorising solutions before an interview
 (DESIGN.md **Round 8**). It reads the registry you already write — nothing about a new
 algorithm has to opt in — so understanding it is part of understanding what your `code`
-string is *for*. Section 4.11 is the authoring side of this section.
+string is _for_. Section 4.11 is the authoring side of this section.
 
 **The technique.** Cloze deletion applied to source lines, escalated by **coverage, not
 time**:
@@ -970,7 +976,7 @@ time**:
 - Within a level, blank selection prefers **undrilled** lines, then weights by
   `misses + 1`, so a line you fumbled resurfaces sooner without starving the ones you
   know. (Leitner, reduced to its useful core.)
-- **Revealing a line counts as drilled *and* as a miss** — giving up schedules the line
+- **Revealing a line counts as drilled _and_ as a miss** — giving up schedules the line
   again rather than quietly skipping it. A revealed blank is submitted as an empty answer,
   so the on-screen feedback and the recorded stats agree.
 - An algorithm with fewer blankable lines than the current level cannot supply that many
@@ -995,13 +1001,13 @@ and requires an exact match inside (`isAnswerCorrect`).
 
 **The files.**
 
-| File | Role |
-|---|---|
-| `src/types/trivia.ts` | The contracts — **finished, read-only**: `TriviaMode`, `TriviaConfig`, `PuzzleLine`, `TriviaTile`, `TriviaRound`, `TriviaLineStat`, `TriviaProgress`, `TriviaGrade`, `TriviaMeta`. Its header comment is the rationale for the coverage rule. |
-| `src/trivia/triviaEngine.ts` | All the drill logic, **pure** — no React, no storage, RNG injected. **Finished, read-only.** |
+| File                          | Role                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/types/trivia.ts`         | The contracts — **finished, read-only**: `TriviaMode`, `TriviaConfig`, `PuzzleLine`, `TriviaTile`, `TriviaRound`, `TriviaLineStat`, `TriviaProgress`, `TriviaGrade`, `TriviaMeta`. Its header comment is the rationale for the coverage rule.                                        |
+| `src/trivia/triviaEngine.ts`  | All the drill logic, **pure** — no React, no storage, RNG injected. **Finished, read-only.**                                                                                                                                                                                         |
 | `src/trivia/triviaStorage.ts` | Persistence: `TRIVIA_CONFIG_KEY` / `TRIVIA_PROGRESS_KEY` (`dsa_visualizer_trivia_{config,progress}_v1`), `TRIVIA_STORAGE_VERSION`, `readTriviaConfig` / `writeTriviaConfig(patch)` / `readTriviaProgress` / `writeTriviaProgress(progress)` / `clearTrivia` / the two clone helpers. |
-| `src/components/trivia/*` | `TriviaDeckBuilder`, `TriviaSettings`, `TriviaSession`, `CodePuzzle`, `TileTray` — presentational; they own board state (what is placed, typed, revealed, selected) and nothing else. |
-| `src/routes/trivia.tsx` | The page: the **only** owner of deck, settings, progress and the current round. |
+| `src/components/trivia/*`     | `TriviaDeckBuilder`, `TriviaSettings`, `TriviaSession`, `CodePuzzle`, `TileTray` — presentational; they own board state (what is placed, typed, revealed, selected) and nothing else.                                                                                                |
+| `src/routes/trivia.tsx`       | The page: the **only** owner of deck, settings, progress and the current round.                                                                                                                                                                                                      |
 
 **Engine surface** (`src/trivia/triviaEngine.ts`):
 
@@ -1062,7 +1068,7 @@ the rounds-played badge, a `Deck coverage` progressbar and the "Reset progress" 
    silently rewriting the user's deck would lose the entry for good.
 
 **Storage details worth knowing before you touch them:** config and progress are
-*deliberately separate* keys — changing a deck must not erase earned coverage, and a
+_deliberately separate_ keys — changing a deck must not erase earned coverage, and a
 progress-shape change must not reset the deck. Reads validate field by field and a value
 with the wrong version, wrong shape, a NaN, an out-of-range level or `misses > attempts`
 is discarded **wholesale** (a half-restored progress record would silently corrupt the
@@ -1083,36 +1089,39 @@ sibling `src/types/trivia.ts` (both finished — read, don't edit). The master s
 
 ```typescript
 export interface AlgorithmDefinition<TInput = unknown> {
-  id: string;                     // URL slug AND registry key (e.g. 'two-sum')
-  title: string;                  // Display title (e.g. 'Two Sum')
-  category: CategoryType;         // Canonical folder id (e.g. 'arrays_and_hashing')
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
-  description: string;            // 1–3 sentences: problem + core idea
-  constraints?: string[];         // LeetCode-style bounds, shown in Details
-  examples?: ProblemExample[];    // { input, output, explanation? }
-  code: string;                   // Python source string (the ONLY display language)
+  id: string; // URL slug AND registry key (e.g. 'two-sum')
+  title: string; // Display title (e.g. 'Two Sum')
+  category: CategoryType; // Canonical folder id (e.g. 'arrays_and_hashing')
+  difficulty?: "Easy" | "Medium" | "Hard";
+  description: string; // 1–3 sentences: problem + core idea
+  constraints?: string[]; // LeetCode-style bounds, shown in Details
+  examples?: ProblemExample[]; // { input, output, explanation? }
+  code: string; // Python source string (the ONLY display language)
   timeComplexity: { best: string; average: string; worst: string };
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis; // REQUIRED plain-English prose (section 4.4)
-  topicGuide: TopicGuide;                 // REQUIRED topic lesson (section 4.5)
-  trivia?: TriviaMeta;                    // OPTIONAL drill sharpening (sections 2.13, 4.11)
+  topicGuide: TopicGuide; // REQUIRED topic lesson (section 4.5)
+  trivia?: TriviaMeta; // OPTIONAL drill sharpening (sections 2.13, 4.11)
   generateSteps: (input: TInput) => AlgorithmStep[]; // Pure, synchronous
   defaultInput: TInput;
 }
 
-export interface ComplexityAnalysis { time: string; space: string }
+export interface ComplexityAnalysis {
+  time: string;
+  space: string;
+}
 
 export interface TopicGuide {
-  overview: string;                                  // what this topic IS
-  sections: { heading: string; body: string }[];     // the teaching body
+  overview: string; // what this topic IS
+  sections: { heading: string; body: string }[]; // the teaching body
   keyTerms?: { term: string; definition: string }[]; // vocabulary
 }
 
 // src/types/trivia.ts — every field optional; no metadata still drills fine
 export interface TriviaMeta {
-  skipLines?: number[];                              // 1-based lines to never hide
-  distractors?: string[];                            // plausible-but-wrong tile lines
-  hints?: { line: number; hint: string }[];          // shown on request, per line
+  skipLines?: number[]; // 1-based lines to never hide
+  distractors?: string[]; // plausible-but-wrong tile lines
+  hints?: { line: number; hint: string }[]; // shown on request, per line
 }
 ```
 
@@ -1120,10 +1129,10 @@ Each step is an immutable snapshot:
 
 ```typescript
 export interface AlgorithmStep {
-  stepIndex: number;              // 0-based, strictly increasing
-  codeLine: number;               // 1-based line of `code` to highlight (section 4.6)
-  explanation: { what: string; why: string };  // Teacher voice (section 4.3)
-  primarySnapshot: PrimaryVisualSnapshot;      // array | grid | graph | tree
+  stepIndex: number; // 0-based, strictly increasing
+  codeLine: number; // 1-based line of `code` to highlight (section 4.6)
+  explanation: { what: string; why: string }; // Teacher voice (section 4.3)
+  primarySnapshot: PrimaryVisualSnapshot; // array | grid | graph | tree
   auxiliaryState: AuxiliaryState; // stack/queue/visited/hashMap/distanceTable/customState
   variables: Record<string, string | number | boolean>; // Live "Vars" strip
 }
@@ -1164,33 +1173,33 @@ category filters.
 
 ### 4.1 Pick the category (decision guide — all 25)
 
-| Folder | What belongs there |
-|---|---|
-| `arrays_and_hashing` | Hash maps, frequency counting, prefix sums, single-pass array scans, elementary sorts (Two Sum, Kadane, Bubble Sort live here) |
-| `two_pointers` | Converging/parallel index pairs over arrays, partition schemes (sorted Two Sum, Quick Sort's partition) |
-| `sliding_window` | Contiguous-window optimizations, monotonic deques over a moving range |
-| `stack_and_queue` | Problems whose core structure is LIFO/FIFO discipline (Valid Parentheses, monotonic stacks) |
-| `binary_search` | Halving a search space — sorted arrays, matrices, or the answer space itself |
-| `linked_list` | Pointer surgery on node chains: reversal, cycle detection, merging |
-| `tree_fundamentals` | Binary tree recursion/traversal basics: DFS orders, LCA, depth |
-| `tree_queries_and_diameter` | Path and aggregate computations over trees: diameter, subtree sums, rerooting |
-| `tries_and_strings` | Prefix trees and string matching automata (Trie, KMP, Z-algorithm) |
-| `heap_and_priority_queue` | Top-k, streaming order statistics, heapify mechanics |
-| `backtracking` | Exhaustive recursive search with undo (N-Queens, permutations, subsets) |
-| `graph_traversal` | BFS/DFS reachability, flood fill, connected components on grids/graphs |
-| `graph_shortest_paths` | Distance computation: Dijkstra, Bellman-Ford, Floyd-Warshall, 0-1 BFS |
-| `graph_spanning_trees` | Minimum spanning trees and union-find machinery (Kruskal, Prim) |
-| `graph_directed_and_scc` | DAG ordering and strongly connected components (topological sort, Kosaraju, Tarjan) |
-| `graph_flows_and_cuts` | Max-flow / min-cut / bipartite matching (Ford-Fulkerson, Edmonds-Karp) |
-| `dp_1d` | Dynamic programming over a single index/state dimension (coin change, house robber, LIS) |
-| `dp_2d` | DP over grids or two sequences (edit distance, LCS, unique paths) |
-| `intervals` | Sort-then-sweep over ranges: merging, scheduling, overlap counting |
-| `greedy_algorithms` | Local-choice-optimal constructions (Huffman coding, activity selection) |
-| `bit_manipulation` | Bitwise identities and tricks (counting bits, XOR pairing, masks) |
-| `math_and_number_theory` | Primes, GCD, modular arithmetic, combinatorics (Sieve, Euclid) |
-| `game_theory` | Win/lose state analysis and Sprague-Grundy style reasoning (Nim) |
-| `advanced_range_queries` | Fenwick trees, segment trees, lazy propagation over ranges |
-| `geometry_and_sweep_line` | Computational geometry and sweeps (convex hull, polygon area, closest pair) |
+| Folder                      | What belongs there                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `arrays_and_hashing`        | Hash maps, frequency counting, prefix sums, single-pass array scans, elementary sorts (Two Sum, Kadane, Bubble Sort live here) |
+| `two_pointers`              | Converging/parallel index pairs over arrays, partition schemes (sorted Two Sum, Quick Sort's partition)                        |
+| `sliding_window`            | Contiguous-window optimizations, monotonic deques over a moving range                                                          |
+| `stack_and_queue`           | Problems whose core structure is LIFO/FIFO discipline (Valid Parentheses, monotonic stacks)                                    |
+| `binary_search`             | Halving a search space — sorted arrays, matrices, or the answer space itself                                                   |
+| `linked_list`               | Pointer surgery on node chains: reversal, cycle detection, merging                                                             |
+| `tree_fundamentals`         | Binary tree recursion/traversal basics: DFS orders, LCA, depth                                                                 |
+| `tree_queries_and_diameter` | Path and aggregate computations over trees: diameter, subtree sums, rerooting                                                  |
+| `tries_and_strings`         | Prefix trees and string matching automata (Trie, KMP, Z-algorithm)                                                             |
+| `heap_and_priority_queue`   | Top-k, streaming order statistics, heapify mechanics                                                                           |
+| `backtracking`              | Exhaustive recursive search with undo (N-Queens, permutations, subsets)                                                        |
+| `graph_traversal`           | BFS/DFS reachability, flood fill, connected components on grids/graphs                                                         |
+| `graph_shortest_paths`      | Distance computation: Dijkstra, Bellman-Ford, Floyd-Warshall, 0-1 BFS                                                          |
+| `graph_spanning_trees`      | Minimum spanning trees and union-find machinery (Kruskal, Prim)                                                                |
+| `graph_directed_and_scc`    | DAG ordering and strongly connected components (topological sort, Kosaraju, Tarjan)                                            |
+| `graph_flows_and_cuts`      | Max-flow / min-cut / bipartite matching (Ford-Fulkerson, Edmonds-Karp)                                                         |
+| `dp_1d`                     | Dynamic programming over a single index/state dimension (coin change, house robber, LIS)                                       |
+| `dp_2d`                     | DP over grids or two sequences (edit distance, LCS, unique paths)                                                              |
+| `intervals`                 | Sort-then-sweep over ranges: merging, scheduling, overlap counting                                                             |
+| `greedy_algorithms`         | Local-choice-optimal constructions (Huffman coding, activity selection)                                                        |
+| `bit_manipulation`          | Bitwise identities and tricks (counting bits, XOR pairing, masks)                                                              |
+| `math_and_number_theory`    | Primes, GCD, modular arithmetic, combinatorics (Sieve, Euclid)                                                                 |
+| `game_theory`               | Win/lose state analysis and Sprague-Grundy style reasoning (Nim)                                                               |
+| `advanced_range_queries`    | Fenwick trees, segment trees, lazy propagation over ranges                                                                     |
+| `geometry_and_sweep_line`   | Computational geometry and sweeps (convex hull, polygon area, closest pair)                                                    |
 
 If a problem could fit two folders, choose by **what technique the visualization
 teaches**, not the data type (Quick Sort teaches partitioning by two pointers, so it
@@ -1240,14 +1249,14 @@ lines reserved (section 2.7), so this is the most-read text in the app.
 
 > what: `Look up 7 in the map`
 > why: `We need a partner for 2 that reaches 9, so we check whether 7 has already
-> been seen. It hasn't yet — so we remember 2 and keep walking.`
+been seen. It hasn't yet — so we remember 2 and keep walking.`
 
 **Bad** — each violates the contract:
 
-> why: `Checking hashmap for key=7. Found=false.` *(log line, no "we", no meaning)*
-> why: `Equation: complement = target - nums[i] = 9 - 2 = 7` *(robotic prefix, restates code)*
-> why: `Hash map lookups are O(1) amortized, giving O(n) overall!` *(Big-O lecture mid-step + exclamation)*
-> why: `We look up the complement.` *(no runtime values interpolated — every step must use the real numbers)*
+> why: `Checking hashmap for key=7. Found=false.` _(log line, no "we", no meaning)_
+> why: `Equation: complement = target - nums[i] = 9 - 2 = 7` _(robotic prefix, restates code)_
+> why: `Hash map lookups are O(1) amortized, giving O(n) overall!` _(Big-O lecture mid-step + exclamation)_
+> why: `We look up the complement.` _(no runtime values interpolated — every step must use the real numbers)_
 
 Branchy steps should interpolate the branch taken (see the `hasComplement` ternary in
 `twoSum.ts` — the same step number produces different prose per outcome).
@@ -1265,15 +1274,15 @@ Write `explanation.what` for the learner: a short present-tense action label.
 **Good** (Two Sum — from DESIGN.md):
 
 > time: `We walk the array once, and each hash-map lookup and insert costs O(1) on
-> average, so the total work grows linearly with the number of elements — O(n). Even
-> in the worst case, where no pair exists, we still make just a single pass.`
+average, so the total work grows linearly with the number of elements — O(n). Even
+in the worst case, where no pair exists, we still make just a single pass.`
 > space: `The hash map stores up to one entry per element before a pair is found, so
-> extra memory grows linearly with the input — O(n).`
+extra memory grows linearly with the input — O(n).`
 
 **Bad**:
 
-> time: `O(n) because it is linear.` *(restates the chip; the chips already show O(n) — the prose must carry the reasoning)*
-> space: `Uses a hash map.` *(names the structure without saying what grows or why)*
+> time: `O(n) because it is linear.` _(restates the chip; the chips already show O(n) — the prose must carry the reasoning)_
+> space: `Uses a hash map.` _(names the structure without saying what grows or why)_
 
 `ComplexityCard` renders the `timeComplexity` best/average/worst chips and
 `spaceComplexity` chip, then these paragraphs beneath them, in a `Collapsible` that sits
@@ -1282,7 +1291,7 @@ immediately under the code listing.
 ### 4.5 Write the `topicGuide` (required topic lesson)
 
 `topicGuide` is a **required** field and it is the biggest writing task in a new
-algorithm. It is a *topic lesson*, not step narration: something a learner could study
+algorithm. It is a _topic lesson_, not step narration: something a learner could study
 from with the animation paused.
 
 ```ts
@@ -1296,7 +1305,7 @@ topicGuide: {
 **Required depth.**
 
 - `overview` — 2–4 sentences orienting the learner: what the technique or data
-  structure *is* and what class of problem it solves.
+  structure _is_ and what class of problem it solves.
 - `sections` — **4–6** sections, each `body` being **3–6 full sentences**. Cover, in
   this spirit (adapt the headings to the topic): the core idea and the insight that
   makes it work; how the mechanism operates concretely; why it is correct (the
@@ -1312,28 +1321,28 @@ text), no Big-O dumps, no restating the step list.
 
 **How it differs from its neighbours** — three fields, three jobs, no overlap:
 
-| Field | Job | Voice |
-|---|---|---|
-| `explanation.why` (per step) | Play-by-play of *this* step with real runtime values | "we", 1–2 sentences |
-| `complexityAnalysis` | Why the time/space bounds are what they are | plain-English reasoning about cost |
-| `topicGuide` | The whole subject behind the problem: idea, mechanism, invariant, trade-offs, pitfalls, generalization | teacher prose, "you", 4–6 sections |
+| Field                        | Job                                                                                                    | Voice                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `explanation.why` (per step) | Play-by-play of _this_ step with real runtime values                                                   | "we", 1–2 sentences                |
+| `complexityAnalysis`         | Why the time/space bounds are what they are                                                            | plain-English reasoning about cost |
+| `topicGuide`                 | The whole subject behind the problem: idea, mechanism, invariant, trade-offs, pitfalls, generalization | teacher prose, "you", 4–6 sections |
 
 **Good** (Two Sum — abridged from `twoSum.ts`, the canonical reference):
 
 > heading: `Why checking before inserting is what makes it correct`
 > body: `The invariant is that when you begin processing index i, seen contains exactly
-> the values at indices 0 through i minus 1, each mapped to a valid earlier index.
-> Because of that, a hit on the complement is guaranteed to be a genuinely different
-> element rather than the current one reused twice. … If you inserted before checking,
-> a target of exactly twice the current value would match the element against itself
-> and return a bogus duplicate index.`
+the values at indices 0 through i minus 1, each mapped to a valid earlier index.
+Because of that, a hit on the complement is guaranteed to be a genuinely different
+element rather than the current one reused twice. … If you inserted before checking,
+a target of exactly twice the current value would match the element against itself
+and return a bogus duplicate index.`
 
 **Bad**:
 
-> body: `- Use a hash map\n- Check complement\n- Return indices` *(bullet fragments, markdown, no prose)*
-> body: `We look up the complement in the map, then we insert.` *(step narration — that is `explanation.why`'s job)*
-> body: `Runs in O(n) time and O(n) space because each lookup is O(1).` *(that is `complexityAnalysis`)*
-> body: `This is a very common interview question and you should know it.` *(no teaching content)*
+> body: `- Use a hash map\n- Check complement\n- Return indices` _(bullet fragments, markdown, no prose)_
+> body: `We look up the complement in the map, then we insert.` _(step narration — that is `explanation.why`'s job)_
+> body: `Runs in O(n) time and O(n) space because each lookup is O(1).` _(that is `complexityAnalysis`)_
+> body: `This is a very common interview question and you should know it.` _(no teaching content)_
 
 **Details render expanded by default** (from the persisted layout's `detailsExpanded:
 true`), so the whole guide is on screen at first paint — which sets the spec convention
@@ -1356,7 +1365,7 @@ state. Key rules:
   step's `codeLine` to catch drift.
 - **Start the template literal immediately after the backtick — no leading newline.** The
   house style is `` `def two_sum(...)`` on the same line as the opening backtick, and it is
-  load-bearing beyond aesthetics: the code viewer trims *both* ends while the trivia parser
+  load-bearing beyond aesthetics: the code viewer trims _both_ ends while the trivia parser
   trims only the trailing end (`parsePuzzleLines`), so a leading blank line would shift the
   drill's numbering one past `codeLine`, `skipLines` and `hints` (sections 2.13 and 4.11).
   The same 1-based numbering serves all three.
@@ -1374,31 +1383,39 @@ export const generateExampleSteps = (input: ExampleInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.nums.map((val, idx) => ({
-    id: `el-${idx}`, value: val, state: 'default',
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    variables: Record<string, string | number | boolean>
+    variables: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: 'array',
-        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
+        kind: "array",
+        elements: elements.map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-      auxiliaryState: { /* copy whatever aux structures apply */ },
+      auxiliaryState: {/* copy whatever aux structures apply */},
       variables,
     });
   };
 
-  addStep(1, 'Start the search',
-    `We want two numbers in [${input.nums.join(', ')}] that add up to ${input.target}. ...`,
-    { target: input.target });
+  addStep(
+    1,
+    "Start the search",
+    `We want two numbers in [${input.nums.join(", ")}] that add up to ${input.target}. ...`,
+    { target: input.target },
+  );
   // ... mutate elements/aux state, addStep after each meaningful action ...
   return steps;
 };
@@ -1454,14 +1471,14 @@ Each populated field renders as a labeled chip row in the `AuxiliaryPanel` — t
 (section 2.7); empty/absent fields render nothing, and a step with no aux content at all
 renders no strip:
 
-| Field | UI row | Notes |
-|---|---|---|
-| `stack: (string\|number)[]` | "Stack" | Last item gets a `top` marker |
-| `queue: (string\|number)[]` | "Queue" | First item gets a `front` marker |
-| `visited: (string\|number)[]` | "Visited (n)" | Count in the label |
-| `hashMap: Record<string, string\|number>` | "Hash map" | Rendered `key → value` |
-| `distanceTable: Record<string, number>` | "Distances" | `Infinity` renders as `∞` |
-| `customState: Record<string, string\|number>` | "State" | Rendered `key = value`; the catch-all for anything else (dp rows, flow totals, counters) |
+| Field                                         | UI row        | Notes                                                                                    |
+| --------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------- |
+| `stack: (string\|number)[]`                   | "Stack"       | Last item gets a `top` marker                                                            |
+| `queue: (string\|number)[]`                   | "Queue"       | First item gets a `front` marker                                                         |
+| `visited: (string\|number)[]`                 | "Visited (n)" | Count in the label                                                                       |
+| `hashMap: Record<string, string\|number>`     | "Hash map"    | Rendered `key → value`                                                                   |
+| `distanceTable: Record<string, number>`       | "Distances"   | `Infinity` renders as `∞`                                                                |
+| `customState: Record<string, string\|number>` | "State"       | Rendered `key = value`; the catch-all for anything else (dp rows, flow totals, counters) |
 
 Copy the structures on every `addStep` (`{ ...hashMap }`, `[...queue]`). Use the
 field that matches the algorithm's actual working structure — a BFS should populate
@@ -1476,11 +1493,11 @@ stuffing everything into `customState`. Keep the working set tight: the strip sh
 In `src/algorithms/registry.ts`, import and add one entry:
 
 ```typescript
-import { myAlgo } from './my_category/myAlgo';
+import { myAlgo } from "./my_category/myAlgo";
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   // ...
-  'my-algo': myAlgo as AlgorithmDefinition,
+  "my-algo": myAlgo as AlgorithmDefinition,
 };
 ```
 
@@ -1539,7 +1556,7 @@ templates.
   counts/states; assert the auxiliary structures appear when expected. If the
   algorithm sets `group`, assert the slots are zero-based, stable across steps, and
   never exceed 7.
-- Final state: the algorithm's *answer* is correct for the default input **and** for
+- Final state: the algorithm's _answer_ is correct for the default input **and** for
   at least 2–3 custom inputs including an edge case (no solution, negative numbers,
   cycle present, empty-ish input).
 - **Trivia metadata coherence, if you wrote any `trivia` metadata** — one `describe` block
@@ -1554,12 +1571,12 @@ note the `.render.` segment — see the hard rule above). `MainLayout` takes
 `showAuxiliary` prop:
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { MainLayout } from '../../../components/MainLayout';
-import { myAlgo, generateMyAlgoSteps, DEFAULT_MY_ALGO_INPUT } from '../myAlgo';
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { MainLayout } from "../../../components/MainLayout";
+import { myAlgo, generateMyAlgoSteps, DEFAULT_MY_ALGO_INPUT } from "../myAlgo";
 
-it('renders title, description and topic guide', () => {
+it("renders title, description and topic guide", () => {
   const steps = generateMyAlgoSteps(DEFAULT_MY_ALGO_INPUT);
   const noop = vi.fn();
   render(
@@ -1569,14 +1586,14 @@ it('renders title, description and topic guide', () => {
       panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
       onToggleTutorial={noop}
       onToggleAuxiliary={noop}
-    />
+    />,
   );
-  expect(screen.getByText('My Algo Title')).toBeInTheDocument();
+  expect(screen.getByText("My Algo Title")).toBeInTheDocument();
   // Problem details render EXPANDED by default — never click "Details" first.
   expect(screen.getByText(/first words of the description/i)).toBeInTheDocument();
   expect(screen.getByText(myAlgo.topicGuide.overview)).toBeInTheDocument();
   expect(
-    screen.getByRole('heading', { name: myAlgo.topicGuide.sections[0].heading })
+    screen.getByRole("heading", { name: myAlgo.topicGuide.sections[0].heading }),
   ).toBeInTheDocument();
 });
 ```
@@ -1593,11 +1610,11 @@ it('renders title, description and topic guide', () => {
   `fireEvent.click(screen.getByRole('button', { name: /details/i }))` before asserting on
   `description`/`topicGuide`/constraints/examples now **collapses** them and breaks the
   assertion. **Do not click "Details".** Assert directly. (Clicking is still the right
-  way to test the *toggle* itself — see `src/components/specs/MainLayout.spec.tsx`.)
+  way to test the _toggle_ itself — see `src/components/specs/MainLayout.spec.tsx`.)
 - **That default comes from `localStorage`, so leave storage clean.** `MainLayout` reads
   `readWorkspaceLayout()` on mount; a spec that toggles Details or seeds
   `WORKSPACE_LAYOUT_KEY` must clear storage afterwards (`afterEach(() =>
-  localStorage.clear())`, as `MainLayout.spec.tsx` does) or the next spec in the file
+localStorage.clear())`, as `MainLayout.spec.tsx` does) or the next spec in the file
   renders collapsed and its assertions fail for the wrong reason.
 - **The whole step context is inside one panel** (section 2.7) in the order tutorial →
   working data → canvas → controls, so query by text rather than by panel structure, and
@@ -1618,7 +1635,7 @@ no inline height — that is how `MainLayout.spec.tsx` pins the contract for the
 column. A new panel also needs its own `PanelKey`, storage key and navbar toggle
 following section 2.11 exactly (same `size="sm"` `Button`, `aria-pressed`), plus a new
 `panelHeights` field, which means bumping `WORKSPACE_LAYOUT_VERSION` **and** the key
-suffix. If what you are adding is really *step context*, prefer a new strip **inside**
+suffix. If what you are adding is really _step context_, prefer a new strip **inside**
 the visualizer panel (above the canvas, inside the capped band) over a new row outside
 it.
 
@@ -1646,7 +1663,7 @@ Two things are therefore true and both matter:
 const MY_ALGO_TRIVIA: TriviaMeta = {
   skipLines: [1],
   distractors: [/* 3–5 plausible-but-wrong lines */],
-  hints: [{ line: 4, hint: '…' }],
+  hints: [{ line: 4, hint: "…" }],
 };
 
 export const myAlgo: AlgorithmDefinition<MyAlgoInput> = {
@@ -1674,7 +1691,7 @@ whitespace-only lines: they are already non-blankable, so listing them is noise.
 `skipLines` shrinks the pool the level can draw from, and an algorithm with fewer blankable
 lines than the current level drops out of the rotation altogether (section 2.13).
 
-#### `distractors` — 3–5 wrong lines that are wrong *about this solution*
+#### `distractors` — 3–5 wrong lines that are wrong _about this solution_
 
 These become extra tiles in `choice` mode, on top of the decoys the engine already takes
 from your other real lines. A good distractor is a **specific, plausible mistake a learner
@@ -1696,15 +1713,15 @@ Hard constraints:
 
 ```ts
 distractors: [
-  'for j in range(0, n - i):',                 // the off-by-one that breaks the last swap
-  'for j in range(0, n - 1):',                 // forgets the sorted tail shrinks each pass
-  'if arr[j] >= arr[j + 1]:',                  // a comparison that swaps equal elements
-  'if arr[j] < arr[j + 1]:',                   // sorts the wrong way round
-  'arr[j], arr[j + 1] = arr[j], arr[j + 1]',   // a swap that swaps nothing
-]
+  "for j in range(0, n - i):", // the off-by-one that breaks the last swap
+  "for j in range(0, n - 1):", // forgets the sorted tail shrinks each pass
+  "if arr[j] >= arr[j + 1]:", // a comparison that swaps equal elements
+  "if arr[j] < arr[j + 1]:", // sorts the wrong way round
+  "arr[j], arr[j + 1] = arr[j], arr[j + 1]", // a swap that swaps nothing
+];
 ```
 
-Each one is a mistake with a diagnosis attached: rejecting it requires knowing *why* the
+Each one is a mistake with a diagnosis attached: rejecting it requires knowing _why_ the
 bound is `n - i - 1` or why the comparison is strict. `bfsGraph` does the same trick with
 `current = queue.pop()` (DFS instead of BFS) and `visited.add(current)` (marking the wrong
 node, the classic double-enqueue bug).
@@ -1713,29 +1730,29 @@ node, the classic double-enqueue bug).
 
 ```ts
 distractors: [
-  'return None',            // generic filler: rejectable without reading the algorithm
-  'x = 0',                  // not plausible in this function at all
-  'pass',                   // teaches nothing
-  'if arr[j] > arr[j + 1]:',// FATAL: identical to a real line — grades as correct
-  '    n = len(arr)',       // same, only differently indented — trim makes it identical
-]
+  "return None", // generic filler: rejectable without reading the algorithm
+  "x = 0", // not plausible in this function at all
+  "pass", // teaches nothing
+  "if arr[j] > arr[j + 1]:", // FATAL: identical to a real line — grades as correct
+  "    n = len(arr)", // same, only differently indented — trim makes it identical
+];
 ```
 
-Generic filler is worse than no distractors: it inflates the tray, makes the round *look*
+Generic filler is worse than no distractors: it inflates the tray, makes the round _look_
 harder, and can be eliminated by shape alone, which trains nothing.
 
 #### `hints` — say what the line must accomplish, never what it says
 
 `{ line, hint }` pairs, revealed on request behind a lightbulb control in `CodePuzzle`. A
-hint is a nudge toward the *purpose* of the line, phrased so that the learner still has to
+hint is a nudge toward the _purpose_ of the line, phrased so that the learner still has to
 produce the code:
 
 > **Good** (`twoSum`, line 4): `Name the one value that would finish the pair with the
-> current number — pure arithmetic, no lookup yet.`
+current number — pure arithmetic, no lookup yet.`
 > **Good** (`bfsGraph`, line 11): `Claim the neighbour the moment it is discovered, not
-> when it is later processed, or it can enter the frontier twice.`
-> **Bad**: `Write complement = target - num` *(that is the answer, not a hint)*
-> **Bad**: `This line is important` *(no content)*
+when it is later processed, or it can enter the frontier twice.`
+> **Bad**: `Write complement = target - num` _(that is the answer, not a hint)_
+> **Bad**: `This line is important` _(no content)_
 > **Bad**: a hint on a line listed in `skipLines` — the drill never hides it, so the hint
 > can never be shown.
 
@@ -1747,24 +1764,24 @@ each carry 4), one entry per line, non-empty text.
 Add a `describe` block to the **logic** spec (section 4.10) whenever you write `trivia`:
 
 ```ts
-describe('myAlgo trivia metadata', () => {
+describe("myAlgo trivia metadata", () => {
   const meta = myAlgo.trivia;
-  const lines = myAlgo.code.replace(/\s+$/, '').split('\n');
+  const lines = myAlgo.code.replace(/\s+$/, "").split("\n");
 
-  it('points skipLines and hints at real, non-empty lines', () => {
+  it("points skipLines and hints at real, non-empty lines", () => {
     expect(meta).toBeDefined();
     const skipped = meta?.skipLines ?? [];
     const hinted = (meta?.hints ?? []).map((entry) => entry.line);
     [...skipped, ...hinted].forEach((line) => {
       expect(line).toBeGreaterThanOrEqual(1);
       expect(line).toBeLessThanOrEqual(lines.length);
-      expect(lines[line - 1].trim()).not.toBe('');
+      expect(lines[line - 1].trim()).not.toBe("");
     });
     // A hint on a line the drill never hides would never be shown.
     hinted.forEach((line) => expect(skipped).not.toContain(line));
   });
 
-  it('never offers a distractor that is actually a correct line', () => {
+  it("never offers a distractor that is actually a correct line", () => {
     const real = new Set(lines.map((line) => line.trim()));
     const distractors = meta?.distractors ?? [];
     expect(distractors.length).toBeGreaterThanOrEqual(3);
@@ -1823,19 +1840,19 @@ library does not have, the library grows; the feature does not fork. `src/ui/**`
 `src/styles/ui.css` are finished — read them, and route change requests through the UI
 library owner rather than patching styles locally.
 
-| Component | API essentials |
-|---|---|
-| `Button` | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?`, `icon?`, `fullWidth?` + native props; labels never wrap |
-| `IconButton` | Square icon-only button: `icon`, `size?`, `variant?`, `selected?`; **`aria-label` required** |
-| `Badge` | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`; helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger; sentence case text. **These are the app's sanctioned colour** (section 2.5) |
-| `Card` | Surface panel: `title?`, `icon?`, `actions?`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?` |
-| `Input` | Text input with `leadingIcon?` and `onClear?` (clear button when non-empty), sizes |
-| `Slider` | Labeled range: `label?`, `value`, `min`, `max`, `step?`, `onChange(value)`, `formatValue?` |
-| `Segmented` | Single-select toggle group: `options: { value, label, icon? }[]`, `value`, `onChange`, `size?` |
-| `Collapsible` | `title`, `meta?` (right side of header), `defaultOpen?`, optional controlled `open`/`onOpenChange`; header is a real `<button>` |
-| `Drawer` | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `footer?`; backdrop, ESC + backdrop close, `role="dialog"` `aria-modal`, `--z-drawer` |
+| Component       | API essentials                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`        | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?`, `icon?`, `fullWidth?` + native props; labels never wrap                                                                                                                                                                                                                                                                                                                          |
+| `IconButton`    | Square icon-only button: `icon`, `size?`, `variant?`, `selected?`; **`aria-label` required**                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `Badge`         | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`; helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger; sentence case text. **These are the app's sanctioned colour** (section 2.5)                                                                                                                                                                                                                                  |
+| `Card`          | Surface panel: `title?`, `icon?`, `actions?`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `Input`         | Text input with `leadingIcon?` and `onClear?` (clear button when non-empty), sizes                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `Slider`        | Labeled range: `label?`, `value`, `min`, `max`, `step?`, `onChange(value)`, `formatValue?`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `Segmented`     | Single-select toggle group: `options: { value, label, icon? }[]`, `value`, `onChange`, `size?`                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `Collapsible`   | `title`, `meta?` (right side of header), `defaultOpen?`, optional controlled `open`/`onOpenChange`; header is a real `<button>`                                                                                                                                                                                                                                                                                                                                                                                 |
+| `Drawer`        | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `footer?`; backdrop, ESC + backdrop close, `role="dialog"` `aria-modal`, `--z-drawer`                                                                                                                                                                                                                                                                                                                                                                 |
 | `ConfirmDialog` | `isOpen`, `title`, `message: ReactNode`, `confirmLabel?`, `cancelLabel?`, `destructive?`, `onConfirm`, `onCancel`; portalled `role="dialog"` `aria-modal` with `aria-labelledby`/`aria-describedby`, Escape and backdrop click both cancel, confirm button receives focus, `destructive` renders it as `danger`. **Every destructive or irreversible action goes through this** — no `window.confirm`, no one-click data loss (the navbar's workspace-layout reset is the reference use, sections 2.2 and 2.11) |
-| `Kbd` | Small keycap chip for shortcut hints (e.g. `/`) |
+| `Kbd`           | Small keycap chip for shortcut hints (e.g. `/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 Note that `role="dialog"` on `Drawer` and `ConfirmDialog` is load-bearing beyond
 accessibility: `isDialogOpen()` in `keyboardGuards` queries it to stand the global
@@ -1916,7 +1933,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 - **jsdom leaves `isContentEditable` undefined** — that is why `keyboardGuards` also
   does a `[contenteditable]` ancestor lookup. Don't "simplify" it away.
 - **Problem details are EXPANDED by default and the state is PERSISTED** — render specs
-  must assert on `description`/`topicGuide`/constraints/examples *without* clicking
+  must assert on `description`/`topicGuide`/constraints/examples _without_ clicking
   "Details", and any spec that toggles it (or seeds `WORKSPACE_LAYOUT_KEY`) must clear
   `localStorage` afterwards or it leaks a collapsed panel into the next test.
 - **`MainLayout` takes `panels`, not `viewMode`** — there is no `viewMode`,
@@ -1929,15 +1946,15 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 - **An accent-filled primary button is a bug** — primary is `--bg-inset` fill with an
   `--accent` edge (section 2.5).
 - **Do not neutralize difficulty badges, status badges or the knowledge map** — the
-  Round 5 achromatic sweep went too far and R6.3 restored them. Colour in *chrome* is
-  still a bug; colour on *data* is required (section 2.5).
+  Round 5 achromatic sweep went too far and R6.3 restored them. Colour in _chrome_ is
+  still a bug; colour on _data_ is required (section 2.5).
 - **THE CANVAS LAW: `viewBox = boxViewBox(measuredBox)`, `<svg>` at 100%/100%** — never
   a fixed-constant viewBox (dead bands inside the svg) and never an svg sized to the
   content's aspect ratio (`fitBox`, deleted — it moved the same bands into the panel).
   Vertical dead space must be zero; shape-constraint slack goes horizontal and centred
   (section 2.8).
 - **Never make a visualization smaller** — every canvas mechanism reclaims dead space
-  *into* the drawing, and the node-radius floors equal the old fixed radii precisely so a
+  _into_ the drawing, and the node-radius floors equal the old fixed radii precisely so a
   laid-out graph or tree can only grow (section 2.8).
 - **No imposed `minHeight` on a canvas wrapper other than `0`, and no centring around a
   100% svg** — `alignItems: center` or generous padding around the canvas re-creates the
@@ -2014,7 +2031,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
   `readWorkspaceLayout`/`writeWorkspaceLayout`/`clearWorkspaceLayout` functions, or
   `src/trivia/triviaStorage.ts` (section 2.13). Follow that pattern for any new
   persistence: validate on read, best-effort on write, never throw into render.
-- **A trivia `distractor` equal to a real line grades as *correct*** — grading is
+- **A trivia `distractor` equal to a real line grades as _correct_** — grading is
   trim-compared, so the decoy silently becomes a right answer and nothing looks broken.
   Same class of trap: a `hints`/`skipLines` line number that is off by one just never
   fires. Both are why the metadata assertions in section 4.11 exist.
@@ -2037,7 +2054,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
    hex/rgba values and zero ad-hoc rem/px in components; no ad-hoc edits to
    `theme.css`.
 5. **Specs live in `specs/` subdirectories** of the folder they cover.
-6. **Comments explain the non-obvious *why*** — no restating code, no JSDoc
+6. **Comments explain the non-obvious _why_** — no restating code, no JSDoc
    boilerplate, no decorative banners.
 7. **Conventional Commits** — every commit subject starts with an approved tag
    (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, …), imperative, < 70 chars.
@@ -2096,10 +2113,10 @@ Vitest + jsdom (`vite.config.ts` `test` block; setup file `src/test/setup.ts` lo
   `triviaFlow.spec.ts` — an **end-to-end drill over four real registry algorithms** with a
   seeded mulberry32 rng, proving the level climbs `minBlanks → maxBlanks` without skipping a
   rung, every deck entry gets its turn, the loop terminates, and the authored `trivia`
-  metadata of those four stays in range (section 4.11: it covers *only* those four).
+  metadata of those four stays in range (section 4.11: it covers _only_ those four).
 - `src/components/trivia/specs/*.spec.tsx` — one per drill component; unique basenames, so
   plain `.spec.tsx` is correct here. `CodePuzzle.spec.tsx` pins the board contract (blanks
-  become labelled slots, the indent is printed *outside* the graded slot, `--success` /
+  become labelled slots, the indent is printed _outside_ the graded slot, `--success` /
   `--danger` edges only after grading, a reveal labelled "not credited" and locked once
   graded, hints behind a per-line toggle, the drop path falling back to the click path when
   a drag carries no payload). `TileTray.spec.tsx` pins click-then-click selection with drag
@@ -2133,7 +2150,7 @@ itself as progressive code occlusion, with coverage-driven escalation and per-li
 persisted (sections 2.13 and 4.11). **What is still planned is the rest of the study
 material:** flashcard-style recall over `topicGuide.keyTerms`, quiz questions generated from
 `topicGuide.sections`, `complexityAnalysis` and `timeComplexity`/`spaceComplexity`, recall
-prompts from per-step `explanation.what`/`why`, and true spaced-repetition *scheduling*
+prompts from per-step `explanation.what`/`why`, and true spaced-repetition _scheduling_
 across sessions (the drill schedules by coverage and miss weight, not by clock time).
 
 What that means for anything you write now — and it is the same discipline the drill already

@@ -1,0 +1,258 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/specs/quickSort.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9378, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9378, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 553, "endOffset": 3252, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 620, "endOffset": 1020, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1140, "endOffset": 2159, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1370, "endOffset": 1445, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1551, "endOffset": 1672, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1636, "endOffset": 1664, "count": 35 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1945, "endOffset": 1961, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2077, "endOffset": 2153, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2227, "endOffset": 2547, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2512, "endOffset": 2526, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2606, "endOffset": 2902, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2979, "endOffset": 3248, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3205, "endOffset": 3219, "count": 4 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/quickSort/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1855, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1855, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 441, "endOffset": 494, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 771, "endOffset": 831, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1089, "endOffset": 1136, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1235, "endOffset": 1280, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/quickSort/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2015, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2015, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 809, "endOffset": 840, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/quickSort/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 21696, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 21696, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateQuickSortSteps",
+          "ranges": [
+            { "startOffset": 216, "endOffset": 6767, "count": 4 },
+            { "startOffset": 1182, "endOffset": 1424, "count": 2 },
+            { "startOffset": 1201, "endOffset": 1237, "count": 1 },
+            { "startOffset": 1424, "endOffset": 6401, "count": 2 },
+            { "startOffset": 6401, "endOffset": 6489, "count": 11 },
+            { "startOffset": 6489, "endOffset": 6766, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 306, "endOffset": 385, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 430, "endOffset": 836, "count": 130 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 651, "endOffset": 749, "count": 737 },
+            { "startOffset": 711, "endOffset": 729, "count": 124 },
+            { "startOffset": 730, "endOffset": 738, "count": 613 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "helper",
+          "ranges": [
+            { "startOffset": 1442, "endOffset": 6349, "count": 18 },
+            { "startOffset": 1809, "endOffset": 1928, "count": 8 },
+            { "startOffset": 1929, "endOffset": 2097, "count": 10 },
+            { "startOffset": 2017, "endOffset": 2021, "count": 3 },
+            { "startOffset": 2022, "endOffset": 2027, "count": 7 },
+            { "startOffset": 2161, "endOffset": 2316, "count": 10 },
+            { "startOffset": 2193, "endOffset": 2205, "count": 9 },
+            { "startOffset": 2206, "endOffset": 2217, "count": 7 },
+            { "startOffset": 2218, "endOffset": 2233, "count": 7 },
+            { "startOffset": 2235, "endOffset": 2273, "count": 3 },
+            { "startOffset": 2316, "endOffset": 3206, "count": 8 },
+            { "startOffset": 3272, "endOffset": 3308, "count": 5 },
+            { "startOffset": 3492, "endOffset": 3617, "count": 6 },
+            { "startOffset": 3618, "endOffset": 3737, "count": 12 },
+            { "startOffset": 3834, "endOffset": 4664, "count": 6 },
+            { "startOffset": 4664, "endOffset": 4725, "count": 12 },
+            { "startOffset": 4745, "endOffset": 4753, "count": 8 },
+            { "startOffset": 4755, "endOffset": 4792, "count": 8 },
+            { "startOffset": 4842, "endOffset": 5491, "count": 8 },
+            { "startOffset": 5491, "endOffset": 5592, "count": 6 },
+            { "startOffset": 5592, "endOffset": 6348, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6879, "endOffset": 6917, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/quickSort/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 28363, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 28363, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11209, "endOffset": 11234, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

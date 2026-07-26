@@ -1,0 +1,212 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/specs/useCodePuzzleDragDrop.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13090, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 13090, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createMockDragEvent",
+          "ranges": [{ "startOffset": 656, "endOffset": 1015, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 867, "endOffset": 911, "count": 3 },
+            { "startOffset": 895, "endOffset": 906, "count": 2 },
+            { "startOffset": 907, "endOffset": 911, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1084, "endOffset": 4488, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1168, "endOffset": 2024, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2100, "endOffset": 2784, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2890, "endOffset": 4484, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "toJSON",
+          "ranges": [{ "startOffset": 3289, "endOffset": 3304, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "toJSON",
+          "ranges": [{ "startOffset": 3597, "endOffset": 3612, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/hooks/useCodePuzzleDragDrop.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "useCodePuzzleDragDrop",
+          "ranges": [{ "startOffset": 321, "endOffset": 1863, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "allowRowDrop",
+          "ranges": [
+            { "startOffset": 439, "endOffset": 507, "count": 2 },
+            { "startOffset": 468, "endOffset": 506, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleRowDrop",
+          "ranges": [{ "startOffset": 533, "endOffset": 874, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 543, "endOffset": 874, "count": 2 },
+            { "startOffset": 629, "endOffset": 636, "count": 0 },
+            { "startOffset": 758, "endOffset": 762, "count": 0 },
+            { "startOffset": 791, "endOffset": 873, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "nearestBlankLine",
+          "ranges": [{ "startOffset": 903, "endOffset": 1350, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1026, "endOffset": 1323, "count": 2 },
+            { "startOffset": 1141, "endOffset": 1161, "count": 0 },
+            { "startOffset": 1186, "endOffset": 1209, "count": 1 },
+            { "startOffset": 1210, "endOffset": 1213, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleWellDrop",
+          "ranges": [
+            { "startOffset": 1377, "endOffset": 1788, "count": 2 },
+            { "startOffset": 1434, "endOffset": 1441, "count": 0 },
+            { "startOffset": 1529, "endOffset": 1657, "count": 1 },
+            { "startOffset": 1658, "endOffset": 1662, "count": 0 },
+            { "startOffset": 1691, "endOffset": 1751, "count": 1 },
+            { "startOffset": 1751, "endOffset": 1787, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1973, "endOffset": 2010, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/codePuzzleTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 314, "endOffset": 339, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1072, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1358, "endOffset": 1380, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1629, "endOffset": 1651, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1809, "endOffset": 1835, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2085, "endOffset": 2111, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2343, "endOffset": 2369, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2564, "endOffset": 2593, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

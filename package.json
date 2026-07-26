@@ -1,17 +1,19 @@
 {
   "name": "dsa-visualizer",
-  "private": true,
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "generate-routes": "tsr generate",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "oxlint --threads 8 --deny-warnings",
+    "format": "oxfmt --write --threads 8",
+    "format:check": "oxfmt --check --threads 8",
     "test": "vitest run --maxConcurrency 8",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "check": "bun run typecheck && bun run lint && bun run test && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run test && bun run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -31,13 +33,11 @@
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "jsdom": "^24.0.0",
-    "typescript": "^5.3.3",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "typescript": "^7.0.2",
     "vite": "^5.1.4",
     "vitest": "^1.3.1"
   }

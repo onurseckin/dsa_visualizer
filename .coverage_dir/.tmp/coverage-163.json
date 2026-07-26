@@ -1,0 +1,134 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/specs/keyboardGuards.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 7607, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 7607, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "mount",
+          "ranges": [{ "startOffset": 512, "endOffset": 684, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 718, "endOffset": 779, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 752, "endOffset": 775, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 831, "endOffset": 2345, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 921, "endOffset": 1527, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1613, "endOffset": 1818, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1922, "endOffset": 2341, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2395, "endOffset": 2949, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2469, "endOffset": 2564, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2672, "endOffset": 2945, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/keyboardGuards.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4194, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4194, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isEditableTarget",
+          "ranges": [{ "startOffset": 210, "endOffset": 335, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isTypingTarget",
+          "ranges": [
+            { "startOffset": 360, "endOffset": 555, "count": 10 },
+            { "startOffset": 414, "endOffset": 427, "count": 2 },
+            { "startOffset": 427, "endOffset": 483, "count": 8 },
+            { "startOffset": 483, "endOffset": 504, "count": 6 },
+            { "startOffset": 505, "endOffset": 524, "count": 5 },
+            { "startOffset": 525, "endOffset": 552, "count": 4 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 659, "endOffset": 689, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isDialogOpen",
+          "ranges": [{ "startOffset": 714, "endOffset": 805, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 907, "endOffset": 935, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/specs/twoPointers.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9443, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9443, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 555, "endOffset": 3521, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 632, "endOffset": 1139, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1234, "endOffset": 1816, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1881, "endOffset": 2108, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2189, "endOffset": 2551, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2629, "endOffset": 2981, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3073, "endOffset": 3517, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3215, "endOffset": 3270, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/two_pointers/twoPointers.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 39355, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 39355, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 697, "endOffset": 730, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 927, "endOffset": 969, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "generateTwoPointersSteps",
+          "ranges": [
+            { "startOffset": 1006, "endOffset": 4620, "count": 5 },
+            { "startOffset": 2078, "endOffset": 2326, "count": 1 },
+            { "startOffset": 2326, "endOffset": 2885, "count": 4 },
+            { "startOffset": 2885, "endOffset": 4335, "count": 11 },
+            { "startOffset": 3324, "endOffset": 3340, "count": 2 },
+            { "startOffset": 3342, "endOffset": 3874, "count": 2 },
+            { "startOffset": 3819, "endOffset": 3868, "count": 1 },
+            { "startOffset": 3906, "endOffset": 4331, "count": 3 },
+            { "startOffset": 4335, "endOffset": 4619, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1095, "endOffset": 1174, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [
+            { "startOffset": 1195, "endOffset": 1707, "count": 23 },
+            { "startOffset": 1615, "endOffset": 1619, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1409, "endOffset": 1507, "count": 71 },
+            { "startOffset": 1469, "endOffset": 1487, "count": 27 },
+            { "startOffset": 1488, "endOffset": 1496, "count": 44 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "syncElementStates",
+          "ranges": [
+            { "startOffset": 2393, "endOffset": 2841, "count": 15 },
+            { "startOffset": 2475, "endOffset": 2837, "count": 53 },
+            { "startOffset": 2529, "endOffset": 2547, "count": 15 },
+            { "startOffset": 2578, "endOffset": 2597, "count": 15 },
+            { "startOffset": 2625, "endOffset": 2645, "count": 48 },
+            { "startOffset": 2647, "endOffset": 2715, "count": 30 },
+            { "startOffset": 2685, "endOffset": 2695, "count": 6 },
+            { "startOffset": 2696, "endOffset": 2706, "count": 24 },
+            { "startOffset": 2715, "endOffset": 2769, "count": 23 },
+            { "startOffset": 2815, "endOffset": 2821, "count": 24 },
+            { "startOffset": 2822, "endOffset": 2830, "count": 29 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4734, "endOffset": 4774, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14369, "endOffset": 14396, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}
