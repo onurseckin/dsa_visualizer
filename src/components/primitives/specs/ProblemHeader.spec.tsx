@@ -32,6 +32,13 @@ const baseProps: ProblemHeaderProps = {
 const renderHeader = (overrides: Partial<ProblemHeaderProps> = {}) =>
   render(<ProblemHeader {...baseProps} {...overrides} />);
 
+/* R5.1: the shell is achromatic and the accent marks selection, never decoration,
+   so no detail block paints its text with the accent token. */
+const accentTintedText = (root: ParentNode): Element[] =>
+  Array.from(root.querySelectorAll('[style]')).filter((el) =>
+    /(?:^|;\s*)color:\s*var\(--accent/.test(el.getAttribute('style') ?? ''),
+  );
+
 describe('ProblemHeader', () => {
   it('shows the title and badges but hides the lesson when collapsed', () => {
     renderHeader();
@@ -74,6 +81,47 @@ describe('ProblemHeader', () => {
       'aria-expanded',
       'true',
     );
+  });
+
+  it('constrains neither the width nor the height of any details block', () => {
+    renderHeader({ expanded: true });
+
+    const details = screen.getByTestId('problem-details');
+    const blocks = [details, ...details.querySelectorAll<HTMLElement>('*')];
+
+    for (const block of blocks) {
+      expect(block.style.maxWidth).toBe('');
+      expect(block.style.width).toBe('');
+      expect(block.style.height).toBe('');
+      expect(block.style.maxHeight).toBe('');
+      expect(block.style.overflow).toBe('');
+      expect(block.style.overflowY).toBe('');
+    }
+  });
+
+  it('separates the details with a visible divider and keeps their text neutral', () => {
+    renderHeader({ expanded: true });
+
+    const details = screen.getByTestId('problem-details');
+    // Surface and card sit ~1.09x apart, so only a real border draws the seam.
+    expect(details.style.borderTop).toBe('1px solid var(--border-default)');
+
+    const terms = Array.from(details.querySelectorAll<HTMLElement>('dt'));
+    expect(terms.length).toBe(2);
+    terms.forEach((term) => expect(term.style.color).toBe('var(--text-primary)'));
+
+    expect(accentTintedText(details)).toEqual([]);
+  });
+
+  it('lays key terms and examples out as responsive multi-column grids', () => {
+    renderHeader({ expanded: true });
+
+    for (const testId of ['details-key-terms', 'details-examples']) {
+      const grid = screen.getByTestId(testId);
+      expect(grid.style.display).toBe('grid');
+      expect(grid.style.gridTemplateColumns).toContain('auto-fit');
+      expect(grid.style.gridTemplateColumns).toContain('minmax');
+    }
   });
 
   it('renders key terms as a real definition list', () => {

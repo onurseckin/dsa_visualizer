@@ -31,9 +31,17 @@ const humanizeCategory = (category: string): string => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
-/* Prose is capped to a readable measure; without it long lesson paragraphs run the
-   full workspace width and become hard to track line-to-line. */
-const READABLE_MEASURE = '72ch';
+/* Grid track floor for the multi-column blocks. The token scale covers spacing and
+   control heights, not column measures, so this lives here. `min(100%, …)` keeps a
+   single column from overflowing a container narrower than the floor. */
+const COLUMN_FLOOR = 'minmax(min(100%, 22rem), 1fr)';
+
+const responsiveGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: `repeat(auto-fit, ${COLUMN_FLOOR})`,
+  gap: 'var(--space-3) var(--space-5)',
+  alignItems: 'start',
+};
 
 const labelStyle: React.CSSProperties = {
   fontSize: 'var(--text-xs)',
@@ -44,20 +52,26 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 'var(--space-1)',
 };
 
+/* Full container width per R4.3 — no readable-measure cap. Long lines stay legible
+   through the generous line-height instead. */
 const bodyStyle: React.CSSProperties = {
   margin: 0,
-  maxWidth: READABLE_MEASURE,
   fontSize: 'var(--text-sm)',
-  lineHeight: 1.65,
+  lineHeight: 1.6,
   color: 'var(--text-secondary)',
 };
+
+/* ui.css defaults the card and its wells to --border-subtle, which dissolves into
+   the near-black surfaces; every edge in this strip is promoted one step so the
+   panel and its example wells actually read as containers (DESIGN.md R5.1). */
+const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
 const monoListStyle: React.CSSProperties = {
   margin: 0,
   paddingLeft: 'var(--space-4)',
   fontFamily: 'var(--font-code)',
   fontSize: 'var(--text-xs)',
-  lineHeight: 1.7,
+  lineHeight: 1.6,
   color: 'var(--text-secondary)',
 };
 
@@ -76,7 +90,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   const keyTerms = topicGuide.keyTerms ?? [];
 
   return (
-    <Card padding="sm">
+    <Card padding="sm" style={PANEL_BORDER}>
       <div
         style={{
           display: 'flex',
@@ -122,21 +136,22 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
 
       {expanded && (
         <div
+          data-testid="problem-details"
           style={{
             marginTop: 'var(--space-3)',
             paddingTop: 'var(--space-3)',
-            borderTop: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--border-default)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--space-5)',
           }}
         >
           <p
+            data-testid="details-overview"
             style={{
               margin: 0,
-              maxWidth: READABLE_MEASURE,
               fontSize: 'var(--text-md)',
-              lineHeight: 1.65,
+              lineHeight: 1.6,
               color: 'var(--text-secondary)',
             }}
           >
@@ -176,23 +191,17 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
             {keyTerms.length > 0 && (
               <section>
                 <div style={labelStyle}>Key terms</div>
-                <dl
-                  style={{
-                    margin: 0,
-                    maxWidth: READABLE_MEASURE,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-2)',
-                  }}
-                >
+                <dl data-testid="details-key-terms" style={responsiveGridStyle}>
                   {keyTerms.map((entry, idx) => (
                     <div key={`key-term-${idx}`}>
+                      {/* Mono + weight already separates the term from its
+                          definition; the accent stays reserved for selection. */}
                       <dt
                         style={{
                           fontFamily: 'var(--font-code)',
                           fontSize: 'var(--text-xs)',
                           fontWeight: 600,
-                          color: 'var(--accent)',
+                          color: 'var(--text-primary)',
                         }}
                       >
                         {entry.term}
@@ -227,14 +236,14 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
             {examples && examples.length > 0 && (
               <section>
                 <div style={labelStyle}>Examples</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div data-testid="details-examples" style={responsiveGridStyle}>
                   {examples.map((example, idx) => (
                     <div
                       key={`example-${idx}`}
                       style={{
                         padding: 'var(--space-2) var(--space-3)',
                         background: 'var(--bg-inset)',
-                        border: '1px solid var(--border-subtle)',
+                        border: '1px solid var(--border-default)',
                         borderRadius: 'var(--radius-sm)',
                         fontFamily: 'var(--font-code)',
                         fontSize: 'var(--text-xs)',

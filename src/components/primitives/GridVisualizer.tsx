@@ -1,5 +1,6 @@
 import React from 'react';
 import { GridCellNode, ElementState } from '../../types/dsa';
+import { Size, clamp, fitBox, fitSlots, useCanvasBox, viewBoxAttr } from './vizGeometry';
 
 export interface GridVisualizerProps {
   grid: GridCellNode[][];
@@ -14,10 +15,15 @@ interface CellAppearance {
   border: string;
   color: string;
   symbol: string;
-  /* Touched cells get a heavier outline (never a glow) so untouched navy cells
+  /* Touched cells get a heavier outline (never a glow) so untouched carbon cells
      stay visibly inactive next to active ones. */
   strokeWidth: number;
 }
+
+const GAP = 4;
+const PAD = 4;
+const MIN_CELL = 8;
+const MAX_CELL = 160;
 
 /* ElementState names map 1:1 onto the --state-* token names in theme.css.
    Boolean flags (start/end/wall/path/visited) take priority over the state field. */
@@ -86,16 +92,34 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
   onCellClick,
   title,
 }) => {
-  if (!grid || grid.length === 0) return null;
-
   const rows = grid.length;
-  const cols = grid[0].length;
-  const gap = 4;
-  const padding = 8;
-  const viewBoxWidth = cols * cellSize + (cols - 1) * gap + padding * 2;
-  const viewBoxHeight = rows * cellSize + (rows - 1) * gap + padding * 2;
+  const cols = grid.reduce((widest, row) => Math.max(widest, row.length), 0);
+
+  /* `cellSize` is the ideal cell, so an unmeasured canvas (jsdom, first paint)
+     reproduces the layout the old fixed viewBox produced; a measured canvas grows
+     the cells past it instead. */
+  const fallbackBox: Size = {
+    width: cols * cellSize + Math.max(cols - 1, 0) * GAP + PAD * 2,
+    height: rows * cellSize + Math.max(rows - 1, 0) * GAP + PAD * 2,
+  };
+  const { ref, box } = useCanvasBox(fallbackBox);
+
+  /* Square cells cannot match an arbitrary canvas ratio, so the cell grows until
+     it fills the limiting axis and the inset well is then sized to the grid's own
+     ratio — the drawing is as large as geometry allows with no dead band inside. */
+  const colFit = fitSlots(cols, box.width - PAD * 2, GAP, MIN_CELL, MAX_CELL);
+  const rowFit = fitSlots(rows, box.height - PAD * 2, GAP, MIN_CELL, MAX_CELL);
+  const cell = Math.min(colFit.size, rowFit.size);
+
+  const contentWidth = cols * cell + Math.max(cols - 1, 0) * GAP + PAD * 2;
+  const contentHeight = rows * cell + Math.max(rows - 1, 0) * GAP + PAD * 2;
+  const svgSize = fitBox({ width: contentWidth, height: contentHeight }, box);
+  const font = clamp(cell * 0.34, 7, 20);
+
+  if (rows === 0 || cols === 0) return null;
 
   return (
+    // No height of its own: the canvas takes exactly the space the stage hands it.
     <div
       style={{
         display: 'flex',
@@ -104,8 +128,8 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
-        minHeight: 'var(--panel-min-h)',
-        padding: 0,
+        minWidth: 0,
+        minHeight: 0,
       }}
     >
       {title && (
@@ -114,78 +138,90 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
             fontSize: 'var(--text-xs)',
             fontWeight: 600,
             color: 'var(--text-muted)',
-            marginBottom: 'var(--space-2)',
+            marginBottom: 'var(--space-1)',
           }}
         >
           {title}
         </div>
       )}
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-        preserveAspectRatio="xMidYMid meet"
+      <div
+        ref={ref}
         style={{
+          flex: '1 1 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           width: '100%',
-          height: '100%',
-          maxHeight: '100%',
-          background: 'var(--bg-inset)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-default)',
+          minWidth: 0,
+          minHeight: 0,
+          overflow: 'hidden',
         }}
       >
-        {grid.map((row, rIdx) =>
-          row.map((cell, cIdx) => {
-            const appearance = getCellAppearance(cell);
-            const distLabel =
-              showDistance && cell.distance !== undefined && cell.distance !== Infinity
-                ? String(cell.distance)
-                : '';
-            const cellText = appearance.symbol ? appearance.symbol : distLabel;
+        <svg
+          width={Math.round(svgSize.width)}
+          height={Math.round(svgSize.height)}
+          viewBox={viewBoxAttr({ minX: 0, minY: 0, width: contentWidth, height: contentHeight })}
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            display: 'block',
+            background: 'var(--bg-inset)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-default)',
+          }}
+        >
+          {grid.map((row, rIdx) =>
+            row.map((gridCell, cIdx) => {
+              const appearance = getCellAppearance(gridCell);
+              const distLabel =
+                showDistance && gridCell.distance !== undefined && gridCell.distance !== Infinity
+                  ? String(gridCell.distance)
+                  : '';
+              const cellText = appearance.symbol ? appearance.symbol : distLabel;
 
-            const x = padding + cIdx * (cellSize + gap);
-            const y = padding + rIdx * (cellSize + gap);
+              const x = PAD + cIdx * (cell + GAP);
+              const y = PAD + rIdx * (cell + GAP);
 
-            return (
-              <g
-                key={`grid-cell-${rIdx}-${cIdx}`}
-                onClick={() => onCellClick?.(rIdx, cIdx)}
-                style={{ cursor: onCellClick ? 'pointer' : 'default' }}
-              >
-                <title>
-                  {`Row ${rIdx}, Col ${cIdx}${
-                    cell.distance !== undefined ? ` | Dist: ${cell.distance}` : ''
-                  }`}
-                </title>
-                <rect
-                  x={x}
-                  y={y}
-                  width={cellSize}
-                  height={cellSize}
-                  rx={4}
-                  fill={appearance.bg}
-                  stroke={appearance.border}
-                  strokeWidth={appearance.strokeWidth}
-                />
-                {cellText && (
-                  <text
-                    x={x + cellSize / 2}
-                    y={y + cellSize / 2}
-                    dominantBaseline="central"
-                    textAnchor="middle"
-                    fill={appearance.color}
-                    fontSize="12"
-                    fontFamily="var(--font-code)"
-                    fontWeight="600"
-                  >
-                    {cellText}
-                  </text>
-                )}
-              </g>
-            );
-          })
-        )}
-      </svg>
+              return (
+                <g
+                  key={`grid-cell-${rIdx}-${cIdx}`}
+                  onClick={() => onCellClick?.(rIdx, cIdx)}
+                  style={{ cursor: onCellClick ? 'pointer' : 'default' }}
+                >
+                  <title>
+                    {`Row ${rIdx}, Col ${cIdx}${
+                      gridCell.distance !== undefined ? ` | Dist: ${gridCell.distance}` : ''
+                    }`}
+                  </title>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={cell}
+                    height={cell}
+                    rx={4}
+                    fill={appearance.bg}
+                    stroke={appearance.border}
+                    strokeWidth={appearance.strokeWidth}
+                  />
+                  {cellText && (
+                    <text
+                      x={x + cell / 2}
+                      y={y + cell / 2}
+                      dominantBaseline="central"
+                      textAnchor="middle"
+                      fill={appearance.color}
+                      fontSize={font}
+                      fontFamily="var(--font-code)"
+                      fontWeight="600"
+                    >
+                      {cellText}
+                    </text>
+                  )}
+                </g>
+              );
+            })
+          )}
+        </svg>
+      </div>
     </div>
   );
 };

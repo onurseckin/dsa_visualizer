@@ -6,6 +6,7 @@ import {
   vizSlotBg,
   vizSlotColor,
 } from './vizPalette';
+import { Point, clamp, fitBox, tightViewBox, useCanvasBox, viewBoxAttr } from './vizGeometry';
 
 export interface GraphVisualizerProps {
   nodes: GraphNodeItem[];
@@ -25,8 +26,12 @@ interface NodePosition {
 const stateColor = (state: ElementState): string => `var(--state-${state})`;
 const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
 
-const NODE_RADIUS = 28;
+/* Radius floor equals the old fixed radius, so a laid-out graph can only grow. */
+const MIN_NODE_R = 28;
+const MAX_NODE_R = 44;
 const GROUP_RING_GAP = 5;
+/* The ring is the outermost ink; 3 more units keep the stroke off the viewBox edge. */
+const EDGE_MARGIN = 3;
 const SHAPE_TRANSITION =
   'fill var(--transition-normal), stroke var(--transition-normal), stroke-width var(--transition-normal), opacity var(--transition-normal)';
 const MOVE_TRANSITION = `transform var(--transition-normal), ${SHAPE_TRANSITION}`;
@@ -69,11 +74,30 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   isDirected = false,
   title,
 }) => {
-  // Auto layout nodes that don't have explicit x, y
+  /* The width/height props are the fallback box: an unmeasured canvas (jsdom,
+     first paint) keeps the layout the old fixed viewBox produced. */
+  const { ref, box } = useCanvasBox({ width, height });
+  /* Markers are shared by id, so two graphs on one page would otherwise inherit
+     each other's arrowhead offset once that offset became radius-dependent. */
+  const markerScope = React.useId().replace(/:/g, '');
+
+  const needsAutoLayout = nodes.some((node) => node.x === undefined || node.y === undefined);
+
+  /* Only an auto-laid-out graph may resize its nodes: authored coordinates carry
+     real geometry (hulls, polygons) that a recomputed radius would misrepresent. */
+  const ringRadius = Math.max(Math.min(box.width, box.height) / 2 - MIN_NODE_R - 6, MIN_NODE_R);
+  const angularSpacing =
+    nodes.length > 1 ? (2 * Math.PI * ringRadius) / nodes.length : ringRadius;
+  const nodeRadius = needsAutoLayout
+    ? clamp(angularSpacing * 0.42, MIN_NODE_R, MAX_NODE_R)
+    : MIN_NODE_R;
+  const layoutRadius = needsAutoLayout
+    ? Math.max(Math.min(box.width, box.height) / 2 - nodeRadius - 6, nodeRadius)
+    : ringRadius;
+
   const nodeMap = new Map<string, NodePosition & GraphNodeItem>();
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const radius = Math.min(width, height) * 0.42;
+  const centerX = box.width / 2;
+  const centerY = box.height / 2;
 
   nodes.forEach((node, index) => {
     let px = node.x;
@@ -81,8 +105,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
 
     if (px === undefined || py === undefined) {
       const angle = (2 * Math.PI * index) / Math.max(nodes.length, 1) - Math.PI / 2;
-      px = centerX + radius * Math.cos(angle);
-      py = centerY + radius * Math.sin(angle);
+      px = centerX + layoutRadius * Math.cos(angle);
+      py = centerY + layoutRadius * Math.sin(angle);
     }
 
     nodeMap.set(node.id, {
@@ -120,24 +144,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return from !== undefined && from === to ? from : undefined;
   };
 
-  // Bounding box calculation for dynamic viewBox scaling
-  let minX = 0;
-  let minY = 0;
-  let maxX = width;
-  let maxY = height;
+  /* One uniform padding around the real node bounds — no fixed ratio, so the
+     viewBox never contains a band the drawing does not use. */
+  const points: Point[] = positioned.map((node) => ({ x: node.x, y: node.y }));
+  const viewBox = tightViewBox(points, nodeRadius + GROUP_RING_GAP + EDGE_MARGIN, nodeRadius * 2);
+  const svgSize = fitBox({ width: viewBox.width, height: viewBox.height }, box);
 
-  if (positioned.length > 0) {
-    const xs = positioned.map((n) => n.x);
-    const ys = positioned.map((n) => n.y);
-    const padding = NODE_RADIUS + GROUP_RING_GAP + 14;
-
-    minX = Math.min(...xs) - padding;
-    minY = Math.min(...ys) - padding;
-    maxX = Math.max(...xs) + padding;
-    maxY = Math.max(...ys) + padding;
-  }
-  const viewBoxWidth = Math.max(maxX - minX, 120);
-  const viewBoxHeight = Math.max(maxY - minY, 120);
+  const labelFont = clamp(nodeRadius * 0.55, 9, 22);
+  const weightFont = clamp(nodeRadius * 0.44, 8, 16);
+  const weightW = weightFont * 2.4;
+  const weightH = weightFont * 1.7;
 
   const groupSlots = Array.from(
     new Set(
@@ -172,18 +188,17 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   }
 
   return (
+    // No height of its own: the canvas takes exactly the space the stage hands it.
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'stretch',
+        alignItems: 'center',
         width: '100%',
         height: '100%',
-        minHeight: '300px',
+        minHeight: 0,
         minWidth: 0,
-        padding: 0,
-        gap: 'var(--space-2)',
       }}
     >
       {title && (
@@ -192,190 +207,199 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             fontSize: 'var(--text-xs)',
             fontWeight: 600,
             color: 'var(--text-muted)',
-            textAlign: 'center',
+            marginBottom: 'var(--space-1)',
           }}
         >
           {title}
         </div>
       )}
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
-        preserveAspectRatio="xMidYMid meet"
+      <div
+        ref={ref}
         style={{
           flex: '1 1 auto',
-          display: 'block',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           width: '100%',
-          height: '100%',
+          minWidth: 0,
           minHeight: 0,
-          background: 'var(--bg-inset)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          overflow: 'visible',
+          overflow: 'hidden',
         }}
       >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX={NODE_RADIUS + 10}
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="var(--border-default)" />
-          </marker>
-          <marker
-            id="arrowhead-traversed"
-            markerWidth="10"
-            markerHeight="7"
-            refX={NODE_RADIUS + 10}
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="var(--state-active)" />
-          </marker>
-          <marker
-            id="arrowhead-path"
-            markerWidth="11"
-            markerHeight="8"
-            refX={NODE_RADIUS + 9}
-            refY="4"
-            orient="auto"
-          >
-            <polygon points="0 0, 11 4, 0 8" fill="var(--state-path)" />
-          </marker>
-        </defs>
-
-        {/* Render Edges */}
-        {edges.map((edge, idx) => {
-          const fromNode = nodeMap.get(edge.from);
-          const toNode = nodeMap.get(edge.to);
-
-          if (!fromNode || !toNode) return null;
-
-          const edgeGroup = edgeGroupOf(edge);
-          const restColor =
-            edgeGroup !== undefined ? vizSlotColor(edgeGroup) : 'var(--border-default)';
-
-          const strokeColor = edge.isPath
-            ? 'var(--state-path)'
-            : edge.isTraversed
-            ? 'var(--state-active)'
-            : restColor;
-
-          const strokeWidth = edge.isPath ? 4 : edge.isTraversed ? 2.5 : 1.6;
-          const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : '5 5';
-          const strokeOpacity = edge.isTraversed || edge.isPath ? 1 : 0.75;
-          const markerId = edge.isPath
-            ? 'url(#arrowhead-path)'
-            : edge.isTraversed
-            ? 'url(#arrowhead-traversed)'
-            : 'url(#arrowhead)';
-
-          const midX = (fromNode.x + toNode.x) / 2;
-          const midY = (fromNode.y + toNode.y) / 2;
-
-          return (
-            <g key={`edge-${edge.from}-${edge.to}-${idx}`}>
-              <line
-                x1={fromNode.x}
-                y1={fromNode.y}
-                x2={toNode.x}
-                y2={toNode.y}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
-                strokeDasharray={strokeDasharray}
-                strokeOpacity={strokeOpacity}
-                strokeLinecap="round"
-                markerEnd={isDirected ? markerId : undefined}
-                style={{ transition: SHAPE_TRANSITION }}
-              />
-              {edge.weight !== undefined && (
-                /* Halo rect behind the weight keeps it readable over the edge line. */
-                <g transform={`translate(${midX}, ${midY})`} style={{ transition: MOVE_TRANSITION }}>
-                  <rect
-                    x="-15"
-                    y="-11"
-                    width="30"
-                    height="22"
-                    rx="6"
-                    fill="var(--bg-surface)"
-                    stroke={edge.isPath || edge.isTraversed ? strokeColor : 'var(--border-default)'}
-                    strokeWidth="1"
-                    style={{ transition: SHAPE_TRANSITION }}
-                  />
-                  <text
-                    x="0"
-                    y="0"
-                    dominantBaseline="central"
-                    textAnchor="middle"
-                    fill={edge.isPath || edge.isTraversed ? strokeColor : 'var(--text-secondary)'}
-                    fontSize="12"
-                    fontFamily="var(--font-code)"
-                    fontWeight="600"
-                    style={{ transition: SHAPE_TRANSITION }}
-                  >
-                    {edge.weight}
-                  </text>
-                </g>
-              )}
-            </g>
-          );
-        })}
-
-        {/* Render Nodes */}
-        {positioned.map((node) => {
-          const slot = groupOf(node.id);
-          const hasGroup = slot !== undefined;
-          const inSemanticState = node.state !== 'default';
-
-          /* Algorithm state outranks identity: a node the algorithm just touched
-             keeps its --state-* skin and demotes its group to an outer ring. */
-          const fill = inSemanticState || !hasGroup ? stateBg(node.state) : vizSlotBg(slot);
-          const stroke = inSemanticState || !hasGroup ? stateColor(node.state) : vizSlotColor(slot);
-          const showGroupRing = hasGroup && inSemanticState;
-
-          return (
-            <g
-              key={`node-${node.id}`}
-              transform={`translate(${node.x}, ${node.y})`}
-              style={{ transition: MOVE_TRANSITION }}
+        <svg
+          width={Math.round(svgSize.width)}
+          height={Math.round(svgSize.height)}
+          viewBox={viewBoxAttr(viewBox)}
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            display: 'block',
+            background: 'var(--bg-inset)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-default)',
+          }}
+        >
+          <defs>
+            <marker
+              id={`arrowhead-${markerScope}`}
+              markerWidth="10"
+              markerHeight="7"
+              refX={nodeRadius + 10}
+              refY="3.5"
+              orient="auto"
             >
-              {showGroupRing && (
-                <circle
-                  r={NODE_RADIUS + GROUP_RING_GAP}
-                  fill="none"
-                  stroke={vizSlotColor(slot)}
-                  strokeWidth="2.5"
-                  strokeOpacity="0.9"
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--border-default)" />
+            </marker>
+            <marker
+              id={`arrowhead-traversed-${markerScope}`}
+              markerWidth="10"
+              markerHeight="7"
+              refX={nodeRadius + 10}
+              refY="3.5"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--state-active)" />
+            </marker>
+            <marker
+              id={`arrowhead-path-${markerScope}`}
+              markerWidth="11"
+              markerHeight="8"
+              refX={nodeRadius + 9}
+              refY="4"
+              orient="auto"
+            >
+              <polygon points="0 0, 11 4, 0 8" fill="var(--state-path)" />
+            </marker>
+          </defs>
+
+          {/* Render Edges */}
+          {edges.map((edge, idx) => {
+            const fromNode = nodeMap.get(edge.from);
+            const toNode = nodeMap.get(edge.to);
+
+            if (!fromNode || !toNode) return null;
+
+            const edgeGroup = edgeGroupOf(edge);
+            const restColor =
+              edgeGroup !== undefined ? vizSlotColor(edgeGroup) : 'var(--border-default)';
+
+            const strokeColor = edge.isPath
+              ? 'var(--state-path)'
+              : edge.isTraversed
+              ? 'var(--state-active)'
+              : restColor;
+
+            const strokeWidth = edge.isPath ? 4 : edge.isTraversed ? 2.5 : 1.6;
+            const strokeDasharray = edge.isTraversed || edge.isPath ? undefined : '5 5';
+            const strokeOpacity = edge.isTraversed || edge.isPath ? 1 : 0.75;
+            const markerId = edge.isPath
+              ? `url(#arrowhead-path-${markerScope})`
+              : edge.isTraversed
+              ? `url(#arrowhead-traversed-${markerScope})`
+              : `url(#arrowhead-${markerScope})`;
+
+            const midX = (fromNode.x + toNode.x) / 2;
+            const midY = (fromNode.y + toNode.y) / 2;
+
+            return (
+              <g key={`edge-${edge.from}-${edge.to}-${idx}`}>
+                <line
+                  x1={fromNode.x}
+                  y1={fromNode.y}
+                  x2={toNode.x}
+                  y2={toNode.y}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDasharray}
+                  strokeOpacity={strokeOpacity}
+                  strokeLinecap="round"
+                  markerEnd={isDirected ? markerId : undefined}
                   style={{ transition: SHAPE_TRANSITION }}
                 />
-              )}
-              <circle
-                r={NODE_RADIUS}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={inSemanticState ? 2.5 : 2}
-                style={{ transition: SHAPE_TRANSITION }}
-              />
-              <text
-                x="0"
-                y="0"
-                dominantBaseline="central"
-                textAnchor="middle"
-                fill="var(--text-primary)"
-                fontSize="15"
-                fontFamily="var(--font-code)"
-                fontWeight="600"
+                {edge.weight !== undefined && (
+                  /* Halo rect behind the weight keeps it readable over the edge line. */
+                  <g transform={`translate(${midX}, ${midY})`} style={{ transition: MOVE_TRANSITION }}>
+                    <rect
+                      x={-weightW / 2}
+                      y={-weightH / 2}
+                      width={weightW}
+                      height={weightH}
+                      rx={6}
+                      fill="var(--bg-surface)"
+                      stroke={edge.isPath || edge.isTraversed ? strokeColor : 'var(--border-default)'}
+                      strokeWidth="1"
+                      style={{ transition: SHAPE_TRANSITION }}
+                    />
+                    <text
+                      x="0"
+                      y="0"
+                      dominantBaseline="central"
+                      textAnchor="middle"
+                      fill={edge.isPath || edge.isTraversed ? strokeColor : 'var(--text-secondary)'}
+                      fontSize={weightFont}
+                      fontFamily="var(--font-code)"
+                      fontWeight="600"
+                      style={{ transition: SHAPE_TRANSITION }}
+                    >
+                      {edge.weight}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Render Nodes */}
+          {positioned.map((node) => {
+            const slot = groupOf(node.id);
+            const hasGroup = slot !== undefined;
+            const inSemanticState = node.state !== 'default';
+
+            /* Algorithm state outranks identity: a node the algorithm just touched
+               keeps its --state-* skin and demotes its group to an outer ring. */
+            const fill = inSemanticState || !hasGroup ? stateBg(node.state) : vizSlotBg(slot);
+            const stroke = inSemanticState || !hasGroup ? stateColor(node.state) : vizSlotColor(slot);
+            const showGroupRing = hasGroup && inSemanticState;
+
+            return (
+              <g
+                key={`node-${node.id}`}
+                transform={`translate(${node.x}, ${node.y})`}
+                style={{ transition: MOVE_TRANSITION }}
               >
-                {node.label || node.id}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+                {showGroupRing && (
+                  <circle
+                    r={nodeRadius + GROUP_RING_GAP}
+                    fill="none"
+                    stroke={vizSlotColor(slot)}
+                    strokeWidth="2.5"
+                    strokeOpacity="0.9"
+                    style={{ transition: SHAPE_TRANSITION }}
+                  />
+                )}
+                <circle
+                  r={nodeRadius}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={inSemanticState ? 2.5 : 2}
+                  style={{ transition: SHAPE_TRANSITION }}
+                />
+                <text
+                  x="0"
+                  y="0"
+                  dominantBaseline="central"
+                  textAnchor="middle"
+                  fill="var(--text-primary)"
+                  fontSize={labelFont}
+                  fontFamily="var(--font-code)"
+                  fontWeight="600"
+                >
+                  {node.label || node.id}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
 
       {legend.length > 0 && (
         <div
@@ -384,6 +408,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             flexWrap: 'wrap',
             justifyContent: 'center',
             gap: 'var(--space-1) var(--space-3)',
+            marginTop: 'var(--space-1)',
             fontSize: 'var(--text-xs)',
             color: 'var(--text-secondary)',
           }}

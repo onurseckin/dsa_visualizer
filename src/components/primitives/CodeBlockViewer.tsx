@@ -48,22 +48,21 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
           line {activeLine}
         </span>
       }
-      style={{ height: '100%' }}
+      /* Hugs the listing: no grow, no floor, so the solution shows in full and the
+         complexity card sits directly under the last line (DESIGN.md R5.4). */
+      style={{ borderColor: 'var(--border-default)' }}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          minHeight: 0,
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div
           style={{
-            flex: 1,
+            /* Shrinkable but never greedy: nothing stretches the listing past the
+               code, while a column that pins a height still gets an inner scroll
+               instead of an overflow. */
+            flex: '0 1 auto',
             minHeight: 0,
             overflowY: 'auto',
             background: 'var(--bg-inset)',
+            borderTop: '1px solid var(--border-default)',
             padding: 'var(--space-2) 0',
           }}
         >
@@ -83,7 +82,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
                     width: '2.5em',
                     textAlign: 'right',
                     marginRight: 'var(--space-3)',
-                    color: 'var(--text-faint)',
+                    color: 'var(--text-muted)',
                     userSelect: 'none',
                   }}
                 >
@@ -96,12 +95,15 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
         </div>
 
         {hasVariables && (
+          /* Live-variable strip: an embedded control strip, so it sits on
+             --bg-elevated with its chips dropped to --bg-inset to stay legible. */
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 'var(--space-1)',
               padding: 'var(--space-2) var(--space-3)',
+              background: 'var(--bg-elevated)',
               borderTop: '1px solid var(--border-default)',
               overflowX: 'auto',
               flexShrink: 0,
@@ -118,7 +120,11 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
               Vars
             </span>
             {Object.entries(variables).map(([k, v]) => (
-              <span key={k} className="ui-chip">
+              <span
+                key={k}
+                className="ui-chip"
+                style={{ background: 'var(--bg-inset)', borderColor: 'var(--border-default)' }}
+              >
                 {k}
                 <span style={{ color: 'var(--text-muted)' }}>=</span>
                 <span style={{ color: 'var(--text-primary)' }}>{String(v)}</span>
