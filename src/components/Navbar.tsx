@@ -15,6 +15,7 @@ import { CategoryType, AppView, PanelKey, PanelVisibility } from "../types/dsa";
 import { Button, ButtonGroup, ConfirmDialog, IconButton, Segmented } from "../ui";
 import { resetWorkspaceLayout } from "../app/workspaceLayout";
 import { isDialogOpen, isTypingTarget } from "../app/keyboardGuards";
+import { useSearchStore } from "../app/useSearchStore";
 import { SearchTrigger } from "./SearchTrigger";
 import { QuickAccessDrawer } from "./QuickAccessDrawer";
 
@@ -51,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   panels,
   onTogglePanel,
 }) => {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { isDrawerOpen, openDrawer, closeDrawer } = useSearchStore();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -62,11 +63,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (isTypingTarget(e.target)) return;
       if (isDialogOpen()) return;
       e.preventDefault();
-      setIsDrawerOpen(true);
+      openDrawer();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [openDrawer]);
 
   const handleConfirmReset = () => {
     resetWorkspaceLayout();
@@ -127,12 +128,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </>
         )}
 
-        <SearchTrigger onOpenDrawer={() => setIsDrawerOpen(true)} />
+        <SearchTrigger onOpenDrawer={openDrawer} />
       </div>
 
       <QuickAccessDrawer
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={closeDrawer}
         onSelectAlgorithm={onGlobalSelectAlgorithm}
         activeAlgorithmId={activeAlgorithmId}
         categories={categories}

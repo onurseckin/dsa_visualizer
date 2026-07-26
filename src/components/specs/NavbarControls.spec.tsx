@@ -22,10 +22,13 @@ const accentTintedText = (root: ParentNode): Element[] =>
     /(?:^|;\s*)color:\s*var\(--accent/.test(el.getAttribute("style") ?? ""),
   );
 
+import { useSearchStore } from "../../app/useSearchStore";
+
 describe("NavbarControls Component Spec", () => {
   beforeEach(() => {
     (document.activeElement as HTMLElement)?.blur();
     document.body.innerHTML = "";
+    useSearchStore.setState({ isDrawerOpen: false });
   });
 
   afterEach(() => {
