@@ -12,13 +12,6 @@ export interface TutorialCardProps {
   onClose?: () => void;
 }
 
-const STRIP: React.CSSProperties = {
-  background: "transparent",
-  borderWidth: 0,
-  borderRadius: 0,
-  boxShadow: "none",
-};
-
 const PROSE: React.CSSProperties = {
   margin: 0,
   fontSize: "var(--text-md)",
@@ -33,6 +26,13 @@ export const hasTutorialContent = (
   why?: string,
 ): boolean =>
   Boolean((what || explanation?.what || "").trim() || (why || explanation?.why || "").trim());
+
+const STRIP: React.CSSProperties = {
+  background: "transparent",
+  borderWidth: 0,
+  borderRadius: 0,
+  boxShadow: "none",
+};
 
 export const TutorialCard: React.FC<TutorialCardProps> = ({
   explanation,
@@ -55,12 +55,12 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
       : undefined;
 
   return (
-    <Card padding="none" style={STRIP}>
+    <Card padding="none" style={STRIP} className="h-full overflow-auto bg-[var(--bg-surface)]">
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "var(--space-1)",
+          gap: "var(--space-2)",
           padding: "var(--space-3)",
           minWidth: 0,
         }}
