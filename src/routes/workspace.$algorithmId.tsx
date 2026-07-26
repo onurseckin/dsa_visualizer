@@ -24,7 +24,8 @@ export const Route = createFileRoute('/workspace/$algorithmId')({
 
 function WorkspacePage(): React.ReactElement {
   const { algorithmId } = Route.useParams();
-  const { panels, setPanel, setLastAlgorithmId } = useSettings();
+  const { panels, setPanel, setLastAlgorithmId, speed: persistedSpeed, setSpeed: setPersistedSpeed } =
+    useSettings();
 
   const [dataSize, setDataSize] = useState<number>(10);
   const [inputSeed, setInputSeed] = useState<number>(1);
@@ -72,7 +73,16 @@ function WorkspacePage(): React.ReactElement {
     setSpeed,
   } = useStepEngine({
     steps,
+    // The step engine only reads this once on mount; the persisted value is
+    // the user's last-set playback speed, carried across reloads (R6.5-style
+    // preference, but app-wide rather than page-scoped — see SettingsContext).
+    defaultSpeed: persistedSpeed,
   });
+
+  const handleSpeedChange = (nextSpeed: number) => {
+    setSpeed(nextSpeed);
+    setPersistedSpeed(nextSpeed);
+  };
 
   /* The engine hands back fresh callbacks as the index and play state move, so the
      listener reads them through a ref: the window binding is installed once
@@ -141,7 +151,7 @@ function WorkspacePage(): React.ReactElement {
         currentStep: currentStepIndex,
         totalSteps,
         speed,
-        onSpeedChange: setSpeed,
+        onSpeedChange: handleSpeedChange,
         dataSize,
         onDataSizeChange: setDataSize,
         onGenerateRandom: handleGenerateRandom,

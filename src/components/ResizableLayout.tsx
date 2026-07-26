@@ -115,7 +115,10 @@ export const DragHandle: React.FC<DragHandleProps> = ({
         style={{
           width: isVertical ? '2px' : '100%',
           height: isVertical ? '100%' : '2px',
-          background: active ? 'var(--accent)' : 'var(--border-default)',
+          // Invisible at rest so the seam between sections reads as clean, not
+          // gridded; hovering, focusing, or dragging the handle is what reveals
+          // it, since that 8px hit zone is already there either way.
+          background: active ? 'var(--accent)' : 'transparent',
           borderRadius: 'var(--radius-full)',
           transition: 'background var(--transition-fast)',
           pointerEvents: 'none',

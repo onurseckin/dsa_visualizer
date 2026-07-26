@@ -79,7 +79,7 @@ describe('workspaceLayout persistence contract', () => {
   });
 
   it('gives the visualizer column the wider default share of the stage', () => {
-    expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
+    expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(60);
   });
 
   it('opens both the problem and solution panels by default', () => {

@@ -75,16 +75,20 @@ describe('triviaSessions storage & lifecycle', () => {
   });
 
   describe('loadTriviaBootstrap (TASKS.md 9.1 — zero sessions is legitimate)', () => {
-    it('lands on Home (activeId null) on a genuine first visit with no legacy data and no sessions', () => {
+    it('auto-creates and enters a single session on a genuine first visit, landing on Setup', () => {
       const boot = loadTriviaBootstrap();
-      expect(boot.sessions).toEqual([]);
-      expect(boot.activeId).toBeNull();
+      expect(boot.sessions).toHaveLength(1);
+      expect(boot.activeId).toBe(boot.sessions[0].id);
+      // Newly-created sessions always default to Setup (createSession's own
+      // invariant) — this is what "faster navigation" actually lands on.
+      expect(boot.sessions[0].lastScreen).toBe('setup');
     });
 
-    it('does not manufacture a session just because the page rendered once', () => {
-      loadTriviaBootstrap();
-      loadTriviaBootstrap();
-      expect(readTriviaSessions()).toEqual([]);
+    it('does not manufacture a second session just because the page rendered again', () => {
+      const first = loadTriviaBootstrap();
+      const second = loadTriviaBootstrap();
+      expect(readTriviaSessions()).toHaveLength(1);
+      expect(second.activeId).toBe(first.activeId);
     });
 
     it('migrates real legacy bare-key progress into one session, but still lands on Home', () => {
@@ -97,13 +101,15 @@ describe('triviaSessions storage & lifecycle', () => {
       expect(boot.activeId).toBeNull();
     });
 
-    it('never migrates untouched legacy defaults (empty deck, zero progress)', () => {
+    it('treats untouched legacy defaults (empty deck, zero progress) the same as a true first visit', () => {
       writeTriviaConfig({ deck: [] });
       writeTriviaProgress(createProgress(DEFAULT_TRIVIA_CONFIG));
 
       const boot = loadTriviaBootstrap();
-      expect(boot.sessions).toEqual([]);
-      expect(boot.activeId).toBeNull();
+      // Nothing worth migrating, so this is indistinguishable from a fresh
+      // install — a single session is created and entered, same as above.
+      expect(boot.sessions).toHaveLength(1);
+      expect(boot.activeId).toBe(boot.sessions[0].id);
     });
 
     it('trusts an explicit null active-id pointer (Back to Trivia Home) across a reload', () => {

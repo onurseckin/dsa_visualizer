@@ -148,38 +148,41 @@ export function deleteSession(id: string): void {
 export interface TriviaBootstrap {
   sessions: TriviaSessionRecord[];
   /** null means Home — the page's own third screen, not "editing session N"
-      (TASKS.md 9.1). Zero sessions is a legitimate, permanent state now, not
-      something this bootstrap patches over by manufacturing a session. */
+      (TASKS.md 9.1). Zero sessions is only reachable again later (delete the
+      last one) — the true first-ever visit fast-tracks past it, see below. */
   activeId: string | null;
 }
 
 /**
  * Replaces the old `ensureActiveSession`'s "always guarantee an active
- * session" invariant (TASKS.md 9.1's Round-3 fix): a session is no longer
- * conjured into existence just so the page has something to render — Home's
- * empty state is the legitimate zero-session view now.
+ * session" invariant (TASKS.md 9.1's Round-3 fix) with a narrower one: a
+ * session is still auto-created on a genuine first-ever visit — landing on
+ * Home with nothing but a "+ New session" button was one extra click of
+ * friction the very first time, and there is only ever one sensible session
+ * to land on then — but Home's empty state remains the real, reachable state
+ * for every case after that (e.g. the user deletes their last session later;
+ * re-deriving straight back into a fresh Setup would be a surprising
+ * mid-session auto-create, not a first-visit convenience).
  *
- * Two cases:
+ * Three cases:
  *
- * 1. Sessions already exist. Whatever the stored active-id pointer says is
- *    trusted as-is, including `null` (an explicit "Back to Trivia Home" —
- *    exactly the user's repeated complaint: exiting a session should land
- *    somewhere that isn't "editing session N", and that has to survive a
- *    reload, not just an in-memory navigate). A stale id (pointing at a
- *    session that no longer exists) falls back to Home, never to a silently
- *    substituted session — surprising the user with the wrong session open
- *    is worse than showing them the session list.
- * 2. No sessions exist. This is either a genuine first visit, or a
- *    pre-sessions install that only has the bare `triviaConfig`/
- *    `triviaProgress` keys. Those bare keys are migrated into a real session
- *    ONLY if they hold actual earned data (a non-empty deck, or real
- *    progress) — a first-time user's untouched defaults are not "data",
- *    they are nothing, and migrating them would recreate exactly the forced
- *    auto-session this fix removes. Either way the bare keys are retired:
- *    the migrated session becomes their only owner, and an empty first
- *    visit had nothing worth keeping. The migrated session (if any) is left
- *    unselected — Home shows it as a card to resume, rather than dropping
- *    the user straight into editing it.
+ * 1. Sessions already exist (one or more). Whatever the stored active-id
+ *    pointer says is trusted as-is, including `null` (an explicit "Back to
+ *    Trivia Home" — exactly the user's repeated complaint: exiting a session
+ *    should land somewhere that isn't "editing session N", and that has to
+ *    survive a reload, not just an in-memory navigate). A stale id (pointing
+ *    at a session that no longer exists) falls back to Home, never to a
+ *    silently substituted session.
+ * 2. No sessions exist, but the bare pre-sessions `triviaConfig`/
+ *    `triviaProgress` keys hold actual earned data (a non-empty deck, or real
+ *    progress) — an upgrading install. That data is migrated into a real
+ *    session and left unselected: Home shows it as a card to resume, rather
+ *    than dropping the user straight into editing what might be stale config
+ *    from a previous version.
+ * 3. No sessions and no legacy data at all — a genuine first-ever visit, with
+ *    truly nothing to show or migrate. A single default session is created
+ *    and selected, landing directly on its Setup screen for faster
+ *    navigation, instead of Home's empty state.
  */
 export function loadTriviaBootstrap(): TriviaBootstrap {
   const existing = readTriviaSessions();
@@ -199,7 +202,8 @@ export function loadTriviaBootstrap(): TriviaBootstrap {
 
   if (!hasLegacyData) {
     clearTrivia();
-    return { sessions: [], activeId: null };
+    const created = createSession();
+    return { sessions: [created], activeId: created.id };
   }
 
   const seeded = createSession(undefined, legacyConfig, legacyProgress);

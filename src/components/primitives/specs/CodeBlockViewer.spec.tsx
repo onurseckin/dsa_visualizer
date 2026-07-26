@@ -1,7 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { CodeBlockViewer } from '../CodeBlockViewer';
 import { N_QUEENS_CODE } from '../../../algorithms/backtracking/nQueens';
+
+const EXPLAIN_LINES_STORAGE_KEY = 'dsa_visualizer_explain_lines_enabled';
+
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 const CODE = [
   'def two_sum(nums, target):',
@@ -106,6 +112,46 @@ describe('CodeBlockViewer Component Spec', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle line explanations' }));
     expect(screen.queryByTestId('line-explain-popover-2')).not.toBeInTheDocument();
+  });
+
+  it('persists switching the explain toggle off, restoring it across a reload', () => {
+    const { unmount } = render(<CodeBlockViewer code={CODE} activeLine={1} lineExplanations={EXPLANATIONS} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle line explanations' }));
+    expect(window.localStorage.getItem(EXPLAIN_LINES_STORAGE_KEY)).toBe('false');
+
+    // A reload is just another mount reading the same persisted key.
+    unmount();
+    render(<CodeBlockViewer code={CODE} activeLine={1} lineExplanations={EXPLANATIONS} />);
+
+    expect(screen.getByRole('button', { name: 'Toggle line explanations' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
+
+    fireEvent.mouseEnter(screen.getByTestId('code-row-2'));
+    expect(screen.queryByTestId('line-explain-popover-2')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the explain toggle being on when the stored value is malformed', () => {
+    window.localStorage.setItem(EXPLAIN_LINES_STORAGE_KEY, '{not json');
+
+    render(<CodeBlockViewer code={CODE} activeLine={1} lineExplanations={EXPLANATIONS} />);
+
+    expect(screen.getByRole('button', { name: 'Toggle line explanations' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('falls back to the explain toggle being on when the stored value is the wrong type', () => {
+    window.localStorage.setItem(EXPLAIN_LINES_STORAGE_KEY, JSON.stringify('yes'));
+
+    render(<CodeBlockViewer code={CODE} activeLine={1} lineExplanations={EXPLANATIONS} />);
+
+    expect(screen.getByRole('button', { name: 'Toggle line explanations' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('omits lineExplanations entirely without throwing and without any popover ever appearing', () => {

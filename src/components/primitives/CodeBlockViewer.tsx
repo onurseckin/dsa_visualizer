@@ -36,6 +36,35 @@ function splitIndent(line: string): { indent: string; content: string } {
   return match ? { indent: match[1], content: match[2] } : { indent: '', content: line };
 }
 
+/* The explain-lines toggle is a direct user preference (the whole point of the
+   control is being able to turn it off), so it must survive a reload. Kept as
+   a small self-contained pair rather than routed through SettingsContext:
+   this component is the toggle's only reader/writer, so there is nothing to
+   share across pages. Same defensive discipline as every other persistence
+   module in the app — reads validate and fall back, writes are best-effort,
+   nothing here ever throws into the render path. */
+const EXPLAIN_LINES_STORAGE_KEY = 'dsa_visualizer_explain_lines_enabled';
+const DEFAULT_EXPLAIN_LINES_ENABLED = true;
+
+function readExplainEnabled(): boolean {
+  try {
+    const raw = window.localStorage.getItem(EXPLAIN_LINES_STORAGE_KEY);
+    if (raw === null) return DEFAULT_EXPLAIN_LINES_ENABLED;
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === 'boolean' ? parsed : DEFAULT_EXPLAIN_LINES_ENABLED;
+  } catch {
+    return DEFAULT_EXPLAIN_LINES_ENABLED;
+  }
+}
+
+function writeExplainEnabled(value: boolean): void {
+  try {
+    window.localStorage.setItem(EXPLAIN_LINES_STORAGE_KEY, JSON.stringify(value));
+  } catch {
+    // Persistence is best-effort; failing to write must never break the UI.
+  }
+}
+
 const PYTHON_KEYWORDS = new Set([
   'def', 'return', 'if', 'else', 'elif', 'for', 'while', 'in', 'and', 'or', 'not',
   'is', 'True', 'False', 'None', 'import', 'from', 'as', 'class', 'raise', 'try',
@@ -166,8 +195,16 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
 }) => {
   const lines = code.trim().split('\n');
   const activeLineRef = useRef<HTMLDivElement | null>(null);
-  const [explainEnabled, setExplainEnabled] = useState(true);
+  const [explainEnabled, setExplainEnabledState] = useState(readExplainEnabled);
   const { hovered, rowHoverHandlers } = useHoveredCodeLine(explainEnabled);
+
+  const setExplainEnabled = (updater: (current: boolean) => boolean) => {
+    setExplainEnabledState((current) => {
+      const next = updater(current);
+      writeExplainEnabled(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     // Optional call: jsdom doesn't implement scrollIntoView.
