@@ -1,10 +1,10 @@
 import React, { DragEvent, MouseEvent, MutableRefObject } from "react";
-import { Eye, Info, Lightbulb } from "lucide-react";
+import { Eye, Lightbulb } from "lucide-react";
 import { IconButton, Kbd } from "../../../ui";
 import { PuzzleLine, TriviaGrade, TriviaMode } from "../../../types/trivia";
 import { highlightPythonLine } from "../../primitives/CodeBlockViewer";
 import { CodePuzzleSlot } from "./CodePuzzleSlot";
-import { CODE_GROUP, GUTTER, ICON_GROUP, INDENT, SHORTCUT_PAIR } from "../codePuzzleTypes";
+import { CODE_GROUP, GUTTER, ICON_GROUP, INDENT } from "../codePuzzleTypes";
 
 interface CodePuzzleBlankRowProps {
   line: PuzzleLine;
@@ -101,17 +101,19 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
           />
         </div>
         <div style={ICON_GROUP}>
-          {hint !== undefined ? (
-            <span style={SHORTCUT_PAIR}>
-              <IconButton
-                icon={<Lightbulb />}
-                variant="secondary"
-                size="sm"
-                selected={showHint}
-                title="Toggle hint (⌘I)"
-                aria-label={`Hint for line ${number}`}
-                onClick={() => onToggleHint(number)}
-              />
+          {hint !== undefined || explanation !== undefined ? (
+            <IconButton
+              icon={<Lightbulb />}
+              variant="secondary"
+              size="sm"
+              selected={showHint}
+              title="Toggle hint / explanation (⌘I)"
+              aria-label={`Hint for line ${number}`}
+              onClick={(e) => {
+                if (hint !== undefined) onToggleHint(number);
+                if (explanation !== undefined) onExplainClick(number, e);
+              }}
+            >
               {isShortcutTarget ? (
                 <Kbd
                   aria-hidden="true"
@@ -121,38 +123,31 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
                   ⌘I
                 </Kbd>
               ) : null}
-            </span>
+            </IconButton>
           ) : null}
-          {explanation !== undefined ? (
-            <IconButton
-              icon={<Info />}
-              variant="secondary"
-              size="sm"
-              title="Explain this line"
-              aria-label={`Explain line ${number}`}
-              onClick={(e) => onExplainClick(number, e)}
-            />
-          ) : null}
-          <span style={SHORTCUT_PAIR}>
-            <IconButton
-              icon={<Eye />}
-              variant="secondary"
-              size="sm"
-              title="Reveal answer (⌘E)"
-              aria-label={`Reveal line ${number}`}
-              disabled={graded || revealed.includes(number)}
-              onClick={() => onReveal(number)}
-            />
+          <IconButton
+            icon={<Eye />}
+            variant="secondary"
+            size="sm"
+            title="Reveal answer (⌘E)"
+            aria-label={`Reveal line ${number}`}
+            disabled={graded || revealed.includes(number)}
+            onClick={() => onReveal(number)}
+          >
             {isShortcutTarget ? (
               <Kbd
                 aria-hidden="true"
-                data-testid={hint === undefined ? `shortcut-target-${number}` : undefined}
+                data-testid={
+                  hint === undefined && explanation === undefined
+                    ? `shortcut-target-${number}`
+                    : undefined
+                }
                 title={`Line ${number} is the current target for the ⌘E shortcut`}
               >
                 ⌘E
               </Kbd>
             ) : null}
-          </span>
+          </IconButton>
         </div>
       </div>
       {showHint && hint !== undefined ? (

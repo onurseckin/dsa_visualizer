@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowRight, Check, RefreshCw, RotateCcw } from "lucide-react";
 import { Button, Kbd } from "../../../ui";
 import { TriviaGrade } from "../../../types/trivia";
 
@@ -56,37 +55,15 @@ export const TriviaSessionFooter: React.FC<TriviaSessionFooterProps> = ({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-        <Button
-          variant="secondary"
-          size="md"
-          onClick={onRetry}
-          icon={<RefreshCw aria-hidden="true" />}
-        >
+        <Button variant="secondary" size="md" onClick={onRetry}>
           Retry <Kbd>⌘R</Kbd>
         </Button>
         {grade === null ? (
-          <Button
-            variant="primary"
-            size="md"
-            disabled={!allFilled}
-            onClick={onCheck}
-            icon={<Check aria-hidden="true" />}
-          >
+          <Button variant="primary" size="md" disabled={!allFilled} onClick={onCheck}>
             Check answers <Kbd>⌘Enter</Kbd>
           </Button>
         ) : (
-          <Button
-            variant="primary"
-            size="md"
-            onClick={onNext}
-            icon={
-              grade.allCorrect ? (
-                <ArrowRight aria-hidden="true" />
-              ) : (
-                <RotateCcw aria-hidden="true" />
-              )
-            }
-          >
+          <Button variant="primary" size="md" onClick={onNext}>
             {grade.allCorrect ? "Next round" : "Try again"} <Kbd>⌘Enter</Kbd>
           </Button>
         )}

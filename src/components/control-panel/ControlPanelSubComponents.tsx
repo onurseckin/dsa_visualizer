@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, Shuffle } from "lucide-react";
-import { Button, ButtonGroup, Chip, IconButton, Slider } from "../../ui";
+import { SkipBack, SkipForward, RotateCcw, Shuffle } from "lucide-react";
+import { Button, ButtonGroup, Chip, IconButton, Kbd, Slider } from "../../ui";
 
 const SLIDER_WIDTH = "120px";
 
@@ -38,16 +38,17 @@ export function ControlPanelPlayback({
         title="Step backward (Left arrow)"
         onClick={onStepBack}
         disabled={isPlaying || currentStep <= 0}
-      />
+      >
+        <Kbd>←</Kbd>
+      </IconButton>
       <Button
         variant="primary"
-        icon={isPlaying ? <Pause /> : <Play />}
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause playback" : "Play all steps"}
         aria-keyshortcuts="Space"
         title={isPlaying ? "Pause playback (Space)" : "Play all steps (Space)"}
       >
-        {isPlaying ? "Pause" : "Play"}
+        {isPlaying ? "Pause" : "Play"} <Kbd>Space</Kbd>
       </Button>
       <IconButton
         icon={<SkipForward />}
@@ -56,7 +57,9 @@ export function ControlPanelPlayback({
         title="Step forward (Right arrow)"
         onClick={onStepForward}
         disabled={isPlaying || currentStep >= totalSteps - 1}
-      />
+      >
+        <Kbd>→</Kbd>
+      </IconButton>
     </ButtonGroup>
   );
 }

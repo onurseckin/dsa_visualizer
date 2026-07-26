@@ -152,14 +152,10 @@ describe("Workspace layout reset spec", () => {
     const navbar = () => within(screen.getByRole("banner"));
     expect(navbar().getByRole("button", { name: "Reset layout" })).toBeInTheDocument();
 
-    act(() => {
-      router.navigate({ to: "/problems", search: {} });
+    await act(async () => {
+      await router.navigate({ to: "/problems", search: {} });
     });
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/problems");
-    });
-    await waitFor(() => {
-      expect(navbar().queryByRole("button", { name: "Reset layout" })).not.toBeInTheDocument();
-    });
+    await screen.findByText("Algorithm Directory");
+    expect(navbar().queryByRole("button", { name: "Reset layout" })).not.toBeInTheDocument();
   });
 });

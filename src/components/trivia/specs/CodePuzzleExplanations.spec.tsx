@@ -89,14 +89,14 @@ describe("CodePuzzleExplanations Component Spec", () => {
     expect(screen.queryByTestId("shortcut-target-2")).not.toBeInTheDocument();
   });
 
-  it("renders no explain icon on a blank row for a line missing from lineExplanations", () => {
+  it("renders no hint/explain icon on a blank row for a line missing from lineExplanations and hints", () => {
     renderPuzzle({ lineExplanations: { 5: "Only line 5 is explained." } });
 
-    expect(screen.queryByRole("button", { name: "Explain line 2" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Explain line 5" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hint for line 2" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hint for line 5" })).toBeInTheDocument();
   });
 
-  it("opens a right-side click popover for a blank row explanation, independent of the hint toggle and of the header toggle", () => {
+  it("opens a right-side click popover for a blank row explanation on clicking the lightbulb toggle", () => {
     renderPuzzle({
       hints: [{ line: 2, hint: "An empty map of value to index." }],
       lineExplanations: { 2: "Creates an empty map that remembers values already seen." },
@@ -104,20 +104,15 @@ describe("CodePuzzleExplanations Component Spec", () => {
 
     expect(explainToggle()).not.toHaveAttribute("aria-pressed");
 
-    const explainButton = screen.getByRole("button", { name: "Explain line 2" });
     const hintToggle = screen.getByRole("button", { name: "Hint for line 2" });
 
-    fireEvent.click(explainButton);
+    fireEvent.click(hintToggle);
     const popover = screen.getByTestId("line-explain-popover-2");
     expect(popover).toHaveTextContent("Creates an empty map that remembers values already seen.");
     expect(popover).toHaveAttribute("data-side", "right");
-    expect(screen.queryByTestId("hint-2")).not.toBeInTheDocument();
+    expect(screen.getByTestId("hint-2")).toHaveTextContent("An empty map of value to index.");
 
     fireEvent.click(hintToggle);
-    expect(screen.getByTestId("hint-2")).toHaveTextContent("An empty map of value to index.");
-    expect(screen.getByTestId("line-explain-popover-2")).toBeInTheDocument();
-
-    fireEvent.click(explainButton);
     expect(screen.queryByTestId("line-explain-popover-2")).not.toBeInTheDocument();
   });
 

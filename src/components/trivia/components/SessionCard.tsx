@@ -50,49 +50,52 @@ export const SessionCard: React.FC<SessionCardProps> = ({
   const badge = badgeForSession(session);
 
   return (
-    <Card className="border-[var(--border-default)]">
-      {isEditing ? (
-        <div className="flex items-center gap-1">
-          <Input
-            size="sm"
-            value={editingName}
-            onChange={(e) => onEditingNameChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSaveRename(session.id);
-              if (e.key === "Escape") onCancelRename();
-            }}
-            aria-label={`Rename ${session.name}`}
-          />
-          <IconButton
-            size="sm"
-            variant="secondary"
-            icon={<CheckIcon size={14} />}
-            onClick={() => onSaveRename(session.id)}
-            aria-label="Save session name"
-          />
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-base text-[var(--text-primary)]">
-            {session.name}
-          </span>
-          <Badge variant={badge.variant} size="sm">
-            {badge.label}
-          </Badge>
-        </div>
-      )}
+    <Card className="border-[var(--border-default)] shadow-sm">
+      <Card.Header
+        title={
+          isEditing ? (
+            <div className="flex items-center gap-2 w-full">
+              <Input
+                size="sm"
+                value={editingName}
+                onChange={(e) => onEditingNameChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onSaveRename(session.id);
+                  if (e.key === "Escape") onCancelRename();
+                }}
+                aria-label={`Rename ${session.name}`}
+              />
+              <IconButton
+                size="sm"
+                variant="secondary"
+                icon={<CheckIcon size={14} />}
+                onClick={() => onSaveRename(session.id)}
+                aria-label="Save session name"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 w-full">
+              <span className="font-semibold text-base text-[var(--text-primary)] truncate">
+                {session.name}
+              </span>
+              <Badge variant={badge.variant} size="sm">
+                {badge.label}
+              </Badge>
+            </div>
+          )
+        }
+      />
+      <Card.Body padding="md" className="flex flex-col gap-3">
+        {stats && (
+          <div className="text-xs text-[var(--text-muted)] font-medium">
+            {`Level ${stats.level} of ${stats.maxBlanks} · ${stats.rounds} ${stats.rounds === 1 ? "round" : "rounds"} · ${stats.coveragePct}% covered`}
+          </div>
+        )}
 
-      {stats && (
-        <div className="mt-2 text-xs text-[var(--text-muted)]">
-          {`Level ${stats.level} of ${stats.maxBlanks} · ${stats.rounds} ${stats.rounds === 1 ? "round" : "rounds"} · ${stats.coveragePct}% covered`}
-        </div>
-      )}
-
-      <div className="mt-3">
-        <ButtonGroup gap="sm" className="flex-wrap">
+        <ButtonGroup gap="sm" className="flex-wrap pt-1">
           <Button
             size="sm"
-            variant="secondary"
+            variant="primary"
             icon={<Play aria-hidden="true" />}
             onClick={() => onResumeSession(session)}
             title={stats ? `Resumes at Level ${stats.level} with a new round` : undefined}
@@ -114,7 +117,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
             aria-label={`Delete ${session.name}`}
           />
         </ButtonGroup>
-      </div>
+      </Card.Body>
     </Card>
   );
 };
