@@ -21,40 +21,54 @@ Router (file-based routes), vitest + jsdom for tests, **bun** for all scripts, p
 CSS design tokens for styling. There is no server, no database, no environment
 variables, and no secrets.
 
-Five cross-cutting systems deserve reading before you touch anything: the
-**achromatic black/carbon/smoke token palette** (section 2.5), the **graph-focused
-single-container workspace** (section 2.7), the **canvas geometry / anti-letterbox
-system** (section 2.8), the **step-sound classifier** (section 2.10), and the
-**independent panel-visibility toggles** (section 2.11). The full design rationale
-lives in `docs/planning/ui-overhaul/DESIGN.md`; its **"Round 5"** section at the very
-end is authoritative where it overlaps earlier rounds — notably it supersedes **all**
-earlier color guidance and the Round 4 panel arrangement.
+Seven cross-cutting systems deserve reading before you touch anything: the **canvas
+geometry law** (section 2.8), the **inverted surface hierarchy** (section 2.5), the
+**colour policy** (section 2.5), the **workspace anatomy** — tutorial header, working
+data, canvas, docked controls inside one panel (section 2.7), **persistence and the
+navbar reset** (section 2.2), the **global keyboard shortcuts** (section 2.12), and the
+**step engine** (section 2.10). The full design rationale lives in
+`docs/planning/ui-overhaul/DESIGN.md`; its **"Round 6"** section at the very end is
+authoritative wherever it overlaps earlier rounds — it supersedes the Round 5 surface
+values (surfaces are now inverted), the Round 5 achromatic sweep (colour came back on
+badges and the knowledge map), and the Round 5 panel order (the tutorial is the panel
+header now, not a bottom strip).
 
-Six rules are the ones most likely to trip you up, so they are stated up front and
+Eight rules are the ones most likely to trip you up, so they are stated up front and
 repeated in context below:
 
-1. **THE RULE: the shell is achromatic and colour is reserved for data.** There is no
-   green, teal, navy or mint anywhere in chrome, panels, cards, buttons, inputs,
-   drawers or text. Hue is allowed in exactly three places: `--state-*` marks inside
-   visualizers, the `--viz-1..8` categorical palette for groups, and semantic
-   `--success/--warning/--danger/--info` on badges and status. Everything else is
-   neutral (section 2.5).
-2. **Surfaces sit only ~1.09× apart, so every card, panel, well, chip and button MUST
-   carry a visible border token.** A borderless container dissolves into the page —
-   that is a bug, not a style preference (section 2.5).
-3. **The left column is ONE container.** Working data at the top, canvas in the
-   middle, tutorial at the bottom, playback docked at the edge — all inside the single
-   visualizer panel. Nothing is stacked outside it, and the right column hugs its
-   content (section 2.7).
-4. **A sizing change must never make a visualization smaller.** Canvas work trims dead
-   space so the drawing grows into it; if nodes or bars come out smaller than before,
-   the change is wrong (section 2.8).
-5. **React component specs are named `*.render.spec.tsx`, never `*.spec.tsx` sharing a
+1. **THE CANVAS LAW: `viewBox = boxViewBox(measuredBox)` and the `<svg>` is
+   `width="100%" height="100%"`.** User units are CSS pixels, so the viewBox and the
+   element can never disagree and `preserveAspectRatio` has nothing to letterbox. Every
+   visualizer lays out in real pixels and must spread across **both** axes. **Vertical
+   dead space must be zero**; slack a shape constraint cannot spend goes horizontal and
+   centred (section 2.8).
+2. **Two failure modes are forbidden by name, because both shipped and both were wrong:**
+   a viewBox from fixed constants inside a 100%-sized svg (dead bands *inside* the svg),
+   and sizing the svg to the content's aspect ratio (`fitBox` — deleted; it moved the
+   identical bands *outside* the svg into the panel). Never reintroduce either
+   (section 2.8).
+3. **Surfaces are INVERTED: cards are darker than the page.** The page is carbon
+   `#17171b`, cards and panels are near-black `#0a0a0c`, wells are `#050506`, and
+   controls raised on a card step *lighter*. Reading happens on the cards, so the cards
+   are where the eye rests (section 2.5).
+4. **Every card, panel, well, chip and button MUST carry a visible border token.** The
+   ladder steps are small and the interactive tier sits *above* the reading tier, so
+   borders carry the edge definition. A borderless container is a bug, not minimalism
+   (section 2.5).
+5. **Primary buttons are black-filled** (`--bg-inset` fill, `--accent` border,
+   `--text-primary` ink) — never a light slab (section 2.5).
+6. **Colour is neutral-by-default with exactly three exceptions**: difficulty/status
+   badges (semantic tokens), `--viz-1..8` identity in graphs, trees and the knowledge
+   map, and `--state-*` algorithm marks inside visualizers. Chrome, panels, inputs,
+   toolbars and body text stay neutral (section 2.5).
+7. **React component specs are named `*.render.spec.tsx`, never a `*.spec.tsx` sharing a
    basename with a `*.spec.ts` sibling.** TypeScript silently drops the duplicate from
-   `include`, which once excluded all 40 component specs from typecheck (section 4.10
-   and the top of section 6 — read it before you name a new spec file).
-6. **There is no `ViewMode` in the workspace.** Panel visibility is four independent
-   booleans driven by five visually identical navbar toggles (section 2.11).
+   `include`, which once excluded all 40 component specs from typecheck (section 4.10 and
+   the top of section 6 — read it before you name a new spec file).
+8. **There is no `ViewMode` in the workspace**, and **"Reset layout" lives in the
+   NAVBAR**, behind `ConfirmDialog`. Panel visibility is four independent booleans driven
+   by five identical navbar toggles (section 2.11); the layout reset clears one versioned
+   key and announces it on a window event (sections 2.2 and 2.11).
 
 ---
 
@@ -101,8 +115,8 @@ installed packages — 10 under `@tanstack/router-core#router-core` and its sub-
   (visualizations, no server data; static `dist` deploy). SSR adds machinery with no
   payoff here.
 - **React 19 / Vite 8 / TS 6 from the scaffold** — repo stays React 18 / Vite 5 /
-  TS 5.3 to keep the 500+-test vitest stack stable (future upgrade candidates; see
-  section 10).
+  TS 5.3 to keep the 600+-test vitest stack stable (future upgrade candidates; see
+  section 9).
 - **pnpm** — repo uses bun (`bun.lock`). Never introduce npm/pnpm/yarn lockfiles.
 - **`@tanstack/devtools-vite`** — requires Vite >= 6.
 
@@ -121,7 +135,7 @@ to any static host.
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run generate-routes` | `tsr generate` — regenerates `src/routeTree.gen.ts` |
 | `bun run lint` | ESLint, zero warnings allowed |
-| `bun run test` | Full vitest run (~595 tests in 107 spec files — final gate only) |
+| `bun run test` | Full vitest run (~650 tests in 108 spec files — final gate only) |
 | `bunx vitest run <paths>` | Scoped test run — **use this during iteration** |
 | `bun run build` | `tsc && vite build` → `dist/` |
 | `bun run check` | typecheck + lint + full tests + build — the master quality gate |
@@ -140,43 +154,41 @@ src/
 │   ├── index.tsx                 # "/"          → KnowledgeGraph roadmap page
 │   ├── problems.tsx              # "/problems"  → ProblemList, ?category= search param
 │   ├── workspace.index.tsx       # "/workspace" → redirects to /workspace/bubble-sort
-│   └── workspace.$algorithmId.tsx# "/workspace/:id" → visualizer workspace + sound wiring
+│   └── workspace.$algorithmId.tsx# "/workspace/:id" → workspace + playback keyboard shortcuts
 ├── app/
-│   ├── SettingsContext.tsx       # Persisted PanelVisibility + sound + lastAlgorithmId (localStorage)
-│   ├── workspaceLayout.ts        # Versioned persisted panel geometry, v5 nullable pixel heights
+│   ├── SettingsContext.tsx       # Persisted PanelVisibility + lastAlgorithmId (localStorage)
+│   ├── workspaceLayout.ts        # Versioned persisted workspace state, v6 (+ detailsExpanded)
+│   ├── keyboardGuards.ts         # isTypingTarget / isDialogOpen — shared by every global shortcut
 │   ├── categories.ts             # CATEGORIES list (25 canonical) + isCategoryType() guard
-│   └── specs/                    # routing, workspaceLayout, workspaceStepSound specs
 ├── engine/
 │   ├── stepEngine.ts             # useStepEngine hook: playback state machine + dedupe contract
-│   ├── stepSound.ts              # deriveStepCue — PURE step→SoundCue classifier (no audio imports)
-│   └── soundEngine.ts            # Web Audio singleton: gesture unlock, master gain, playCue
 ├── types/dsa.ts                  # ALL core interfaces & union types
 ├── styles/
-│   ├── theme.css                 # Achromatic design tokens — the ONLY place raw color/size values live
+│   ├── theme.css                 # Design tokens — the ONLY place raw color/size values live
 │   ├── ui.css                    # UI library classes (`ui-` prefix) + shared .ui-chip/.ui-code-line
 │   └── index.css                 # Token/ui imports, Tailwind theme+utilities, @theme bridge, resets
 ├── ui/                           # Reusable UI component library (barrel: ui/index.ts)
 ├── components/
 │   ├── KnowledgeGraph.tsx        # SVG prerequisite roadmap (TOPIC_ROADMAP_NODES, one --viz slot/family)
 │   ├── MainLayout.tsx            # Workspace shell: header strip, sized stage, ONE visualizer container
-│   ├── Navbar.tsx                # App-view Segmented + five uniform toggles, "/" shortcut, search
+│   ├── Navbar.tsx                # App-view Segmented, five uniform toggles, Reset layout, "/" search
 │   ├── SearchTrigger.tsx         # Input-lookalike button that opens the search drawer
 │   ├── QuickAccessDrawer.tsx     # Drawer-based algorithm search & category browser
-│   ├── ControlPanel.tsx          # Play/pause, step, reset, speed, data size (embedded|standalone)
+│   ├── ControlPanel.tsx          # Play/pause, step, reset, speed, size (embedded|standalone) + key hints
 │   ├── ComplexityCard.tsx        # Big-O chips + plain-English complexity prose (Collapsible)
 │   ├── ResizableLayout.tsx       # ResizableLayout (columns) + ResizableRows (hug/greedy/pinned rows)
-│   ├── ProblemList.tsx           # Flat problem listing with category filter
+│   ├── ProblemList.tsx           # Flat problem listing with category filter + coloured status badges
 │   └── primitives/               # Visual render primitives
-│       ├── ArrayVisualizer.tsx   # kind: 'array'
-│       ├── GridVisualizer.tsx    # kind: 'grid'
-│       ├── GraphVisualizer.tsx   # kind: 'graph' (SVG, auto circular layout, group tinting + legend)
-│       ├── TreeVisualizer.tsx    # kind: 'tree'  (SVG binary tree, optional `groups` map)
-│       ├── vizGeometry.ts        # Canvas measuring + tight viewBox + fit helpers (anti-letterbox)
+│       ├── ArrayVisualizer.tsx   # kind: 'array' — bars span the width, tallest bar spans the band
+│       ├── GridVisualizer.tsx    # kind: 'grid'  — square cells sized from the HEIGHT
+│       ├── GraphVisualizer.tsx   # kind: 'graph' — spreadToBox for authored x/y, ellipse otherwise
+│       ├── TreeVisualizer.tsx    # kind: 'tree'  — tidy slots stretched across the measured box
+│       ├── vizGeometry.ts        # THE canvas geometry law: boxViewBox, spreadToBox, ellipsePoints…
 │       ├── vizPalette.ts         # --viz-1..8 slot helpers + connected-component derivation
-│       ├── AuxiliaryPanel.tsx    # "Working data" chip rows, rendered as a strip inside the stage
-│       ├── TutorialCard.tsx      # Teacher explanation strip for the current step
+│       ├── AuxiliaryPanel.tsx    # "Working data" chip rows — a strip under the tutorial header
+│       ├── TutorialCard.tsx      # The visualizer panel's HEADER: readable step prose
 │       ├── CodeBlockViewer.tsx   # Python code viewer (hugs the listing), active line, Vars strip
-│       └── ProblemHeader.tsx     # Title + badges + expanded-by-default full-width details/lesson
+│       └── ProblemHeader.tsx     # Title + badges + full-width details/lesson (controlled, persisted)
 └── algorithms/                   # 25 category folders, 40 algorithm definitions
     ├── registry.ts               # ALGORITHM_REGISTRY: Record<id, AlgorithmDefinition>
     └── <category>/
@@ -215,19 +227,19 @@ on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
   persisted `lastAlgorithmId` itself).
 - **`workspace.$algorithmId.tsx`** guards in `beforeLoad`: an id missing from
   `ALGORITHM_REGISTRY` redirects to `bubble-sort`, so the component can look up the
-  registry unconditionally. It wires `useStepEngine`, the sound cue pipeline
-  (section 2.10), and the random-input controls, then renders `MainLayout`. **Adding an
-  algorithm requires zero route changes** — `/workspace/$algorithmId` resolves any
-  registry id.
+  registry unconditionally. It wires `useStepEngine`
+  (section 2.10), the global playback keys (section 2.12), and the random-input
+  controls, then renders `MainLayout`. **Adding an algorithm requires zero route
+  changes** — `/workspace/$algorithmId` resolves any registry id.
 
-### 2.2 Persistence: settings and workspace geometry
+### 2.2 Persistence: settings and workspace state
 
 Two independent localStorage layers, both defensive — reads validate and fall back,
 writes are best-effort, nothing throws into render.
 
 **`src/app/SettingsContext.tsx`** holds `panels: PanelVisibility` (the four independent
-panel booleans — section 2.11), `soundEnabled`, and `lastAlgorithmId`, and exposes
-`setPanel(key, visible)` / `togglePanel(key)` / `setSoundEnabled` /
+panel booleans — section 2.11) and `lastAlgorithmId`, and exposes
+`setPanel(key, visible)` / `togglePanel(key)` /
 `setLastAlgorithmId`. Every value is initialized from `localStorage` (keys prefixed
 `dsa_visualizer_`) through a validating `readStored(key, fallback, guard)` helper —
 reads that throw or contain garbage fall back to defaults; `writeStored` is
@@ -235,7 +247,7 @@ best-effort so in-memory state stays authoritative. `useSettings()` throws outsi
 provider.
 
 Panel keys are stored one boolean each: `panel_visualizer`, `panel_code`,
-`panel_tutorial`, `panel_auxiliary` (plus `sound_enabled`, `last_algorithm_id`).
+`panel_tutorial`, `panel_auxiliary` (plus `last_algorithm_id`).
 **Legacy settings migrate on read, in `readPanelVisibility()`:** the pre-R4.4
 mutually exclusive `view_mode` value is mapped through `LEGACY_STAGE_PANELS`
 (`split` → visualizer+code both on, `visual` → visualizer only, `code` → code only)
@@ -244,14 +256,15 @@ and used as the *fallback* for the two stage panels, while the old independent
 always wins over the legacy fallback. `ViewMode` still exists in `src/types/dsa.ts`
 **only** so this migration can type its input — no component takes it as a prop.
 
-**`src/app/workspaceLayout.ts`** owns panel geometry under **one versioned key**, and
-**v5** stores nullable pixel heights for the three panels that are still *rows of a
-column*. The `tutorial` and `auxiliary` slots are gone: R5.2 moved those strips inside
-the visualizer panel, so they have no handle and no height of their own to remember:
+**`src/app/workspaceLayout.ts`** owns every *manual adjustment to the workspace* under
+**one versioned key**, and **v6** adds `detailsExpanded` to the geometry, because
+whether the lesson panel is open is a manual adjustment like any drag (R6.5) rather
+than something that should snap back to open on every reload:
 
 ```ts
-export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v5';
-export const WORKSPACE_LAYOUT_VERSION = 5;
+export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v6';
+export const WORKSPACE_LAYOUT_VERSION = 6;
+export const WORKSPACE_LAYOUT_RESET_EVENT = 'dsa:workspace-layout-reset';
 
 export interface WorkspacePanelHeights {
   visualizer: number | null;
@@ -261,36 +274,53 @@ export interface WorkspacePanelHeights {
 
 export interface WorkspaceLayout {
   version: typeof WORKSPACE_LAYOUT_VERSION;
-  splitPercent: number;              // left column width %
+  splitPercent: number;                // left column width %
   panelHeights: WorkspacePanelHeights; // null = automatic (hug / absorb leftover)
+  detailsExpanded: boolean;            // is the problem/lesson panel open
 }
 ```
 
 - **`null` means "size itself" (hug its content, or absorb the column's leftover
   space); a number means "the user dragged this panel to this pixel height".**
   Defaults are `splitPercent: 70` — the visualizer is the stage the learner watches, so
-  it gets the bulk of the width (R5.2) — and every panel `null`.
+  it gets the bulk of the width — every panel `null`, and `detailsExpanded: true` (a
+  first visit should not have to hunt for the lesson).
   `DEFAULT_WORKSPACE_LAYOUT` is exported **frozen** — call `cloneWorkspaceLayout()`
-  for a writable copy. `WORKSPACE_PANEL_KEYS` is the canonical iteration order.
+  for a writable copy. `WORKSPACE_PANEL_KEYS` is the canonical iteration order, and the
+  `tutorial`/`auxiliary` slots are deliberately absent: those strips live *inside* the
+  visualizer panel, so they have no handle and no height of their own to remember.
 - Bounds: `MIN_SPLIT_PERCENT` 25 / `MAX_SPLIT_PERCENT` 80,
   `MIN_PANEL_HEIGHT_PX` 64 / `MAX_PANEL_HEIGHT_PX` 2000 — the same bounds the reader
   validates against, so every drag stays storable. `clampPanelHeight` keeps `null`
   as `null` and degrades a non-finite number to `null` (automatic) rather than to a
   number.
 - In a `WorkspaceLayoutPatch`, an **absent/`undefined`** panel key means "leave it
-  alone" while an explicit **`null`** means "put this panel back on automatic". Reset
-  writes `null` everywhere.
+  alone" while an explicit **`null`** means "put this panel back on automatic".
+  `detailsExpanded` is merged with `??`, never `||` — collapsing the panel patches an
+  explicit `false`, which `||` would silently discard.
 - `readWorkspaceLayout()` **never throws**: unreadable storage, malformed JSON, a
-  stale `version` (every v3 weight payload and every v4 five-panel payload included),
-  NaN, or out-of-range numbers all yield defaults, and the result is rebuilt field by
-  field so unknown keys in storage never reach app state. Old payloads are **ignored,
-  not migrated** — a shape change invalidates them wholesale.
+  stale `version` (v3 weights, v4's five panels, v5's missing `detailsExpanded` — all
+  of them), a non-boolean `detailsExpanded`, NaN, or out-of-range numbers all yield
+  defaults, and the result is rebuilt field by field so unknown keys in storage never
+  reach app state. Old payloads are **ignored, not migrated** — a shape change
+  invalidates them wholesale.
 - `writeWorkspaceLayout(patch)` merges the patch onto what is stored, clamps, writes
   best-effort, and returns the merged layout (callers set state from the return value).
-- `clearWorkspaceLayout()` is the **only** thing that removes the key, and it is called
-  from exactly one place: the confirmed "Reset layout" action (section 2.7). Because
-  the key is otherwise never cleared, custom sizes survive reloads **and** dev-server
-  restarts. Never add another code path that removes it.
+- `clearWorkspaceLayout()` is the **only** thing that removes the key. Because the key
+  is otherwise never cleared, custom sizes and the details state survive reloads **and**
+  dev-server restarts. Never add another code path that removes it.
+- `resetWorkspaceLayout()` is the whole confirmed reset in one call: it clears the key,
+  dispatches `WORKSPACE_LAYOUT_RESET_EVENT` on `window`, and returns the defaults. It
+  exists because **the reset button lives in the navbar while the layout state lives in
+  `MainLayout`** (R6.5) — the two are joined by that window event rather than a shared
+  React parent, and keeping the clear and the announcement in one function is what stops
+  them drifting apart. `MainLayout` listens for the event and re-reads storage, so a
+  reset takes effect live instead of only after a reload.
+
+`MainLayout` restores everything on mount with `useState(() => readWorkspaceLayout())`
+and drives `ProblemHeader`'s `expanded` prop plus the `data-details-expanded` attribute
+on `<main>` from `layout.detailsExpanded`. Toggling Details writes the patch
+immediately; drags report live changes and persist once on commit.
 
 One versioned key (rather than a key per handle) is deliberate: a shape change
 invalidates the old data wholesale instead of half-applying it. Version bumps mean
@@ -298,7 +328,7 @@ bumping the key suffix too.
 
 ### 2.3 stepEngine — the playback state machine and its dedupe contract
 
-`useStepEngine({ steps, soundEnabled, onStepChange, defaultSpeed })` in
+`useStepEngine({ steps, onStepChange, defaultSpeed })` in
 `src/engine/stepEngine.ts` returns `{ currentStepIndex, currentStep, totalSteps,
 isPlaying, speed, play, pause, togglePlay, stepForward, stepBackward, goToStep, reset,
 setSpeed }`.
@@ -309,117 +339,81 @@ Design points that must not be broken:
   never churns on new callback identities.
 - **Dedupe contract**: `onStepChange` fires from one dedicated effect, and only when
   `currentStepIndex` differs from `lastNotifiedIndexRef`. The ref initializes to `0`,
-  so the initial index-0 render **never** notifies (no sound on page load), and
+  so the initial index-0 render **never** notifies (nothing fires on page load), and
   StrictMode's double-invoked effects cannot double-fire. When the `steps` array
   identity changes (new algorithm / new input), the engine resets to index 0, stops
   playback, and pre-marks index 0 as notified so the switch is silent.
 - Playback is a plain `setInterval(speed)` that auto-pauses at the last step;
   `play()` from the last step restarts at 0. The speed slider bottoms out at 50ms,
-  which is what the sound throttle budget in section 2.10 is sized against.
+  which is what the playback interval floor is sized against.
 
 The workspace route layers a second dedupe (`lastHandledStepRef`) inside its
 `handleStepChange`, plus `prevHandledStepRef` holding the step the listener last
 heard — cue classification is a delta against that step, not against the render's
 previous props. Both refs reset when the `steps` identity changes so a baseline never
 leaks across runs, and `prevHandledStepRef` is updated **even while muted** so
-re-enabling sound resumes from a valid baseline. **Never call sound functions from
+a re-render resumes from a valid baseline. **Never trigger side effects from
 render or from ad-hoc effects** — always go through `onStepChange` so both dedupe
 layers apply.
 
-### 2.4 soundEngine — gesture unlock, master gain, cue playback
-
-`src/engine/soundEngine.ts` exports a singleton `SoundEngine` (plus function
-wrappers). Design decisions, all load-bearing:
-
-- **Lazy AudioContext** created on first use; `webkitAudioContext` fallback; all
-  failures are swallowed (sound is never allowed to crash the app).
-- **Gesture unlock**: browsers create AudioContexts suspended until a user gesture.
-  Scheduling into a suspended context makes every queued tone burst at once on
-  resume, so the engine *skips* tones while suspended and installs capture-phase
-  `pointerdown`/`keydown` listeners that call `ctx.resume()` on the first gesture,
-  removing themselves once running. **Never schedule while suspended.**
-- **Master gain mute**: muting sets a single master `GainNode` to 0 instantly instead
-  of suspending the context (suspend freezes `currentTime` and corrupts scheduling).
-- **Throttle budget sized for 50ms stepping**: `MIN_TONE_INTERVAL_MS` is **30ms** and
-  `MAX_ACTIVE_VOICES` is **14**. The step interval bottoms out at 50ms, so an 80ms
-  throttle (the old value) swallowed legitimate consecutive steps; the voice ceiling
-  then has to hold every short cue that can overlap at that rate. Do not raise the
-  throttle back up "to be safe" — that silently drops steps.
-- **Cue timbres** live in `CUE_TIMBRES`, one entry per non-`complete` cue kind, each
-  with `type`/`durationMs`/`peakGain`/`degreeOffset`. Durations stay **≤120ms** so
-  fast playback reads crisp instead of muddy, and `advance` is deliberately the
-  quietest and shortest (28ms) because it fires on every otherwise-uneventful step.
-  `cueFrequency(kind, pitch)` quantizes the 0..1 pitch onto a major-pentatonic
-  220–880Hz ladder plus the kind's register offset, so a run sounds intentional rather
-  than like a random sweep.
-- **Completion arpeggio** (`playComplete`) has a 400ms cooldown and is scheduled in
-  one pass on the AudioContext clock (setTimeout chains drift and overlap).
-
-Public API: `playCue(cue: SoundCue)` (the one the app uses — `'complete'` delegates to
-the arpeggio), plus the pre-existing `playCompare(val?, maxVal?)`, `playSwap`,
-`playPush`, `playPop`, `playComplete`, `setMuted/isMuted/toggleMute`.
-
-### 2.5 The achromatic design law: black, carbon, smoke — colour is reserved for data
+### 2.5 The surface law: cards are DARKER than the page, and colour is earned
 
 `src/styles/theme.css` is **finished and read-only**, and it is the only place raw
 color/size values live. Every value in it was verified numerically, not by eye: the
-WCAG contrast ladder (text primary ≥12:1 on every surface, secondary/muted ≥4.5:1,
-faint ≥3:1), the surface luminance steps, border contrast against page and surface,
-and the categorical gates for `--viz-1..8` (OKLCH lightness band, chroma floor,
-protan/deutan/tritan separation, 3:1 vs surface). **Because the values are a validated
-system, they must never be hand-tweaked** — not in theme.css, not as one-off hexes in
-a component. A "small nudge to make it pop" invalidates the gates. If a colour seems
-missing, the answer is an existing token, not a new value.
+WCAG contrast ladder (text primary ≥11.6:1 on every surface it is used on), the surface
+luminance steps, border contrast against both the card and the page, and the categorical
+gates for `--viz-1..8` (OKLCH lightness band, chroma floor, protan/deutan/tritan
+separation, 3:1 vs surface). **Because the values are a validated system, they must never
+be hand-tweaked** — not in theme.css, not as one-off hexes in a component. A "small
+nudge to make it pop" invalidates the gates. If a colour seems missing, the answer is an
+existing token, not a new value.
 
-**THE RULE (R5.1): the shell is achromatic; colour is reserved for data.** The app is
-black / carbon / smoke. There is **no green, teal, navy or mint anywhere** in chrome,
-panels, cards, buttons, inputs, drawers, the navbar, sidebars or text. Hue appears in
-exactly three places, and nowhere else:
+**THE SURFACE LAW (R6.2): the hierarchy is inverted — the reading surfaces are the
+darkest, and the page is the interactive backdrop they sit on.**
 
-1. **Algorithm-state marks** — `--state-*` on elements *inside* a visualizer.
-2. **The categorical `--viz-1..8` palette** — identity/groups in graphs and
-   data-structure views (section 2.9).
-3. **Semantic badges and status** — `--success` / `--warning` / `--danger` / `--info`
-   (plus their `-soft` backgrounds) in lists and badges.
+| Token | Value | Role |
+|---|---|---|
+| `--bg-inset` | `#050506` | deepest: code wells, SVG canvases, inputs |
+| `--bg-surface` | `#0a0a0c` | cards and panels — **near-black, darker than the page** |
+| `--bg-page` | `#17171b` | the page itself — **carbon**, the backdrop |
+| `--bg-chrome` | `#1c1c21` | navbar, toolbars, the in-panel strips |
+| `--bg-elevated` | `#1e1e24` | controls raised on a card: buttons, chips |
+| `--bg-hover` | `#282830` | hover |
+| `--bg-pressed` | `#32323b` | pressed |
 
-Anything that is not one of those three is neutral. A tinted panel, a coloured toolbar,
-an accent-hued heading — all bugs. The point is that the learner's eye is drawn to the
-data because nothing else in the frame competes with it.
+**Why inverted, and why not to "fix" it:** the learner reads code, tutorial prose and
+the topic guide for long stretches, and those all live on cards — so the cards are the
+calm, dark places the eye rests, while the page around them is carbon and the *controls*
+step lighter as they rise off the card. That is the opposite of the conventional
+"elevation = lighter" ladder, and it is deliberate. `--bg-backdrop` dims behind drawers
+and dialogs.
 
-**The surface ladder** — the seven surface tokens with their measured relative
-luminance:
+**CRITICAL — borders carry the edge definition.** Adjacent tiers in the interactive
+range sit close together (`--bg-chrome` → `--bg-elevated` is only ~1.13× in relative
+luminance, `--bg-elevated` → `--bg-hover` ~1.6×), and every reading surface is
+near-black, so a container's shape has to come from an **edge**, not from fill contrast:
+**every container, card, panel, well, chip and button MUST carry a visible border
+token.** A borderless panel does not look minimal, it disappears. The verified border tones are
+`--border-subtle` `#2a2a31` (internal dividers inside an already-bordered card),
+`--border-default` `#50505b` (2.49:1 vs card, 2.25:1 vs page — ordinary containers and
+controls), `--border-strong` `#75757f` (4.34:1 vs card — hovered or emphasized
+boundaries), `--border-accent` `#d8d8e0`. Several `ui.css` defaults land on
+`--border-subtle`, which nearly vanishes against a near-black card, so the app components
+that nest chips or wells inside a panel deliberately promote the inner edge to
+`--border-default` (`CHIP_BORDER` in `ComplexityCard`, `PANEL_BORDER` in `ProblemHeader`
+and `ProblemList`, the same promotion in `AuxiliaryPanel` and `ControlPanel`'s step
+readout). Follow that when you add one.
 
-| Token | Value | Relative luminance | Use |
-|---|---|---|---|
-| `--bg-inset` | `#030304` | 0.0009 | wells: code listings, SVG canvases, inputs |
-| `--bg-page` | `#08080a` | 0.0025 | the page itself (black) |
-| `--bg-chrome` | `#0e0e11` | 0.0045 | navbar, toolbars, the in-panel strips |
-| `--bg-surface` | `#141417` | 0.0071 | containers: cards and panels (carbon) |
-| `--bg-elevated` | `#1c1c21` | 0.0119 | buttons, chips, nested panels (smoke) |
-| `--bg-hover` | `#26262c` | 0.0198 | hover |
-| `--bg-pressed` | `#303037` | 0.0302 | pressed |
+**Accent is light smoke `#d8d8e0`** (`--accent`, with `--accent-hover` `#f2f2f6`,
+`--accent-soft`, `--accent-softer`, `--text-on-accent`, `--accent-secondary`). It marks
+interaction and selection only. Selected = `--accent-soft` background +
+`--border-accent` border + `--accent` text.
 
-Nesting order is inset < page < chrome < surface < elevated < hover < pressed;
-`--bg-backdrop` dims behind drawers and dialogs. There is one hue tier now, not two —
-the old navy-chrome / emerald-content split is gone.
-
-**CRITICAL — adjacent surfaces sit only ~1.09× apart, so borders carry essentially all
-of the edge definition: every container, card, panel, well, chip and button MUST carry
-a visible border token.** A borderless panel does not look minimal, it disappears; that
-is a bug. The verified border tones are `--border-subtle` `#303037`, `--border-default`
-`#50505a` (2.31:1 vs surface), `--border-strong` `#6b6b76` (3.49:1 vs surface — the
-WCAG bar for UI component boundaries), `--border-accent` `#e9e9ef`. Use
-`--border-default` for ordinary containers and controls, `--border-subtle` for internal
-dividers inside an already-bordered card, and `--border-strong` for hovered or
-emphasized boundaries. Note that some `ui.css` defaults land on `--border-subtle`, which
-is nearly invisible against `--bg-surface`; the app components that nest chips inside a
-panel (`ComplexityCard`, `AuxiliaryPanel`) deliberately promote every inner edge to
-`--border-default` — follow that when you add one.
-
-**Accent is bright smoke `#e9e9ef`** (`--accent`, with `--accent-hover` `#ffffff`,
-`--accent-soft`, `--accent-softer`, `--text-on-accent`, and `--accent-secondary`). It is
-not mint and it is not a decoration colour: it marks interaction and selection only.
-Selected = `--accent-soft` background + `--border-accent` border + `--accent` text.
+**Primary buttons are BLACK-FILLED, not a light slab.** `.ui-btn--primary` is
+`--bg-inset` fill + `--accent` border + `--text-primary` ink at weight 600; hover fills
+`--bg-surface` and brightens the border to `--accent-hover`. The accent token is the
+*edge and ink* on a primary button, never its fill — a bright fill on this palette reads
+as a hole punched in the page.
 
 **Text pairing rules (AA, non-negotiable):** `--text-primary` `#f5f5f7` for headings and
 values, `--text-secondary` `#c6c6cd` for body, `--text-muted` `#9e9ea7` for labels,
@@ -427,22 +421,41 @@ values, `--text-secondary` `#c6c6cd` for body, `--text-muted` `#9e9ea7` for labe
 or `--text-faint` on `--bg-hover` or `--bg-pressed`** — they lose contrast on the
 lighter smokes. Hover and pressed states use `--text-secondary` or `--text-primary`.
 
-Other groups: semantic feedback (`--success/warning/danger/info` + `-soft`
+#### The colour policy (R6.3) — neutral chrome, colour where it carries meaning
+
+The Round 5 achromatic sweep went too far and stripped colour that was doing real work.
+The policy now is: **chrome, panels, inputs, toolbars, drawers and body text are
+neutral**, and hue appears in exactly three places — all three of them *data*:
+
+1. **Difficulty and status badges.** `difficultyBadgeVariant(difficulty)` →
+   Easy=`success`, Medium=`warning`, Hard=`danger`, and count/status badges use the
+   semantic variants too (`ProblemList`'s header renders `info` for the total beside
+   the three difficulty counts). `ProblemList`, `ProblemHeader` and `QuickAccessDrawer`
+   all show coloured difficulty badges. Do not neutralize these.
+2. **The categorical `--viz-1..8` palette** — identity/groups in `GraphVisualizer`,
+   `TreeVisualizer`'s `groups` prop, and the **knowledge map**, where
+   `KnowledgeGraph.TOPIC_FAMILIES` assigns one fixed slot per topic family and tints
+   every node, edge and legend entry from it (section 2.9). The knowledge map's full
+   cluster colouring stays exactly as it is; only the shell around it (headers, hints,
+   buttons) is neutral.
+3. **Algorithm-state marks** — `--state-*` on elements *inside* a visualizer
+   (`GridVisualizer` also reuses `--state-sorted`/`--state-swap` for start/end cells).
+
+Anything else coloured is a bug: a tinted panel, a hued heading, an accent-coloured
+toolbar. `ElementState` tokens stay **semantic** (what the algorithm is doing, not what a
+thing is), and untouched elements sit on neutral `--state-default` / `--state-default-bg`
+so **any** colour at all means "the algorithm acted here". Instead of glows, touched
+elements take a heavier stroke — that is how the visualizers keep an untouched element
+visibly inactive next to an active one.
+
+Other token groups: semantic feedback (`--success/warning/danger/info` + `-soft`
 backgrounds), one `--state-<name>` / `--state-<name>-bg` pair per `ElementState`
 (section 3), the categorical `--viz-1..8` set (section 2.9), type scale
-(`--text-xs..2xl`, `--font-ui`, `--font-code`), spacing `--space-1..8` on a 4px grid,
-control heights `--control-h-sm/md/lg`, layout metrics `--navbar-h` (56px) /
-`--stage-min-h` (420px) / `--panel-min-h` (200px), radii, neutral shadows (no coloured
-glows), `--focus-ring`, transitions, and z-indices
+(`--text-xs` `0.72rem` … `--text-2xl` `1.4rem`, `--font-ui`, `--font-code`), spacing
+`--space-1..8` on a 4px grid, control heights `--control-h-sm/md/lg` (28/34/40px),
+layout metrics `--navbar-h` (56px) / `--stage-min-h` (420px) / `--panel-min-h` (200px),
+radii, neutral shadows (no coloured glows), `--focus-ring`, transitions, and z-indices
 `--z-dropdown/drawer/modal/tooltip`.
-
-`ElementState` tokens stay **semantic** (what the algorithm is doing, not what a thing
-is), and untouched elements sit on carbon-neutral `--state-default` / `--state-default-bg`
-so **any** colour at all means "the algorithm acted here". Instead of glows, touched
-elements take a heavier stroke (1px → 2px) — that is how the visualizers keep an
-untouched element visibly inactive next to an active one. The `--viz-1..8` categorical
-set was **re-validated against the carbon surface** and still passes every gate, so its
-values are unchanged and must not be substituted.
 
 `src/styles/ui.css` styles the UI library (`ui-` prefix, BEM-ish: `.ui-btn--primary`,
 `.ui-btn--selected`, `.ui-dialog`) plus the shared classes `.ui-code-line`,
@@ -459,62 +472,76 @@ always `var(--token)`.
 
 The navbar renders `SearchTrigger` — a button styled like an input
 (`🔍 Search algorithms… ⟨/⟩` with a `Kbd` chip). Clicking it, or pressing `/`
-anywhere outside an input/textarea/select/contenteditable, opens
-`QuickAccessDrawer` (built on `ui/Drawer`; ESC or backdrop click closes). The drawer
-holds an autofocused `Input` at the top, then one `Collapsible` per category with a
-count `Badge`; the active algorithm's category starts open. While searching, only
-matching categories render, auto-expanded. The selected row uses the standard
-selected treatment plus a check icon; every row shows a difficulty `Badge`. There is
-no dropdown-results search anywhere — the drawer owns all searching.
+anywhere outside an input/textarea/select/contenteditable with no dialog open
+(section 2.12), opens `QuickAccessDrawer` (built on `ui/Drawer`; ESC or backdrop click
+closes). The drawer holds an autofocused `Input` at the top, then one `Collapsible` per
+category with a count `Badge`; the active algorithm's category starts open. While
+searching, only matching categories render, auto-expanded. The selected row uses the
+standard selected treatment plus a check icon; every row shows a coloured difficulty
+`Badge`. There is no dropdown-results search anywhere — the drawer owns all searching,
+and `GlobalSearchBar` is gone.
 
-### 2.7 The graph-focused workspace: one stage container, a hugging code column
+### 2.7 Workspace anatomy: one stage container, tutorial first, a hugging code column
 
 There is **no layout mode switch**. One system handles every viewport.
 
-**The left column is ONE container (R5.2).** `MainLayout` renders a single
-`Card data-panel="visualizer"` and everything about the current step lives *inside* it,
-top to bottom:
+**The left column is ONE container.** `MainLayout` renders a single
+`Card data-panel="visualizer"` and everything about the current step lives *inside* it.
+Top to bottom (R6.4 — the tutorial moved from the bottom to the top):
 
-1. `data-region="working-data"` — the auxiliary/working-data strip, pinned at the top.
-2. `data-region="canvas"` — the visualization, taking all remaining height.
-3. `data-region="tutorial"` — the teacher explanation strip.
+1. `data-region="tutorial"` — the teacher explanation, **as the panel's header**.
+2. `data-region="working-data"` — the auxiliary/working-data strip beneath it.
+3. `data-region="canvas"` — the visualization, taking all remaining height.
 4. `data-region="controls"` — `ControlPanel variant="embedded"`, docked at the very
    bottom edge.
 
 **Why this shape**, and why not to undo it: the panel's *outer* size is stable, so a
 step that adds an aux row or a longer sentence never resizes or reflows the surrounding
-layout (no width/height twitching between steps), and the learner sees the graph, its
-working data and the tutorial together without scrolling between them. **The canvas is
-the only flexible region** — it absorbs the content deltas; every strip keeps its
-natural height.
+layout (no width/height twitching between steps), and the learner reads the explanation
+first, then sees the working data and the graph together without scrolling. **The canvas
+is the only flexible region** — it absorbs the content deltas.
 
 Mechanics worth knowing before you touch them:
 
-- The strips are rendered through the local `PanelStrip` helper, which owns the *whole*
-  separation from the canvas: one `--border-subtle` divider on the edge facing the
-  canvas plus a `--bg-chrome` band fill. `AuxiliaryPanel` and `TutorialCard` therefore
-  render **border-free, radius-free, shadow-free** inside it (they set
-  `borderWidth: 0`, `borderRadius: 0`) so the canvas edge is exactly one line. The band
-  is on the chrome tier, matching the playback strip below it, because the working-data
-  chips are `--bg-elevated` and would dissolve into an equally elevated band.
-- A strip is capped at `STRIP_MAX_HEIGHT` (38%) with `overflow-y: auto`, so a very long
-  explanation or a wide working set can never starve the canvas — past the cap the strip
-  scrolls inside itself and the panel's outer size still does not move.
+- Both strips live inside one `data-band="step-context"` wrapper capped at
+  `STEP_BAND_MAX_HEIGHT` (**45%** of the panel) with `overflow: hidden`; each strip is
+  `overflow-y: auto`. They are capped **together** on purpose: two strips each free to
+  take 38% would leave the canvas a quarter of the panel. Because the cap is a share of
+  the panel, no step can move the panel's outer size — only the canvas boundary inside
+  it. Inside the band the tutorial is the greedy strip (`flex: 1 1 auto`, it absorbs the
+  squeeze) and the single-row working-data strip keeps its size (`flex: 0 0 auto`).
+- The local `PanelStrip` helper owns the *whole* separation from what follows it: a
+  `--bg-chrome` band fill plus one `--border-subtle` divider on the bottom edge. Every
+  strip is above the canvas now, so every divider faces down; the last strip drops its
+  divider when there is no canvas beneath it to divide from. `TutorialCard` and
+  `AuxiliaryPanel` therefore render **border-free, radius-free, shadow-free** inside it
+  (`borderWidth: 0`, `borderRadius: 0`, transparent background) so each seam is exactly
+  one line. The band is the chrome tier because the working-data chips are
+  `--bg-elevated` and would dissolve into an equally elevated band.
+- **The tutorial is sized as prose, not as a caption (R6.4).** `TutorialCard` sets the
+  body at `--text-md` with `line-height: 1.6`, `--space-3` padding, the `what` as a bold
+  `--text-primary` lead-in sentence followed by the `why` in `--text-secondary`, a
+  `--text-md` step counter, and a reserved `min-height` of two lines so the canvas
+  boundary stops jumping when one step's sentence wraps differently from the last. It
+  uses `--text-xs` **nowhere**, never truncates (no ellipsis, no line clamp, no
+  `nowrap` on the prose), and its dismiss control is a bordered `IconButton` (a ghost
+  button is invisible on this palette).
 - `panels.tutorial` / `panels.auxiliary` toggle the strips. A strip also requires the
-  current step to actually have content for it (`currentStep?.explanation`,
-  `currentStep?.auxiliaryState`) — an empty strip would be dead space. Hiding one gives
-  its space to the canvas and renders **no wrapper, divider or gap** at all.
+  current step to actually have content for it — `MainLayout` asks the components' own
+  predicates, `hasTutorialContent(...)` and `hasAuxiliaryContent(...)`, because an empty
+  strip would be dead space with a divider. Hiding one gives its space to the canvas and
+  renders **no wrapper, divider or gap** at all.
 - The visualizer row is visible while *any* of the canvas or the two strips is on, and
   it is `greedy` only while the canvas is there to absorb leftovers; with the canvas
   toggled off the panel is just its strips and hugs them.
 
-**The right column hugs its content (R5.4).** `code` and `complexity` are both
-non-greedy rows: `CodeBlockViewer` shows the solution **in full** with no trailing empty
-space and no internal scroll while it fits (its listing is `flex: 0 1 auto` —
-shrinkable, never greedy), and `ComplexityCard` sits **immediately below** the last code
-line, so a short solution pulls it up instead of leaving a gap. When the two together
-exceed the column height, the **column** scrolls (`ResizableRows` is `overflow-y: auto`)
-— the panels themselves do not.
+**The right column hugs its content.** `code` and `complexity` are both non-greedy
+rows: `CodeBlockViewer` shows the solution **in full** with no trailing empty space and
+no internal scroll while it fits (its listing is `flex: 0 1 auto` — shrinkable, never
+greedy), and `ComplexityCard` sits **immediately below** the last code line, so a short
+solution pulls it up instead of leaving a gap. When the two together exceed the column
+height, the **column** scrolls (`ResizableRows` is `overflow-y: auto`) — the panels
+themselves do not.
 
 **Smart responsive rule (never block page scroll).** `MainLayout`'s `<main>` always
 keeps `overflow-y: auto`; the page is allowed to scroll in every state. The stage sizes
@@ -545,8 +572,8 @@ the stage**, which is why the subtraction always uses the *collapsed* strip heig
   `AuxiliaryPanel` and `TutorialCard` therefore carry no height of their own, and
   `AuxiliaryPanel` renders only the aux rows that actually have items.
 - **`greedy`** (`flex: 1`, `min-height: var(--panel-min-h)`) — absorbs the leftover
-  space. There is exactly **one** greedy row in the whole workspace now: the visualizer
-  panel in the left column. Nothing in the right column is greedy (R5.4).
+  space. There is exactly **one** greedy row in the whole workspace: the visualizer
+  panel in the left column.
 - **`pinned`** (explicit `flexBasis`/`height` in px, `overflow-y: auto`) — **a user drag
   overrides the automatic sizing for that one panel only.** Everything the user never
   dragged stays automatic. **Double-clicking the handle restores that panel to
@@ -563,10 +590,10 @@ outgrows the stage scrolls instead of squeezing.
 
 **What is resizable.** `ResizableLayout` splits the stage into left (visualizer) and
 right (code) columns. `ResizableRows` stacks the rows of a column with a handle between
-each adjacent visible pair — but the left column is a **single row** since R5.2, so it
-renders no row handle at all; the only row handle left in the app is the one between
-`code` and `complexity`. A stored `visualizer` pin is still honoured on read, and only
-the column split changes the left column's geometry interactively. Both components are
+each adjacent visible pair — but the left column is a **single row**, so it renders no
+row handle at all; the only row handle left in the app is the one between `code` and
+`complexity`. A stored `visualizer` pin is still honoured on read, and only the column
+split changes the left column's geometry interactively. Both components are
 **controlled**: `MainLayout` owns the sizes so they can be persisted, and both report a
 live `…Change` during a drag plus a single `…Commit` when the drag ends (persisting on
 every mousemove would hammer localStorage). Hidden rows render nothing at all — no
@@ -581,21 +608,24 @@ handle, automatic (`null`) height for a row handle. An automatic row announces
 Pointer tracking lives on `window` so a fast drag that leaves the 8px handle keeps
 resizing.
 
-**Reset requires confirmation.** The header's "Reset layout" button opens
-`ConfirmDialog` from `src/ui` (destructive variant, Escape/backdrop/cancel all back
-out). Only `onConfirm` calls `clearWorkspaceLayout()` and restores
-`DEFAULT_WORKSPACE_LAYOUT` in memory — which puts **every** panel back on automatic.
-Never wire a one-click reset.
+**Reset lives in the NAVBAR and requires confirmation (R6.5).** `ProblemHeader` renders
+no reset control at all any more — `Details` is its only button. The navbar's
+"Reset layout" opens `ConfirmDialog` from `src/ui` (destructive variant;
+Escape/backdrop/cancel all back out), and only `onConfirm` calls
+`resetWorkspaceLayout()`, which clears the key and announces the reset so the mounted
+workspace re-reads defaults live — every panel back on automatic and details back to
+expanded. Never wire a one-click reset, and never clear the key from anywhere else.
 
-**Details are expanded by default, at full container width.** `ProblemHeader` is
-controlled (`expanded` / `onToggleExpanded`) and `MainLayout` initializes that state to
-`true`, so the problem statement, the whole `topicGuide` lesson, key terms, constraints
-and examples are visible on first paint. Specs must not click "Details" first
-(section 4.10). Per R4.3 there is **no readable-measure cap** anywhere in the details
-panel: the old `max-width: 72ch` is gone, prose spans the full width of its container
-and stays legible through line-height instead, and nothing is squeezed into a left
-column. The two multi-column blocks — **key terms** (`<dl data-testid="details-key-terms">`)
-and **examples** (`data-testid="details-examples"`) — use one shared responsive grid,
+**Details are controlled, persisted, and expanded by default, at full container
+width.** `ProblemHeader` takes `expanded` / `onToggleExpanded`; `MainLayout` sources
+that from `layout.detailsExpanded` (default `true`, persisted on every toggle), so the
+problem statement, the whole `topicGuide` lesson, key terms, constraints and examples
+are visible on first paint — and stay collapsed across reloads and algorithm changes
+once the user collapses them. Specs must not click "Details" first (section 4.10). There
+is **no readable-measure cap** anywhere in the details panel: prose spans the full width
+of its container and stays legible through line-height instead. The two multi-column
+blocks — **key terms** (`<dl data-testid="details-key-terms">`) and **examples**
+(`data-testid="details-examples"`) — use one shared responsive grid,
 `repeat(auto-fit, minmax(min(100%, 22rem), 1fr))`: as many columns as fit, collapsing to
 one on narrow containers, with `min(100%, …)` keeping a single column from overflowing a
 container narrower than the floor. That `22rem` column floor is the one intentional
@@ -603,69 +633,141 @@ non-token measure in the file (the token scale covers spacing and control height
 column measures) and it is commented as such — do not copy it as licence for ad-hoc
 sizes elsewhere.
 
-### 2.8 Canvas sizing: tight viewBox, fill the box, never letterbox
+### 2.8 The canvas geometry LAW: the viewBox IS the measured box
 
 `src/components/primitives/vizGeometry.ts` is the shared geometry layer all four
-visualizers use, and it exists to kill the letterboxing described in R5.3.
+visualizers use. **Read the module header before changing anything in a visualizer.**
 
-**The bug it fixes.** Each canvas used to build its viewBox from fixed constants (a
-220-unit bar band, an 84-unit tree level, a 900×560 default box) and render it into an
-`<svg width="100%" height="100%">`. Whenever that fixed ratio disagreed with the
-container's ratio — which it almost always did — `preserveAspectRatio="xMidYMid meet"`
-centred the drawing and painted the leftover as inset well: the empty bands above and
-below every visualization.
+**THE LAW (R6.1):**
 
-**The three-part cure, and the rules that come out of it:**
+```tsx
+const { ref, box } = useCanvasBox(fallbackBox);   // measured client box, in CSS px
+…
+<div ref={ref} style={{ /* the well: border + --bg-inset, NO padding */ }}>
+  <svg width="100%" height="100%" viewBox={viewBoxAttr(boxViewBox(box))} style={{ display: 'block' }} />
+</div>
+```
 
-1. **Lay out against the measured box, not a guessed ratio.** `useCanvasBox(fallback)`
-   returns a `ref` plus the element's live `clientWidth/clientHeight` via
-   `ResizeObserver`, so the drawing stretches into the space it actually has. jsdom has
-   no `ResizeObserver` and reports zero-sized elements, so **the `fallback` is what
-   tests and the first paint render** — keep it equal to the old fixed box so specs stay
-   deterministic.
-2. **Build the viewBox tightly around real content bounds** plus **one small uniform
-   padding**. `tightViewBox(points, pad, minSpan)` does this for graph/tree; array and
-   grid compute `contentWidth/contentHeight` from `fitSlots(...)`. No fixed ratio, so
-   the viewBox never contains a band the drawing does not use.
-3. **Size the `<svg>` element to the content's own aspect ratio** with
-   `fitBox(content, box)` — the largest box with the content's ratio that fits the
-   measured box. That leaves `preserveAspectRatio` nothing to centre, so the inset well
-   hugs the drawing instead of framing dead space.
+`boxViewBox(box)` is literally `0 0 box.width box.height` (each axis floored at 1 user
+unit so a not-yet-measured canvas does not collapse). Because the svg is 100%/100% of the
+very element that was measured, **user units are CSS pixels**, the viewBox and the element
+can never disagree on aspect ratio, and `preserveAspectRatio` has nothing to letterbox.
+Empty bands become structurally impossible rather than something to tune away. The
+measured element must be the svg's own parent **with no padding** — it carries the
+border, `--bg-inset` fill, `border-radius` and `overflow: hidden`, and its client box *is*
+the svg viewport.
 
-Supporting helpers: `fitSlots(count, available, gap, min, max)` splits a run into equal
-slots as large as the box allows and reports the `span` actually occupied (the span may
-exceed `available` once `min` binds, and `fitBox` then scales the whole drawing down
-rather than clipping it); `tidyTreeSlots(roots, childrenOf)` returns a leaf-slot tidy
-layout in **abstract units** (column index, depth) so the caller can stretch it across
-whatever pixel box it measured — that stretch is what makes a tree fill its canvas
-height instead of ending at a fixed per-level band, and it is cycle-safe and
-forest-safe; `viewBoxAttr` rounds to two decimals so re-measuring does not churn the
-attribute; `clamp` is the shared bound.
+**The two forbidden failure modes.** Both of these shipped, both were sold as fixes, and
+both are banned:
+
+1. **A viewBox built from fixed constants** (a 220-unit bar band, an 84-unit tree level,
+   a 900×560 default box) rendered into a 100%-sized `<svg>`. Whenever the fixed ratio
+   disagreed with the container's — which it almost always did —
+   `preserveAspectRatio="xMidYMid meet"` centred the drawing and painted the leftover as
+   inset well: **dead bands inside the svg**.
+2. **Sizing the `<svg>` element to the content's aspect ratio** (the deleted `fitBox`
+   helper). This did not remove the bands, it *moved* them: the same empty space
+   reappeared **outside the svg, inside the panel**. Whitespace was relocated, not
+   deleted — which is exactly the complaint that produced Round 6.
+
+Consequences that follow, and that you must preserve:
+
+- `vizGeometry` exposes **no helper that returns tight content bounds** (`tightViewBox`
+  and `fitBox` are gone). Failure mode 1 needed such a helper, so the only viewBox this
+  module can produce is the box itself. Do not add one back.
+- **Nothing downstream rescales the drawing any more.** Each visualizer must therefore
+  fit its content into the measured box itself, and detect the case where its own floor
+  binds (a dense array, a grid bigger than the panel) instead of letting content run off
+  the canvas edge.
+- **Vertical dead space must be zero.** Where a shape constraint genuinely cannot spend
+  an axis (square grid cells, a single row of squares, round nodes), the leftover goes
+  **horizontal and centred** — never vertical.
+- The canvas region must not centre a shrunken child: `data-region="canvas"` in
+  `MainLayout` is `flex: 1` with `--space-2` padding, `overflow-x: auto`,
+  `overflow-y: hidden`, and **no `alignItems: center`** around the 100%-sized svg. Only
+  the "no visual snapshot" empty state centres itself, and it has nothing to squash.
+- Every visualizer root is `width/height: 100%`, `minWidth/minHeight: 0`, `flex: 1 1
+  auto`, with **no height of its own**. The only `minHeight` allowed around a canvas is
+  `0` (the flexbox shrink enabler).
+
+**How each kind spreads across both axes** (this is the per-visualizer half of the law):
+
+- **Array** (`ArrayVisualizer`): `barRun()` spends the full width — leftover width goes
+  into the bars first (`fitSlots` between `MIN_BAR_W` 10 and `MAX_BAR_W` 160) and then
+  into the gaps (up to `MAX_GAP_RATIO` 0.25 of a bar) before any of it is left as margin;
+  a dense run gives up its gap before it goes under the bar floor, because clipping bars
+  loses data. Vertically, the label insets are capped as a *share* of the height (pointer
+  chips ≤32%, index labels ≤18%) and **the band is every remaining pixel**, with the
+  tallest bar spanning it and its baseline at the band's bottom. Type sizes, radii and
+  strokes derive from the bar width via `clamp`, so a wide panel gets bigger numbers
+  rather than the same small ones with more air. `mode="box"` is the single place vertical
+  slack is unavoidable (one row of squares), and it is centred in the band.
+- **Tree** (`TreeVisualizer`): with no authored coordinates, `tidyTreeSlots(roots,
+  childrenOf)` produces an **abstract** layout (fractional leaf column, depth) which
+  `spreadToBox` then stretches, so **depths own the full height and leaf slots the full
+  width** — a shallow tree fills the canvas instead of stopping at a fixed per-level
+  band. The helper is cycle-safe and forest-safe: ids already placed are skipped, so a
+  forest keeps all its trees and no node is dropped. Authored coordinates are honoured
+  **only when every node has them** (mixing authored and computed positions would
+  collide) and get the same `spreadToBox` treatment.
+- **Graph with authored `x`/`y`** (`GraphVisualizer`): the points go through
+  `spreadToBox(points, box, pad)`, which scales the two axes **independently** so a
+  300×100 authored drawing reaches the edges of a 950×520 panel. It is the *positions*
+  that stretch — the node radius stays uniform, so no node is squashed. A degenerate axis
+  (all points sharing an x, a single node) centres on that axis instead of dividing by
+  zero, and float-noise spans below `SPAN_EPSILON` count as degenerate.
+- **Graph without coordinates**: `ellipsePoints(count, box, pad)` lays nodes on the
+  **ellipse inscribed in the box**, not a circle — a circle takes the smaller axis as its
+  diameter and leaves the sides of a wide panel empty, which is the whitespace R6.1
+  exists to remove. The ellipse fixes the angular order and `spreadToBox` then pushes the
+  extremes onto all four insets (an affine stretch of an ellipse is still an ellipse). A
+  pair lies along the box's long axis; a lone node centres. **One node missing its
+  coordinates sends the whole graph to the ellipse** — the old per-node fallback dropped
+  a ring on top of the authored points.
+- **Grid** (`GridVisualizer`): square cells cannot match an arbitrary canvas ratio, so
+  the cell is sized from the **HEIGHT** (`fitSlots(rows, box.height − PAD*2, GAP,
+  MIN_CELL 8, MAX_CELL 180)`) and only min'd with the column fit where a grid wider than
+  the panel's ratio would otherwise push cells off the canvas. `MAX_CELL` is a sanity cap
+  so a 1–2 row grid does not mint half-panel squares; from three rows up in a normal panel
+  it never binds and the height is fully spent. When the floor binds the gap goes first,
+  then the cell, so a cramped grid still shows every row. The remainder is centred
+  (`originX`/`originY`), which is what makes `PAD` reappear as the inset on a fully spent
+  axis; horizontal remainder may also scroll (the canvas region is `overflow-x: auto`).
+
+Node radii are solved against the layout rather than guessed: because the radius *is* the
+layout's inset, `GraphVisualizer` and `TreeVisualizer` walk **down** from their cap
+(`MAX_NODE_R` 72 / 46) using `minPointSpacing(points, fallback) * SPACING_SHARE`
+(0.38 / 0.45) — a bigger radius always means a tighter layout, so each pass is a safe
+upper bound and the loop settles in two or three. The floors (`MIN_NODE_R` 28 / 26) equal
+the old fixed radii, which is what guarantees a laid-out graph or tree can only ever grow.
+
+Supporting helpers: `fitSlots(count, available, gap, min, max)` (equal slots as large as
+the run allows; `span` overshoots `available` once `min` binds and the caller must detect
+that); `minPointSpacing(points, fallback)` (closest pair — never `Infinity`);
+`viewBoxAttr` (rounds to two decimals so re-measuring does not churn the attribute);
+`clamp`. `useCanvasBox(fallback)` measures via `ResizeObserver` in a **layout** effect —
+not a plain effect, because measuring after paint would show one frame of the fallback box
+letterboxed inside the real one, a flash of exactly the defect being fixed. jsdom
+implements no `ResizeObserver` and reports zero-sized elements, so **the `fallback` is
+what tests and the first paint render**; keep it a sensible box (each visualizer builds
+it from its own ideal bar width / cell size / `width`+`height` props) so specs stay
+deterministic.
 
 **Standing rules for any sizing change:**
 
-- **A sizing change must never make a visualization smaller.** Steps 1 and 2 both
-  *enlarge* the drawing and step 3 only removes dead space, so content always renders at
-  the same scale or larger. If a change leaves nodes, bars or cells smaller than before,
-  it is wrong — verify per snapshot kind (array, grid, graph, tree) that the content
-  scales **up** into reclaimed space rather than staying pinned at its old scale.
-- **No large imposed `minHeight`s on canvas wrappers.** The only `minHeight` allowed
-  around a canvas is `0` (the flexbox shrink enabler). A visualizer root takes exactly
-  the space the stage hands it: `width/height: 100%`, `minWidth/minHeight: 0`, and no
-  height of its own.
-- **Do not reintroduce a fixed-ratio viewBox** next to `preserveAspectRatio`. That
-  combination *is* the letterbox.
-- Only an auto-laid-out graph may resize its nodes: authored `x`/`y` coordinates carry
-  real geometry (hulls, polygons) that a recomputed radius would misrepresent, so
-  `GraphVisualizer` keeps `MIN_NODE_R` for those.
-- Font sizes, node radii and stroke widths inside a canvas are **derived** from the
-  measured slot/radius via `clamp(...)` — this is the one place scalar geometry is
-  computed rather than tokenised, and it is why a big graph stays legible while a small
-  one grows. Colours in a canvas are still tokens only.
+- **A sizing change must never make a visualization smaller.** Every mechanism above
+  *enlarges* the drawing into space it previously wasted. If nodes, bars or cells come
+  out smaller than before, the change is wrong — verify per snapshot kind (array, grid,
+  graph, tree).
+- **Never reintroduce a fixed-ratio viewBox, and never size the svg to the content.**
+  Those are the two forbidden modes above.
+- Colours inside a canvas are tokens only. Font sizes, radii and stroke widths are the
+  one place scalar geometry is *computed* (via `clamp`) rather than tokenised — that is
+  what keeps a big graph legible while a small one grows.
 - `vizGeometry` is pure except for `useCanvasBox`, and it is unit-tested in
-  `src/components/primitives/specs/vizGeometry.spec.ts` (letterbox fix, tight bounds,
-  slot fitting, tidy layout, attribute rounding). Keep new geometry in there rather than
-  inlining maths in a visualizer.
+  `src/components/primitives/specs/vizGeometry.spec.ts` (the viewBox law, both-axis
+  spreading, degenerate axes, the inscribed ellipse, slot fitting, tidy layout, attribute
+  rounding). Keep new geometry in there rather than inlining maths in a visualizer.
 
 ### 2.9 Categorical group coloring (`--viz-1..8` + `vizPalette`)
 
@@ -722,68 +824,13 @@ than 8 groups, let the extras fold into `--state-default` rather than reusing a 
 (node id → slot) rather than a field on `TreeNodeItem`; `MainLayout` does not pass it
 today, so wiring subtree/heap-partition tinting means threading it through there.
 `KnowledgeGraph` uses the same helpers: one fixed slot per topic family in
-`TOPIC_FAMILIES`.
-
-### 2.10 Smart step sound: a pure classifier plus a dumb player
-
-The split is the whole point. **`src/engine/stepSound.ts` decides *what* a step
-sounds like and imports no audio at all**; `soundEngine` decides *how* to make that
-noise. Keep it that way — no `AudioContext`, no clocks, no module state in stepSound.
-
-```ts
-export type SoundCueKind =
-  | 'advance' | 'compare' | 'swap' | 'push' | 'pop' | 'visit'
-  | 'enqueue' | 'dequeue' | 'relax' | 'match' | 'complete';
-
-export interface SoundCue { kind: SoundCueKind; pitch: number } // pitch 0..1
-
-export function deriveStepCue(
-  step: AlgorithmStep,
-  prevStep: AlgorithmStep | null,
-  totalSteps: number,
-): SoundCue;
-```
-
-**Every step is audible; `'advance'` is the floor.** `deriveStepCue` always returns a
-cue, so no step is silent — `advance` is the soft tick for steps that did nothing
-classifiable.
-
-Classification order (first match wins):
-
-1. **Final step** → `complete` at pitch 1.
-2. **Snapshot state deltas** — which `ElementState`s *appeared* since `prevStep`
-   (works for all four snapshot kinds; grid cells fall back to `isPath`/`isVisited`
-   when `state` is unset, and keys are positional so rebuilt cells keep identity).
-   Priority: `swap`→swap, `sorted`→match, `path`→match, `compare`→compare,
-   `visited`→visit, `in-stack`→push, `queued`→enqueue, `pivot`→visit. A step that both
-   compares and swaps is heard as the swap, because that is the consequential part.
-   `active` and `default` are deliberately absent so pointer walks stay soft ticks.
-3. **Auxiliary deltas** — stack grew/shrank → `push`/`pop`, queue grew/shrank →
-   `enqueue`/`dequeue`, a numeric change in `distanceTable` → `relax`, visited grew →
-   `visit`, a numeric change in `customState` → `relax`. Only numeric movement counts;
-   label churn like `phase: 'scanning'` is bookkeeping, not an event.
-4. **Keyword tiebreaker** on `explanation.what` (swap, compar, dequeue, enqueue, push,
-   pop, relax, "shorter path", visit, explor, match, found) — consulted only when
-   nothing measurable changed.
-5. **`advance`.**
-
-`pitch` is `0.65 × progress + 0.35 × normalized touched value` (progress alone when no
-usable value changed), so a sort audibly rises as it converges while the touched value
-colors the melody within that rise.
-
-Playback is one line in `workspace.$algorithmId.tsx`:
-`soundEngine.playCue(deriveStepCue(step, prevStep, steps.length))`, guarded by
-`soundEnabled` and reached only through `onStepChange`.
-
-Standing rules: sound needs a **user gesture** to unlock; **never schedule while the
-context is suspended**; rely on the **stepEngine dedupe** (plus the route's
-`lastHandledStepRef`) instead of guessing at duplicates; and **never call sound from
-render** or from an effect that is not the `onStepChange` path.
+`TOPIC_FAMILIES`, tinting nodes, edges and the legend — that colouring is explicitly
+kept (R6.3) and must not be neutralized.
 
 ### 2.11 Panel visibility: four independent toggles, five identical buttons
 
 **`ViewMode` is dead in the workspace.** The old Split/Visual/Code `Segmented` control
-was removed in R4.4 and replaced by four independent booleans:
+was removed and replaced by four independent booleans:
 
 ```ts
 // src/types/dsa.ts
@@ -799,15 +846,21 @@ panel, migrating any legacy `view_mode` payload on read (section 2.2). `ViewMode
 remains exported from `types/dsa.ts` purely to type that migration.
 
 **The navbar renders five visually identical toggle buttons**: Visualizer, Code,
-Tutorial, Aux data, Sound. They come from one `PANEL_TOGGLES` table plus the sound
+Tutorial, Aux data. They come from one `PANEL_TOGGLES` table
 button, all in a single `role="group"` row with the same `--space-2` gap, and every one
 of them is the **same `Button` with `size="sm"`**, the same icon treatment (14px, set by
 `ui.css` — never inline), the same `selected` styling (accent-soft background, accent
 border, accent text) and **`aria-pressed` reflecting its state**. Each is an independent
 on/off that shows or hides exactly one thing — none of them is a mode switch, so never
 reintroduce mutual exclusion between them, and never give one of them a different size,
-variant or icon size. The panel toggles render only in the workspace app view; the sound
+variant or icon size. The panel toggles render only in the workspace app view; the reset action
 toggle is always present.
+
+**"Reset layout" sits next to them, outside the group.** It is workspace-only and the
+same `sm` scale, separated by a hairline `--border-subtle` divider, and it carries **no
+`aria-pressed`** because it is an action, not a toggle. It opens `ConfirmDialog` and only
+a confirm calls `resetWorkspaceLayout()` (sections 2.2 and 2.7). While that dialog is
+open the `/` shortcut stands down (section 2.12).
 
 **The app-view navigation stays a `Segmented`** (Knowledge Tree / Problem List /
 Workspace, `size="sm"`): that one *is* mutually exclusive routing, not a toggle set.
@@ -815,17 +868,60 @@ Workspace, `size="sm"`): that one *is* mutually exclusive routing, not a toggle 
 **All-off empty state.** The complexity card follows the **code** toggle (it is the code
 column's companion and has no navbar switch of its own), and the tutorial/auxiliary
 *strips inside the visualizer panel* (section 2.7) additionally require the current step
-to actually have content for them. When every
-workspace panel resolves to hidden, `MainLayout` renders a calm centered `Card` reading
-"Every panel is hidden" plus instructions to turn one back on in the navbar — **never a
-blank stage and never a trap**. Playback also stays reachable: `ControlPanel` is docked
-inside the visualizer card (`variant="embedded"`) when the visualizer is on, and moves
-below the stage (`variant="standalone"`) when it is off.
+to actually have content for them. When every workspace panel resolves to hidden,
+`MainLayout` renders a calm centered `Card` reading "Every panel is hidden" plus
+instructions to turn one back on in the navbar — **never a blank stage and never a
+trap**. Playback also stays reachable: `ControlPanel` is docked inside the visualizer
+card (`variant="embedded"`) when the visualizer is on, and moves below the stage
+(`variant="standalone"`) when it is off.
 
 The workspace route wires the close buttons on the tutorial and working-data strips to
 `setPanel('tutorial' | 'auxiliary', false)`, so dismissing a strip is the same state as
 toggling it off in the navbar (`MainLayout` receives them as `onToggleTutorial` /
 `onToggleAuxiliary`).
+
+### 2.12 Global keyboard shortcuts and their guards
+
+Two owners bind window-level keys, and they share their guards through
+**`src/app/keyboardGuards.ts`** so they can never disagree about when to stand down:
+
+| Key | Owner | Effect |
+|---|---|---|
+| `ArrowRight` | `workspace.$algorithmId.tsx` | `pause()` then `stepForward()` |
+| `ArrowLeft` | `workspace.$algorithmId.tsx` | `pause()` then `stepBackward()` |
+| `Space` (`' '` / legacy `'Spacebar'`) | `workspace.$algorithmId.tsx` | `togglePlay()`, with `preventDefault()` |
+| `/` | `Navbar.tsx` | opens `QuickAccessDrawer` |
+
+**The guard rules — all of them apply to every shortcut:**
+
+- **`isTypingTarget(target)`** → bail. It claims `INPUT`, `TEXTAREA`, `SELECT` and
+  anything inside a contenteditable region. `input[type=range]` and `select` count on
+  purpose: arrow keys already adjust a focused slider or option list, which is exactly
+  what the playback keys would steal. (The predicate checks
+  `element.isContentEditable === true` *and* a `[contenteditable]` ancestor lookup,
+  because jsdom leaves `isContentEditable` undefined.)
+- **`isDialogOpen()`** → bail. Any mounted `[role="dialog"]` counts, which covers both
+  the search drawer and every `ConfirmDialog`; a shortcut firing underneath an open
+  dialog would act on a workspace the user cannot see.
+- **Modifiers → bail.** The playback effect returns on `ctrl`/`meta`/`alt`/`shift`
+  (`Cmd+Left` is "back"); the `/` handler returns on `ctrl`/`meta`/`alt`.
+- **Space defers to the focused control.** `activatesOnSpace(target)` returns true inside
+  a `button`, `[role="button"]`, `a[href]` or `summary`, and the handler yields — otherwise
+  tabbing to any toggle and pressing Space would scrub playback instead of flipping it.
+  When it does handle Space it **must `preventDefault()`** or the page (or the nearest
+  scroller) pages down on every play.
+- **Arrow stepping takes the wheel** by pausing first. Without the `pause()`, the
+  interval kept advancing on its own schedule, so `ArrowLeft` during playback looked
+  like a no-op (the next tick undid it) and `ArrowRight` double-stepped.
+
+Implementation notes: the workspace effect is installed **once** and reads the engine's
+callbacks through `playbackRef`, so the window binding is not torn down and re-added on
+every tick of playback. Discoverability is on the controls themselves — `ControlPanel`'s
+step-back / play / step-forward controls carry `aria-keyshortcuts` (`ArrowLeft`,
+`Space`, `ArrowRight`) and matching `title` text.
+
+**Any new global shortcut reuses `keyboardGuards`** — never copy the predicates, and
+never bind a key that arrows/space already own inside a field.
 
 ---
 
@@ -963,15 +1059,19 @@ comments. Narrow snapshot unions with `if (snapshot.kind === 'graph') { ... }`.
 ### 4.3 Write explanations in the teacher voice
 
 Every `explanation` is `{ what, why }` (contract from
-`docs/planning/ui-overhaul/DESIGN.md` §6):
+`docs/planning/ui-overhaul/DESIGN.md` §6). Remember where it lands: the tutorial is the
+**header of the visualizer panel**, rendered as real prose at `--text-md`/1.6 with two
+lines reserved (section 2.7), so this is the most-read text in the app.
 
 - **`what`** — short present-tense action label, ≤ ~8 words, with actual values when
-  they help: `Compute the complement 7`, `Visit nums[2] = 11`.
+  they help: `Compute the complement 7`, `Visit nums[2] = 11`. It is rendered as the
+  bold lead-in sentence of the paragraph (a trailing period is added if you omit one).
 - **`why`** — 1–2 conversational sentences explaining why this step happens and what
   it means, with the **actual runtime values interpolated** into the string. Address
   the learner as "we". No headers, no bullet lists, no exclamation spam, no robotic
   `Equation:`-style prefixes, and no Big-O lectures mid-step (a brief complexity note
-  at the final step is fine).
+  at the final step is fine). Keep it to two or three lines' worth: past three lines the
+  strip scrolls inside itself rather than growing the panel.
 
 **Good** (Two Sum, checking the map — from DESIGN.md):
 
@@ -989,8 +1089,7 @@ Every `explanation` is `{ what, why }` (contract from
 Branchy steps should interpolate the branch taken (see the `hasComplement` ternary in
 `twoSum.ts` — the same step number produces different prose per outcome).
 
-Keyword note: the sound classifier reads `explanation.what` only as a last-resort
-tiebreaker (section 2.10). Write it for the learner; don't contort it for audio.
+Write `explanation.what` for the learner: a short present-tense action label.
 
 ### 4.4 Write the complexity prose
 
@@ -1014,7 +1113,8 @@ tiebreaker (section 2.10). Write it for the learner; don't contort it for audio.
 > space: `Uses a hash map.` *(names the structure without saying what grows or why)*
 
 `ComplexityCard` renders the `timeComplexity` best/average/worst chips and
-`spaceComplexity` chip, then these paragraphs beneath them.
+`spaceComplexity` chip, then these paragraphs beneath them, in a `Collapsible` that sits
+immediately under the code listing.
 
 ### 4.5 Write the `topicGuide` (required topic lesson)
 
@@ -1041,7 +1141,7 @@ topicGuide: {
   edge cases; how it generalizes to sibling problems.
 - `keyTerms` — 3–6 terms a newcomer would stumble on, each defined in one or two
   sentences. Optional in the type, expected in practice; `ProblemHeader` renders them
-  as a real `<dl>` definition list.
+  as a real `<dl>` definition list in a responsive multi-column grid.
 
 **Voice.** A good teacher writing prose: **second person ("you")**, concrete, full
 sentences. No bullet fragments inside `body`, no markdown syntax (it renders as plain
@@ -1072,8 +1172,9 @@ text), no Big-O dumps, no restating the step list.
 > body: `Runs in O(n) time and O(n) space because each lookup is O(1).` *(that is `complexityAnalysis`)*
 > body: `This is a very common interview question and you should know it.` *(no teaching content)*
 
-**Details render expanded by default**, so the whole guide is on screen at first paint
-(section 2.7) — which changes the spec convention in 4.10.
+**Details render expanded by default** (from the persisted layout's `detailsExpanded:
+true`), so the whole guide is on screen at first paint — which sets the spec convention
+in 4.10.
 
 ### 4.6 The `addStep` closure pattern & `codeLine` mapping
 
@@ -1093,10 +1194,9 @@ state. Key rules:
 - `variables` feeds the "Vars" chip strip docked under the code viewer — keep it to
   the handful of live values a reader would trace (`i`, `complement`, `target`), not
   a dump of all state.
-- Snapshot fidelity also drives sound: the classifier diffs `ElementState`s and
   auxiliary structures between consecutive steps (section 2.10). A generator that
   faithfully marks `compare`/`swap`/`visited` and copies its stack/queue gets
-  meaningful audio for free; one that leaves everything `default` gets soft ticks.
+  a legible animation for free; one that leaves everything `default` reads as static.
 
 Skeleton:
 
@@ -1137,33 +1237,43 @@ export const generateExampleSteps = (input: ExampleInput): AlgorithmStep[] => {
 
 ### 4.7 Choose the `PrimaryVisualSnapshot` kind
 
+All four kinds now lay themselves out against the **measured canvas box** and spread
+across both axes (section 2.8), so the choice is about semantics, not about how much
+room a kind will take.
+
 - **`array`** — anything linear: number arrays, strings (one element per char),
   pointer walks, sliding windows, DP over one row. Use `pointers: ['i', 'j']` for
-  index labels and `state` for per-element coloring. Default choice when unsure.
+  index labels and `state` for per-element coloring. Bars fill the width and the tallest
+  bar fills the band, so long arrays stay readable and short ones grow. Default choice
+  when unsure.
 - **`grid`** — inherently 2D state: matrices, pathfinding boards, island maps,
   N-Queens boards, 2D DP tables. Cells carry `isStart/isEnd/isWall/isVisited/isPath`
-  for pathfinding semantics or `state` for generic coloring.
+  for pathfinding semantics or `state` for generic coloring. Cells are squares sized from
+  the panel **height**, so a grid with very many columns spends its slack horizontally
+  (centred, scrollable) — prefer roughly square grids where the algorithm allows.
 - **`graph`** — node/edge structures: traversals, shortest paths, MSTs, SCCs, flows.
-  `x`/`y` are optional — `GraphVisualizer` auto-places nodes on a circle sized to the
-  *measured* canvas when they are omitted, and only an auto-laid-out graph is allowed to
-  scale its node radius up, so **leaving coordinates off usually yields the larger,
-  better-filling drawing**. Provide coordinates only when layout carries real meaning
-  (flow networks left-to-right, geometry). Mark progress with `isTraversed`/`isPath` on
-  edges and `state` on nodes. **Optionally** set `group?: number` on nodes (and edges) when the algorithm
-  has a real identity partition to show — SCC ids, MST trees, island indices, bipartite
-  sides. Follow the slot rules in section 2.9: zero-based, discovery order, no cycling
-  past 8, `undefined` while a group is still undecided. With no explicit groups, the
-  visualizer tints multi-component graphs from derived connected components and
-  otherwise leaves the purely semantic look alone.
+  `x`/`y` are optional, and **leaving them off usually yields the better drawing**:
+  `GraphVisualizer` then lays nodes on the ellipse inscribed in the measured box and
+  sizes the radius from the resulting spacing, so the graph fills a wide panel. Provide
+  coordinates only when layout carries real meaning (flow networks left-to-right,
+  geometry) — authored points are spread per-axis to the box edges at one uniform
+  radius. If you author coordinates, author them for **every** node; one missing pair
+  sends the whole graph to the ellipse. Mark progress with `isTraversed`/`isPath` on
+  edges and `state` on nodes. **Optionally** set `group?: number` on nodes (and edges)
+  when the algorithm has a real identity partition to show — SCC ids, MST trees, island
+  indices, bipartite sides. Follow the slot rules in section 2.9: zero-based, discovery
+  order, no cycling past 8, `undefined` while a group is still undecided. With no
+  explicit groups, the visualizer tints multi-component graphs from derived connected
+  components and otherwise leaves the purely semantic look alone.
 - **`tree`** — binary trees with parent→child identity: traversals, LCA, heaps
   drawn as trees, tries. Nodes link via `leftId`/`rightId` with an optional `rootId`;
   `x`/`y` optional. Prefer omitting them: `TreeVisualizer` then runs `tidyTreeSlots` and
   stretches columns and levels across the measured box, which is what makes a shallow
-  tree fill the canvas instead of stopping at a fixed per-level band. **Authored
-  coordinates are honoured only when EVERY node has them** (mixing authored and computed
-  positions would collide), so a partially-positioned tree silently falls back to the
-  tidy layout — either position all of it (Huffman does) or none of it. Identity tinting
-  comes from `TreeVisualizer`'s `groups` prop (node id → slot), not from the snapshot.
+  tree fill the canvas height. **Authored coordinates are honoured only when EVERY node
+  has them** (mixing authored and computed positions would collide), so a partially
+  positioned tree silently falls back to the tidy layout — either position all of it
+  (Huffman does) or none of it. Identity tinting comes from `TreeVisualizer`'s `groups`
+  prop (node id → slot), not from the snapshot.
 
 One algorithm uses one kind for all its steps — the visualizer swaps per-step but
 mixing kinds mid-run is confusing and untested.
@@ -1171,8 +1281,9 @@ mixing kinds mid-run is confusing and untested.
 ### 4.8 Choose `auxiliaryState` fields
 
 Each populated field renders as a labeled chip row in the `AuxiliaryPanel` — the
-"Working data" strip pinned at the top of the visualizer panel (section 2.7);
-empty/absent fields render nothing:
+"Working data" strip directly beneath the tutorial header inside the visualizer panel
+(section 2.7); empty/absent fields render nothing, and a step with no aux content at all
+renders no strip:
 
 | Field | UI row | Notes |
 |---|---|---|
@@ -1186,9 +1297,10 @@ empty/absent fields render nothing:
 Copy the structures on every `addStep` (`{ ...hashMap }`, `[...queue]`). Use the
 field that matches the algorithm's actual working structure — a BFS should populate
 `queue` + `visited`, Dijkstra `distanceTable` + `visited`, DFS `stack`, DP
-`customState`. These fields are also what the sound classifier listens to for
+`customState`. These fields are also what the working-data strip renders for
 push/pop/enqueue/dequeue/relax cues, so put real values in the right field rather than
-stuffing everything into `customState`.
+stuffing everything into `customState`. Keep the working set tight: the strip shares a
+45% band with the tutorial and scrolls internally past it.
 
 ### 4.9 Register the algorithm
 
@@ -1265,7 +1377,7 @@ templates.
 **Render spec — `<name>.render.spec.tsx`** (component integration through `MainLayout`;
 note the `.render.` segment — see the hard rule above). `MainLayout` takes
 **`panels: PanelVisibility`** — there is no `viewMode`, `showTutorial` or
-`showAuxiliary` prop any more:
+`showAuxiliary` prop:
 
 ```tsx
 import { render, screen } from '@testing-library/react';
@@ -1295,7 +1407,7 @@ it('renders title, description and topic guide', () => {
 });
 ```
 
-**Four spec conventions to get right:**
+**Five spec conventions to get right:**
 
 - **Name the file `<name>.render.spec.tsx`** — the hard rule above. A bare
   `<name>.spec.tsx` compiles-green-by-not-compiling.
@@ -1308,10 +1420,15 @@ it('renders title, description and topic guide', () => {
   `description`/`topicGuide`/constraints/examples now **collapses** them and breaks the
   assertion. **Do not click "Details".** Assert directly. (Clicking is still the right
   way to test the *toggle* itself — see `src/components/specs/MainLayout.spec.tsx`.)
-- **The whole step context is inside one panel** (section 2.7), so working data, canvas
-  and tutorial are all in the tree together; query by text rather than by panel
-  structure, and remember jsdom measures every element as zero-sized, so the canvas
-  renders from its `fallback` box (section 2.8).
+- **That default comes from `localStorage`, so leave storage clean.** `MainLayout` reads
+  `readWorkspaceLayout()` on mount; a spec that toggles Details or seeds
+  `WORKSPACE_LAYOUT_KEY` must clear storage afterwards (`afterEach(() =>
+  localStorage.clear())`, as `MainLayout.spec.tsx` does) or the next spec in the file
+  renders collapsed and its assertions fail for the wrong reason.
+- **The whole step context is inside one panel** (section 2.7) in the order tutorial →
+  working data → canvas → controls, so query by text rather than by panel structure, and
+  remember jsdom measures every element as zero-sized, so the canvas renders from its
+  `fallback` box (section 2.8).
 
 Cover: title renders; description and topic-guide content visible without a click; a
 mid/last step renders its tutorial `what` text (use `screen.getAllByText(...)[0]` —
@@ -1328,7 +1445,8 @@ column. A new panel also needs its own `PanelKey`, storage key and navbar toggle
 following section 2.11 exactly (same `size="sm"` `Button`, `aria-pressed`), plus a new
 `panelHeights` field, which means bumping `WORKSPACE_LAYOUT_VERSION` **and** the key
 suffix. If what you are adding is really *step context*, prefer a new strip **inside**
-the visualizer panel over a new row outside it — that is the R5.2 shape.
+the visualizer panel (above the canvas, inside the capped band) over a new row outside
+it.
 
 Run only your specs while iterating:
 
@@ -1359,15 +1477,19 @@ library owner rather than patching styles locally.
 |---|---|
 | `Button` | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'` (default `secondary`), `size?: 'sm' \| 'md' \| 'lg'`, `selected?`, `icon?`, `fullWidth?` + native props; labels never wrap |
 | `IconButton` | Square icon-only button: `icon`, `size?`, `variant?`, `selected?`; **`aria-label` required** |
-| `Badge` | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`; helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger; sentence case text |
+| `Badge` | `variant?: 'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'`, `size?: 'sm' \| 'md'`; helper `difficultyBadgeVariant(difficulty)` → Easy=success, Medium=warning, Hard=danger; sentence case text. **These are the app's sanctioned colour** (section 2.5) |
 | `Card` | Surface panel: `title?`, `icon?`, `actions?`, `padding?: 'none' \| 'sm' \| 'md'`, `inset?` |
 | `Input` | Text input with `leadingIcon?` and `onClear?` (clear button when non-empty), sizes |
 | `Slider` | Labeled range: `label?`, `value`, `min`, `max`, `step?`, `onChange(value)`, `formatValue?` |
 | `Segmented` | Single-select toggle group: `options: { value, label, icon? }[]`, `value`, `onChange`, `size?` |
 | `Collapsible` | `title`, `meta?` (right side of header), `defaultOpen?`, optional controlled `open`/`onOpenChange`; header is a real `<button>` |
 | `Drawer` | `isOpen`, `onClose`, `title`, `side?: 'right'`, `width?`, `footer?`; backdrop, ESC + backdrop close, `role="dialog"` `aria-modal`, `--z-drawer` |
-| `ConfirmDialog` | `isOpen`, `title`, `message: ReactNode`, `confirmLabel?`, `cancelLabel?`, `destructive?`, `onConfirm`, `onCancel`; portalled `role="dialog"` `aria-modal` with `aria-labelledby`/`aria-describedby`, Escape and backdrop click both cancel, confirm button receives focus, `destructive` renders it as `danger`. **Every destructive or irreversible action goes through this** — no `window.confirm`, no one-click data loss (the workspace layout reset is the reference use, section 2.7) |
+| `ConfirmDialog` | `isOpen`, `title`, `message: ReactNode`, `confirmLabel?`, `cancelLabel?`, `destructive?`, `onConfirm`, `onCancel`; portalled `role="dialog"` `aria-modal` with `aria-labelledby`/`aria-describedby`, Escape and backdrop click both cancel, confirm button receives focus, `destructive` renders it as `danger`. **Every destructive or irreversible action goes through this** — no `window.confirm`, no one-click data loss (the navbar's workspace-layout reset is the reference use, sections 2.2 and 2.11) |
 | `Kbd` | Small keycap chip for shortcut hints (e.g. `/`) |
+
+Note that `role="dialog"` on `Drawer` and `ConfirmDialog` is load-bearing beyond
+accessibility: `isDialogOpen()` in `keyboardGuards` queries it to stand the global
+shortcuts down (section 2.12).
 
 Shared classes in `ui.css` for app components not worth a dedicated component:
 
@@ -1375,10 +1497,11 @@ Shared classes in `ui.css` for app components not worth a dedicated component:
   `--accent-soft` background + 2px `--accent` left border + `--text-primary`, normal
   weight (a transparent left border on inactive rows prevents text shift).
 - `.ui-chip` — small mono key/value chip (`--bg-elevated`, `--border-subtle`,
-  `--font-code`) used for live variables and all AuxiliaryPanel data. `--border-subtle`
-  all but vanishes against a carbon panel, so components that nest chips inside a panel
-  override the chip border to `--border-default` (see `CHIP_BORDER` in `ComplexityCard`
-  and `AuxiliaryPanel`) — do the same rather than leaving a borderless-looking chip.
+  `--font-code`) used for live variables, the step readout and all AuxiliaryPanel data.
+  `--border-subtle` all but vanishes against a near-black panel, so components that nest
+  chips inside a panel override the chip border to `--border-default` (see `CHIP_BORDER`
+  in `ComplexityCard`, the same pattern in `AuxiliaryPanel` and `ControlPanel`) — do the
+  same rather than leaving a borderless-looking chip.
 - `.ui-dialog`, `.ui-dialog-backdrop`, `.ui-dialog__title/__body/__actions` —
   `ConfirmDialog`'s surface.
 
@@ -1388,22 +1511,25 @@ Shared classes in `ui.css` for app components not worth a dedicated component:
   `--accent`. Nothing else — no glow, no bold-only signaling, no scale.
 - Hover (non-selected): background `--bg-hover`, text `--text-primary` (never
   `--text-muted`/`--text-faint` on hover or pressed surfaces — section 2.5).
-- Primary buttons: solid `--accent` bg, `--text-on-accent` text; hover `--accent-hover`.
+- **Primary buttons are black-filled**: `--bg-inset` background, `--accent` border,
+  `--text-primary` ink at weight 600; hover fills `--bg-surface` and brightens the
+  border. Never an accent-filled slab.
 - **Every card, panel, well, chip and button carries a real border token** — mandatory
-  when adjacent surfaces are only ~1.09× apart (section 2.5).
-- **Nothing in the shell is coloured.** Buttons, badges-that-are-not-semantic, panels,
-  toolbars and text are neutral; hue is only `--state-*`, `--viz-1..8`, and semantic
-  badge/status tokens (section 2.5).
+  on this palette, where the reading surfaces are near-black and only ~0.6× the page
+  (section 2.5).
+- **The shell is neutral; colour is data.** Difficulty/status badges, `--viz-1..8`
+  identity (graphs, trees, knowledge map) and `--state-*` marks are the only hue
+  (section 2.5).
 - Focus: `:focus-visible` → `--focus-ring` (global, already wired).
 - Disabled: opacity 0.45, `cursor: not-allowed`.
 - Icon sizes: 14px in `sm`, 16px in `md`, 18px in `lg` controls (set by ui.css — no
   inline icon sizes).
 
-**Size standardization (R4.5) — one scale, applied everywhere:**
+**Size standardization — one scale, applied everywhere:**
 
 - **Navbar and toolbar strip controls are `size="sm"`** (`--control-h-sm`, 28px, 14px
-  icons). That covers the app-view `Segmented`, all five toggle buttons, the search
-  trigger, and the `Details` / `Reset layout` buttons in the problem header strip.
+  icons). That covers the app-view `Segmented`, all five toggle buttons, the navbar's
+  `Reset layout`, the search trigger, and the `Details` button in the problem header.
 - **In-panel actions are `size="md"`** (`--control-h-md`, 34px) — the playback controls
   and anything living inside a content card.
 - **Badges are `size="sm"`**, with one exception: the problem title's difficulty badge
@@ -1413,7 +1539,8 @@ Shared classes in `ui.css` for app components not worth a dedicated component:
 - **Icon-only buttons use `IconButton`**, stay square (`--control-h-*` on both axes),
   and **always** carry an `aria-label` (`"Hide tutorial"`, `"Hide auxiliary panel"`).
 - Control height, spacing and text size come from the token scales — never an ad-hoc
-  `0.35rem`/`31px`.
+  `0.35rem`/`31px`. The one documented exception in the whole app is `ProblemHeader`'s
+  `22rem` grid-column floor, which is commented as such.
 
 Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 
@@ -1431,75 +1558,91 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 - **jsdom measures everything as zero and has no `ResizeObserver`** — `useCanvasBox`
   therefore keeps its `fallback` box in tests, and `ResizableRows`/`ResizableLayout`
   bail out of a drag when they measure a 0-height row. Assert on `data-height-mode`,
-  `data-region` and inline styles rather than on computed pixel sizes.
+  `data-region`, `data-band`, `data-panel` and inline styles rather than on computed
+  pixel sizes.
 - **jsdom lacks `scrollIntoView`** — always optional-call it:
   `ref.current?.scrollIntoView?.({ block: 'nearest' })` (see `CodeBlockViewer`). A
   bare call crashes every render spec that mounts the code viewer.
-- **Problem details are EXPANDED by default** — render specs must assert on
-  `description`/`topicGuide`/constraints/examples *without* clicking "Details".
-  Clicking now collapses them. (This reverses the old convention; any spec still
-  clicking first is stale.)
+- **jsdom leaves `isContentEditable` undefined** — that is why `keyboardGuards` also
+  does a `[contenteditable]` ancestor lookup. Don't "simplify" it away.
+- **Problem details are EXPANDED by default and the state is PERSISTED** — render specs
+  must assert on `description`/`topicGuide`/constraints/examples *without* clicking
+  "Details", and any spec that toggles it (or seeds `WORKSPACE_LAYOUT_KEY`) must clear
+  `localStorage` afterwards or it leaks a collapsed panel into the next test.
 - **`MainLayout` takes `panels`, not `viewMode`** — there is no `viewMode`,
   `showTutorial` or `showAuxiliary` prop. A spec or caller passing them is stale
   (section 2.11).
-- **Colour in the shell is a bug** — no green, teal, navy or mint in chrome, panels,
-  cards, buttons, inputs, drawers or text. Hue only in `--state-*` inside visualizers,
-  `--viz-1..8` for groups, and semantic badge/status tokens (section 2.5).
-- **A borderless card is a bug** — adjacent surfaces are ~1.09× apart, so anything
-  without a visible border token disappears into the page (section 2.5). Watch for
-  `ui.css` defaults that land on `--border-subtle` inside a panel.
+- **Cards are darker than the page, and a borderless card is a bug** — the reading tier
+  is near-black beneath a carbon page and controls step lighter, so borders carry the
+  edge definition (section 2.5). Watch for `ui.css` defaults that land on
+  `--border-subtle` inside a panel; promote them to `--border-default`.
+- **An accent-filled primary button is a bug** — primary is `--bg-inset` fill with an
+  `--accent` edge (section 2.5).
+- **Do not neutralize difficulty badges, status badges or the knowledge map** — the
+  Round 5 achromatic sweep went too far and R6.3 restored them. Colour in *chrome* is
+  still a bug; colour on *data* is required (section 2.5).
+- **THE CANVAS LAW: `viewBox = boxViewBox(measuredBox)`, `<svg>` at 100%/100%** — never
+  a fixed-constant viewBox (dead bands inside the svg) and never an svg sized to the
+  content's aspect ratio (`fitBox`, deleted — it moved the same bands into the panel).
+  Vertical dead space must be zero; shape-constraint slack goes horizontal and centred
+  (section 2.8).
+- **Never make a visualization smaller** — every canvas mechanism reclaims dead space
+  *into* the drawing, and the node-radius floors equal the old fixed radii precisely so a
+  laid-out graph or tree can only grow (section 2.8).
+- **No imposed `minHeight` on a canvas wrapper other than `0`, and no centring around a
+  100% svg** — `alignItems: center` or generous padding around the canvas re-creates the
+  band as panel padding (section 2.8).
 - **Never impose a height on a hugging panel** — code and complexity must stay
   `data-height-mode="hug"` so they reflow with content, and the visualizer is the one
   greedy row. Adding a height, a `min-height` or a flex weight recreates the dead space
   this design deleted; only a user drag may pin a height, and double-click restores
   automatic.
-- **Don't stack step context outside the visualizer panel** — working data, canvas,
-  tutorial and playback live inside the single container (section 2.7). Pulling a strip
-  back out as its own row reintroduces the step-to-step reflow the shape exists to
-  prevent.
-- **Never make a visualization smaller** — canvas sizing work must reclaim dead space
-  *into* the drawing. No fixed-ratio viewBox beside `preserveAspectRatio`, no imposed
-  `minHeight` on a canvas wrapper other than `0` (section 2.8).
+- **Don't stack step context outside the visualizer panel, and don't move the tutorial
+  back to the bottom** — tutorial (header) → working data → canvas → playback all live
+  inside the single container, and both strips share one 45%-capped band that scrolls
+  internally so the panel's outer size never changes between steps (section 2.7).
+- **The tutorial is prose, not a caption** — `--text-md` minimum at 1.6 line-height with
+  two lines reserved, real `--space-3` padding, no `--text-xs`, no truncation. Shrinking
+  it is a regression (section 2.7).
 - **Duplicated text in the DOM** — a step's `what` text can appear in the tutorial strip
   and elsewhere; prefer `screen.getAllByText(...)[0]` when asserting step prose through
   `MainLayout`.
-- **Sound requires a user gesture** — browsers start AudioContexts suspended; the
-  soundEngine skips tones until its pointerdown/keydown unlock listeners resume the
+- **Global shortcuts must use `keyboardGuards`** — `isTypingTarget` and `isDialogOpen`,
+  plus a modifier bail-out. Space additionally yields to a focused button/link/summary
+  and must `preventDefault()` when it does act; arrow stepping pauses playback first
+  (section 2.12).
   context. Don't "fix" silence-before-first-click; it is the autoplay policy. And
   never schedule into a suspended context: `currentTime` is frozen, so every queued
   tone would burst at once on resume.
-- **Don't loosen the sound throttle** — 30ms / 14 voices is sized for the 50ms
   minimum step interval. Raising the interval back toward 80ms silently drops
   legitimate consecutive steps.
-- **`stepSound.ts` must stay audio-free** — it is a pure classifier so it can be unit
-  tested without Web Audio. Importing `soundEngine` there (or adding clocks/module
-  state) breaks that contract.
 - **StrictMode double-render is handled by stepEngine dedupe** —
   `lastNotifiedIndexRef` guarantees `onStepChange` fires once per index move and
-  never for the initial index. **Never add sound calls in render or effects
-  directly**; route all side effects through `onStepChange`.
+  never for the initial index. **Never trigger per-step side effects from render
+  or an effect directly**; route them through `onStepChange`.
 - **`--viz-*` slots are an ordered validated set** — assign in order, cap at 8, fold
   overflow into `--state-default`, never substitute values or cycle. Go through
   `vizPalette.ts` rather than writing `var(--viz-3)` by hand.
 - **Never edit `theme.css` to get a colour you want, and never hand-tweak a value** —
-  the black/carbon/smoke surface ladder, the border tones and the categorical palette
-  were all validated numerically (WCAG contrast ladder plus the OKLCH/colourblind
-  categorical gates); a "small nudge to make it pop" invalidates them. Compose from
-  existing tokens.
-- **Don't add a max-width to the details panel** — R4.3 removed the 72ch readable
-  measure deliberately; details span the full container width, and the responsive
+  the inverted surface ladder, the border tones and the categorical palette were all
+  validated numerically (WCAG contrast ladder plus the OKLCH/colourblind categorical
+  gates); a "small nudge to make it pop" invalidates them. Compose from existing tokens.
+- **Don't add a max-width to the details panel** — the 72ch readable measure was removed
+  deliberately; details span the full container width, and the responsive
   key-terms/examples grid handles narrow viewports.
 - **The stage never shrinks to fit details** — page scroll is the escape valve.
   `<main>` must keep `overflow-y: auto`; do not add `overflow: hidden` to the page,
   `<main>`, or `#root` to "stop the scrollbar".
-- **The workspace layout key is only cleared by a confirmed reset** — that is what
-  makes sizes survive reloads and dev-server restarts. Don't clear it on mount, on
-  algorithm change, or "to be safe" during development. The key is
-  `…_workspace_layout_v5`; older payloads (v3 weights, v4's five-panel shape) are
-  ignored on read, not migrated.
+- **The workspace layout key is only cleared by a confirmed reset, and the reset lives in
+  the navbar** — that is what makes sizes and the details state survive reloads and
+  dev-server restarts. Don't clear it on mount, on algorithm change, or "to be safe"
+  during development, and don't add a second reset entry point. The key is
+  `…_workspace_layout_v6`; older payloads (v3 weights, v4's five panels, v5 without
+  `detailsExpanded`) are ignored on read, not migrated.
 - **`null` panel height means automatic, and that is the default** — don't "normalize"
   it to a number on read or write. In a layout patch, absent means "leave alone" and
-  explicit `null` means "back to automatic".
+  explicit `null` means "back to automatic". `detailsExpanded` merges with `??`, never
+  `||`.
 - **The route tree is generated** — never hand-edit `src/routeTree.gen.ts` (it is
   overwritten) or the path string inside `createFileRoute('...')` (the plugin derives
   and maintains it from the filename). New routes = new files in `src/routes/`; the
@@ -1508,7 +1651,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
   `react()`; the wrong order fails silently. This file is finished — read, don't
   edit.
 - **Run scoped vitest during iteration** (`bunx vitest run <paths>`); the full
-  `bun run check` runs exactly once as the final gate. The full suite is ~595 tests
+  `bun run check` runs exactly once as the final gate. The full suite is ~650 tests
   and is not an iteration loop.
 - **Category aliases are not routeable** — `?category=` only accepts the 25 canonical
   ids via `isCategoryType`; legacy `CategoryType` aliases silently collapse to "no
@@ -1552,37 +1695,50 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 ## 8. Test Landscape
 
 Vitest + jsdom (`vite.config.ts` `test` block; setup file `src/test/setup.ts` loads
-`@testing-library/jest-dom`). ~595 tests across 107 spec files. Locations:
+`@testing-library/jest-dom`). ~650 tests across 108 spec files. Locations:
 
 - `src/algorithms/<category>/specs/` — per algorithm, one logic spec `<name>.spec.ts`
   and one render spec **`<name>.render.spec.tsx`** (section 4.10; the `.render.` segment
-  is what keeps the file under typecheck).
+  is what keeps the file under typecheck). 40 of each.
 - `src/ui/specs/*.spec.tsx` — one spec per UI-library component (unique basenames, so
   plain `.spec.tsx` is fine here).
 - `src/components/specs/*` — app component specs (`Navbar`, `QuickAccessDrawer`,
   `SearchTrigger`, `MainLayout`, `ResizableLayout`, `ProblemList`, `KnowledgeGraph`,
   `TutorialCard`). `MainLayout.spec.tsx` is the reference for the whole layout
-  contract: page scroll never blocked, stage floor sizing, expanded-by-default details,
-  the single graph-focused stage container (working data / canvas / tutorial / playback
-  nested in one panel, subtle divider on the edge facing the canvas, canvas gets every
-  leftover pixel, a hidden strip renders no wrapper, left column stays a single row),
-  per-panel visibility (code off drops the complexity card and the column handle,
-  visualizer off keeps the strips and docks playback under the stage, all-off empty
-  state), the hugging code column (neither code nor complexity greedy, overflow on the
-  column, visualizer the one greedy panel, both columns automatic as step content grows
-  and shrinks), persisted geometry (restore on mount, **v4 payload ignored**, keyboard
-  nudge persisted, only the dragged panel pinned, double-click back to automatic), and
-  reset-only-on-confirm. `Navbar.spec.tsx` pins the five uniform toggles and their
-  `aria-pressed` state.
-- `src/components/primitives/specs/*` — `ProblemHeader` (collapsed vs expanded lesson
-  rendering), `vizGeometry` (the letterbox fix: content-ratio fitting, scaling small
-  drawings **up**, tight bounds with no extra band, slot fitting, tidy-tree layout,
-  attribute rounding) and `vizPalette` (slot ordering, overflow folding, no cycling).
-- `src/engine/specs/*` — `stepEngine` dedupe, `soundEngine` scheduling/throttle,
-  `stepSound` cue classification.
+  contract: page scroll never blocked, stage floor sizing, the single graph-focused stage
+  container (**tutorial → working data → canvas → playback** in one panel, tutorial first
+  even with the aux strip hidden, one subtle divider per seam with the last one dropped,
+  both strips capped as ONE band, canvas gets every leftover pixel and never centres a
+  child, hidden strip renders no wrapper, left column stays a single row), per-panel
+  visibility (code off drops the complexity card and the column handle, visualizer off
+  keeps the strips and docks playback under the stage, all-off empty state), the hugging
+  code column (neither code nor complexity greedy, overflow on the column, visualizer the
+  one greedy panel), persisted geometry (restore on mount, **v5 payload ignored**,
+  keyboard nudge persisted, only the dragged panel pinned, double-click back to
+  automatic), **persisted details state** (collapse written to the v6 key without
+  disturbing geometry, restored on mount, survives a later drag, older payloads open it),
+  and **reset announced from the navbar** (no reset control of its own, reloads defaults
+  live on `WORKSPACE_LAYOUT_RESET_EVENT`, ignores the event once unmounted).
+  `Navbar.spec.tsx` pins the five uniform toggles with their `aria-pressed` state plus
+  the workspace-only reset button, its destructive dialog, cancel/Escape paths, and the
+  fact that `/` does not fire while that dialog is open. `TutorialCard.spec.tsx` pins the
+  readable-prose contract (`--text-md`/1.6, two lines reserved, no `--text-xs`, no
+  truncation, real padding, flush band with no chrome of its own).
+- `src/components/primitives/specs/*` — `ProblemHeader` (collapsed vs expanded lesson,
+  no width/height caps, responsive key-terms/examples grids, `Details` as its only
+  button), `vizGeometry` (**the viewBox law**: the viewBox is literally the measured box
+  and always shares its ratio; `spreadToBox` stretching both axes and handling degenerate
+  ones; the inscribed **ellipse**; `minPointSpacing`; slot fitting including the
+  min-binds overshoot; tidy-tree layout with cycles and forests; attribute rounding) and
+  `vizPalette` (slot ordering, overflow folding, no cycling).
 - `src/app/specs/*` — `routing.spec.tsx` (redirects, search-param validation,
-  navigation), `workspaceLayout.spec.ts` (the whole persistence contract),
-  `workspaceStepSound.spec.tsx` (route-level cue wiring).
+  navigation, **the whole keyboard-playback contract** — ArrowRight/ArrowLeft/Space,
+  taking the wheel from playback, typing/modifier/dialog guards, Space yielding to a
+  focused button, `/` still working, `aria-keyshortcuts` on the controls — plus the
+  navbar reset and the panel-visibility settings migrations),
+  `workspaceLayout.spec.ts` (the whole v6 persistence contract),
+  `keyboardGuards.spec.ts` (`isTypingTarget` across fields and contenteditable,
+  wiring).
 
 ---
 
@@ -1607,10 +1763,12 @@ What that means for anything you write now:
   makes sense quoted on its own.
 - **Prefer new fields on the definition over new component props** when you need to
   express something about an algorithm; new persisted state follows the
-  `workspaceLayout.ts` pattern (versioned key, validate on read, best-effort write).
-- **The study UI will be achromatic too** — cards, decks, progress chrome and buttons
-  come from `src/ui` on neutral tokens; the only colour available is a semantic badge
-  for a review outcome (section 2.5). And its component specs are `*.render.spec.tsx`
+  `workspaceLayout.ts` pattern (versioned key, validate on read, best-effort write, and
+  a window event if a distant component has to react to a reset).
+- **The study UI follows the same surface and colour law** — cards darker than the page,
+  every container bordered, black-filled primary buttons, and the only colour available
+  is a semantic badge for a review outcome (section 2.5). Its keyboard shortcuts reuse
+  `keyboardGuards` (section 2.12), and its component specs are `*.render.spec.tsx`
   (section 4.10).
 
 Other good contributions:

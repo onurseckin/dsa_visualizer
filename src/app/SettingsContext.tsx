@@ -67,11 +67,9 @@ function readPanelVisibility(): PanelVisibility {
 
 export interface SettingsContextValue {
   panels: PanelVisibility;
-  soundEnabled: boolean;
   lastAlgorithmId: string;
   setPanel: (key: PanelKey, visible: boolean) => void;
   togglePanel: (key: PanelKey) => void;
-  setSoundEnabled: (enabled: boolean) => void;
   setLastAlgorithmId: (id: string) => void;
 }
 
@@ -79,9 +77,6 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [panels, setPanelsState] = useState<PanelVisibility>(readPanelVisibility);
-  const [soundEnabled, setSoundEnabledState] = useState<boolean>(() =>
-    readStored('sound_enabled', true, isBoolean)
-  );
   const [lastAlgorithmId, setLastAlgorithmIdState] = useState<string>(() =>
     readStored('last_algorithm_id', 'bubble-sort', isString)
   );
@@ -102,11 +97,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [panels, setPanel]
   );
 
-  const setSoundEnabled = useCallback((enabled: boolean) => {
-    setSoundEnabledState(enabled);
-    writeStored('sound_enabled', enabled);
-  }, []);
-
   const setLastAlgorithmId = useCallback((id: string) => {
     setLastAlgorithmIdState(id);
     writeStored('last_algorithm_id', id);
@@ -115,20 +105,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo(
     () => ({
       panels,
-      soundEnabled,
       lastAlgorithmId,
       setPanel,
       togglePanel,
-      setSoundEnabled,
       setLastAlgorithmId,
     }),
     [
       panels,
-      soundEnabled,
       lastAlgorithmId,
       setPanel,
       togglePanel,
-      setSoundEnabled,
       setLastAlgorithmId,
     ]
   );

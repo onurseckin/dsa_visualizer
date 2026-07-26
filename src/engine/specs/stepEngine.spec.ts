@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { useStepEngine } from '../stepEngine';
@@ -26,7 +26,7 @@ interface HookProps {
 const renderEngine = (initialProps: HookProps) =>
   renderHook(
     ({ steps, onStepChange }: HookProps) =>
-      useStepEngine({ steps, soundEnabled: true, onStepChange }),
+      useStepEngine({ steps, onStepChange }),
     { initialProps, wrapper: StrictMode }
   );
 
@@ -119,6 +119,87 @@ describe('useStepEngine onStepChange notifications', () => {
     expect(() => {
       act(() => result.current.stepForward());
     }).not.toThrow();
+    expect(result.current.currentStepIndex).toBe(1);
+  });
+});
+
+/* The actions the ArrowRight/ArrowLeft/Space shortcuts bind to (DESIGN.md R6.6).
+   Fake timers keep the playback interval from firing on its own, so each
+   assertion is about the action rather than about wall-clock luck. */
+describe('useStepEngine actions behind the playback shortcuts', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('togglePlay starts playback without moving the index, then stops it', () => {
+    const { result } = renderEngine({ steps: makeSteps(4) });
+
+    act(() => result.current.togglePlay());
+    expect(result.current.isPlaying).toBe(true);
+    expect(result.current.currentStepIndex).toBe(0);
+
+    act(() => result.current.togglePlay());
+    expect(result.current.isPlaying).toBe(false);
+    expect(result.current.currentStepIndex).toBe(0);
+  });
+
+  it('advances one step per interval while playing and notifies once each', () => {
+    const steps = makeSteps(4);
+    const onStepChange = vi.fn();
+    const { result } = renderEngine({ steps, onStepChange });
+
+    act(() => result.current.togglePlay());
+
+    act(() => {
+      vi.advanceTimersByTime(result.current.speed);
+    });
+    expect(result.current.currentStepIndex).toBe(1);
+    expect(onStepChange).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(result.current.speed);
+    });
+    expect(result.current.currentStepIndex).toBe(2);
+    expect(onStepChange).toHaveBeenCalledTimes(2);
+    expect(onStepChange).toHaveBeenLastCalledWith(steps[2]);
+
+    act(() => result.current.togglePlay());
+    act(() => {
+      vi.advanceTimersByTime(result.current.speed * 5);
+    });
+    expect(result.current.currentStepIndex).toBe(2);
+    expect(onStepChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops playback at the last step so Space restarts from the beginning', () => {
+    const { result } = renderEngine({ steps: makeSteps(3) });
+
+    act(() => result.current.goToStep(2));
+    act(() => result.current.togglePlay());
+    act(() => {
+      vi.advanceTimersByTime(result.current.speed * 3);
+    });
+    expect(result.current.isPlaying).toBe(false);
+    expect(result.current.currentStepIndex).toBe(2);
+
+    // From the end, play rewinds instead of sitting still.
+    act(() => result.current.togglePlay());
+    expect(result.current.currentStepIndex).toBe(0);
+    expect(result.current.isPlaying).toBe(true);
+  });
+
+  it('clamps stepForward at the last step and stepBackward at the first', () => {
+    const { result } = renderEngine({ steps: makeSteps(2) });
+
+    act(() => result.current.stepBackward());
+    expect(result.current.currentStepIndex).toBe(0);
+
+    act(() => result.current.stepForward());
+    act(() => result.current.stepForward());
     expect(result.current.currentStepIndex).toBe(1);
   });
 });

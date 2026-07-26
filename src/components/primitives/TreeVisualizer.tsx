@@ -3,10 +3,11 @@ import { TreeNodeItem, ElementState } from '../../types/dsa';
 import { vizSlotBg, vizSlotColor } from './vizPalette';
 import {
   Point,
+  boxViewBox,
   clamp,
-  fitBox,
+  minPointSpacing,
+  spreadToBox,
   tidyTreeSlots,
-  tightViewBox,
   useCanvasBox,
   viewBoxAttr,
 } from './vizGeometry';
@@ -38,13 +39,19 @@ const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
 
 /* Radius floor equals the old fixed radius, so a laid-out tree can only grow. */
 const MIN_NODE_R = 26;
-const MAX_NODE_R = 38;
+const MAX_NODE_R = 46;
+/* Share of the closest node-to-node distance one node's diameter may take. Higher
+   than the graph's, because tree neighbours are joined by a short link that reads
+   fine when the circles nearly touch. */
+const SPACING_SHARE = 0.45;
 const GROUP_RING_GAP = 5;
-/* The ring is the outermost ink; 3 more units keep the stroke off the viewBox edge. */
+/* The ring is the outermost ink; 3 more units keep the stroke off the canvas edge. */
 const EDGE_MARGIN = 3;
 const SHAPE_TRANSITION =
   'fill var(--transition-normal), stroke var(--transition-normal), stroke-width var(--transition-normal), opacity var(--transition-normal)';
 const MOVE_TRANSITION = `transform var(--transition-normal), ${SHAPE_TRANSITION}`;
+
+const layoutPad = (radius: number): number => radius + GROUP_RING_GAP + EDGE_MARGIN;
 
 export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   nodes,
@@ -55,7 +62,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   groups,
 }) => {
   /* The width/height props are the fallback box: an unmeasured canvas (jsdom,
-     first paint) keeps the layout the old fixed viewBox produced. */
+     first paint) still lays out sensibly. */
   const { ref, box } = useCanvasBox({ width, height });
 
   if (!nodes || nodes.length === 0) return null;
@@ -93,37 +100,59 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
      (Huffman) position every node. */
   const allExplicit = nodes.every((n) => n.x !== undefined && n.y !== undefined);
 
+  /* Authored coordinates get the same treatment as an authored graph: spread
+     per-axis to the box edges at one uniform radius, sized from the spacing the
+     spread actually produced so no two nodes grow into each other. */
   const explicitLayout = (): TreeLayout => {
-    const placed: ComputedTreeNode[] = [];
-    nodes.forEach((n) => {
-      const { x, y } = n;
-      if (x === undefined || y === undefined) return;
-      placed.push({ ...n, cx: x, cy: y });
-    });
-    return { nodes: placed, nodeRadius: MIN_NODE_R };
+    const placed = nodes.filter((n) => n.x !== undefined && n.y !== undefined);
+    const authored: Point[] = placed.map((n) => ({ x: n.x ?? 0, y: n.y ?? 0 }));
+    /* Radius and layout depend on each other (the radius is the inset), so this
+       walks DOWN from the cap: a bigger radius always means a tighter spread, so
+       every pass is a safe upper bound. The authored Huffman coordinates put
+       siblings 34px apart, which the old fixed radius overlapped outright. */
+    let nodeRadius = MAX_NODE_R;
+    for (let pass = 0; pass < 4; pass += 1) {
+      const spacing = minPointSpacing(
+        spreadToBox(authored, box, layoutPad(nodeRadius)),
+        Math.min(box.width, box.height)
+      );
+      const supported = clamp(spacing * SPACING_SHARE, MIN_NODE_R, MAX_NODE_R);
+      if (supported >= nodeRadius) break;
+      nodeRadius = supported;
+    }
+    const points = spreadToBox(authored, box, layoutPad(nodeRadius));
+
+    return {
+      nodes: placed.map((n, index) => ({
+        ...n,
+        cx: points[index]?.x ?? box.width / 2,
+        cy: points[index]?.y ?? box.height / 2,
+      })),
+      nodeRadius,
+    };
   };
 
-  /* Levels and columns are stretched across the measured box, which is what makes
-     a shallow tree fill the canvas height instead of stopping at a fixed 84px per
-     level and letting the rest become an empty band. */
+  /* The tidy layout is abstract (leaf column, depth); spreading it across the
+     measured box is what makes depths own the full HEIGHT and leaf slots the full
+     WIDTH, so a shallow tree no longer stops at a fixed 84px per level and leaves
+     the rest of the canvas as an empty band (DESIGN.md R6.1). A single-column
+     chain or a single level has a degenerate axis, which spreadToBox centres. */
   const stretchedLayout = (): TreeLayout => {
     const tidy = tidyTreeSlots(roots, childrenOf);
     const slotWidth = box.width / tidy.leafCount;
     const levelHeight = box.height / (tidy.depth + 1);
-    const nodeRadius = clamp(
-      Math.min(slotWidth, levelHeight) * 0.36,
-      MIN_NODE_R,
-      MAX_NODE_R
-    );
+    const nodeRadius = clamp(Math.min(slotWidth, levelHeight) * 0.4, MIN_NODE_R, MAX_NODE_R);
+    const abstract: Point[] = tidy.slots.map((slot) => ({ x: slot.slot, y: slot.depth }));
+    const points = spreadToBox(abstract, box, layoutPad(nodeRadius));
 
     const placed: ComputedTreeNode[] = [];
-    tidy.slots.forEach((slot) => {
+    tidy.slots.forEach((slot, index) => {
       const item = nodeMap.get(slot.id);
       if (!item) return;
       placed.push({
         ...item,
-        cx: (slot.slot + 0.5) * slotWidth,
-        cy: (slot.depth + 0.5) * levelHeight,
+        cx: points[index]?.x ?? box.width / 2,
+        cy: points[index]?.y ?? box.height / 2,
       });
     });
 
@@ -137,12 +166,17 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     computedNodes.map((node) => [node.id, node])
   );
 
-  /* One uniform padding around the real node bounds — no fixed ratio, so the
-     viewBox never contains a band the drawing does not use. */
-  const points: Point[] = computedNodes.map((node) => ({ x: node.cx, y: node.cy }));
-  const viewBox = tightViewBox(points, nodeRadius + GROUP_RING_GAP + EDGE_MARGIN, nodeRadius * 2);
-  const svgSize = fitBox({ width: viewBox.width, height: viewBox.height }, box);
-  const labelFont = clamp(nodeRadius * 0.55, 9, 20);
+  /* Ink weights scale with the node, and the label is additionally held to the
+     ~1.7r of chord it has at mid-height (~0.6em per mono glyph) so a long value
+     cannot spill out of its circle. */
+  const longestLabel = computedNodes.reduce(
+    (longest, node) => Math.max(longest, String(node.val).length),
+    1
+  );
+  const labelFont = clamp(Math.min(nodeRadius * 0.55, (nodeRadius * 2.83) / longestLabel), 9, 26);
+  const nodeStroke = clamp(nodeRadius * 0.07, 2, 3.4);
+  const linkStroke = clamp(nodeRadius * 0.06, 1.8, 3);
+  const pathStroke = clamp(nodeRadius * 0.1, 3, 5);
 
   const groupOf = (id: string): number | undefined => groups?.[id];
 
@@ -160,8 +194,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
+        flex: '1 1 auto',
+        alignSelf: 'stretch',
         width: '100%',
         height: '100%',
         minHeight: 0,
@@ -175,35 +209,33 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             fontWeight: 600,
             color: 'var(--text-muted)',
             marginBottom: 'var(--space-1)',
+            textAlign: 'center',
           }}
         >
           {title}
         </div>
       )}
+      {/* The well carries the border and is the measured element: with no padding
+          of its own its client box IS the svg viewport, so the viewBox matches it
+          exactly and the inset surface reaches every edge of the canvas. */}
       <div
         ref={ref}
         style={{
           flex: '1 1 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           minWidth: 0,
           minHeight: 0,
           overflow: 'hidden',
+          background: 'var(--bg-inset)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-default)',
         }}
       >
         <svg
-          width={Math.round(svgSize.width)}
-          height={Math.round(svgSize.height)}
-          viewBox={viewBoxAttr(viewBox)}
-          preserveAspectRatio="xMidYMid meet"
-          style={{
-            display: 'block',
-            background: 'var(--bg-inset)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-default)',
-          }}
+          width="100%"
+          height="100%"
+          viewBox={viewBoxAttr(boxViewBox(box))}
+          style={{ display: 'block' }}
         >
           {/* Render Binary Tree Links */}
           {computedNodes.map((parent) =>
@@ -230,7 +262,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   x2={child.cx}
                   y2={child.cy}
                   stroke={linkColor}
-                  strokeWidth={onPath ? 3 : 1.8}
+                  strokeWidth={onPath ? pathStroke : linkStroke}
                   strokeLinecap="round"
                   style={{ transition: SHAPE_TRANSITION }}
                 />
@@ -261,7 +293,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                     r={nodeRadius + GROUP_RING_GAP}
                     fill="none"
                     stroke={vizSlotColor(slot)}
-                    strokeWidth="2.5"
+                    strokeWidth={nodeStroke}
                     strokeOpacity="0.9"
                     style={{ transition: SHAPE_TRANSITION }}
                   />
@@ -270,7 +302,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                   r={nodeRadius}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={inSemanticState ? 2.5 : 2}
+                  strokeWidth={inSemanticState ? nodeStroke * 1.25 : nodeStroke}
                   style={{ transition: SHAPE_TRANSITION }}
                 />
                 <text

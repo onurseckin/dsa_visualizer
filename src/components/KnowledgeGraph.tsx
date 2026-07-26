@@ -1,6 +1,4 @@
 import React from 'react';
-import { Network, ArrowRight, MousePointerClick } from 'lucide-react';
-import { Badge, Card, difficultyBadgeVariant } from '../ui';
 import { vizSlotBg, vizSlotColor } from './primitives/vizPalette';
 
 /* The roadmap reads as a map, so every topic belongs to one of exactly eight
@@ -44,8 +42,19 @@ const FAMILY_BY_ID: Record<TopicFamilyId, TopicFamily> = TOPIC_FAMILIES.reduce(
 export const topicFamilyColor = (family: TopicFamilyId): string =>
   vizSlotColor(FAMILY_BY_ID[family].slot);
 export const topicFamilyLabel = (family: TopicFamilyId): string => FAMILY_BY_ID[family].label;
+/* Node fills are the family colour mixed into the raised-control tier, because a
+   roadmap node is a chip lifted off the --bg-inset well it sits in.
+
+   At the old 18% the tint was barely 1.5:1 from that well; 26% takes it to
+   1.68:1 while the worst slot still reads 10.1:1 with --text-primary and 6.5:1
+   with --text-secondary. Hover keeps the hue instead of washing it out to
+   accent-soft — the hovered node is exactly when its family matters — at the 40%
+   ceiling, where the 10px --text-secondary subtitle still clears AA (5.03:1) and
+   the fill steps 1.23:1 over its own resting state. */
 const topicFamilyFill = (family: TopicFamilyId): string =>
-  vizSlotBg(FAMILY_BY_ID[family].slot, 18, 'var(--bg-elevated)');
+  vizSlotBg(FAMILY_BY_ID[family].slot, 26, 'var(--bg-elevated)');
+const topicFamilyFillHover = (family: TopicFamilyId): string =>
+  vizSlotBg(FAMILY_BY_ID[family].slot, 40, 'var(--bg-elevated)');
 
 export interface TopicRoadmapNode {
   id: string;
@@ -319,13 +328,6 @@ interface KnowledgeGraphProps {
   onSelectCategoryFolder: (folder: string) => void;
 }
 
-/* ui.css defaults cards and neutral badges to --border-subtle, which disappears
-   against the near-black page; panels here carry a --border-default edge and
-   promote to --border-strong on hover (DESIGN.md R5.1). */
-const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
-/* Legend/identity dots share one size so every family swatch reads the same.
-   The swatch fill is the roadmap's data key — the one place hue survives in this
-   view, since the shell around it (headers, hints, cards, badges) is neutral. */
 const SWATCH_SIZE = '10px';
 
 export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategoryFolder }) => {
@@ -403,324 +405,170 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: 'var(--space-6)',
-        maxWidth: '1400px',
-        margin: '0 auto',
+        padding: 'var(--space-4)',
         width: '100%',
-        gap: 'var(--space-6)',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Interactive SVG roadmap */}
-      <Card
-        icon={<Network />}
-        title={
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Topic prerequisite roadmap
-          </span>
-        }
-        actions={
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <MousePointerClick aria-hidden="true" size={14} />
-            Hover to trace prerequisites, click to open a topic
-          </span>
-        }
-        padding="none"
-        style={{ width: '100%', ...PANEL_BORDER }}
+      <div
+        role="region"
+        aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
+        style={{
+          width: '100%',
+          overflowX: 'auto',
+          position: 'relative',
+          padding: 'var(--space-4) 0',
+        }}
       >
-        <div
-          role="region"
-          aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-          /* An inset well sized by the roadmap it holds — the old 950px floor only
-             added blank space under short viewports. */
+        <ul
+          aria-label="Topic family colors"
           style={{
-            width: '100%',
-            overflowX: 'auto',
-            position: 'relative',
-            padding: 'var(--space-6) var(--space-4)',
-            background: 'var(--bg-inset)',
-            borderTop: '1px solid var(--border-default)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: 'var(--space-2) var(--space-4)',
+            listStyle: 'none',
+            margin: '0 auto var(--space-4)',
+            padding: 0,
+            maxWidth: '1100px',
           }}
         >
-          <ul
-            aria-label="Topic family colors"
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: 'var(--space-2) var(--space-4)',
-              listStyle: 'none',
-              margin: '0 auto var(--space-4)',
-              padding: 0,
-              maxWidth: '1100px',
-            }}
-          >
-            {TOPIC_FAMILIES.map((family) => (
-              <li
-                key={family.id}
+          {TOPIC_FAMILIES.map((family) => (
+            <li
+              key={family.id}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span
+                aria-hidden="true"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--text-secondary)',
+                  width: SWATCH_SIZE,
+                  height: SWATCH_SIZE,
+                  borderRadius: 'var(--radius-full)',
+                  background: topicFamilyColor(family.id),
                 }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: SWATCH_SIZE,
-                    height: SWATCH_SIZE,
-                    borderRadius: 'var(--radius-full)',
-                    background: topicFamilyColor(family.id),
-                  }}
-                />
-                {family.label}
-              </li>
-            ))}
-          </ul>
+              />
+              {family.label}
+            </li>
+          ))}
+        </ul>
 
-          <svg
-            width="1350"
-            height="920"
-            viewBox="0 0 1350 920"
-            style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
-          >
-            <defs>
-              {/* One arrowhead per family: SVG markers cannot inherit the path stroke. */}
-              {TOPIC_FAMILIES.map((family) => (
-                <marker
-                  key={family.id}
-                  id={`arrow-${family.id}`}
-                  viewBox="0 0 10 10"
-                  refX="6"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto-start-reverse"
-                >
-                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill={topicFamilyColor(family.id)} opacity="0.85" />
-                </marker>
-              ))}
+        <svg
+          width="1350"
+          height="920"
+          viewBox="0 0 1350 920"
+          style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
+        >
+          <defs>
+            {/* One arrowhead per family: SVG markers cannot inherit the path stroke. */}
+            {TOPIC_FAMILIES.map((family) => (
               <marker
-                id="arrow-active"
+                key={family.id}
+                id={`arrow-${family.id}`}
                 viewBox="0 0 10 10"
                 refX="6"
                 refY="5"
-                markerWidth="7"
-                markerHeight="7"
+                markerWidth="6"
+                markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill={topicFamilyColor(family.id)} opacity="0.85" />
               </marker>
-            </defs>
-
-            {renderConnections()}
-
-            {TOPIC_ROADMAP_NODES.map((node) => {
-              const isHovered = hoveredNodeId === node.id;
-              const isRelated =
-                hoveredNodeId !== null &&
-                (node.prerequisites.includes(hoveredNodeId) ||
-                  TOPIC_ROADMAP_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
-
-              return (
-                <g
-                  key={node.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                  transform={`translate(${node.x - 90}, ${node.y - 30})`}
-                  onClick={() => onSelectCategoryFolder(node.categoryFolder)}
-                  onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
-                  onMouseEnter={() => setHoveredNodeId(node.id)}
-                  onMouseLeave={() => setHoveredNodeId(null)}
-                  onFocus={() => setHoveredNodeId(node.id)}
-                  onBlur={() => setHoveredNodeId(null)}
-                  style={{ cursor: 'pointer', outline: 'none' }}
-                >
-                  <rect
-                    width="180"
-                    height="60"
-                    rx="10"
-                    fill={isHovered ? 'var(--accent-soft)' : topicFamilyFill(node.family)}
-                    stroke={
-                      isHovered
-                        ? 'var(--border-accent)'
-                        : isRelated
-                        ? topicFamilyColor(node.family)
-                        : 'var(--border-default)'
-                    }
-                    strokeWidth={isHovered ? 1.5 : 1}
-                    style={{ transition: 'all var(--transition-normal)' }}
-                  />
-
-                  {/* Family bar survives the hover/selected treatment, so identity
-                      stays readable while the accent marks interaction. */}
-                  <rect
-                    x="7"
-                    y="14"
-                    width="4"
-                    height="32"
-                    rx="2"
-                    fill={topicFamilyColor(node.family)}
-                  />
-
-                  <text
-                    x="90"
-                    y="24"
-                    textAnchor="middle"
-                    fill={isHovered ? 'var(--accent)' : 'var(--text-primary)'}
-                    fontSize="11.5"
-                    fontWeight="600"
-                    fontFamily="var(--font-ui)"
-                  >
-                    {node.title}
-                  </text>
-
-                  <text
-                    x="90"
-                    y="44"
-                    textAnchor="middle"
-                    fill="var(--text-secondary)"
-                    fontSize="10"
-                    fontFamily="var(--font-code)"
-                  >
-                    {node.algorithmCount} Algs • {node.difficulty}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      </Card>
-
-      {/* Grid list of topics for quick access */}
-      <div style={{ width: '100%' }}>
-        <h3
-          style={{
-            fontSize: 'var(--text-sm)',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            marginBottom: 'var(--space-3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <Network aria-hidden="true" size={16} />
-          All Categorized Topic Modules
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 'var(--space-3)' }}>
-          {TOPIC_ROADMAP_NODES.map((node) => (
-            <Card
-              key={node.id}
-              padding="sm"
-              role="button"
-              tabIndex={0}
-              aria-label={`${node.title}: ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-              onClick={() => onSelectCategoryFolder(node.categoryFolder)}
-              onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
-              onMouseEnter={() => setHoveredNodeId(node.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
-              onFocus={() => setHoveredNodeId(node.id)}
-              onBlur={() => setHoveredNodeId(null)}
-              style={{
-                cursor: 'pointer',
-                transition: 'background var(--transition-fast), border-color var(--transition-fast)',
-                background: hoveredNodeId === node.id ? 'var(--bg-hover)' : undefined,
-                borderColor:
-                  hoveredNodeId === node.id ? 'var(--border-strong)' : 'var(--border-default)',
-                /* Inset bar rather than a border-left longhand: mixing it with the
-                   hover borderColor shorthand makes React fight over the property. */
-                boxShadow: `inset 3px 0 0 ${topicFamilyColor(node.family)}`,
-              }}
+            ))}
+            <marker
+              id="arrow-active"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
             >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 'var(--space-2)',
-                  height: '100%',
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 'var(--space-2)',
-                      marginBottom: 'var(--space-1)',
-                    }}
-                  >
-                    <span style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {node.title}
-                    </span>
-                    <Badge variant={difficultyBadgeVariant(node.difficulty)}>{node.difficulty}</Badge>
-                  </div>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                    {node.description}
-                  </p>
-                </div>
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
+            </marker>
+          </defs>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderTop: '1px solid var(--border-default)',
-                    paddingTop: 'var(--space-2)',
-                    marginTop: 'var(--space-1)',
-                  }}
+          {renderConnections()}
+
+          {TOPIC_ROADMAP_NODES.map((node) => {
+            const isHovered = hoveredNodeId === node.id;
+            const isRelated =
+              hoveredNodeId !== null &&
+              (node.prerequisites.includes(hoveredNodeId) ||
+                TOPIC_ROADMAP_NODES.find((n) => n.id === hoveredNodeId)?.prerequisites.includes(node.id));
+
+            return (
+              <g
+                key={node.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                transform={`translate(${node.x - 90}, ${node.y - 30})`}
+                onClick={() => onSelectCategoryFolder(node.categoryFolder)}
+                onKeyDown={(e) => handleKeyDown(e, node.categoryFolder)}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                onFocus={() => setHoveredNodeId(node.id)}
+                onBlur={() => setHoveredNodeId(null)}
+                style={{ cursor: 'pointer', outline: 'none' }}
+              >
+                <rect
+                  width="180"
+                  height="60"
+                  rx="10"
+                  fill={isHovered ? topicFamilyFillHover(node.family) : topicFamilyFill(node.family)}
+                  stroke={
+                    isHovered
+                      ? 'var(--border-accent)'
+                      : isRelated
+                      ? topicFamilyColor(node.family)
+                      : 'var(--border-default)'
+                  }
+                  strokeWidth={isHovered ? 1.5 : 1}
+                  style={{ transition: 'all var(--transition-normal)' }}
+                />
+
+                {/* Full-strength family colour. */}
+                <rect
+                  x="7"
+                  y="14"
+                  width="4"
+                  height="32"
+                  rx="2"
+                  fill={topicFamilyColor(node.family)}
+                />
+
+                <text
+                  x="90"
+                  y="24"
+                  textAnchor="middle"
+                  fill={isHovered ? 'var(--accent)' : 'var(--text-primary)'}
+                  fontSize="11.5"
+                  fontWeight="600"
+                  fontFamily="var(--font-ui)"
                 >
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                    }}
-                  >
-                    <Badge variant="neutral" style={PANEL_BORDER}>
-                      {node.algorithmCount} Topics
-                    </Badge>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-1)',
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          width: SWATCH_SIZE,
-                          height: SWATCH_SIZE,
-                          borderRadius: 'var(--radius-full)',
-                          background: topicFamilyColor(node.family),
-                        }}
-                      />
-                      {topicFamilyLabel(node.family)}
-                    </span>
-                  </span>
-                  {/* The card hovers to --bg-hover, where muted drops below AA. */}
-                  <ArrowRight aria-hidden="true" size={14} style={{ color: 'var(--text-secondary)' }} />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  {node.title}
+                </text>
+
+                <text
+                  x="90"
+                  y="44"
+                  textAnchor="middle"
+                  fill="var(--text-secondary)"
+                  fontSize="10"
+                  fontFamily="var(--font-code)"
+                >
+                  {node.algorithmCount} Algs • {node.difficulty}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );

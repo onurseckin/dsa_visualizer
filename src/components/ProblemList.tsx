@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Play, Sparkles, Code2, ArrowUpDown } from 'lucide-react';
+import { Search, Play, Code2, ArrowUpDown } from 'lucide-react';
 import { CategoryType } from '../types/dsa';
 import { getAllAlgorithms } from '../algorithms/registry';
 import { Badge, Button, Card, Input, difficultyBadgeVariant } from '../ui';
@@ -40,17 +40,12 @@ const CATEGORY_LABELS: Partial<Record<CategoryType, string>> = {
   geometry_and_sweep_line: 'Geometry & Sweep Line',
 };
 
-const sectionLabelStyle: React.CSSProperties = {
-  fontSize: 'var(--text-sm)',
-  fontWeight: 600,
-  color: 'var(--text-muted)',
-};
-
 const cellPadding = 'var(--space-3) var(--space-4)';
 
-/* ui.css defaults cards and neutral badges to --border-subtle, which disappears
-   against the near-black page; every panel and chip edge here is promoted one
-   step so the container is visible at all (DESIGN.md R5.1). */
+/* ui.css defaults cards and neutral badges to --border-subtle, which is only
+   1.35:1 against the near-black --bg-surface they sit on; every panel and neutral
+   chip edge here is promoted to --border-default (2.49:1) so the container is
+   visible at all against the carbon page (DESIGN.md R6.2). */
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
 // Object.entries erases the CategoryType key union; restore it once here.
@@ -164,75 +159,86 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         gap: 'var(--space-4)',
       }}
     >
-      {/* Header */}
-      <Card
-        style={PANEL_BORDER}
-        icon={<Sparkles />}
-        title={
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            All Categorized Problems &amp; Algorithms
-          </span>
-        }
-        actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <Badge variant="neutral" style={PANEL_BORDER}>
-              Total: {stats.total}
-            </Badge>
-            <Badge variant="success">Easy: {stats.easy}</Badge>
-            <Badge variant="warning">Medium: {stats.medium}</Badge>
-            <Badge variant="danger">Hard: {stats.hard}</Badge>
-          </div>
-        }
-      >
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-          Comprehensive directory of Data Structures, Visualized Algorithms, and LeetCode Problem Solutions.
-        </p>
-      </Card>
-
-      {/* Search + filters */}
+      {/* Compact Filter Toolbar */}
       <Card padding="sm" style={PANEL_BORDER}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onClear={() => setSearchTerm('')}
-            leadingIcon={<Search />}
-            placeholder="Filter problems by title, category, description..."
-            aria-label="Filter problems"
-          />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <span style={sectionLabelStyle}>Difficulty</span>
-            {(['All', 'Easy', 'Medium', 'Hard'] as const).map((diff) => (
-              <Button
-                key={diff}
-                size="sm"
-                selected={selectedDifficulty === diff}
-                onClick={() => setSelectedDifficulty(diff)}
-              >
-                {diff}
-              </Button>
-            ))}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: '240px' }}>
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClear={() => setSearchTerm('')}
+              leadingIcon={<Search />}
+              placeholder="Search problems by title, category, description..."
+              aria-label="Filter problems"
+            />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <span style={{ ...sectionLabelStyle, lineHeight: 'var(--control-h-sm)' }}>Category</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-              <Button size="sm" selected={selectedCategory === 'All'} onClick={() => handleCategorySelect('All')}>
-                All categories
-              </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)' }}>
+              Category:
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => handleCategorySelect(e.target.value as CategoryType | 'All')}
+              aria-label="Filter by Category"
+              style={{
+                height: 'var(--control-h-md)',
+                background: 'var(--bg-inset)',
+                color: 'var(--text-primary)',
+                borderColor: 'var(--border-default)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0 var(--space-2)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              <option value="All">All Categories ({stats.total})</option>
               {CATEGORY_ENTRIES.map(([catKey, label]) => (
-                <Button
-                  key={catKey}
-                  size="sm"
-                  selected={selectedCategory === catKey}
-                  onClick={() => handleCategorySelect(catKey)}
-                >
+                <option key={catKey} value={catKey}>
                   {label}
-                </Button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)' }}>
+              Difficulty:
+            </label>
+            <select
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value as 'All' | 'Easy' | 'Medium' | 'Hard')}
+              aria-label="Filter by Difficulty"
+              style={{
+                height: 'var(--control-h-md)',
+                background: 'var(--bg-inset)',
+                color: 'var(--text-primary)',
+                borderColor: 'var(--border-default)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0 var(--space-2)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              <option value="All">All Difficulties</option>
+              <option value="Easy">Easy ({stats.easy})</option>
+              <option value="Medium">Medium ({stats.medium})</option>
+              <option value="Hard">Hard ({stats.hard})</option>
+            </select>
+          </div>
+
+          <Badge variant="neutral" style={{ height: 'var(--control-h-md)', display: 'inline-flex', alignItems: 'center', padding: '0 var(--space-3)', ...PANEL_BORDER }}>
+            {filteredAlgorithms.length} / {stats.total} Problems
+          </Badge>
         </div>
       </Card>
 
@@ -241,11 +247,13 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-md)' }}>
             <thead>
-              {/* The header row carries the sort controls, so it is a toolbar: the
-                  chrome tier, which the elevated sort buttons read against. */}
+              {/* A recessed rail, not a chrome toolbar: the sort buttons are
+                  --bg-elevated and --bg-chrome is 1.02:1 away from it, so on the
+                  inverted surfaces they vanished into their own strip. --bg-inset
+                  is the only tier that separates from them (1.23:1). */}
               <tr
                 style={{
-                  background: 'var(--bg-chrome)',
+                  background: 'var(--bg-inset)',
                   borderBottom: '1px solid var(--border-default)',
                   color: 'var(--text-muted)',
                   fontSize: 'var(--text-sm)',

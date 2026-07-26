@@ -8,7 +8,7 @@ export interface AuxiliaryPanelProps {
   onClose?: () => void;
 }
 
-/* This lives inside the visualizer panel now (DESIGN.md R5.2), so it is a flush
+/* This lives inside the visualizer panel now (DESIGN.md R6.4), so it is a flush
    band rather than a card: the panel strip that wraps it owns the band fill and
    the single divider facing the canvas, so drawing a border, radius, shadow or
    background here would double the edge and hide that fill. No height of its own. */
@@ -21,13 +21,19 @@ const STRIP: React.CSSProperties = {
   boxShadow: 'none',
 };
 
-/* ui.css chips ship with --border-subtle, which vanishes on the near-black
-   palette; every chip in this panel is promoted to --border-default. */
-const CHIP_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
+/* ui.css sizes chips for dense variable lists: --text-xs on --bg-elevated behind a
+   --border-subtle edge. Inside this band all three fail — the strip's chrome fill
+   is within a percent of --bg-elevated so the chip body dissolves into it, the
+   subtle edge vanishes on the near-black palette (R6.2), and a value the learner
+   has to read at a glance cannot be 0.72rem. Wells + a real edge + --text-sm. */
+const CHIP: React.CSSProperties = {
+  background: 'var(--bg-inset)',
+  borderColor: 'var(--border-default)',
+  fontSize: 'var(--text-sm)',
+};
 
 const GROUP_LABEL: React.CSSProperties = {
-  flexShrink: 0,
-  fontSize: 'var(--text-xs)',
+  fontSize: 'var(--text-sm)',
   color: 'var(--text-muted)',
   whiteSpace: 'nowrap',
 };
@@ -73,7 +79,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'stack',
       label: 'Stack',
       chips: stackItems.map((item, idx) => (
-        <span key={`stack-${idx}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`stack-${idx}`} className="ui-chip" style={CHIP}>
           {String(item)}
           {idx === stackItems.length - 1 && <span style={{ color: 'var(--accent)' }}>top</span>}
         </span>
@@ -86,7 +92,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'queue',
       label: 'Queue',
       chips: queueItems.map((item, idx) => (
-        <span key={`queue-${idx}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`queue-${idx}`} className="ui-chip" style={CHIP}>
           {idx === 0 && <span style={{ color: 'var(--accent)' }}>front</span>}
           {String(item)}
         </span>
@@ -99,7 +105,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'visited',
       label: `Visited (${visitedItems.length})`,
       chips: visitedItems.map((item, idx) => (
-        <span key={`vis-${idx}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`vis-${idx}`} className="ui-chip" style={CHIP}>
           {String(item)}
         </span>
       )),
@@ -111,7 +117,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'hash',
       label: 'Hash map',
       chips: hashMapEntries.map(([key, val]) => (
-        <span key={`hash-${key}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`hash-${key}`} className="ui-chip" style={CHIP}>
           {key}
           <span style={{ color: 'var(--text-muted)' }}>→</span>
           <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
@@ -125,7 +131,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'distance',
       label: 'Distances',
       chips: distanceEntries.map(([node, dist]) => (
-        <span key={`dist-${node}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`dist-${node}`} className="ui-chip" style={CHIP}>
           {node}
           <span style={{ color: 'var(--text-muted)' }}>→</span>
           <span style={{ color: 'var(--text-primary)' }}>
@@ -141,7 +147,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
       key: 'custom',
       label: 'State',
       chips: customEntries.map(([k, val]) => (
-        <span key={`cust-${k}`} className="ui-chip" style={CHIP_BORDER}>
+        <span key={`cust-${k}`} className="ui-chip" style={CHIP}>
           {k}
           <span style={{ color: 'var(--text-muted)' }}>=</span>
           <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
@@ -155,60 +161,63 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
 
   return (
     <Card padding="none" style={STRIP}>
-      {/* One row for every group: the chip track scrolls sideways on overflow
-          instead of wrapping into a block that would push the canvas down. */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           gap: 'var(--space-2)',
-          padding: 'var(--space-1) var(--space-2)',
+          padding: 'var(--space-2) var(--space-3)',
           minWidth: 0,
         }}
       >
-        <span
-          style={{
-            flexShrink: 0,
-            fontSize: 'var(--text-xs)',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Working data
-        </span>
-
-        <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            alignItems: 'center',
-            gap: 'var(--space-3)',
-            minWidth: 0,
-            overflowX: 'auto',
-          }}
-        >
-          {groups.map((group) => (
-            <div
-              key={group.key}
-              style={{
-                display: 'flex',
-                flexShrink: 0,
-                alignItems: 'center',
-                gap: 'var(--space-1)',
-              }}
-            >
-              <span style={GROUP_LABEL}>{group.label}</span>
-              {group.chips}
-            </div>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <span
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Working data
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }} />
+          {onClose && (
+            /* Bordered rather than ghost: a transparent-edged button is invisible on
+               the near-black surface (DESIGN.md R6.2). */
+            <IconButton icon={<X />} size="sm" aria-label="Hide auxiliary panel" onClick={onClose} />
+          )}
         </div>
 
-        {onClose && (
-          /* Bordered rather than ghost: a transparent-edged button is invisible on
-             the near-black surface (DESIGN.md R5.1). */
-          <IconButton icon={<X />} size="sm" aria-label="Hide auxiliary panel" onClick={onClose} />
-        )}
+        {/* One labelled row per structure, and each row WRAPS (DESIGN.md R7.3).
+            Horizontal scrolling hid values off-screen and made the learner drag a
+            track mid-step; wrapping keeps every value readable at once. The label
+            sits in a fixed column so the rows align into a readable table. */}
+        {groups.map((group) => (
+          <div
+            key={group.key}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(5.5rem, max-content) 1fr',
+              alignItems: 'baseline',
+              gap: 'var(--space-1) var(--space-2)',
+              minWidth: 0,
+            }}
+          >
+            <span style={GROUP_LABEL}>{group.label}</span>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 'var(--space-1)',
+                minWidth: 0,
+              }}
+            >
+              {group.chips}
+            </div>
+          </div>
+        ))}
       </div>
     </Card>
   );

@@ -4,6 +4,7 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface BFSGraphInput {
   nodes: GraphNodeItem[];
@@ -243,6 +244,38 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   return steps;
 };
 
+/* The `def` header is skipped, but the deque import is not: forgetting it is a
+   real recall failure. Distractors cover the two ways BFS degenerates — popping
+   the wrong end, and marking visited at dequeue time instead of discovery. */
+const BFS_GRAPH_TRIVIA: TriviaMeta = {
+  skipLines: [3],
+  distractors: [
+    'current = queue.pop()',
+    'visited = set()',
+    'queue.appendleft(neighbor)',
+    'if neighbor in visited:',
+    'visited.add(current)',
+  ],
+  hints: [
+    {
+      line: 4,
+      hint: 'Seed the seen-set with the origin itself, so it can never be discovered a second time.',
+    },
+    {
+      line: 5,
+      hint: 'Build the frontier from a structure with a cheap front, holding just the origin to begin with.',
+    },
+    {
+      line: 8,
+      hint: 'Take whichever node has waited longest — that FIFO choice is the whole difference from DFS.',
+    },
+    {
+      line: 11,
+      hint: 'Claim the neighbour the moment it is discovered, not when it is later processed, or it can enter the frontier twice.',
+    },
+  ],
+};
+
 export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   id: 'bfs-graph',
   title: 'BFS Graph Traversal',
@@ -339,6 +372,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
       },
     ],
   },
+  trivia: BFS_GRAPH_TRIVIA,
   defaultInput: DEFAULT_BFS_INPUT,
   generateSteps: generateBFSGraphSteps,
 };

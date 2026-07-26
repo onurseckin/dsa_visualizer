@@ -72,3 +72,32 @@ describe('bfsGraph spec logic', () => {
     expect(lastStep.explanation.what).toContain('complete');
   });
 });
+
+describe('bfsGraph trivia metadata', () => {
+  const meta = bfsGraph.trivia;
+  const lines = bfsGraph.code.replace(/\s+$/, '').split('\n');
+
+  it('points skipLines and hints at real, non-empty lines', () => {
+    expect(meta).toBeDefined();
+    const skipped = meta?.skipLines ?? [];
+    const hinted = (meta?.hints ?? []).map((entry) => entry.line);
+    expect(hinted.length).toBeGreaterThanOrEqual(2);
+    [...skipped, ...hinted].forEach((line) => {
+      expect(line).toBeGreaterThanOrEqual(1);
+      expect(line).toBeLessThanOrEqual(lines.length);
+      expect(lines[line - 1].trim()).not.toBe('');
+    });
+    // A hint on a line the drill never hides would never be shown.
+    hinted.forEach((line) => expect(skipped).not.toContain(line));
+  });
+
+  it('never offers a distractor that is actually a correct line', () => {
+    const real = new Set(lines.map((line) => line.trim()));
+    const distractors = meta?.distractors ?? [];
+    expect(distractors.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(distractors).size).toBe(distractors.length);
+    distractors.forEach((distractor) => {
+      expect(real.has(distractor.trim())).toBe(false);
+    });
+  });
+});

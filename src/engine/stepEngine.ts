@@ -3,7 +3,6 @@ import { AlgorithmStep } from '../types/dsa';
 
 interface UseStepEngineOptions {
   steps: AlgorithmStep[];
-  soundEnabled: boolean;
   onStepChange?: (step: AlgorithmStep) => void;
   defaultSpeed?: number;
 }
@@ -36,7 +35,7 @@ export function useStepEngine({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const onStepChangeRef = useRef(onStepChange);
   const stepsRef = useRef(steps);
-  // Initialized to 0 so the initial index-0 render never notifies (no sound on
+  // Initialized to 0 so the initial index-0 render never notifies (nothing fires on
   // page load); also guards StrictMode's double-invoked effects from double-firing.
   const lastNotifiedIndexRef = useRef<number>(0);
 
@@ -159,7 +158,7 @@ export function useStepEngine({
   }, [isPlaying, speed, stopTimer]);
 
   // Reset step index if steps array changes; pre-marking index 0 as notified
-  // keeps the reset silent (no sound on algorithm switch).
+  // keeps the reset quiet (no notification on algorithm switch).
   useEffect(() => {
     lastNotifiedIndexRef.current = 0;
     setCurrentStepIndex(0);

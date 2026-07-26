@@ -15,13 +15,15 @@ import {
   DEFAULT_WORKSPACE_LAYOUT,
   MIN_PANEL_HEIGHT_PX,
   WORKSPACE_LAYOUT_KEY,
+  WORKSPACE_LAYOUT_RESET_EVENT,
   WorkspaceLayout,
+  clearWorkspaceLayout,
 } from '../../app/workspaceLayout';
 
 /* Child panels are owned and rebuilt by other agents. They are mocked here so this
    spec verifies the layout contract only: the single-container stage, per-panel
-   visibility, prop wiring across the agent boundary, and the persisted geometry.
-   ResizableLayout / ResizableRows and ConfirmDialog stay real. */
+   visibility, prop wiring across the agent boundary, and the persisted state.
+   ResizableLayout / ResizableRows stay real. */
 
 vi.mock('../primitives/ProblemHeader', () => ({
   ProblemHeader: ({
@@ -31,7 +33,6 @@ vi.mock('../primitives/ProblemHeader', () => ({
     topicGuide,
     expanded,
     onToggleExpanded,
-    onResetLayout,
   }: {
     title: string;
     difficulty?: string;
@@ -39,7 +40,6 @@ vi.mock('../primitives/ProblemHeader', () => ({
     topicGuide: TopicGuide;
     expanded: boolean;
     onToggleExpanded: () => void;
-    onResetLayout?: () => void;
   }) => (
     <div data-testid="problem-header" data-topic-sections={topicGuide.sections.length}>
       <span>{title}</span>
@@ -49,7 +49,6 @@ vi.mock('../primitives/ProblemHeader', () => ({
       </button>
       {expanded && <p>{description}</p>}
       {expanded && <p>{topicGuide.overview}</p>}
-      <button onClick={onResetLayout}>Ask to reset layout</button>
     </div>
   ),
 }));
@@ -252,6 +251,10 @@ const stagePanel = (container: HTMLElement): HTMLElement =>
 const region = (container: HTMLElement, name: string): HTMLElement | null =>
   container.querySelector(`[data-region="${name}"]`);
 
+/** The tutorial + working-data band, capped together so neither starves the canvas. */
+const stepBand = (container: HTMLElement): HTMLElement | null =>
+  container.querySelector('[data-band="step-context"]');
+
 const storedLayout = (): WorkspaceLayout | null => {
   const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
   return raw === null ? null : (JSON.parse(raw) as WorkspaceLayout);
@@ -357,7 +360,7 @@ describe('MainLayout Component Spec', () => {
   });
 
   describe('one graph-focused stage container', () => {
-    it('nests working data, canvas, tutorial and playback inside the single visualizer panel', () => {
+    it('reads tutorial, working data, canvas then playback down the single visualizer panel', () => {
       const { container } = renderLayout({ controlProps: dummyControlProps });
 
       const panel = stagePanel(container);
@@ -367,41 +370,119 @@ describe('MainLayout Component Spec', () => {
       expect(panel).toContainElement(screen.getByTestId('tutorial-card'));
       expect(panel).toContainElement(screen.getByTestId('control-panel'));
 
-      // Working data on top, canvas in the middle, tutorial then playback below it.
+      // The tutorial is the panel's header now (R6.4), not a footer above playback.
       const order = Array.from(panel.querySelectorAll('[data-region]')).map((node) =>
         node.getAttribute('data-region'),
       );
-      expect(order).toEqual(['working-data', 'canvas', 'tutorial', 'controls']);
+      expect(order).toEqual(['tutorial', 'working-data', 'canvas', 'controls']);
     });
 
-    it('leaves the left column a single row, so nothing is stacked outside the panel', () => {
-      const { container } = renderLayout();
+    it('keeps the tutorial first even when the working-data strip is hidden', () => {
+      const { container } = renderLayout({
+        panels: allPanels({ auxiliary: false }),
+        controlProps: dummyControlProps,
+      });
 
-      expect(panelRow(container, 'visualizer')).toContainElement(stagePanel(container));
-      expect(panelRow(container, 'tutorial')).toBeNull();
-      expect(panelRow(container, 'auxiliary')).toBeNull();
-      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
+      const order = Array.from(
+        stagePanel(container).querySelectorAll('[data-region]'),
+      ).map((node) => node.getAttribute('data-region'));
+      expect(order).toEqual(['tutorial', 'canvas', 'controls']);
     });
 
-    it('integrates each strip with a subtle divider on the edge facing the canvas', () => {
+    it('nests the step rows inside the panel instead of stacking them beside it', () => {
       const { container } = renderLayout();
 
-      /* The strip owns the band fill and the one divider; its content draws no
-         edge of its own, so the canvas boundary is a single line. The chrome tier
-         matches the docked playback strip and keeps the --bg-elevated working-data
-         chips from dissolving into the band behind them. */
-      const workingData = region(container, 'working-data') as HTMLElement;
-      expect(workingData.style.borderBottom).toBe('1px solid var(--border-subtle)');
-      expect(workingData.style.borderTop).toBe('');
-      expect(workingData.style.background).toBe('var(--bg-chrome)');
+      /* The left column is still one row — the tutorial and working-data rows are
+         resizable rows (R7.4), but they live INSIDE the visualizer panel, so the
+         column itself never stacks anything next to the stage. */
+      const visualizerRow = panelRow(container, 'visualizer') as HTMLElement;
+      expect(visualizerRow).toContainElement(stagePanel(container));
+      for (const id of ['tutorial', 'auxiliary']) {
+        const row = panelRow(container, id);
+        expect(row).not.toBeNull();
+        expect(stagePanel(container)).toContainElement(row);
+      }
 
+      const columnRows = Array.from(visualizerRow.parentElement?.children ?? []).filter((child) =>
+        child.hasAttribute('data-row'),
+      );
+      expect(columnRows).toHaveLength(1);
+      expect(columnRows[0]).toBe(visualizerRow);
+
+      /* One handle per adjacent pair of rows — the step rows inside the panel and
+         the code column's pair — plus the standalone one that pins the stage. */
+      expect(horizontalHandles()).toEqual([
+        'Resize tutorial and working data rows',
+        'Resize code and complexity rows',
+        'Resize the stage height',
+      ]);
+    });
+
+    it('integrates every strip with one subtle divider on the edge facing the canvas', () => {
+      const { container } = renderLayout();
+
+      /* Both strips sit above the canvas now, so every divider faces down. The
+         strip owns the band fill and that one line; its content draws no edge of
+         its own, so each seam is exactly 1px. The fill is the card's own darkest
+         surface (R7.2): these strips are reading surfaces like the code and
+         complexity panels, so lifting them to the chrome tier made the Step
+         section read as a lighter, separate component. The divider alone marks
+         the seam. */
+      for (const name of ['tutorial', 'working-data']) {
+        const strip = region(container, name) as HTMLElement;
+        expect(strip.style.borderBottom).toBe('1px solid var(--border-subtle)');
+        expect(strip.style.borderTop).toBe('');
+        expect(strip.style.background).toBe('var(--bg-surface)');
+      }
+    });
+
+    it('drops the last strip divider when there is no canvas under it to divide from', () => {
+      const { container } = renderLayout({ panels: allPanels({ visualizer: false }) });
+
+      expect((region(container, 'tutorial') as HTMLElement).style.borderBottom).toBe(
+        '1px solid var(--border-subtle)',
+      );
+      expect((region(container, 'working-data') as HTMLElement).style.borderBottom).toBe('');
+    });
+
+    it('caps tutorial and working data as ONE band so neither starves the canvas', () => {
+      const { container } = renderLayout();
+
+      /* Two strips each free to take 38% would leave the canvas a quarter of the
+         panel, so the cap is on the band and the prose strip inside it scrolls. */
+      const band = stepBand(container) as HTMLElement;
+      expect(band.style.maxHeight).toBe('45%');
+      expect(band.style.flexShrink).toBe('0');
+      expect(band.style.minHeight).toBe('0');
+      expect(band.style.overflow).toBe('hidden');
+      expect(band).toContainElement(region(container, 'tutorial'));
+      expect(band).toContainElement(region(container, 'working-data'));
+      expect(band).not.toContainElement(region(container, 'canvas'));
+
+      // The prose gives height back under the cap; the one-row data strip does not.
       const tutorial = region(container, 'tutorial') as HTMLElement;
-      expect(tutorial.style.borderTop).toBe('1px solid var(--border-subtle)');
-      expect(tutorial.style.borderBottom).toBe('');
-      expect(tutorial.style.background).toBe('var(--bg-chrome)');
+      expect(tutorial.style.flex).toBe('1 1 auto');
+      const workingData = region(container, 'working-data') as HTMLElement;
+      expect(workingData.style.flex).toBe('0 0 auto');
+
+      for (const name of ['tutorial', 'working-data']) {
+        const strip = region(container, name) as HTMLElement;
+        // Each scrolls inside itself, so a verbose step never resizes the panel.
+        expect(strip.style.overflowY).toBe('auto');
+        expect(strip.style.minHeight).toBe('0');
+        expect(strip.style.maxHeight).toBe('');
+      }
     });
 
-    it('gives the canvas every leftover pixel while the strips keep their own height', () => {
+    it('renders no band at all when both strips are off', () => {
+      const { container } = renderLayout({
+        panels: allPanels({ tutorial: false, auxiliary: false }),
+      });
+
+      expect(stepBand(container)).toBeNull();
+    });
+
+    it('gives the canvas every leftover pixel and never centres a child inside it', () => {
       const { container } = renderLayout();
 
       const canvas = region(container, 'canvas') as HTMLElement;
@@ -409,13 +490,14 @@ describe('MainLayout Component Spec', () => {
       // A flex child must be allowed to go below its content to give space back.
       expect(canvas.style.minHeight).toBe('0');
 
-      for (const name of ['working-data', 'tutorial']) {
-        const strip = region(container, name) as HTMLElement;
-        expect(strip.style.flexShrink).toBe('0');
-        // Capped so a long step can never starve the canvas it belongs to.
-        expect(strip.style.maxHeight).toBe('38%');
-        expect(strip.style.overflowY).toBe('auto');
-      }
+      /* R6.1: centring a 100%-sized visualizer, or padding it like a band, is how
+         the dead vertical space kept being MOVED instead of removed. Vertical
+         slack must not exist here; horizontal slack scrolls. */
+      expect(canvas.style.alignItems).toBe('');
+      expect(canvas.style.justifyContent).toBe('');
+      expect(canvas.style.padding).toBe('var(--space-2)');
+      expect(canvas.style.overflowY).toBe('hidden');
+      expect(canvas.style.overflowX).toBe('auto');
     });
 
     it('embeds playback controls at the bottom edge of the visualizer panel', () => {
@@ -450,7 +532,11 @@ describe('MainLayout Component Spec', () => {
 
       expect(panelRow(container, 'tutorial')).toBeNull();
       expect(panelRow(container, 'auxiliary')).toBeNull();
-      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
+      // No step rows means no handle between them; the stage handle is not theirs.
+      expect(horizontalHandles()).toEqual([
+        'Resize code and complexity rows',
+        'Resize the stage height',
+      ]);
     });
 
     /* The strip components return null when they have no content, so gating the
@@ -634,7 +720,11 @@ describe('MainLayout Component Spec', () => {
         expect(element.style.height).toBe('');
         expect(element.style.flexBasis).toBe('auto');
       }
-      expect(horizontalHandles()).toEqual(['Resize code and complexity rows']);
+      expect(horizontalHandles()).toEqual([
+        'Resize tutorial and working data rows',
+        'Resize code and complexity rows',
+        'Resize the stage height',
+      ]);
     });
   });
 
@@ -646,11 +736,19 @@ describe('MainLayout Component Spec', () => {
       expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
     });
 
-    it('restores persisted sizes on mount', () => {
+    it('restores persisted sizes on mount, including the step rows', () => {
       seedLayout({
-        version: 5,
+        version: 7,
         splitPercent: 40,
-        panelHeights: { visualizer: null, code: 320, complexity: 240 },
+        panelHeights: {
+          stage: null,
+          visualizer: null,
+          tutorial: 96,
+          auxiliary: null,
+          code: 320,
+          complexity: 240,
+        },
+        detailsExpanded: true,
       });
 
       const { container } = renderLayout();
@@ -658,22 +756,21 @@ describe('MainLayout Component Spec', () => {
       expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
       expect((panelRow(container, 'code') as HTMLElement).style.height).toBe('320px');
       expect((panelRow(container, 'complexity') as HTMLElement).style.height).toBe('240px');
+      // v7 gives the step strips their own slots, so a pinned tutorial comes back too.
+      expect((panelRow(container, 'tutorial') as HTMLElement).style.height).toBe('96px');
+      expect(panelRow(container, 'tutorial')).toHaveAttribute('data-height-mode', 'pinned');
+      expect(panelRow(container, 'auxiliary')).toHaveAttribute('data-height-mode', 'hug');
       expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'greedy');
     });
 
-    it('ignores a payload from the previous v4 schema', () => {
+    it('ignores a payload from the previous v6 schema', () => {
       localStorage.setItem(
         WORKSPACE_LAYOUT_KEY,
         JSON.stringify({
-          version: 4,
+          version: 6,
           splitPercent: 40,
-          panelHeights: {
-            visualizer: null,
-            tutorial: 180,
-            auxiliary: null,
-            code: null,
-            complexity: 240,
-          },
+          panelHeights: { visualizer: null, code: null, complexity: 240 },
+          detailsExpanded: false,
         }),
       );
 
@@ -684,6 +781,7 @@ describe('MainLayout Component Spec', () => {
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
       expect(panelRow(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
+      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
     });
 
     it('persists a keyboard nudge of the column split so it survives a reload', () => {
@@ -704,7 +802,10 @@ describe('MainLayout Component Spec', () => {
 
       // jsdom measures 0, so the nudge lands on the floor — the point is that it pins.
       expect(storedLayout()?.panelHeights).toEqual({
+        stage: null,
         visualizer: null,
+        tutorial: null,
+        auxiliary: null,
         code: MIN_PANEL_HEIGHT_PX,
         complexity: null,
       });
@@ -715,11 +816,64 @@ describe('MainLayout Component Spec', () => {
       expect(panelRow(container, 'complexity')).toHaveAttribute('data-height-mode', 'hug');
     });
 
+    /* R7.4: the step strips are rows now, so the handle between them is the height
+       control for the graph area — the canvas absorbs whatever the tutorial gives up. */
+    it('pins the tutorial row from the step handle and leaves the rest automatic', () => {
+      const { container } = renderLayout();
+
+      fireEvent.keyDown(
+        screen.getByRole('separator', { name: 'Resize tutorial and working data rows' }),
+        { key: 'ArrowDown' },
+      );
+
+      expect(storedLayout()?.panelHeights).toEqual({
+        stage: null,
+        visualizer: null,
+        tutorial: MIN_PANEL_HEIGHT_PX,
+        auxiliary: null,
+        code: null,
+        complexity: null,
+      });
+      const tutorial = panelRow(container, 'tutorial') as HTMLElement;
+      expect(tutorial).toHaveAttribute('data-height-mode', 'pinned');
+      expect(tutorial.style.height).toBe(`${MIN_PANEL_HEIGHT_PX}px`);
+      expect(panelRow(container, 'auxiliary')).toHaveAttribute('data-height-mode', 'hug');
+      expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'greedy');
+    });
+
+    /* The stage is one row, so it has no separator of its own inside the column;
+       the standalone handle is what gives the graph area a height and not only a
+       width, and a pin has to beat the viewport calculation to be worth anything. */
+    it('pins the stage height from its own handle and gives it back on double-click', () => {
+      const { container } = renderLayout();
+
+      const stage = container.querySelector('[data-stage="workspace"]') as HTMLElement;
+      const stageHandle = screen.getByRole('separator', { name: 'Resize the stage height' });
+
+      fireEvent.keyDown(stageHandle, { key: 'ArrowDown' });
+
+      expect(storedLayout()?.panelHeights.stage).toBe(MIN_PANEL_HEIGHT_PX);
+      expect(stage.style.height).toBe(`${MIN_PANEL_HEIGHT_PX}px`);
+
+      fireEvent.doubleClick(stageHandle);
+
+      expect(storedLayout()?.panelHeights.stage).toBeNull();
+      expect(stage.style.height).toContain('max(var(--stage-min-h)');
+    });
+
     it('restores a pinned panel to automatic on double-click and persists that', () => {
       seedLayout({
-        version: 5,
+        version: 7,
         splitPercent: 70,
-        panelHeights: { visualizer: null, code: 240, complexity: null },
+        panelHeights: {
+          stage: null,
+          visualizer: null,
+          tutorial: null,
+          auxiliary: null,
+          code: 240,
+          complexity: null,
+        },
+        detailsExpanded: true,
       });
       const { container } = renderLayout();
 
@@ -734,70 +888,147 @@ describe('MainLayout Component Spec', () => {
     });
   });
 
-  describe('reset layout', () => {
+  /* R6.5: whether the lesson is open is a manual adjustment like any drag, so it
+     lives under the same versioned key and survives a reload. */
+  describe('persisted details state', () => {
+    const detailsExpandedAttr = (): string | null =>
+      screen.getByRole('main').getAttribute('data-details-expanded');
+
+    it('persists a collapse to the v7 key without disturbing the geometry', () => {
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+      expect(detailsExpandedAttr()).toBe('false');
+      expect(storedLayout()?.detailsExpanded).toBe(false);
+      expect(storedLayout()?.version).toBe(7);
+      expect(storedLayout()?.splitPercent).toBe(DEFAULT_WORKSPACE_LAYOUT.splitPercent);
+      expect(storedLayout()?.panelHeights).toEqual(DEFAULT_WORKSPACE_LAYOUT.panelHeights);
+    });
+
+    it('restores a collapsed details panel on mount, and reopening persists too', () => {
+      seedLayout({
+        version: 7,
+        splitPercent: 55,
+        panelHeights: {
+          stage: null,
+          visualizer: null,
+          tutorial: null,
+          auxiliary: null,
+          code: null,
+          complexity: null,
+        },
+        detailsExpanded: false,
+      });
+
+      renderLayout();
+
+      expect(detailsExpandedAttr()).toBe('false');
+      expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '55');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+      expect(detailsExpandedAttr()).toBe('true');
+      expect(storedLayout()?.detailsExpanded).toBe(true);
+      // Reopening must not drop the split the user dragged.
+      expect(storedLayout()?.splitPercent).toBe(55);
+    });
+
+    it('keeps the details state through a later geometry drag', () => {
+      renderLayout();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+      fireEvent.keyDown(columnHandle(), { key: 'ArrowRight' });
+
+      expect(storedLayout()?.splitPercent).toBe(72);
+      expect(storedLayout()?.detailsExpanded).toBe(false);
+      expect(detailsExpandedAttr()).toBe('false');
+    });
+
+    it('opens details when the stored payload is from an older schema', () => {
+      localStorage.setItem(
+        WORKSPACE_LAYOUT_KEY,
+        JSON.stringify({
+          version: 6,
+          splitPercent: 40,
+          panelHeights: { visualizer: null, code: null, complexity: 240 },
+          detailsExpanded: false,
+        }),
+      );
+
+      renderLayout();
+
+      expect(detailsExpandedAttr()).toBe('true');
+    });
+  });
+
+  /* Reset moved to the navbar (R6.5), which clears the key and announces it; this
+     panel owns no dialog any more and re-reads on the announcement. */
+  describe('reset announced from the navbar', () => {
     const customLayout: WorkspaceLayout = {
-      version: 5,
+      version: 7,
       splitPercent: 40,
-      panelHeights: { visualizer: null, code: 320, complexity: 240 },
+      panelHeights: {
+        stage: null,
+        visualizer: null,
+        tutorial: null,
+        auxiliary: null,
+        code: 320,
+        complexity: 240,
+      },
+      detailsExpanded: false,
     };
 
-    it('asks for confirmation instead of resetting immediately', () => {
-      seedLayout(customLayout);
+    it('renders no reset control and no confirm dialog of its own', () => {
       renderLayout();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
-
-      const dialog = screen.getByRole('dialog');
-      expect(dialog).toHaveAttribute('aria-modal', 'true');
-      expect(screen.getByText('Reset workspace layout?')).toBeInTheDocument();
-      expect(dialog).toHaveTextContent('custom panel sizes will be lost');
-
-      // Nothing changed yet.
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
-      expect(storedLayout()).toEqual(customLayout);
-    });
-
-    it('keeps the layout when the dialog is dismissed with Escape', () => {
-      seedLayout(customLayout);
-      renderLayout();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
-      fireEvent.keyDown(document, { key: 'Escape' });
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
-      expect(storedLayout()).toEqual(customLayout);
+      expect(screen.queryByRole('button', { name: /reset layout/i })).not.toBeInTheDocument();
+      expect(screen.queryByText('Reset workspace layout?')).not.toBeInTheDocument();
     });
 
-    it('keeps the layout when the cancel button is used', () => {
-      seedLayout(customLayout);
-      renderLayout();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Keep my layout' }));
-
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
-      expect(storedLayout()).toEqual(customLayout);
-    });
-
-    it('clears storage and puts every panel back on automatic only on confirm', () => {
+    it('reloads defaults live when the workspace-layout reset event fires', () => {
       seedLayout(customLayout);
       const { container } = renderLayout();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Ask to reset layout' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Reset layout' }));
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'false');
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      // Exactly what the navbar does on a confirmed reset.
+      clearWorkspaceLayout();
+      fireEvent(window, new Event(WORKSPACE_LAYOUT_RESET_EVENT));
+
       expect(localStorage.getItem(WORKSPACE_LAYOUT_KEY)).toBeNull();
       expect(columnHandle()).toHaveAttribute(
         'aria-valuenow',
         String(DEFAULT_WORKSPACE_LAYOUT.splitPercent),
       );
+      expect(screen.getByRole('main')).toHaveAttribute('data-details-expanded', 'true');
       for (const id of ['code', 'complexity']) {
         expect(panelRow(container, id)).toHaveAttribute('data-height-mode', 'hug');
         expect((panelRow(container, id) as HTMLElement).style.height).toBe('');
       }
+    });
+
+    it('ignores the announcement once unmounted, so a reset cannot resurrect it', () => {
+      seedLayout(customLayout);
+      const { unmount } = renderLayout();
+
+      unmount();
+      clearWorkspaceLayout();
+
+      expect(() => fireEvent(window, new Event(WORKSPACE_LAYOUT_RESET_EVENT))).not.toThrow();
+    });
+
+    it('re-reads whatever is stored, so an announcement without a clear keeps the layout', () => {
+      seedLayout(customLayout);
+      renderLayout();
+
+      fireEvent(window, new Event(WORKSPACE_LAYOUT_RESET_EVENT));
+
+      expect(columnHandle()).toHaveAttribute('aria-valuenow', '40');
+      expect(storedLayout()).toEqual(customLayout);
     });
   });
 });

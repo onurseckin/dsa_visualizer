@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProblemsRouteImport } from './routes/problems'
+import { Route as TriviaRouteImport } from './routes/trivia'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
 import { Route as WorkspaceAlgorithmIdRouteImport } from './routes/workspace.$algorithmId'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const ProblemsRoute = ProblemsRouteImport.update({
   id: '/problems',
   path: '/problems',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TriviaRoute = TriviaRouteImport.update({
+  id: '/trivia',
+  path: '/trivia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
@@ -38,12 +44,14 @@ const WorkspaceAlgorithmIdRoute = WorkspaceAlgorithmIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/problems': typeof ProblemsRoute
+  '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/problems': typeof ProblemsRoute
+  '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace': typeof WorkspaceIndexRoute
 }
@@ -51,20 +59,29 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/problems': typeof ProblemsRoute
+  '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/problems' | '/workspace/$algorithmId' | '/workspace/'
+  fullPaths:
+    '/' | '/problems' | '/trivia' | '/workspace/$algorithmId' | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/problems' | '/workspace/$algorithmId' | '/workspace'
-  id: '__root__' | '/' | '/problems' | '/workspace/$algorithmId' | '/workspace/'
+  to: '/' | '/problems' | '/trivia' | '/workspace/$algorithmId' | '/workspace'
+  id:
+    | '__root__'
+    | '/'
+    | '/problems'
+    | '/trivia'
+    | '/workspace/$algorithmId'
+    | '/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProblemsRoute: typeof ProblemsRoute
+  TriviaRoute: typeof TriviaRoute
   WorkspaceAlgorithmIdRoute: typeof WorkspaceAlgorithmIdRoute
   WorkspaceIndexRoute: typeof WorkspaceIndexRoute
 }
@@ -83,6 +100,13 @@ declare module '@tanstack/react-router' {
       path: '/problems'
       fullPath: '/problems'
       preLoaderRoute: typeof ProblemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trivia': {
+      id: '/trivia'
+      path: '/trivia'
+      fullPath: '/trivia'
+      preLoaderRoute: typeof TriviaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workspace/': {
@@ -105,6 +129,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProblemsRoute: ProblemsRoute,
+  TriviaRoute: TriviaRoute,
   WorkspaceAlgorithmIdRoute: WorkspaceAlgorithmIdRoute,
   WorkspaceIndexRoute: WorkspaceIndexRoute,
 }

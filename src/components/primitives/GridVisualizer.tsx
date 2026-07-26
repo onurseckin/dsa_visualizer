@@ -1,6 +1,6 @@
 import React from 'react';
 import { GridCellNode, ElementState } from '../../types/dsa';
-import { Size, clamp, fitBox, fitSlots, useCanvasBox, viewBoxAttr } from './vizGeometry';
+import { Size, boxViewBox, clamp, fitSlots, useCanvasBox, viewBoxAttr } from './vizGeometry';
 
 export interface GridVisualizerProps {
   grid: GridCellNode[][];
@@ -23,7 +23,49 @@ interface CellAppearance {
 const GAP = 4;
 const PAD = 4;
 const MIN_CELL = 8;
-const MAX_CELL = 160;
+/* Sanity cap on the height-derived cell: a 1–2 row grid would otherwise mint
+   half-panel squares. From 3 rows up in a normal panel the cap never binds, so
+   the height is fully spent (see the numbers in DESIGN.md R6.1). */
+const MAX_CELL = 180;
+
+interface CellFit {
+  cell: number;
+  gap: number;
+}
+
+/**
+ * Square-cell geometry for one measured canvas.
+ *
+ * The cell comes off the HEIGHT (DESIGN.md R6.1): square cells cannot match an
+ * arbitrary canvas ratio, so the axis that must be spent completely is the
+ * vertical one — leftover height is the defect being fixed, leftover width is
+ * merely centred. The column fit only steps in for a grid wider than the panel's
+ * ratio, where honouring the height would push cells off the canvas.
+ */
+const cellFit = (rows: number, cols: number, box: Size): CellFit => {
+  const rowFit = fitSlots(rows, box.height - PAD * 2, GAP, MIN_CELL, MAX_CELL);
+  const colFit = fitSlots(cols, box.width - PAD * 2, GAP, MIN_CELL, MAX_CELL);
+  const cell = Math.min(rowFit.size, colFit.size);
+  const fits =
+    cell * cols + Math.max(cols - 1, 0) * GAP <= box.width &&
+    cell * rows + Math.max(rows - 1, 0) * GAP <= box.height;
+  if (fits) return { cell, gap: GAP };
+
+  /* The cell floor has bound on a grid too big for the canvas. Nothing rescales
+     the drawing any more, so the gap goes first and then the floor: a cramped
+     grid still shows every cell instead of losing its last rows to the edge. */
+  const gap = Math.min(GAP, Math.min(box.width / (cols * 4), box.height / (rows * 4)));
+  return {
+    cell: Math.max(
+      Math.min(
+        (box.width - gap * Math.max(cols - 1, 0)) / cols,
+        (box.height - gap * Math.max(rows - 1, 0)) / rows
+      ),
+      1
+    ),
+    gap,
+  };
+};
 
 /* ElementState names map 1:1 onto the --state-* token names in theme.css.
    Boolean flags (start/end/wall/path/visited) take priority over the state field. */
@@ -96,25 +138,24 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
   const cols = grid.reduce((widest, row) => Math.max(widest, row.length), 0);
 
   /* `cellSize` is the ideal cell, so an unmeasured canvas (jsdom, first paint)
-     reproduces the layout the old fixed viewBox produced; a measured canvas grows
-     the cells past it instead. */
+     still lays out sensibly; a measured canvas grows the cells past it. */
   const fallbackBox: Size = {
     width: cols * cellSize + Math.max(cols - 1, 0) * GAP + PAD * 2,
     height: rows * cellSize + Math.max(rows - 1, 0) * GAP + PAD * 2,
   };
   const { ref, box } = useCanvasBox(fallbackBox);
 
-  /* Square cells cannot match an arbitrary canvas ratio, so the cell grows until
-     it fills the limiting axis and the inset well is then sized to the grid's own
-     ratio — the drawing is as large as geometry allows with no dead band inside. */
-  const colFit = fitSlots(cols, box.width - PAD * 2, GAP, MIN_CELL, MAX_CELL);
-  const rowFit = fitSlots(rows, box.height - PAD * 2, GAP, MIN_CELL, MAX_CELL);
-  const cell = Math.min(colFit.size, rowFit.size);
+  const { cell, gap } = cellFit(rows, cols, box);
+  const gridWidth = cols * cell + Math.max(cols - 1, 0) * gap;
+  const gridHeight = rows * cell + Math.max(rows - 1, 0) * gap;
+  /* Centring the remainder is what makes PAD reappear as the inset when the axis
+     is fully spent, and what keeps a shape-constrained remainder symmetric. */
+  const originX = Math.max((box.width - gridWidth) / 2, 0);
+  const originY = Math.max((box.height - gridHeight) / 2, 0);
 
-  const contentWidth = cols * cell + Math.max(cols - 1, 0) * GAP + PAD * 2;
-  const contentHeight = rows * cell + Math.max(rows - 1, 0) * GAP + PAD * 2;
-  const svgSize = fitBox({ width: contentWidth, height: contentHeight }, box);
-  const font = clamp(cell * 0.34, 7, 20);
+  const font = clamp(cell * 0.34, 7, 28);
+  const strokeScale = clamp(cell / 48, 1, 1.8);
+  const radius = clamp(cell * 0.1, 3, 12);
 
   if (rows === 0 || cols === 0) return null;
 
@@ -124,8 +165,8 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flex: '1 1 auto',
+        alignSelf: 'stretch',
         width: '100%',
         height: '100%',
         minWidth: 0,
@@ -139,35 +180,33 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
             fontWeight: 600,
             color: 'var(--text-muted)',
             marginBottom: 'var(--space-1)',
+            textAlign: 'center',
           }}
         >
           {title}
         </div>
       )}
+      {/* The well carries the border and is the measured element: with no padding
+          of its own its client box IS the svg viewport, so the viewBox matches it
+          exactly and the inset surface reaches every edge of the canvas. */}
       <div
         ref={ref}
         style={{
           flex: '1 1 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           minWidth: 0,
           minHeight: 0,
           overflow: 'hidden',
+          background: 'var(--bg-inset)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-default)',
         }}
       >
         <svg
-          width={Math.round(svgSize.width)}
-          height={Math.round(svgSize.height)}
-          viewBox={viewBoxAttr({ minX: 0, minY: 0, width: contentWidth, height: contentHeight })}
-          preserveAspectRatio="xMidYMid meet"
-          style={{
-            display: 'block',
-            background: 'var(--bg-inset)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-default)',
-          }}
+          width="100%"
+          height="100%"
+          viewBox={viewBoxAttr(boxViewBox(box))}
+          style={{ display: 'block' }}
         >
           {grid.map((row, rIdx) =>
             row.map((gridCell, cIdx) => {
@@ -178,8 +217,8 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
                   : '';
               const cellText = appearance.symbol ? appearance.symbol : distLabel;
 
-              const x = PAD + cIdx * (cell + GAP);
-              const y = PAD + rIdx * (cell + GAP);
+              const x = originX + cIdx * (cell + gap);
+              const y = originY + rIdx * (cell + gap);
 
               return (
                 <g
@@ -197,10 +236,10 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
                     y={y}
                     width={cell}
                     height={cell}
-                    rx={4}
+                    rx={radius}
                     fill={appearance.bg}
                     stroke={appearance.border}
-                    strokeWidth={appearance.strokeWidth}
+                    strokeWidth={appearance.strokeWidth * strokeScale}
                   />
                   {cellText && (
                     <text

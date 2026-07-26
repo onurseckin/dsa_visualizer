@@ -1,20 +1,8 @@
-import { Suspense, lazy } from 'react';
 import { createRootRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { AppView } from '../types/dsa';
 import { Navbar } from '../components/Navbar';
 import { CATEGORIES } from '../app/categories';
 import { SettingsProvider, useSettings } from '../app/SettingsContext';
-
-/* Devtools are dev-only; MODE === 'test' is excluded so the lazy chunk does not
-   render extra DOM into jsdom-based routing specs. */
-const RouterDevtools =
-  import.meta.env.DEV && import.meta.env.MODE !== 'test'
-    ? lazy(() =>
-        import('@tanstack/react-router-devtools').then((mod) => ({
-          default: mod.TanStackRouterDevtools,
-        }))
-      )
-    : null;
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -34,8 +22,6 @@ function RootShell() {
   const {
     panels,
     togglePanel,
-    soundEnabled,
-    setSoundEnabled,
     lastAlgorithmId,
     setLastAlgorithmId,
   } = useSettings();
@@ -75,17 +61,9 @@ function RootShell() {
         onGlobalSelectAlgorithm={handleGlobalSelectAlgorithm}
         panels={panels}
         onTogglePanel={togglePanel}
-        soundEnabled={soundEnabled}
-        onToggleSound={() => setSoundEnabled(!soundEnabled)}
       />
 
       <Outlet />
-
-      {RouterDevtools ? (
-        <Suspense fallback={null}>
-          <RouterDevtools />
-        </Suspense>
-      ) : null}
     </div>
   );
 }

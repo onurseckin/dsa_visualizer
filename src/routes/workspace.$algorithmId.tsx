@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { AlgorithmStep } from '../types/dsa';
 import { ALGORITHM_REGISTRY } from '../algorithms/registry';
 import { useStepEngine } from '../engine/stepEngine';
-import soundEngine from '../engine/soundEngine';
-import { deriveStepCue } from '../engine/stepSound';
 import { MainLayout } from '../components/MainLayout';
 import { useSettings } from '../app/SettingsContext';
+import { isDialogOpen, isTypingTarget } from '../app/keyboardGuards';
+
+/* Space activates the focused button or link. Hijacking it there would mean that
+   tabbing to any toggle and pressing Space scrubs playback instead of flipping
+   that toggle, so the shortcut defers to the element's own activation. */
+const activatesOnSpace = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement &&
+  target.closest('button, [role="button"], a[href], summary') !== null;
 
 export const Route = createFileRoute('/workspace/$algorithmId')({
   beforeLoad: ({ params }) => {
@@ -19,7 +24,7 @@ export const Route = createFileRoute('/workspace/$algorithmId')({
 
 function WorkspacePage() {
   const { algorithmId } = Route.useParams();
-  const { panels, setPanel, soundEnabled, setLastAlgorithmId } = useSettings();
+  const { panels, setPanel, setLastAlgorithmId } = useSettings();
 
   const [dataSize, setDataSize] = useState<number>(10);
   const [inputSeed, setInputSeed] = useState<number>(1);
@@ -53,31 +58,6 @@ function WorkspacePage() {
     return algorithm.generateSteps(currentInput);
   }, [algorithm, currentInput]);
 
-  // Ref tracks the last step index that triggered sound (prevents duplicate triggers/echoes)
-  const lastHandledStepRef = useRef<number>(-1);
-  // The step the listener last heard: cue classification is a delta against it.
-  const prevHandledStepRef = useRef<AlgorithmStep | null>(null);
-
-  // A new steps array means a new run, so the delta baseline must not leak across it.
-  useEffect(() => {
-    lastHandledStepRef.current = -1;
-    prevHandledStepRef.current = null;
-  }, [steps]);
-
-  const handleStepChange = useCallback(
-    (step: AlgorithmStep) => {
-      if (lastHandledStepRef.current === step.stepIndex) return;
-      const prevStep = prevHandledStepRef.current;
-      lastHandledStepRef.current = step.stepIndex;
-      // Tracked even while muted so re-enabling sound resumes with a valid baseline.
-      prevHandledStepRef.current = step;
-
-      if (!soundEnabled) return;
-      soundEngine.playCue(deriveStepCue(step, prevStep, steps.length));
-    },
-    [soundEnabled, steps.length]
-  );
-
   const {
     currentStepIndex,
     currentStep,
@@ -85,15 +65,61 @@ function WorkspacePage() {
     isPlaying,
     speed,
     togglePlay,
+    pause,
     stepForward,
     stepBackward,
     reset,
     setSpeed,
   } = useStepEngine({
     steps,
-    soundEnabled,
-    onStepChange: handleStepChange,
   });
+
+  /* The engine hands back fresh callbacks as the index and play state move, so the
+     listener reads them through a ref: the window binding is installed once
+     instead of being torn down and re-added on every tick of playback. */
+  const playbackRef = useRef({ stepForward, stepBackward, togglePlay, pause });
+  useEffect(() => {
+    playbackRef.current = { stepForward, stepBackward, togglePlay, pause };
+  }, [stepForward, stepBackward, togglePlay, pause]);
+
+  // R6.6: ArrowRight/ArrowLeft/Space drive playback from anywhere on the workspace.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Modified keys belong to the browser and the OS (Cmd+Left is "back").
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      if (isTypingTarget(event.target)) return;
+      if (isDialogOpen()) return;
+
+      const playback = playbackRef.current;
+
+      /* Stepping takes the wheel: the interval would otherwise keep advancing on
+         its own schedule, so ArrowLeft during playback looked like a no-op (the
+         next tick undid it) and ArrowRight double-stepped. This is also what the
+         step buttons already say by disabling themselves while playing. */
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        playback.pause();
+        playback.stepForward();
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        playback.pause();
+        playback.stepBackward();
+        return;
+      }
+      // ' ' is the standard key value; 'Spacebar' is the legacy Edge/IE spelling.
+      if (event.key === ' ' || event.key === 'Spacebar') {
+        if (activatesOnSpace(event.target)) return;
+        // Without this the page (or the nearest scroller) pages down on every play.
+        event.preventDefault();
+        playback.togglePlay();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleGenerateRandom = () => {
     setInputSeed((prev) => prev + 1);

@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export const BUBBLE_SORT_CODE = `def bubble_sort(arr: list[int]) -> list[int]:
     n = len(arr)
@@ -147,6 +148,38 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   return steps;
 };
 
+/* Line 1 is the given signature; the distractors below are the two bugs this
+   solution actually invites — a mis-shrunk inner bound and a relaxed comparison
+   that silently costs stability. */
+const BUBBLE_SORT_TRIVIA: TriviaMeta = {
+  skipLines: [1],
+  distractors: [
+    'for j in range(0, n - i):',
+    'for j in range(0, n - 1):',
+    'if arr[j] >= arr[j + 1]:',
+    'if arr[j] < arr[j + 1]:',
+    'arr[j], arr[j + 1] = arr[j], arr[j + 1]',
+  ],
+  hints: [
+    {
+      line: 2,
+      hint: 'Measure the array once up front, so both loop bounds can be written in terms of it.',
+    },
+    {
+      line: 4,
+      hint: 'Bound the sweep so it stops before the suffix already settled by earlier passes, and never reads past the last index.',
+    },
+    {
+      line: 5,
+      hint: 'Compare the neighbours strictly, so equal values are left alone and the sort stays stable.',
+    },
+    {
+      line: 6,
+      hint: 'Exchange the two neighbours in one statement — Python needs no temporary here.',
+    },
+  ],
+};
+
 export const bubbleSort: AlgorithmDefinition<number[]> = {
   id: 'bubble-sort',
   title: 'Bubble Sort',
@@ -235,6 +268,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
       },
     ],
   },
+  trivia: BUBBLE_SORT_TRIVIA,
   defaultInput: [5, 2, 8, 1, 4],
   generateSteps: generateBubbleSortSteps,
 };

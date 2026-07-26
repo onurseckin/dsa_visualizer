@@ -1,13 +1,6 @@
 import React from 'react';
-import { RotateCcw } from 'lucide-react';
 import { Badge, Button, Card, difficultyBadgeVariant } from '../../ui';
-import {
-  CategoryType,
-  DifficultyLevel,
-  ProblemExample,
-  TimeComplexity,
-  TopicGuide,
-} from '../../types/dsa';
+import { CategoryType, DifficultyLevel, ProblemExample, TopicGuide } from '../../types/dsa';
 
 export interface ProblemHeaderProps {
   title: string;
@@ -16,14 +9,14 @@ export interface ProblemHeaderProps {
   description: string;
   constraints?: string[];
   examples?: ProblemExample[];
-  timeComplexity?: TimeComplexity;
-  spaceComplexity?: string;
+  /* No complexity props: the Big-O read-out belongs to ComplexityCard in the code
+     column, so accepting them here only invited two places to render it. */
   topicGuide: TopicGuide;
   /* Expansion is controlled by the parent so the surrounding layout can switch
-     between viewport-fit and page-scroll modes in sync with the details panel. */
+     between viewport-fit and page-scroll modes in sync with the details panel,
+     and so the parent can persist the choice (DESIGN.md R6.5). */
   expanded: boolean;
   onToggleExpanded: () => void;
-  onResetLayout?: () => void;
 }
 
 const humanizeCategory = (category: string): string => {
@@ -85,7 +78,6 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   topicGuide,
   expanded,
   onToggleExpanded,
-  onResetLayout,
 }) => {
   const keyTerms = topicGuide.keyTerms ?? [];
 
@@ -118,6 +110,8 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
 
         <div style={{ flex: 1 }} />
 
+        {/* Reset layout used to sit here; it governs the whole workspace, not this
+            strip, so it moved to the navbar next to the panel toggles (R6.5). */}
         <Button
           size="sm"
           selected={expanded}
@@ -126,12 +120,6 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         >
           Details
         </Button>
-
-        {onResetLayout && (
-          <Button size="sm" variant="ghost" icon={<RotateCcw />} onClick={onResetLayout}>
-            Reset layout
-          </Button>
-        )}
       </div>
 
       {expanded && (

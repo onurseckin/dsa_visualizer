@@ -1,28 +1,43 @@
-/* Persisted workspace geometry (DESIGN.md R5.2 / R5.4).
+/* Persisted workspace state (DESIGN.md R6.5).
 
-   One versioned key holds every panel size so a shape change invalidates old
-   data wholesale instead of half-applying it. Storage is user-editable and can
-   throw (Safari private mode, disabled storage, quota), so every entry point
+   One versioned key holds every manual adjustment so a shape change invalidates
+   old data wholesale instead of half-applying it. Storage is user-editable and
+   can throw (Safari private mode, disabled storage, quota), so every entry point
    here is defensive: reads validate and fall back to defaults, writes are
    best-effort, and nothing throws into the render path. The key is only ever
-   removed by an explicit confirmed reset — that is what makes sizes survive
-   reloads and dev-server restarts.
+   removed by an explicit confirmed reset — that is what makes adjustments
+   survive reloads and dev-server restarts.
 
    A height of `null` means the panel sizes itself (hug, or absorb the column's
    leftover space); a number means the user dragged that panel to an explicit
    height.
 
-   v5 drops the `tutorial` and `auxiliary` heights: those strips now live inside
-   the visualizer panel rather than as separately pinned rows of the left column,
-   so they have no handle and no height of their own to remember. Only the panels
-   that are still rows of a column keep a slot. */
+   v6 adds `detailsExpanded`: whether the problem/lesson panel is open is a
+   manual adjustment like any drag, so it belongs under the same key rather than
+   resetting to open on every reload.
 
-export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v5';
+   v7 restores `tutorial` and `auxiliary` and adds `stage`: every workspace
+   section now carries a height handle, not just width (DESIGN.md R7.4). The
+   tutorial and working-data strips are resizable rows inside the visualizer
+   panel, and `stage` pins the whole stage so the graph area itself can be made
+   taller or shorter instead of being fixed to the viewport calculation. */
 
-export const WORKSPACE_LAYOUT_VERSION = 5;
+export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v7';
+
+export const WORKSPACE_LAYOUT_VERSION = 7;
+
+/* Reset is a navbar action but the layout state lives in the workspace, so the
+   two are joined by a window event rather than a shared React parent: the navbar
+   clears storage and announces it, every mounted reader re-reads. Exported so
+   neither side can drift onto a different string. */
+export const WORKSPACE_LAYOUT_RESET_EVENT = 'dsa:workspace-layout-reset';
 
 export interface WorkspacePanelHeights {
+  /** The whole stage row — how tall the graph area is allowed to be. */
+  stage: number | null;
   visualizer: number | null;
+  tutorial: number | null;
+  auxiliary: number | null;
   code: number | null;
   complexity: number | null;
 }
@@ -30,7 +45,10 @@ export interface WorkspacePanelHeights {
 export type WorkspacePanelKey = keyof WorkspacePanelHeights;
 
 export const WORKSPACE_PANEL_KEYS: readonly WorkspacePanelKey[] = [
+  'stage',
   'visualizer',
+  'tutorial',
+  'auxiliary',
   'code',
   'complexity',
 ] as const;
@@ -41,6 +59,8 @@ export interface WorkspaceLayout {
   splitPercent: number;
   /** Pixel height per panel; null = automatic (hug content). */
   panelHeights: WorkspacePanelHeights;
+  /** Whether the problem/lesson details panel is open (R6.5). */
+  detailsExpanded: boolean;
 }
 
 /* In a patch, an absent key (or `undefined`) means "leave it alone" while an
@@ -48,6 +68,7 @@ export interface WorkspaceLayout {
 export interface WorkspaceLayoutPatch {
   splitPercent?: number;
   panelHeights?: Partial<WorkspacePanelHeights>;
+  detailsExpanded?: boolean;
 }
 
 export const MIN_SPLIT_PERCENT = 25;
@@ -68,10 +89,15 @@ const DEFAULT_LAYOUT: WorkspaceLayout = {
   version: WORKSPACE_LAYOUT_VERSION,
   splitPercent: DEFAULT_SPLIT_PERCENT,
   panelHeights: {
+    stage: null,
     visualizer: null,
+    tutorial: null,
+    auxiliary: null,
     code: null,
     complexity: null,
   },
+  // First visit opens the lesson: the learner should not have to hunt for it.
+  detailsExpanded: true,
 };
 
 export function cloneWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
@@ -79,6 +105,7 @@ export function cloneWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
     version: WORKSPACE_LAYOUT_VERSION,
     splitPercent: layout.splitPercent,
     panelHeights: { ...layout.panelHeights },
+    detailsExpanded: layout.detailsExpanded,
   };
 }
 
@@ -159,8 +186,15 @@ export function readWorkspaceLayout(): WorkspaceLayout {
   const panelHeights = readPanelHeights(parsed.panelHeights);
   if (!panelHeights) return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 
+  if (typeof parsed.detailsExpanded !== 'boolean') return cloneWorkspaceLayout(DEFAULT_LAYOUT);
+
   // Rebuilt field by field so unknown keys in storage never reach app state.
-  return { version: WORKSPACE_LAYOUT_VERSION, splitPercent: parsed.splitPercent, panelHeights };
+  return {
+    version: WORKSPACE_LAYOUT_VERSION,
+    splitPercent: parsed.splitPercent,
+    panelHeights,
+    detailsExpanded: parsed.detailsExpanded,
+  };
 }
 
 /** Merges the patch onto whatever is stored, clamps it, writes best-effort, returns the result. */
@@ -178,6 +212,8 @@ export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayo
     version: WORKSPACE_LAYOUT_VERSION,
     splitPercent: clampSplitPercent(patch.splitPercent ?? current.splitPercent),
     panelHeights,
+    // `??` and not `||`: collapsing the details panel patches an explicit false.
+    detailsExpanded: patch.detailsExpanded ?? current.detailsExpanded,
   };
 
   const storage = getStorage();
@@ -201,4 +237,17 @@ export function clearWorkspaceLayout(): void {
   } catch {
     // Nothing to recover from — the caller restores defaults in memory anyway.
   }
+}
+
+/**
+ * The whole confirmed reset: drop the stored state, then tell every mounted
+ * reader to re-read it. Callers get the defaults that are now in storage, so the
+ * navbar can reset a workspace it does not own without a shared React parent.
+ */
+export function resetWorkspaceLayout(): WorkspaceLayout {
+  clearWorkspaceLayout();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(WORKSPACE_LAYOUT_RESET_EVENT));
+  }
+  return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 }
