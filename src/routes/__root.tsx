@@ -27,13 +27,21 @@ function RootShell() {
   } = useSettings();
 
   const appView: AppView =
-    pathname === '/' ? 'tree' : pathname.startsWith('/problems') ? 'list' : 'workspace';
+    pathname === '/'
+      ? 'tree'
+      : pathname.startsWith('/problems')
+      ? 'list'
+      : pathname.startsWith('/trivia')
+      ? 'trivia'
+      : 'workspace';
 
   const handleSetAppView = (view: AppView) => {
     if (view === 'tree') {
       navigate({ to: '/' });
     } else if (view === 'list') {
       navigate({ to: '/problems', search: {} });
+    } else if (view === 'trivia') {
+      navigate({ to: '/trivia' });
     } else {
       navigate({ to: '/workspace/$algorithmId', params: { algorithmId: lastAlgorithmId } });
     }

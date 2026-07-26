@@ -198,7 +198,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
      from the node for the plain/traversed/path weights. */
   const arrowW = clamp(nodeRadius * 0.34, 9, 18);
   const arrowH = arrowW * 0.72;
-  const arrowRefX = nodeRadius + arrowW;
+  const arrowRefX = arrowW;
 
   const groupSlots = Array.from(
     new Set(
@@ -345,16 +345,27 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               ? `url(#arrowhead-traversed-${markerScope})`
               : `url(#arrowhead-${markerScope})`;
 
+            const dx = toNode.x - fromNode.x;
+            const dy = toNode.y - fromNode.y;
+            const dist = Math.hypot(dx, dy);
+            const ux = dist > 0 ? dx / dist : 0;
+            const uy = dist > 0 ? dy / dist : 0;
+
+            const lineX1 = fromNode.x + ux * nodeRadius;
+            const lineY1 = fromNode.y + uy * nodeRadius;
+            const lineX2 = toNode.x - ux * nodeRadius;
+            const lineY2 = toNode.y - uy * nodeRadius;
+
             const midX = (fromNode.x + toNode.x) / 2;
             const midY = (fromNode.y + toNode.y) / 2;
 
             return (
               <g key={`edge-${edge.from}-${edge.to}-${idx}`}>
                 <line
-                  x1={fromNode.x}
-                  y1={fromNode.y}
-                  x2={toNode.x}
-                  y2={toNode.y}
+                  x1={lineX1}
+                  y1={lineY1}
+                  x2={lineX2}
+                  y2={lineY2}
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
                   strokeDasharray={strokeDasharray}
