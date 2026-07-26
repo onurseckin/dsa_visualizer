@@ -26,9 +26,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
   return (
     <main
       aria-label="Algorithm Roadmap"
-      className="flex flex-col items-center p-6 w-full max-w-[1400px] mx-auto box-border flex-1 overflow-y-auto"
+      className="flex flex-col items-center p-5 w-full max-w-[1400px] mx-auto box-border flex-1 overflow-y-auto"
     >
-      <div className="w-full mb-6 flex flex-col gap-1">
+      <div className="w-full mb-4 flex flex-col gap-1">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Knowledge Tree</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           Interactive Data Structures and Algorithms Prerequisite Roadmap
@@ -38,7 +38,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       <div
         role="region"
         aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        className="w-full overflow-x-auto relative p-6 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center"
+        className="w-full overflow-x-auto relative p-4 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center"
       >
         <KnowledgeGraphLegend />
 
