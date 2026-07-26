@@ -43,7 +43,6 @@ import { TriviaHeaderCard } from '../components/trivia/TriviaHeaderCard';
 import { TriviaSessionsManager } from '../components/trivia/TriviaSessionsManager';
 import { TriviaCompletionCard } from '../components/trivia/TriviaCompletionCard';
 import { TriviaDeckBuilder } from '../components/trivia/TriviaDeckBuilder';
-import { TriviaSettings } from '../components/trivia/TriviaSettings';
 import { TriviaSession } from '../components/trivia/TriviaSession';
 
 export const Route = createFileRoute('/trivia')({
@@ -415,31 +414,13 @@ function TriviaPage() {
       ) : activeSession && config && progress ? (
         screen === 'setup' ? (
           <>
-            <TriviaHeaderCard
-              activeSession={activeSession}
-              level={level}
-              config={config}
-              progress={progress}
-              sourcesCount={sources.size}
-              coverage={coverage}
-              isDeckEmpty={isDeckEmpty}
-              onStartDrilling={handleStartDrilling}
-              onBackToHome={() => handleBackToHome('setup')}
-              onRenameSession={handleRenameSession}
-            />
-
-            {isDeckEmpty && (
-              <span style={hintStyle}>
-                Add at least one algorithm to the deck to start drilling.
-              </span>
-            )}
-
-            {/* Single-column stack — drill settings above the deck builder,
-                so the settings a learner needs before picking algorithms are
-                the first thing on screen rather than buried below a
-                potentially long algorithm list (a user reported never
-                realising settings existed at all). No side-by-side region to
-                divide (TASKS.md 9.8), so height-only resizing suffices. */}
+            {/* One merged section — session identity and drill settings under
+                a single Card (the user asked for these united, not stacked as
+                two separate cards) — above the deck builder, so the settings
+                a learner needs before picking algorithms are the first thing
+                on screen rather than buried below a potentially long
+                algorithm list. No side-by-side region to divide (TASKS.md
+                9.8), so height-only resizing suffices. */}
             <div
               ref={settingsPanel.ref}
               style={{
@@ -449,8 +430,27 @@ function TriviaPage() {
                 overflow: layout.panelHeights.settings !== null ? 'auto' : 'visible',
               }}
             >
-              <TriviaSettings config={config} onChange={applyConfig} deckLineCounts={deckLineCounts} />
+              <TriviaHeaderCard
+                activeSession={activeSession}
+                level={level}
+                config={config}
+                progress={progress}
+                sourcesCount={sources.size}
+                coverage={coverage}
+                isDeckEmpty={isDeckEmpty}
+                onStartDrilling={handleStartDrilling}
+                onBackToHome={() => handleBackToHome('setup')}
+                onRenameSession={handleRenameSession}
+                deckLineCounts={deckLineCounts}
+                onChangeSettings={applyConfig}
+              />
             </div>
+
+            {isDeckEmpty && (
+              <span style={hintStyle}>
+                Add at least one algorithm to the deck to start drilling.
+              </span>
+            )}
 
             <DragHandle
               orientation="horizontal"
