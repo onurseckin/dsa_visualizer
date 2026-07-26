@@ -10,10 +10,13 @@ const ALL_VISIBLE: PanelVisibility = {
   auxiliary: true,
 };
 
+import { useSearchStore } from "../../app/useSearchStore";
+
 describe("NavbarDrawer Component Spec", () => {
   beforeEach(() => {
     (document.activeElement as HTMLElement)?.blur();
     document.body.innerHTML = "";
+    useSearchStore.setState({ isDrawerOpen: false });
   });
 
   afterEach(() => {
