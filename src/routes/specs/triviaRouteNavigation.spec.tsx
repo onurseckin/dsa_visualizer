@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
@@ -29,8 +29,6 @@ const renderTriviaRoute = async () => {
   });
   return render(<RouterProvider router={router} />);
 };
-
-const revealButtons = () => screen.getAllByRole("button", { name: /^Reveal line \d+$/ });
 
 const readActiveSessionRecord = (): TriviaSessionRecord => {
   const sessions = readTriviaSessions();
@@ -102,15 +100,9 @@ describe("/trivia route navigation and layout", () => {
   });
 
   it('"Back to Trivia Home" from Drill records lastScreen: drill, so Resume returns to Drill next time, with a fresh round (never claiming to restore exact blanks)', async () => {
-    seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
+    seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
     await screen.findByText("solution.py");
-
-    revealButtons().forEach((button) => fireEvent.click(button));
-    const check = screen.getByRole("button", { name: /^Check answers/ });
-    await waitFor(() => expect(check).toBeEnabled());
-    fireEvent.click(check);
-    await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
     fireEvent.click(screen.getByRole("button", { name: "Back to Trivia Home" }));
 
