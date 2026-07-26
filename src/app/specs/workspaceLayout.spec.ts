@@ -17,8 +17,9 @@ import {
   resetWorkspaceLayout,
   writeWorkspaceLayout,
 } from '../workspaceLayout';
+type TestPayload = string | number | boolean | null | WorkspaceLayout | Record<string, unknown> | Array<unknown>;
 
-const seed = (value: unknown): void => {
+const seed = (value: TestPayload): void => {
   localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(value));
 };
 
@@ -257,7 +258,7 @@ describe('workspaceLayout persistence contract', () => {
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  const invalidPayloads: [string, unknown][] = [
+  const invalidPayloads: [string, TestPayload][] = [
     ['a non-object payload', 42],
     [
       'a missing splitPercent',

@@ -4,6 +4,7 @@ import type {
   GridCellNode,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface FloydWarshallInput {
   nodes: string[];
@@ -322,6 +323,26 @@ const FLOYD_WARSHALL_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const FLOYD_WARSHALL_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Entry point: takes every vertex and every direct edge weight, and will compute the shortest distance between all pairs at once.',
+    2: 'Caches the vertex count once, since it sizes the distance matrix and bounds every loop that follows.',
+    3: 'Builds the n by n table with every pair starting at infinity — unreachable until proven otherwise.',
+    4: 'Maps each node label to a matrix row and column index, since the table is addressed by position rather than by name.',
+    6: 'Walks every vertex to seed its own diagonal entry.',
+    7: 'Every vertex reaches itself at zero cost — the base case the whole dynamic program builds on.',
+    9: 'Walks the raw edge list to fill in what is known directly, before any pivoting begins.',
+    10: 'Writes each direct edge weight straight into the matrix using the index mapping — the starting facts the algorithm goes on to improve.',
+    12: 'The pivot loop: each iteration allows one more vertex to be used as an intermediate stop on any path — this must be the outermost loop or the recurrence is simply wrong.',
+    13: 'For the current pivot, checks every possible source vertex.',
+    14: 'And every possible target vertex, so all n^2 pairs get re-examined against this pivot.',
+    15: 'Only considers routing through k if both halves of the detour (i to k, and k to j) are actually reachable, avoiding arithmetic on infinity.',
+    16: 'The core comparison: does detouring through pivot k beat the best route from i to j found so far?',
+    17: "Overwrites the matrix in place with the cheaper route — safe because row k and column k cannot themselves improve during this same pivot round.",
+    19: 'Every vertex has had its turn as pivot, so the matrix now holds the true shortest distance between every ordered pair.',
+  },
+};
+
 export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   id: 'floyd-warshall',
   title: 'Floyd-Warshall All-Pairs Shortest Path',
@@ -362,6 +383,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
     space: 'The V x V distance matrix dominates memory: one cell for every ordered pair of vertices, updated in place, giving O(V^2).',
   },
   topicGuide: FLOYD_WARSHALL_TOPIC_GUIDE,
+  trivia: FLOYD_WARSHALL_TRIVIA,
   defaultInput: DEFAULT_FLOYD_WARSHALL_INPUT,
   generateSteps: generateFloydWarshallSteps,
 };

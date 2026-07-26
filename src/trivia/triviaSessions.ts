@@ -1,5 +1,6 @@
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../types/trivia';
 import {
+  clearTrivia,
   cloneTriviaConfig,
   cloneTriviaProgress,
   readTriviaConfig,
@@ -20,7 +21,7 @@ const getStorage = (): Storage | null => {
 
 export function generateNextSessionName(sessions: readonly TriviaSessionRecord[]): string {
   let maxIndex = 0;
-  const pattern = /^Trivia\s+(\d+)$/i;
+  const pattern = /^(?:Session|Trivia)\s+(\d+)$/i;
   for (const s of sessions) {
     const match = s.name.trim().match(pattern);
     if (match) {
@@ -28,7 +29,7 @@ export function generateNextSessionName(sessions: readonly TriviaSessionRecord[]
       if (idx > maxIndex) maxIndex = idx;
     }
   }
-  return `Trivia ${maxIndex + 1}`;
+  return `Session ${maxIndex + 1}`;
 }
 
 export function readTriviaSessions(): TriviaSessionRecord[] {
@@ -139,4 +140,41 @@ export function deleteSession(id: string): void {
   if (readActiveSessionId() === id) {
     writeActiveSessionId(filtered.length > 0 ? filtered[0].id : null);
   }
+}
+
+export interface ActiveSessionBootstrap {
+  sessions: TriviaSessionRecord[];
+  active: TriviaSessionRecord;
+}
+
+/**
+ * Guarantees a session exists and is active, so the trivia page never has a
+ * "nothing selected" state to render around. Three cases, in order:
+ *
+ * 1. Sessions already exist and the stored active id points at one of them —
+ *    used as-is.
+ * 2. Sessions exist but the active-id pointer is missing or stale (cleared
+ *    storage, a deleted session) — the most recent session becomes active.
+ * 3. No sessions exist at all. This is either a first visit, or a pre-sessions
+ *    install that only has the bare `triviaConfig`/`triviaProgress` keys. The
+ *    one session created here is seeded FROM those bare keys (which safely
+ *    read as engine defaults when absent), so a returning user's deck and
+ *    drilled coverage carries over instead of silently resetting — then the
+ *    bare keys are retired since the session record is now their only owner.
+ */
+export function ensureActiveSession(): ActiveSessionBootstrap {
+  const existing = readTriviaSessions();
+
+  if (existing.length > 0) {
+    const activeId = readActiveSessionId();
+    const active = activeId !== null ? existing.find((s) => s.id === activeId) : undefined;
+    if (active) return { sessions: existing, active };
+
+    writeActiveSessionId(existing[0].id);
+    return { sessions: existing, active: existing[0] };
+  }
+
+  const seeded = createSession(undefined, readTriviaConfig(), readTriviaProgress());
+  clearTrivia();
+  return { sessions: [seeded], active: seeded };
 }

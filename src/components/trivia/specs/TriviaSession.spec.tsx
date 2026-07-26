@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TriviaSession } from '../TriviaSession';
 import { TILE_MIME } from '../CodePuzzle';
 import { parsePuzzleLines } from '../../../trivia/triviaEngine';
-import type { TriviaMode, TriviaRound } from '../../../types/trivia';
+import type { TriviaMeta, TriviaMode, TriviaRound } from '../../../types/trivia';
 
 const CODE = [
   'def two_sum(nums, target):',
@@ -43,7 +43,11 @@ const typeRound = (blanks: number[] = [2, 5]): TriviaRound => ({
   tiles: [],
 });
 
-const setup = (round: TriviaRound, mode: TriviaMode = 'choice') => {
+const setup = (
+  round: TriviaRound,
+  mode: TriviaMode = 'choice',
+  extra: { onExitToSetup?: () => void; hints?: TriviaMeta['hints'] } = {},
+) => {
   const onSubmit = vi.fn();
   const onNext = vi.fn();
   const view = render(
@@ -51,8 +55,12 @@ const setup = (round: TriviaRound, mode: TriviaMode = 'choice') => {
       round={round}
       algorithmTitle="Two Sum"
       mode={mode}
+      level={round.level}
+      coverage={43}
       onSubmit={onSubmit}
       onNext={onNext}
+      onExitToSetup={extra.onExitToSetup}
+      hints={extra.hints}
     />,
   );
   return { onSubmit, onNext, view };
@@ -65,14 +73,9 @@ const placedTile = (text: string): HTMLElement =>
   screen.getByRole('button', { name: `Tile ${text} (placed)` });
 const field = (line: number): HTMLElement =>
   screen.getByRole('textbox', { name: new RegExp(`^Line ${line} `) });
-const checkButton = (): HTMLElement => screen.getByRole('button', { name: 'Check answers' });
-const nextButton = (): HTMLElement => screen.getByRole('button', { name: 'Next round' });
-
-/** Click-and-place: the keyboard/mouse route that must work without real DnD. */
-const place = (text: string, line: number): void => {
-  fireEvent.click(tile(text));
-  fireEvent.click(slot(line));
-};
+const checkButton = (): HTMLElement => screen.getByRole('button', { name: /^Check answers/ });
+const nextButton = (): HTMLElement => screen.getByRole('button', { name: /^Next round/ });
+const retryButton = (): HTMLElement => screen.getByRole('button', { name: /^Retry/ });
 
 /** A dataTransfer stub that actually carries its payload between the two events. */
 const makeTransfer = () => {
@@ -83,6 +86,15 @@ const makeTransfer = () => {
     getData: (format: string) => payload.get(format) ?? '',
     effectAllowed: 'none',
   };
+};
+
+/** Drag-and-drop: still the way to place a specific tile into a specific
+    (possibly non-next) blank after the click redesign (see 5.1/5.2) — a
+    plain click now commits straight to the next empty blank instead. */
+const place = (text: string, line: number): void => {
+  const dataTransfer = makeTransfer();
+  fireEvent.dragStart(tile(text), { dataTransfer });
+  fireEvent.drop(slot(line), { dataTransfer });
 };
 
 describe('TriviaSession Component Spec', () => {
@@ -100,21 +112,77 @@ describe('TriviaSession Component Spec', () => {
     expect(screen.getByText('Hiding 1 line')).toBeInTheDocument();
   });
 
-  it('places a tile by click and consumes it from the tray', () => {
+  it('shows the trailing "Level N · X% covered" line instead of a badge row', () => {
+    setup(choiceRound());
+    expect(screen.getByText('Level 2 · 43% covered')).toBeInTheDocument();
+  });
+
+  it('renders "Exit to setup", never "Pause", and only when a handler is given', () => {
+    const { view } = setup(choiceRound());
+    expect(screen.queryByRole('button', { name: 'Exit to setup' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/pause/i)).not.toBeInTheDocument();
+    view.unmount();
+
+    const onExitToSetup = vi.fn();
+    setup(choiceRound(), 'choice', { onExitToSetup });
+    fireEvent.click(screen.getByRole('button', { name: 'Exit to setup' }));
+    expect(onExitToSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills the next empty blank directly on a plain tile click — no second click on a slot required', () => {
     setup(choiceRound());
 
     fireEvent.click(tile(ANSWER_2));
-    expect(tile(ANSWER_2)).toHaveAttribute('aria-pressed', 'true');
-    // An empty slot advertises itself while a tile is held.
-    expect(slot(2).style.borderColor).toBe('var(--border-accent)');
-
-    fireEvent.click(slot(2));
 
     expect(slot(2)).toHaveTextContent(ANSWER_2);
     expect(slot(2)).toHaveAttribute('data-state', 'filled');
     expect(placedTile(ANSWER_2)).toBeDisabled();
     expect(screen.getByText('3 left')).toBeInTheDocument();
     expect(screen.getByText('1/2 filled')).toBeInTheDocument();
+  });
+
+  it('keeps filling forward: the next plain click lands on the next still-empty blank', () => {
+    setup(choiceRound());
+
+    fireEvent.click(tile(ANSWER_2));
+    expect(slot(2)).toHaveTextContent(ANSWER_2);
+
+    // Line 2 is taken now, so a click on any tile fills line 5 next — the
+    // user's own scenario: "if I already filled the first line ... it
+    // should directly fill the second line, which is the next line."
+    fireEvent.click(tile(ANSWER_5));
+    expect(slot(5)).toHaveTextContent(ANSWER_5);
+    expect(screen.getByText('2/2 filled')).toBeInTheDocument();
+  });
+
+  it('fills the next empty blank on a plain click, while a drag can still target a specific later blank out of order', () => {
+    setup(choiceRound());
+
+    fireEvent.click(tile(ANSWER_2));
+    expect(slot(2)).toHaveTextContent(ANSWER_2);
+
+    const dataTransfer = makeTransfer();
+    fireEvent.dragStart(tile(ANSWER_5), { dataTransfer });
+    fireEvent.drop(slot(5), { dataTransfer });
+
+    expect(slot(5)).toHaveTextContent(ANSWER_5);
+    expect(screen.getByText('2/2 filled')).toBeInTheDocument();
+  });
+
+  it('falls back to select-then-click-a-slot once every blank already has an answer', () => {
+    setup(choiceRound());
+
+    place(ANSWER_2, 2);
+    place(ANSWER_5, 5);
+    expect(screen.getByText('2/2 filled')).toBeInTheDocument();
+
+    // Nowhere automatic left to go, so a plain click on a fresh tile holds
+    // it for a manual swap instead of doing nothing.
+    fireEvent.click(tile(DECOY));
+    expect(tile(DECOY)).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(slot(2));
+    expect(slot(2)).toHaveTextContent(DECOY);
   });
 
   it('returns the tile to the tray when a filled slot is activated again', () => {
@@ -140,10 +208,13 @@ describe('TriviaSession Component Spec', () => {
     expect(placedTile(DECOY)).toBeDisabled();
   });
 
-  it('drops the held tile on Escape', () => {
+  it('drops the held tile on Escape after a drag-start selects it', () => {
     setup(choiceRound());
+    const dataTransfer = makeTransfer();
 
-    fireEvent.click(tile(ANSWER_2));
+    fireEvent.dragStart(tile(ANSWER_2), { dataTransfer });
+    expect(tile(ANSWER_2)).toHaveAttribute('aria-pressed', 'true');
+
     fireEvent.keyDown(tile(ANSWER_2), { key: 'Escape' });
 
     expect(tile(ANSWER_2)).toHaveAttribute('aria-pressed', 'false');
@@ -176,10 +247,11 @@ describe('TriviaSession Component Spec', () => {
     expect(slot(2).style.borderColor).toBe('var(--success)');
     expect(slot(5).style.borderColor).toBe('var(--danger)');
     expect(screen.getByTestId('expected-5')).toHaveTextContent(ANSWER_5);
-    expect(screen.getByText('1 of 2 correct')).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
 
-    // A graded round locks the board and the tray.
-    expect(checkButton()).toBeDisabled();
+    // A graded round replaces Check with Next round — it is not merely
+    // disabled in place — and locks the board and the tray.
+    expect(screen.queryByRole('button', { name: /^Check answers/ })).not.toBeInTheDocument();
     expect(slot(2)).toBeDisabled();
     expect(placedTile(DECOY)).toBeDisabled();
     expect(tile('return seen')).toBeDisabled();
@@ -205,7 +277,7 @@ describe('TriviaSession Component Spec', () => {
     fireEvent.click(checkButton());
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: `  ${ANSWER_2}  `, 5: `\t${ANSWER_5}` });
-    expect(screen.getByText('2 of 2 correct')).toBeInTheDocument();
+    expect(screen.getByText(/2 of 2 correct/)).toBeInTheDocument();
     expect(slot(2).style.borderColor).toBe('var(--success)');
     expect(slot(5).style.borderColor).toBe('var(--success)');
   });
@@ -223,15 +295,17 @@ describe('TriviaSession Component Spec', () => {
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: ANSWER_2, 5: '' });
     expect(slot(5)).toHaveAttribute('data-state', 'incorrect');
-    expect(screen.getByText('1 of 2 correct')).toBeInTheDocument();
-    expect(screen.getByText(/revealed lines never count/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
+    expect(slot(5)).toHaveAttribute(
+      'aria-label',
+      expect.stringMatching(/revealed, not credited/i),
+    );
   });
 
   it('advances only once the round has been graded', () => {
     const { onNext } = setup(choiceRound());
 
-    expect(nextButton()).toBeDisabled();
-    fireEvent.click(nextButton());
+    expect(screen.queryByRole('button', { name: /^Next round/ })).not.toBeInTheDocument();
     expect(onNext).not.toHaveBeenCalled();
 
     place(ANSWER_2, 2);
@@ -246,7 +320,7 @@ describe('TriviaSession Component Spec', () => {
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
-  it('places a dragged tile through the same path as a clicked one', () => {
+  it('places a dragged tile into a specific blank — the still-supported way to fill out of order', () => {
     const { onSubmit } = setup(choiceRound());
     const dataTransfer = makeTransfer();
 
@@ -264,7 +338,7 @@ describe('TriviaSession Component Spec', () => {
     fireEvent.click(checkButton());
 
     expect(onSubmit).toHaveBeenCalledWith({ 2: ANSWER_2, 5: ANSWER_5 });
-    expect(screen.getByText('2 of 2 correct')).toBeInTheDocument();
+    expect(screen.getByText(/2 of 2 correct/)).toBeInTheDocument();
   });
 
   it('never lets one tile occupy two slots', () => {
@@ -296,13 +370,15 @@ describe('TriviaSession Component Spec', () => {
     place(ANSWER_2, 2);
     fireEvent.click(screen.getByRole('button', { name: 'Reveal line 5' }));
     fireEvent.click(checkButton());
-    expect(screen.getByText('1 of 2 correct')).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 correct/)).toBeInTheDocument();
 
     view.rerender(
       <TriviaSession
         round={choiceRound([3])}
         algorithmTitle="Two Sum"
         mode="choice"
+        level={1}
+        coverage={43}
         onSubmit={onSubmit}
         onNext={onNext}
       />,
@@ -313,5 +389,86 @@ describe('TriviaSession Component Spec', () => {
     expect(checkButton()).toBeDisabled();
     expect(screen.queryByText(/correct$/)).not.toBeInTheDocument();
     expect(screen.getByText('4 left')).toBeInTheDocument();
+  });
+
+  it('marks the current shortcut-target blank so ⌘E/⌘H are discoverable near the row they act on', () => {
+    setup(choiceRound());
+    expect(screen.getByTestId('shortcut-target-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('shortcut-target-5')).not.toBeInTheDocument();
+
+    place(ANSWER_2, 2);
+    // Line 2 is filled now, so line 5 becomes the new current target.
+    expect(screen.getByTestId('shortcut-target-5')).toBeInTheDocument();
+    expect(screen.queryByTestId('shortcut-target-2')).not.toBeInTheDocument();
+  });
+
+  it('reveals the current-target line with the global ⌘E shortcut even when nothing is focused', () => {
+    setup(choiceRound());
+
+    fireEvent.keyDown(window, { key: 'e', metaKey: true });
+
+    expect(slot(2)).toHaveTextContent(ANSWER_2);
+    expect(slot(2)).toHaveAttribute('aria-label', expect.stringMatching(/revealed/i));
+  });
+
+  it('toggles the hint for the current-target line with the global ⌘H shortcut even when nothing is focused', () => {
+    setup(choiceRound(), 'choice', {
+      hints: [{ line: 2, hint: 'An empty map of value to index.' }],
+    });
+
+    fireEvent.keyDown(window, { key: 'h', metaKey: true });
+    expect(screen.getByTestId('hint-2')).toHaveTextContent('An empty map of value to index.');
+
+    fireEvent.keyDown(window, { key: 'h', metaKey: true });
+    expect(screen.queryByTestId('hint-2')).not.toBeInTheDocument();
+  });
+
+  it('clears the board with the global ⌘R shortcut regardless of focus', () => {
+    setup(choiceRound());
+    place(ANSWER_2, 2);
+    expect(slot(2)).toHaveTextContent(ANSWER_2);
+
+    fireEvent.keyDown(window, { key: 'r', metaKey: true });
+    expect(slot(2)).toHaveAttribute('data-state', 'empty');
+  });
+
+  it('checks the round with the global ⌘Enter shortcut even when nothing is focused, once every blank is filled', () => {
+    const { onSubmit } = setup(choiceRound());
+
+    place(ANSWER_2, 2);
+    place(ANSWER_5, 5);
+
+    fireEvent.keyDown(window, { key: 'Enter', metaKey: true });
+    expect(onSubmit).toHaveBeenCalledWith({ 2: ANSWER_2, 5: ANSWER_5 });
+  });
+
+  it('does not check with ⌘Enter while blanks remain empty', () => {
+    const { onSubmit } = setup(choiceRound());
+
+    place(ANSWER_2, 2);
+    fireEvent.keyDown(window, { key: 'Enter', metaKey: true });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('advances with the global ⌘Enter shortcut once graded, even when nothing is focused', () => {
+    const { onNext } = setup(choiceRound());
+
+    place(ANSWER_2, 2);
+    place(ANSWER_5, 5);
+    fireEvent.click(checkButton());
+
+    fireEvent.keyDown(window, { key: 'Enter', metaKey: true });
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a visible Retry control with its ⌘R hint, clearing the board without fetching a new round', () => {
+    const { onNext } = setup(choiceRound());
+
+    place(ANSWER_2, 2);
+    expect(retryButton()).toBeInTheDocument();
+
+    fireEvent.click(retryButton());
+    expect(slot(2)).toHaveAttribute('data-state', 'empty');
+    expect(onNext).not.toHaveBeenCalled();
   });
 });

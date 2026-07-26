@@ -5,6 +5,7 @@ import type {
   GraphNodeItem,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TopologicalSortInput {
   nodes: GraphNodeItem[];
@@ -319,6 +320,28 @@ const TOPOLOGICAL_SORT_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const TOPOLOGICAL_SORT_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "deque gives O(1) FIFO operations for the ready-queue, and defaultdict lets the adjacency list auto-create empty lists for nodes with no recorded neighbors yet.",
+    3: 'Entry point: takes every node and every directed edge (dependency) and returns a valid linear ordering, or an empty list if none exists.',
+    4: 'Every node starts assumed to have zero unresolved prerequisites; the loop below fills in the real counts.',
+    5: 'Builds the outgoing adjacency list so that once a node is placed, we can instantly find everything waiting on it.',
+    6: 'Walks every edge once to build both the adjacency list and the in-degree counts in a single pass.',
+    7: 'Records that v depends on u, so placing u later needs to notify v.',
+    8: "Increments v's prerequisite count for this edge — the number Kahn's algorithm watches to decide when v is finally ready.",
+    10: 'Seeds the ready queue with every node that starts with zero prerequisites — the only valid starting points for the ordering.',
+    11: 'The output sequence being built, one ready node at a time.',
+    13: 'Keeps scheduling as long as some node with no remaining prerequisites is available.',
+    14: 'Pulls the next ready node off the front of the queue.',
+    15: "Commits u to the schedule — every prerequisite it ever had is already placed before this line runs.",
+    16: "Looks at everything that depended on u, since placing u just resolved one of their prerequisites.",
+    17: "Decrements v's remaining-prerequisite count now that u — one of its dependencies — has been scheduled.",
+    18: 'Checks whether v has just become fully unblocked.',
+    19: 'v has no prerequisites left, so it joins the ready queue as a valid next pick.',
+    21: 'If every node made it into the order, the schedule is valid; if some are missing, they were stuck waiting on each other in a cycle, so we report failure with an empty list.',
+  },
+};
+
 export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   id: 'topological-sort',
   title: "Topological Sort (Kahn's Algorithm)",
@@ -351,6 +374,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
     space: 'The in-degree map, the queue, and the output order each hold at most one entry per vertex, so extra memory grows linearly with the vertex count — O(V).',
   },
   topicGuide: TOPOLOGICAL_SORT_TOPIC_GUIDE,
+  trivia: TOPOLOGICAL_SORT_TRIVIA,
   defaultInput: DEFAULT_TOPO_SORT_INPUT,
   generateSteps: generateTopologicalSortSteps,
 };

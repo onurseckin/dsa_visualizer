@@ -5,6 +5,7 @@ import type {
   TopicGuide,
   TreeNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface SegmentTreeOperation {
   type: 'update' | 'query';
@@ -404,6 +405,43 @@ const SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const SEGMENT_TREE_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the SegmentTree class — a binary tree over array intervals where every node caches the sum of the range it covers.',
+    2: 'The constructor takes the raw array and kicks off construction.',
+    3: 'Records n, the array length, since every recursive call needs to know the valid index range.',
+    4: 'Allocates 4*n zeroed slots for the flat, heap-indexed tree — oversized because an uneven n can push the deepest node index past 2n.',
+    5: "Kicks off the recursive build, rooted at node 1, covering the whole array from index 0 to n-1.",
+    7: 'Defines build(node, start, end): recursively fills in the node responsible for the interval [start, end].',
+    8: 'Checks whether the interval has shrunk to one element — the base case where recursion must stop.',
+    9: "A single-element interval is a leaf: it just stores that element's value directly, with no children to combine.",
+    10: "Returns immediately once a leaf is set — there's nothing further to compute in the base case.",
+    11: 'Splits the current interval at its midpoint, dividing it into a left half and a right half of roughly equal size.',
+    12: 'Recursively builds the left child, covering [start, mid].',
+    13: 'Recursively builds the right child, covering [mid+1, end].',
+    14: "Once both children are built, this node's cached value is just the sum of its two children — a parent never has to look further than one level down.",
+    16: "Defines update(node, start, end, idx, val): walks a single root-to-leaf path to change one array element, then repairs cached sums on the way back up.",
+    17: 'Checks whether this node is the leaf for the target index — again, the base case.',
+    18: 'At the target leaf, overwrites the stored value directly.',
+    19: "Returns once the leaf is updated — the caller's frame still needs to recompute its own cached sum, which happens after this recursive call returns.",
+    20: 'Computes the midpoint to decide which half contains idx.',
+    21: 'Checks whether the target index falls in the left half.',
+    22: "If so, recurses only into the left child — the right subtree is provably unaffected and stays untouched.",
+    23: 'Otherwise the index must be in the right half.',
+    24: 'Recurses into the right child instead.',
+    25: "After the recursive call returns, recombines this node's value from its two now-current children — this keeps every ancestor on the path consistent after a single leaf changed.",
+    27: "Defines query(node, start, end, l, r): answers \"what is the sum over [l, r]?\" by descending only into branches that actually overlap the query.",
+    28: "If this node's entire interval falls outside [l, r], it can't contribute anything.",
+    29: "Returns 0 — the identity value for sum — so a fully-disjoint branch adds nothing to the result.",
+    30: "If this node's entire interval falls inside [l, r], the query is fully answered by this one cached value with no need to look at any descendant.",
+    31: 'Returns the cached sum directly — this early return, whenever it fires, is what keeps queries logarithmic instead of linear.',
+    32: "Otherwise the query range only partially overlaps this node's interval, so the work has to be split between both children.",
+    33: 'Recurses into the left child, asking it for its share of the overlap.',
+    34: 'Recurses into the right child, asking it for its share of the overlap.',
+    35: "Combines the two partial answers into this subtree's total contribution to the range query.",
+  },
+};
+
 export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   id: 'segment-tree',
   title: 'Segment Tree (Range Sum Query & Update)',
@@ -435,6 +473,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
     space: 'The tree stores one cached sum per interval node; an array of size 4n safely covers every level of the (possibly uneven) binary tree, so memory grows linearly with the input — O(n).',
   },
   topicGuide: SEGMENT_TREE_TOPIC_GUIDE,
+  trivia: SEGMENT_TREE_TRIVIA,
   defaultInput: DEFAULT_SEGMENT_TREE_INPUT,
   generateSteps: generateSegmentTreeSteps,
 };

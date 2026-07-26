@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface PrefixSumInput {
   nums: number[];
@@ -114,6 +115,17 @@ export const generatePrefixSumSteps = (
   return steps;
 };
 
+const PREFIX_SUM_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the function: given nums, build a table of running totals one entry longer than the input.',
+    2: 'Caches the length of nums in n, used to size the prefix array and bound the loop below.',
+    3: 'Allocates a prefix array of n + 1 zeros; the extra leading slot represents the sum of zero elements, so a range starting at index 0 needs no special case.',
+    4: 'Walks every index of nums once, building each new prefix entry from the one immediately before it.',
+    5: 'Defines prefix[i + 1] as prefix[i] plus nums[i] — the running total absorbs one more element per step, costing a single addition.',
+    6: 'Returns the completed table, from which the sum of any range is now a single subtraction rather than a loop.',
+  },
+};
+
 export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: 'prefix-sum',
   title: 'Prefix Sum',
@@ -203,6 +215,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
       },
     ],
   },
+  trivia: PREFIX_SUM_TRIVIA,
   defaultInput: DEFAULT_PREFIX_SUM_INPUT,
   generateSteps: generatePrefixSumSteps,
 };

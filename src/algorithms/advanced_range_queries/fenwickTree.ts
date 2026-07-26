@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface FenwickTreeOperation {
   type: 'update' | 'query';
@@ -313,6 +314,28 @@ const FENWICK_TREE_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const FENWICK_TREE_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the FenwickTree class — a compact array that answers prefix-sum queries and point updates in O(log n) using bit tricks on the index.',
+    2: 'The constructor takes the number of elements the tree will cover.',
+    3: 'Allocates size + 1 zeroed cells, one-indexed so index 0 is deliberately unused — it has no set bits, and the update/query hops would never move past it.',
+    5: 'Defines update(index, delta): applies a change at one position and ripples it through every cell whose responsibility range covers that position.',
+    6: 'Starts the climb at the target index — the position being changed.',
+    7: 'Keeps climbing as long as i is still inside the tree array.',
+    8: "Folds delta into tree[i]: this cell's cached block-sum must include the change at the original index.",
+    9: "Adds i's lowbit (i & -i) to jump to the next cell whose block also covers the original index — this bit trick is what keeps the climb to O(log n) cells.",
+    11: 'Defines query(index): returns the prefix sum of everything from position 1 up to index.',
+    12: 'Starts the running total at zero before folding in any blocks.',
+    13: 'Starts the descent at the given index.',
+    14: 'Keeps descending while i is still a valid, positive index — this loop also strips one bit per iteration, so it runs O(log n) times.',
+    15: "Adds tree[i]'s cached block-sum into the running total — this cell owns the block ending at i.",
+    16: "Subtracts i's lowbit to move to the previous, disjoint block, guaranteeing no position is ever counted twice.",
+    17: 'Returns the accumulated prefix sum once the descent reaches 0.',
+    19: 'Defines range_query(left, right): the tree only knows how to answer prefix sums, so any arbitrary range has to be built from two of them.',
+    20: 'Computes the range sum as query(right) minus query(left - 1) — subtracting off everything before the window cancels out whatever lies outside [left, right].',
+  },
+};
+
 export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   id: 'fenwick-tree',
   title: 'Binary Indexed Tree (Fenwick Tree)',
@@ -344,6 +367,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
     space: 'The whole structure is one flat array with a single cell per element (plus an unused slot 0), so extra memory grows linearly with the input — O(n).',
   },
   topicGuide: FENWICK_TREE_TOPIC_GUIDE,
+  trivia: FENWICK_TREE_TRIVIA,
   defaultInput: DEFAULT_FENWICK_INPUT,
   generateSteps: generateFenwickTreeSteps,
 };

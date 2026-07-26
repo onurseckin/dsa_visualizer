@@ -24,9 +24,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     children,
     type = 'button',
     ...rest
-  },
-  ref,
-) {
+  }: ButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+): React.ReactElement {
   return (
     <button
       ref={ref}

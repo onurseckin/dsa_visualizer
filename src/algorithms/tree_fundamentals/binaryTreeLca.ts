@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   TreeNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface BinaryTreeLcaInput {
   nodes: TreeNodeItem[];
@@ -223,6 +224,19 @@ export const generateBinaryTreeLcaSteps = (
   return steps;
 };
 
+const BINARY_TREE_LCA_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Function signature: takes the current subtree root plus the two target node values whose lowest common ancestor we want.',
+    2: "Base case: stop searching deeper if we fell off the tree, or if we've landed on one of the two targets themselves.",
+    3: "Hand back None for a missing node, or the target node itself when found — either way, the parent gets a definite signal about what this subtree contains.",
+    5: 'Recurse into the left subtree and ask it the exact same question: does p, q, or their LCA live somewhere in here?',
+    6: 'Ask the same question of the right subtree, so this node now has a complete report from both halves before it decides anything.',
+    8: 'If both sides returned something non-null, one target must be on the left and the other on the right — their paths diverge exactly at this node.',
+    9: 'Report the current node as the answer, since no node any deeper can see both targets at once.',
+    10: 'Only one side (or neither) found anything, so simply forward whichever non-null result exists — that result is either a target still looking for its partner, or the answer already found lower down.',
+  },
+};
+
 export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   id: 'binary-tree-lca',
   title: 'Lowest Common Ancestor of a Binary Tree',
@@ -325,6 +339,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
       },
     ],
   },
+  trivia: BINARY_TREE_LCA_TRIVIA,
   defaultInput: DEFAULT_BINARY_TREE_LCA_INPUT,
   generateSteps: generateBinaryTreeLcaSteps,
 };

@@ -16,11 +16,13 @@ const storeRaw = (key: string, raw: string): void => {
   window.localStorage.setItem(key, raw);
 };
 
-const storeConfigRaw = (payload: Record<string, unknown>): void => {
+type RawTestPayload = Record<string, string | number | boolean | null | Record<string, unknown> | Array<unknown>>;
+
+const storeConfigRaw = (payload: RawTestPayload): void => {
   storeRaw(TRIVIA_CONFIG_KEY, JSON.stringify(payload));
 };
 
-const storeProgressRaw = (payload: Record<string, unknown>): void => {
+const storeProgressRaw = (payload: RawTestPayload): void => {
   storeRaw(TRIVIA_PROGRESS_KEY, JSON.stringify(payload));
 };
 
@@ -266,7 +268,7 @@ describe('trivia storage failures and reset', () => {
 
     expect(TRIVIA_CONFIG_KEY).toBe('dsa_visualizer_trivia_config_v1');
     expect(TRIVIA_PROGRESS_KEY).toBe('dsa_visualizer_trivia_progress_v1');
-    const rawConfig: unknown = JSON.parse(window.localStorage.getItem(TRIVIA_CONFIG_KEY) ?? 'null');
+    const rawConfig: RawTestPayload | null = JSON.parse(window.localStorage.getItem(TRIVIA_CONFIG_KEY) ?? 'null');
     expect(rawConfig).toMatchObject({ version: TRIVIA_STORAGE_VERSION });
   });
 });

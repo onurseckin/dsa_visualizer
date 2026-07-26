@@ -19,7 +19,7 @@ export function Card({
   className,
   children,
   ...rest
-}: CardProps) {
+}: CardProps): React.ReactElement {
   const hasHeader = title !== undefined || icon !== undefined || actions !== undefined;
   return (
     <div className={cx('ui-card', inset && 'ui-card--inset', className)} {...rest}>

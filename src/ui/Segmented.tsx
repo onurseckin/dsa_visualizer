@@ -22,7 +22,7 @@ export function Segmented({
   size = 'md',
   className,
   ...rest
-}: SegmentedProps) {
+}: SegmentedProps): React.ReactElement {
   return (
     <div
       role="group"

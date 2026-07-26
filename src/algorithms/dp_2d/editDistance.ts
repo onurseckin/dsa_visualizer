@@ -4,6 +4,7 @@ import type {
   GridCellNode,
   GridVisualSnapshot,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface EditDistanceInput {
   word1: string;
@@ -177,6 +178,25 @@ export const generateEditDistanceSteps = (
   return steps;
 };
 
+const EDIT_DISTANCE_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines min_distance(word1, word2) -> int: computes the Levenshtein distance, the fewest single-character edits needed to turn word1 into word2.',
+    2: "Caches the two prefix lengths m and n up front, since the whole table is indexed by how many characters of each word have been consumed.",
+    3: 'Allocates an (m+1) x (n+1) grid of zeros — one cell per pair of prefix lengths, including the empty-prefix row and column at index 0.',
+    5: "Loops over every possible length of word1's prefix so the first column can be filled before the main recurrence starts.",
+    6: 'Sets dp[i][0] = i: turning the first i characters of word1 into the empty string costs exactly i deletions — the base case along that axis.',
+    7: "Loops over every possible length of word2's prefix to fill the first row the same way.",
+    8: 'Sets dp[0][j] = j: building the first j characters of word2 out of nothing costs exactly j insertions — the mirror base case.',
+    10: "Sweeps row index i from 1 to m — the outer loop over word1's real prefixes, now that the borders are seeded.",
+    11: 'Sweeps column index j from 1 to n for each i, filling the grid left-to-right, top-to-bottom so every cell\'s dependencies (above, left, diagonal) are already computed.',
+    12: "Compares the last character of each prefix — word1[i-1] and word2[j-1] — since the table is indexed 1-based but the strings are indexed 0-based.",
+    13: 'If the characters match, no edit is spent here: dp[i][j] just copies the diagonal neighbor\'s answer for the two shorter prefixes.',
+    14: 'Otherwise the characters differ and one edit is unavoidable, so falls through to the three-way minimum below.',
+    15: 'Charges one edit and takes the best of the three possible last operations — delete (dp[i-1][j]), insert (dp[i][j-1]), or substitute (dp[i-1][j-1]) — so the cheapest of the three always wins regardless of which turns out best.',
+    17: 'Returns dp[m][n], the bottom-right corner where both prefixes have grown into the full words — the answer for the complete strings.',
+  },
+};
+
 export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   id: 'edit-distance',
   title: 'Edit Distance (2D Dynamic Programming)',
@@ -268,6 +288,7 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
       },
     ],
   },
+  trivia: EDIT_DISTANCE_TRIVIA,
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };

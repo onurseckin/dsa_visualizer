@@ -5,6 +5,7 @@ import type {
   ElementState,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface CountingBitsInput {
   n: number;
@@ -193,6 +194,16 @@ const COUNTING_BITS_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const COUNTING_BITS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines the function signature: it takes n and returns one bit count per integer from 0 through n.',
+    2: 'Allocates the answer table with n + 1 slots, seeding every entry with 0 — slot 0 is already correct since zero has no set bits.',
+    3: 'Sweeps i upward from 1 to n, since slot 0 is already known and every other slot only ever depends on a smaller index.',
+    4: 'Reuses the already-computed bit count for i shifted right by one and adds back the bit that shift dropped, so each answer costs one addition instead of scanning every bit of i.',
+    5: 'Returns the completed table of population counts for every value from 0 to n.',
+  },
+};
+
 export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   id: 'counting-bits',
   title: 'Counting Bits',
@@ -231,6 +242,7 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
     space: 'The answer array itself holds n + 1 entries, so memory grows linearly with n. Beyond the output we keep only a couple of loop variables, so the extra working space is constant.',
   },
   topicGuide: COUNTING_BITS_TOPIC_GUIDE,
+  trivia: COUNTING_BITS_TRIVIA,
   generateSteps: generateCountingBitsSteps,
   defaultInput: DEFAULT_COUNTING_BITS_INPUT,
 };

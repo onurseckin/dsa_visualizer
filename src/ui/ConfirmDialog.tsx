@@ -27,7 +27,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   className,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps): React.ReactElement | null {
   const titleId = useId();
   const messageId = useId();
   const confirmRef = useRef<HTMLButtonElement>(null);

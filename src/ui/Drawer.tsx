@@ -28,7 +28,7 @@ export function Drawer({
   footer,
   className,
   style,
-}: DrawerProps) {
+}: DrawerProps): React.ReactElement | null {
   const titleId = useId();
 
   useEffect(() => {

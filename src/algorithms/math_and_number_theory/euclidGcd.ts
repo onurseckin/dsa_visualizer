@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface EuclidGcdInput {
   a: number;
@@ -265,6 +266,17 @@ const EUCLID_GCD_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const EUCLID_GCD_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines the function signature: it takes two integers a and b and returns their greatest common divisor.',
+    2: "Loops as long as b is non-zero — each pass shrinks the pair using the identity gcd(a, b) = gcd(b, a % b), and it stops the moment there's no remainder left to chase.",
+    3: 'Computes a mod b, the remainder left over after dividing a by b; anything that divides both a and b must also divide this remainder.',
+    4: 'Slides the divisor into a, so the pair becomes (old b, remainder) — the same-answer problem, one size smaller.',
+    5: 'Sets b to the just-computed remainder, completing the shift to a smaller equivalent pair for the next iteration.',
+    6: 'Once b is 0, a holds the last non-zero remainder, which is exactly the greatest common divisor — so we return it.',
+  },
+};
+
 export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   id: 'euclid-gcd',
   title: 'Euclidean Algorithm (GCD)',
@@ -299,6 +311,7 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
     space: 'We only ever hold three integers — a, b, and the current remainder — no matter how large the inputs are, so extra memory stays constant at O(1).',
   },
   topicGuide: EUCLID_GCD_TOPIC_GUIDE,
+  trivia: EUCLID_GCD_TRIVIA,
   defaultInput: DEFAULT_EUCLID_GCD_INPUT,
   generateSteps: generateEuclidGcdSteps,
 };

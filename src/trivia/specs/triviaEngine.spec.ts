@@ -731,9 +731,28 @@ describe('isAnswerCorrect', () => {
     expect(isAnswerCorrect('total = 0', '\ttotal = 0 ')).toBe(true);
   });
 
-  it('treats internal spacing as significant', () => {
-    expect(isAnswerCorrect('total  =  0', 'total = 0')).toBe(false);
+  it('collapses multiple internal spaces around an operator to a single space', () => {
+    expect(isAnswerCorrect('x  =  1+1', 'x = 1+1')).toBe(true);
+    expect(isAnswerCorrect('total   =   0', 'total = 0')).toBe(true);
+  });
+
+  it('collapses extra internal spacing inside array/tuple literals', () => {
+    // The user's own example: "spacing inside of some array blocks ... or tuples"
+    // should never fail an otherwise-correct line.
+    expect(isAnswerCorrect('[1,  2,   3]', '[1, 2, 3]')).toBe(true);
+    expect(isAnswerCorrect('(1,   2)', '(1, 2)')).toBe(true);
+  });
+
+  it('does not treat an entirely absent space the same as a present one', () => {
+    // Design decision (documented): normalization only *collapses* a run of
+    // whitespace that already exists; it never deletes a required separator
+    // or invents one that isn't there. So "total=0" (no space at all around
+    // the operator) is a genuinely different literal from "total = 0" (one
+    // space), not just a spacing-amount difference — collapsing zero spaces
+    // into one (or vice versa) would blur the line between "cosmetic spacing"
+    // and "different code", which is exactly what this fix must not do.
     expect(isAnswerCorrect('total=0', 'total = 0')).toBe(false);
+    expect(isAnswerCorrect('[1,2,3]', '[1, 2,3]')).toBe(false);
   });
 
   it('is case sensitive', () => {
@@ -743,6 +762,13 @@ describe('isAnswerCorrect', () => {
   it('rejects an empty submission for a real line', () => {
     expect(isAnswerCorrect('', 'return total')).toBe(false);
     expect(isAnswerCorrect('   ', 'return total')).toBe(false);
+  });
+
+  it('still fails a genuine mismatch even after whitespace normalization', () => {
+    // Different variable name — extra spacing must not paper over real content changes.
+    expect(isAnswerCorrect('count  =  0', 'total = 0')).toBe(false);
+    // Different operator.
+    expect(isAnswerCorrect('x  +  1', 'x - 1')).toBe(false);
   });
 });
 
@@ -783,10 +809,16 @@ describe('gradeRound', () => {
     expect(grade.allCorrect).toBe(true);
   });
 
-  it('rejects a blank whose internal spacing differs from the solution', () => {
+  it('accepts a blank whose internal spacing differs only by extra whitespace', () => {
     const round = roundOf('alpha', lines, [4]);
 
-    expect(gradeRound(round, { 4: 'for i  in range(n):' }).perBlank[4]).toBe(false);
+    expect(gradeRound(round, { 4: 'for i  in range(n):' }).perBlank[4]).toBe(true);
+  });
+
+  it('still rejects a blank whose content genuinely differs, not just its spacing', () => {
+    const round = roundOf('alpha', lines, [4]);
+
+    expect(gradeRound(round, { 4: 'for i  in range(m):' }).perBlank[4]).toBe(false);
   });
 });
 

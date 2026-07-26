@@ -5,6 +5,7 @@ import type {
   GraphNodeItem,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface BellmanFordInput {
   nodes: string[];
@@ -291,6 +292,26 @@ const BELLMAN_FORD_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const BELLMAN_FORD_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Entry point: takes the vertex list, the raw (u, v, weight) edge list, and the source, and tolerates negative edge weights unlike Dijkstra.',
+    2: 'Every vertex starts at infinity — unknown — until some sequence of relaxations proves a finite distance to it.',
+    3: 'The one certain distance before any work begins: the source is zero away from itself.',
+    5: 'Documents the bound the whole algorithm rests on: a shortest simple path can use at most V - 1 edges, so that many full sweeps are guaranteed to be enough.',
+    6: 'Runs one full sweep per possible path length, since after k sweeps every shortest path using at most k edges is already proven correct.',
+    7: "Each sweep walks every single edge, because unlike Dijkstra there's no priority order to trust — every edge must be re-examined on every pass.",
+    8: "Only relaxes through u if u is actually reachable, guarding against adding a weight to infinity, which negative weights could otherwise turn into a bogus finite number.",
+    9: 'Takes the cheaper route the instant this sweep discovers one — the update is visible to later edges in the same pass, which is why a lucky ordering can converge early.',
+    11: 'Marks the purpose of the extra sweep below: not to improve distances further, but to test whether any edge still can.',
+    12: 'Starts the detection flag optimistic; only a genuinely still-relaxable edge will flip it.',
+    13: 'One more full pass over every edge, run only after the V - 1 sweeps that should already have settled every true shortest path.',
+    14: 'If any edge can still be relaxed after V - 1 passes, no ordinary simple path explains it — the only remaining explanation is a negative-weight cycle.',
+    15: 'Records that the graph is unsafe: some reachable cycle can be looped forever to drive a distance toward negative infinity.',
+    16: 'Stops immediately once one negative cycle is confirmed — a single one is enough to invalidate the shortest-path question for the vertices it touches.',
+    18: 'Hands back both the distance table and whether it can actually be trusted.',
+  },
+};
+
 export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   id: 'bellman-ford',
   title: 'Bellman-Ford Shortest Path',
@@ -331,6 +352,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
     space: 'We keep one distance value per vertex, so extra memory grows linearly with the vertex count — O(V). The edge list is just the input; nothing else accumulates.',
   },
   topicGuide: BELLMAN_FORD_TOPIC_GUIDE,
+  trivia: BELLMAN_FORD_TRIVIA,
   defaultInput: DEFAULT_BELLMAN_FORD_INPUT,
   generateSteps: generateBellmanFordSteps,
 };

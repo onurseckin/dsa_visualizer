@@ -21,9 +21,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
     className,
     type = 'button',
     ...rest
-  },
-  ref,
-) {
+  }: IconButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+): React.ReactElement {
   return (
     <button
       ref={ref}

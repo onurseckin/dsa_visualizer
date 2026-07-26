@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   TopicGuide,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface NimInput {
   piles: number[];
@@ -292,6 +293,28 @@ const NIM_GAME_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const NIM_GAME_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Defines the function signature, taking the list of pile sizes for this Nim position.',
+    2: 'Initializes the running Nim-sum to 0 before any pile has been folded in.',
+    3: 'Caches the number of piles, used to bound both upcoming loops.',
+    4: 'Begins the first pass, which XORs every pile size together to compute the Nim-sum.',
+    5: 'Folds pile i into the running total; the value left after all piles are XORed together is the Nim-sum that alone decides who wins.',
+    7: 'Checks whether the Nim-sum came out to exactly zero, which by the Sprague-Grundy result for Nim means the player about to move is already losing.',
+    8: 'Reports a Second Player win: with a zero Nim-sum every legal move makes the sum non-zero, so no move here can help the First Player.',
+    10: 'Starts a second pass over the piles, this time hunting for the specific move that restores a zero Nim-sum.',
+    11: "Computes the size pile i would need to shrink to (its size XORed with the Nim-sum) in order to zero out the total.",
+    12: 'Checks whether that target size is strictly smaller than the current pile — only shrinking a pile is a legal Nim move, so a larger or equal target is not usable.',
+    13: 'Begins building the result once a pile that can legally reach the target size is found.',
+    14: 'Records that the First Player wins this position.',
+    15: 'Records which pile index holds the winning move.',
+    16: 'Records the size that pile should be reduced to.',
+    17: 'Records how many objects must be removed to reach that target size.',
+    18: 'Closes the dictionary describing the winning move.',
+    20: 'A fallback return for Second Player — unreachable once the Nim-sum is confirmed non-zero, since a winning pile is always guaranteed to exist, but it keeps the function total.',
+  },
+};
+
 export const nimGame: AlgorithmDefinition<NimInput> = {
   id: 'nim-game',
   title: 'Nim Game Sprague-Grundy',
@@ -327,6 +350,7 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
     space: 'All we carry is a single running XOR value and a couple of loop variables, so extra memory stays constant at O(1) no matter how many piles there are.',
   },
   topicGuide: NIM_GAME_TOPIC_GUIDE,
+  trivia: NIM_GAME_TRIVIA,
   defaultInput: DEFAULT_NIM_INPUT,
   generateSteps: generateNimGameSteps,
 };

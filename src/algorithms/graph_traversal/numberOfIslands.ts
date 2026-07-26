@@ -4,6 +4,7 @@ import type {
   GridCellNode,
   GridVisualSnapshot,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface NumberOfIslandsInput {
   grid: string[][];
@@ -232,6 +233,33 @@ export const generateNumberOfIslandsSteps = (
   return steps;
 };
 
+const NUMBER_OF_ISLANDS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'deque supplies O(1) popleft/append, letting each flood-fill BFS run as a cheap FIFO instead of a list with O(n) front-removals.',
+    3: "Entry point: takes the raw grid of '0'/'1' strings whose connected land components we need to count.",
+    4: 'Guards the degenerate case of an empty grid or an empty first row before any dimension math is attempted.',
+    5: 'With no cells at all there can be no islands, so we return immediately.',
+    7: 'Caches the grid dimensions once, so every bounds check inside the flood fill is just a cheap comparison against these two numbers.',
+    8: "Tracks every land cell already claimed by some island's flood, so the outer sweep never starts a second flood on the same island.",
+    9: 'The running tally of islands found so far — incremented once per BFS launch, never during the flood itself.',
+    11: 'Outer sweep walks every row in order, guaranteeing every cell in the grid is eventually inspected.',
+    12: 'Inner sweep walks every column, so together the double loop visits each of the rows times cols cells exactly once.',
+    13: "A cell only triggers a new island if it's land and hasn't already been claimed by an earlier flood — the check that keeps the count correct.",
+    14: "This cell is the first cell of a brand-new island, so we count it before the flood claims the rest of its component.",
+    15: "Claims the starting cell immediately, so the outer sweep won't try to launch a second flood from it later.",
+    16: 'Seeds a fresh BFS frontier with just this one cell — the flood fill that will mark this whole island visited.',
+    18: 'Keeps expanding the flood as long as unexplored cells of this island remain queued.',
+    19: "Dequeues the next cell of the current island so its boundary can be expanded outward.",
+    20: "Encodes the four orthogonal offsets — the definition of 'connected' this problem uses, so land touching only diagonally is a separate island.",
+    21: 'Checks all four neighboring directions from the current cell.',
+    22: "Computes the neighbor's coordinates without ever building an explicit adjacency list — the grid's own geometry is the graph.",
+    23: "Bounds-checks before indexing, then confirms the neighbor is land and unclaimed; skipping any of these checks either crashes or wrongly merges or misses islands.",
+    24: 'Marks the neighbor visited the moment it is discovered (at enqueue time), which is what stops it from being pushed onto the queue twice by two different cells in the same wave.',
+    25: "Adds the neighbor to the flood's frontier so its own neighbors get explored on a later iteration.",
+    27: 'Every land cell has now been claimed by exactly one flood, so the number of floods launched equals the number of islands.',
+  },
+};
+
 export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   id: 'number-of-islands',
   title: 'Number of Islands',
@@ -326,6 +354,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
       },
     ],
   },
+  trivia: NUMBER_OF_ISLANDS_TRIVIA,
   defaultInput: DEFAULT_NUMBER_OF_ISLANDS_INPUT,
   generateSteps: generateNumberOfIslandsSteps,
 };

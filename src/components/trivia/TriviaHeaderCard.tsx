@@ -1,7 +1,7 @@
-import React from 'react';
-import { Brain, Play, Plus, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Brain, Check as CheckIcon, Edit2, Play, X as CancelIcon } from 'lucide-react';
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../../types/trivia';
-import { Badge, Button, Card } from '../../ui';
+import { Badge, Button, Card, Input } from '../../ui';
 
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
@@ -19,18 +19,19 @@ const barTrackStyle: React.CSSProperties = {
   overflow: 'hidden',
 };
 
+/* Only ever mounted while setup is showing (see routes/trivia.tsx) — drill mode
+   has its own header on TriviaSession, so there is no "showSetup" branch left
+   to carry here and exactly one action: entering the drill. */
 export interface TriviaHeaderCardProps {
-  activeSession: TriviaSessionRecord | null;
+  activeSession: TriviaSessionRecord;
   level: number;
   config: TriviaConfig;
   progress: TriviaProgress;
   sourcesCount: number;
   coverage: number;
-  showSetup: boolean;
   isDeckEmpty: boolean;
-  onToggleSetup: () => void;
-  onCreateNewSession: () => void;
-  onOpenReset: () => void;
+  onStartDrilling: () => void;
+  onRenameSession?: (id: string, newName: string) => void;
 }
 
 export function TriviaHeaderCard({
@@ -40,26 +41,105 @@ export function TriviaHeaderCard({
   progress,
   sourcesCount,
   coverage,
-  showSetup,
   isDeckEmpty,
-  onToggleSetup,
-  onCreateNewSession,
-  onOpenReset,
+  onStartDrilling,
+  onRenameSession,
 }: TriviaHeaderCardProps) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+
+  const handleStartRename = () => {
+    setTitleInput(activeSession.name);
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveRename = () => {
+    if (onRenameSession && titleInput.trim().length > 0) {
+      onRenameSession(activeSession.id, titleInput.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  // This screen is only ever the deck/settings editor for one session (see
+  // routes/trivia.tsx), so "Active" here would be a lie — the drill isn't
+  // running while this is on screen. What actually matters to the person
+  // looking at it is whether there is earned progress underneath: a session
+  // with none is safe to treat as a blank slate, one with some is a resume,
+  // not a fresh start, no matter what its stored `status` says.
+  const hasProgress =
+    activeSession.progress.roundsPlayed > 0 ||
+    Object.keys(activeSession.progress.drilled).length > 0;
+
   return (
     <Card
       style={PANEL_BORDER}
       icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
       title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {activeSession ? activeSession.name : 'Trivia'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          {/* The one-word answer to "am I editing an existing session or
+              building a new one?" — always visible, never just implied by
+              the name/badge next to it. */}
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Now editing session
           </span>
-          {activeSession && (
-            <Badge variant={activeSession.status === 'paused' ? 'warning' : 'success'} size="sm">
-              {activeSession.status}
-            </Badge>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            {isEditingTitle ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                <Input
+                  size="sm"
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveRename();
+                    if (e.key === 'Escape') setIsEditingTitle(false);
+                  }}
+                  aria-label="Rename active session"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<CheckIcon size={14} />}
+                  onClick={handleSaveRename}
+                  aria-label="Save session name"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<CancelIcon size={14} />}
+                  onClick={() => setIsEditingTitle(false)}
+                  aria-label="Cancel rename"
+                />
+              </div>
+            ) : (
+              <>
+                <span
+                  style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}
+                >
+                  {activeSession.name}
+                </span>
+                {onRenameSession && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Edit2 size={14} />}
+                    onClick={handleStartRename}
+                    aria-label={`Rename ${activeSession.name}`}
+                  />
+                )}
+                <Badge variant={hasProgress ? 'warning' : 'info'} size="sm">
+                  {hasProgress ? 'Paused · progress saved' : 'New session'}
+                </Badge>
+              </>
+            )}
+          </div>
         </div>
       }
       actions={
@@ -77,33 +157,15 @@ export function TriviaHeaderCard({
             {coverage}% covered
           </Badge>
 
-          {/* Master Primary Action: Start / Resume / Edit Deck */}
+          {/* The one primary action this screen offers. */}
           <Button
             variant="primary"
             size="md"
             icon={<Play aria-hidden="true" />}
             disabled={isDeckEmpty}
-            onClick={onToggleSetup}
+            onClick={onStartDrilling}
           >
-            {showSetup ? 'Start drilling' : 'Edit deck'}
-          </Button>
-
-          <Button
-            size="md"
-            variant="secondary"
-            icon={<Plus aria-hidden="true" />}
-            onClick={onCreateNewSession}
-          >
-            New session
-          </Button>
-
-          <Button
-            size="md"
-            variant="danger"
-            icon={<RotateCcw aria-hidden="true" />}
-            onClick={onOpenReset}
-          >
-            Reset progress
+            Start drilling
           </Button>
         </div>
       }

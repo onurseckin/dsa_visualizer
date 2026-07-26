@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   TreeNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface TreeDiameterInput {
   nodes: TreeNodeItem[];
@@ -264,6 +265,26 @@ export const generateTreeDiameterSteps = (
   return steps;
 };
 
+const TREE_DIAMETER_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Signature: takes the node count, an adjacency list of the tree, and an arbitrary node to start the first search from — any start works thanks to the endpoint theorem.',
+    2: "Comment documenting the helper's contract: given a starting point, it reports which node ended up farthest away and how far that is.",
+    3: 'A recursive depth-first walk that tracks the node it came from (to avoid backtracking) and how many edges it has travelled so far.',
+    4: 'Seed the running "farthest so far" with the current node itself, since with no children explored yet it is trivially the farthest one found.',
+    5: 'Visit every node connected to this one — in a tree that means every child and the parent, since the adjacency list is undirected.',
+    6: 'Skip stepping back into the node we just came from; without this guard the walk would bounce between two adjacent nodes forever.',
+    7: "Recurse one edge further into this neighbor's subtree, asking it the same question and getting back its own farthest node and distance.",
+    8: "Only update our record if that neighbor's branch reached farther than anything we've seen from this node so far.",
+    9: "Adopt the deeper branch's farthest node and distance as our own new record.",
+    10: 'Hand the best (farthest node, distance) pair found in this entire subtree back up to the caller.',
+    12: 'Comment marking the first of the two passes the whole algorithm depends on.',
+    13: 'Run the first DFS from any starting node; the node it reports as farthest is guaranteed to be one true endpoint of the diameter, regardless of where we started.',
+    14: 'Comment marking the second pass, which measures from the endpoint the first pass just proved.',
+    15: "Run the second DFS from confirmed endpoint A; the farthest node from A is the diameter's other endpoint, and its distance is the diameter itself.",
+    16: 'Report both endpoints of the longest path in the tree along with its length — two linear passes were all it took.',
+  },
+};
+
 export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   id: 'tree-diameter',
   title: 'Tree Diameter (2-DFS Algorithm)',
@@ -359,6 +380,7 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
       },
     ],
   },
+  trivia: TREE_DIAMETER_TRIVIA,
   defaultInput: DEFAULT_TREE_DIAMETER_INPUT,
   generateSteps: generateTreeDiameterSteps,
 };

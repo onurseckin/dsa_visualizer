@@ -57,11 +57,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
-  // Global "/" shortcut: open the search drawer unless the user is typing somewhere.
+  // Global "/" and "Cmd+K" shortcuts: open the search drawer unless the user is typing somewhere.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== '/') return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const isCmdK = e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey);
+      const isSlash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
+      if (!isCmdK && !isSlash) return;
       if (isTypingTarget(e.target)) return;
       if (isDialogOpen()) return;
       e.preventDefault();

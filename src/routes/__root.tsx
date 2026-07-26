@@ -8,7 +8,7 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
-function RootComponent() {
+function RootComponent(): React.ReactElement {
   return (
     <SettingsProvider>
       <RootShell />
@@ -16,7 +16,7 @@ function RootComponent() {
   );
 }
 
-function RootShell() {
+function RootShell(): React.ReactElement {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const {

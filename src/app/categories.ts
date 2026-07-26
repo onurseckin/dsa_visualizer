@@ -32,6 +32,8 @@ const CATEGORY_ID_SET = new Set<string>(CATEGORIES.map((category) => category.id
 
 /* Narrowing guard for URL search params: only the canonical category ids above
    count — the legacy CategoryType aliases are not valid routeable filters. */
-export function isCategoryType(value: unknown): value is CategoryType {
+export function isCategoryType(
+  value: string | number | boolean | null | undefined | object
+): value is CategoryType {
   return typeof value === 'string' && CATEGORY_ID_SET.has(value);
 }

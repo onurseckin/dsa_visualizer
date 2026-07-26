@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export const KADANE_MAX_SUBARRAY_CODE = `def max_sub_array(nums: list[int]) -> int:
     current_max = nums[0]
@@ -170,6 +171,25 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   return steps;
 };
 
+const KADANE_MAX_SUBARRAY_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Declares the function: given a list of numbers, return the largest sum obtainable from any contiguous run inside it.',
+    2: 'Seeds the running sum with nums[0], since the only subarray ending at index 0 is that single element by itself.',
+    3: 'Seeds the best-seen sum with nums[0] too, so a single-element array already has a valid answer before the loop starts.',
+    4: 'Initializes start, end, and temp_start to 0, the bookkeeping that will track the boundaries of the best run once one is found.',
+    6: 'Iterates from index 1 onward — index 0 was already handled by the seeding above — so each remaining element makes one extend-or-restart decision.',
+    7: "Compares taking nums[i] alone against extending the running sum: if the running sum is negative, adding nums[i] to it produces less than nums[i] alone, so it isn't worth carrying forward.",
+    8: 'Restarts the running sum at nums[i] alone, discarding the previous run because it was actively hurting rather than helping.',
+    9: 'Marks index i as the new start of the current run, since the run now begins fresh here.',
+    11: 'Extends the running sum by folding in nums[i], because the run so far was non-negative and worth keeping.',
+    13: "Checks whether the run ending here beats the best run recorded anywhere so far.",
+    14: "Updates the best-known sum to the current run's total, since it is now the new record.",
+    15: 'Records temp_start as the officially reported start of the best subarray, promoting it only now that this run has actually won.',
+    16: 'Records i as the end of the best subarray, completing the [start, end] span that produced global_max.',
+    18: 'Returns the best sum found across the whole scan, the answer to the problem.',
+  },
+};
+
 export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   id: 'kadane-max-subarray',
   title: "Kadane's Algorithm (Maximum Subarray)",
@@ -263,6 +283,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       },
     ],
   },
+  trivia: KADANE_MAX_SUBARRAY_TRIVIA,
   defaultInput: [-2, 1, -3, 4, -1, 2, 1, -5, 4],
   generateSteps: generateKadaneMaxSubarraySteps,
 };

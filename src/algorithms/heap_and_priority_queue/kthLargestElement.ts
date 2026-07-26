@@ -4,6 +4,7 @@ import type {
   ArrayElement,
   ElementState,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface KthLargestInput {
   nums: number[];
@@ -222,6 +223,19 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
   return steps;
 }
 
+const KTH_LARGEST_ELEMENT_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Imports the heap module, which backs every min-heap operation this algorithm relies on.',
+    3: 'Defines the function that returns the Kth largest value from an unsorted array.',
+    4: 'Starts an empty min-heap that will be capped at size k, holding only the k largest values seen so far.',
+    5: 'Processes every number exactly once, in a single left-to-right pass.',
+    6: 'Adds the current number to the heap, where it sifts into position so the smallest candidate always ends up at the root.',
+    7: 'Checks whether the heap has grown one entry past its intended capacity of k.',
+    8: "Evicts the smallest value in the heap, since once k + 1 candidates are present, that minimum can't be among the k largest.",
+    9: 'After every number has passed through the filter, the heap holds exactly the k largest values, and its root — the smallest of that group — is precisely the Kth largest.',
+  },
+};
+
 export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   id: 'kth-largest-element',
   title: 'Kth Largest Element in an Array',
@@ -329,6 +343,7 @@ def findKthLargest(nums, k):
       },
     ],
   },
+  trivia: KTH_LARGEST_ELEMENT_TRIVIA,
   generateSteps: generateKthLargestSteps,
   defaultInput: DEFAULT_KTH_LARGEST_INPUT,
 };

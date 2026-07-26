@@ -178,6 +178,16 @@ const TWO_SUM_TRIVIA: TriviaMeta = {
       hint: 'Make the current number findable by whoever comes later — the value is the key, the position is the payload.',
     },
   ],
+  lineExplanations: {
+    1: 'States the contract: given nums and a target integer, return the indices of the two numbers that sum to it.',
+    2: 'Creates an empty hash map that will remember every value visited so far, mapped to the index where it appeared.',
+    3: 'Walks the array once, giving both the index i and the value num at each position via enumerate.',
+    4: "Computes the one number, target minus num, that would complete the pair with the current value — pure arithmetic, no lookup yet.",
+    5: "Asks the map whether that complement has already been seen, checking membership before anything new gets recorded so the current element can never pair with itself.",
+    6: 'Returns the earlier index stored for the complement together with the current index i, since together they are the answer.',
+    7: 'Records the current value and its index in the map so a later element can find it as a complement in O(1).',
+    8: 'Falls through here only if no pair was found by the time the loop ends, returning an empty list to signal failure.',
+  },
 };
 
 export const twoSum: AlgorithmDefinition<TwoSumInput> = {

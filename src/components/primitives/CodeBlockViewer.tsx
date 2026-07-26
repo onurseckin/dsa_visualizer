@@ -1,10 +1,39 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card } from '../../ui';
+import { CodeExplainToggle, LineExplainPopover, useHoveredCodeLine } from './LineExplainPopover';
 
 export interface CodeBlockViewerProps {
   code: string;
   activeLine: number;
   variables?: Record<string, string | number | boolean>;
+  lineExplanations?: Record<number, string>;
+}
+
+const GUTTER_STYLE: React.CSSProperties = {
+  display: 'inline-block',
+  width: '2.5em',
+  textAlign: 'right',
+  marginRight: 'var(--space-3)',
+  color: 'var(--text-muted)',
+  userSelect: 'none',
+};
+
+/* Indentation is split from code content and rendered through its own
+   explicit `white-space: pre` element (mirrors triviaEngine's
+   parsePuzzleLines indent/content split) rather than ever letting a raw,
+   leading-whitespace-included line string reach highlightPythonLine as a
+   single node. Defense-in-depth: this row is plain block-flow today so
+   nothing currently collapses the whitespace, but splitting it explicitly
+   means this markup stays correct even if the row's layout mode changes
+   later (a bare whitespace-only text run between flex items is dropped
+   entirely per the CSS Flexbox spec — the bug this sidesteps). */
+const INDENT_STYLE: React.CSSProperties = {
+  whiteSpace: 'pre',
+};
+
+function splitIndent(line: string): { indent: string; content: string } {
+  const match = /^(\s*)(.*)$/.exec(line);
+  return match ? { indent: match[1], content: match[2] } : { indent: '', content: line };
 }
 
 const PYTHON_KEYWORDS = new Set([
@@ -133,14 +162,19 @@ export function highlightPythonLine(line: string): React.ReactNode[] {
 export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
   code,
   activeLine,
+  lineExplanations,
 }) => {
   const lines = code.trim().split('\n');
   const activeLineRef = useRef<HTMLDivElement | null>(null);
+  const [explainEnabled, setExplainEnabled] = useState(true);
+  const { hovered, rowHoverHandlers } = useHoveredCodeLine(explainEnabled);
 
   useEffect(() => {
     // Optional call: jsdom doesn't implement scrollIntoView.
     activeLineRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [activeLine]);
+
+  const hoveredExplanation = hovered !== null ? lineExplanations?.[hovered.line] : undefined;
 
   return (
     <Card
@@ -158,15 +192,18 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
         </span>
       }
       actions={
-        <span
-          style={{
-            fontFamily: 'var(--font-code)',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--text-muted)',
-          }}
-        >
-          line {activeLine}
-        </span>
+        <>
+          <CodeExplainToggle enabled={explainEnabled} onToggle={() => setExplainEnabled((current) => !current)} />
+          <span
+            style={{
+              fontFamily: 'var(--font-code)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            line {activeLine}
+          </span>
+        </>
       }
       style={{
         borderColor: 'var(--border-default)',
@@ -189,30 +226,31 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
         {lines.map((lineText, idx) => {
           const lineNumber = idx + 1;
           const isActive = lineNumber === activeLine;
+          const explanation = lineExplanations?.[lineNumber];
+          const { indent, content } = splitIndent(lineText);
+          const hoverHandlers = explanation !== undefined ? rowHoverHandlers(lineNumber) : undefined;
 
           return (
             <div
               key={idx}
               ref={isActive ? activeLineRef : undefined}
               className={isActive ? 'ui-code-line ui-code-line--active' : 'ui-code-line'}
+              data-testid={`code-row-${lineNumber}`}
+              onMouseEnter={hoverHandlers?.onMouseEnter}
+              onMouseLeave={hoverHandlers?.onMouseLeave}
             >
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: '2.5em',
-                  textAlign: 'right',
-                  marginRight: 'var(--space-3)',
-                  color: 'var(--text-muted)',
-                  userSelect: 'none',
-                }}
-              >
-                {lineNumber}
+              <span style={GUTTER_STYLE}>{lineNumber}</span>
+              <span data-testid={`indent-${lineNumber}`} style={INDENT_STYLE}>
+                {indent}
               </span>
-              {highlightPythonLine(lineText)}
+              {highlightPythonLine(content)}
             </div>
           );
         })}
       </div>
+      {explainEnabled && hovered !== null && hoveredExplanation !== undefined ? (
+        <LineExplainPopover line={hovered.line} explanation={hoveredExplanation} anchorRect={hovered.rect} side="left" />
+      ) : null}
     </Card>
   );
 };

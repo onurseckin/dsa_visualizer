@@ -4,6 +4,7 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface KosarajuSccInput {
   nodes: GraphNodeItem[];
@@ -326,6 +327,40 @@ export const generateKosarajuSccSteps = (
   return steps;
 };
 
+const KOSARAJU_SCC_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Entry point: takes the vertex count and edge list of a directed graph and will return its strongly connected components.',
+    2: 'Documents the purpose of the first sweep: not to find components yet, just to compute an ordering the second pass will exploit.',
+    3: "Tracks vertices seen during pass 1, kept separate from pass 2's visited set so the two sweeps never interfere with each other.",
+    4: 'Will collect vertices in the order they finish exploring — later-finishing vertices end up on top, exactly what pass 2 needs to start from.',
+    5: 'A depth-first search on the original graph whose only job is to record finish order, not to detect components.',
+    6: "Marks u seen before recursing into its neighbors, so a cycle can't send this recursion into an infinite loop.",
+    7: "Explores every out-neighbor of u in the original graph's adjacency list.",
+    8: 'Only recurses into neighbors not yet explored, avoiding redundant work and infinite loops.',
+    9: 'Recurses first, so u can only finish after everything reachable from it has already finished.',
+    10: 'Pushes u onto the stack the moment it finishes — exactly the post-order that puts upstream vertices on top.',
+    12: 'Sweeps every vertex to make sure disconnected pieces of the graph get their own DFS too.',
+    13: 'Only launches a fresh DFS from vertices no prior call has already reached.',
+    14: "Starts pass 1 from this unvisited vertex, extending the finish-order stack to cover its whole reachable region.",
+    16: 'Marks the transition to the phase that actually extracts components, using the finish order and the reversed graph together.',
+    17: "Resets visited tracking for pass 2 — reusing pass 1's set here would make the second sweep do nothing, since everything would already look visited.",
+    18: 'Will collect each discovered strongly connected component as its own list of vertices.',
+    19: 'A depth-first search on the transposed (edge-reversed) graph that collects every vertex it reaches into one component.',
+    20: "Marks u claimed by the component currently being built, using pass 2's own visited set.",
+    21: 'Adds u to the SCC currently under construction.',
+    22: "Walks u's neighbors in the reversed graph — reachability here corresponds to backward reachability in the original graph.",
+    23: 'Skips any vertex already claimed by this or an earlier component.',
+    24: 'Recurses to pull v into the same component; the reversed edges keep this search fenced inside one true SCC.',
+    26: 'Processes vertices in reverse finish order — last-finished first — which is what guarantees each restart lands on an unclaimed component root.',
+    27: 'Pops the top of the finish stack, the latest-finishing vertex still remaining.',
+    28: "Only starts a new component search if u hasn't already been swept into an earlier one.",
+    29: 'Opens a fresh, empty component list to be filled by this round of DFS.',
+    30: 'Runs the fenced search on the transpose, collecting exactly one full strongly connected component starting from u.',
+    31: 'Records the completed component before moving on to the next unclaimed vertex on the stack.',
+    32: 'Every vertex has now been assigned to exactly one component — the full SCC decomposition of the graph.',
+  },
+};
+
 export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   id: 'kosaraju-scc',
   title: "Kosaraju's Strongly Connected Components",
@@ -414,6 +449,7 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
       },
     ],
   },
+  trivia: KOSARAJU_SCC_TRIVIA,
   defaultInput: DEFAULT_KOSARAJU_INPUT,
   generateSteps: generateKosarajuSccSteps,
 };

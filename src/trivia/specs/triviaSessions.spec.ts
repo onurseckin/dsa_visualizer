@@ -16,16 +16,16 @@ describe('triviaSessions storage & lifecycle', () => {
 
   it('generates incremental session names when no name is provided', () => {
     const s1 = createSession();
-    expect(s1.name).toBe('Trivia 1');
+    expect(s1.name).toBe('Session 1');
 
     const s2 = createSession();
-    expect(s2.name).toBe('Trivia 2');
+    expect(s2.name).toBe('Session 2');
 
     const custom = createSession('Graph Practice');
     expect(custom.name).toBe('Graph Practice');
 
     const s3 = createSession();
-    expect(s3.name).toBe('Trivia 3');
+    expect(s3.name).toBe('Session 3');
   });
 
   it('persists sessions to localStorage and retrieves them', () => {

@@ -4,6 +4,7 @@ import type {
   TopicGuide,
   TreeNodeItem,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface HuffmanCodingInput {
   text: string;
@@ -385,6 +386,33 @@ const HUFFMAN_CODING_TOPIC_GUIDE: TopicGuide = {
   ],
 };
 
+const HUFFMAN_CODING_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Imports the heap module, used to always retrieve the two least-frequent nodes efficiently during the merge phase.',
+    2: 'Imports a ready-made frequency counter for tallying character occurrences in the input text.',
+    4: 'Defines the tree node type that represents both leaf characters and internal merge points.',
+    5: 'The constructor takes the character (or None for internal nodes) and its combined frequency weight.',
+    6: 'Stores the character this node represents, or None if it is an internal (merged) node.',
+    7: 'Stores the weight used to order nodes in the min-heap.',
+    8: 'Starts with no left child; only a later merge will attach a subtree here.',
+    9: 'Starts with no right child, for the same reason.',
+    11: 'Defines how two nodes compare, which is exactly what the heap module uses to keep itself ordered.',
+    12: 'Orders nodes purely by frequency, so the heap always surfaces the lightest node first regardless of which character it holds.',
+    14: 'The entry point that turns raw text into a completed Huffman tree.',
+    15: 'Tallies how often each character appears — this frequency count is the only information the algorithm needs about the text.',
+    16: 'Creates one leaf node per distinct character, weighted by its frequency.',
+    17: 'Arranges the leaves into a valid min-heap in linear time so the lightest node is always retrievable first.',
+    19: 'Keeps merging until exactly one node — the root of the whole tree — remains.',
+    20: 'Removes the current lightest node, which becomes one of the two children merged this round.',
+    21: 'Removes the next lightest node; merging the two least-frequent nodes first is precisely what keeps rare symbols deepest and frequent ones shallow.',
+    22: "Creates a new internal node with no character, weighted by the combined frequency of its two children.",
+    23: "Attaches the first popped node as the merged node's left child.",
+    24: "Attaches the second popped node as the merged node's right child.",
+    25: 'Reinserts the merged node so it competes for future merges just like any other node.',
+    27: "Once only the root remains, returns it (or None for empty input) — the finished tree's shape encodes every character's optimal code.",
+  },
+};
+
 export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   id: 'huffman-coding',
   title: 'Huffman Coding',
@@ -416,6 +444,7 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     space: 'We store one leaf node per distinct character plus roughly K − 1 merged internal nodes across the heap and the finished tree, so extra memory grows with the alphabet size — O(K), not with the length of the text.',
   },
   topicGuide: HUFFMAN_CODING_TOPIC_GUIDE,
+  trivia: HUFFMAN_CODING_TRIVIA,
   defaultInput: DEFAULT_HUFFMAN_CODING_INPUT,
   generateSteps: generateHuffmanCodingSteps,
 };

@@ -66,19 +66,30 @@ export function cloneTriviaProgress(progress: TriviaProgress): TriviaProgress {
   };
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+type RawTriviaStorageValue =
+  | string
+  | number
+  | boolean
+  | null
+  | TriviaConfig
+  | TriviaProgress
+  | Record<string, unknown>
+  | Array<unknown>;
+
+const isRecord = (value: RawTriviaStorageValue): value is Record<string, RawTriviaStorageValue> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isMode = (value: unknown): value is TriviaMode => value === 'choice' || value === 'type';
+const isMode = (value: RawTriviaStorageValue): value is TriviaMode =>
+  value === 'choice' || value === 'type';
 
 /** A blank count that the engine can actually run at. */
-const isBlankCount = (value: unknown): value is number =>
+const isBlankCount = (value: RawTriviaStorageValue): value is number =>
   typeof value === 'number' &&
   Number.isInteger(value) &&
   value >= MIN_BLANKS_FLOOR &&
   value <= MAX_BLANKS_CEILING;
 
-const isTally = (value: unknown): value is number =>
+const isTally = (value: RawTriviaStorageValue): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0;
 
 const clampLevel = (value: number): number => {
@@ -88,7 +99,7 @@ const clampLevel = (value: number): number => {
 
 /** Deck ids are opaque strings here: an id no longer in the registry is the
     caller's problem to filter, not a reason to drop the whole deck. */
-const readDeck = (value: unknown): string[] | null => {
+const readDeck = (value: RawTriviaStorageValue): string[] | null => {
   if (!Array.isArray(value)) return null;
   const deck: string[] = [];
   for (const entry of value) {
@@ -98,7 +109,7 @@ const readDeck = (value: unknown): string[] | null => {
   return deck;
 };
 
-const readLineNumbers = (value: unknown): number[] | null => {
+const readLineNumbers = (value: RawTriviaStorageValue): number[] | null => {
   if (!Array.isArray(value)) return null;
   const lines: number[] = [];
   for (const entry of value) {
@@ -108,7 +119,7 @@ const readLineNumbers = (value: unknown): number[] | null => {
   return lines.sort((a, b) => a - b);
 };
 
-const readDrilled = (value: unknown): TriviaProgress['drilled'] | null => {
+const readDrilled = (value: RawTriviaStorageValue): TriviaProgress['drilled'] | null => {
   if (!isRecord(value)) return null;
   const drilled: TriviaProgress['drilled'] = {};
   for (const [algorithmId, levels] of Object.entries(value)) {
@@ -125,7 +136,7 @@ const readDrilled = (value: unknown): TriviaProgress['drilled'] | null => {
   return drilled;
 };
 
-const readStats = (value: unknown): TriviaProgress['stats'] | null => {
+const readStats = (value: RawTriviaStorageValue): TriviaProgress['stats'] | null => {
   if (!isRecord(value)) return null;
   const stats: TriviaProgress['stats'] = {};
   for (const [algorithmId, lines] of Object.entries(value)) {
@@ -137,7 +148,7 @@ const readStats = (value: unknown): TriviaProgress['stats'] | null => {
       if (!isTally(stat.attempts) || !isTally(stat.misses)) return null;
       // Misses can never exceed attempts; such a record would skew the weights.
       if (stat.misses > stat.attempts) return null;
-      byLine[line] = { attempts: stat.attempts, misses: stat.misses };
+      byLine[line] = { attempts: stat.attempts as number, misses: stat.misses as number };
     }
     stats[algorithmId] = byLine;
   }
@@ -154,7 +165,7 @@ const getStorage = (): Storage | null => {
 };
 
 /** Reads and JSON-parses a versioned key; null for missing, unreadable, malformed or stale. */
-const readVersioned = (key: string): Record<string, unknown> | null => {
+const readVersioned = (key: string): Record<string, RawTriviaStorageValue> | null => {
   const storage = getStorage();
   if (!storage) return null;
 
@@ -166,7 +177,7 @@ const readVersioned = (key: string): Record<string, unknown> | null => {
   }
   if (raw === null) return null;
 
-  let parsed: unknown;
+  let parsed: RawTriviaStorageValue;
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -178,7 +189,7 @@ const readVersioned = (key: string): Record<string, unknown> | null => {
   return parsed;
 };
 
-const writeVersioned = (key: string, payload: Record<string, unknown>): void => {
+const writeVersioned = (key: string, payload: Record<string, RawTriviaStorageValue>): void => {
   const storage = getStorage();
   if (!storage) return;
   try {

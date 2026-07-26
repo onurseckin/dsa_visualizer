@@ -3,6 +3,7 @@ import type {
   AlgorithmStep,
   ArrayElement,
 } from '../../types/dsa';
+import type { TriviaMeta } from '../../types/trivia';
 
 export interface KmpInput {
   text: string;
@@ -284,6 +285,43 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   return steps;
 };
 
+const KMP_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: 'Signature: search for every occurrence of pattern inside text and return their starting indices.',
+    2: 'Cache both lengths up front since they are used repeatedly in both the preprocessing and matching loops.',
+    3: "Guard against degenerate inputs: an empty pattern, an empty text, or a pattern that can't possibly fit inside a shorter text.",
+    4: 'No match is possible in any of those cases, so bail out immediately with an empty result.',
+    5: "Allocate the Longest-Prefix-Suffix table, one entry per pattern character, which will record how much of the pattern's own start echoes just before each position.",
+    6: 'Tracks the length of the current matching prefix-suffix while building the LPS table; it starts at zero since no overlap has been found yet.',
+    7: "The LPS table always starts scanning from index 1, since lps[0] is trivially 0 — a single character can't be a proper prefix of itself.",
+    8: 'Walk through the rest of the pattern to fill in every remaining LPS entry.',
+    9: 'Check whether extending the current prefix-suffix match by one more character still works, by comparing the next pattern character against the one right after the matched prefix.',
+    10: 'The match grew by one character, so record the longer overlap length.',
+    11: 'Store that new, extended prefix-suffix length as the answer for position i.',
+    12: 'Move on to the next pattern position now that this one is resolved.',
+    13: "The characters didn't match, but we had a partial overlap going — rather than giving up entirely, fall back to a shorter overlap that might still work.",
+    14: 'Shrink to the next-best candidate overlap length, already computed for an earlier position — this is the same self-referential trick the search phase uses later.',
+    15: 'Neither did the characters match, nor was there any overlap left to fall back on.',
+    16: "Record that nothing before this position echoes the pattern's start.",
+    17: 'With length already at zero there is nothing more to try here, so advance to the next position.',
+    18: 'Two independent pointers for the matching phase: one into the pattern, one into the text — both start at the beginning.',
+    19: 'Collects the starting index of every match found in the text.',
+    20: 'Scan through the text exactly once; the text pointer only ever moves forward, never backward.',
+    21: 'Compare the current pattern character against the current text character.',
+    22: 'On a match, advance the pattern pointer — one more character of the pattern has now been confirmed present in the text.',
+    23: 'Also advance the text pointer, since this text character has been consumed by the match.',
+    24: 'Check whether the pattern pointer has walked all the way past the end of the pattern, meaning a full match just completed.',
+    25: "Record where that match started: subtract the pattern's length from the current text position.",
+    26: 'Instead of resetting to zero, fall back using the LPS table so overlapping occurrences of the pattern can still be found.',
+    27: "A mismatch happened partway through a potential match (and we haven't already handled it above as a full match).",
+    28: "If some characters were already matched, we don't have to restart from scratch.",
+    29: 'Use the LPS table to jump the pattern pointer back to the next-best position to resume from, without ever moving the text pointer backward.',
+    30: 'There was nothing matched yet when the mismatch occurred — the pattern pointer is already at zero.',
+    31: 'With no partial match to fall back on, the only option is to try the next text character.',
+    32: 'Hand back every match position found in this single linear pass over the text.',
+  },
+};
+
 export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   id: 'kmp-string-match',
   title: 'KMP String Matching',
@@ -371,6 +409,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
       },
     ],
   },
+  trivia: KMP_TRIVIA,
   defaultInput: DEFAULT_KMP_INPUT,
   generateSteps: generateKmpSteps,
 };

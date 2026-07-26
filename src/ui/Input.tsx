@@ -12,9 +12,9 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { leadingIcon, onClear, size = 'md', className, style, value, ...rest },
-  ref,
-) {
+  { leadingIcon, onClear, size = 'md', className, style, value, ...rest }: InputProps,
+  ref: React.ForwardedRef<HTMLInputElement>
+): React.ReactElement {
   const showClear =
     onClear !== undefined && value !== undefined && String(value).length > 0;
   return (

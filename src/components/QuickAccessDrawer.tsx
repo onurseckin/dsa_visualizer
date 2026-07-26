@@ -46,7 +46,7 @@ export function QuickAccessDrawer({
   onSelectAlgorithm,
   activeAlgorithmId,
   categories = ALL_CATEGORIES,
-}: QuickAccessDrawerProps) {
+}: QuickAccessDrawerProps): React.ReactElement {
   const allAlgorithms = useMemo(() => getAllAlgorithms(), []);
 
   const activeCategoryId = useMemo(
