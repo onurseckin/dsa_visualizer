@@ -7,9 +7,8 @@ import {
   LayoutPanelLeft,
   BookOpen,
   Layers,
-  Sparkles,
-  Network,
   List,
+  Network,
   RotateCcw,
 } from 'lucide-react';
 import { CategoryType, AppView, PanelKey, PanelVisibility } from '../types/dsa';
@@ -98,33 +97,35 @@ export const Navbar: React.FC<NavbarProps> = ({
       }}
     >
       {/* Brand + app-view switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', minWidth: 0 }}>
-        {/* The wordmark is text, not a selection, so it stays on the neutral text
-            ramp — the accent is reserved for interaction state (R5.1). */}
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<Sparkles />}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+        <button
+          type="button"
           aria-label="DSA Visualizer home"
+          title="Go to Knowledge Tree"
           onClick={() => onSetAppView('tree')}
+          className="ui-btn ui-btn--secondary ui-btn--md"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 'var(--control-h-md)',
+            height: 'var(--control-h-md)',
+            padding: 0,
+            borderRadius: 'var(--radius-md)',
+            borderColor: 'var(--border-default)',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
         >
-          <span
-            style={{
-              fontFamily: 'var(--font-code)',
-              fontWeight: 700,
-              fontSize: 'var(--text-lg)',
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            DSA<span style={{ color: 'var(--text-secondary)' }}>.Visualizer</span>
-          </span>
-        </Button>
+          <Network style={{ width: '18px', height: '18px' }} />
+        </button>
 
         {/* Mutually exclusive routing stays a Segmented — it is not a toggle set. */}
         <Segmented
           aria-label="App view"
-          size="sm"
+          size="md"
           options={APP_VIEW_OPTIONS}
           value={appView}
           onChange={(value) => onSetAppView(value as AppView)}

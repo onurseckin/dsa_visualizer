@@ -138,7 +138,7 @@ to any static host.
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run generate-routes` | `tsr generate` — regenerates `src/routeTree.gen.ts` |
 | `bun run lint` | ESLint, zero warnings allowed |
-| `bun run test` | Full vitest run (~650 tests in 108 spec files — final gate only) |
+| `bun run test` | Full vitest run (~760 tests in 114 spec files — final gate only) |
 | `bunx vitest run <paths>` | Scoped test run — **use this during iteration** |
 | `bun run build` | `tsc && vite build` → `dist/` |
 | `bun run check` | typecheck + lint + full tests + build — the master quality gate |
@@ -1030,6 +1030,23 @@ empty deck, a completed drill, or a deck where nothing is long enough for the cu
 level — the route renders an explanatory card for that last case instead of a broken
 board.
 
+**The page has two states**, both under one header card that always shows the level badge,
+the rounds-played badge, a `Deck coverage` progressbar and the "Reset progress" action:
+
+- **Setup** — `TriviaDeckBuilder` (the whole registry grouped by category in roadmap order,
+  with one-click add for a single row, a whole category or all 40, plus per-category counts,
+  search and difficulty badges) beside `TriviaSettings` (mode, `minBlanks`/`maxBlanks`
+  sliders that keep `min <= max` — raising the floor past the ceiling pushes the ceiling up
+  rather than rejecting the drag — and distractors on/off). Both write through immediately
+  (there is no save button), and "Start drilling" only leaves setup once the deck is
+  non-empty.
+  Setup is **latched**, not derived from an empty deck, so picking the first algorithm does
+  not throw the user into a session.
+- **Session** — `TriviaSession` wraps `CodePuzzle` (the solution, blanks as slots) and, in
+  `choice` mode, `TileTray`. Controls are check answers, reveal a blank, and next round; a
+  completed deck gets a "Deck complete" card and a deck with nothing long enough for the
+  current level gets an explanatory card rather than an empty board.
+
 **Three laws for anything you add to this feature:**
 
 1. **No component calls `Math.random`.** Randomness enters only through the engine's
@@ -1059,10 +1076,10 @@ page, every panel promoted to `--border-default`, slots and tiles on the darkest
 
 ---
 
-## 3. Core Data Contracts (`src/types/dsa.ts`)
+## 3. Core Data Contracts (`src/types/`)
 
-All interfaces live in `src/types/dsa.ts` (finished — read, don't edit). The master
-shape:
+All algorithm and UI interfaces live in `src/types/dsa.ts`, and the trivia contracts in its
+sibling `src/types/trivia.ts` (both finished — read, don't edit). The master shape:
 
 ```typescript
 export interface AlgorithmDefinition<TInput = unknown> {
@@ -1611,7 +1628,183 @@ Run only your specs while iterating:
 bunx vitest run src/algorithms/<category>/specs/<name>.spec.ts src/algorithms/<category>/specs/<name>.render.spec.tsx
 ```
 
-### 4.11 Final gate
+### 4.11 Make it work well in the trivia drill (`trivia?: TriviaMeta`)
+
+Your solution lands in the `/trivia` code-occlusion drill **automatically** — the drill
+parses the `code` string straight out of the registry, so a new problem needs **no** work
+to be drillable and `trivia` is entirely optional. Read section 2.13 first for how the
+drill behaves; this section is only about the authoring decisions.
+
+Two things are therefore true and both matter:
+
+1. **Nothing is required.** Ship without `trivia` and the drill still hides your lines,
+   builds tiles from your other real lines, grades, and escalates correctly.
+2. **Three small optional fields make the drill on your solution much sharper**, and each
+   one is easy to write badly. Everything below is about writing them well.
+
+```ts
+const MY_ALGO_TRIVIA: TriviaMeta = {
+  skipLines: [1],
+  distractors: [/* 3–5 plausible-but-wrong lines */],
+  hints: [{ line: 4, hint: '…' }],
+};
+
+export const myAlgo: AlgorithmDefinition<MyAlgoInput> = {
+  // …
+  trivia: MY_ALGO_TRIVIA,
+};
+```
+
+#### `skipLines` — keep it small, and only for lines that teach nothing
+
+1-based line numbers that the drill must **never** hide. They count against the **actual
+`code` string** you wrote, the same numbering `codeLine` uses (section 4.6), so re-audit
+them whenever you edit the Python.
+
+Skip a line only when recalling it teaches nothing about the algorithm: the `def`
+signature (which the drill would otherwise blank out, leaving the learner no idea which
+function they are writing), an `import` line, or a bare `return arr` whose content is
+scenery. The four references show the whole range of sensible use: `bubbleSort` and
+`twoSum` skip `[1]`, their `def` line; `bfsGraph` skips `[3]`, its `def` line, because
+lines 1–2 are the `deque` import and a blank; `binarySearchMatrix` skips `[1, 17]` — the
+`def` line and a bare `else:`, which is pure syntax with nothing to recall.
+
+Do **not** skip a line because it is hard — hard lines are the point — and do not skip
+whitespace-only lines: they are already non-blankable, so listing them is noise. A long
+`skipLines` shrinks the pool the level can draw from, and an algorithm with fewer blankable
+lines than the current level drops out of the rotation altogether (section 2.13).
+
+#### `distractors` — 3–5 wrong lines that are wrong *about this solution*
+
+These become extra tiles in `choice` mode, on top of the decoys the engine already takes
+from your other real lines. A good distractor is a **specific, plausible mistake a learner
+would actually make in this exact function**: an off-by-one bound, a flipped comparison, a
+wrong dictionary access, the LIFO/FIFO version of a queue call, a no-op swap.
+
+Hard constraints:
+
+- **Never equal a real line after trimming.** Grading is trim-compared, so a "wrong" tile
+  whose text matches a real line would grade as **correct** — the drill would be teaching
+  the learner that their wrong answer was right. Indentation does not save you; compare
+  trimmed.
+- **No duplicates**, and no empty strings.
+- **3–5 is the useful range.** One decoy per blank reaches the tray, so a huge list mostly
+  sits unused while a list of one barely changes the round.
+
+**Good** (from `bubbleSort`, whose real lines are `for j in range(0, n - i - 1):` and
+`if arr[j] > arr[j + 1]:`):
+
+```ts
+distractors: [
+  'for j in range(0, n - i):',                 // the off-by-one that breaks the last swap
+  'for j in range(0, n - 1):',                 // forgets the sorted tail shrinks each pass
+  'if arr[j] >= arr[j + 1]:',                  // a comparison that swaps equal elements
+  'if arr[j] < arr[j + 1]:',                   // sorts the wrong way round
+  'arr[j], arr[j + 1] = arr[j], arr[j + 1]',   // a swap that swaps nothing
+]
+```
+
+Each one is a mistake with a diagnosis attached: rejecting it requires knowing *why* the
+bound is `n - i - 1` or why the comparison is strict. `bfsGraph` does the same trick with
+`current = queue.pop()` (DFS instead of BFS) and `visited.add(current)` (marking the wrong
+node, the classic double-enqueue bug).
+
+**Bad:**
+
+```ts
+distractors: [
+  'return None',            // generic filler: rejectable without reading the algorithm
+  'x = 0',                  // not plausible in this function at all
+  'pass',                   // teaches nothing
+  'if arr[j] > arr[j + 1]:',// FATAL: identical to a real line — grades as correct
+  '    n = len(arr)',       // same, only differently indented — trim makes it identical
+]
+```
+
+Generic filler is worse than no distractors: it inflates the tray, makes the round *look*
+harder, and can be eliminated by shape alone, which trains nothing.
+
+#### `hints` — say what the line must accomplish, never what it says
+
+`{ line, hint }` pairs, revealed on request behind a lightbulb control in `CodePuzzle`. A
+hint is a nudge toward the *purpose* of the line, phrased so that the learner still has to
+produce the code:
+
+> **Good** (`twoSum`, line 4): `Name the one value that would finish the pair with the
+> current number — pure arithmetic, no lookup yet.`
+> **Good** (`bfsGraph`, line 11): `Claim the neighbour the moment it is discovered, not
+> when it is later processed, or it can enter the frontier twice.`
+> **Bad**: `Write complement = target - num` *(that is the answer, not a hint)*
+> **Bad**: `This line is important` *(no content)*
+> **Bad**: a hint on a line listed in `skipLines` — the drill never hides it, so the hint
+> can never be shown.
+
+Aim for the handful of lines where a learner genuinely stalls (the four hinted algorithms
+each carry 4), one entry per line, non-empty text.
+
+#### Why your `<name>.spec.ts` must assert metadata coherence
+
+Add a `describe` block to the **logic** spec (section 4.10) whenever you write `trivia`:
+
+```ts
+describe('myAlgo trivia metadata', () => {
+  const meta = myAlgo.trivia;
+  const lines = myAlgo.code.replace(/\s+$/, '').split('\n');
+
+  it('points skipLines and hints at real, non-empty lines', () => {
+    expect(meta).toBeDefined();
+    const skipped = meta?.skipLines ?? [];
+    const hinted = (meta?.hints ?? []).map((entry) => entry.line);
+    [...skipped, ...hinted].forEach((line) => {
+      expect(line).toBeGreaterThanOrEqual(1);
+      expect(line).toBeLessThanOrEqual(lines.length);
+      expect(lines[line - 1].trim()).not.toBe('');
+    });
+    // A hint on a line the drill never hides would never be shown.
+    hinted.forEach((line) => expect(skipped).not.toContain(line));
+  });
+
+  it('never offers a distractor that is actually a correct line', () => {
+    const real = new Set(lines.map((line) => line.trim()));
+    const distractors = meta?.distractors ?? [];
+    expect(distractors.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(distractors).size).toBe(distractors.length);
+    distractors.forEach((distractor) => expect(real.has(distractor.trim())).toBe(false));
+  });
+});
+```
+
+**The check exists because every one of these mistakes is invisible in the UI.** A
+`skipLines` or `hints` entry that is off by one, or points past the end of the file, simply
+never fires — nothing throws, nothing looks wrong, the hint just never appears and you
+conclude the feature works. A distractor equal to a real line is worse than invisible: it
+looks like a working decoy and silently grades a wrong answer as right. And because the
+line numbers are coupled to a string you will edit later, the assertions are a **drift
+alarm** as much as a correctness check: rewording your Python renumbers everything, and
+this block is what fails instead of the drill quietly degrading.
+`src/trivia/specs/triviaFlow.spec.ts` runs the same checks, but only over its fixed
+four-algorithm deck — it will **not** cover your new algorithm, which is exactly why the
+per-algorithm spec owns it.
+
+#### Write the `code` string with the drill in mind
+
+The drill's quality is mostly decided by the shape of your Python, before any metadata:
+
+- **One statement per line drills well.** Each line becomes an independently recallable
+  unit, and the tiles stay comparable in length.
+- **Very long lines drill badly.** A 100-character comprehension is a blank nobody can
+  reconstruct from memory and a tile that dominates the tray; split it, or accept that the
+  line is a wall. Prefer an intermediate variable over a dense one-liner — it reads better
+  in the code viewer too.
+- **Blank lines are automatically non-blankable**, so use them to group phases without
+  worrying that the drill will ask for an empty line. (Whitespace-only lines count as
+  blank: `bfsGraph` has a line of spaces at line 6 and the drill skips it for free.)
+- **Avoid two lines that are identical after trimming** where you can. They are legal, but
+  either one grades as correct for the other's blank, which makes the feedback confusing.
+- The same string feeds the code viewer, `codeLine` highlighting and the drill, so
+  optimising it for one usually helps all three: short, honest, one-idea lines.
+
+### 4.12 Final gate
 
 Exactly once, when the work is done:
 
@@ -1808,7 +2001,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
   `react()`; the wrong order fails silently. This file is finished — read, don't
   edit.
 - **Run scoped vitest during iteration** (`bunx vitest run <paths>`); the full
-  `bun run check` runs exactly once as the final gate. The full suite is ~650 tests
+  `bun run check` runs exactly once as the final gate. The full suite is ~760 tests
   and is not an iteration loop.
 - **Category aliases are not routeable** — `?category=` only accepts the 25 canonical
   ids via `isCategoryType`; legacy `CategoryType` aliases silently collapse to "no
@@ -1817,10 +2010,16 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
   `addStep` calls is the classic bug: stepping backward then shows mutated "past"
   state. Copy in the closure, always.
 - **localStorage can throw** — every read/write goes through the validated
-  `readStored`/`writeStored` helpers (SettingsContext) or the defensive
-  `readWorkspaceLayout`/`writeWorkspaceLayout`/`clearWorkspaceLayout` functions.
-  Follow that pattern for any new persistence: validate on read, best-effort on write,
-  never throw into render.
+  `readStored`/`writeStored` helpers (SettingsContext), the defensive
+  `readWorkspaceLayout`/`writeWorkspaceLayout`/`clearWorkspaceLayout` functions, or
+  `src/trivia/triviaStorage.ts` (section 2.13). Follow that pattern for any new
+  persistence: validate on read, best-effort on write, never throw into render.
+- **A trivia `distractor` equal to a real line grades as *correct*** — grading is
+  trim-compared, so the decoy silently becomes a right answer and nothing looks broken.
+  Same class of trap: a `hints`/`skipLines` line number that is off by one just never
+  fires. Both are why the metadata assertions in section 4.11 exist.
+- **Never call `Math.random` in a trivia component** — take randomness from the engine's
+  injectable `rng`, or the round stops being reproducible in specs (section 2.13).
 
 ---
 
@@ -1843,16 +2042,17 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 7. **Conventional Commits** — every commit subject starts with an approved tag
    (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, …), imperative, < 70 chars.
 
-**Finished, read-only for everyone:** `src/styles/theme.css`, `src/styles/index.css`,
-`src/styles/ui.css`, `src/ui/**`, `src/types/dsa.ts`, `index.html`, `package.json`,
-`vite.config.ts`, `src/routeTree.gen.ts`.
+**Finished, read-only for everyone:** `src/styles/**` (`theme.css`, `index.css`,
+`ui.css`), `src/ui/**`, `src/types/**` (`dsa.ts`, `trivia.ts`),
+`src/trivia/triviaEngine.ts`, `index.html`, `package.json`, `vite.config.ts`,
+`src/routeTree.gen.ts`.
 
 ---
 
 ## 8. Test Landscape
 
 Vitest + jsdom (`vite.config.ts` `test` block; setup file `src/test/setup.ts` loads
-`@testing-library/jest-dom`). ~650 tests across 108 spec files. Locations:
+`@testing-library/jest-dom`). ~760 tests across 114 spec files. Locations:
 
 - `src/algorithms/<category>/specs/` — per algorithm, one logic spec `<name>.spec.ts`
   and one render spec **`<name>.render.spec.tsx`** (section 4.10; the `.render.` segment
@@ -1888,6 +2088,33 @@ Vitest + jsdom (`vite.config.ts` `test` block; setup file `src/test/setup.ts` lo
   ones; the inscribed **ellipse**; `minPointSpacing`; slot fitting including the
   min-binds overshoot; tidy-tree layout with cycles and forests; attribute rounding) and
   `vizPalette` (slot ordering, overflow folding, no cycling).
+- `src/trivia/specs/*` — the drill's logic, no DOM: `triviaEngine.spec.ts` (every
+  escalation rule — parsing and blankability, coverage-driven level advance, weighted
+  reselection, tile building, trim-compared grading, revealed-counts-as-a-miss,
+  `coverageRatio`), `triviaStorage.spec.ts` (both versioned keys, validate-on-read,
+  wholesale rejection of stale/malformed payloads, best-effort writes, `clearTrivia`), and
+  `triviaFlow.spec.ts` — an **end-to-end drill over four real registry algorithms** with a
+  seeded mulberry32 rng, proving the level climbs `minBlanks → maxBlanks` without skipping a
+  rung, every deck entry gets its turn, the loop terminates, and the authored `trivia`
+  metadata of those four stays in range (section 4.11: it covers *only* those four).
+- `src/components/trivia/specs/*.spec.tsx` — one per drill component; unique basenames, so
+  plain `.spec.tsx` is correct here. `CodePuzzle.spec.tsx` pins the board contract (blanks
+  become labelled slots, the indent is printed *outside* the graded slot, `--success` /
+  `--danger` edges only after grading, a reveal labelled "not credited" and locked once
+  graded, hints behind a per-line toggle, the drop path falling back to the click path when
+  a drag carries no payload). `TileTray.spec.tsx` pins click-then-click selection with drag
+  as an alias, spent tiles staying visible, and the tray locking after grading.
+  `TriviaSession.spec.tsx` pins taking a tile back, displacing one, Escape dropping the
+  held tile, refusing to check a partially filled round, whitespace-insensitive typed
+  grading, a revealed blank never being credited, and the board resetting on the next round.
+  `TriviaDeckBuilder.spec.tsx` pins the quick multi-add ladder and its counts, filtering,
+  difficulty badges and no raw hex; `TriviaSettings.spec.tsx` the `min <= max` slider
+  coupling and a one-line explanation on every control.
+- `src/routes/specs/trivia.render.spec.tsx` — the page end to end: opening on deck setup
+  with an empty deck, starting a session once an algorithm is picked, restoring a stored
+  deck and reporting the configured floor as the level, serving a real deck solution each
+  round, grading → persisting → next round, reopening deck setup without losing the deck,
+  and clearing storage **only** after the reset is confirmed.
 - `src/app/specs/*` — `routing.spec.tsx` (redirects, search-param validation,
   navigation, **the whole keyboard-playback contract** — ArrowRight/ArrowLeft/Space,
   taking the wheel from playback, typing/modifier/dialog guards, Space yielding to a
@@ -1901,13 +2128,16 @@ Vitest + jsdom (`vite.config.ts` `test` block; setup file `src/test/setup.ts` lo
 
 ## 9. Roadmap: what is planned next
 
-**Spaced-repetition memorization + trivia is the next planned feature.** The intent is
-to turn the existing algorithm metadata into study material: flashcard-style recall over
-`topicGuide.keyTerms`, quiz questions generated from `topicGuide.sections`,
-`complexityAnalysis`, `timeComplexity`/`spaceComplexity`, and per-step
-`explanation.what`/`why`, with review scheduling persisted like the other settings.
+**The first half of the study feature has shipped:** `/trivia` drills the `code` string
+itself as progressive code occlusion, with coverage-driven escalation and per-line accuracy
+persisted (sections 2.13 and 4.11). **What is still planned is the rest of the study
+material:** flashcard-style recall over `topicGuide.keyTerms`, quiz questions generated from
+`topicGuide.sections`, `complexityAnalysis` and `timeComplexity`/`spaceComplexity`, recall
+prompts from per-step `explanation.what`/`why`, and true spaced-repetition *scheduling*
+across sessions (the drill schedules by coverage and miss weight, not by clock time).
 
-What that means for anything you write now:
+What that means for anything you write now — and it is the same discipline the drill already
+proved, since the drill needed **zero** per-algorithm work to cover all 40 solutions:
 
 - **Keep algorithm metadata declarative and reusable.** Teaching content belongs on the
   `AlgorithmDefinition` as data — never hardcoded into JSX, never assembled inside a

@@ -245,8 +245,13 @@ export const buildTiles = (
     .filter((line) => line.blankable && !blankSet.has(line.number))
     .map((line) => line.content);
   const authored = meta?.distractors ?? [];
+  /* Decoys must differ from the ANSWERS too, not just from each other: 13 of the
+     40 solutions repeat a line verbatim (`return False`, `node = node.children[c]`),
+     and grading compares text, so a spare line identical to a blanked one would be
+     a tile that is simultaneously labelled a decoy and accepted as correct. */
+  const answerTexts = new Set(answers.map((tile) => tile.text));
   const decoys = shuffle([...decoyPool, ...authored], rng)
-    .filter((text, index, list) => list.indexOf(text) === index)
+    .filter((text, index, list) => list.indexOf(text) === index && !answerTexts.has(text))
     .slice(0, blanks.length)
     .map((text, index) => ({ id: `decoy-${index}`, text, correctFor: null }));
 

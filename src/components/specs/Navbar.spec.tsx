@@ -45,8 +45,7 @@ describe('Navbar Component Spec', () => {
   it('renders brand, app-view segmented switcher, five toggles, and search trigger', () => {
     render(<Navbar {...makeProps()} />);
 
-    expect(screen.getByText('DSA')).toBeInTheDocument();
-    expect(screen.getByText('.Visualizer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'DSA Visualizer home' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Knowledge Tree' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Problem List' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument();
@@ -58,16 +57,12 @@ describe('Navbar Component Spec', () => {
     expect(screen.getByRole('button', { name: /Search algorithms/i })).toBeInTheDocument();
   });
 
-  it('renders the wordmark as a neutral ghost button with library icon sizing', () => {
+  it('renders the brand button as a graph icon badge button in a bordered container', () => {
     const { container } = render(<Navbar {...makeProps()} />);
 
     const brand = screen.getByRole('button', { name: 'DSA Visualizer home' });
-    expect(brand).toHaveClass('ui-btn', 'ui-btn--ghost', 'ui-btn--sm');
-    // Icon sizing comes from ui.css, never an inline px value.
-    expect(brand.querySelector('svg')?.getAttribute('style')).toBeNull();
-    expect(screen.getByText('.Visualizer').getAttribute('style')).toContain(
-      'var(--text-secondary)',
-    );
+    expect(brand).toHaveClass('ui-btn', 'ui-btn--secondary', 'ui-btn--md');
+    expect(brand.querySelector('svg')).toBeInTheDocument();
 
     expect(accentTintedText(container)).toEqual([]);
   });
