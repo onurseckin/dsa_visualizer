@@ -219,50 +219,51 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
           const count = selectedInGroup(group);
           const complete = count === group.entries.length;
           return (
-            <div
+            <Collapsible
               key={group.id}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}
-            >
-              <Collapsible
-                style={{ flex: 1, minWidth: 0, ...PANEL_BORDER }}
-                title={group.label}
-                meta={
+              style={{ width: '100%', minWidth: 0, ...PANEL_BORDER }}
+              title={group.label}
+              meta={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                   <Badge variant={count > 0 ? (complete ? 'success' : 'info') : 'neutral'} size="sm" style={PANEL_BORDER}>
                     {count}/{group.entries.length}
                   </Badge>
-                }
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {group.entries.map((entry) => {
-                    const isSelected = selected.has(entry.id);
-                    return (
-                      <Button
-                        key={entry.id}
-                        fullWidth
-                        selected={isSelected}
-                        style={rowStyle}
-                        onClick={() => toggleOne(entry.id)}
-                      >
-                        <span style={titleStyle}>{entry.title}</span>
-                        {entry.difficulty !== undefined ? (
-                          <Badge variant={difficultyBadgeVariant(entry.difficulty)} size="sm">
-                            {entry.difficulty}
-                          </Badge>
-                        ) : null}
-                      </Button>
-                    );
-                  })}
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addMany(group.entries.map((entry) => entry.id));
+                    }}
+                    disabled={complete}
+                    aria-label={`Add all ${group.label}`}
+                  >
+                    Add all
+                  </Button>
                 </div>
-              </Collapsible>
-              <Button
-                size="sm"
-                onClick={() => addMany(group.entries.map((entry) => entry.id))}
-                disabled={complete}
-                aria-label={`Add all ${group.label}`}
-              >
-                Add all
-              </Button>
-            </div>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {group.entries.map((entry) => {
+                  const isSelected = selected.has(entry.id);
+                  return (
+                    <Button
+                      key={entry.id}
+                      fullWidth
+                      selected={isSelected}
+                      style={rowStyle}
+                      onClick={() => toggleOne(entry.id)}
+                    >
+                      <span style={titleStyle}>{entry.title}</span>
+                      {entry.difficulty !== undefined ? (
+                        <Badge variant={difficultyBadgeVariant(entry.difficulty)} size="sm">
+                          {entry.difficulty}
+                        </Badge>
+                      ) : null}
+                    </Button>
+                  );
+                })}
+              </div>
+            </Collapsible>
           );
         })}
       </div>

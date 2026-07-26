@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { RotateCcw, ArrowRight, Check } from 'lucide-react';
+import { RotateCcw, ArrowRight, Check, Pause } from 'lucide-react';
 import { Badge, Button, Kbd } from '../../ui';
 import { describeMode, gradeRound } from '../../trivia/triviaEngine';
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from '../../types/trivia';
@@ -14,6 +14,7 @@ export interface TriviaSessionProps {
   /** Fires on "Check answers" with the map the engine should grade and record. */
   onSubmit: (answers: Record<number, string>) => void;
   onNext: () => void;
+  onPause?: () => void;
   hints?: TriviaMeta['hints'];
 }
 
@@ -37,6 +38,7 @@ export function TriviaSession({
   mode,
   onSubmit,
   onNext,
+  onPause,
   hints,
 }: TriviaSessionProps) {
   const [placements, setPlacements] = useState<Record<number, string>>({});
@@ -188,6 +190,17 @@ export function TriviaSession({
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
           {describeMode(mode)}
         </span>
+        {onPause && (
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Pause aria-hidden="true" />}
+            style={{ marginLeft: 'auto' }}
+            onClick={onPause}
+          >
+            Pause & exit
+          </Button>
+        )}
       </header>
 
       <div

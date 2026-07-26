@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Brain, ListChecks, Play, RotateCcw, Trophy } from 'lucide-react';
+import { Brain, Play, Plus, RotateCcw, Trash2, Trophy, Edit2, Check as CheckIcon } from 'lucide-react';
 import type {
   PuzzleLine,
   TriviaConfig,
   TriviaMeta,
   TriviaProgress,
   TriviaRound,
+  TriviaSessionRecord,
 } from '../types/trivia';
 import {
   coverageRatio,
@@ -22,8 +23,16 @@ import {
   writeTriviaConfig,
   writeTriviaProgress,
 } from '../trivia/triviaStorage';
+import {
+  createSession,
+  deleteSession,
+  readActiveSessionId,
+  readTriviaSessions,
+  updateSession,
+  writeActiveSessionId,
+} from '../trivia/triviaSessions';
 import { getAlgorithm } from '../algorithms/registry';
-import { Badge, Button, Card, ConfirmDialog } from '../ui';
+import { Badge, Button, Card, ConfirmDialog, Input } from '../ui';
 import { TriviaDeckBuilder } from '../components/trivia/TriviaDeckBuilder';
 import { TriviaSettings } from '../components/trivia/TriviaSettings';
 import { TriviaSession } from '../components/trivia/TriviaSession';
@@ -71,11 +80,33 @@ interface DeckSources {
 }
 
 function TriviaPage() {
-  const [config, setConfig] = useState<TriviaConfig>(readTriviaConfig);
-  const [progress, setProgress] = useState<TriviaProgress>(readTriviaProgress);
+  const [sessions, setSessions] = useState<TriviaSessionRecord[]>(readTriviaSessions);
+  const [activeId, setActiveId] = useState<string | null>(readActiveSessionId);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
+
+  const activeSession = useMemo(
+    () => sessions.find((s) => s.id === activeId) ?? null,
+    [sessions, activeId]
+  );
+
+  const [config, setConfig] = useState<TriviaConfig>(() =>
+    activeSession ? activeSession.config : readTriviaConfig()
+  );
+  const [progress, setProgress] = useState<TriviaProgress>(() =>
+    activeSession ? activeSession.progress : readTriviaProgress()
+  );
   const [round, setRound] = useState<TriviaRound | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(() => config.deck.length === 0);
   const [isResetOpen, setIsResetOpen] = useState(false);
+
+  // Sync state when activeSession changes
+  useEffect(() => {
+    if (activeSession) {
+      setConfig(activeSession.config);
+      setProgress(activeSession.progress);
+    }
+  }, [activeSession]);
 
   const { sources, meta } = useMemo<DeckSources>(() => {
     const nextSources = new Map<string, PuzzleLine[]>();
@@ -106,26 +137,102 @@ function TriviaPage() {
   }, [showSetup, round, progress, config, sources, meta, isDeckEmpty]);
 
   const applyConfig = (patch: Partial<TriviaConfig>) => {
-    setConfig(writeTriviaConfig({ ...config, ...patch }));
+    const updated = writeTriviaConfig({ ...config, ...patch });
+    setConfig(updated);
+    if (activeId) {
+      updateSession(activeId, { config: updated });
+      setSessions(readTriviaSessions());
+    }
   };
 
   const handleSubmit = (answers: Record<number, string>) => {
     if (round === null) return;
     const grade = gradeRound(round, answers);
-    setProgress(writeTriviaProgress(recordRound(progress, round, grade, config, sources)));
+    const updatedProgress = writeTriviaProgress(
+      recordRound(progress, round, grade, config, sources)
+    );
+    setProgress(updatedProgress);
+    if (activeId) {
+      updateSession(activeId, { progress: updatedProgress });
+      setSessions(readTriviaSessions());
+    }
   };
 
   const handleNext = () => {
     setRound(pickRound({ config, progress, sources, meta }));
   };
 
+  const handlePause = () => {
+    if (activeId) {
+      updateSession(activeId, { status: 'paused' });
+      setSessions(readTriviaSessions());
+    }
+    setIsSetupOpen(true);
+    setRound(null);
+  };
+
   const handleConfirmReset = () => {
     clearTrivia();
-    setConfig(readTriviaConfig());
-    setProgress(readTriviaProgress());
+    const freshConfig = readTriviaConfig();
+    const freshProgress = readTriviaProgress();
+    setConfig(freshConfig);
+    setProgress(freshProgress);
     setRound(null);
     setIsSetupOpen(true);
     setIsResetOpen(false);
+
+    if (activeId) {
+      updateSession(activeId, { config: freshConfig, progress: freshProgress, status: 'active' });
+      setSessions(readTriviaSessions());
+    }
+  };
+
+  const handleCreateNewSession = () => {
+    const newS = createSession(undefined, config, progress);
+    setSessions(readTriviaSessions());
+    setActiveId(newS.id);
+    setConfig(newS.config);
+    setProgress(newS.progress);
+    setRound(null);
+    setIsSetupOpen(true);
+  };
+
+  const handleSelectSession = (s: TriviaSessionRecord) => {
+    writeActiveSessionId(s.id);
+    setActiveId(s.id);
+    setConfig(s.config);
+    setProgress(s.progress);
+    setRound(null);
+    setIsSetupOpen(s.config.deck.length === 0);
+  };
+
+  const handleDeleteSession = (id: string) => {
+    deleteSession(id);
+    const remaining = readTriviaSessions();
+    setSessions(remaining);
+    const nextActive = readActiveSessionId();
+    setActiveId(nextActive);
+    if (nextActive === null) {
+      const freshConfig = readTriviaConfig();
+      const freshProgress = readTriviaProgress();
+      setConfig(freshConfig);
+      setProgress(freshProgress);
+      setRound(null);
+      setIsSetupOpen(true);
+    }
+  };
+
+  const handleStartRename = (s: TriviaSessionRecord) => {
+    setEditingId(s.id);
+    setEditingName(s.name);
+  };
+
+  const handleSaveRename = (id: string) => {
+    if (editingName.trim().length > 0) {
+      updateSession(id, { name: editingName.trim() });
+      setSessions(readTriviaSessions());
+    }
+    setEditingId(null);
   };
 
   const activeTitle =
@@ -138,9 +245,16 @@ function TriviaPage() {
         style={PANEL_BORDER}
         icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
         title={
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Trivia
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {activeSession ? activeSession.name : 'Trivia'}
+            </span>
+            {activeSession && (
+              <Badge variant={activeSession.status === 'paused' ? 'warning' : 'success'} size="sm">
+                {activeSession.status}
+              </Badge>
+            )}
+          </div>
         }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
@@ -157,16 +271,36 @@ function TriviaPage() {
               {coverage}% covered
             </Badge>
 
-            {showSetup ? null : (
-              <Button
-                size="md"
-                variant="secondary"
-                icon={<ListChecks aria-hidden="true" />}
-                onClick={() => setIsSetupOpen(true)}
-              >
-                Edit deck
-              </Button>
-            )}
+            {/* Top Primary Action: Start / Resume / Setup */}
+            <Button
+              variant="primary"
+              size="md"
+              icon={<Play aria-hidden="true" />}
+              disabled={isDeckEmpty}
+              onClick={() => {
+                if (showSetup) {
+                  setIsSetupOpen(false);
+                  if (activeId) {
+                    updateSession(activeId, { status: 'active' });
+                    setSessions(readTriviaSessions());
+                  }
+                } else {
+                  setIsSetupOpen(true);
+                }
+              }}
+            >
+              {showSetup ? 'Start drilling' : 'Edit deck'}
+            </Button>
+
+            <Button
+              size="md"
+              variant="secondary"
+              icon={<Plus aria-hidden="true" />}
+              onClick={handleCreateNewSession}
+            >
+              New session
+            </Button>
+
             <Button
               size="md"
               variant="danger"
@@ -207,38 +341,103 @@ function TriviaPage() {
         </div>
       </Card>
 
+      {/* Saved / Resumable Sessions Bar */}
+      {sessions.length > 0 && (
+        <Card style={PANEL_BORDER} title="Saved Trivia Sessions" padding="sm">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <span style={hintStyle}>
+              Select a pending session to resume where you left off, or create new named trivia decks.
+            </span>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+              {sessions.map((s) => {
+                const isCurrent = s.id === activeId;
+                const isEditing = editingId === s.id;
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-3)',
+                      borderRadius: 'var(--radius-md)',
+                      background: isCurrent ? 'var(--bg-inset)' : 'transparent',
+                      border: `1px solid ${isCurrent ? 'var(--border-accent)' : 'var(--border-default)'}`,
+                    }}
+                  >
+                    {isEditing ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                        <Input
+                          size="sm"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveRename(s.id);
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<CheckIcon size={14} />}
+                          onClick={() => handleSaveRename(s.id)}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <span
+                          style={{
+                            fontWeight: isCurrent ? 600 : 400,
+                            color: isCurrent ? 'var(--text-primary)' : 'var(--text-muted)',
+                            fontSize: 'var(--text-sm)',
+                          }}
+                        >
+                          {s.name}
+                        </span>
+                        <Badge size="sm" variant={s.status === 'paused' ? 'warning' : 'neutral'}>
+                          {s.config.deck.length} algos
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant={isCurrent ? 'primary' : 'secondary'}
+                          onClick={() => handleSelectSession(s)}
+                        >
+                          {isCurrent ? 'Active' : 'Resume'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<Edit2 size={14} />}
+                          onClick={() => handleStartRename(s)}
+                          aria-label={`Rename ${s.name}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<Trash2 size={14} />}
+                          onClick={() => handleDeleteSession(s.id)}
+                          aria-label={`Delete ${s.name}`}
+                        />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {showSetup ? (
         <>
+          {isDeckEmpty && (
+            <span style={hintStyle}>
+              Add at least one algorithm to the deck to start drilling.
+            </span>
+          )}
           <div style={setupGridStyle}>
             <TriviaDeckBuilder deck={config.deck} onChange={(deck) => applyConfig({ deck })} />
             <TriviaSettings config={config} onChange={applyConfig} />
           </div>
-          <Card style={PANEL_BORDER} padding="sm">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 'var(--space-4)',
-                flexWrap: 'wrap',
-              }}
-            >
-              <span style={hintStyle}>
-                {isDeckEmpty
-                  ? 'Add at least one algorithm to the deck to start drilling.'
-                  : 'Settings and deck are saved automatically — start whenever you are ready.'}
-              </span>
-              <Button
-                variant="primary"
-                size="md"
-                icon={<Play aria-hidden="true" />}
-                disabled={isDeckEmpty}
-                onClick={() => setIsSetupOpen(false)}
-              >
-                Start drilling
-              </Button>
-            </div>
-          </Card>
         </>
       ) : (
         <>
@@ -262,6 +461,7 @@ function TriviaPage() {
               mode={config.mode}
               onSubmit={handleSubmit}
               onNext={handleNext}
+              onPause={handlePause}
               hints={meta.get(round.algorithmId)?.hints}
             />
           ) : progress.completed ? null : (
