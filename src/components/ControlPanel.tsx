@@ -19,6 +19,10 @@ export interface ControlPanelProps {
   variant?: 'standalone' | 'embedded';
 }
 
+/* Both sliders share one width so the right-hand control group reads as a single
+   row of equally weighted controls (DESIGN.md R4.5). */
+const SLIDER_WIDTH = '120px';
+
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   isPlaying,
   onPlayPause,
@@ -48,10 +52,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         padding: 'var(--space-2) var(--space-3)',
         width: '100%',
         boxSizing: 'border-box',
-        // Embedded: a toolbar strip attached under the stage, one tier above the
-        // card it sits in. Standalone: a bordered panel of its own.
-        background: isEmbedded ? 'var(--bg-elevated)' : 'var(--bg-chrome)',
-        borderTop: isEmbedded ? '1px solid var(--border-subtle)' : undefined,
+        // Playback is a toolbar, so it stays on the chrome tier in both variants:
+        // its buttons are --bg-elevated and would dissolve into an equally
+        // elevated strip. Embedded docks against the visualizer's bottom edge (top
+        // border only); standalone is a bordered panel of its own.
+        background: 'var(--bg-chrome)',
+        borderTop: isEmbedded ? '1px solid var(--border-default)' : undefined,
         border: isEmbedded ? undefined : '1px solid var(--border-default)',
         borderRadius: isEmbedded ? undefined : 'var(--radius-md)',
       }}
@@ -85,11 +91,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         />
       </div>
 
-      {/* Inset well so the readout still reads against the elevated strip it sits on. */}
+      {/* The readout is a raised chip like the buttons beside it, so it keeps the
+          ui-chip elevated fill and only promotes its edge to a visible border. */}
       <span
         aria-label={`Step ${displayStep} of ${totalSteps}`}
         className="ui-chip"
-        style={{ background: 'var(--bg-inset)', borderColor: 'var(--border-default)' }}
+        style={{ borderColor: 'var(--border-default)' }}
       >
         <span style={{ color: 'var(--text-primary)' }}>{displayStep}</span>
         <span style={{ color: 'var(--text-muted)' }}>/</span>
@@ -114,7 +121,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           value={1050 - speed}
           onChange={(value) => onSpeedChange(1050 - value)}
           formatValue={(value) => `${1050 - value} ms`}
-          style={{ width: '120px' }}
+          style={{ width: SLIDER_WIDTH }}
         />
 
         {supportsCustomSize && (
@@ -126,7 +133,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               value={dataSize}
               onChange={onDataSizeChange}
               disabled={isPlaying}
-              style={{ width: '104px' }}
+              style={{ width: SLIDER_WIDTH }}
             />
             <IconButton
               icon={<Shuffle />}

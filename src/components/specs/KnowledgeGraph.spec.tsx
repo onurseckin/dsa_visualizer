@@ -67,6 +67,20 @@ describe('KnowledgeGraph Component Spec', () => {
     expect(onSelectMock).toHaveBeenCalledWith('two_pointers');
   });
 
+  it('borders every topic card by default and strengthens the edge on hover', () => {
+    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+
+    const card = screen.getAllByRole('button', { name: /1\. Arrays & Hashing:/i })[0];
+    expect(card.style.borderColor).toBe('var(--border-default)');
+
+    fireEvent.mouseEnter(card);
+    expect(card.style.borderColor).toBe('var(--border-strong)');
+    expect(card.style.background).toBe('var(--bg-hover)');
+
+    fireEvent.mouseLeave(card);
+    expect(card.style.borderColor).toBe('var(--border-default)');
+  });
+
   it('handles mouse enter, mouse leave, focus, and blur events on interactive elements', () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
@@ -138,6 +152,22 @@ describe('KnowledgeGraph Component Spec', () => {
     const graphsNode = screen.getAllByRole('button', { name: /11\. Graph Traversal/i })[0];
     const familyBar = graphsNode.querySelectorAll('rect')[1];
     expect(familyBar).toHaveAttribute('fill', topicFamilyColor('graphs'));
+  });
+
+  it('keeps the roadmap chrome neutral while family swatches stay the data key', () => {
+    const { container } = render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+
+    // Card header icon inherits the neutral card tone instead of an accent tint.
+    const headerIcon = container.querySelector('.ui-card__icon svg');
+    expect(headerIcon).not.toBeNull();
+    expect(headerIcon?.getAttribute('style')).toBeNull();
+
+    const swatches = screen
+      .getByRole('list', { name: /Topic family colors/i })
+      .querySelectorAll<HTMLElement>('span[aria-hidden="true"]');
+    expect(Array.from(swatches).map((swatch) => swatch.style.background)).toEqual(
+      TOPIC_FAMILIES.map((family) => topicFamilyColor(family.id))
+    );
   });
 
   it('tints prerequisite edges with the unlocked topic family color', () => {

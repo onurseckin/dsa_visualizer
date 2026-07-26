@@ -48,6 +48,11 @@ const sectionLabelStyle: React.CSSProperties = {
 
 const cellPadding = 'var(--space-3) var(--space-4)';
 
+/* ui.css defaults cards and neutral badges to --border-subtle, which disappears
+   against the near-black page; every panel and chip edge here is promoted one
+   step so the container is visible at all (DESIGN.md R5.1). */
+const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
+
 // Object.entries erases the CategoryType key union; restore it once here.
 const CATEGORY_ENTRIES = Object.entries(CATEGORY_LABELS) as [CategoryType, string][];
 
@@ -161,7 +166,8 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     >
       {/* Header */}
       <Card
-        icon={<Sparkles aria-hidden="true" style={{ color: 'var(--accent)' }} />}
+        style={PANEL_BORDER}
+        icon={<Sparkles />}
         title={
           <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
             All Categorized Problems &amp; Algorithms
@@ -169,7 +175,9 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <Badge variant="neutral">Total: {stats.total}</Badge>
+            <Badge variant="neutral" style={PANEL_BORDER}>
+              Total: {stats.total}
+            </Badge>
             <Badge variant="success">Easy: {stats.easy}</Badge>
             <Badge variant="warning">Medium: {stats.medium}</Badge>
             <Badge variant="danger">Hard: {stats.hard}</Badge>
@@ -182,7 +190,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       </Card>
 
       {/* Search + filters */}
-      <Card padding="sm">
+      <Card padding="sm" style={PANEL_BORDER}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <Input
             value={searchTerm}
@@ -229,13 +237,15 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       </Card>
 
       {/* Problems table */}
-      <Card padding="none">
+      <Card padding="none" style={PANEL_BORDER}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-md)' }}>
             <thead>
+              {/* The header row carries the sort controls, so it is a toolbar: the
+                  chrome tier, which the elevated sort buttons read against. */}
               <tr
                 style={{
-                  background: 'var(--bg-inset)',
+                  background: 'var(--bg-chrome)',
                   borderBottom: '1px solid var(--border-default)',
                   color: 'var(--text-muted)',
                   fontSize: 'var(--text-sm)',
@@ -297,13 +307,16 @@ export const ProblemList: React.FC<ProblemListProps> = ({
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                           <Code2
                             aria-hidden="true"
-                            style={{ width: '16px', height: '16px', color: 'var(--text-secondary)', flexShrink: 0 }}
+                            size={16}
+                            style={{ color: 'var(--text-secondary)', flexShrink: 0 }}
                           />
                           <span>{alg.title}</span>
                         </span>
                       </td>
                       <td style={{ padding: cellPadding }}>
-                        <Badge variant="neutral">{catLabel}</Badge>
+                        <Badge variant="neutral" style={PANEL_BORDER}>
+                          {catLabel}
+                        </Badge>
                       </td>
                       <td style={{ padding: cellPadding }}>
                         {alg.difficulty && (
