@@ -49,44 +49,6 @@ const HEADER_STRIP_H = 'var(--control-h-sm) + var(--space-2) * 2 + 2px';
 const STAGE_CHROME = `var(--navbar-h) + (${HEADER_STRIP_H}) + var(--space-3) * 3`;
 const STAGE_HEIGHT = `max(var(--stage-min-h), calc(100dvh - (${STAGE_CHROME})))`;
 
-const STEP_BAND_MAX_HEIGHT = '45%';
-
-interface PanelStripProps {
-  region: string;
-  /** Whether the strip may give height back when the band cap binds. */
-  greedy: boolean;
-  /** False for the last strip of the panel, whose edge is the card's own. */
-  divider: boolean;
-  children: React.ReactNode;
-}
-
-/* Step context is part of the visualizer panel, not a card floating next to it:
-   a --border-subtle divider plus a band fill is all that separates a strip from
-   what follows it (DESIGN.md R6.4). The strip owns both, and its content renders
-   border-free inside it, so each seam is exactly one line. Every strip is above
-   the canvas now, so every divider faces down.
-
-   The band shares the card's darkest fill (R7.2): these strips are reading
-   surfaces like the code and complexity panels, so lifting them to the chrome
-   tier made the Step section look like a different, lighter component than
-   Solution and Complexity. The divider alone marks the seam. */
-const PanelStrip: React.FC<PanelStripProps> = ({ region, greedy, divider, children }) => (
-  <div
-    data-region={region}
-    style={{
-      // The prose strip absorbs the squeeze; the single-row data strip keeps its size.
-      flex: greedy ? '1 1 auto' : '0 0 auto',
-      minHeight: 0,
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      background: 'var(--bg-surface)',
-      borderBottom: divider ? '1px solid var(--border-subtle)' : undefined,
-    }}
-  >
-    {children}
-  </div>
-);
-
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
@@ -224,29 +186,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   const applyLeftHeights = React.useCallback(
     (heights: PanelHeightMap, commit: boolean) => {
-      applyPanelHeights({ visualizer: heights.visualizer ?? null }, commit);
-    },
-    [applyPanelHeights],
-  );
-
-  /* The step strips inside the visualizer panel: dragging one pins its height and
-     the canvas absorbs the difference, which is how the graph area gets a height
-     control instead of only a width one (R7.4). */
-  const handleRowHeightsChange = React.useCallback(
-    (heights: PanelHeightMap) => {
       applyPanelHeights(
-        { tutorial: heights.tutorial ?? null, auxiliary: heights.auxiliary ?? null },
-        false,
-      );
-    },
-    [applyPanelHeights],
-  );
-
-  const handleRowHeightsCommit = React.useCallback(
-    (heights: PanelHeightMap) => {
-      applyPanelHeights(
-        { tutorial: heights.tutorial ?? null, auxiliary: heights.auxiliary ?? null },
-        true,
+        {
+          tutorial: heights.tutorial ?? null,
+          auxiliary: heights.auxiliary ?? null,
+          visualizer: heights.visualizer ?? null,
+        },
+        commit,
       );
     },
     [applyPanelHeights],
@@ -292,136 +238,122 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   usePointerDrag(stageDragging, dragStageTo, endStageDrag);
 
   const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
-  const showAuxiliary = panels.auxiliary && hasAuxiliaryContent(currentStep?.auxiliaryState);
-
-  const stagePanel = (
-    <Card
-      data-panel="visualizer"
-      padding="none"
-      style={{
-        flex: panels.visualizer ? 1 : '0 0 auto',
-        minHeight: 0,
-        overflow: 'hidden',
-        borderColor: 'var(--border-default)',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-        {(showTutorial || showAuxiliary) && (
-          <div
-            data-band="step-context"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flexShrink: 0,
-              minHeight: 0,
-              maxHeight: STEP_BAND_MAX_HEIGHT,
-              overflow: 'hidden',
-            }}
-          >
-            <ResizableRows
-              rows={[
-                {
-                  id: 'tutorial',
-                  label: 'tutorial',
-                  visible: showTutorial && Boolean(currentStep?.explanation),
-                  greedy: true,
-                  height: layout.panelHeights.tutorial,
-                  content:
-                    currentStep?.explanation !== undefined ? (
-                      <PanelStrip region="tutorial" greedy divider={showAuxiliary || panels.visualizer}>
-                        <TutorialCard
-                          explanation={currentStep.explanation}
-                          what={currentStep.explanation.what}
-                          why={currentStep.explanation.why}
-                          stepIndex={currentStep.stepIndex}
-                          totalSteps={totalSteps}
-                          onClose={onToggleTutorial}
-                        />
-                      </PanelStrip>
-                    ) : null,
-                },
-                {
-                  id: 'auxiliary',
-                  label: 'working data',
-                  visible: showAuxiliary && Boolean(currentStep?.auxiliaryState),
-                  greedy: false,
-                  height: layout.panelHeights.auxiliary,
-                  content:
-                    currentStep?.auxiliaryState !== undefined ? (
-                      <PanelStrip region="working-data" greedy={false} divider={panels.visualizer}>
-                        <AuxiliaryPanel state={currentStep.auxiliaryState} onClose={onToggleAuxiliary} />
-                      </PanelStrip>
-                    ) : null,
-                },
-              ]}
-              minRowHeight={MIN_PANEL_HEIGHT_PX}
-              maxRowHeight={MAX_PANEL_HEIGHT_PX}
-              onHeightsChange={handleRowHeightsChange}
-              onHeightsCommit={handleRowHeightsCommit}
-            />
-          </div>
-        )}
-
-        {panels.visualizer && (
-          <div
-            data-region="canvas"
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              padding: 'var(--space-2)',
-            }}
-          >
-            {renderPrimaryVisualizer() || (
-              <div
-                style={{
-                  margin: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  color: 'var(--text-muted)',
-                  textAlign: 'center',
-                  padding: 'var(--space-6)',
-                }}
-              >
-                <p style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  No visual snapshot available
-                </p>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                  Select an algorithm step or click Play to begin visualization.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* The embedded ControlPanel brings its own --border-default top edge. */}
-        {panels.visualizer && resolvedControlProps && (
-          <div data-region="controls" style={{ flexShrink: 0 }}>
-            <ControlPanel {...resolvedControlProps} variant="embedded" />
-          </div>
-        )}
-      </div>
-    </Card>
-  );
+  const showAuxiliary =
+    panels.auxiliary &&
+    hasAuxiliaryContent(currentStep?.auxiliaryState, currentStep?.variables);
 
   const leftRows: ResizableRow[] = [
     {
+      id: 'tutorial',
+      label: 'tutorial',
+      visible: showTutorial,
+      greedy: !panels.visualizer && !showAuxiliary,
+      height: layout.panelHeights.tutorial,
+      content:
+        currentStep?.explanation !== undefined ? (
+          <Card
+            padding="sm"
+            style={{
+              height: '100%',
+              borderColor: 'var(--border-default)',
+              overflow: 'auto',
+            }}
+          >
+            <TutorialCard
+              explanation={currentStep.explanation}
+              what={currentStep.explanation.what}
+              why={currentStep.explanation.why}
+              stepIndex={currentStep.stepIndex}
+              totalSteps={totalSteps}
+              onClose={onToggleTutorial}
+            />
+          </Card>
+        ) : null,
+    },
+    {
+      id: 'auxiliary',
+      label: 'working data & variables',
+      visible: showAuxiliary,
+      greedy: !panels.visualizer,
+      height: layout.panelHeights.auxiliary,
+      content: (
+        <Card
+          padding="sm"
+          style={{
+            height: '100%',
+            borderColor: 'var(--border-default)',
+            overflow: 'auto',
+          }}
+        >
+          <AuxiliaryPanel
+            state={currentStep?.auxiliaryState}
+            variables={currentStep?.variables}
+            onClose={onToggleAuxiliary}
+          />
+        </Card>
+      ),
+    },
+    {
       id: 'visualizer',
-      label: 'visualizer',
-      content: stagePanel,
-      /* The strips live inside this panel, so it also carries them when the
-         canvas itself is toggled off — turning Tutorial on always shows the
-         tutorial (R4.4), and the stage is never blank while a toggle is on. */
-      visible: panels.visualizer || showTutorial || showAuxiliary,
-      // Greedy while the canvas is there to absorb the leftover space; with the
-      // canvas off the panel is just its strips and hugs them.
-      greedy: panels.visualizer,
+      label: 'graph visualizer canvas',
+      visible: panels.visualizer,
+      greedy: true,
       height: layout.panelHeights.visualizer,
+      content: (
+        <Card
+          data-panel="visualizer"
+          padding="none"
+          style={{
+            height: '100%',
+            borderColor: 'var(--border-default)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+            <div
+              data-region="canvas"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                padding: 'var(--space-2)',
+                background: 'var(--bg-inset)',
+              }}
+            >
+              {renderPrimaryVisualizer() || (
+                <div
+                  style={{
+                    margin: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    color: 'var(--text-muted)',
+                    textAlign: 'center',
+                    padding: 'var(--space-6)',
+                  }}
+                >
+                  <p style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    No visual snapshot available
+                  </p>
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                    Select an algorithm step or click Play to begin visualization.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {resolvedControlProps && (
+              <div data-region="controls" style={{ flexShrink: 0 }}>
+                <ControlPanel {...resolvedControlProps} variant="embedded" />
+              </div>
+            )}
+          </div>
+        </Card>
+      ),
     },
   ];
 

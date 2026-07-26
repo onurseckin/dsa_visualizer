@@ -88,7 +88,7 @@ vi.mock('../primitives/TutorialCard', () => ({
 vi.mock('../primitives/AuxiliaryPanel', () => ({
   AuxiliaryPanel: ({ onClose }: { onClose?: () => void }) => (
     <div data-testid="auxiliary-panel">
-      <span>Working data</span>
+      <span>Working Data & Variables</span>
       <button onClick={onClose}>Hide auxiliary panel</button>
     </div>
   ),
@@ -251,10 +251,6 @@ const stagePanel = (container: HTMLElement): HTMLElement =>
 const region = (container: HTMLElement, name: string): HTMLElement | null =>
   container.querySelector(`[data-region="${name}"]`);
 
-/** The tutorial + working-data band, capped together so neither starves the canvas. */
-const stepBand = (container: HTMLElement): HTMLElement | null =>
-  container.querySelector('[data-band="step-context"]');
-
 const storedLayout = (): WorkspaceLayout | null => {
   const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
   return raw === null ? null : (JSON.parse(raw) as WorkspaceLayout);
@@ -359,130 +355,54 @@ describe('MainLayout Component Spec', () => {
     expect(screen.queryByTestId('control-panel')).not.toBeInTheDocument();
   });
 
-  describe('one graph-focused stage container', () => {
-    it('reads tutorial, working data, canvas then playback down the single visualizer panel', () => {
+  describe('independent resizable left column component rows', () => {
+    it('renders tutorial, working data & variables, and visualizer canvas as separate rows', () => {
       const { container } = renderLayout({ controlProps: dummyControlProps });
 
-      const panel = stagePanel(container);
-      expect(panel).toBeInTheDocument();
-      expect(panel).toContainElement(screen.getByText('Working data'));
-      expect(panel).toContainElement(screen.getByTestId('array-visualizer'));
-      expect(panel).toContainElement(screen.getByTestId('tutorial-card'));
-      expect(panel).toContainElement(screen.getByTestId('control-panel'));
+      expect(screen.getByText('Working Data & Variables')).toBeInTheDocument();
+      expect(screen.getByTestId('array-visualizer')).toBeInTheDocument();
+      expect(screen.getByTestId('tutorial-card')).toBeInTheDocument();
+      expect(screen.getByTestId('control-panel')).toBeInTheDocument();
 
-      // The tutorial is the panel's header now (R6.4), not a footer above playback.
-      const order = Array.from(panel.querySelectorAll('[data-region]')).map((node) =>
-        node.getAttribute('data-region'),
-      );
-      expect(order).toEqual(['tutorial', 'working-data', 'canvas', 'controls']);
+      const tutorialRow = panelRow(container, 'tutorial');
+      const auxRow = panelRow(container, 'auxiliary');
+      const vizRow = panelRow(container, 'visualizer');
+
+      expect(tutorialRow).toBeInTheDocument();
+      expect(auxRow).toBeInTheDocument();
+      expect(vizRow).toBeInTheDocument();
     });
 
-    it('keeps the tutorial first even when the working-data strip is hidden', () => {
+    it('hides the working-data row when disabled', () => {
       const { container } = renderLayout({
         panels: allPanels({ auxiliary: false }),
         controlProps: dummyControlProps,
       });
 
-      const order = Array.from(
-        stagePanel(container).querySelectorAll('[data-region]'),
-      ).map((node) => node.getAttribute('data-region'));
-      expect(order).toEqual(['tutorial', 'canvas', 'controls']);
+      expect(panelRow(container, 'tutorial')).toBeInTheDocument();
+      expect(panelRow(container, 'auxiliary')).toBeNull();
+      expect(panelRow(container, 'visualizer')).toBeInTheDocument();
     });
 
-    it('nests the step rows inside the panel instead of stacking them beside it', () => {
+    it('ranks rows independently in the left column', () => {
       const { container } = renderLayout();
 
-      /* The left column is still one row — the tutorial and working-data rows are
-         resizable rows (R7.4), but they live INSIDE the visualizer panel, so the
-         column itself never stacks anything next to the stage. */
       const visualizerRow = panelRow(container, 'visualizer') as HTMLElement;
-      expect(visualizerRow).toContainElement(stagePanel(container));
-      for (const id of ['tutorial', 'auxiliary']) {
-        const row = panelRow(container, id);
-        expect(row).not.toBeNull();
-        expect(stagePanel(container)).toContainElement(row);
-      }
-
-      const columnRows = Array.from(visualizerRow.parentElement?.children ?? []).filter((child) =>
-        child.hasAttribute('data-row'),
-      );
-      expect(columnRows).toHaveLength(1);
-      expect(columnRows[0]).toBe(visualizerRow);
-
-      /* One handle per adjacent pair of rows — the step rows inside the panel and
-         the code column's pair — plus the standalone one that pins the stage. */
-      expect(horizontalHandles()).toEqual([
-        'Resize tutorial and working data rows',
-        'Resize code and complexity rows',
-        'Resize the stage height',
-      ]);
+      expect(visualizerRow).toBeInTheDocument();
+      expect(panelRow(container, 'tutorial')).toBeInTheDocument();
+      expect(panelRow(container, 'auxiliary')).toBeInTheDocument();
     });
 
-    it('integrates every strip with one subtle divider on the edge facing the canvas', () => {
-      const { container } = renderLayout();
-
-      /* Both strips sit above the canvas now, so every divider faces down. The
-         strip owns the band fill and that one line; its content draws no edge of
-         its own, so each seam is exactly 1px. The fill is the card's own darkest
-         surface (R7.2): these strips are reading surfaces like the code and
-         complexity panels, so lifting them to the chrome tier made the Step
-         section read as a lighter, separate component. The divider alone marks
-         the seam. */
-      for (const name of ['tutorial', 'working-data']) {
-        const strip = region(container, name) as HTMLElement;
-        expect(strip.style.borderBottom).toBe('1px solid var(--border-subtle)');
-        expect(strip.style.borderTop).toBe('');
-        expect(strip.style.background).toBe('var(--bg-surface)');
-      }
-    });
-
-    it('drops the last strip divider when there is no canvas under it to divide from', () => {
-      const { container } = renderLayout({ panels: allPanels({ visualizer: false }) });
-
-      expect((region(container, 'tutorial') as HTMLElement).style.borderBottom).toBe(
-        '1px solid var(--border-subtle)',
-      );
-      expect((region(container, 'working-data') as HTMLElement).style.borderBottom).toBe('');
-    });
-
-    it('caps tutorial and working data as ONE band so neither starves the canvas', () => {
-      const { container } = renderLayout();
-
-      /* Two strips each free to take 38% would leave the canvas a quarter of the
-         panel, so the cap is on the band and the prose strip inside it scrolls. */
-      const band = stepBand(container) as HTMLElement;
-      expect(band.style.maxHeight).toBe('45%');
-      expect(band.style.flexShrink).toBe('0');
-      expect(band.style.minHeight).toBe('0');
-      expect(band.style.overflow).toBe('hidden');
-      expect(band).toContainElement(region(container, 'tutorial'));
-      expect(band).toContainElement(region(container, 'working-data'));
-      expect(band).not.toContainElement(region(container, 'canvas'));
-
-      // The prose gives height back under the cap; the one-row data strip does not.
-      const tutorial = region(container, 'tutorial') as HTMLElement;
-      expect(tutorial.style.flex).toBe('1 1 auto');
-      const workingData = region(container, 'working-data') as HTMLElement;
-      expect(workingData.style.flex).toBe('0 0 auto');
-
-      for (const name of ['tutorial', 'working-data']) {
-        const strip = region(container, name) as HTMLElement;
-        // Each scrolls inside itself, so a verbose step never resizes the panel.
-        expect(strip.style.overflowY).toBe('auto');
-        expect(strip.style.minHeight).toBe('0');
-        expect(strip.style.maxHeight).toBe('');
-      }
-    });
-
-    it('renders no band at all when both strips are off', () => {
+    it('renders no auxiliary panel when both strips are off', () => {
       const { container } = renderLayout({
         panels: allPanels({ tutorial: false, auxiliary: false }),
       });
 
-      expect(stepBand(container)).toBeNull();
+      expect(panelRow(container, 'auxiliary')).toBeNull();
     });
+  });
 
-    it('gives the canvas every leftover pixel and never centres a child inside it', () => {
+  it('gives the canvas every leftover pixel and never centres a child inside it', () => {
       const { container } = renderLayout();
 
       const canvas = region(container, 'canvas') as HTMLElement;
@@ -596,11 +516,9 @@ describe('MainLayout Component Spec', () => {
       expect(screen.queryByTestId('array-visualizer')).not.toBeInTheDocument();
       expect(screen.getByTestId('code-viewer')).toBeInTheDocument();
 
-      // The strips are the panel's content, so a tutorial toggle still shows one.
-      expect(stagePanel(container)).toContainElement(screen.getByTestId('tutorial-card'));
-      expect(stagePanel(container)).toContainElement(screen.getByTestId('auxiliary-panel'));
-      // With no canvas to absorb it, the panel hugs its strips instead of stretching.
-      expect(panelRow(container, 'visualizer')).toHaveAttribute('data-height-mode', 'hug');
+      // The strips are independent rows, so a tutorial toggle still shows them.
+      expect(screen.getByTestId('tutorial-card')).toBeInTheDocument();
+      expect(screen.getByTestId('auxiliary-panel')).toBeInTheDocument();
 
       // Playback has to stay reachable, so it docks under the stage on its own.
       const panel = screen.getByTestId('control-panel');
@@ -721,7 +639,8 @@ describe('MainLayout Component Spec', () => {
         expect(element.style.flexBasis).toBe('auto');
       }
       expect(horizontalHandles()).toEqual([
-        'Resize tutorial and working data rows',
+        'Resize tutorial and working data & variables rows',
+        'Resize working data & variables and graph visualizer canvas rows',
         'Resize code and complexity rows',
         'Resize the stage height',
       ]);
@@ -822,7 +741,7 @@ describe('MainLayout Component Spec', () => {
       const { container } = renderLayout();
 
       fireEvent.keyDown(
-        screen.getByRole('separator', { name: 'Resize tutorial and working data rows' }),
+        screen.getByRole('separator', { name: 'Resize tutorial and working data & variables rows' }),
         { key: 'ArrowDown' },
       );
 
@@ -1031,4 +950,3 @@ describe('MainLayout Component Spec', () => {
       expect(storedLayout()).toEqual(customLayout);
     });
   });
-});

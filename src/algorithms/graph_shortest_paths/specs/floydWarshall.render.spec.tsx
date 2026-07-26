@@ -48,7 +48,7 @@ describe('floydWarshall React component spec', () => {
       />
     );
 
-    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
     // The all-pairs matrix flattens into the Distances row of the working-data card.
     expect(screen.getAllByText('Distances')[0]).toBeInTheDocument();
     expect(screen.getAllByText('State')[0]).toBeInTheDocument();

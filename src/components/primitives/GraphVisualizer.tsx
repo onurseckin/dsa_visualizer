@@ -271,8 +271,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           minHeight: 0,
           overflow: 'hidden',
           background: 'var(--bg-inset)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-default)',
         }}
       >
         <svg
