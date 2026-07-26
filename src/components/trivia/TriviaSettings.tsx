@@ -1,14 +1,21 @@
 import React from 'react';
-import { Shuffle, SlidersHorizontal } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 import type { TriviaConfig, TriviaMode } from '../../types/trivia';
 import {
   MAX_BLANKS_CEILING,
   MIN_BLANKS_FLOOR,
   describeMode,
 } from '../../trivia/triviaEngine';
-import { Badge, Button, Card, Segmented, Slider } from '../../ui';
+import { Button, Segmented, Slider } from '../../ui';
 
 /* Drill settings (DESIGN.md R8.4).
+
+   No Card of its own: this renders as the body of TriviaHeaderCard's single
+   merged section (the user asked for the session card and drill settings to
+   be united under one section, not stacked as two separate cards), so the
+   deck-lines/blanks-count badges that used to live in this component's own
+   header now live in TriviaHeaderCard's actions row instead — this file only
+   owns the controls themselves.
 
    Every control carries a one-line explanation because none of these settings is
    self-evident: "3 blanks" means nothing until you know the level only advances
@@ -24,9 +31,9 @@ export interface TriviaSettingsProps {
   onChange: (patch: Partial<TriviaConfig>) => void;
   /**
    * Blankable-line count of every algorithm currently in the deck (one entry per
-   * deck member, in no particular order). Drives the "Deck lines" range badge and
-   * the short-algorithm warning below the Hardest level slider — both purely
-   * informational, so an empty deck (no entries) simply shows neither.
+   * deck member, in no particular order). Drives the short-algorithm warning
+   * below the Hardest level slider — purely informational, so an empty deck (no
+   * entries) simply shows none.
    */
   deckLineCounts: readonly number[];
 }
@@ -36,7 +43,13 @@ const MODE_OPTIONS: { value: TriviaMode; label: string }[] = [
   { value: 'type', label: 'Type from memory' },
 ];
 
-const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 'var(--text-xs)',
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
 
 const fieldStyle: React.CSSProperties = {
   display: 'flex',
@@ -71,10 +84,6 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
 }) => {
   const { mode, minBlanks, maxBlanks, includeDistractors } = config;
 
-  const hasDeckLines = deckLineCounts.length > 0;
-  const deckLinesLabel = hasDeckLines
-    ? `Deck lines: ${Math.min(...deckLineCounts)}–${Math.max(...deckLineCounts)}`
-    : 'Deck lines: —';
   // Purely informational: isLevelCovered/remainingAt already treat a short
   // algorithm as satisfied rather than blocking the deck, so this never gates
   // the slider — it only tells the user what "fully blank" means for them.
@@ -101,85 +110,69 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
   };
 
   return (
-    <Card
-      title="Drill settings"
-      icon={<SlidersHorizontal aria-hidden="true" />}
-      style={PANEL_BORDER}
-      actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-          <Badge variant="neutral" style={PANEL_BORDER}>
-            {deckLinesLabel}
-          </Badge>
-          <Badge variant="neutral" style={PANEL_BORDER}>
-            {minBlanks === maxBlanks
-              ? `${minBlanks} blank${minBlanks === 1 ? '' : 's'}`
-              : `${minBlanks}–${maxBlanks} blanks`}
-          </Badge>
-        </div>
-      }
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-        <div style={fieldStyle}>
-          <span style={labelStyle} id="trivia-mode-label">
-            Answer mode
-          </span>
-          <Segmented
-            options={MODE_OPTIONS}
-            value={mode}
-            onChange={handleMode}
-            aria-labelledby="trivia-mode-label"
-          />
-          <span style={hintStyle}>{describeMode(mode)}.</span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <span style={sectionLabelStyle}>Drill settings</span>
 
-        <div style={fieldStyle}>
-          <Slider
-            label="Starting blanks"
-            value={minBlanks}
-            min={MIN_BLANKS_FLOOR}
-            max={MAX_BLANKS_CEILING}
-            onChange={handleMin}
-          />
-          <span style={hintStyle}>
-            How many lines the first level hides at once. Raising it past the ceiling raises the
-            ceiling too.
-          </span>
-        </div>
-
-        <div style={fieldStyle}>
-          <Slider
-            label="Hardest level"
-            value={maxBlanks}
-            min={minBlanks}
-            max={MAX_BLANKS_CEILING}
-            onChange={handleMax}
-          />
-          <span style={hintStyle}>
-            The drill finishes once every line has been drilled at this many blanks. It can never
-            drop below the starting blanks.
-          </span>
-          {shortAlgorithmCount > 0 && (
-            <span style={warningHintStyle}>
-              {`${shortAlgorithmCount} of ${deckLineCounts.length} questions in this deck have ${maxBlanks} line${maxBlanks === 1 ? '' : 's'} or fewer and will be shown fully blank at this level.`}
-            </span>
-          )}
-        </div>
-
-        <div style={fieldStyle}>
-          <span style={labelStyle}>Distractor tiles</span>
-          <Button
-            icon={<Shuffle aria-hidden="true" />}
-            selected={includeDistractors}
-            onClick={() => onChange({ includeDistractors: !includeDistractors })}
-          >
-            {includeDistractors ? 'Distractors on' : 'Distractors off'}
-          </Button>
-          <span style={hintStyle}>
-            Adds plausible wrong lines to the tray, so the answer has to be recognised instead of
-            being the only tile left. Drag-tile mode only.
-          </span>
-        </div>
+      <div style={fieldStyle}>
+        <span style={labelStyle} id="trivia-mode-label">
+          Answer mode
+        </span>
+        <Segmented
+          options={MODE_OPTIONS}
+          value={mode}
+          onChange={handleMode}
+          aria-labelledby="trivia-mode-label"
+        />
+        <span style={hintStyle}>{describeMode(mode)}.</span>
       </div>
-    </Card>
+
+      <div style={fieldStyle}>
+        <Slider
+          label="Starting blanks"
+          value={minBlanks}
+          min={MIN_BLANKS_FLOOR}
+          max={MAX_BLANKS_CEILING}
+          onChange={handleMin}
+        />
+        <span style={hintStyle}>
+          How many lines the first level hides at once. Raising it past the ceiling raises the
+          ceiling too.
+        </span>
+      </div>
+
+      <div style={fieldStyle}>
+        <Slider
+          label="Hardest level"
+          value={maxBlanks}
+          min={minBlanks}
+          max={MAX_BLANKS_CEILING}
+          onChange={handleMax}
+        />
+        <span style={hintStyle}>
+          The drill finishes once every line has been drilled at this many blanks. It can never
+          drop below the starting blanks.
+        </span>
+        {shortAlgorithmCount > 0 && (
+          <span style={warningHintStyle}>
+            {`${shortAlgorithmCount} of ${deckLineCounts.length} questions in this deck have ${maxBlanks} line${maxBlanks === 1 ? '' : 's'} or fewer and will be shown fully blank at this level.`}
+          </span>
+        )}
+      </div>
+
+      <div style={fieldStyle}>
+        <span style={labelStyle}>Distractor tiles</span>
+        <Button
+          icon={<Shuffle aria-hidden="true" />}
+          selected={includeDistractors}
+          onClick={() => onChange({ includeDistractors: !includeDistractors })}
+        >
+          {includeDistractors ? 'Distractors on' : 'Distractors off'}
+        </Button>
+        <span style={hintStyle}>
+          Adds plausible wrong lines to the tray, so the answer has to be recognised instead of
+          being the only tile left. Drag-tile mode only.
+        </span>
+      </div>
+    </div>
   );
 };

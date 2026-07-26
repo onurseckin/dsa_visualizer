@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import { Brain, Check as CheckIcon, Edit2, Home, Play, X as CancelIcon } from 'lucide-react';
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from '../../types/trivia';
 import { Badge, Button, Card, IconButton, Input } from '../../ui';
+import { TriviaSettings } from './TriviaSettings';
 
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
 
 /* Only ever mounted while setup is showing (see routes/trivia.tsx) — drill mode
    has its own header on TriviaSession, so there is no "showSetup" branch left
-   to carry here and exactly one action: entering the drill. */
+   to carry here and exactly one action: entering the drill.
+
+   The session identity (title/rename/status) and the drill settings used to be
+   two separate stacked cards. The user asked for them to be united under one
+   section, so this Card's body is now TriviaSettings — one boundary instead of
+   two, and the deck-lines/blanks-count badges that used to live on
+   TriviaSettings' own header now sit in this Card's single actions row. */
 export interface TriviaHeaderCardProps {
   activeSession: TriviaSessionRecord;
   level: number;
@@ -23,6 +30,11 @@ export interface TriviaHeaderCardProps {
       still editing a session. */
   onBackToHome: () => void;
   onRenameSession?: (id: string, newName: string) => void;
+  /** Blankable-line count of every algorithm in the deck — drives the "Deck
+      lines" badge below and TriviaSettings' own short-algorithm warning. */
+  deckLineCounts: readonly number[];
+  /** Drill settings patch handler, threaded straight through to TriviaSettings. */
+  onChangeSettings: (patch: Partial<TriviaConfig>) => void;
 }
 
 export function TriviaHeaderCard({
@@ -36,6 +48,8 @@ export function TriviaHeaderCard({
   onStartDrilling,
   onBackToHome,
   onRenameSession,
+  deckLineCounts,
+  onChangeSettings,
 }: TriviaHeaderCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
@@ -62,9 +76,18 @@ export function TriviaHeaderCard({
     activeSession.progress.roundsPlayed > 0 ||
     Object.keys(activeSession.progress.drilled).length > 0;
 
+  const hasDeckLines = deckLineCounts.length > 0;
+  const deckLinesLabel = hasDeckLines
+    ? `Deck lines: ${Math.min(...deckLineCounts)}–${Math.max(...deckLineCounts)}`
+    : 'Deck lines: —';
+  const { minBlanks, maxBlanks } = config;
+  const blanksLabel =
+    minBlanks === maxBlanks
+      ? `${minBlanks} blank${minBlanks === 1 ? '' : 's'}`
+      : `${minBlanks}–${maxBlanks} blanks`;
+
   return (
     <Card
-      padding="none"
       style={PANEL_BORDER}
       icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
       title={
@@ -149,6 +172,12 @@ export function TriviaHeaderCard({
           <Badge variant={coverage >= 100 ? 'success' : 'neutral'} size="md" style={PANEL_BORDER}>
             {coverage}% covered
           </Badge>
+          <Badge variant="neutral" size="md" style={PANEL_BORDER}>
+            {deckLinesLabel}
+          </Badge>
+          <Badge variant="neutral" size="md" style={PANEL_BORDER}>
+            {blanksLabel}
+          </Badge>
 
           {/* The unambiguous exit (TASKS.md 9.1): always visible, never
               buried behind a "Sessions" popover that left it unclear whether
@@ -174,6 +203,8 @@ export function TriviaHeaderCard({
           </Button>
         </div>
       }
-    />
+    >
+      <TriviaSettings config={config} onChange={onChangeSettings} deckLineCounts={deckLineCounts} />
+    </Card>
   );
 }

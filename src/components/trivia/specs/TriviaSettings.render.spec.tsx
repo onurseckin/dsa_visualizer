@@ -17,6 +17,11 @@ const slider = (label: RegExp): HTMLInputElement => {
   return input as HTMLInputElement;
 };
 
+/* TriviaSettings no longer renders its own Card/header — the user asked for
+   the session card and drill settings to be united under one section, so the
+   deck-lines badge, blanks-count badge, and the neutral-colour/no-raw-hex
+   check all moved to TriviaHeaderCard.render.spec.tsx (the component that
+   now owns that single merged header). */
 describe('TriviaSettings', () => {
   it('emits a mode patch from the segmented control and explains the mode', () => {
     const onChange = vi.fn();
@@ -132,26 +137,6 @@ describe('TriviaSettings', () => {
     expect(onChange).toHaveBeenLastCalledWith({ minBlanks: 1 });
   });
 
-  it('shows the configured span in the header', () => {
-    const { rerender } = render(
-      <TriviaSettings
-        config={config({ minBlanks: 2, maxBlanks: 5 })}
-        onChange={vi.fn()}
-        deckLineCounts={DECK_LINE_COUNTS}
-      />,
-    );
-    expect(screen.getByText('2–5 blanks')).toBeInTheDocument();
-
-    rerender(
-      <TriviaSettings
-        config={config({ minBlanks: 1, maxBlanks: 1 })}
-        onChange={vi.fn()}
-        deckLineCounts={DECK_LINE_COUNTS}
-      />,
-    );
-    expect(screen.getByText('1 blank')).toBeInTheDocument();
-  });
-
   it('toggles distractors off and back on, reporting state through aria-pressed', () => {
     const onChange = vi.fn();
     const { rerender } = render(
@@ -188,28 +173,6 @@ describe('TriviaSettings', () => {
     expect(screen.getByText(/how many lines the first level hides/i)).toBeInTheDocument();
     expect(screen.getByText(/the drill finishes once every line has been drilled/i)).toBeInTheDocument();
     expect(screen.getByText(/adds plausible wrong lines to the tray/i)).toBeInTheDocument();
-  });
-
-  it('keeps the panel neutral with token colours and no raw hex', () => {
-    const { container } = render(
-      <TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={DECK_LINE_COUNTS} />,
-    );
-
-    const card = container.querySelector<HTMLElement>('.ui-card');
-    expect(card?.style.borderColor).toBe('var(--border-default)');
-    expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-  });
-
-  it('surfaces the deck line-count range next to the hardest-level slider', () => {
-    render(<TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={[7, 2, 15]} />);
-
-    expect(screen.getByText('Deck lines: 2–15')).toBeInTheDocument();
-  });
-
-  it('falls back to a dash for the deck range when the deck is empty', () => {
-    render(<TriviaSettings config={config()} onChange={vi.fn()} deckLineCounts={[]} />);
-
-    expect(screen.getByText('Deck lines: —')).toBeInTheDocument();
   });
 
   it('warns when some deck algorithms have the hardest level or fewer lines, without blocking the slider', () => {
