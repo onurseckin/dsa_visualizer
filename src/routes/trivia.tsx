@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Brain, Play, Plus, RotateCcw, Trash2, Trophy, Edit2, Check as CheckIcon } from 'lucide-react';
 import type {
   PuzzleLine,
   TriviaConfig,
@@ -32,7 +31,10 @@ import {
   writeActiveSessionId,
 } from '../trivia/triviaSessions';
 import { getAlgorithm } from '../algorithms/registry';
-import { Badge, Button, Card, ConfirmDialog, Input } from '../ui';
+import { Card, ConfirmDialog } from '../ui';
+import { TriviaHeaderCard } from '../components/trivia/TriviaHeaderCard';
+import { TriviaSessionsManager } from '../components/trivia/TriviaSessionsManager';
+import { TriviaCompletionCard } from '../components/trivia/TriviaCompletionCard';
 import { TriviaDeckBuilder } from '../components/trivia/TriviaDeckBuilder';
 import { TriviaSettings } from '../components/trivia/TriviaSettings';
 import { TriviaSession } from '../components/trivia/TriviaSession';
@@ -66,14 +68,6 @@ const hintStyle: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
-const barTrackStyle: React.CSSProperties = {
-  height: 'var(--space-2-5)',
-  borderRadius: 'var(--radius-full)',
-  background: 'var(--bg-inset)',
-  border: '1px solid var(--border-default)',
-  overflow: 'hidden',
-};
-
 interface DeckSources {
   sources: Map<string, PuzzleLine[]>;
   meta: Map<string, TriviaMeta | undefined>;
@@ -82,8 +76,6 @@ interface DeckSources {
 function TriviaPage() {
   const [sessions, setSessions] = useState<TriviaSessionRecord[]>(readTriviaSessions);
   const [activeId, setActiveId] = useState<string | null>(readActiveSessionId);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState<string>('');
 
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeId) ?? null,
@@ -100,7 +92,6 @@ function TriviaPage() {
   const [isSetupOpen, setIsSetupOpen] = useState(() => config.deck.length === 0);
   const [isResetOpen, setIsResetOpen] = useState(false);
 
-  // Sync state when activeSession changes
   useEffect(() => {
     if (activeSession) {
       setConfig(activeSession.config);
@@ -206,6 +197,11 @@ function TriviaPage() {
     setIsSetupOpen(s.config.deck.length === 0);
   };
 
+  const handleRenameSession = (id: string, newName: string) => {
+    updateSession(id, { name: newName });
+    setSessions(readTriviaSessions());
+  };
+
   const handleDeleteSession = (id: string) => {
     deleteSession(id);
     const remaining = readTriviaSessions();
@@ -222,210 +218,44 @@ function TriviaPage() {
     }
   };
 
-  const handleStartRename = (s: TriviaSessionRecord) => {
-    setEditingId(s.id);
-    setEditingName(s.name);
-  };
-
-  const handleSaveRename = (id: string) => {
-    if (editingName.trim().length > 0) {
-      updateSession(id, { name: editingName.trim() });
-      setSessions(readTriviaSessions());
-    }
-    setEditingId(null);
-  };
-
   const activeTitle =
     round === null ? '' : getAlgorithm(round.algorithmId)?.title ?? round.algorithmId;
 
   return (
     <div style={pageStyle}>
-      {/* Top Header Card & Master Controls */}
-      <Card
-        style={PANEL_BORDER}
-        icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <span style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {activeSession ? activeSession.name : 'Trivia'}
-            </span>
-            {activeSession && (
-              <Badge variant={activeSession.status === 'paused' ? 'warning' : 'success'} size="sm">
-                {activeSession.status}
-              </Badge>
-            )}
-          </div>
-        }
-        actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <Badge variant="info" size="md" style={PANEL_BORDER}>
-              Level {level} of {config.maxBlanks}
-            </Badge>
-            <Badge variant="neutral" size="md" style={PANEL_BORDER}>
-              {progress.roundsPlayed} {progress.roundsPlayed === 1 ? 'round' : 'rounds'}
-            </Badge>
-            <Badge variant="accent" size="md" style={PANEL_BORDER}>
-              {sources.size} {sources.size === 1 ? 'algorithm' : 'algorithms'}
-            </Badge>
-            <Badge variant={coverage >= 100 ? 'success' : 'neutral'} size="md" style={PANEL_BORDER}>
-              {coverage}% covered
-            </Badge>
+      {/* Top Header Card */}
+      <TriviaHeaderCard
+        activeSession={activeSession}
+        level={level}
+        config={config}
+        progress={progress}
+        sourcesCount={sources.size}
+        coverage={coverage}
+        showSetup={showSetup}
+        isDeckEmpty={isDeckEmpty}
+        onToggleSetup={() => {
+          if (showSetup) {
+            setIsSetupOpen(false);
+            if (activeId) {
+              updateSession(activeId, { status: 'active' });
+              setSessions(readTriviaSessions());
+            }
+          } else {
+            setIsSetupOpen(true);
+          }
+        }}
+        onCreateNewSession={handleCreateNewSession}
+        onOpenReset={() => setIsResetOpen(true)}
+      />
 
-            {/* Top Primary Action: Start / Resume / Setup */}
-            <Button
-              variant="primary"
-              size="md"
-              icon={<Play aria-hidden="true" />}
-              disabled={isDeckEmpty}
-              onClick={() => {
-                if (showSetup) {
-                  setIsSetupOpen(false);
-                  if (activeId) {
-                    updateSession(activeId, { status: 'active' });
-                    setSessions(readTriviaSessions());
-                  }
-                } else {
-                  setIsSetupOpen(true);
-                }
-              }}
-            >
-              {showSetup ? 'Start drilling' : 'Edit deck'}
-            </Button>
-
-            <Button
-              size="md"
-              variant="secondary"
-              icon={<Plus aria-hidden="true" />}
-              onClick={handleCreateNewSession}
-            >
-              New session
-            </Button>
-
-            <Button
-              size="md"
-              variant="danger"
-              icon={<RotateCcw aria-hidden="true" />}
-              onClick={() => setIsResetOpen(true)}
-            >
-              Reset progress
-            </Button>
-          </div>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <div
-            role="progressbar"
-            aria-label="Deck coverage"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={coverage}
-            aria-valuetext={`${coverage}% of the deck drilled`}
-            style={barTrackStyle}
-          >
-            <div
-              style={{
-                width: `${coverage}%`,
-                height: '100%',
-                background: 'var(--accent)',
-                transition: 'width var(--transition-normal)',
-              }}
-            />
-          </div>
-          <span style={hintStyle}>
-            {`${coverage}% of the deck drilled at levels ${config.minBlanks}–${config.maxBlanks} · `}
-            {isDeckEmpty
-              ? 'the deck is empty'
-              : `${sources.size} algorithm${sources.size === 1 ? '' : 's'} in the deck`}
-            {`. Level ${level} hides ${level} line${level === 1 ? '' : 's'} at a time and only advances once every line has been met at it.`}
-          </span>
-        </div>
-      </Card>
-
-      {/* Saved / Resumable Sessions Bar */}
-      {sessions.length > 0 && (
-        <Card style={PANEL_BORDER} title="Saved Trivia Sessions" padding="sm">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <span style={hintStyle}>
-              Select a pending session to resume where you left off, or create new named trivia decks.
-            </span>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-              {sessions.map((s) => {
-                const isCurrent = s.id === activeId;
-                const isEditing = editingId === s.id;
-                return (
-                  <div
-                    key={s.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      padding: 'var(--space-2) var(--space-3)',
-                      borderRadius: 'var(--radius-md)',
-                      background: isCurrent ? 'var(--bg-inset)' : 'transparent',
-                      border: `1px solid ${isCurrent ? 'var(--border-accent)' : 'var(--border-default)'}`,
-                    }}
-                  >
-                    {isEditing ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                        <Input
-                          size="sm"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveRename(s.id);
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={<CheckIcon size={14} />}
-                          onClick={() => handleSaveRename(s.id)}
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <span
-                          style={{
-                            fontWeight: isCurrent ? 600 : 400,
-                            color: isCurrent ? 'var(--text-primary)' : 'var(--text-muted)',
-                            fontSize: 'var(--text-sm)',
-                          }}
-                        >
-                          {s.name}
-                        </span>
-                        <Badge size="sm" variant={s.status === 'paused' ? 'warning' : 'neutral'}>
-                          {s.config.deck.length} algos
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant={isCurrent ? 'primary' : 'secondary'}
-                          onClick={() => handleSelectSession(s)}
-                        >
-                          {isCurrent ? 'Active' : 'Resume'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={<Edit2 size={14} />}
-                          onClick={() => handleStartRename(s)}
-                          aria-label={`Rename ${s.name}`}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={<Trash2 size={14} />}
-                          onClick={() => handleDeleteSession(s.id)}
-                          aria-label={`Delete ${s.name}`}
-                        />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
+      {/* Saved Sessions Bar */}
+      <TriviaSessionsManager
+        sessions={sessions}
+        activeId={activeId}
+        onSelectSession={handleSelectSession}
+        onRenameSession={handleRenameSession}
+        onDeleteSession={handleDeleteSession}
+      />
 
       {showSetup ? (
         <>
@@ -442,16 +272,7 @@ function TriviaPage() {
       ) : (
         <>
           {progress.completed ? (
-            <Card
-              style={PANEL_BORDER}
-              icon={<Trophy aria-hidden="true" />}
-              title="Deck complete"
-              actions={<Badge variant="success" size="md">Curriculum covered</Badge>}
-            >
-              <span style={hintStyle}>
-                {`Every line of all ${sources.size} algorithm${sources.size === 1 ? '' : 's'} has been drilled at up to ${config.maxBlanks} blank${config.maxBlanks === 1 ? '' : 's'}. Raise the hardest level to keep going, add more algorithms, or reset progress to start the deck over.`}
-              </span>
-            </Card>
+            <TriviaCompletionCard sourcesCount={sources.size} maxBlanks={config.maxBlanks} />
           ) : null}
 
           {round !== null ? (
