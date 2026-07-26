@@ -1,22 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Layers, ListPlus, Search, Trash2 } from 'lucide-react';
+import { Layers, ListPlus, Search, Trash2, Filter } from 'lucide-react';
 import type { CategoryType, DifficultyLevel } from '../../types/dsa';
 import { CATEGORIES } from '../../app/categories';
 import { getAllAlgorithms } from '../../algorithms/registry';
 import { Badge, Button, Card, Collapsible, Input, difficultyBadgeVariant } from '../../ui';
-
-/* Deck builder (DESIGN.md R8.4).
-
-   Quick multi-add is the headline capability, not a convenience: a useful drill
-   deck is "everything in graphs" or "all 40", and clicking forty rows to get
-   there is the reason people never build a deck at all. So every level of the
-   hierarchy carries a one-click add — whole registry, whole category, single row
-   — and every level reports its own count so the deck is legible without
-   opening anything.
-
-   The per-category add button is a sibling of the Collapsible rather than part of
-   its header: the header is itself a <button>, and a button inside a button is
-   invalid HTML that browsers silently reparent. */
 
 export interface TriviaDeckBuilderProps {
   /** Algorithm ids currently in the deck. */
@@ -37,8 +24,7 @@ interface DeckGroup {
 }
 
 const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  // The numeric prefix in CATEGORIES is roadmap ordering, not part of the name.
-  CATEGORIES.map((category) => [category.id, category.label.replace(/^\d+\.\s*/, '')]),
+  CATEGORIES.map((category) => [category.id, category.label.replace(/^\d+\.\s*/, '')])
 );
 
 const PANEL_BORDER: React.CSSProperties = { borderColor: 'var(--border-default)' };
@@ -57,8 +43,6 @@ const rowStyle: React.CSSProperties = {
   textAlign: 'left',
 };
 
-/* Titles are identifiers: a wrapped one changes the row height and makes a long
-   list impossible to scan, so it truncates instead. */
 const titleStyle: React.CSSProperties = {
   minWidth: 0,
   overflow: 'hidden',
@@ -66,8 +50,23 @@ const titleStyle: React.CSSProperties = {
   textOverflow: 'ellipsis',
 };
 
+const selectStyle: React.CSSProperties = {
+  height: 'var(--control-h-md)',
+  padding: '0 var(--space-3)',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--border-default)',
+  background: 'var(--bg-inset)',
+  color: 'var(--text-primary)',
+  fontSize: 'var(--text-sm)',
+  fontFamily: 'var(--font-ui)',
+  cursor: 'pointer',
+  outline: 'none',
+};
+
 export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onChange }) => {
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('ALL');
 
   const algorithms = useMemo(() => getAllAlgorithms(), []);
   const selected = useMemo(() => new Set(deck), [deck]);
@@ -77,6 +76,9 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     const byCategory = new Map<CategoryType, DeckEntry[]>();
 
     algorithms.forEach((algorithm) => {
+      if (categoryFilter !== 'ALL' && algorithm.category !== categoryFilter) return;
+      if (difficultyFilter !== 'ALL' && algorithm.difficulty !== difficultyFilter) return;
+
       const label = CATEGORY_LABELS[algorithm.category] ?? algorithm.category;
       const matches =
         query.length === 0 ||
@@ -89,17 +91,16 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       byCategory.set(algorithm.category, entries);
     });
 
-    // Roadmap order, not registry order: the categories read as a curriculum.
     return CATEGORIES.filter((category) => byCategory.has(category.id)).map((category) => ({
       id: category.id,
       label: CATEGORY_LABELS[category.id] ?? category.id,
       entries: byCategory.get(category.id) ?? [],
     }));
-  }, [algorithms, search]);
+  }, [algorithms, search, categoryFilter, difficultyFilter]);
 
   const visibleIds = useMemo(
     () => groups.flatMap((group) => group.entries.map((entry) => entry.id)),
-    [groups],
+    [groups]
   );
 
   const addMany = (ids: string[]) => {
@@ -129,8 +130,8 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       icon={<Layers aria-hidden="true" />}
       style={PANEL_BORDER}
       actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <Badge variant="neutral" style={PANEL_BORDER}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <Badge variant="neutral" size="md" style={PANEL_BORDER}>
             {deck.length} in deck
           </Badge>
           <Button size="sm" icon={<ListPlus aria-hidden="true" />} onClick={addEverything}>
@@ -149,19 +150,65 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.currentTarget.value)}
-            onClear={() => setSearch('')}
-            leadingIcon={<Search aria-hidden="true" />}
-            placeholder="Filter algorithms by title or topic"
-            aria-label="Filter algorithms"
-          />
+        {/* Search & Category/Difficulty Filter Toolbar */}
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+              onClear={() => setSearch('')}
+              leadingIcon={<Search aria-hidden="true" />}
+              placeholder="Filter algorithms by title or topic"
+              aria-label="Filter algorithms"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={selectStyle}
+            aria-label="Filter by category"
+          >
+            <option value="ALL">All Categories</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.label.replace(/^\d+\.\s*/, '')}
+              </option>
+            ))}
+          </select>
+          <select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            style={selectStyle}
+            aria-label="Filter by difficulty"
+          >
+            <option value="ALL">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={hintStyle}>
             {deck.length} of {algorithms.length} algorithms selected
-            {search.trim().length > 0 ? ` · ${visibleIds.length} shown` : ''}
+            {search.trim().length > 0 || categoryFilter !== 'ALL' || difficultyFilter !== 'ALL'
+              ? ` · ${visibleIds.length} shown`
+              : ''}
           </span>
+          {(search || categoryFilter !== 'ALL' || difficultyFilter !== 'ALL') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Filter aria-hidden="true" />}
+              onClick={() => {
+                setSearch('');
+                setCategoryFilter('ALL');
+                setDifficultyFilter('ALL');
+              }}
+            >
+              Reset filters
+            </Button>
+          )}
         </div>
 
         {groups.length === 0 ? (
@@ -180,7 +227,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
                 style={{ flex: 1, minWidth: 0, ...PANEL_BORDER }}
                 title={group.label}
                 meta={
-                  <Badge variant={count > 0 ? 'info' : 'neutral'} style={PANEL_BORDER}>
+                  <Badge variant={count > 0 ? (complete ? 'success' : 'info') : 'neutral'} size="sm" style={PANEL_BORDER}>
                     {count}/{group.entries.length}
                   </Badge>
                 }
@@ -198,7 +245,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
                       >
                         <span style={titleStyle}>{entry.title}</span>
                         {entry.difficulty !== undefined ? (
-                          <Badge variant={difficultyBadgeVariant(entry.difficulty)}>
+                          <Badge variant={difficultyBadgeVariant(entry.difficulty)} size="sm">
                             {entry.difficulty}
                           </Badge>
                         ) : null}
