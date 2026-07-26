@@ -1,0 +1,67 @@
+import React from "react";
+import { vizSlotBg, vizSlotColor } from "../vizPalette";
+import {
+  PositionedNode,
+  stateBg,
+  stateColor,
+  GROUP_RING_GAP,
+  MOVE_TRANSITION,
+  SHAPE_TRANSITION,
+} from "./graphTypes";
+
+export interface GraphNodeProps {
+  node: PositionedNode;
+  nodeRadius: number;
+  nodeStroke: number;
+  labelFont: number;
+  slot?: number;
+}
+
+export const GraphNode: React.FC<GraphNodeProps> = ({
+  node,
+  nodeRadius,
+  nodeStroke,
+  labelFont,
+  slot,
+}) => {
+  const hasGroup = slot !== undefined;
+  const inSemanticState = node.state !== "default";
+
+  const fill = inSemanticState || !hasGroup ? stateBg(node.state) : vizSlotBg(slot);
+  const stroke = inSemanticState || !hasGroup ? stateColor(node.state) : vizSlotColor(slot);
+  const showGroupRing = hasGroup && inSemanticState;
+
+  return (
+    <g transform={`translate(${node.x}, ${node.y})`} style={{ transition: MOVE_TRANSITION }}>
+      {showGroupRing && (
+        <circle
+          r={nodeRadius + GROUP_RING_GAP}
+          fill="none"
+          stroke={vizSlotColor(slot)}
+          strokeWidth={nodeStroke}
+          strokeOpacity="0.9"
+          style={{ transition: SHAPE_TRANSITION }}
+        />
+      )}
+      <circle
+        r={nodeRadius}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={inSemanticState ? nodeStroke * 1.25 : nodeStroke}
+        style={{ transition: SHAPE_TRANSITION }}
+      />
+      <text
+        x="0"
+        y="0"
+        dominantBaseline="central"
+        textAnchor="middle"
+        fill="var(--text-primary)"
+        fontSize={labelFont}
+        fontFamily="var(--font-code)"
+        fontWeight="600"
+      >
+        {node.label || node.id}
+      </text>
+    </g>
+  );
+};

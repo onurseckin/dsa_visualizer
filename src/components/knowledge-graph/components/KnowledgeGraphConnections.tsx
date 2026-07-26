@@ -1,0 +1,101 @@
+import React from "react";
+import { TOPIC_FAMILIES, TOPIC_ROADMAP_NODES, topicFamilyColor } from "../knowledgeGraphData";
+
+interface KnowledgeGraphConnectionsProps {
+  hoveredNodeId: string | null;
+}
+
+export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps> = ({
+  hoveredNodeId,
+}) => {
+  const renderConnections = () => {
+    const lines: React.ReactNode[] = [];
+
+    TOPIC_ROADMAP_NODES.forEach((node) => {
+      node.prerequisites.forEach((prereqId) => {
+        const parent = TOPIC_ROADMAP_NODES.find((n) => n.id === prereqId);
+        if (parent) {
+          const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
+          const strokeColor = isHighlighted ? "var(--accent)" : topicFamilyColor(node.family);
+          const strokeWidth = isHighlighted ? 2.5 : 1.75;
+          const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
+
+          let startX = parent.x;
+          let startY = parent.y + 30;
+          let endX = node.x;
+          let endY = node.y - 30;
+
+          if (parent.y === node.y) {
+            if (parent.x < node.x) {
+              startX = parent.x + 90;
+              startY = parent.y;
+              endX = node.x - 90;
+              endY = node.y;
+            } else {
+              startX = parent.x - 90;
+              startY = parent.y;
+              endX = node.x + 90;
+              endY = node.y;
+            }
+          }
+
+          const midY = (startY + endY) / 2;
+          const pathData = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+
+          lines.push(
+            <g key={`${parent.id}-${node.id}`}>
+              <path
+                d={pathData}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                strokeDasharray={isHighlighted ? "none" : "5 5"}
+                markerEnd={isHighlighted ? "url(#arrow-active)" : `url(#arrow-${node.family})`}
+                style={{
+                  opacity: strokeOpacity,
+                  transition: "all var(--transition-normal)",
+                }}
+              />
+            </g>,
+          );
+        }
+      });
+    });
+
+    return lines;
+  };
+
+  return (
+    <>
+      <defs>
+        {TOPIC_FAMILIES.map((family) => (
+          <marker
+            key={family.id}
+            id={`arrow-${family.id}`}
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill={topicFamilyColor(family.id)} opacity="0.85" />
+          </marker>
+        ))}
+        <marker
+          id="arrow-active"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="7"
+          markerHeight="7"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
+        </marker>
+      </defs>
+
+      {renderConnections()}
+    </>
+  );
+};

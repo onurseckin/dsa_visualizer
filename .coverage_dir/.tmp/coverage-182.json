@@ -1,0 +1,153 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/specs/sessionUtils.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6367, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6367, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 578, "endOffset": 2317, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1129, "endOffset": 1350, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1434, "endOffset": 1634, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1728, "endOffset": 1988, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2090, "endOffset": 2313, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/hooks/session/sessionUtils.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3564, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3564, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "tileTextOf",
+          "ranges": [
+            { "startOffset": 204, "endOffset": 281, "count": 2 },
+            { "startOffset": 269, "endOffset": 275, "count": 1 },
+            { "startOffset": 276, "endOffset": 281, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 240, "endOffset": 268, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 381, "endOffset": 407, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "truthOf",
+          "ranges": [
+            { "startOffset": 427, "endOffset": 517, "count": 2 },
+            { "startOffset": 502, "endOffset": 511, "count": 1 },
+            { "startOffset": 512, "endOffset": 517, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 461, "endOffset": 501, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 614, "endOffset": 637, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "omit",
+          "ranges": [{ "startOffset": 654, "endOffset": 825, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 726, "endOffset": 806, "count": 6 },
+            { "startOffset": 776, "endOffset": 802, "count": 5 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 919, "endOffset": 939, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "buildProblemPatch",
+          "ranges": [{ "startOffset": 969, "endOffset": 1000, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1107, "endOffset": 1140, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "buildPuzzlePatch",
+          "ranges": [{ "startOffset": 1169, "endOffset": 1199, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1305, "endOffset": 1337, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,22 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   binaryTreeLca,
   DEFAULT_BINARY_TREE_LCA_INPUT,
   generateBinaryTreeLcaSteps,
-} from '../binaryTreeLca';
+} from "../binaryTreeLca";
 
-describe('binaryTreeLca algorithm spec', () => {
-  it('should have valid definition metadata', () => {
-    expect(binaryTreeLca.id).toBe('binary-tree-lca');
-    expect(binaryTreeLca.title).toBe('Lowest Common Ancestor of a Binary Tree');
-    expect(binaryTreeLca.category).toBe('tree_fundamentals');
-    expect(binaryTreeLca.difficulty).toBe('Medium');
+describe("binaryTreeLca algorithm spec", () => {
+  it("should have valid definition metadata", () => {
+    expect(binaryTreeLca.id).toBe("binary-tree-lca");
+    expect(binaryTreeLca.title).toBe("Lowest Common Ancestor of a Binary Tree");
+    expect(binaryTreeLca.category).toBe("tree_fundamentals");
+    expect(binaryTreeLca.difficulty).toBe("Medium");
     expect(binaryTreeLca.defaultInput).toEqual(DEFAULT_BINARY_TREE_LCA_INPUT);
     expect(binaryTreeLca.constraints).toBeDefined();
     expect(binaryTreeLca.examples).toBeDefined();
   });
 
-  it('should generate steps and find LCA of nodes 5 and 1 as node 3', () => {
+  it("should generate steps and find LCA of nodes 5 and 1 as node 3", () => {
     const steps = generateBinaryTreeLcaSteps(DEFAULT_BINARY_TREE_LCA_INPUT);
     expect(steps.length).toBeGreaterThan(0);
 
@@ -29,15 +29,15 @@ describe('binaryTreeLca algorithm spec', () => {
     expect(lastStep.variables.lcaVal).toBe(3);
 
     const snapshot = lastStep.primarySnapshot;
-    expect(snapshot.kind).toBe('tree');
-    if (snapshot.kind === 'tree') {
+    expect(snapshot.kind).toBe("tree");
+    if (snapshot.kind === "tree") {
       expect(snapshot.nodes).toHaveLength(9);
-      const lcaNode = snapshot.nodes.find((n) => n.id === '3');
-      expect(lcaNode?.state).toBe('sorted');
+      const lcaNode = snapshot.nodes.find((n) => n.id === "3");
+      expect(lcaNode?.state).toBe("sorted");
     }
   });
 
-  it('should find LCA when one node is the ancestor of the other', () => {
+  it("should find LCA when one node is the ancestor of the other", () => {
     const input = {
       ...DEFAULT_BINARY_TREE_LCA_INPUT,
       pVal: 5,
@@ -49,20 +49,64 @@ describe('binaryTreeLca algorithm spec', () => {
     expect(lastStep.variables.lcaVal).toBe(5);
   });
 
-  it('should handle small binary tree', () => {
+  it("should handle small binary tree", () => {
     const input = {
-      rootId: '10',
+      rootId: "10",
       pVal: 20,
       qVal: 30,
       nodes: [
-        { id: '10', val: 10, leftId: '20', rightId: '30', state: 'default' as const },
-        { id: '20', val: 20, state: 'default' as const },
-        { id: '30', val: 30, state: 'default' as const },
+        { id: "10", val: 10, leftId: "20", rightId: "30", state: "default" as const },
+        { id: "20", val: 20, state: "default" as const },
+        { id: "30", val: 30, state: "default" as const },
       ],
     };
     const steps = generateBinaryTreeLcaSteps(input);
     const lastStep = steps[steps.length - 1];
 
     expect(lastStep.variables.lcaVal).toBe(10);
+  });
+
+  it("should handle non-existent root or missing nodes in tree", () => {
+    const input = {
+      rootId: "missing-root",
+      pVal: 100,
+      qVal: 200,
+      nodes: [],
+    };
+    const steps = generateBinaryTreeLcaSteps(input);
+    expect(steps.length).toBe(2);
+    const lastStep = steps[1];
+    expect(lastStep.explanation.what).toContain("No common ancestor exists");
+    expect(lastStep.variables.lcaVal).toBe("None");
+  });
+
+  it("should handle tree where targets do not exist and nodes have missing child values or explicit state", () => {
+    const input = {
+      rootId: "1",
+      pVal: 999,
+      qVal: 888,
+      nodes: [
+        { id: "1", val: 1, leftId: "2", rightId: "3", state: "default" as const },
+        { id: "2", val: 2, leftId: "dangling-left", state: "default" as const },
+        { id: "3", val: 3, rightId: "dangling-right", state: "default" as const },
+      ],
+    };
+    const steps = generateBinaryTreeLcaSteps(input);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.explanation.what).toBe("No common ancestor exists");
+  });
+
+  it("should handle tree with missing lca node in nodeMap or unassigned node state", () => {
+    const input = {
+      rootId: "1",
+      pVal: 2,
+      qVal: 2,
+      nodes: [
+        { id: "1", val: 1, leftId: "2", state: "default" as const },
+        { id: "2", val: 2, state: "default" as const },
+      ],
+    };
+    const steps = generateBinaryTreeLcaSteps(input);
+    expect(steps.length).toBeGreaterThan(0);
   });
 });

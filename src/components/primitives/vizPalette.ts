@@ -1,4 +1,4 @@
-import type { GraphEdgeItem } from '../../types/dsa';
+import type { GraphEdgeItem } from "../../types/dsa";
 
 /* Categorical group coloring for the visualizers.
 
@@ -10,8 +10,8 @@ import type { GraphEdgeItem } from '../../types/dsa';
 export const VIZ_SLOT_COUNT = 8;
 
 /** What a group index outside the 8 validated slots renders as. */
-export const VIZ_OVERFLOW_COLOR = 'var(--state-default)';
-export const VIZ_OVERFLOW_BG = 'var(--state-default-bg)';
+export const VIZ_OVERFLOW_COLOR = "var(--state-default)";
+export const VIZ_OVERFLOW_BG = "var(--state-default-bg)";
 
 /** True when `slot` maps onto one of the validated --viz-* tokens. */
 export const isVizSlot = (slot: number): boolean =>
@@ -24,7 +24,7 @@ export const vizSlotColor = (slot: number): string =>
 /** Translucent companion of `vizSlotColor`, for node/panel fills. Mixed from the
    token rather than hardcoded so the palette stays single-source; pass `base` a
    surface token when the fill sits on an opaque panel instead of the canvas. */
-export const vizSlotBg = (slot: number, percent = 22, base = 'transparent'): string =>
+export const vizSlotBg = (slot: number, percent = 22, base = "transparent"): string =>
   isVizSlot(slot)
     ? `color-mix(in srgb, var(--viz-${slot + 1}) ${percent}%, ${base})`
     : VIZ_OVERFLOW_BG;
@@ -44,7 +44,7 @@ export interface ConnectedComponents {
  */
 export const deriveConnectedComponents = (
   nodeIds: readonly string[],
-  edges: readonly GraphEdgeItem[]
+  edges: readonly GraphEdgeItem[],
 ): ConnectedComponents => {
   const parent = new Map<string, string>();
   nodeIds.forEach((id) => parent.set(id, id));

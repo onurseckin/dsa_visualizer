@@ -1,0 +1,276 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/specs/triviaLayoutDefaults.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 12249, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 12249, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "seed",
+          "ranges": [{ "startOffset": 574, "endOffset": 676, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 924, "endOffset": 1003, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1080, "endOffset": 4627, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1157, "endOffset": 1465, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1597, "endOffset": 1977, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2075, "endOffset": 2193, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2261, "endOffset": 2481, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2554, "endOffset": 2694, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2771, "endOffset": 3235, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3321, "endOffset": 3680, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3774, "endOffset": 4005, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4100, "endOffset": 4623, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/trivia/triviaLayout.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 24441, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 24441, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 351, "endOffset": 384, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 530, "endOffset": 567, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 745, "endOffset": 786, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 998, "endOffset": 1031, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1170, "endOffset": 1203, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1342, "endOffset": 1375, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1518, "endOffset": 1553, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1697, "endOffset": 1732, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "cloneTriviaLayout",
+          "ranges": [{ "startOffset": 2104, "endOffset": 2335, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2441, "endOffset": 2474, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2667, "endOffset": 2704, "count": 11 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampSplitPercent",
+          "ranges": [{ "startOffset": 2708, "endOffset": 2892, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2998, "endOffset": 3031, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clampPanelHeight",
+          "ranges": [{ "startOffset": 3035, "endOffset": 3228, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3333, "endOffset": 3365, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isRecord",
+          "ranges": [{ "startOffset": 3386, "endOffset": 3465, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isInRange",
+          "ranges": [{ "startOffset": 3485, "endOffset": 3589, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readPanelHeights",
+          "ranges": [
+            { "startOffset": 3616, "endOffset": 3965, "count": 1 },
+            { "startOffset": 3653, "endOffset": 3665, "count": 0 },
+            { "startOffset": 3726, "endOffset": 3946, "count": 5 },
+            { "startOffset": 3784, "endOffset": 3833, "count": 3 },
+            { "startOffset": 3833, "endOffset": 3904, "count": 2 },
+            { "startOffset": 3904, "endOffset": 3916, "count": 0 },
+            { "startOffset": 3916, "endOffset": 3946, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getStorage",
+          "ranges": [
+            { "startOffset": 3986, "endOffset": 4128, "count": 7 },
+            { "startOffset": 4041, "endOffset": 4053, "count": 0 },
+            { "startOffset": 4085, "endOffset": 4092, "count": 0 },
+            { "startOffset": 4098, "endOffset": 4126, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readTriviaLayout",
+          "ranges": [
+            { "startOffset": 4130, "endOffset": 5236, "count": 7 },
+            { "startOffset": 4208, "endOffset": 4249, "count": 0 },
+            { "startOffset": 4326, "endOffset": 4383, "count": 0 },
+            { "startOffset": 4404, "endOffset": 4445, "count": 5 },
+            { "startOffset": 4445, "endOffset": 4502, "count": 2 },
+            { "startOffset": 4502, "endOffset": 4559, "count": 0 },
+            { "startOffset": 4559, "endOffset": 4585, "count": 2 },
+            { "startOffset": 4585, "endOffset": 4626, "count": 0 },
+            { "startOffset": 4626, "endOffset": 4675, "count": 2 },
+            { "startOffset": 4675, "endOffset": 4800, "count": 1 },
+            { "startOffset": 4800, "endOffset": 4851, "count": 0 },
+            { "startOffset": 4851, "endOffset": 4935, "count": 1 },
+            { "startOffset": 4935, "endOffset": 4976, "count": 0 },
+            { "startOffset": 4976, "endOffset": 5069, "count": 1 },
+            { "startOffset": 5069, "endOffset": 5235, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5341, "endOffset": 5373, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeTriviaLayout",
+          "ranges": [{ "startOffset": 5377, "endOffset": 6176, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6282, "endOffset": 6315, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clearTriviaLayout",
+          "ranges": [{ "startOffset": 6319, "endOffset": 6474, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6580, "endOffset": 6613, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetTriviaLayout",
+          "ranges": [{ "startOffset": 6617, "endOffset": 6823, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6929, "endOffset": 6962, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

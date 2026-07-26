@@ -1,21 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_NQUEENS_INPUT,
-  generateNQueensSteps,
-  nQueens,
-} from '../nQueens';
-import type { GridVisualSnapshot } from '../../../types/dsa';
+import { describe, expect, it } from "vitest";
+import { DEFAULT_NQUEENS_INPUT, generateNQueensSteps, nQueens } from "../nQueens";
+import type { GridVisualSnapshot } from "../../../types/dsa";
 
-describe('nQueens algorithm spec', () => {
-  it('should have valid definition metadata', () => {
-    expect(nQueens.id).toBe('n-queens');
-    expect(nQueens.title).toBe('N-Queens Backtracking');
-    expect(nQueens.category).toBe('backtracking');
-    expect(nQueens.difficulty).toBe('Hard');
+describe("nQueens algorithm spec", () => {
+  it("should have valid definition metadata", () => {
+    expect(nQueens.id).toBe("n-queens");
+    expect(nQueens.title).toBe("N-Queens Backtracking");
+    expect(nQueens.category).toBe("backtracking");
+    expect(nQueens.difficulty).toBe("Hard");
     expect(nQueens.defaultInput).toEqual(DEFAULT_NQUEENS_INPUT);
   });
 
-  it('should generate steps and find 2 solutions for 4-Queens', () => {
+  it("should generate steps and find 2 solutions for 4-Queens", () => {
     const steps = generateNQueensSteps(DEFAULT_NQUEENS_INPUT);
     expect(steps.length).toBeGreaterThan(0);
 
@@ -26,19 +22,26 @@ describe('nQueens algorithm spec', () => {
     expect(lastStep.variables.totalSolutions).toBe(2);
 
     const snapshot = lastStep.primarySnapshot as GridVisualSnapshot;
-    expect(snapshot.kind).toBe('grid');
+    expect(snapshot.kind).toBe("grid");
     expect(snapshot.grid).toHaveLength(4);
     expect(snapshot.grid[0]).toHaveLength(4);
   });
 
-  it('should handle N = 1 board correctly', () => {
+  it("should handle N = 1 board correctly", () => {
     const steps = generateNQueensSteps({ n: 1 });
     const lastStep = steps[steps.length - 1];
 
     expect(lastStep.variables.totalSolutions).toBe(1);
   });
 
-  it('ensures step generator is pure and returns valid code lines and explanations', () => {
+  it("should handle missing or 0 n input and fallback to 4", () => {
+    const steps = generateNQueensSteps({ n: 0 });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.totalSolutions).toBe(2);
+  });
+
+  it("ensures step generator is pure and returns valid code lines and explanations", () => {
     const input = { ...DEFAULT_NQUEENS_INPUT };
     const originalInputJSON = JSON.stringify(input);
 
@@ -48,7 +51,7 @@ describe('nQueens algorithm spec', () => {
     expect(JSON.stringify(input)).toBe(originalInputJSON);
 
     // Verify Python code line bounds (1 to 28)
-    const pythonLineCount = nQueens.code.split('\n').length;
+    const pythonLineCount = nQueens.code.split("\n").length;
     steps.forEach((step, idx) => {
       expect(step.stepIndex).toBe(idx);
       expect(step.codeLine).toBeGreaterThanOrEqual(1);
@@ -58,4 +61,3 @@ describe('nQueens algorithm spec', () => {
     });
   });
 });
-

@@ -1,9 +1,9 @@
-@import './theme.css';
-@import './ui.css';
+@import "./theme.css";
+@import "./ui.css";
 /* Tailwind v4 theme + utilities only — preflight is intentionally skipped so it
    cannot reset the token-styled ui.css components. */
-@import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 @plugin '@tailwindcss/typography';
 
 /* Bridge design tokens into Tailwind so utilities resolve to the same values. */

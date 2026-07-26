@@ -1,0 +1,774 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/main-layout/specs/useMainLayoutState.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 17103, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 17103, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 843, "endOffset": 929, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 990, "endOffset": 6313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1098, "endOffset": 1542, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1232, "endOffset": 1280, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1392, "endOffset": 1457, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1626, "endOffset": 2223, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1690, "endOffset": 1738, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1848, "endOffset": 1898, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2087, "endOffset": 2138, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2294, "endOffset": 2720, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2358, "endOffset": 2406, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2439, "endOffset": 2481, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2593, "endOffset": 2635, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2827, "endOffset": 3717, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2891, "endOffset": 2939, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2972, "endOffset": 3033, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3152, "endOffset": 3247, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3459, "endOffset": 3535, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3833, "endOffset": 6309, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3897, "endOffset": 3945, "count": 15 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3978, "endOffset": 4068, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4101, "endOffset": 4136, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4255, "endOffset": 4292, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4413, "endOffset": 4451, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4573, "endOffset": 4666, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "toJSON",
+          "ranges": [{ "startOffset": 4958, "endOffset": 4968, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5165, "endOffset": 5200, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5319, "endOffset": 5356, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5477, "endOffset": 5515, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5637, "endOffset": 5680, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5788, "endOffset": 5832, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5865, "endOffset": 5910, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6020, "endOffset": 6066, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6099, "endOffset": 6145, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6256, "endOffset": 6303, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1669",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/main-layout/hooks/useMainLayoutState.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 21973, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 21973, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "useMainLayoutState",
+          "ranges": [{ "startOffset": 774, "endOffset": 7305, "count": 27 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 867, "endOffset": 916, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1143, "endOffset": 1429, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "reload",
+          "ranges": [{ "startOffset": 1170, "endOffset": 1230, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1332, "endOffset": 1424, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1508, "endOffset": 1635, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1715, "endOffset": 1844, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1913, "endOffset": 1994, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1942, "endOffset": 1988, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2063, "endOffset": 2247, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2321, "endOffset": 2704, "count": 11 },
+            { "startOffset": 2361, "endOffset": 2480, "count": 3 },
+            { "startOffset": 2480, "endOffset": 2703, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2381, "endOffset": 2454, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2784, "endOffset": 3025, "count": 1 },
+            { "startOffset": 2879, "endOffset": 2886, "count": 0 },
+            { "startOffset": 2927, "endOffset": 2934, "count": 0 },
+            { "startOffset": 2977, "endOffset": 2984, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3123, "endOffset": 3256, "count": 1 },
+            { "startOffset": 3191, "endOffset": 3198, "count": 0 },
+            { "startOffset": 3231, "endOffset": 3238, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3534, "endOffset": 3728, "count": 2 },
+            { "startOffset": 3606, "endOffset": 3657, "count": 1 },
+            { "startOffset": 3658, "endOffset": 3662, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3820, "endOffset": 3989, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4077, "endOffset": 4195, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 4560, "endOffset": 4760, "count": 2 },
+            { "startOffset": 4634, "endOffset": 4687, "count": 1 },
+            { "startOffset": 4688, "endOffset": 4692, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4854, "endOffset": 5027, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5117, "endOffset": 5241, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 5618, "endOffset": 5821, "count": 2 },
+            { "startOffset": 5693, "endOffset": 5747, "count": 1 },
+            { "startOffset": 5748, "endOffset": 5752, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5916, "endOffset": 6091, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6182, "endOffset": 6309, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7412, "endOffset": 7446, "count": 27 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1670",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayout.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 907, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 907, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1671",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayoutTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11314, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11314, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 360, "endOffset": 396, "count": 31 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 548, "endOffset": 588, "count": 28 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 775, "endOffset": 819, "count": 11 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1073, "endOffset": 1109, "count": 20 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1248, "endOffset": 1281, "count": 35 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1420, "endOffset": 1453, "count": 35 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1596, "endOffset": 1631, "count": 43 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1775, "endOffset": 1810, "count": 43 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1957, "endOffset": 1994, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2515, "endOffset": 2545, "count": 11 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cloneWorkspaceLayout",
+          "ranges": [{ "startOffset": 2549, "endOffset": 2821, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2930, "endOffset": 2966, "count": 11 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3172, "endOffset": 3212, "count": 27 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampSplitPercent",
+          "ranges": [
+            { "startOffset": 3216, "endOffset": 3394, "count": 12 },
+            { "startOffset": 3283, "endOffset": 3318, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3500, "endOffset": 3533, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampPanelHeight",
+          "ranges": [
+            { "startOffset": 3537, "endOffset": 3730, "count": 96 },
+            { "startOffset": 3594, "endOffset": 3606, "count": 71 },
+            { "startOffset": 3606, "endOffset": 3638, "count": 25 },
+            { "startOffset": 3638, "endOffset": 3650, "count": 0 },
+            { "startOffset": 3650, "endOffset": 3729, "count": 25 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3835, "endOffset": 3867, "count": 96 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1672",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayoutStorage.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 14914, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 14914, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isRecord",
+          "ranges": [{ "startOffset": 584, "endOffset": 663, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isInRange",
+          "ranges": [{ "startOffset": 683, "endOffset": 787, "count": 24 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readPanelHeights",
+          "ranges": [
+            { "startOffset": 814, "endOffset": 1232, "count": 8 },
+            { "startOffset": 851, "endOffset": 863, "count": 0 },
+            { "startOffset": 949, "endOffset": 1213, "count": 64 },
+            { "startOffset": 1007, "endOffset": 1056, "count": 48 },
+            { "startOffset": 1056, "endOffset": 1171, "count": 16 },
+            { "startOffset": 1171, "endOffset": 1183, "count": 0 },
+            { "startOffset": 1183, "endOffset": 1213, "count": 16 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getStorage",
+          "ranges": [
+            { "startOffset": 1253, "endOffset": 1395, "count": 31 },
+            { "startOffset": 1308, "endOffset": 1320, "count": 0 },
+            { "startOffset": 1352, "endOffset": 1359, "count": 0 },
+            { "startOffset": 1365, "endOffset": 1393, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readWorkspaceLayout",
+          "ranges": [
+            { "startOffset": 1397, "endOffset": 3218, "count": 18 },
+            { "startOffset": 1478, "endOffset": 1566, "count": 0 },
+            { "startOffset": 1668, "endOffset": 1772, "count": 0 },
+            { "startOffset": 1793, "endOffset": 1881, "count": 10 },
+            { "startOffset": 1881, "endOffset": 1938, "count": 8 },
+            { "startOffset": 1938, "endOffset": 2042, "count": 0 },
+            { "startOffset": 2042, "endOffset": 2068, "count": 8 },
+            { "startOffset": 2068, "endOffset": 2156, "count": 0 },
+            { "startOffset": 2156, "endOffset": 2230, "count": 8 },
+            { "startOffset": 2230, "endOffset": 2318, "count": 0 },
+            { "startOffset": 2318, "endOffset": 2440, "count": 8 },
+            { "startOffset": 2440, "endOffset": 2538, "count": 0 },
+            { "startOffset": 2538, "endOffset": 2622, "count": 8 },
+            { "startOffset": 2622, "endOffset": 2710, "count": 0 },
+            { "startOffset": 2710, "endOffset": 2762, "count": 8 },
+            { "startOffset": 2762, "endOffset": 2850, "count": 0 },
+            { "startOffset": 2850, "endOffset": 2903, "count": 8 },
+            { "startOffset": 2903, "endOffset": 2991, "count": 0 },
+            { "startOffset": 2991, "endOffset": 3217, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3326, "endOffset": 3361, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeWorkspaceLayout",
+          "ranges": [
+            { "startOffset": 3365, "endOffset": 4293, "count": 12 },
+            { "startOffset": 3536, "endOffset": 3750, "count": 96 },
+            { "startOffset": 3576, "endOffset": 3583, "count": 72 },
+            { "startOffset": 3628, "endOffset": 3695, "count": 24 },
+            { "startOffset": 3696, "endOffset": 3745, "count": 72 },
+            { "startOffset": 3908, "endOffset": 3931, "count": 2 },
+            { "startOffset": 3995, "endOffset": 4021, "count": 11 },
+            { "startOffset": 4068, "endOffset": 4095, "count": 11 },
+            { "startOffset": 4257, "endOffset": 4270, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4402, "endOffset": 4438, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clearWorkspaceLayout",
+          "ranges": [
+            { "startOffset": 4442, "endOffset": 4625, "count": 1 },
+            { "startOffset": 4524, "endOffset": 4531, "count": 0 },
+            { "startOffset": 4612, "endOffset": 4623, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4734, "endOffset": 4770, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetWorkspaceLayout",
+          "ranges": [{ "startOffset": 4774, "endOffset": 5058, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5167, "endOffset": 5203, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1673",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/ResizableLayout.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 16205, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 16205, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 998, "endOffset": 1046, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1308, "endOffset": 1360, "count": 81 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1625, "endOffset": 1676, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [{ "startOffset": 1727, "endOffset": 1783, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ResizableLayout",
+          "ranges": [{ "startOffset": 1809, "endOffset": 6778, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6883, "endOffset": 6914, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1676",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/resizable-layout/components/DragHandle.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9903, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9903, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "DragHandle",
+          "ranges": [{ "startOffset": 486, "endOffset": 3278, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3378, "endOffset": 3404, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1677",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/resizable-layout/hooks/usePointerDrag.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3985, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3985, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "usePointerDrag",
+          "ranges": [{ "startOffset": 329, "endOffset": 1180, "count": 81 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 402, "endOffset": 1149, "count": 21 },
+            { "startOffset": 429, "endOffset": 436, "count": 18 },
+            { "startOffset": 436, "endOffset": 1148, "count": 3 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleMouseMove",
+          "ranges": [{ "startOffset": 465, "endOffset": 512, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "handleTouchMove",
+          "ranges": [{ "startOffset": 542, "endOffset": 672, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 898, "endOffset": 1144, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1284, "endOffset": 1314, "count": 81 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1678",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/resizable-layout/components/ResizableRows.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20632, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20632, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [{ "startOffset": 789, "endOffset": 845, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ResizableRows",
+          "ranges": [{ "startOffset": 869, "endOffset": 6973, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7076, "endOffset": 7105, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

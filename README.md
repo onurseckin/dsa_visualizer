@@ -2,7 +2,7 @@
 
 A high-performance, dark-themed **Data Structures and Algorithms (DSA) Knowledge Graph & Interactive Visualizer** built with **React**, **TypeScript**, **Vite**, and **Vanilla CSS**.
 
-The project visualizes **40+ algorithms** mapped across **21 granular topological prerequisite modules** covering core technical interview problems and advanced competitive programming topics (*Competitive Programmer's Handbook*).
+The project visualizes **40+ algorithms** mapped across **21 granular topological prerequisite modules** covering core technical interview problems and advanced competitive programming topics (_Competitive Programmer's Handbook_).
 
 ---
 
@@ -83,13 +83,13 @@ Open `http://localhost:5173` in your browser to view the app.
 
 This repository enforces strict TypeScript and ESLint standards with **0 `any` or `unknown` casts** and **0 ESLint warnings/errors**.
 
-| Command | Action |
-|---|---|
-| `bun run dev` | Starts Vite local development server |
-| `bun run typecheck` | Runs TypeScript compiler verification (`tsc --noEmit`) |
-| `bun run lint` | Runs ESLint (`eslint . --ext ts,tsx --max-warnings 0`) |
-| `bun run test` | Runs complete Vitest test suite |
-| `bun run build` | Builds production bundle into `dist/` |
+| Command             | Action                                                                |
+| ------------------- | --------------------------------------------------------------------- |
+| `bun run dev`       | Starts Vite local development server                                  |
+| `bun run typecheck` | Runs TypeScript compiler verification (`tsc --noEmit`)                |
+| `bun run lint`      | Runs ESLint (`eslint . --ext ts,tsx --max-warnings 0`)                |
+| `bun run test`      | Runs complete Vitest test suite                                       |
+| `bun run build`     | Builds production bundle into `dist/`                                 |
 | **`bun run check`** | **Master Quality Gate**: Runs `typecheck` → `lint` → `test` → `build` |
 
 ---

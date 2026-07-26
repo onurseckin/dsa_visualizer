@@ -1,0 +1,337 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/specs/workspaceLayoutValidation.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 19243, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 19243, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "seed",
+          "ranges": [{ "startOffset": 562, "endOffset": 667, "count": 19 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 990, "endOffset": 1069, "count": 22 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1141, "endOffset": 6713, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1223, "endOffset": 1674, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1760, "endOffset": 2113, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2229, "endOffset": 2611, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2726, "endOffset": 2957, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3057, "endOffset": 3311, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3406, "endOffset": 3724, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3799, "endOffset": 4028, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5361, "endOffset": 5541, "count": 13 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5610, "endOffset": 6209, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6295, "endOffset": 6709, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayout.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 907, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 907, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayoutTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11314, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11314, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 360, "endOffset": 396, "count": 41 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 548, "endOffset": 588, "count": 19 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 775, "endOffset": 819, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1073, "endOffset": 1109, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1248, "endOffset": 1281, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1420, "endOffset": 1453, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1596, "endOffset": 1631, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1775, "endOffset": 1810, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1957, "endOffset": 1994, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2515, "endOffset": 2545, "count": 20 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cloneWorkspaceLayout",
+          "ranges": [{ "startOffset": 2549, "endOffset": 2821, "count": 22 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2930, "endOffset": 2966, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3172, "endOffset": 3212, "count": 20 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clampSplitPercent",
+          "ranges": [{ "startOffset": 3216, "endOffset": 3394, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3500, "endOffset": 3533, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clampPanelHeight",
+          "ranges": [{ "startOffset": 3537, "endOffset": 3730, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3835, "endOffset": 3867, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/app/workspaceLayoutStorage.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 14914, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 14914, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isRecord",
+          "ranges": [
+            { "startOffset": 584, "endOffset": 663, "count": 33 },
+            { "startOffset": 621, "endOffset": 638, "count": 32 },
+            { "startOffset": 639, "endOffset": 663, "count": 31 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isInRange",
+          "ranges": [
+            { "startOffset": 683, "endOffset": 787, "count": 37 },
+            { "startOffset": 730, "endOffset": 755, "count": 33 },
+            { "startOffset": 756, "endOffset": 771, "count": 33 },
+            { "startOffset": 772, "endOffset": 787, "count": 32 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readPanelHeights",
+          "ranges": [
+            { "startOffset": 814, "endOffset": 1232, "count": 14 },
+            { "startOffset": 851, "endOffset": 863, "count": 2 },
+            { "startOffset": 863, "endOffset": 949, "count": 12 },
+            { "startOffset": 949, "endOffset": 1213, "count": 84 },
+            { "startOffset": 1007, "endOffset": 1056, "count": 63 },
+            { "startOffset": 1056, "endOffset": 1171, "count": 21 },
+            { "startOffset": 1171, "endOffset": 1183, "count": 5 },
+            { "startOffset": 1183, "endOffset": 1213, "count": 16 },
+            { "startOffset": 1213, "endOffset": 1231, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getStorage",
+          "ranges": [
+            { "startOffset": 1253, "endOffset": 1395, "count": 21 },
+            { "startOffset": 1308, "endOffset": 1320, "count": 0 },
+            { "startOffset": 1352, "endOffset": 1359, "count": 0 },
+            { "startOffset": 1365, "endOffset": 1393, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "readWorkspaceLayout",
+          "ranges": [
+            { "startOffset": 1397, "endOffset": 3218, "count": 21 },
+            { "startOffset": 1478, "endOffset": 1566, "count": 0 },
+            { "startOffset": 1668, "endOffset": 1772, "count": 0 },
+            { "startOffset": 1793, "endOffset": 1881, "count": 1 },
+            { "startOffset": 1881, "endOffset": 1938, "count": 20 },
+            { "startOffset": 1938, "endOffset": 2042, "count": 1 },
+            { "startOffset": 2042, "endOffset": 2068, "count": 19 },
+            { "startOffset": 2068, "endOffset": 2156, "count": 1 },
+            { "startOffset": 2156, "endOffset": 2230, "count": 18 },
+            { "startOffset": 2230, "endOffset": 2318, "count": 2 },
+            { "startOffset": 2318, "endOffset": 2440, "count": 16 },
+            { "startOffset": 2440, "endOffset": 2538, "count": 2 },
+            { "startOffset": 2538, "endOffset": 2622, "count": 14 },
+            { "startOffset": 2622, "endOffset": 2762, "count": 7 },
+            { "startOffset": 2762, "endOffset": 2850, "count": 3 },
+            { "startOffset": 2850, "endOffset": 2903, "count": 4 },
+            { "startOffset": 2903, "endOffset": 2991, "count": 3 },
+            { "startOffset": 2991, "endOffset": 3217, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3326, "endOffset": 3361, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeWorkspaceLayout",
+          "ranges": [{ "startOffset": 3365, "endOffset": 4293, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4402, "endOffset": 4438, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "clearWorkspaceLayout",
+          "ranges": [{ "startOffset": 4442, "endOffset": 4625, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4734, "endOffset": 4770, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetWorkspaceLayout",
+          "ranges": [{ "startOffset": 4774, "endOffset": 5058, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5167, "endOffset": 5203, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

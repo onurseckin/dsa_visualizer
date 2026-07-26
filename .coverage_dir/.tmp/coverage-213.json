@@ -1,0 +1,573 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/game_theory/specs/nimGameRender.spec.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3782, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3782, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 980, "endOffset": 1836, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1065, "endOffset": 1832, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1671",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/ArrayVisualizer.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9598, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9598, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ArrayVisualizer",
+          "ranges": [{ "startOffset": 958, "endOffset": 4427, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3033, "endOffset": 3623, "count": 3 },
+            { "startOffset": 3295, "endOffset": 3317, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4532, "endOffset": 4563, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1672",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/vizGeometry.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [
+            { "startOffset": 348, "endOffset": 435, "count": 5 },
+            { "startOffset": 418, "endOffset": 423, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 530, "endOffset": 551, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "round2",
+          "ranges": [{ "startOffset": 570, "endOffset": 610, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "isFinitePoint",
+          "ranges": [{ "startOffset": 634, "endOffset": 697, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "axisPad",
+          "ranges": [{ "startOffset": 742, "endOffset": 830, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "viewBoxAttr",
+          "ranges": [{ "startOffset": 852, "endOffset": 946, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1074, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "boxViewBox",
+          "ranges": [{ "startOffset": 1097, "endOffset": 1200, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1300, "endOffset": 1326, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "spreadToBox",
+          "ranges": [{ "startOffset": 1350, "endOffset": 2295, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2396, "endOffset": 2423, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "minPointSpacing",
+          "ranges": [{ "startOffset": 2451, "endOffset": 2816, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2921, "endOffset": 2952, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ellipsePoints",
+          "ranges": [{ "startOffset": 2978, "endOffset": 3593, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3696, "endOffset": 3725, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "fitSlots",
+          "ranges": [
+            { "startOffset": 3746, "endOffset": 4117, "count": 1 },
+            { "startOffset": 3828, "endOffset": 3832, "count": 0 },
+            { "startOffset": 3910, "endOffset": 3913, "count": 0 },
+            { "startOffset": 4027, "endOffset": 4032, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4215, "endOffset": 4239, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "tidyTreeSlots",
+          "ranges": [{ "startOffset": 4265, "endOffset": 5139, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5242, "endOffset": 5271, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "useCanvasBox",
+          "ranges": [{ "startOffset": 5296, "endOffset": 6009, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 5468, "endOffset": 5978, "count": 1 },
+            { "startOffset": 5575, "endOffset": 5977, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "measure",
+          "ranges": [{ "startOffset": 5596, "endOffset": 5837, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5946, "endOffset": 5973, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6111, "endOffset": 6139, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1673",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/array/arrayTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2898, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2898, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "stateColor",
+          "ranges": [{ "startOffset": 204, "endOffset": 238, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 338, "endOffset": 364, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "stateBg",
+          "ranges": [{ "startOffset": 384, "endOffset": 421, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 518, "endOffset": 541, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 651, "endOffset": 670, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 803, "endOffset": 832, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 946, "endOffset": 967, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1090, "endOffset": 1115, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1239, "endOffset": 1264, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1397, "endOffset": 1427, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1674",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/array/layoutEngine.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9678, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9678, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "barRun",
+          "ranges": [
+            { "startOffset": 526, "endOffset": 1303, "count": 1 },
+            { "startOffset": 766, "endOffset": 988, "count": 0 },
+            { "startOffset": 1222, "endOffset": 1225, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1399, "endOffset": 1421, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "computeArrayLayout",
+          "ranges": [
+            { "startOffset": 1452, "endOffset": 3033, "count": 1 },
+            { "startOffset": 2139, "endOffset": 2170, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1529, "endOffset": 1545, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1641, "endOffset": 1705, "count": 3 },
+            { "startOffset": 1691, "endOffset": 1699, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3141, "endOffset": 3175, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1675",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/array/ArrayItem.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 15235, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 15235, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ArrayItem",
+          "ranges": [
+            { "startOffset": 632, "endOffset": 6568, "count": 3 },
+            { "startOffset": 914, "endOffset": 919, "count": 0 },
+            { "startOffset": 1284, "endOffset": 1306, "count": 0 },
+            { "startOffset": 1307, "endOffset": 1872, "count": 0 },
+            { "startOffset": 2545, "endOffset": 2574, "count": 0 },
+            { "startOffset": 3767, "endOffset": 3789, "count": 0 },
+            { "startOffset": 3971, "endOffset": 4080, "count": 0 },
+            { "startOffset": 4081, "endOffset": 4578, "count": 0 },
+            { "startOffset": 6374, "endOffset": 6396, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6667, "endOffset": 6692, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1676",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/array/PointerChips.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5840, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5840, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "PointerChips",
+          "ranges": [{ "startOffset": 336, "endOffset": 2367, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2469, "endOffset": 2497, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1677",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/game_theory/nimGame/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2092, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2092, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 434, "endOffset": 485, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 755, "endOffset": 813, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1094, "endOffset": 1149, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1248, "endOffset": 1293, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1392, "endOffset": 1437, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1678",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/game_theory/nimGame/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 905, "endOffset": 934, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1679",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/game_theory/nimGame/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 18538, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 18538, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateNimGameSteps",
+          "ranges": [
+            { "startOffset": 214, "endOffset": 5629, "count": 1 },
+            { "startOffset": 315, "endOffset": 319, "count": 0 },
+            { "startOffset": 2086, "endOffset": 2375, "count": 0 },
+            { "startOffset": 2406, "endOffset": 3032, "count": 3 },
+            { "startOffset": 3340, "endOffset": 3734, "count": 0 },
+            { "startOffset": 4514, "endOffset": 4677, "count": 0 },
+            { "startOffset": 5537, "endOffset": 5611, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 376, "endOffset": 455, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getAuxiliaryState",
+          "ranges": [
+            { "startOffset": 511, "endOffset": 1181, "count": 8 },
+            { "startOffset": 968, "endOffset": 994, "count": 1 },
+            { "startOffset": 995, "endOffset": 1003, "count": 7 },
+            { "startOffset": 1040, "endOffset": 1051, "count": 1 },
+            { "startOffset": 1052, "endOffset": 1059, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 715, "endOffset": 776, "count": 24 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1124, "endOffset": 1169, "count": 24 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1201, "endOffset": 1806, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1476, "endOffset": 1574, "count": 24 },
+            { "startOffset": 1536, "endOffset": 1554, "count": 5 },
+            { "startOffset": 1555, "endOffset": 1563, "count": 19 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5739, "endOffset": 5775, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1680",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/game_theory/nimGame/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 31430, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 31430, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 646, "endOffset": 679, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12484, "endOffset": 12507, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

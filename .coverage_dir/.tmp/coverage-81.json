@@ -1,0 +1,324 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/specs/bfsGraph.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13798, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 13798, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 568, "endOffset": 3449, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 654, "endOffset": 1171, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1269, "endOffset": 2125, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1492, "endOffset": 1538, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1652, "endOffset": 1700, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2020, "endOffset": 2048, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2196, "endOffset": 2966, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2716, "endOffset": 2744, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2750, "endOffset": 2761, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3031, "endOffset": 3445, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3511, "endOffset": 4860, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3740, "endOffset": 4352, "count": 1 },
+            { "startOffset": 3838, "endOffset": 3843, "count": 0 },
+            { "startOffset": 3877, "endOffset": 3882, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3888, "endOffset": 3909, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4023, "endOffset": 4257, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4279, "endOffset": 4346, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 4443, "endOffset": 4856, "count": 1 },
+            { "startOffset": 4553, "endOffset": 4558, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4486, "endOffset": 4507, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4750, "endOffset": 4850, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/bfsGraph/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2136, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2136, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 441, "endOffset": 493, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 770, "endOffset": 829, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1116, "endOffset": 1171, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1271, "endOffset": 1317, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1416, "endOffset": 1461, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/bfsGraph/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1609, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1609, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 644, "endOffset": 674, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/bfsGraph/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 18704, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 18704, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateBFSGraphSteps",
+          "ranges": [
+            { "startOffset": 215, "endOffset": 5717, "count": 3 },
+            { "startOffset": 1335, "endOffset": 1356, "count": 2 },
+            { "startOffset": 1358, "endOffset": 1590, "count": 1 },
+            { "startOffset": 1590, "endOffset": 2536, "count": 2 },
+            { "startOffset": 2536, "endOffset": 5213, "count": 8 },
+            { "startOffset": 3579, "endOffset": 5143, "count": 14 },
+            { "startOffset": 3923, "endOffset": 4037, "count": 8 },
+            { "startOffset": 4038, "endOffset": 4131, "count": 6 },
+            { "startOffset": 4228, "endOffset": 5137, "count": 6 },
+            { "startOffset": 5213, "endOffset": 5716, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 301, "endOffset": 352, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 387, "endOffset": 440, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 529, "endOffset": 937, "count": 62 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 737, "endOffset": 754, "count": 317 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 782, "endOffset": 799, "count": 285 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1013, "endOffset": 1036, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1649, "endOffset": 1672, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getNeighbors",
+          "ranges": [
+            { "startOffset": 2285, "endOffset": 2507, "count": 8 },
+            { "startOffset": 2355, "endOffset": 2481, "count": 38 },
+            { "startOffset": 2389, "endOffset": 2413, "count": 7 },
+            { "startOffset": 2413, "endOffset": 2475, "count": 31 },
+            { "startOffset": 2449, "endOffset": 2475, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2835, "endOffset": 2860, "count": 24 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 3620, "endOffset": 3717, "count": 44 },
+            { "startOffset": 3648, "endOffset": 3670, "count": 8 },
+            { "startOffset": 3671, "endOffset": 3717, "count": 37 },
+            { "startOffset": 3696, "endOffset": 3717, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4306, "endOffset": 4332, "count": 22 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5828, "endOffset": 5865, "count": 4 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/graph_traversal/bfsGraph/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 34573, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 34573, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1232, "endOffset": 1265, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13317, "endOffset": 13341, "count": 7 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

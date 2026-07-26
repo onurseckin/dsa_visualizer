@@ -1,0 +1,303 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/specs/gridLayoutEngine.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 10798, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 10798, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 539, "endOffset": 3956, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 591, "endOffset": 1931, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 699, "endOffset": 937, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1065, "endOffset": 1325, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1415, "endOffset": 1653, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1733, "endOffset": 1925, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1988, "endOffset": 3952, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2103, "endOffset": 3150, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3229, "endOffset": 3550, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3629, "endOffset": 3946, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/grid/layoutEngine.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6877, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6877, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cellFit",
+          "ranges": [
+            { "startOffset": 505, "endOffset": 1504, "count": 7 },
+            { "startOffset": 1050, "endOffset": 1130, "count": 5 },
+            { "startOffset": 1144, "endOffset": 1192, "count": 5 },
+            { "startOffset": 1192, "endOffset": 1503, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1601, "endOffset": 1624, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "computeGridLayout",
+          "ranges": [{ "startOffset": 1654, "endOffset": 2306, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2413, "endOffset": 2446, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/vizGeometry.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [
+            { "startOffset": 348, "endOffset": 435, "count": 9 },
+            { "startOffset": 418, "endOffset": 423, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 530, "endOffset": 551, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "round2",
+          "ranges": [{ "startOffset": 570, "endOffset": 610, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isFinitePoint",
+          "ranges": [{ "startOffset": 634, "endOffset": 697, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "axisPad",
+          "ranges": [{ "startOffset": 742, "endOffset": 830, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "viewBoxAttr",
+          "ranges": [{ "startOffset": 852, "endOffset": 946, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1074, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "boxViewBox",
+          "ranges": [{ "startOffset": 1097, "endOffset": 1200, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1300, "endOffset": 1326, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "spreadToBox",
+          "ranges": [{ "startOffset": 1350, "endOffset": 2295, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2396, "endOffset": 2423, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "minPointSpacing",
+          "ranges": [{ "startOffset": 2451, "endOffset": 2816, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2921, "endOffset": 2952, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ellipsePoints",
+          "ranges": [{ "startOffset": 2978, "endOffset": 3593, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3696, "endOffset": 3725, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "fitSlots",
+          "ranges": [
+            { "startOffset": 3746, "endOffset": 4117, "count": 14 },
+            { "startOffset": 3828, "endOffset": 3832, "count": 2 },
+            { "startOffset": 3891, "endOffset": 3909, "count": 8 },
+            { "startOffset": 3910, "endOffset": 3913, "count": 6 },
+            { "startOffset": 4027, "endOffset": 4032, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4215, "endOffset": 4239, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "tidyTreeSlots",
+          "ranges": [{ "startOffset": 4265, "endOffset": 5139, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5242, "endOffset": 5271, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "useCanvasBox",
+          "ranges": [{ "startOffset": 5296, "endOffset": 6009, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6111, "endOffset": 6139, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1659",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/grid/gridTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6306, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6306, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 291, "endOffset": 310, "count": 33 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 420, "endOffset": 439, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 559, "endOffset": 583, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 705, "endOffset": 729, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getCellAppearance",
+          "ranges": [{ "startOffset": 759, "endOffset": 2003, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2110, "endOffset": 2143, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

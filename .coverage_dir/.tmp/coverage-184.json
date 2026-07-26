@@ -1,0 +1,119 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/specs/PanelHeader.spec.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 7791, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 7791, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 786, "endOffset": 3893, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 866, "endOffset": 2386, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2482, "endOffset": 3234, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3323, "endOffset": 3889, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1671",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/PanelHeader.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4796, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4796, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "PanelHeader",
+          "ranges": [
+            { "startOffset": 416, "endOffset": 2154, "count": 3 },
+            { "startOffset": 678, "endOffset": 694, "count": 1 },
+            { "startOffset": 695, "endOffset": 990, "count": 1 },
+            { "startOffset": 991, "endOffset": 997, "count": 2 },
+            { "startOffset": 1145, "endOffset": 1165, "count": 1 },
+            { "startOffset": 1166, "endOffset": 1485, "count": 1 },
+            { "startOffset": 1486, "endOffset": 1492, "count": 2 },
+            { "startOffset": 1687, "endOffset": 1706, "count": 1 },
+            { "startOffset": 1707, "endOffset": 1984, "count": 1 },
+            { "startOffset": 1985, "endOffset": 1991, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2254, "endOffset": 2281, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1672",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/cx.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1008, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1008, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cx",
+          "ranges": [{ "startOffset": 185, "endOffset": 252, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 343, "endOffset": 361, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

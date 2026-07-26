@@ -12,7 +12,7 @@
    drag into the blanks (the intermediate step), `type` asks you to write the
    line from memory (the hard step). */
 
-export type TriviaMode = 'choice' | 'type';
+export type TriviaMode = "choice" | "type";
 
 export interface TriviaConfig {
   /** Algorithm ids in the current deck. */
@@ -100,7 +100,7 @@ export interface TriviaMeta {
    screen does Resume land on", vs. `activeSessionId` (page-level, not stored
    per-session) which is the one durable fact "is any session even open right
    now". Screen is always derived from the pair, never hand-set. */
-export type TriviaScreen = 'setup' | 'drill';
+export type TriviaScreen = "setup" | "drill";
 
 export interface TriviaSessionRecord {
   id: string;
@@ -112,4 +112,3 @@ export interface TriviaSessionRecord {
   /** Which screen Resume returns to. Set on every exit, not just on entry. */
   lastScreen: TriviaScreen;
 }
-

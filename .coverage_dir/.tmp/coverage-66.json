@@ -1,0 +1,1286 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/specs/TileTray.spec.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 18291, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 18291, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "tile",
+          "ranges": [{ "startOffset": 1108, "endOffset": 1192, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "stubTransfer",
+          "ranges": [{ "startOffset": 1215, "endOffset": 1336, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1301, "endOffset": 1309, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1396, "endOffset": 8049, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1512, "endOffset": 2582, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1938, "endOffset": 2333, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2692, "endOffset": 3355, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3440, "endOffset": 4246, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4348, "endOffset": 5321, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5468, "endOffset": 6453, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6553, "endOffset": 7327, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7406, "endOffset": 8045, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 7848, "endOffset": 8039, "count": 3 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1671",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/TileTray.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11016, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11016, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "TileTray",
+          "ranges": [{ "startOffset": 684, "endOffset": 4400, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 962, "endOffset": 990, "count": 30 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleDragStart",
+          "ranges": [{ "startOffset": 1026, "endOffset": 1309, "count": 30 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1038, "endOffset": 1309, "count": 2 },
+            { "startOffset": 1288, "endOffset": 1305, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "handleDragEnd",
+          "ranges": [{ "startOffset": 1335, "endOffset": 1364, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2459, "endOffset": 3996, "count": 30 },
+            { "startOffset": 2571, "endOffset": 2581, "count": 3 },
+            { "startOffset": 2763, "endOffset": 2771, "count": 1 },
+            { "startOffset": 2772, "endOffset": 2811, "count": 29 },
+            { "startOffset": 2785, "endOffset": 2797, "count": 3 },
+            { "startOffset": 2798, "endOffset": 2811, "count": 26 },
+            { "startOffset": 2946, "endOffset": 2959, "count": 1 },
+            { "startOffset": 2960, "endOffset": 2964, "count": 29 },
+            { "startOffset": 2999, "endOffset": 3010, "count": 29 },
+            { "startOffset": 3045, "endOffset": 3057, "count": 29 },
+            { "startOffset": 3311, "endOffset": 3346, "count": 1 },
+            { "startOffset": 3347, "endOffset": 3362, "count": 29 },
+            { "startOffset": 3393, "endOffset": 3407, "count": 2 },
+            { "startOffset": 3408, "endOffset": 3412, "count": 28 },
+            { "startOffset": 3570, "endOffset": 3586, "count": 1 },
+            { "startOffset": 3587, "endOffset": 3595, "count": 29 },
+            { "startOffset": 3628, "endOffset": 3643, "count": 1 },
+            { "startOffset": 3644, "endOffset": 3652, "count": 29 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "onClick",
+          "ranges": [{ "startOffset": 3082, "endOffset": 3107, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4497, "endOffset": 4521, "count": 7 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1672",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 7381, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 7381, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 389, "endOffset": 433, "count": 30 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 653, "endOffset": 701, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 931, "endOffset": 974, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1088, "endOffset": 1148, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1350, "endOffset": 1392, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1597, "endOffset": 1640, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1848, "endOffset": 1892, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2109, "endOffset": 2156, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2379, "endOffset": 2428, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2636, "endOffset": 2680, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2909, "endOffset": 2960, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3160, "endOffset": 3202, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3405, "endOffset": 3448, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3669, "endOffset": 3718, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3942, "endOffset": 3992, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4216, "endOffset": 4266, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4469, "endOffset": 4512, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4721, "endOffset": 4766, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1673",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Button.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4721, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4721, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Button2",
+          "ranges": [
+            { "startOffset": 588, "endOffset": 1711, "count": 30 },
+            { "startOffset": 993, "endOffset": 1014, "count": 3 },
+            { "startOffset": 1034, "endOffset": 1051, "count": 0 },
+            { "startOffset": 1111, "endOffset": 1120, "count": 27 },
+            { "startOffset": 1179, "endOffset": 1195, "count": 0 },
+            { "startOffset": 1196, "endOffset": 1493, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1808, "endOffset": 1830, "count": 30 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1674",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/cx.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1008, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1008, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "cx",
+          "ranges": [{ "startOffset": 185, "endOffset": 252, "count": 40 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 343, "endOffset": 361, "count": 40 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1675",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/IconButton.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4369, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4369, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "IconButton2",
+          "ranges": [{ "startOffset": 592, "endOffset": 1595, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1696, "endOffset": 1722, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1676",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Badge.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3441, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3441, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "difficultyBadgeVariant",
+          "ranges": [{ "startOffset": 416, "endOffset": 615, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 726, "endOffset": 764, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "Badge",
+          "ranges": [{ "startOffset": 768, "endOffset": 1251, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1345, "endOffset": 1366, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1677",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Card.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 9855, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 9855, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CardHeader",
+          "ranges": [
+            { "startOffset": 416, "endOffset": 1800, "count": 10 },
+            { "startOffset": 520, "endOffset": 538, "count": 0 },
+            { "startOffset": 539, "endOffset": 560, "count": 0 },
+            { "startOffset": 561, "endOffset": 583, "count": 0 },
+            { "startOffset": 604, "endOffset": 616, "count": 0 },
+            { "startOffset": 742, "endOffset": 758, "count": 0 },
+            { "startOffset": 759, "endOffset": 1039, "count": 0 },
+            { "startOffset": 1329, "endOffset": 1335, "count": 0 },
+            { "startOffset": 1624, "endOffset": 1630, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1899, "endOffset": 1925, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CardTitle",
+          "ranges": [{ "startOffset": 1929, "endOffset": 2218, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2316, "endOffset": 2341, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CardActions",
+          "ranges": [{ "startOffset": 2345, "endOffset": 2638, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2738, "endOffset": 2765, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CardBody",
+          "ranges": [{ "startOffset": 2769, "endOffset": 3102, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3199, "endOffset": 3223, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "Card",
+          "ranges": [
+            { "startOffset": 3227, "endOffset": 4279, "count": 10 },
+            { "startOffset": 3401, "endOffset": 3410, "count": 0 },
+            { "startOffset": 3590, "endOffset": 3609, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4372, "endOffset": 4392, "count": 10 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1678",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Input.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6272, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6272, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Input2",
+          "ranges": [{ "startOffset": 725, "endOffset": 2736, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2832, "endOffset": 2853, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1680",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Slider.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6218, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6218, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Slider",
+          "ranges": [{ "startOffset": 535, "endOffset": 2706, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2801, "endOffset": 2823, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1681",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Segmented.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5464, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5464, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Segmented",
+          "ranges": [{ "startOffset": 416, "endOffset": 2098, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2196, "endOffset": 2221, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1682",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Collapsible.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11369, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11369, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CollapsibleHeader",
+          "ranges": [{ "startOffset": 695, "endOffset": 2467, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2573, "endOffset": 2606, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CollapsibleTitle",
+          "ranges": [{ "startOffset": 2610, "endOffset": 2921, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3026, "endOffset": 3058, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CollapsibleContent",
+          "ranges": [{ "startOffset": 3062, "endOffset": 3387, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3494, "endOffset": 3528, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "Collapsible",
+          "ranges": [{ "startOffset": 3532, "endOffset": 5171, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5271, "endOffset": 5298, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1683",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Drawer.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 10288, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 10288, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Drawer",
+          "ranges": [{ "startOffset": 944, "endOffset": 4900, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4995, "endOffset": 5017, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1684",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/ConfirmDialog.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 10098, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 10098, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ConfirmDialog",
+          "ranges": [{ "startOffset": 807, "endOffset": 4692, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4794, "endOffset": 4823, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1685",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Kbd.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 1792, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 1792, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Kbd",
+          "ranges": [{ "startOffset": 416, "endOffset": 754, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 846, "endOffset": 865, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1686",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Well.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2629, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2629, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Well",
+          "ranges": [{ "startOffset": 416, "endOffset": 977, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1070, "endOffset": 1090, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1687",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/FieldLabel.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "FieldLabel",
+          "ranges": [{ "startOffset": 416, "endOffset": 2081, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2180, "endOffset": 2206, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1688",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/PanelHeader.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4796, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4796, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "PanelHeader",
+          "ranges": [{ "startOffset": 416, "endOffset": 2154, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2254, "endOffset": 2281, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1689",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/ButtonGroup.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3294, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3294, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ButtonGroup",
+          "ranges": [{ "startOffset": 416, "endOffset": 1176, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1276, "endOffset": 1303, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1690",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Chip.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6429, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6429, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ChipLabel",
+          "ranges": [{ "startOffset": 416, "endOffset": 706, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 804, "endOffset": 829, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ChipValue",
+          "ranges": [{ "startOffset": 833, "endOffset": 1123, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1221, "endOffset": 1246, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "Chip",
+          "ranges": [{ "startOffset": 1250, "endOffset": 2869, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2962, "endOffset": 2982, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1691",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/ui/Select.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3696, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3696, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "Select",
+          "ranges": [{ "startOffset": 564, "endOffset": 1780, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1875, "endOffset": 1897, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1692",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/CodePuzzle.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1471, "endOffset": 1518, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodePuzzle",
+          "ranges": [{ "startOffset": 1522, "endOffset": 8838, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8937, "endOffset": 8963, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1693",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/LineExplainPopover.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 16276, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 16276, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodeExplainToggle",
+          "ranges": [{ "startOffset": 832, "endOffset": 1696, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1802, "endOffset": 1835, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "useHoveredCodeLine",
+          "ranges": [{ "startOffset": 1839, "endOffset": 2675, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2782, "endOffset": 2816, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "popoverPlacementStyle",
+          "ranges": [{ "startOffset": 2937, "endOffset": 3896, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "connectorStyle",
+          "ranges": [{ "startOffset": 3897, "endOffset": 4314, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "LineExplainPopover",
+          "ranges": [{ "startOffset": 4315, "endOffset": 6336, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6443, "endOffset": 6477, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1694",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/codePuzzleTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6772, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 314, "endOffset": 339, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1072, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1358, "endOffset": 1380, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1629, "endOffset": 1651, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1809, "endOffset": 1835, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2085, "endOffset": 2111, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2343, "endOffset": 2369, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2564, "endOffset": 2593, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1695",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/hooks/useCodePuzzleDragDrop.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6477, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "useCodePuzzleDragDrop",
+          "ranges": [{ "startOffset": 321, "endOffset": 1863, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1973, "endOffset": 2010, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1696",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/hooks/useCodePuzzleState.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 10280, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 10280, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "useCodePuzzleState",
+          "ranges": [{ "startOffset": 491, "endOffset": 3068, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3175, "endOffset": 3209, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1697",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/components/CodePuzzleBlankRow.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 25708, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 25708, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodePuzzleBlankRow",
+          "ranges": [{ "startOffset": 1106, "endOffset": 12355, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12463, "endOffset": 12497, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1698",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/CodeBlockViewer.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 12313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 12313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1366, "endOffset": 1423, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "CodeBlockViewer",
+          "ranges": [{ "startOffset": 1451, "endOffset": 5842, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5947, "endOffset": 5978, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1699",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/code_block/codeBlockTypes.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 4241, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 4241, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "splitIndent",
+          "ranges": [{ "startOffset": 185, "endOffset": 347, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 447, "endOffset": 474, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 665, "endOffset": 706, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 871, "endOffset": 916, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "readExplainEnabled",
+          "ranges": [{ "startOffset": 920, "endOffset": 1268, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1375, "endOffset": 1409, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "writeExplainEnabled",
+          "ranges": [{ "startOffset": 1413, "endOffset": 1559, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1667, "endOffset": 1702, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1700",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/code_block/CodeLine.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5020, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5020, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodeLine",
+          "ranges": [{ "startOffset": 648, "endOffset": 2191, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2289, "endOffset": 2313, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1701",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/code_block/pythonHighlighter.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13609, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 13609, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "highlightPythonLine",
+          "ranges": [{ "startOffset": 1014, "endOffset": 5303, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5411, "endOffset": 5446, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1702",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/components/CodePuzzleSlot.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 17565, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 17565, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodePuzzleSlot",
+          "ranges": [{ "startOffset": 900, "endOffset": 6880, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6984, "endOffset": 7014, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1703",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/trivia/components/CodePuzzleCodeRow.tsx",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5788, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5788, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "CodePuzzleCodeRow",
+          "ranges": [{ "startOffset": 647, "endOffset": 2737, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2844, "endOffset": 2877, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

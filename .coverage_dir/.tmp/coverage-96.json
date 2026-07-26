@@ -1,0 +1,273 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tries_and_strings/specs/kmpStringMatch.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11823, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11823, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 587, "endOffset": 4313, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 664, "endOffset": 1218, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1314, "endOffset": 2288, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1998, "endOffset": 2054, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2360, "endOffset": 2584, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2649, "endOffset": 2958, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3042, "endOffset": 3327, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3433, "endOffset": 3790, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3651, "endOffset": 3667, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3889, "endOffset": 4309, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4178, "endOffset": 4235, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tries_and_strings/kmpStringMatch/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2141, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2141, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 437, "endOffset": 483, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 758, "endOffset": 812, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1113, "endOffset": 1168, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1274, "endOffset": 1326, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1425, "endOffset": 1470, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tries_and_strings/kmpStringMatch/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 3011, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 3011, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1172, "endOffset": 1196, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tries_and_strings/kmpStringMatch/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 21800, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 21800, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getAuxiliaryState",
+          "ranges": [
+            { "startOffset": 211, "endOffset": 606, "count": 109 },
+            { "startOffset": 314, "endOffset": 378, "count": 562 },
+            { "startOffset": 508, "endOffset": 528, "count": 21 },
+            { "startOffset": 529, "endOffset": 537, "count": 88 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 566, "endOffset": 598, "count": 35 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateKmpSteps",
+          "ranges": [
+            { "startOffset": 633, "endOffset": 6583, "count": 7 },
+            { "startOffset": 713, "endOffset": 718, "count": 2 },
+            { "startOffset": 752, "endOffset": 757, "count": 1 },
+            { "startOffset": 1761, "endOffset": 1771, "count": 6 },
+            { "startOffset": 1772, "endOffset": 1780, "count": 5 },
+            { "startOffset": 1782, "endOffset": 2038, "count": 2 },
+            { "startOffset": 2038, "endOffset": 2387, "count": 5 },
+            { "startOffset": 2387, "endOffset": 3511, "count": 18 },
+            { "startOffset": 2426, "endOffset": 3507, "count": 9 },
+            { "startOffset": 2818, "endOffset": 3198, "count": 3 },
+            { "startOffset": 3198, "endOffset": 3507, "count": 6 },
+            { "startOffset": 3511, "endOffset": 3844, "count": 5 },
+            { "startOffset": 3844, "endOffset": 6108, "count": 44 },
+            { "startOffset": 4103, "endOffset": 4192, "count": 31 },
+            { "startOffset": 4193, "endOffset": 4319, "count": 13 },
+            { "startOffset": 4429, "endOffset": 4464, "count": 31 },
+            { "startOffset": 4485, "endOffset": 5116, "count": 8 },
+            { "startOffset": 4613, "endOffset": 4711, "count": 27 },
+            { "startOffset": 5116, "endOffset": 6104, "count": 36 },
+            { "startOffset": 5168, "endOffset": 5960, "count": 15 },
+            { "startOffset": 5273, "endOffset": 5651, "count": 4 },
+            { "startOffset": 5651, "endOffset": 5954, "count": 11 },
+            { "startOffset": 5960, "endOffset": 6104, "count": 21 },
+            { "startOffset": 6108, "endOffset": 6354, "count": 5 },
+            { "startOffset": 6354, "endOffset": 6374, "count": 4 },
+            { "startOffset": 6375, "endOffset": 6383, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 850, "endOffset": 967, "count": 42 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1024, "endOffset": 1490, "count": 109 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1273, "endOffset": 1371, "count": 1176 },
+            { "startOffset": 1352, "endOffset": 1360, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 6127, "endOffset": 6245, "count": 8 },
+            { "startOffset": 6181, "endOffset": 6241, "count": 27 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6689, "endOffset": 6721, "count": 8 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tries_and_strings/kmpStringMatch/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 34162, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 34162, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 698, "endOffset": 731, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13578, "endOffset": 13608, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

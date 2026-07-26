@@ -1,0 +1,132 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/specs/euclidGcd.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 6848, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 6848, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 605, "endOffset": 2650, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 698, "endOffset": 1164, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1249, "endOffset": 1895, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1596, "endOffset": 1790, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1846, "endOffset": 1859, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1970, "endOffset": 2374, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2441, "endOffset": 2646, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/euclidGcd.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 42762, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 42762, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 461, "endOffset": 499, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 670, "endOffset": 710, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateEuclidGcdSteps",
+          "ranges": [
+            { "startOffset": 745, "endOffset": 5193, "count": 2 },
+            { "startOffset": 2640, "endOffset": 4133, "count": 6 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [
+            { "startOffset": 993, "endOffset": 2267, "count": 28 },
+            { "startOffset": 1319, "endOffset": 1455, "count": 12 },
+            { "startOffset": 1848, "endOffset": 1866, "count": 12 },
+            { "startOffset": 1867, "endOffset": 1924, "count": 12 },
+            { "startOffset": 1925, "endOffset": 1929, "count": 16 },
+            { "startOffset": 2033, "endOffset": 2056, "count": 12 },
+            { "startOffset": 2057, "endOffset": 2061, "count": 16 },
+            { "startOffset": 2092, "endOffset": 2112, "count": 12 },
+            { "startOffset": 2113, "endOffset": 2117, "count": 16 },
+            { "startOffset": 2219, "endOffset": 2242, "count": 12 },
+            { "startOffset": 2243, "endOffset": 2247, "count": 16 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5305, "endOffset": 5343, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 15490, "endOffset": 15515, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

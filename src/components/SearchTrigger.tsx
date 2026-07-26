@@ -1,61 +1,34 @@
-import React from 'react';
-import { Search } from 'lucide-react';
-import { Kbd } from '../ui';
+import { useState } from "react";
+import type { ReactElement } from "react";
+import { Search } from "lucide-react";
+import { Kbd } from "../ui";
 
 export interface SearchTriggerProps {
   onOpenDrawer: () => void;
 }
 
-/* Looks like an input but is a button — the QuickAccessDrawer owns all searching. */
-export const SearchTrigger: React.FC<SearchTriggerProps> = ({ onOpenDrawer }) => {
+export function SearchTrigger({ onOpenDrawer }: SearchTriggerProps): ReactElement {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <button
       type="button"
       onClick={onOpenDrawer}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       aria-label="Search algorithms"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        width: '240px',
-        // Sits in the navbar toggle row, so it shares the sm control scale (R4.5).
-        height: 'var(--control-h-sm)',
-        padding: '0 var(--space-1) 0 var(--space-2)',
-        background: 'var(--bg-inset)',
-        border: '1px solid var(--border-default)',
-        borderRadius: 'var(--radius-sm)',
-        fontFamily: 'var(--font-ui)',
-        fontSize: 'var(--text-xs)',
-        color: 'var(--text-muted)',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-        flexShrink: 0,
-        transition: 'border-color var(--transition-fast), color var(--transition-fast)',
+        height: "var(--control-h-sm)",
+        fontSize: "var(--text-xs)",
+        background: "var(--bg-inset)",
+        color: hovered ? "var(--text-primary)" : "var(--text-muted)",
+        borderColor: hovered ? "var(--border-strong)" : "var(--border-default)",
       }}
-      onMouseEnter={(event) => {
-        event.currentTarget.style.borderColor = 'var(--border-strong)';
-        event.currentTarget.style.color = 'var(--text-primary)';
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.borderColor = 'var(--border-default)';
-        event.currentTarget.style.color = 'var(--text-muted)';
-      }}
+      className="flex items-center gap-2 w-60 pl-2 pr-1 border rounded-[var(--radius-sm)] font-[var(--font-ui)] cursor-pointer whitespace-nowrap shrink-0 transition-colors"
     >
-      <Search
-        aria-hidden="true"
-        style={{ width: '14px', height: '14px', color: 'currentColor', flexShrink: 0 }}
-      />
-      <span
-        style={{
-          flex: 1,
-          textAlign: 'left',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        Search algorithms…
-      </span>
+      <Search aria-hidden="true" className="w-3.5 h-3.5 color-current shrink-0" />
+      <span className="flex-1 text-left overflow-hidden text-ellipsis">Search algorithms…</span>
       <Kbd>/</Kbd>
     </button>
   );
-};
+}

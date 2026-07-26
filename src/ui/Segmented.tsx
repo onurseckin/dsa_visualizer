@@ -1,6 +1,6 @@
-import type { HTMLAttributes, ReactNode } from 'react';
-import { cx } from './cx';
-import type { ControlSize } from './Button';
+import type { HTMLAttributes, ReactNode } from "react";
+import { cx } from "./cx";
+import type { ControlSize } from "./Button";
 
 export interface SegmentedOption {
   value: string;
@@ -8,7 +8,7 @@ export interface SegmentedOption {
   icon?: ReactNode;
 }
 
-export interface SegmentedProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
+export interface SegmentedProps extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
   options: SegmentedOption[];
   value: string;
   onChange: (value: string) => void;
@@ -19,23 +19,19 @@ export function Segmented({
   options,
   value,
   onChange,
-  size = 'md',
+  size = "md",
   className,
   ...rest
 }: SegmentedProps): React.ReactElement {
   return (
-    <div
-      role="group"
-      className={cx('ui-segmented', `ui-segmented--${size}`, className)}
-      {...rest}
-    >
+    <div role="group" className={cx("ui-segmented", `ui-segmented--${size}`, className)} {...rest}>
       {options.map((option) => {
         const selected = option.value === value;
         return (
           <button
             key={option.value}
             type="button"
-            className={cx('ui-segmented__btn', selected && 'ui-segmented__btn--selected')}
+            className={cx("ui-segmented__btn", selected && "ui-segmented__btn--selected")}
             aria-pressed={selected}
             onClick={() => {
               if (!selected) onChange(option.value);

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createFileRoute, redirect } from '@tanstack/react-router';
-import { ALGORITHM_REGISTRY } from '../algorithms/registry';
-import { useStepEngine } from '../engine/stepEngine';
-import { MainLayout } from '../components/MainLayout';
-import { useSettings } from '../app/SettingsContext';
-import { isDialogOpen, isTypingTarget } from '../app/keyboardGuards';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ALGORITHM_REGISTRY } from "../algorithms/registry";
+import { useStepEngine } from "../engine/stepEngine";
+import { MainLayout } from "../components/MainLayout";
+import { useSettings } from "../app/SettingsContext";
+import { isDialogOpen, isTypingTarget } from "../app/keyboardGuards";
 
 /* Space activates the focused button or link. Hijacking it there would mean that
    tabbing to any toggle and pressing Space scrubs playback instead of flipping
@@ -13,10 +13,10 @@ const activatesOnSpace = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement &&
   target.closest('button, [role="button"], a[href], summary') !== null;
 
-export const Route = createFileRoute('/workspace/$algorithmId')({
+export const Route = createFileRoute("/workspace/$algorithmId")({
   beforeLoad: ({ params }) => {
     if (!ALGORITHM_REGISTRY[params.algorithmId]) {
-      throw redirect({ to: '/workspace/$algorithmId', params: { algorithmId: 'bubble-sort' } });
+      throw redirect({ to: "/workspace/$algorithmId", params: { algorithmId: "bubble-sort" } });
     }
   },
   component: WorkspacePage,
@@ -24,8 +24,13 @@ export const Route = createFileRoute('/workspace/$algorithmId')({
 
 function WorkspacePage(): React.ReactElement {
   const { algorithmId } = Route.useParams();
-  const { panels, setPanel, setLastAlgorithmId, speed: persistedSpeed, setSpeed: setPersistedSpeed } =
-    useSettings();
+  const {
+    panels,
+    setPanel,
+    setLastAlgorithmId,
+    speed: persistedSpeed,
+    setSpeed: setPersistedSpeed,
+  } = useSettings();
 
   const [dataSize, setDataSize] = useState<number>(10);
   const [inputSeed, setInputSeed] = useState<number>(1);
@@ -41,7 +46,7 @@ function WorkspacePage(): React.ReactElement {
   // Random sized inputs only fit algorithms that consume a plain number array;
   // object-shaped inputs (e.g. Two Sum's {nums, target}) keep their curated default.
   const supportsRandomArray =
-    algorithm.category === 'arrays_and_hashing' && Array.isArray(algorithm.defaultInput);
+    algorithm.category === "arrays_and_hashing" && Array.isArray(algorithm.defaultInput);
 
   const currentInput = useMemo(() => {
     if (supportsRandomArray) {
@@ -106,20 +111,20 @@ function WorkspacePage(): React.ReactElement {
          its own schedule, so ArrowLeft during playback looked like a no-op (the
          next tick undid it) and ArrowRight double-stepped. This is also what the
          step buttons already say by disabling themselves while playing. */
-      if (event.key === 'ArrowRight') {
+      if (event.key === "ArrowRight") {
         event.preventDefault();
         playback.pause();
         playback.stepForward();
         return;
       }
-      if (event.key === 'ArrowLeft') {
+      if (event.key === "ArrowLeft") {
         event.preventDefault();
         playback.pause();
         playback.stepBackward();
         return;
       }
       // ' ' is the standard key value; 'Spacebar' is the legacy Edge/IE spelling.
-      if (event.key === ' ' || event.key === 'Spacebar') {
+      if (event.key === " " || event.key === "Spacebar") {
         if (activatesOnSpace(event.target)) return;
         // Without this the page (or the nearest scroller) pages down on every play.
         event.preventDefault();
@@ -127,8 +132,8 @@ function WorkspacePage(): React.ReactElement {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleGenerateRandom = () => {
@@ -140,8 +145,8 @@ function WorkspacePage(): React.ReactElement {
       algorithm={algorithm}
       currentStep={currentStep}
       panels={panels}
-      onToggleTutorial={() => setPanel('tutorial', false)}
-      onToggleAuxiliary={() => setPanel('auxiliary', false)}
+      onToggleTutorial={() => setPanel("tutorial", false)}
+      onToggleAuxiliary={() => setPanel("auxiliary", false)}
       controlProps={{
         isPlaying,
         onPlayPause: togglePlay,

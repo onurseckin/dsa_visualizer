@@ -1,16 +1,16 @@
-import type { TriviaMeta } from './trivia';
+import type { TriviaMeta } from "./trivia";
 
 export type ElementState =
-  | 'default'
-  | 'compare'
-  | 'swap'
-  | 'sorted'
-  | 'active'
-  | 'pivot'
-  | 'visited'
-  | 'queued'
-  | 'in-stack'
-  | 'path';
+  | "default"
+  | "compare"
+  | "swap"
+  | "sorted"
+  | "active"
+  | "pivot"
+  | "visited"
+  | "queued"
+  | "in-stack"
+  | "path";
 
 export interface ArrayElement {
   id: string;
@@ -33,7 +33,7 @@ export interface GridCellNode {
 
 export interface GraphNodeItem {
   id: string;
-  label: string;
+  label?: string;
   x?: number;
   y?: number;
   state: ElementState;
@@ -78,26 +78,26 @@ export interface StepExplanation {
   why: string;
 }
 
-export type PrimaryVisualKind = 'array' | 'grid' | 'graph' | 'tree';
+export type PrimaryVisualKind = "array" | "grid" | "graph" | "tree";
 
 export interface ArrayVisualSnapshot {
-  kind: 'array';
+  kind: "array";
   elements: ArrayElement[];
 }
 
 export interface GridVisualSnapshot {
-  kind: 'grid';
+  kind: "grid";
   grid: GridCellNode[][];
 }
 
 export interface GraphVisualSnapshot {
-  kind: 'graph';
+  kind: "graph";
   nodes: GraphNodeItem[];
   edges: GraphEdgeItem[];
 }
 
 export interface TreeVisualSnapshot {
-  kind: 'tree';
+  kind: "tree";
   nodes: TreeNodeItem[];
   rootId?: string;
 }
@@ -119,7 +119,7 @@ export interface AlgorithmStep {
 
 /* Retained for compatibility with older persisted settings; the workspace now
    models panel visibility as independent toggles (see PanelVisibility). */
-export type ViewMode = 'split' | 'visual' | 'code';
+export type ViewMode = "split" | "visual" | "code";
 
 /* Each workspace panel is shown or hidden by its own navbar toggle — there is
    no mutually exclusive "view mode" anymore. */
@@ -131,53 +131,53 @@ export interface PanelVisibility {
 }
 
 export type PanelKey = keyof PanelVisibility;
-export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
+export type DifficultyLevel = "Easy" | "Medium" | "Hard";
 
 export type CategoryType =
-  | 'arrays_and_hashing'
-  | 'two_pointers'
-  | 'sliding_window'
-  | 'stack_and_queue'
-  | 'binary_search'
-  | 'linked_list'
-  | 'tree_fundamentals'
-  | 'tree_queries_and_diameter'
-  | 'tries_and_strings'
-  | 'heap_and_priority_queue'
-  | 'backtracking'
-  | 'graph_traversal'
-  | 'graph_shortest_paths'
-  | 'graph_spanning_trees'
-  | 'graph_directed_and_scc'
-  | 'graph_flows_and_cuts'
-  | 'dp_1d'
-  | 'dp_2d'
-  | 'intervals'
-  | 'greedy_algorithms'
-  | 'bit_manipulation'
-  | 'math_and_number_theory'
-  | 'game_theory'
-  | 'advanced_range_queries'
-  | 'geometry_and_sweep_line'
+  | "arrays_and_hashing"
+  | "two_pointers"
+  | "sliding_window"
+  | "stack_and_queue"
+  | "binary_search"
+  | "linked_list"
+  | "tree_fundamentals"
+  | "tree_queries_and_diameter"
+  | "tries_and_strings"
+  | "heap_and_priority_queue"
+  | "backtracking"
+  | "graph_traversal"
+  | "graph_shortest_paths"
+  | "graph_spanning_trees"
+  | "graph_directed_and_scc"
+  | "graph_flows_and_cuts"
+  | "dp_1d"
+  | "dp_2d"
+  | "intervals"
+  | "greedy_algorithms"
+  | "bit_manipulation"
+  | "math_and_number_theory"
+  | "game_theory"
+  | "advanced_range_queries"
+  | "geometry_and_sweep_line"
   // Compatibility aliases
-  | 'stack'
-  | 'trees'
-  | 'tries'
-  | 'heap'
-  | 'graphs'
-  | 'greedy'
-  | 'advanced_graphs'
-  | 'math_and_geometry'
-  | 'advanced_range_and_cp'
-  | 'sorting'
-  | 'leetcode'
-  | 'fundamentals'
-  | 'data-structures'
-  | 'dynamic-programming'
-  | 'graph'
-  | 'tree'
-  | 'advanced'
-  | 'math-games';
+  | "stack"
+  | "trees"
+  | "tries"
+  | "heap"
+  | "graphs"
+  | "greedy"
+  | "advanced_graphs"
+  | "math_and_geometry"
+  | "advanced_range_and_cp"
+  | "sorting"
+  | "leetcode"
+  | "fundamentals"
+  | "data-structures"
+  | "dynamic-programming"
+  | "graph"
+  | "tree"
+  | "advanced"
+  | "math-games";
 
 export interface TimeComplexity {
   best: string;
@@ -234,5 +234,4 @@ export interface AlgorithmDefinition<TInput = unknown> {
   defaultInput: TInput;
 }
 
-export type AppView = 'tree' | 'list' | 'workspace' | 'trivia';
-
+export type AppView = "tree" | "list" | "workspace" | "trivia";

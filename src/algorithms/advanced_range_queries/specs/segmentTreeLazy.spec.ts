@@ -1,35 +1,35 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SEGMENT_TREE_LAZY_INPUT,
   generateSegmentTreeLazySteps,
   segmentTreeLazy,
-} from '../segmentTreeLazy';
-import type { TreeVisualSnapshot } from '../../../types/dsa';
+} from "../segmentTreeLazy";
+import type { TreeVisualSnapshot } from "../../../types/dsa";
 
-describe('segmentTreeLazy algorithm spec', () => {
-  it('should have correct algorithm metadata', () => {
-    expect(segmentTreeLazy.id).toBe('segment-tree-lazy');
-    expect(segmentTreeLazy.title).toBe('Segment Tree (Lazy Propagation)');
-    expect(segmentTreeLazy.category).toBe('advanced_range_queries');
-    expect(segmentTreeLazy.difficulty).toBe('Hard');
-    expect(segmentTreeLazy.code).toContain('class SegmentTreeLazy');
-    expect(segmentTreeLazy.timeComplexity.average).toBe('O(log n)');
-    expect(segmentTreeLazy.spaceComplexity).toBe('O(n)');
+describe("segmentTreeLazy algorithm spec", () => {
+  it("should have correct algorithm metadata", () => {
+    expect(segmentTreeLazy.id).toBe("segment-tree-lazy");
+    expect(segmentTreeLazy.title).toBe("Segment Tree (Lazy Propagation)");
+    expect(segmentTreeLazy.category).toBe("advanced_range_queries");
+    expect(segmentTreeLazy.difficulty).toBe("Hard");
+    expect(segmentTreeLazy.code).toContain("class SegmentTreeLazy");
+    expect(segmentTreeLazy.timeComplexity.average).toBe("O(log n)");
+    expect(segmentTreeLazy.spaceComplexity).toBe("O(n)");
   });
 
-  it('should generate valid steps for default input', () => {
+  it("should generate valid steps for default input", () => {
     const steps = generateSegmentTreeLazySteps(DEFAULT_SEGMENT_TREE_LAZY_INPUT);
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.primarySnapshot.kind).toBe('tree');
+    expect(firstStep.primarySnapshot.kind).toBe("tree");
 
     const snapshot = firstStep.primarySnapshot as TreeVisualSnapshot;
     expect(snapshot.nodes).toBeDefined();
 
     const queryResultSteps = steps.filter((s) =>
-      s.explanation.what.includes('Range query [1..3] equals')
+      s.explanation.what.includes("Range query [1..3] equals"),
     );
     expect(queryResultSteps.length).toBe(2);
 
@@ -40,13 +40,32 @@ describe('segmentTreeLazy algorithm spec', () => {
     expect(queryResultSteps[1].variables.totalSum).toBe(24);
   });
 
-  it('should handle empty input array', () => {
+  it("should handle empty input array", () => {
     const steps = generateSegmentTreeLazySteps({ array: [] });
     expect(steps.length).toBe(1);
     expect(steps[0].variables.n).toBe(0);
   });
 
-  it('should teach the topic through a topicGuide', () => {
+  it("should handle lazy pushdown, leaf updates, out-of-bounds queries, and invalid ops", () => {
+    const steps1 = generateSegmentTreeLazySteps({ array: [1, 2, 3, 4] });
+    expect(steps1.length).toBeGreaterThan(0);
+
+    const steps2 = generateSegmentTreeLazySteps({
+      array: [10, 20, 30, 40],
+      operations: [
+        { type: "rangeUpdate", left: 0, right: 1 }, // omitted value defaults to 1
+        { type: "rangeUpdate", left: 0, right: 1, value: 5 }, // set lazy tag on node [0..1]
+        { type: "rangeQuery", left: 0, right: 0 }, // forces pushLazy on node [0..1]
+        { type: "rangeUpdate", left: 2, right: 2, value: 10 }, // leaf node update (start === end)
+        { type: "rangeUpdate", left: 10, right: 20, value: 5 }, // completely out of bounds update
+        { type: "rangeQuery", left: 10, right: 20 }, // completely out of bounds query
+        { type: "invalid" as unknown as "rangeUpdate", left: 0, right: 0 },
+      ],
+    });
+    expect(steps2.length).toBeGreaterThan(0);
+  });
+
+  it("should teach the topic through a topicGuide", () => {
     const guide = segmentTreeLazy.topicGuide;
     expect(guide.overview.length).toBeGreaterThan(120);
     expect(guide.sections.length).toBeGreaterThanOrEqual(4);
@@ -54,16 +73,16 @@ describe('segmentTreeLazy algorithm spec', () => {
 
     guide.sections.forEach((section) => {
       expect(section.heading.length).toBeGreaterThan(0);
-      expect(section.body.split('. ').length).toBeGreaterThanOrEqual(3);
+      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
       expect(section.body).not.toMatch(/[*#`_]|^- /);
     });
 
-    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(' ');
-    expect(allText).toContain('lazy tag');
-    expect(allText).toContain('push');
+    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(" ");
+    expect(allText).toContain("lazy tag");
+    expect(allText).toContain("push");
 
     expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
-    expect(guide.keyTerms?.map((t) => t.term)).toContain('Push down');
+    expect(guide.keyTerms?.map((t) => t.term)).toContain("Push down");
   });
 });

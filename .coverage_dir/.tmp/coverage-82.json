@@ -1,0 +1,270 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/specs/vizGeometrySpread.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 14689, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 14689, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 527, "endOffset": 4791, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 663, "endOffset": 970, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1067, "endOffset": 1583, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1354, "endOffset": 1372, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1401, "endOffset": 1419, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1675, "endOffset": 1812, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1902, "endOffset": 2421, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2529, "endOffset": 2929, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3026, "endOffset": 3341, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3439, "endOffset": 3918, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4019, "endOffset": 4493, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4189, "endOffset": 4487, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4593, "endOffset": 4787, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/components/primitives/vizGeometry.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26922, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clamp",
+          "ranges": [{ "startOffset": 348, "endOffset": 435, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 530, "endOffset": 551, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "round2",
+          "ranges": [{ "startOffset": 570, "endOffset": 610, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "isFinitePoint",
+          "ranges": [
+            { "startOffset": 634, "endOffset": 697, "count": 42 },
+            { "startOffset": 670, "endOffset": 697, "count": 39 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "axisPad",
+          "ranges": [
+            { "startOffset": 742, "endOffset": 830, "count": 22 },
+            { "startOffset": 804, "endOffset": 807, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "viewBoxAttr",
+          "ranges": [{ "startOffset": 852, "endOffset": 946, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1047, "endOffset": 1074, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "boxViewBox",
+          "ranges": [{ "startOffset": 1097, "endOffset": 1200, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1300, "endOffset": 1326, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "spreadToBox",
+          "ranges": [
+            { "startOffset": 1350, "endOffset": 2295, "count": 10 },
+            { "startOffset": 1743, "endOffset": 1769, "count": 1 },
+            { "startOffset": 1769, "endOffset": 2294, "count": 9 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "centre",
+          "ranges": [{ "startOffset": 1628, "endOffset": 1667, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1794, "endOffset": 1812, "count": 18 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1839, "endOffset": 1857, "count": 18 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2024, "endOffset": 2291, "count": 20 },
+            { "startOffset": 2068, "endOffset": 2084, "count": 2 },
+            { "startOffset": 2084, "endOffset": 2128, "count": 18 },
+            { "startOffset": 2128, "endOffset": 2175, "count": 13 },
+            { "startOffset": 2176, "endOffset": 2187, "count": 5 },
+            { "startOffset": 2219, "endOffset": 2267, "count": 11 },
+            { "startOffset": 2268, "endOffset": 2280, "count": 7 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2396, "endOffset": 2423, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "minPointSpacing",
+          "ranges": [{ "startOffset": 2451, "endOffset": 2816, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2921, "endOffset": 2952, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "ellipsePoints",
+          "ranges": [
+            { "startOffset": 2978, "endOffset": 3593, "count": 1 },
+            { "startOffset": 3175, "endOffset": 3179, "count": 0 },
+            { "startOffset": 3203, "endOffset": 3248, "count": 0 },
+            { "startOffset": 3385, "endOffset": 3399, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3440, "endOffset": 3589, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3696, "endOffset": 3725, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "fitSlots",
+          "ranges": [{ "startOffset": 3746, "endOffset": 4117, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4215, "endOffset": 4239, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "tidyTreeSlots",
+          "ranges": [{ "startOffset": 4265, "endOffset": 5139, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5242, "endOffset": 5271, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "useCanvasBox",
+          "ranges": [{ "startOffset": 5296, "endOffset": 6009, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6111, "endOffset": 6139, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    }
+  ]
+}

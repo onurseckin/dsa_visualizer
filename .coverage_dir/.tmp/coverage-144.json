@@ -1,0 +1,256 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/backtracking/specs/nQueens.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8151, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8151, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 569, "endOffset": 3085, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 645, "endOffset": 1157, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1246, "endOffset": 1890, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1959, "endOffset": 2165, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2275, "endOffset": 3081, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2657, "endOffset": 3075, "count": 113 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/backtracking/nQueens/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2123, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2123, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 435, "endOffset": 486, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 757, "endOffset": 815, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1105, "endOffset": 1164, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1263, "endOffset": 1308, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1407, "endOffset": 1452, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/backtracking/nQueens/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2709, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2709, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1057, "endOffset": 1086, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/backtracking/nQueens/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 17476, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 17476, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateNQueensSteps",
+          "ranges": [
+            { "startOffset": 214, "endOffset": 5279, "count": 3 },
+            { "startOffset": 312, "endOffset": 316, "count": 0 },
+            { "startOffset": 4947, "endOffset": 4951, "count": 1 },
+            { "startOffset": 4952, "endOffset": 4957, "count": 2 },
+            { "startOffset": 5105, "endOffset": 5109, "count": 1 },
+            { "startOffset": 5110, "endOffset": 5115, "count": 2 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 362, "endOffset": 386, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createGridSnapshot",
+          "ranges": [{ "startOffset": 572, "endOffset": 1204, "count": 234 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 636, "endOffset": 1193, "count": 912 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 665, "endOffset": 1192, "count": 3624 },
+            { "startOffset": 818, "endOffset": 1023, "count": 427 },
+            { "startOffset": 846, "endOffset": 926, "count": 17 },
+            { "startOffset": 926, "endOffset": 1013, "count": 410 },
+            { "startOffset": 1023, "endOffset": 1163, "count": 3197 },
+            { "startOffset": 1042, "endOffset": 1064, "count": 2610 },
+            { "startOffset": 1065, "endOffset": 1087, "count": 706 },
+            { "startOffset": 1089, "endOffset": 1163, "count": 154 },
+            { "startOffset": 1132, "endOffset": 1140, "count": 88 },
+            { "startOffset": 1141, "endOffset": 1152, "count": 66 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1224, "endOffset": 2066, "count": 234 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1346, "endOffset": 1489, "count": 912 },
+            { "startOffset": 1419, "endOffset": 1483, "count": 427 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1793, "endOffset": 1810, "count": 427 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "backtrack",
+          "ranges": [
+            { "startOffset": 2341, "endOffset": 4839, "count": 36 },
+            { "startOffset": 2390, "endOffset": 2418, "count": 5 },
+            { "startOffset": 2419, "endOffset": 2445, "count": 31 },
+            { "startOffset": 2463, "endOffset": 2569, "count": 5 },
+            { "startOffset": 2570, "endOffset": 2690, "count": 31 },
+            { "startOffset": 2759, "endOffset": 3101, "count": 5 },
+            { "startOffset": 3101, "endOffset": 3140, "count": 31 },
+            { "startOffset": 3140, "endOffset": 4835, "count": 121 },
+            { "startOffset": 3238, "endOffset": 3254, "count": 65 },
+            { "startOffset": 3255, "endOffset": 3271, "count": 47 },
+            { "startOffset": 3369, "endOffset": 3569, "count": 88 },
+            { "startOffset": 3570, "endOffset": 3697, "count": 33 },
+            { "startOffset": 3832, "endOffset": 4829, "count": 33 },
+            { "startOffset": 4835, "endOffset": 4838, "count": 31 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5389, "endOffset": 5425, "count": 4 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/backtracking/nQueens/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 31431, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 31431, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 644, "endOffset": 681, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12485, "endOffset": 12508, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

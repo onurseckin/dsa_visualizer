@@ -1,59 +1,14 @@
-import React from 'react';
-import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from '../types/dsa';
-import { ArrayVisualizer } from './primitives/ArrayVisualizer';
-import { GridVisualizer } from './primitives/GridVisualizer';
-import { GraphVisualizer } from './primitives/GraphVisualizer';
-import { TreeVisualizer } from './primitives/TreeVisualizer';
-import { AuxiliaryPanel, hasAuxiliaryContent } from './primitives/AuxiliaryPanel';
-import { TutorialCard, hasTutorialContent } from './primitives/TutorialCard';
-import { CodeBlockViewer } from './primitives/CodeBlockViewer';
-import { ProblemDescriptionCard } from './primitives/ProblemDescriptionCard';
-import { SolutionApproachCard } from './primitives/SolutionApproachCard';
-import { ComplexityCard } from './ComplexityCard';
-import { ControlPanel, ControlPanelProps } from './ControlPanel';
-import {
-  DragHandle,
-  PanelHeightMap,
-  ResizableLayout,
-  ResizableRow,
-  ResizableRows,
-  usePointerDrag,
-} from './ResizableLayout';
-import { Card } from '../ui';
-import {
-  DEFAULT_WORKSPACE_LAYOUT,
-  MAX_PANEL_HEIGHT_PX,
-  MAX_SPLIT_PERCENT,
-  MIN_PANEL_HEIGHT_PX,
-  MIN_SPLIT_PERCENT,
-  WORKSPACE_LAYOUT_RESET_EVENT,
-  WorkspaceLayout,
-  WorkspacePanelHeights,
-  readWorkspaceLayout,
-  writeWorkspaceLayout,
-} from '../app/workspaceLayout';
-
-/* Smart viewport sizing (DESIGN.md R3.2). The stage takes the viewport minus the
-   app chrome it sits under — navbar, the collapsed problem strip, main's vertical
-   padding and the header/stage gap — but never goes below --stage-min-h. On a tall
-   monitor the subtraction wins and everything fits with no scrolling; on a short
-   one the floor wins and the page scrolls. Expanding details adds content above
-   the stage and lets the page scroll rather than squeezing the panels, so the
-   subtraction always uses the collapsed strip height. */
-
-/* The collapsed strip is one sm control row inside a Card: its tallest child is a
-   sm button, wrapped in the card body's --space-2 padding and the card's own 1px
-   top and bottom borders. The borders have to be counted — undercounting by even
-   2px puts a scrollbar on a viewport that would otherwise fit exactly. */
-const HEADER_STRIP_H = 'var(--control-h-sm) + var(--space-2) * 2 + 2px';
-/* main's top and bottom padding plus the header-to-stage gap, all --space-3. */
-const STAGE_CHROME = `var(--navbar-h) + (${HEADER_STRIP_H}) + var(--space-3) * 3`;
-const STAGE_HEIGHT = `max(var(--stage-min-h), calc(100dvh - (${STAGE_CHROME})))`;
+import React from "react";
+import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../types/dsa";
+import { ControlPanelProps } from "./ControlPanel";
+import { useMainLayoutState } from "./main-layout/hooks/useMainLayoutState";
+import { ProblemSection } from "./main-layout/components/ProblemSection";
+import { SolutionSection } from "./main-layout/components/SolutionSection";
+import { MainStage } from "./main-layout/components/MainStage";
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
-  /** Independent on/off per workspace panel (DESIGN.md R4.4) — no view modes. */
   panels: PanelVisibility;
   onToggleTutorial: () => void;
   onToggleAuxiliary: () => void;
@@ -94,10 +49,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onGenerateRandom,
   supportsCustomSize,
 }) => {
-  const primarySnapshot = currentStep?.primarySnapshot;
+  const layoutState = useMainLayoutState();
 
-  const resolvedControlProps: ControlPanelProps | null = controlProps || (
-    isPlaying !== undefined && onPlayPause && onStepBack && onStepForward && onReset
+  const resolvedControlProps: ControlPanelProps | null =
+    controlProps ||
+    (isPlaying !== undefined && onPlayPause && onStepBack && onStepForward && onReset
       ? {
           isPlaying,
           onPlayPause,
@@ -113,565 +69,53 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           onGenerateRandom: onGenerateRandom || (() => {}),
           supportsCustomSize: supportsCustomSize ?? false,
         }
-      : null
-  );
-
-  const renderPrimaryVisualizer = () => {
-    if (!primarySnapshot) return null;
-
-    switch (primarySnapshot.kind) {
-      case 'array':
-        return <ArrayVisualizer elements={primarySnapshot.elements} />;
-      case 'grid':
-        return <GridVisualizer grid={primarySnapshot.grid} />;
-      case 'graph':
-        return <GraphVisualizer nodes={primarySnapshot.nodes} edges={primarySnapshot.edges} />;
-      case 'tree':
-        return <TreeVisualizer nodes={primarySnapshot.nodes} rootId={primarySnapshot.rootId} />;
-      default:
-        return null;
-    }
-  };
-
-  /* Every manual adjustment — the column split, each pinned height and whether
-     the problem/solution panels are open — lives in this one persisted record
-     (R6.5). The two panels are independently expandable (TASKS.md 9.6). */
-  const [layout, setLayout] = React.useState<WorkspaceLayout>(() => readWorkspaceLayout());
-  const problemExpanded = layout.problemExpanded;
-  const solutionExpanded = layout.solutionExpanded;
-
-  /* Drag handlers fire from window listeners, so they read the newest layout
-     from a ref rather than closing over a stale render's state. */
-  const layoutRef = React.useRef<WorkspaceLayout>(layout);
-  layoutRef.current = layout;
-
-  /* Reset is a navbar action on state this component owns, so the navbar clears
-     storage and announces it; re-reading is how the reset takes effect live
-     instead of only after a reload. */
-  React.useEffect(() => {
-    const reload = () => setLayout(readWorkspaceLayout());
-    window.addEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
-    return () => window.removeEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
-  }, []);
-
-  const handleToggleProblemExpanded = React.useCallback(() => {
-    setLayout(writeWorkspaceLayout({ problemExpanded: !layoutRef.current.problemExpanded }));
-  }, []);
-
-  const handleToggleSolutionExpanded = React.useCallback(() => {
-    setLayout(writeWorkspaceLayout({ solutionExpanded: !layoutRef.current.solutionExpanded }));
-  }, []);
-
-  const handleSplitChange = React.useCallback((percent: number) => {
-    setLayout((prev) => ({ ...prev, splitPercent: percent }));
-  }, []);
-
-  const handleSplitCommit = React.useCallback((percent: number) => {
-    setLayout(
-      writeWorkspaceLayout({
-        splitPercent: percent,
-        panelHeights: layoutRef.current.panelHeights,
-      }),
-    );
-  }, []);
-
-  const applyPanelHeights = React.useCallback(
-    (patch: Partial<WorkspacePanelHeights>, commit: boolean) => {
-      if (!commit) {
-        setLayout((prev) => ({ ...prev, panelHeights: { ...prev.panelHeights, ...patch } }));
-        return;
-      }
-      setLayout(
-        writeWorkspaceLayout({
-          splitPercent: layoutRef.current.splitPercent,
-          panelHeights: { ...layoutRef.current.panelHeights, ...patch },
-        }),
-      );
-    },
-    [],
-  );
-
-  const applyLeftHeights = React.useCallback(
-    (heights: PanelHeightMap, commit: boolean) => {
-      applyPanelHeights(
-        {
-          tutorial: heights.tutorial ?? null,
-          auxiliary: heights.auxiliary ?? null,
-          visualizer: heights.visualizer ?? null,
-        },
-        commit,
-      );
-    },
-    [applyPanelHeights],
-  );
-
-  const applyRightHeights = React.useCallback(
-    (heights: PanelHeightMap, commit: boolean) => {
-      applyPanelHeights({ code: heights.code ?? null, complexity: heights.complexity ?? null }, commit);
-    },
-    [applyPanelHeights],
-  );
-
-  /* Stage height: pinned by its own handle, otherwise the viewport calculation.
-     The drag measures against the stage's own top edge so the pointer stays on
-     the handle rather than drifting as the element grows. */
-  const stageRef = React.useRef<HTMLDivElement | null>(null);
-  const [stageDragging, setStageDragging] = React.useState(false);
-  const stagePinned = layout.panelHeights.stage;
-
-  const nudgeStage = React.useCallback(
-    (delta: number) => {
-      const current =
-        layoutRef.current.panelHeights.stage ?? stageRef.current?.getBoundingClientRect().height ?? 0;
-      applyPanelHeights({ stage: current + delta }, true);
-    },
-    [applyPanelHeights],
-  );
-
-  const dragStageTo = React.useCallback(
-    (_x: number, y: number) => {
-      const top = stageRef.current?.getBoundingClientRect().top;
-      if (top === undefined) return;
-      applyPanelHeights({ stage: y - top }, false);
-    },
-    [applyPanelHeights],
-  );
-
-  const endStageDrag = React.useCallback(() => {
-    setStageDragging(false);
-    applyPanelHeights({ stage: layoutRef.current.panelHeights.stage }, true);
-  }, [applyPanelHeights]);
-
-  usePointerDrag(stageDragging, dragStageTo, endStageDrag);
-
-  /* Problem/solution height: same standalone pinned-height pattern as the stage
-     above (R6.5, TASKS.md 9.6) — the schema already carried these two slots, but
-     nothing read or wrote them, so neither panel could actually be resized or
-     scroll-clipped at a pinned height. Automatic (null) still just hugs content. */
-  const problemRef = React.useRef<HTMLDivElement | null>(null);
-  const [problemDragging, setProblemDragging] = React.useState(false);
-  const problemPinned = layout.panelHeights.problem;
-
-  const nudgeProblem = React.useCallback(
-    (delta: number) => {
-      const current =
-        layoutRef.current.panelHeights.problem ??
-        problemRef.current?.getBoundingClientRect().height ??
-        0;
-      applyPanelHeights({ problem: current + delta }, true);
-    },
-    [applyPanelHeights],
-  );
-
-  const dragProblemTo = React.useCallback(
-    (_x: number, y: number) => {
-      const top = problemRef.current?.getBoundingClientRect().top;
-      if (top === undefined) return;
-      applyPanelHeights({ problem: y - top }, false);
-    },
-    [applyPanelHeights],
-  );
-
-  const endProblemDrag = React.useCallback(() => {
-    setProblemDragging(false);
-    applyPanelHeights({ problem: layoutRef.current.panelHeights.problem }, true);
-  }, [applyPanelHeights]);
-
-  usePointerDrag(problemDragging, dragProblemTo, endProblemDrag);
-
-  const solutionRef = React.useRef<HTMLDivElement | null>(null);
-  const [solutionDragging, setSolutionDragging] = React.useState(false);
-  const solutionPinned = layout.panelHeights.solution;
-
-  const nudgeSolution = React.useCallback(
-    (delta: number) => {
-      const current =
-        layoutRef.current.panelHeights.solution ??
-        solutionRef.current?.getBoundingClientRect().height ??
-        0;
-      applyPanelHeights({ solution: current + delta }, true);
-    },
-    [applyPanelHeights],
-  );
-
-  const dragSolutionTo = React.useCallback(
-    (_x: number, y: number) => {
-      const top = solutionRef.current?.getBoundingClientRect().top;
-      if (top === undefined) return;
-      applyPanelHeights({ solution: y - top }, false);
-    },
-    [applyPanelHeights],
-  );
-
-  const endSolutionDrag = React.useCallback(() => {
-    setSolutionDragging(false);
-    applyPanelHeights({ solution: layoutRef.current.panelHeights.solution }, true);
-  }, [applyPanelHeights]);
-
-  usePointerDrag(solutionDragging, dragSolutionTo, endSolutionDrag);
-
-  const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
-  const showAuxiliary =
-    panels.auxiliary &&
-    hasAuxiliaryContent(currentStep?.auxiliaryState, currentStep?.variables);
-
-  const leftRows: ResizableRow[] = [
-    {
-      id: 'tutorial',
-      label: 'tutorial',
-      visible: showTutorial,
-      greedy: !panels.visualizer && !showAuxiliary,
-      height: layout.panelHeights.tutorial,
-      content:
-        currentStep?.explanation !== undefined ? (
-          <Card
-            padding="sm"
-            style={{
-              height: '100%',
-              borderColor: 'var(--border-default)',
-              overflow: 'auto',
-            }}
-          >
-            <TutorialCard
-              explanation={currentStep.explanation}
-              what={currentStep.explanation.what}
-              why={currentStep.explanation.why}
-              stepIndex={currentStep.stepIndex}
-              totalSteps={totalSteps}
-              onClose={onToggleTutorial}
-            />
-          </Card>
-        ) : null,
-    },
-    {
-      id: 'auxiliary',
-      label: 'working data & variables',
-      visible: showAuxiliary,
-      greedy: !panels.visualizer,
-      height: layout.panelHeights.auxiliary,
-      content: (
-        <Card
-          padding="sm"
-          style={{
-            height: '100%',
-            borderColor: 'var(--border-default)',
-            overflow: 'auto',
-          }}
-        >
-          <AuxiliaryPanel
-            state={currentStep?.auxiliaryState}
-            variables={currentStep?.variables}
-            onClose={onToggleAuxiliary}
-          />
-        </Card>
-      ),
-    },
-    {
-      id: 'visualizer',
-      label: 'graph visualizer canvas',
-      visible: panels.visualizer,
-      greedy: true,
-      height: layout.panelHeights.visualizer,
-      content: (
-        <Card
-          data-panel="visualizer"
-          padding="none"
-          style={{
-            height: '100%',
-            borderColor: 'var(--border-default)',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-            <div
-              data-region="canvas"
-              style={{
-                flex: 1,
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                padding: 'var(--space-2)',
-                background: 'var(--bg-inset)',
-              }}
-            >
-              {renderPrimaryVisualizer() || (
-                <div
-                  style={{
-                    margin: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    color: 'var(--text-muted)',
-                    textAlign: 'center',
-                    padding: 'var(--space-6)',
-                  }}
-                >
-                  <p style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    No visual snapshot available
-                  </p>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                    Select an algorithm step or click Play to begin visualization.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {resolvedControlProps && (
-              <div data-region="controls" style={{ flexShrink: 0 }}>
-                <ControlPanel {...resolvedControlProps} variant="embedded" />
-              </div>
-            )}
-          </div>
-        </Card>
-      ),
-    },
-  ];
-
-  /* The complexity card is the code column's companion, so it follows the code
-     toggle — there is no separate navbar switch for it.
-
-     Neither row is greedy (DESIGN.md R5.4): the code panel is exactly as tall as
-     the solution, so nothing trails it and the complexity card is pulled up
-     right underneath. When the two together outgrow the column, the column
-     scrolls — the panels themselves do not. */
-  const rightRows: ResizableRow[] = [
-    {
-      id: 'code',
-      label: 'code',
-      visible: panels.code,
-      height: layout.panelHeights.code,
-      content: (
-        <CodeBlockViewer
-          code={algorithm.code}
-          activeLine={currentStep?.codeLine || 1}
-          variables={currentStep?.variables}
-          lineExplanations={algorithm.trivia?.lineExplanations}
-        />
-      ),
-    },
-    {
-      id: 'complexity',
-      label: 'complexity',
-      visible: panels.code,
-      height: layout.panelHeights.complexity,
-      content: (
-        <ComplexityCard
-          timeComplexity={algorithm.timeComplexity}
-          spaceComplexity={algorithm.spaceComplexity}
-          complexityAnalysis={algorithm.complexityAnalysis}
-        />
-      ),
-    },
-  ];
-
-  const hasLeftRows = leftRows.some((row) => row.visible !== false);
-  const hasRightRows = rightRows.some((row) => row.visible !== false);
-  const stageEmpty = !hasLeftRows && !hasRightRows;
-
-  /* The left column is a single row now (R5.2), so it renders no row handle — a
-     stored visualizer pin is still honoured on read, but only the column split
-     changes this column's geometry interactively. */
-  const leftColumn = (
-    <ResizableRows
-      rows={leftRows}
-      minRowHeight={MIN_PANEL_HEIGHT_PX}
-      maxRowHeight={MAX_PANEL_HEIGHT_PX}
-      onHeightsChange={(heights) => applyLeftHeights(heights, false)}
-      onHeightsCommit={(heights) => applyLeftHeights(heights, true)}
-    />
-  );
-
-  const rightColumn = (
-    <ResizableRows
-      rows={rightRows}
-      minRowHeight={MIN_PANEL_HEIGHT_PX}
-      maxRowHeight={MAX_PANEL_HEIGHT_PX}
-      onHeightsChange={(heights) => applyRightHeights(heights, false)}
-      onHeightsCommit={(heights) => applyRightHeights(heights, true)}
-    />
-  );
+      : null);
 
   return (
     <main
-      data-problem-expanded={problemExpanded ? 'true' : 'false'}
-      data-solution-expanded={solutionExpanded ? 'true' : 'false'}
-      style={{
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-3)',
-        padding: 'var(--space-3) var(--space-4)',
-        boxSizing: 'border-box',
-        // Page scrolling is never blocked, whatever the problem/solution panels are doing.
-        overflowY: 'auto',
-        overflowX: 'hidden',
-      }}
+      data-problem-expanded={layoutState.problemExpanded ? "true" : "false"}
+      data-solution-expanded={layoutState.solutionExpanded ? "true" : "false"}
+      className="flex-1 min-h-0 flex flex-col gap-3 p-3 px-4 box-border overflow-y-auto overflow-x-hidden"
+      style={{ display: "flex", overflowY: "auto" }}
     >
-      <div
-        ref={problemRef}
-        data-height-mode={problemPinned !== null ? 'pinned' : 'hug'}
-        style={{
-          flexShrink: 0,
-          height: problemPinned !== null ? `${problemPinned}px` : undefined,
-          overflowY: problemPinned !== null ? 'auto' : undefined,
-        }}
-      >
-        <ProblemDescriptionCard
-          title={algorithm.title}
-          category={algorithm.category}
-          difficulty={algorithm.difficulty}
-          description={algorithm.description}
-          constraints={algorithm.constraints}
-          examples={algorithm.examples}
-          expanded={problemExpanded}
-          onToggleExpanded={handleToggleProblemExpanded}
-        />
-      </div>
-
-      {/* Standalone handle mirroring the stage's own (R7.4): the problem panel is
-          a single full-width section, not a row inside ResizableRows, so it gets
-          a height control the same direct way the stage does. */}
-      <DragHandle
-        orientation="horizontal"
-        label="Resize the problem description height"
-        valueNow={problemPinned ?? 0}
-        valueMin={MIN_PANEL_HEIGHT_PX}
-        valueMax={MAX_PANEL_HEIGHT_PX}
-        valueText={problemPinned === null ? 'Automatic, sized to its content' : undefined}
-        step={16}
-        dragging={problemDragging}
-        onDragStart={() => setProblemDragging(true)}
-        onNudge={nudgeProblem}
-        onRestoreDefault={() => applyPanelHeights({ problem: null }, true)}
+      <ProblemSection
+        algorithm={algorithm}
+        problemExpanded={layoutState.problemExpanded}
+        problemPinned={layoutState.problemPinned}
+        problemDragging={layoutState.problemDragging}
+        problemRef={layoutState.problemRef}
+        onToggleProblemExpanded={layoutState.handleToggleProblemExpanded}
+        onSetProblemDragging={layoutState.setProblemDragging}
+        onNudgeProblem={layoutState.nudgeProblem}
+        onRestoreProblemDefault={() => layoutState.applyPanelHeights({ problem: null }, true)}
+        minPanelHeightPx={layoutState.minPanelHeightPx}
+        maxPanelHeightPx={layoutState.maxPanelHeightPx}
       />
 
-      <div
-        ref={stageRef}
-        data-stage="workspace"
-        style={{
-          flexShrink: 0,
-          /* A pinned stage wins over the viewport calculation: the graph area is a
-             section like any other and owns a height handle (R7.4). */
-          height: stagePinned !== null ? `${stagePinned}px` : STAGE_HEIGHT,
-        }}
-      >
-        {stageEmpty ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-            }}
-          >
-            <Card
-              style={{
-                maxWidth: '42ch',
-                textAlign: 'center',
-                borderColor: 'var(--border-default)',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: 'var(--space-2)',
-                }}
-              >
-                Every panel is hidden
-              </p>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                Turn on Visualizer, Code, Tutorial or Aux data in the navbar to bring the workspace
-                back.
-              </p>
-            </Card>
-          </div>
-        ) : (
-          <ResizableLayout
-            leftPanel={leftColumn}
-            rightPanel={rightColumn}
-            splitPercent={layout.splitPercent}
-            defaultSplitPercent={DEFAULT_WORKSPACE_LAYOUT.splitPercent}
-            minLeftPercent={MIN_SPLIT_PERCENT}
-            maxLeftPercent={MAX_SPLIT_PERCENT}
-            showLeft={hasLeftRows}
-            showRight={hasRightRows}
-            onSplitChange={handleSplitChange}
-            onSplitCommit={handleSplitCommit}
-          />
-        )}
-      </div>
+      <MainStage
+        algorithm={algorithm}
+        currentStep={currentStep}
+        panels={panels}
+        onToggleTutorial={onToggleTutorial}
+        onToggleAuxiliary={onToggleAuxiliary}
+        resolvedControlProps={resolvedControlProps}
+        layoutState={layoutState}
+        totalSteps={totalSteps}
+      />
 
-      {/* The stage is a single row, so ResizableRows renders no separator for it.
-          This standalone handle pins the stage height directly, which is how the
-          graph area gets a height control and not only a width one (R7.4).
-          Double-click restores the viewport-derived automatic height. */}
-      {!stageEmpty && (
-        <DragHandle
-          orientation="horizontal"
-          label="Resize the stage height"
-          valueNow={stagePinned ?? 0}
-          valueMin={MIN_PANEL_HEIGHT_PX}
-          valueMax={MAX_PANEL_HEIGHT_PX}
-          valueText={stagePinned === null ? 'Automatic, sized to the viewport' : undefined}
-          step={16}
-          dragging={stageDragging}
-          onDragStart={() => setStageDragging(true)}
-          onNudge={nudgeStage}
-          onRestoreDefault={() => applyPanelHeights({ stage: null }, true)}
-        />
-      )}
-
-      {/* Playback lives at the visualizer's bottom edge; with the visualizer
-          hidden it still has to be reachable, so it docks under the stage. */}
-      {resolvedControlProps && !panels.visualizer && !stageEmpty && (
-        <div style={{ flexShrink: 0 }}>
-          <ControlPanel {...resolvedControlProps} variant="standalone" />
-        </div>
-      )}
-
-      {/* Last in main's vertical flow, below every other section (TASKS.md 9.6):
-          the deep topic lesson is not the problem statement above the stage, so
-          it earns its own place at the very bottom, still inside main's
-          overflowY:auto so the whole page scrolls rather than clipping it. */}
-      <div style={{ flexShrink: 0 }}>
-        <div
-          ref={solutionRef}
-          data-height-mode={solutionPinned !== null ? 'pinned' : 'hug'}
-          style={{
-            height: solutionPinned !== null ? `${solutionPinned}px` : undefined,
-            overflowY: solutionPinned !== null ? 'auto' : undefined,
-          }}
-        >
-          <SolutionApproachCard
-            topicGuide={algorithm.topicGuide}
-            expanded={solutionExpanded}
-            onToggleExpanded={handleToggleSolutionExpanded}
-          />
-        </div>
-
-        {/* Nested in the same wrapper (not a sibling) so this remains main's last
-            child: the solution panel stays literally below every other section
-            (TASKS.md 9.6) while still getting its own standalone height handle. */}
-        <DragHandle
-          orientation="horizontal"
-          label="Resize the solution approach height"
-          valueNow={solutionPinned ?? 0}
-          valueMin={MIN_PANEL_HEIGHT_PX}
-          valueMax={MAX_PANEL_HEIGHT_PX}
-          valueText={solutionPinned === null ? 'Automatic, sized to its content' : undefined}
-          step={16}
-          dragging={solutionDragging}
-          onDragStart={() => setSolutionDragging(true)}
-          onNudge={nudgeSolution}
-          onRestoreDefault={() => applyPanelHeights({ solution: null }, true)}
-        />
-      </div>
+      <SolutionSection
+        topicGuide={algorithm.topicGuide}
+        solutionExpanded={layoutState.solutionExpanded}
+        solutionPinned={layoutState.solutionPinned}
+        solutionDragging={layoutState.solutionDragging}
+        solutionRef={layoutState.solutionRef}
+        onToggleSolutionExpanded={layoutState.handleToggleSolutionExpanded}
+        onSetSolutionDragging={layoutState.setSolutionDragging}
+        onNudgeSolution={layoutState.nudgeSolution}
+        onRestoreSolutionDefault={() => layoutState.applyPanelHeights({ solution: null }, true)}
+        minPanelHeightPx={layoutState.minPanelHeightPx}
+        maxPanelHeightPx={layoutState.maxPanelHeightPx}
+      />
     </main>
   );
 };

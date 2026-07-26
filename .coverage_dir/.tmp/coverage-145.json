@@ -1,0 +1,148 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/arrays_and_hashing/specs/kadaneMaxSubarray.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8437, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8437, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 585, "endOffset": 3215, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 662, "endOffset": 1218, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1297, "endOffset": 1951, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2016, "endOffset": 2231, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2305, "endOffset": 2712, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2790, "endOffset": 3211, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/arrays_and_hashing/kadaneMaxSubarray.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 42294, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 42294, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 798, "endOffset": 838, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "generateKadaneMaxSubarraySteps",
+          "ranges": [
+            { "startOffset": 881, "endOffset": 4841, "count": 4 },
+            { "startOffset": 1706, "endOffset": 1941, "count": 1 },
+            { "startOffset": 1941, "endOffset": 2556, "count": 3 },
+            { "startOffset": 2556, "endOffset": 4164, "count": 11 },
+            { "startOffset": 2625, "endOffset": 2806, "count": 84 },
+            { "startOffset": 2652, "endOffset": 2660, "count": 64 },
+            { "startOffset": 2662, "endOffset": 2709, "count": 22 },
+            { "startOffset": 2709, "endOffset": 2763, "count": 62 },
+            { "startOffset": 2940, "endOffset": 3409, "count": 5 },
+            { "startOffset": 3409, "endOffset": 3746, "count": 6 },
+            { "startOffset": 3779, "endOffset": 4160, "count": 6 },
+            { "startOffset": 4164, "endOffset": 4195, "count": 3 },
+            { "startOffset": 4195, "endOffset": 4538, "count": 14 },
+            { "startOffset": 4216, "endOffset": 4227, "count": 8 },
+            { "startOffset": 4229, "endOffset": 4447, "count": 6 },
+            { "startOffset": 4313, "endOffset": 4336, "count": 3 },
+            { "startOffset": 4358, "endOffset": 4379, "count": 3 },
+            { "startOffset": 4425, "endOffset": 4431, "count": 4 },
+            { "startOffset": 4432, "endOffset": 4440, "count": 2 },
+            { "startOffset": 4447, "endOffset": 4534, "count": 8 },
+            { "startOffset": 4538, "endOffset": 4840, "count": 3 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 964, "endOffset": 1043, "count": 14 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [
+            { "startOffset": 1064, "endOffset": 1660, "count": 24 },
+            { "startOffset": 1488, "endOffset": 1518, "count": 21 },
+            { "startOffset": 1519, "endOffset": 1524, "count": 3 },
+            { "startOffset": 1608, "endOffset": 1613, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1278, "endOffset": 1376, "count": 156 },
+            { "startOffset": 1338, "endOffset": 1356, "count": 24 },
+            { "startOffset": 1357, "endOffset": 1365, "count": 132 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4961, "endOffset": 5007, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 15306, "endOffset": 15339, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

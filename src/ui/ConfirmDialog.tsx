@@ -1,8 +1,8 @@
-import { useEffect, useId, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import type { ReactNode } from 'react';
-import { cx } from './cx';
-import { Button } from './Button';
+import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
+import { cx } from "./cx";
+import { Button } from "./Button";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -21,8 +21,8 @@ export function ConfirmDialog({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   destructive = false,
   onConfirm,
   onCancel,
@@ -35,10 +35,10 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCancel();
+      if (event.key === "Escape") onCancel();
     };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onCancel]);
 
   // Cancel is the safe default, so focus lands on the confirm button only to
@@ -57,7 +57,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={messageId}
-        className={cx('ui-dialog', className)}
+        className={cx("ui-dialog", className)}
       >
         <h2 id={titleId} className="ui-dialog__title">
           {title}
@@ -69,11 +69,7 @@ export function ConfirmDialog({
           <Button variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button
-            ref={confirmRef}
-            variant={destructive ? 'danger' : 'primary'}
-            onClick={onConfirm}
-          >
+          <Button ref={confirmRef} variant={destructive ? "danger" : "primary"} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

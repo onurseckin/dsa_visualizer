@@ -1,0 +1,276 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/specs/sievePrimes.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 12096, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 12096, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 603, "endOffset": 4462, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 696, "endOffset": 1360, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1460, "endOffset": 2092, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1791, "endOffset": 1985, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2041, "endOffset": 2054, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2192, "endOffset": 3223, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3285, "endOffset": 3815, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3659, "endOffset": 3681, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3763, "endOffset": 3785, "count": 9 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3874, "endOffset": 4145, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4213, "endOffset": 4458, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4407, "endOffset": 4423, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/sievePrimes/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2197, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2197, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 457, "endOffset": 512, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 793, "endOffset": 849, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1153, "endOffset": 1210, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1313, "endOffset": 1362, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1461, "endOffset": 1506, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/sievePrimes/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2038, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2038, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 794, "endOffset": 827, "count": 2 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/sievePrimes/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 19002, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 19002, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateSieveSteps",
+          "ranges": [
+            { "startOffset": 212, "endOffset": 5749, "count": 4 },
+            { "startOffset": 1900, "endOffset": 1995, "count": 1 },
+            { "startOffset": 1996, "endOffset": 2105, "count": 3 },
+            { "startOffset": 2151, "endOffset": 2368, "count": 1 },
+            { "startOffset": 2368, "endOffset": 3085, "count": 3 },
+            { "startOffset": 3085, "endOffset": 4856, "count": 7 },
+            { "startOffset": 3489, "endOffset": 3680, "count": 6 },
+            { "startOffset": 3681, "endOffset": 3793, "count": 1 },
+            { "startOffset": 3861, "endOffset": 4655, "count": 6 },
+            { "startOffset": 3945, "endOffset": 4576, "count": 30 },
+            { "startOffset": 4195, "endOffset": 4365, "count": 25 },
+            { "startOffset": 4366, "endOffset": 4476, "count": 5 },
+            { "startOffset": 4856, "endOffset": 5334, "count": 3 },
+            { "startOffset": 5334, "endOffset": 5425, "count": 42 },
+            { "startOffset": 5356, "endOffset": 5421, "count": 17 },
+            { "startOffset": 5425, "endOffset": 5748, "count": 3 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 500, "endOffset": 591, "count": 50 },
+            { "startOffset": 563, "endOffset": 574, "count": 8 },
+            { "startOffset": 575, "endOffset": 586, "count": 42 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getAuxiliaryState",
+          "ranges": [
+            { "startOffset": 622, "endOffset": 1133, "count": 78 },
+            { "startOffset": 707, "endOffset": 781, "count": 1651 },
+            { "startOffset": 756, "endOffset": 764, "count": 942 },
+            { "startOffset": 765, "endOffset": 774, "count": 709 },
+            { "startOffset": 1079, "endOffset": 1105, "count": 3 },
+            { "startOffset": 1106, "endOffset": 1114, "count": 75 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 855, "endOffset": 874, "count": 17 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 950, "endOffset": 974, "count": 1651 },
+            { "startOffset": 963, "endOffset": 968, "count": 942 },
+            { "startOffset": 969, "endOffset": 974, "count": 709 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [{ "startOffset": 1153, "endOffset": 1579, "count": 78 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1387, "endOffset": 1485, "count": 1651 },
+            { "startOffset": 1447, "endOffset": 1465, "count": 83 },
+            { "startOffset": 1466, "endOffset": 1474, "count": 1568 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5857, "endOffset": 5891, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/math_and_number_theory/sievePrimes/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 30287, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 30287, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 675, "endOffset": 710, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12057, "endOffset": 12084, "count": 7 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

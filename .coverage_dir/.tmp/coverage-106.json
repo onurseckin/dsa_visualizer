@@ -1,0 +1,326 @@
+{
+  "result": [
+    {
+      "scriptId": "1215",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/test/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 703, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1653",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tree_queries_and_diameter/specs/treeDiameter.spec.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11355, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11355, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 608, "endOffset": 4033, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 684, "endOffset": 1257, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1364, "endOffset": 2084, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1989, "endOffset": 2016, "count": 8 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2161, "endOffset": 2598, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2664, "endOffset": 2965, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3046, "endOffset": 3271, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3396, "endOffset": 4029, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1655",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tree_queries_and_diameter/treeDiameter/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2296, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2296, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 463, "endOffset": 519, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 818, "endOffset": 881, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1206, "endOffset": 1271, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1375, "endOffset": 1425, "count": 5 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1524, "endOffset": 1569, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1656",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tree_queries_and_diameter/treeDiameter/pythonCode.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2494, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2494, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1001, "endOffset": 1035, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1657",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tree_queries_and_diameter/treeDiameter/stepGenerator.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 22404, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 22404, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateTreeDiameterSteps",
+          "ranges": [
+            { "startOffset": 219, "endOffset": 6617, "count": 5 },
+            { "startOffset": 3417, "endOffset": 3422, "count": 4 },
+            { "startOffset": 3423, "endOffset": 3432, "count": 1 },
+            { "startOffset": 3732, "endOffset": 3737, "count": 4 },
+            { "startOffset": 3738, "endOffset": 3754, "count": 1 },
+            { "startOffset": 3836, "endOffset": 3841, "count": 4 },
+            { "startOffset": 3842, "endOffset": 3858, "count": 1 },
+            { "startOffset": 4051, "endOffset": 4056, "count": 4 },
+            { "startOffset": 4057, "endOffset": 4073, "count": 1 },
+            { "startOffset": 5282, "endOffset": 5287, "count": 4 },
+            { "startOffset": 5288, "endOffset": 5304, "count": 1 },
+            { "startOffset": 5690, "endOffset": 5695, "count": 4 },
+            { "startOffset": 5696, "endOffset": 5712, "count": 1 },
+            { "startOffset": 5754, "endOffset": 5759, "count": 4 },
+            { "startOffset": 5760, "endOffset": 5776, "count": 1 },
+            { "startOffset": 6002, "endOffset": 6007, "count": 4 },
+            { "startOffset": 6008, "endOffset": 6024, "count": 1 },
+            { "startOffset": 6059, "endOffset": 6064, "count": 4 },
+            { "startOffset": 6065, "endOffset": 6081, "count": 1 },
+            { "startOffset": 6352, "endOffset": 6357, "count": 4 },
+            { "startOffset": 6358, "endOffset": 6374, "count": 1 },
+            { "startOffset": 6413, "endOffset": 6418, "count": 4 },
+            { "startOffset": 6419, "endOffset": 6435, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 369, "endOffset": 396, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 456, "endOffset": 480, "count": 16 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 499, "endOffset": 765, "count": 16 },
+            { "startOffset": 525, "endOffset": 549, "count": 7 },
+            { "startOffset": 551, "endOffset": 632, "count": 6 },
+            { "startOffset": 651, "endOffset": 676, "count": 6 },
+            { "startOffset": 678, "endOffset": 761, "count": 5 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addStep",
+          "ranges": [
+            { "startOffset": 858, "endOffset": 2064, "count": 62 },
+            { "startOffset": 1719, "endOffset": 1767, "count": 52 },
+            { "startOffset": 1749, "endOffset": 1754, "count": 46 },
+            { "startOffset": 1755, "endOffset": 1765, "count": 6 },
+            { "startOffset": 1768, "endOffset": 1776, "count": 10 },
+            { "startOffset": 1810, "endOffset": 1858, "count": 26 },
+            { "startOffset": 1840, "endOffset": 1845, "count": 23 },
+            { "startOffset": 1846, "endOffset": 1856, "count": 3 },
+            { "startOffset": 1859, "endOffset": 1867, "count": 36 },
+            { "startOffset": 1924, "endOffset": 1951, "count": 0 },
+            { "startOffset": 2021, "endOffset": 2026, "count": 54 },
+            { "startOffset": 2027, "endOffset": 2036, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 978, "endOffset": 1398, "count": 268 },
+            { "startOffset": 1019, "endOffset": 1031, "count": 0 },
+            { "startOffset": 1056, "endOffset": 1084, "count": 32 },
+            { "startOffset": 1086, "endOffset": 1121, "count": 28 },
+            { "startOffset": 1121, "endOffset": 1359, "count": 240 },
+            { "startOffset": 1140, "endOffset": 1163, "count": 204 },
+            { "startOffset": 1165, "endOffset": 1200, "count": 38 },
+            { "startOffset": 1200, "endOffset": 1359, "count": 202 },
+            { "startOffset": 1230, "endOffset": 1252, "count": 183 },
+            { "startOffset": 1254, "endOffset": 1288, "count": 20 },
+            { "startOffset": 1288, "endOffset": 1359, "count": 182 },
+            { "startOffset": 1323, "endOffset": 1359, "count": 65 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "runDfs1",
+          "ranges": [
+            { "startOffset": 2444, "endOffset": 3347, "count": 16 },
+            { "startOffset": 2531, "endOffset": 2536, "count": 15 },
+            { "startOffset": 2537, "endOffset": 2541, "count": 1 },
+            { "startOffset": 2586, "endOffset": 2641, "count": 12 },
+            { "startOffset": 2705, "endOffset": 2710, "count": 15 },
+            { "startOffset": 2711, "endOffset": 2715, "count": 1 },
+            { "startOffset": 2767, "endOffset": 2772, "count": 15 },
+            { "startOffset": 2773, "endOffset": 2777, "count": 1 },
+            { "startOffset": 2912, "endOffset": 2917, "count": 15 },
+            { "startOffset": 2918, "endOffset": 2934, "count": 1 },
+            { "startOffset": 3084, "endOffset": 3089, "count": 15 },
+            { "startOffset": 3090, "endOffset": 3094, "count": 1 },
+            { "startOffset": 3145, "endOffset": 3150, "count": 15 },
+            { "startOffset": 3151, "endOffset": 3167, "count": 1 },
+            { "startOffset": 3210, "endOffset": 3215, "count": 1 },
+            { "startOffset": 3248, "endOffset": 3322, "count": 22 },
+            { "startOffset": 3274, "endOffset": 3316, "count": 11 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "runDfs2",
+          "ranges": [
+            { "startOffset": 4243, "endOffset": 5193, "count": 16 },
+            { "startOffset": 4384, "endOffset": 4389, "count": 15 },
+            { "startOffset": 4390, "endOffset": 4394, "count": 1 },
+            { "startOffset": 4439, "endOffset": 4529, "count": 15 },
+            { "startOffset": 4593, "endOffset": 4598, "count": 15 },
+            { "startOffset": 4599, "endOffset": 4603, "count": 1 },
+            { "startOffset": 4672, "endOffset": 4677, "count": 15 },
+            { "startOffset": 4678, "endOffset": 4682, "count": 1 },
+            { "startOffset": 4798, "endOffset": 4803, "count": 15 },
+            { "startOffset": 4804, "endOffset": 4820, "count": 1 },
+            { "startOffset": 4921, "endOffset": 4926, "count": 15 },
+            { "startOffset": 4927, "endOffset": 4931, "count": 1 },
+            { "startOffset": 4982, "endOffset": 4987, "count": 15 },
+            { "startOffset": 4988, "endOffset": 5004, "count": 1 },
+            { "startOffset": 5047, "endOffset": 5052, "count": 1 },
+            { "startOffset": 5085, "endOffset": 5168, "count": 22 },
+            { "startOffset": 5111, "endOffset": 5162, "count": 11 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 6140, "endOffset": 6174, "count": 15 },
+            { "startOffset": 6163, "endOffset": 6168, "count": 14 },
+            { "startOffset": 6169, "endOffset": 6174, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6732, "endOffset": 6773, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1658",
+      "url": "file:///Users/onurseckinsenoglu/repos/dsa_visualizer/src/algorithms/tree_queries_and_diameter/treeDiameter/definition.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 32263, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 32263, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1163, "endOffset": 1206, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12611, "endOffset": 12639, "count": 5 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}
