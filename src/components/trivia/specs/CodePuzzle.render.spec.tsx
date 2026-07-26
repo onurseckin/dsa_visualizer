@@ -230,6 +230,25 @@ describe('CodePuzzle Component Spec', () => {
     expect(screen.queryByText('drop a line here')).not.toBeInTheDocument();
   });
 
+  it('zeroes the blank slot\'s own left inset so its text aligns with a plain code row\'s first character (TASKS.md 9.3)', () => {
+    // A plain code row's own text sits flush against its span, offset from
+    // the indent only by CODE_GROUP's flex gap — no control-specific padding
+    // of its own. The blank slot must match that, in every one of its
+    // states, or the answer visibly starts further right than the code
+    // column it needs to line up with (the user's exact complaint: "that
+    // exact place should start on the first letter ... so it can align with
+    // other lines").
+    const { props, view } = renderPuzzle({ round: makeRound([2]), mode: 'type' });
+
+    const field = screen.getByRole('textbox', { name: /^Line 2 / });
+    expect(field.closest('.ui-input')).toHaveClass('code-slot-input');
+
+    // Same fix applies to the slot's Button rendering (choice mode, or a
+    // typed/graded blank once it is no longer the live input).
+    view.rerender(<CodePuzzle {...props} mode="choice" />);
+    expect(slot(2)).toHaveClass('code-slot-btn');
+  });
+
   it('submits on Enter from a focused blank input', () => {
     const onSubmit = vi.fn();
     renderPuzzle({ round: makeRound([2]), mode: 'type', onSubmit });

@@ -97,7 +97,9 @@ describe('trivia config persistence', () => {
       minBlanks: 6,
       maxBlanks: 6,
     });
-    expect(writeTriviaConfig({ minBlanks: 99, maxBlanks: 99 })).toMatchObject({
+    expect(
+      writeTriviaConfig({ minBlanks: MAX_BLANKS_CEILING + 500, maxBlanks: MAX_BLANKS_CEILING + 500 }),
+    ).toMatchObject({
       minBlanks: MAX_BLANKS_CEILING,
       maxBlanks: MAX_BLANKS_CEILING,
     });
@@ -136,7 +138,7 @@ describe('trivia config persistence', () => {
     ['an unknown mode', { mode: 'guess' }],
     ['a null blank count', { minBlanks: null }],
     ['a fractional blank count', { minBlanks: 1.5 }],
-    ['an out-of-range blank count', { maxBlanks: 99 }],
+    ['an out-of-range blank count', { maxBlanks: MAX_BLANKS_CEILING + 500 }],
     ['an inverted blank range', { minBlanks: 4, maxBlanks: 2 }],
     ['a non-boolean distractor flag', { includeDistractors: 'yes' }],
   ])('discards a stored config with %s', (_label, override) => {
@@ -177,7 +179,9 @@ describe('trivia progress persistence', () => {
   });
 
   it('clamps a level outside the engine range before storing it', () => {
-    expect(writeTriviaProgress({ ...sampleProgress, level: 99 }).level).toBe(MAX_BLANKS_CEILING);
+    expect(writeTriviaProgress({ ...sampleProgress, level: MAX_BLANKS_CEILING + 500 }).level).toBe(
+      MAX_BLANKS_CEILING,
+    );
     expect(writeTriviaProgress({ ...sampleProgress, level: Number.NaN }).level).toBe(1);
     expect(readTriviaProgress().level).toBe(1);
   });

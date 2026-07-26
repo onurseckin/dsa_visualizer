@@ -20,11 +20,23 @@
    section now carries a height handle, not just width (DESIGN.md R7.4). The
    tutorial and working-data strips are resizable rows inside the visualizer
    panel, and `stage` pins the whole stage so the graph area itself can be made
-   taller or shorter instead of being fixed to the viewport calculation. */
+   taller or shorter instead of being fixed to the viewport calculation.
 
-export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v7';
+   v8 splits the one `detailsExpanded` flag into `problemExpanded` and
+   `solutionExpanded` (TASKS.md 9.6): ProblemHeader became two independent
+   panels — the short problem statement (ProblemDescriptionCard, top of the
+   page) and the deep topic lesson (SolutionApproachCard, bottom of the page)
+   — each collapsible on its own, so one flag can no longer represent both.
+   `problem` and `solution` join `WorkspacePanelHeights` for the same reason a
+   height slot exists for every other section. Because this reshapes the
+   persisted record instead of just adding a key, and the version-mismatch
+   read path below discards wholesale rather than partially migrating, a
+   stored v7 value is not carried forward — the two panels simply reopen at
+   their true default (expanded) and unpinned. */
 
-export const WORKSPACE_LAYOUT_VERSION = 7;
+export const WORKSPACE_LAYOUT_KEY = 'dsa_visualizer_workspace_layout_v8';
+
+export const WORKSPACE_LAYOUT_VERSION = 8;
 
 /* Reset is a navbar action but the layout state lives in the workspace, so the
    two are joined by a window event rather than a shared React parent: the navbar
@@ -40,6 +52,10 @@ export interface WorkspacePanelHeights {
   auxiliary: number | null;
   code: number | null;
   complexity: number | null;
+  /** ProblemDescriptionCard, above the stage. */
+  problem: number | null;
+  /** SolutionApproachCard, the last section of the page. */
+  solution: number | null;
 }
 
 export type WorkspacePanelKey = keyof WorkspacePanelHeights;
@@ -51,6 +67,8 @@ export const WORKSPACE_PANEL_KEYS: readonly WorkspacePanelKey[] = [
   'auxiliary',
   'code',
   'complexity',
+  'problem',
+  'solution',
 ] as const;
 
 export interface WorkspaceLayout {
@@ -59,8 +77,10 @@ export interface WorkspaceLayout {
   splitPercent: number;
   /** Pixel height per panel; null = automatic (hug content). */
   panelHeights: WorkspacePanelHeights;
-  /** Whether the problem/lesson details panel is open (R6.5). */
-  detailsExpanded: boolean;
+  /** Whether the problem statement panel is open (R6.5, TASKS.md 9.6). */
+  problemExpanded: boolean;
+  /** Whether the solution approach panel is open (R6.5, TASKS.md 9.6). */
+  solutionExpanded: boolean;
 }
 
 /* In a patch, an absent key (or `undefined`) means "leave it alone" while an
@@ -68,7 +88,8 @@ export interface WorkspaceLayout {
 export interface WorkspaceLayoutPatch {
   splitPercent?: number;
   panelHeights?: Partial<WorkspacePanelHeights>;
-  detailsExpanded?: boolean;
+  problemExpanded?: boolean;
+  solutionExpanded?: boolean;
 }
 
 export const MIN_SPLIT_PERCENT = 25;
@@ -95,9 +116,12 @@ const DEFAULT_LAYOUT: WorkspaceLayout = {
     auxiliary: null,
     code: null,
     complexity: null,
+    problem: null,
+    solution: null,
   },
-  // First visit opens the lesson: the learner should not have to hunt for it.
-  detailsExpanded: true,
+  // First visit opens both panels: the learner should not have to hunt for them.
+  problemExpanded: true,
+  solutionExpanded: true,
 };
 
 export function cloneWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
@@ -105,7 +129,8 @@ export function cloneWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
     version: WORKSPACE_LAYOUT_VERSION,
     splitPercent: layout.splitPercent,
     panelHeights: { ...layout.panelHeights },
-    detailsExpanded: layout.detailsExpanded,
+    problemExpanded: layout.problemExpanded,
+    solutionExpanded: layout.solutionExpanded,
   };
 }
 
@@ -188,14 +213,16 @@ export function readWorkspaceLayout(): WorkspaceLayout {
   const panelHeights = readPanelHeights(parsed.panelHeights);
   if (!panelHeights) return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 
-  if (typeof parsed.detailsExpanded !== 'boolean') return cloneWorkspaceLayout(DEFAULT_LAYOUT);
+  if (typeof parsed.problemExpanded !== 'boolean') return cloneWorkspaceLayout(DEFAULT_LAYOUT);
+  if (typeof parsed.solutionExpanded !== 'boolean') return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 
   // Rebuilt field by field so unknown keys in storage never reach app state.
   return {
     version: WORKSPACE_LAYOUT_VERSION,
     splitPercent: parsed.splitPercent,
     panelHeights,
-    detailsExpanded: parsed.detailsExpanded,
+    problemExpanded: parsed.problemExpanded,
+    solutionExpanded: parsed.solutionExpanded,
   };
 }
 
@@ -214,8 +241,9 @@ export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayo
     version: WORKSPACE_LAYOUT_VERSION,
     splitPercent: clampSplitPercent(patch.splitPercent ?? current.splitPercent),
     panelHeights,
-    // `??` and not `||`: collapsing the details panel patches an explicit false.
-    detailsExpanded: patch.detailsExpanded ?? current.detailsExpanded,
+    // `??` and not `||`: collapsing either panel patches an explicit false.
+    problemExpanded: patch.problemExpanded ?? current.problemExpanded,
+    solutionExpanded: patch.solutionExpanded ?? current.solutionExpanded,
   };
 
   const storage = getStorage();

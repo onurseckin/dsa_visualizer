@@ -22,6 +22,13 @@ import { Badge, Button, Card, Segmented, Slider } from '../../ui';
 export interface TriviaSettingsProps {
   config: TriviaConfig;
   onChange: (patch: Partial<TriviaConfig>) => void;
+  /**
+   * Blankable-line count of every algorithm currently in the deck (one entry per
+   * deck member, in no particular order). Drives the "Deck lines" range badge and
+   * the short-algorithm warning below the Hardest level slider — both purely
+   * informational, so an empty deck (no entries) simply shows neither.
+   */
+  deckLineCounts: readonly number[];
 }
 
 const MODE_OPTIONS: { value: TriviaMode; label: string }[] = [
@@ -49,8 +56,51 @@ const hintStyle: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
-export const TriviaSettings: React.FC<TriviaSettingsProps> = ({ config, onChange }) => {
+/* Same shape as hintStyle, recoloured amber — a non-blocking heads-up, not an
+   error: the slider stays fully usable at any level, short algorithms just show
+   up fully blank. */
+const warningHintStyle: React.CSSProperties = {
+  ...hintStyle,
+  color: 'var(--warning)',
+};
+
+const sliderRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-3)',
+};
+
+const sliderStyle: React.CSSProperties = {
+  flex: '1 1 auto',
+  minWidth: 0,
+};
+
+const deckLinesBadgeStyle: React.CSSProperties = {
+  ...PANEL_BORDER,
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
+};
+
+export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
+  config,
+  onChange,
+  deckLineCounts,
+}) => {
   const { mode, minBlanks, maxBlanks, includeDistractors } = config;
+
+  const hasDeckLines = deckLineCounts.length > 0;
+  const deckLinesLabel = hasDeckLines
+    ? `Deck lines: ${Math.min(...deckLineCounts)}–${Math.max(...deckLineCounts)}`
+    : 'Deck lines: —';
+  // Purely informational: isLevelCovered/remainingAt already treat a short
+  // algorithm as satisfied rather than blocking the deck, so this never gates
+  // the slider — it only tells the user what "fully blank" means for them.
+  // <= on purpose, not <: an algorithm with EXACTLY maxBlanks blankable lines
+  // still gets every one of them hidden the moment the drill reaches that
+  // level (pickRound has nothing left to leave showing) — that IS the
+  // "entire question shown empty" edge case from the user's own example, not
+  // just the strictly-shorter case.
+  const shortAlgorithmCount = deckLineCounts.filter((count) => count <= maxBlanks).length;
 
   const handleMode = (value: string) => {
     if (value === 'choice' || value === 'type') onChange({ mode: value });
@@ -109,17 +159,28 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({ config, onChange
         </div>
 
         <div style={fieldStyle}>
-          <Slider
-            label="Hardest level"
-            value={maxBlanks}
-            min={minBlanks}
-            max={MAX_BLANKS_CEILING}
-            onChange={handleMax}
-          />
+          <div style={sliderRowStyle}>
+            <Slider
+              label="Hardest level"
+              value={maxBlanks}
+              min={minBlanks}
+              max={MAX_BLANKS_CEILING}
+              onChange={handleMax}
+              style={sliderStyle}
+            />
+            <Badge variant="neutral" style={deckLinesBadgeStyle}>
+              {deckLinesLabel}
+            </Badge>
+          </div>
           <span style={hintStyle}>
             The drill finishes once every line has been drilled at this many blanks. It can never
             drop below the starting blanks.
           </span>
+          {shortAlgorithmCount > 0 && (
+            <span style={warningHintStyle}>
+              {`${shortAlgorithmCount} of ${deckLineCounts.length} questions in this deck have ${maxBlanks} line${maxBlanks === 1 ? '' : 's'} or fewer and will be shown fully blank at this level.`}
+            </span>
+          )}
         </div>
 
         <div style={fieldStyle}>

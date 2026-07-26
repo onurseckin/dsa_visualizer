@@ -71,14 +71,43 @@ const INDENT: CSSProperties = {
 
 const MONO_INPUT = { '--font-ui': 'var(--font-code)' } as CSSProperties;
 
-/* The single, once-per-board indicator for which line the global ⌘E/⌘H
-   shortcuts currently target (see TriviaSession's currentTargetLine) —
-   deliberately NOT repeated per row like the old inline info icon, since
-   that repetition is exactly what this whole redesign removes. */
-const SHORTCUT_HINT_STYLE: CSSProperties = {
-  display: 'inline-flex',
+/* Fix for TASKS.md 9.3 (blank-row alignment): the row used to be one flat
+   `display:flex; flexWrap:wrap` parent with 6+ sibling items (gutter, indent,
+   slot, shortcut Kbd, hint icon, info icon, eye icon), and the slot's
+   `flex:'1 1 auto'` gives it a *hypothetical* (pre-shrink) width equal to its
+   content — flex-wrap's line-breaking decision is made against that
+   hypothetical size, not the post-minWidth:0-shrunk one, so a wide slot could
+   force a break that landed anywhere among those 6+ siblings, including
+   detaching gutter+indent from the input. Restructuring into exactly two
+   flex children means only these two can ever separate, and each is
+   `flexWrap:'nowrap'` internally so neither can break apart on its own. */
+const CODE_GROUP: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'nowrap',
   alignItems: 'center',
   gap: 'var(--space-1)',
+  flex: '1 1 auto',
+  minWidth: 0,
+};
+
+const ICON_GROUP: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'nowrap',
+  alignItems: 'center',
+  gap: 'var(--space-1)',
+  flexShrink: 0,
+};
+
+/* Pairs an IconButton with its own shortcut Kbd as one visual unit (TASKS.md
+   9.4): the shortcut used to be a single badge floating elsewhere on the row,
+   which is exactly what read as "something separate" from the Eye/Hint
+   buttons it actually belongs to. Shown only on the current shortcut-target
+   row (see activeShortcutLine) — not repeated on every row, which would be
+   the same per-line-icon-repetition anti-pattern section 1 already removed. */
+const SHORTCUT_PAIR: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '2px',
 };
 
 export interface CodePuzzleProps {
@@ -285,6 +314,13 @@ export function CodePuzzle({
       return (
         <Input
           size="sm"
+          /* code-slot-input zeroes the field's own left padding (see ui.css)
+             so the typed text starts exactly one CODE_GROUP gap after the
+             indent span — the same distance a plain code row's own text sits
+             at — instead of the input's default inset stacking on top of it
+             (TASKS.md 9.3: "that exact place should start on the first
+             letter ... so that it can align with other lines"). */
+          className="code-slot-input"
           ref={(el) => {
             if (el) inputRefs.current.set(line, el);
             else inputRefs.current.delete(line);
@@ -294,7 +330,7 @@ export function CodePuzzle({
           value={text}
           onChange={(event) => onTypeAnswer(line, event.target.value)}
           onKeyDown={(event) => handleInputKeyDown(line, event)}
-          style={{ ...MONO_INPUT, flex: '1 1 auto', minWidth: 0 }}
+          style={{ ...MONO_INPUT, flex: '1 1 0%', minWidth: 0 }}
         />
       );
     }
@@ -305,13 +341,16 @@ export function CodePuzzle({
     return (
       <Button
         size="sm"
+        // Same alignment fix as code-slot-input, above, for the filled/
+        // graded/empty-choice-mode rendering of this same slot.
+        className="code-slot-btn"
         data-state={state}
         aria-label={slotLabel(line)}
         aria-pressed={text.length > 0}
         disabled={graded}
         onClick={() => onSlotActivate(line)}
         style={{
-          flex: '1 1 auto',
+          flex: '1 1 0%',
           minWidth: 0,
           justifyContent: 'flex-start',
           fontFamily: 'var(--font-code)',
@@ -378,61 +417,77 @@ export function CodePuzzle({
         onDragEnter={allowRowDrop}
         onDrop={handleRowDrop(number)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-          <span style={GUTTER}>{number}</span>
-          <span aria-hidden="true" data-testid={`indent-${number}`} style={INDENT}>
-            {line.indent}
-          </span>
-          {renderSlot(number)}
-          {isShortcutTarget ? (
-            <span
-              data-testid={`shortcut-target-${number}`}
-              aria-label={`Line ${number} is the current target for Reveal and Hint`}
-              style={SHORTCUT_HINT_STYLE}
-            >
-              <Kbd aria-hidden="true">⌘E</Kbd>
-              {/* Advertise ⌘I, not ⌘H: on macOS, Cmd+H is bound to "Hide
-                  <App>" in every standard browser's own Application menu, a
-                  main-menu key equivalent that AppKit resolves before the
-                  keydown ever reaches page JS — so it can never be
-                  intercepted here, regardless of preventDefault(). ⌘I isn't
-                  claimed by any browser's app-wide menu, so it is the
-                  binding that actually fires (TriviaSession's handler still
-                  accepts 'h' too, for any environment where it isn't
-                  reserved). */}
-              <Kbd aria-hidden="true">⌘I</Kbd>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <div style={CODE_GROUP}>
+            <span style={GUTTER}>{number}</span>
+            <span aria-hidden="true" data-testid={`indent-${number}`} style={INDENT}>
+              {line.indent}
             </span>
-          ) : null}
-          {hint !== undefined ? (
-            <IconButton
-              icon={<Lightbulb />}
-              variant="ghost"
-              size="sm"
-              selected={showHint}
-              title="Toggle hint (⌘I)"
-              aria-label={`Hint for line ${number}`}
-              onClick={() => toggleHint(number)}
-            />
-          ) : null}
-          {explanation !== undefined ? (
-            <IconButton
-              icon={<Info />}
-              variant="ghost"
-              size="sm"
-              title="Explain this line"
-              aria-label={`Explain line ${number}`}
-              onClick={handleExplainClick(number)}
-            />
-          ) : null}
-          <IconButton
-            icon={<Eye />}
-            variant="ghost"
-            size="sm"
-            title="Reveal answer (⌘E)"
-            aria-label={`Reveal line ${number}`}
-            disabled={graded || revealed.includes(number)}
-            onClick={() => onReveal(number)}
-          />
+            {renderSlot(number)}
+          </div>
+          <div style={ICON_GROUP}>
+            {hint !== undefined ? (
+              /* The ⌘I shortcut hint is attached directly to the Hint button
+                 itself (TASKS.md 9.4) — visible only on the current shortcut-
+                 target row, so it reads as "this button's shortcut", not as a
+                 floating badge disconnected from any control. */
+              <span style={SHORTCUT_PAIR}>
+                <IconButton
+                  icon={<Lightbulb />}
+                  variant="secondary"
+                  size="sm"
+                  selected={showHint}
+                  title="Toggle hint (⌘I)"
+                  aria-label={`Hint for line ${number}`}
+                  onClick={() => toggleHint(number)}
+                />
+                {isShortcutTarget ? (
+                  <Kbd
+                    aria-hidden="true"
+                    data-testid={`shortcut-target-${number}`}
+                    title={`Line ${number} is the current target for the ⌘I shortcut`}
+                  >
+                    ⌘I
+                  </Kbd>
+                ) : null}
+              </span>
+            ) : null}
+            {explanation !== undefined ? (
+              <IconButton
+                icon={<Info />}
+                variant="secondary"
+                size="sm"
+                title="Explain this line"
+                aria-label={`Explain line ${number}`}
+                onClick={handleExplainClick(number)}
+              />
+            ) : null}
+            {/* Same pairing for Reveal/⌘E. When neither Hint nor this row
+                render a Kbd (isShortcutTarget false, or hint is undefined so
+                the ⌘I badge above never mounted), the shortcut-target-N test
+                hook still needs exactly one anchor per target row — Eye
+                always renders, so it is the fallback anchor. */}
+            <span style={SHORTCUT_PAIR}>
+              <IconButton
+                icon={<Eye />}
+                variant="secondary"
+                size="sm"
+                title="Reveal answer (⌘E)"
+                aria-label={`Reveal line ${number}`}
+                disabled={graded || revealed.includes(number)}
+                onClick={() => onReveal(number)}
+              />
+              {isShortcutTarget ? (
+                <Kbd
+                  aria-hidden="true"
+                  data-testid={hint === undefined ? `shortcut-target-${number}` : undefined}
+                  title={`Line ${number} is the current target for the ⌘E shortcut`}
+                >
+                  ⌘E
+                </Kbd>
+              ) : null}
+            </span>
+          </div>
         </div>
         {showHint && hint !== undefined ? (
           <div
@@ -480,7 +535,7 @@ export function CodePuzzle({
         onMouseEnter={hoverHandlers?.onMouseEnter}
         onMouseLeave={hoverHandlers?.onMouseLeave}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+        <div style={CODE_GROUP}>
           <span style={GUTTER}>{line.number}</span>
           {/* Indentation is rendered through its own fixed white-space:pre span,
               never as a bare leading-whitespace text node inside this flex row —
@@ -490,7 +545,11 @@ export function CodePuzzle({
           <span aria-hidden="true" data-testid={`indent-${line.number}`} style={INDENT}>
             {line.indent}
           </span>
-          {highlightPythonLine(line.content)}
+          {/* highlightPythonLine returns an array of sibling spans, not one
+              node — wrapped in its own element so it counts as exactly one
+              flex item here too, the same defense-in-depth CODE_GROUP gives
+              the blank row's slot (TASKS.md 9.3). */}
+          <span style={{ minWidth: 0, whiteSpace: 'pre' }}>{highlightPythonLine(line.content)}</span>
         </div>
       </div>
     );

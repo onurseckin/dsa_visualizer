@@ -296,7 +296,9 @@ describe('normalizeConfig', () => {
   });
 
   it('clamps minBlanks down to the ceiling and drags maxBlanks with it', () => {
-    const normalized = normalizeConfig(configOf({ minBlanks: 99, maxBlanks: 3 }));
+    const normalized = normalizeConfig(
+      configOf({ minBlanks: MAX_BLANKS_CEILING + 500, maxBlanks: 3 }),
+    );
 
     expect(normalized.minBlanks).toBe(MAX_BLANKS_CEILING);
     expect(normalized.maxBlanks).toBe(MAX_BLANKS_CEILING);
@@ -347,7 +349,7 @@ describe('normalizeConfig', () => {
       mode: 'type',
       includeDistractors: false,
       minBlanks: 0,
-      maxBlanks: 99,
+      maxBlanks: MAX_BLANKS_CEILING + 500,
     });
     const before = JSON.stringify(config);
 

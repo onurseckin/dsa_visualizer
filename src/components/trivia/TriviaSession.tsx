@@ -1,9 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { RotateCcw, RefreshCw, ArrowRight, ArrowLeft, Check, ExternalLink } from 'lucide-react';
+import {
+  RotateCcw,
+  RefreshCw,
+  ArrowRight,
+  Check,
+  ExternalLink,
+  Home,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { Badge, Button, Kbd } from '../../ui';
+import { DragHandle, ResizableLayout, usePointerDrag } from '../ResizableLayout';
 import { describeMode, gradeRound } from '../../trivia/triviaEngine';
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from '../../types/trivia';
+import { getAlgorithm } from '../../algorithms/registry';
+import { ProblemDescriptionCard } from '../primitives/ProblemDescriptionCard';
+import {
+  MAX_PANEL_HEIGHT_PX,
+  MAX_SPLIT_PERCENT,
+  MIN_PANEL_HEIGHT_PX,
+  MIN_SPLIT_PERCENT,
+  TRIVIA_LAYOUT_RESET_EVENT,
+  readTriviaLayout,
+  writeTriviaLayout,
+} from '../../trivia/triviaLayout';
+import type { TriviaLayout, TriviaPanelHeights } from '../../trivia/triviaLayout';
 import { CodePuzzle } from './CodePuzzle';
 import { TileTray } from './TileTray';
 
@@ -18,8 +39,12 @@ export interface TriviaSessionProps {
   /** Fires on "Check answers" with the map the engine should grade and record. */
   onSubmit: (answers: Record<number, string>) => void;
   onNext: () => void;
-  /** Navigates back to setup. Not a pause — nothing here is suspended. */
-  onExitToSetup?: () => void;
+  /** "Edit deck & settings" (TASKS.md 9.1): same session stays active, only
+      the screen changes. Never touches progress. */
+  onEditSettings?: () => void;
+  /** "Back to Trivia Home" (TASKS.md 9.1): the unambiguous exit — always
+      distinct from onEditSettings, never a single overloaded "Exit". */
+  onBackToHome?: () => void;
   onStudyInWorkspace?: (algorithmId?: string) => void;
   hints?: TriviaMeta['hints'];
   lineExplanations?: TriviaMeta['lineExplanations'];
@@ -39,6 +64,56 @@ const omit = (source: Readonly<Record<number, string>>, line: number): Record<nu
   return next;
 };
 
+/* Pins one panel's height with its own DragHandle, exactly the pattern
+   MainLayout already uses for the workspace's `stage` row — reused here
+   rather than routed through the viewport-pinned ResizableRows column, since
+   the trivia route is a naturally-scrolling page, not a fixed-viewport one
+   (TASKS.md 9.8). `buildPatch` avoids a computed-key object (and the type
+   assertion that would need) by letting the caller name the exact key. */
+function usePinnedPanelHeight(
+  pinned: number | null,
+  applyPanelHeights: (patch: Partial<TriviaPanelHeights>, commit: boolean) => void,
+  buildPatch: (value: number | null) => Partial<TriviaPanelHeights>,
+) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const pinnedRef = useRef(pinned);
+  pinnedRef.current = pinned;
+
+  const dragTo = useCallback(
+    (_x: number, y: number) => {
+      const top = ref.current?.getBoundingClientRect().top;
+      if (top === undefined) return;
+      applyPanelHeights(buildPatch(y - top), false);
+    },
+    [applyPanelHeights, buildPatch],
+  );
+
+  const endDrag = useCallback(() => {
+    setDragging(false);
+    applyPanelHeights(buildPatch(pinnedRef.current), true);
+  }, [applyPanelHeights, buildPatch]);
+
+  usePointerDrag(dragging, dragTo, endDrag);
+
+  const nudge = useCallback(
+    (delta: number) => {
+      const current = pinnedRef.current ?? ref.current?.getBoundingClientRect().height ?? 0;
+      applyPanelHeights(buildPatch(current + delta), true);
+    },
+    [applyPanelHeights, buildPatch],
+  );
+
+  const restoreDefault = useCallback(() => {
+    applyPanelHeights(buildPatch(null), true);
+  }, [applyPanelHeights, buildPatch]);
+
+  return { ref, dragging, setDragging, nudge, restoreDefault };
+}
+
+const buildProblemPatch = (value: number | null): Partial<TriviaPanelHeights> => ({ problem: value });
+const buildPuzzlePatch = (value: number | null): Partial<TriviaPanelHeights> => ({ puzzle: value });
+
 export function TriviaSession({
   round,
   algorithmTitle,
@@ -47,7 +122,8 @@ export function TriviaSession({
   coverage,
   onSubmit,
   onNext,
-  onExitToSetup,
+  onEditSettings,
+  onBackToHome,
   onStudyInWorkspace,
   hints,
   lineExplanations,
@@ -58,6 +134,49 @@ export function TriviaSession({
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [grade, setGrade] = useState<TriviaGrade | null>(null);
   const [openHints, setOpenHints] = useState<readonly number[]>([]);
+  const [problemExpanded, setProblemExpanded] = useState(true);
+
+  /* Resizable, persisted trivia layout (TASKS.md 9.8): the problem/puzzle
+     row heights and the puzzle+TileTray width split, mirroring how
+     MainLayout owns WorkspaceLayout. */
+  const [layout, setLayout] = useState<TriviaLayout>(() => readTriviaLayout());
+  const layoutRef = useRef<TriviaLayout>(layout);
+  layoutRef.current = layout;
+
+  useEffect(() => {
+    const reload = () => setLayout(readTriviaLayout());
+    window.addEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
+    return () => window.removeEventListener(TRIVIA_LAYOUT_RESET_EVENT, reload);
+  }, []);
+
+  const applyPanelHeights = useCallback(
+    (patch: Partial<TriviaPanelHeights>, commit: boolean) => {
+      if (!commit) {
+        setLayout((prev) => ({ ...prev, panelHeights: { ...prev.panelHeights, ...patch } }));
+        return;
+      }
+      setLayout(
+        writeTriviaLayout({
+          puzzleSplitPercent: layoutRef.current.puzzleSplitPercent,
+          panelHeights: { ...layoutRef.current.panelHeights, ...patch },
+        }),
+      );
+    },
+    [],
+  );
+
+  const handleSplitChange = useCallback((percent: number) => {
+    setLayout((prev) => ({ ...prev, puzzleSplitPercent: percent }));
+  }, []);
+
+  const handleSplitCommit = useCallback((percent: number) => {
+    setLayout(
+      writeTriviaLayout({ puzzleSplitPercent: percent, panelHeights: layoutRef.current.panelHeights }),
+    );
+  }, []);
+
+  const problemPanel = usePinnedPanelHeight(layout.panelHeights.problem, applyPanelHeights, buildProblemPatch);
+  const puzzlePanel = usePinnedPanelHeight(layout.panelHeights.puzzle, applyPanelHeights, buildPuzzlePatch);
 
   useEffect(() => {
     setPlacements({});
@@ -190,7 +309,8 @@ export function TriviaSession({
      focused: the first blank that is neither filled nor revealed yet, or —
      once every blank is filled/revealed — the round's first blank, so the
      shortcut always has a sane, discoverable target (see the Kbd hint
-     CodePuzzle renders on this exact row via activeShortcutLine). */
+     CodePuzzle renders directly on the Eye/Hint buttons on this exact row,
+     via activeShortcutLine — TASKS.md 9.4). */
   const firstOpenBlank = round.blanks.find(
     (line) => !revealed.includes(line) && (filledAnswers[line] ?? '').trim().length === 0
   );
@@ -250,6 +370,28 @@ export function TriviaSession({
 
   const correctCount = round.blanks.filter((line) => grade?.perBlank[line] === true).length;
   const hiddenLabel = `Hiding ${round.level} ${round.level === 1 ? 'line' : 'lines'}`;
+  const algorithm = getAlgorithm(round.algorithmId);
+
+  const puzzleColumn = (
+    <CodePuzzle
+      round={round}
+      mode={mode}
+      filled={filledAnswers}
+      revealed={revealed}
+      grade={grade}
+      hasSelection={selectedTileId !== null}
+      onSlotActivate={handleSlotActivate}
+      onTileDrop={placeTile}
+      onTypeAnswer={handleTypeAnswer}
+      onReveal={handleReveal}
+      onSubmit={handleCheck}
+      hints={hints}
+      lineExplanations={lineExplanations}
+      openHints={openHints}
+      onToggleHint={toggleHint}
+      activeShortcutLine={currentTargetLine}
+    />
+  );
 
   return (
     <section
@@ -283,14 +425,28 @@ export function TriviaSession({
                 Study in workspace
               </Button>
             ) : null}
-            {onExitToSetup ? (
+            {/* Two separate, never-shared-handler actions (TASKS.md 9.1),
+                replacing the old single overloaded "Exit to setup": editing
+                settings keeps this exact session active, while Home leaves
+                it entirely. */}
+            {onEditSettings ? (
               <Button
                 size="sm"
                 variant="secondary"
-                icon={<ArrowLeft aria-hidden="true" />}
-                onClick={onExitToSetup}
+                icon={<SlidersHorizontal aria-hidden="true" />}
+                onClick={onEditSettings}
               >
-                Exit to setup
+                Edit deck & settings
+              </Button>
+            ) : null}
+            {onBackToHome ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Home aria-hidden="true" />}
+                onClick={onBackToHome}
+              >
+                Back to Trivia Home
               </Button>
             ) : null}
           </div>
@@ -302,49 +458,91 @@ export function TriviaSession({
         </span>
       </header>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 'var(--space-4)',
-          minHeight: 0,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ flex: '1 1 24rem', minWidth: 0 }}>
-          <CodePuzzle
-            round={round}
-            mode={mode}
-            filled={filledAnswers}
-            revealed={revealed}
-            grade={grade}
-            hasSelection={selectedTileId !== null}
-            onSlotActivate={handleSlotActivate}
-            onTileDrop={placeTile}
-            onTypeAnswer={handleTypeAnswer}
-            onReveal={handleReveal}
-            onSubmit={handleCheck}
-            hints={hints}
-            lineExplanations={lineExplanations}
-            openHints={openHints}
-            onToggleHint={toggleHint}
-            activeShortcutLine={currentTargetLine}
+      {/* Problem description only (never Solution approach) above the puzzle
+          (TASKS.md 9.7) — a fixed, always-informational block for whichever
+          algorithm is currently being drilled. */}
+      {algorithm && (
+        <div
+          ref={problemPanel.ref}
+          style={{
+            flexShrink: 0,
+            height: layout.panelHeights.problem !== null ? `${layout.panelHeights.problem}px` : undefined,
+            overflow: layout.panelHeights.problem !== null ? 'auto' : 'visible',
+          }}
+        >
+          <ProblemDescriptionCard
+            title={algorithm.title}
+            category={algorithm.category}
+            difficulty={algorithm.difficulty}
+            description={algorithm.description}
+            constraints={algorithm.constraints}
+            examples={algorithm.examples}
+            expanded={problemExpanded}
+            onToggleExpanded={() => setProblemExpanded((current) => !current)}
           />
         </div>
+      )}
 
-        {mode === 'choice' && (
-          <div style={{ flex: '0 0 18rem', minWidth: '16rem' }}>
-            <TileTray
-              tiles={round.tiles}
-              usedTileIds={usedTileIds}
-              selectedTileId={selectedTileId}
-              onSelect={handleSelectTile}
-              onActivate={handleActivateTile}
-              disabled={graded}
-            />
-          </div>
+      <DragHandle
+        orientation="horizontal"
+        label="Resize problem description and puzzle rows"
+        valueNow={layout.panelHeights.problem ?? MIN_PANEL_HEIGHT_PX}
+        valueMin={MIN_PANEL_HEIGHT_PX}
+        valueMax={MAX_PANEL_HEIGHT_PX}
+        valueText={layout.panelHeights.problem === null ? 'Automatic, sized to content' : undefined}
+        step={16}
+        dragging={problemPanel.dragging}
+        onDragStart={() => problemPanel.setDragging(true)}
+        onNudge={problemPanel.nudge}
+        onRestoreDefault={problemPanel.restoreDefault}
+      />
+
+      <div
+        ref={puzzlePanel.ref}
+        style={{
+          minHeight: layout.panelHeights.puzzle !== null ? `${layout.panelHeights.puzzle}px` : '20rem',
+          height: layout.panelHeights.puzzle !== null ? `${layout.panelHeights.puzzle}px` : undefined,
+          overflow: layout.panelHeights.puzzle !== null ? 'auto' : 'visible',
+        }}
+      >
+        {mode === 'choice' ? (
+          <ResizableLayout
+            leftPanel={puzzleColumn}
+            rightPanel={
+              <TileTray
+                tiles={round.tiles}
+                usedTileIds={usedTileIds}
+                selectedTileId={selectedTileId}
+                onSelect={handleSelectTile}
+                onActivate={handleActivateTile}
+                disabled={graded}
+              />
+            }
+            splitPercent={layout.puzzleSplitPercent}
+            minLeftPercent={MIN_SPLIT_PERCENT}
+            maxLeftPercent={MAX_SPLIT_PERCENT}
+            onSplitChange={handleSplitChange}
+            onSplitCommit={handleSplitCommit}
+            handleLabel="Resize puzzle and tiles columns"
+          />
+        ) : (
+          puzzleColumn
         )}
       </div>
+
+      <DragHandle
+        orientation="horizontal"
+        label="Resize the puzzle row"
+        valueNow={layout.panelHeights.puzzle ?? MIN_PANEL_HEIGHT_PX}
+        valueMin={MIN_PANEL_HEIGHT_PX}
+        valueMax={MAX_PANEL_HEIGHT_PX}
+        valueText={layout.panelHeights.puzzle === null ? 'Automatic, sized to content' : undefined}
+        step={16}
+        dragging={puzzlePanel.dragging}
+        onDragStart={() => puzzlePanel.setDragging(true)}
+        onNudge={puzzlePanel.nudge}
+        onRestoreDefault={puzzlePanel.restoreDefault}
+      />
 
       <footer
         style={{
@@ -377,8 +575,11 @@ export function TriviaSession({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {/* Section 9.5: a real bordered button, never variant="ghost" —
+              "Retry doesn't have any border with some background color. It
+              doesn't look like a button." */}
           <Button
-            variant="ghost"
+            variant="secondary"
             size="md"
             onClick={handleRetry}
             icon={<RefreshCw aria-hidden="true" />}
