@@ -252,13 +252,24 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
                 ? vizSlotColor(childSlot)
                 : 'var(--border-default)';
 
+              const dx = child.cx - parent.cx;
+              const dy = child.cy - parent.cy;
+              const dist = Math.hypot(dx, dy);
+              const ux = dist > 0 ? dx / dist : 0;
+              const uy = dist > 0 ? dy / dist : 0;
+
+              const lineX1 = parent.cx + ux * nodeRadius;
+              const lineY1 = parent.cy + uy * nodeRadius;
+              const lineX2 = child.cx - ux * nodeRadius;
+              const lineY2 = child.cy - uy * nodeRadius;
+
               return (
                 <line
                   key={`link-${parent.id}-${child.id}`}
-                  x1={parent.cx}
-                  y1={parent.cy}
-                  x2={child.cx}
-                  y2={child.cy}
+                  x1={lineX1}
+                  y1={lineY1}
+                  x2={lineX2}
+                  y2={lineY2}
                   stroke={linkColor}
                   strokeWidth={onPath ? pathStroke : linkStroke}
                   strokeLinecap="round"
