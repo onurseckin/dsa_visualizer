@@ -21,17 +21,20 @@ Router (file-based routes), vitest + jsdom for tests, **bun** for all scripts, p
 CSS design tokens for styling. There is no server, no database, no environment
 variables, and no secrets.
 
-Seven cross-cutting systems deserve reading before you touch anything: the **canvas
+Eight cross-cutting systems deserve reading before you touch anything: the **canvas
 geometry law** (section 2.8), the **inverted surface hierarchy** (section 2.5), the
 **colour policy** (section 2.5), the **workspace anatomy** — tutorial header, working
 data, canvas, docked controls inside one panel (section 2.7), **persistence and the
-navbar reset** (section 2.2), the **global keyboard shortcuts** (section 2.12), and the
-**step engine** (section 2.10). The full design rationale lives in
-`docs/planning/ui-overhaul/DESIGN.md`; its **"Round 6"** section at the very end is
-authoritative wherever it overlaps earlier rounds — it supersedes the Round 5 surface
-values (surfaces are now inverted), the Round 5 achromatic sweep (colour came back on
-badges and the knowledge map), and the Round 5 panel order (the tutorial is the panel
-header now, not a bottom strip).
+navbar reset** (section 2.2), the **global keyboard shortcuts** (section 2.12), the
+**step engine** (section 2.10), and the **trivia drill** — the `/trivia` code-occlusion
+study view and the optional per-algorithm metadata that sharpens it (section 2.13, and
+section 4.11 when you are adding a problem). The full design rationale lives in
+`docs/planning/ui-overhaul/DESIGN.md`; **later rounds win wherever they overlap earlier
+ones.** Its **"Round 6"** section is authoritative for surfaces and colour — it supersedes
+the Round 5 surface values (surfaces are now inverted), the Round 5 achromatic sweep
+(colour came back on badges and the knowledge map), and the Round 5 panel order (the
+tutorial is the panel header now, not a bottom strip). **"Round 8"**, the last section in
+the file, is the spec for the trivia drill (section 2.13).
 
 Eight rules are the ones most likely to trip you up, so they are stated up front and
 repeated in context below:
@@ -153,8 +156,12 @@ src/
 │   ├── __root.tsx                # SettingsProvider + Navbar shell + <Outlet /> + dev-only devtools
 │   ├── index.tsx                 # "/"          → KnowledgeGraph roadmap page
 │   ├── problems.tsx              # "/problems"  → ProblemList, ?category= search param
+│   ├── trivia.tsx                # "/trivia"    → code-occlusion drill (section 2.13); the
+│   │                             #                ONLY stateful piece of that feature
 │   ├── workspace.index.tsx       # "/workspace" → redirects to /workspace/bubble-sort
-│   └── workspace.$algorithmId.tsx# "/workspace/:id" → workspace + playback keyboard shortcuts
+│   ├── workspace.$algorithmId.tsx# "/workspace/:id" → workspace + playback keyboard shortcuts
+│   └── specs/
+│       └── trivia.render.spec.tsx# Route spec: deck → session → grade → reset
 ├── app/
 │   ├── SettingsContext.tsx       # Persisted PanelVisibility + lastAlgorithmId (localStorage)
 │   ├── workspaceLayout.ts        # Versioned persisted workspace state, v6 (+ detailsExpanded)
@@ -162,7 +169,13 @@ src/
 │   ├── categories.ts             # CATEGORIES list (25 canonical) + isCategoryType() guard
 ├── engine/
 │   ├── stepEngine.ts             # useStepEngine hook: playback state machine + dedupe contract
-├── types/dsa.ts                  # ALL core interfaces & union types
+├── trivia/                       # The code-occlusion drill's brain (section 2.13) — FINISHED
+│   ├── triviaEngine.ts           # Pure, React-free, RNG-injectable drill logic + grading
+│   ├── triviaStorage.ts          # Two versioned localStorage keys, validate-on-read
+│   └── specs/                    # triviaEngine / triviaStorage / triviaFlow (end-to-end)
+├── types/
+│   ├── dsa.ts                    # ALL core interfaces & union types (incl. `trivia?: TriviaMeta`)
+│   └── trivia.ts                 # Trivia contracts: config, round, progress, grade, TriviaMeta
 ├── styles/
 │   ├── theme.css                 # Design tokens — the ONLY place raw color/size values live
 │   ├── ui.css                    # UI library classes (`ui-` prefix) + shared .ui-chip/.ui-code-line
@@ -178,6 +191,13 @@ src/
 │   ├── ComplexityCard.tsx        # Big-O chips + plain-English complexity prose (Collapsible)
 │   ├── ResizableLayout.tsx       # ResizableLayout (columns) + ResizableRows (hug/greedy/pinned rows)
 │   ├── ProblemList.tsx           # Flat problem listing with category filter + coloured status badges
+│   ├── trivia/                   # Presentational drill UI (section 2.13) — no engine state
+│   │   ├── TriviaDeckBuilder.tsx # Registry multi-select with quick multi-add + per-category counts
+│   │   ├── TriviaSettings.tsx    # Mode, minBlanks/maxBlanks sliders, distractors on/off
+│   │   ├── TriviaSession.tsx     # One round: fill → check → next; owns the board, not the grading
+│   │   ├── CodePuzzle.tsx        # The solution as a board: visible lines read, blanks become slots
+│   │   ├── TileTray.tsx          # Shuffled candidate tiles; click-then-click, drag optional
+│   │   └── specs/*.spec.tsx      # One spec per component (unique basenames — section 4.10)
 │   └── primitives/               # Visual render primitives
 │       ├── ArrayVisualizer.tsx   # kind: 'array' — bars span the width, tallest bar spans the band
 │       ├── GridVisualizer.tsx    # kind: 'grid'  — square cells sized from the HEIGHT
@@ -222,6 +242,13 @@ on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
   unknown or alias values collapse to "no filter" instead of erroring, so mistyped
   shared URLs still load the full list. Filter changes push (not replace) history
   entries.
+- **`trivia.tsx`** renders the code-occlusion drill (section 2.13). No params, no search
+  params: the deck, the settings and the progress all come from `localStorage` through
+  `src/trivia/triviaStorage.ts`, read during the *first* render (not in an effect, which
+  would paint an empty deck for a frame and read as "my progress is gone"). `AppView`
+  includes `'trivia'` and `Navbar`'s app-view `Segmented` carries the fourth option, so
+  the pathname ↔ view mapping in `__root.tsx` and the `navigate()` for it live there like
+  the other three views.
 - **`workspace.index.tsx`** statically redirects to `/workspace/bubble-sort`
   (hooks are unavailable in `beforeLoad`; navbar-driven navigation supplies the
   persisted `lastAlgorithmId` itself).
@@ -234,8 +261,9 @@ on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
 
 ### 2.2 Persistence: settings and workspace state
 
-Two independent localStorage layers, both defensive — reads validate and fall back,
-writes are best-effort, nothing throws into render.
+Three independent localStorage layers, all defensive — reads validate and fall back,
+writes are best-effort, nothing throws into render. Settings and workspace geometry are
+below; the trivia keys are the third layer and follow the same discipline (section 2.13).
 
 **`src/app/SettingsContext.tsx`** holds `panels: PanelVisibility` (the four independent
 panel booleans — section 2.11) and `lastAlgorithmId`, and exposes
@@ -923,6 +951,112 @@ step-back / play / step-forward controls carry `aria-keyshortcuts` (`ArrowLeft`,
 **Any new global shortcut reuses `keyboardGuards`** — never copy the predicates, and
 never bind a key that arrows/space already own inside a field.
 
+### 2.13 Trivia: the progressive code-occlusion drill (`/trivia`)
+
+The fourth app view is a study tool for memorising solutions before an interview
+(DESIGN.md **Round 8**). It reads the registry you already write — nothing about a new
+algorithm has to opt in — so understanding it is part of understanding what your `code`
+string is *for*. Section 4.11 is the authoring side of this section.
+
+**The technique.** Cloze deletion applied to source lines, escalated by **coverage, not
+time**:
+
+- At **level N** the drill hides N lines of one solution at once. Levels run from
+  `minBlanks` to `maxBlanks` (both user-set, floor 1, ceiling 8).
+- The level advances to N+1 **only once every blankable line of every deck entry has been
+  drilled at level N**. You therefore meet every line at every difficulty before the work
+  gets harder, instead of re-drilling whatever the shuffle happens to favour. When the
+  ceiling is covered, progress is `completed`.
+- Within a level, blank selection prefers **undrilled** lines, then weights by
+  `misses + 1`, so a line you fumbled resurfaces sooner without starving the ones you
+  know. (Leitner, reduced to its useful core.)
+- **Revealing a line counts as drilled *and* as a miss** — giving up schedules the line
+  again rather than quietly skipping it. A revealed blank is submitted as an empty answer,
+  so the on-screen feedback and the recorded stats agree.
+- An algorithm with fewer blankable lines than the current level cannot supply that many
+  blanks, so it is treated as **satisfied** instead of blocking the whole deck forever.
+- **Blank / whitespace-only lines are never blankable**, and neither are the lines an
+  author lists in `skipLines`.
+
+**Two answer modes**, one round shape (`TriviaRound`):
+
+- **`choice`** — the blanks are drop slots and the tray offers shuffled tiles. Decoys are
+  **other real lines from the same solution** (far harder to reject than random text),
+  plus any author-supplied `distractors`, one decoy per blank so the tray stays
+  proportional to the difficulty. Placement is **click-a-tile-then-click-a-blank**; native
+  HTML5 drag-and-drop is a flourish layered on the same call, which is why the drill works
+  by keyboard and is testable in jsdom.
+- **`type`** — write the line from memory, no tiles.
+
+**Indentation is displayed as a fixed prefix and never graded.** Python needs it, but
+making the learner retype leading spaces tests typing, not recall, so `PuzzleLine` splits
+`text` into `indent` + `content` and only `content` is answered. Grading trims both ends
+and requires an exact match inside (`isAnswerCorrect`).
+
+**The files.**
+
+| File | Role |
+|---|---|
+| `src/types/trivia.ts` | The contracts — **finished, read-only**: `TriviaMode`, `TriviaConfig`, `PuzzleLine`, `TriviaTile`, `TriviaRound`, `TriviaLineStat`, `TriviaProgress`, `TriviaGrade`, `TriviaMeta`. Its header comment is the rationale for the coverage rule. |
+| `src/trivia/triviaEngine.ts` | All the drill logic, **pure** — no React, no storage, RNG injected. **Finished, read-only.** |
+| `src/trivia/triviaStorage.ts` | Persistence: `TRIVIA_CONFIG_KEY` / `TRIVIA_PROGRESS_KEY` (`dsa_visualizer_trivia_{config,progress}_v1`), `TRIVIA_STORAGE_VERSION`, `readTriviaConfig` / `writeTriviaConfig(patch)` / `readTriviaProgress` / `writeTriviaProgress(progress)` / `clearTrivia` / the two clone helpers. |
+| `src/components/trivia/*` | `TriviaDeckBuilder`, `TriviaSettings`, `TriviaSession`, `CodePuzzle`, `TileTray` — presentational; they own board state (what is placed, typed, revealed, selected) and nothing else. |
+| `src/routes/trivia.tsx` | The page: the **only** owner of deck, settings, progress and the current round. |
+
+**Engine surface** (`src/trivia/triviaEngine.ts`):
+
+```ts
+DEFAULT_TRIVIA_CONFIG, MIN_BLANKS_FLOOR (1), MAX_BLANKS_CEILING (8)
+normalizeConfig(config)                 // keeps min <= max inside the supported range
+parsePuzzleLines(code, meta?)           // -> PuzzleLine[]  (indent/content split, blankable)
+blankableLines(lines)                   // -> line numbers that can be hidden
+createProgress(config)                  // -> TriviaProgress starting at the configured floor
+remainingAt(progress, id, lines, level) // lines of one algorithm not yet drilled at `level`
+isLevelCovered(progress, sources, level)
+pickRound({ config, progress, sources, meta?, rng? })  // -> TriviaRound | null
+buildTiles(lines, blanks, meta, rng)    // answers + decoys, shuffled
+isAnswerCorrect(submitted, expected)    // trim-compared
+gradeRound(round, answers)              // -> TriviaGrade { perBlank, allCorrect }
+recordRound(progress, round, grade, config, sources)  // -> next TriviaProgress (escalates)
+coverageRatio(progress, sources, config)             // 0..1, for the progress bar
+describeMode(mode)                      // the one-line instruction shown to the learner
+export type Rng = () => number
+```
+
+`sources` is always `Map<algorithmId, PuzzleLine[]>` and `meta` is
+`Map<algorithmId, TriviaMeta | undefined>`; the route builds both from the registry with
+`parsePuzzleLines(algorithm.code, algorithm.trivia)`. `pickRound` returns `null` for an
+empty deck, a completed drill, or a deck where nothing is long enough for the current
+level — the route renders an explanatory card for that last case instead of a broken
+board.
+
+**Three laws for anything you add to this feature:**
+
+1. **No component calls `Math.random`.** Randomness enters only through the engine's
+   injectable `rng` (default `Math.random` inside `pickRound`), so specs seed a generator
+   and a failure replays exactly (`triviaFlow.spec.ts` uses mulberry32).
+2. **No component re-implements grading or escalation.** `gradeRound` is the only judge and
+   `recordRound` the only bookkeeper; `TriviaSession` calls the former for its own feedback
+   and hands the answers up for the latter. A second comparison would drift from the
+   trim-compare rule the moment either side changed.
+3. **All drill state lives in `routes/trivia.tsx`,** written through `triviaStorage` on
+   every change (there is no save button — an abandoned drill must come back where it was
+   left). A stored deck id that is no longer in the registry is **skipped, not pruned**:
+   silently rewriting the user's deck would lose the entry for good.
+
+**Storage details worth knowing before you touch them:** config and progress are
+*deliberately separate* keys — changing a deck must not erase earned coverage, and a
+progress-shape change must not reset the deck. Reads validate field by field and a value
+with the wrong version, wrong shape, a NaN, an out-of-range level or `misses > attempts`
+is discarded **wholesale** (a half-restored progress record would silently corrupt the
+coverage rules). `clearTrivia()` runs only from the confirmed "Reset progress"
+`ConfirmDialog`, after which the route re-reads storage rather than assuming the defaults.
+
+**Styling** follows the same law as everything else (section 2.5): cards darker than the
+page, every panel promoted to `--border-default`, slots and tiles on the darkest
+`--bg-inset` fill, and colour **only** for correctness — `--success`/`--success-soft` and
+`--danger`/`--danger-soft` on graded slots, plus difficulty badges in the deck builder.
+
 ---
 
 ## 3. Core Data Contracts (`src/types/dsa.ts`)
@@ -944,6 +1078,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis; // REQUIRED plain-English prose (section 4.4)
   topicGuide: TopicGuide;                 // REQUIRED topic lesson (section 4.5)
+  trivia?: TriviaMeta;                    // OPTIONAL drill sharpening (sections 2.13, 4.11)
   generateSteps: (input: TInput) => AlgorithmStep[]; // Pure, synchronous
   defaultInput: TInput;
 }
@@ -954,6 +1089,13 @@ export interface TopicGuide {
   overview: string;                                  // what this topic IS
   sections: { heading: string; body: string }[];     // the teaching body
   keyTerms?: { term: string; definition: string }[]; // vocabulary
+}
+
+// src/types/trivia.ts — every field optional; no metadata still drills fine
+export interface TriviaMeta {
+  skipLines?: number[];                              // 1-based lines to never hide
+  distractors?: string[];                            // plausible-but-wrong tile lines
+  hints?: { line: number; hint: string }[];          // shown on request, per line
 }
 ```
 
@@ -990,7 +1132,7 @@ Snapshot variants (discriminated on `kind`):
 | pivot | visited | queued | in-stack | path` — each has a `--state-*` token pair.
 
 The UI-facing types in the same file: `PanelVisibility` / `PanelKey` (the workspace
-panel toggles, section 2.11), `AppView` (`'tree' | 'list' | 'workspace'`),
+panel toggles, section 2.11), `AppView` (`'tree' | 'list' | 'workspace' | 'trivia'`),
 `DifficultyLevel`, `CategoryType`, and the legacy `ViewMode` retained only for the
 settings migration.
 
@@ -1052,6 +1194,10 @@ as the canonical reference):
 5. The `AlgorithmDefinition<YourInput>` object wiring it all together — including the
    two **required** prose fields, `complexityAnalysis` (4.4) and `topicGuide` (4.5).
    A definition missing either will not compile.
+6. Optionally a module-level `const <NAME>_TRIVIA: TriviaMeta` wired in as `trivia:`, to
+   sharpen the code-occlusion drill for this solution (4.11). The drill works without it;
+   the four algorithms that have it are the reference (`twoSum`, `bubbleSort`,
+   `binarySearchMatrix`, `bfsGraph`).
 
 Strict typing throughout: no `any` in any form, no `unknown` casts, no suppression
 comments. Narrow snapshot unions with `if (snapshot.kind === 'graph') { ... }`.
@@ -1191,6 +1337,12 @@ state. Key rules:
   1 is the `def` line of the template literal. If you edit the Python string, re-audit
   every `codeLine` in the generator — the spec should pin at least the first and last
   step's `codeLine` to catch drift.
+- **Start the template literal immediately after the backtick — no leading newline.** The
+  house style is `` `def two_sum(...)`` on the same line as the opening backtick, and it is
+  load-bearing beyond aesthetics: the code viewer trims *both* ends while the trivia parser
+  trims only the trailing end (`parsePuzzleLines`), so a leading blank line would shift the
+  drill's numbering one past `codeLine`, `skipLines` and `hints` (sections 2.13 and 4.11).
+  The same 1-based numbering serves all three.
 - `variables` feeds the "Vars" chip strip docked under the code viewer — keep it to
   the handful of live values a reader would trace (`i`, `complement`, `target`), not
   a dump of all state.
@@ -1373,6 +1525,11 @@ templates.
 - Final state: the algorithm's *answer* is correct for the default input **and** for
   at least 2–3 custom inputs including an edge case (no solution, negative numbers,
   cycle present, empty-ish input).
+- **Trivia metadata coherence, if you wrote any `trivia` metadata** — one `describe` block
+  asserting the line numbers are in range and point at non-empty lines, that no
+  `distractor` equals a real line after trimming, and that hints sit on lines the drill can
+  actually hide. Section 4.11 explains what each assertion is protecting and gives the
+  block to copy.
 
 **Render spec — `<name>.render.spec.tsx`** (component integration through `MainLayout`;
 note the `.render.` segment — see the hard rule above). `MainLayout` takes

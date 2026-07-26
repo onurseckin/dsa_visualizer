@@ -5,6 +5,7 @@ import { AuxiliaryState } from '../../types/dsa';
 
 export interface AuxiliaryPanelProps {
   state?: AuxiliaryState;
+  variables?: Record<string, string | number | boolean>;
   onClose?: () => void;
 }
 
@@ -47,7 +48,12 @@ interface DataGroup {
 /* Single source of truth for "is there anything to show". The panel returns null
    when empty, so a parent that wraps it in a bordered strip must ask this first
    or it renders an empty band with a divider (DESIGN.md R5.2 forbids dead space). */
-export const hasAuxiliaryContent = (state?: AuxiliaryState): boolean => {
+export const hasAuxiliaryContent = (
+  state?: AuxiliaryState,
+  variables?: Record<string, string | number | boolean>
+): boolean => {
+  const hasVars = variables !== undefined && Object.keys(variables).length > 0;
+  if (hasVars) return true;
   if (!state) return false;
   const { stack, queue, visited, hashMap, distanceTable, customState } = state;
   return (
@@ -60,7 +66,7 @@ export const hasAuxiliaryContent = (state?: AuxiliaryState): boolean => {
   );
 };
 
-export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }) => {
+export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables, onClose }) => {
   const { stack, queue, visited, hashMap, distanceTable, customState } = state || {};
 
   const stackItems = stack || [];
@@ -69,6 +75,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
   const hashMapEntries = Object.entries(hashMap || {});
   const distanceEntries = Object.entries(distanceTable || {});
   const customEntries = Object.entries(customState || {});
+  const varEntries = Object.entries(variables || {});
 
   /* Built as a list so an empty group contributes nothing at all — no label, no
      row, no height. */
@@ -156,6 +163,20 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
     });
   }
 
+  if (varEntries.length > 0) {
+    groups.push({
+      key: 'variables',
+      label: 'Variables',
+      chips: varEntries.map(([k, val]) => (
+        <span key={`var-${k}`} className="ui-chip" style={CHIP}>
+          {k}
+          <span style={{ color: 'var(--text-muted)' }}>=</span>
+          <span style={{ color: 'var(--text-primary)' }}>{String(val)}</span>
+        </span>
+      )),
+    });
+  }
+
   // A step with nothing in flight renders no strip rather than a labelled blank.
   if (groups.length === 0) return null;
 
@@ -179,7 +200,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, onClose }
               whiteSpace: 'nowrap',
             }}
           >
-            Working data
+            Working Data & Variables
           </span>
           <div style={{ flex: 1, minWidth: 0 }} />
           {onClose && (

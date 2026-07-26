@@ -43,7 +43,7 @@ describe('NQueens React Component Spec', () => {
     );
 
     expect(screen.getByText(/Place a queen/i)).toBeInTheDocument();
-    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
     // Backtracking state (n, activeQueens, solutionsFound) renders as chips in the State row.
     expect(screen.getByText('activeQueens')).toBeInTheDocument();
     // solutionsFound also appears in the variables readout, so scope to the first match.

@@ -48,7 +48,7 @@ describe('PrefixSum React Component Spec', () => {
     );
 
     expect(screen.getByText(/Finish the prefix array/i)).toBeInTheDocument();
-    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
     // The computed prefix values are surfaced through the Visited row with a count.
     expect(screen.getByText(/Visited \(\d+\)/)).toBeInTheDocument();
   });

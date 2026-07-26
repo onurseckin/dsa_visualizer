@@ -7,7 +7,7 @@ import { generateQuickSortSteps, quickSort } from '../quickSort';
 /* The AuxiliaryPanel card is the only reliable scope for short row labels
    like "Stack" that also appear in badges and segmented controls. */
 const getWorkingDataCard = (): HTMLElement => {
-  const card = screen.getByText('Working data').closest('.ui-card');
+  const card = screen.getByText(/Working Data/i).closest('.ui-card');
   if (!(card instanceof HTMLElement)) {
     throw new Error('Working data card not found');
   }

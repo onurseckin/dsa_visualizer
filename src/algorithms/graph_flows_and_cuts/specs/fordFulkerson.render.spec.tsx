@@ -44,7 +44,7 @@ describe('fordFulkerson React component spec', () => {
       />
     );
 
-    expect(screen.getByText('Working data')).toBeInTheDocument();
+    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
     expect(screen.getByText('Visited (4)')).toBeInTheDocument();
     // Flow bookkeeping (source/sink/max-flow/augmenting path) lives in the State row chips.
     expect(screen.getAllByText(/Augmenting Path/i)[0]).toBeInTheDocument();

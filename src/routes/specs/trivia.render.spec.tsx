@@ -9,6 +9,7 @@ import {
   readTriviaProgress,
   writeTriviaConfig,
 } from '../../trivia/triviaStorage';
+import { ALGORITHM_REGISTRY } from '../../algorithms/registry';
 
 /* Route-level integration for /trivia (DESIGN.md R8.4).
 
@@ -38,11 +39,16 @@ const renderTriviaRoute = async () => {
   return view;
 };
 
-import { ALGORITHM_REGISTRY } from '../../algorithms/registry';
-
 const revealButtons = () => screen.getAllByRole('button', { name: /^Reveal line \d+$/ });
 
-const FOUR_DECK: TriviaConfig = { ...DECK, deck: ['two-sum', 'bubble-sort', 'binary-search-matrix', 'bfs-graph'], minBlanks: 1, maxBlanks: 3 };
+/* The four algorithms carrying authored trivia metadata — the deck the drill is
+   meant to be exercised on, and the one the engine flow spec proves out. */
+const FOUR_DECK: TriviaConfig = {
+  ...DECK,
+  deck: ['two-sum', 'bubble-sort', 'binary-search-matrix', 'bfs-graph'],
+  minBlanks: 1,
+  maxBlanks: 3,
+};
 
 describe('/trivia route', () => {
   beforeEach(() => {
