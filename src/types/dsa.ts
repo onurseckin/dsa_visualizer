@@ -115,7 +115,20 @@ export interface AlgorithmStep {
   variables: Record<string, string | number | boolean>;
 }
 
+/* Retained for compatibility with older persisted settings; the workspace now
+   models panel visibility as independent toggles (see PanelVisibility). */
 export type ViewMode = 'split' | 'visual' | 'code';
+
+/* Each workspace panel is shown or hidden by its own navbar toggle — there is
+   no mutually exclusive "view mode" anymore. */
+export interface PanelVisibility {
+  visualizer: boolean;
+  code: boolean;
+  tutorial: boolean;
+  auxiliary: boolean;
+}
+
+export type PanelKey = keyof PanelVisibility;
 export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
 
 export type CategoryType =

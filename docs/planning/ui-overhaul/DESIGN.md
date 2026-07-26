@@ -327,3 +327,195 @@ export function deriveStepCue(
   swallow legitimate consecutive steps — cap it near 30ms and raise the voice
   ceiling. Distinct cue kinds get distinct timbre/duration, kept short
   (≤120ms) so fast playback stays crisp rather than muddy.
+
+---
+
+# Round 4 — near-black palette, content-hugging panels, uniform toggles
+
+Supersedes conflicting details in Rounds 1–3.
+
+## R4.1 Palette is now near-black (theme.css is FINISHED — read, never edit)
+
+The previous palette was still too light. New anchors, all validated numerically:
+
+| Token | Value | Relative luminance |
+|---|---|---|
+| `--bg-inset` | `#01060a` | 0.0016 |
+| `--bg-page` | `#030b11` | 0.0030 |
+| `--bg-chrome` | `#05121a` | 0.0054 |
+| `--bg-surface` | `#071c13` | 0.0092 |
+| `--bg-elevated` | `#0c2619` | 0.0153 |
+| `--bg-hover` | `#113022` | 0.0235 |
+| `--bg-pressed` | `#153a2a` | 0.0335 |
+
+For scale: Tailwind slate-950 is 0.0021, green-950 is 0.0204, green-900 is 0.0652.
+The page sits just above pure black; containers step up by a *small* amount, not a
+full Tailwind stop. Navy = near-black blues (`inset`/`page`/`chrome`),
+emerald = near-black greens (`surface`/`elevated`/`hover`/`pressed`).
+
+**Because surfaces are nearly black, borders carry the edge definition.** Border
+tokens were brightened (`--border-subtle` `#1c4234`, `--border-default` `#2d6249`,
+`--border-strong` `#43896b`). Every container, card, panel and button MUST carry a
+visible border — without one it dissolves into the background. Verified:
+`--border-default` 2.5:1 vs surface, `--border-strong` 4.25:1 vs surface.
+
+Text tones all clear AA on every surface (primary ≥ 13:1 everywhere). The
+`--viz-1..8` categorical set was re-validated against the new surface and still
+passes every gate — do not substitute values.
+
+## R4.2 Panels hug their content — no dead space
+
+The Round 3 fixed flex-weight rows created empty space when a panel's content was
+short. New rule:
+
+- **Secondary panels size to their content** (`flex: 0 0 auto`): tutorial,
+  auxiliary/working data, complexity. They grow and shrink automatically as steps
+  add or remove content (aux rows appearing, longer explanations), so no panel
+  ever renders blank filler.
+- **The visualizer is the only greedy panel** (`flex: 1`) — it absorbs the
+  leftover space in its column. The code panel is greedy in its column too, since
+  code is long and benefits from height, but it must not fall below its content.
+- **A user drag overrides the hug** for that panel only: dragging a handle pins
+  that panel to an explicit pixel height (with internal `overflow: auto`), which
+  persists. Everything not explicitly dragged stays automatic.
+- Persist `null` for "automatic" and a number for "user-pinned". Reset returns
+  every panel to `null`/automatic.
+- Never render a handle, gap, or wrapper for a hidden panel.
+
+`WorkspaceLayout` (v4) therefore stores nullable pixel heights, not weights:
+
+```ts
+export interface WorkspaceLayout {
+  version: 4;
+  splitPercent: number;                    // left/right column split, still a %
+  panelHeights: {                          // null = hug content (default)
+    visualizer: number | null;
+    tutorial: number | null;
+    auxiliary: number | null;
+    code: number | null;
+    complexity: number | null;
+  };
+}
+```
+
+Read/validate/fallback rules from R3.3 still apply; bump the storage key to
+`dsa_visualizer_workspace_layout_v4` and ignore older payloads.
+
+## R4.3 Details use the full container width
+
+Remove the `max-width: 72ch` readable-measure cap from ProblemHeader. The topic
+guide, description, sections, key terms, constraints and examples all span the
+full width of their container. No internal max-width anywhere in the details
+panel, and no left-squeezed column.
+
+## R4.4 Uniform, independent panel toggles
+
+The Split/Visual/Code `Segmented` control is **removed**. `ViewMode` is replaced
+in the workspace by `PanelVisibility` (`src/types/dsa.ts`):
+
+```ts
+export interface PanelVisibility {
+  visualizer: boolean; code: boolean; tutorial: boolean; auxiliary: boolean;
+}
+```
+
+The navbar shows **five visually identical toggle buttons** — Visualizer, Code,
+Tutorial, Aux data, Sound — each an independent on/off that shows or hides that
+thing. Same `size="sm"`, same icon size, same selected treatment
+(`selected` → accent-soft bg + accent border + accent text), same gap, aligned on
+one baseline in a single row. `aria-pressed` reflects state on every one.
+
+The app-view navigation (Knowledge Tree / Problem List / Workspace) stays a
+`Segmented` control — it is mutually exclusive routing, not a set of toggles.
+
+If every workspace panel is toggled off, render a calm centered empty state
+telling the user to enable a panel — never a blank screen and never a trap.
+
+Settings persistence: store the four panel booleans (plus `soundEnabled`) and
+migrate any legacy `view_mode` value on read (`split` → visualizer+code both on,
+`visual` → visualizer only, `code` → code only).
+
+## R4.5 Size standardization
+
+One scale, applied everywhere: navbar/toolbar controls are `size="sm"`
+(`--control-h-sm`, 14px icons); in-panel actions are `size="md"`; badges are
+`size="sm"` except the problem title's difficulty badge. Never mix sizes inside a
+row. Icon-only buttons stay square (`--control-h-*` on both axes) and always
+carry `aria-label`.
+
+---
+
+# Round 5 — black/carbon/smoke shell, graph-focused workspace
+
+Supersedes ALL earlier color guidance and the Round 4 panel arrangement.
+
+## R5.1 The shell is achromatic; color is reserved for data
+
+`theme.css` is rewritten and FINISHED (read-only). The app is now black / carbon /
+smoke, and **hue only appears where it carries meaning**.
+
+| Token | Value | L | Role |
+|---|---|---|---|
+| `--bg-inset` | `#030304` | 0.0009 | code wells, inputs |
+| `--bg-page` | `#08080a` | 0.0025 | page (black) |
+| `--bg-chrome` | `#0e0e11` | 0.0045 | navbar, toolbars |
+| `--bg-surface` | `#141417` | 0.0071 | containers (carbon) |
+| `--bg-elevated` | `#1c1c21` | 0.0119 | buttons, chips (smoke) |
+| `--bg-hover` | `#26262c` | 0.0198 | hover |
+| `--bg-pressed` | `#303037` | 0.0302 | pressed |
+
+- **No green, teal, or navy anywhere in the shell.** Chrome, panels, cards,
+  buttons, inputs, drawers, navbar, sidebars and text are all neutral.
+- The accent is **bright smoke** `#e9e9ef` (not mint). Selected =
+  `--accent-soft` background + `--border-accent` border + `--accent` text.
+- **Colour is allowed in exactly three places**: (1) algorithm-state marks
+  (`--state-*`) inside visualizers, (2) the categorical `--viz-1..8` palette for
+  identity/groups in graphs and data-structure views, (3) semantic badges and
+  status (`--success`/`--warning`/`--danger`/`--info`) in lists and badges.
+  Everything else is neutral.
+- Adjacent surfaces sit only ~1.09x apart, so **borders carry the edge
+  definition** — every card, panel, well, chip and button MUST carry a border
+  token or it dissolves into the background.
+
+## R5.2 The workspace is graph-focused: one stage, nothing stacked outside it
+
+The left column is **a single container** — the visualizer panel — with the step
+context living *inside* it. Top to bottom, inside that one panel:
+
+1. **Working data** strip (the auxiliary/aux-data content) pinned at the top.
+2. **The visualization canvas** in the middle, taking all remaining height.
+3. **Tutorial** strip at the bottom.
+4. **ControlPanel** docked at the very bottom edge.
+
+Why: the panel's outer size is stable, so step-to-step content changes never
+resize or reflow the surrounding layout ("no width/height twitching"), and the
+learner sees the graph, its working data and the tutorial together without ever
+scrolling between them. The canvas is the flexible region that absorbs small
+content deltas — everything else keeps its natural height.
+
+`panels.tutorial` / `panels.auxiliary` still toggle those strips; hiding one
+gives its space to the canvas and renders no wrapper, divider or gap.
+
+## R5.3 Trim the canvas letterboxing — without shrinking graphs
+
+Visualizations currently waste large bands of empty space above and below the
+drawing. Fix the *cause*, not the symptom:
+
+- Compute the viewBox tightly around actual content bounds (plus a small,
+  uniform padding), then let the SVG scale to fill its box.
+- Do not letterbox: avoid a `preserveAspectRatio` + fixed-ratio viewBox
+  combination that centres a short drawing inside a tall box.
+- Drop oversized fixed `minHeight`s on canvas wrappers that force empty bands.
+- **Graphs must not get visually smaller.** After trimming, nodes/edges should be
+  the same size or LARGER because the drawing now fills the available area.
+  Verify per visualizer kind (array, grid, graph, tree) that the content scales
+  up into the reclaimed space rather than staying pinned at its old scale.
+
+## R5.4 The right column hugs its content
+
+- The code panel shows the solution **in full** — its height equals its content,
+  with no trailing empty space and no internal scroll while it fits.
+- The complexity card sits **immediately below** the code, so a short solution
+  pulls it up rather than leaving a gap.
+- Neither panel is greedy. If the two together exceed the column height, the
+  column itself scrolls.
