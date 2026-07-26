@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_WORKSPACE_LAYOUT,
-  MAX_ROW_WEIGHT,
+  MAX_PANEL_HEIGHT_PX,
   MAX_SPLIT_PERCENT,
-  MIN_ROW_WEIGHT,
+  MIN_PANEL_HEIGHT_PX,
   MIN_SPLIT_PERCENT,
   WORKSPACE_LAYOUT_KEY,
   WORKSPACE_LAYOUT_VERSION,
+  WORKSPACE_PANEL_KEYS,
   WorkspaceLayout,
+  clampPanelHeight,
   clearWorkspaceLayout,
   cloneWorkspaceLayout,
   readWorkspaceLayout,
@@ -19,10 +21,13 @@ const seed = (value: unknown): void => {
 };
 
 const customLayout: WorkspaceLayout = {
-  version: 3,
+  version: 5,
   splitPercent: 42,
-  leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
-  rightRows: { code: 55, complexity: 45 },
+  panelHeights: {
+    visualizer: null,
+    code: 180,
+    complexity: 240,
+  },
 };
 
 afterEach(() => {
@@ -31,23 +36,70 @@ afterEach(() => {
 });
 
 describe('workspaceLayout persistence contract', () => {
-  it('uses one versioned localStorage key', () => {
-    expect(WORKSPACE_LAYOUT_KEY).toBe('dsa_visualizer_workspace_layout_v3');
-    expect(WORKSPACE_LAYOUT_VERSION).toBe(3);
-    expect(DEFAULT_WORKSPACE_LAYOUT.version).toBe(3);
+  it('uses the v5 versioned localStorage key', () => {
+    expect(WORKSPACE_LAYOUT_KEY).toBe('dsa_visualizer_workspace_layout_v5');
+    expect(WORKSPACE_LAYOUT_VERSION).toBe(5);
+    expect(DEFAULT_WORKSPACE_LAYOUT.version).toBe(5);
+  });
+
+  it('keeps a height slot only for the panels that are still rows of a column', () => {
+    expect(DEFAULT_WORKSPACE_LAYOUT.panelHeights).toEqual({
+      visualizer: null,
+      code: null,
+      complexity: null,
+    });
+    expect(WORKSPACE_PANEL_KEYS).toEqual(['visualizer', 'code', 'complexity']);
+  });
+
+  it('gives the visualizer column the wider default share of the stage', () => {
+    expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).toBe(70);
   });
 
   it('returns defaults when nothing is stored', () => {
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
+  it('ignores a payload left behind by the v4 key', () => {
+    localStorage.setItem(
+      'dsa_visualizer_workspace_layout_v4',
+      JSON.stringify({
+        version: 4,
+        splitPercent: 40,
+        panelHeights: { visualizer: null, tutorial: 180, auxiliary: null, code: null, complexity: 240 },
+      }),
+    );
+
+    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  });
+
+  it('ignores a v4-shaped payload written under the v5 key', () => {
+    seed({
+      version: 4,
+      splitPercent: 40,
+      panelHeights: { visualizer: null, tutorial: 180, auxiliary: null, code: null, complexity: 240 },
+    });
+
+    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  });
+
+  it('ignores an old weight-shaped payload written under the v5 key', () => {
+    seed({
+      version: 3,
+      splitPercent: 40,
+      leftRows: { visualizer: 50, tutorial: 30, auxiliary: 20 },
+      rightRows: { code: 55, complexity: 45 },
+    });
+
+    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  });
+
   it('hands out copies so callers cannot mutate the shared defaults', () => {
     const first = readWorkspaceLayout();
     first.splitPercent = 11;
-    first.leftRows.visualizer = 11;
+    first.panelHeights.code = 999;
 
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
-    expect(DEFAULT_WORKSPACE_LAYOUT.splitPercent).not.toBe(11);
+    expect(DEFAULT_WORKSPACE_LAYOUT.panelHeights.code).toBeNull();
   });
 
   it('restores a previously written layout across a fresh read (reload / dev-server restart)', () => {
@@ -63,39 +115,51 @@ describe('workspaceLayout persistence contract', () => {
     const merged = writeWorkspaceLayout({ splitPercent: 33 });
 
     expect(merged.splitPercent).toBe(33);
-    expect(merged.leftRows).toEqual(customLayout.leftRows);
-    expect(merged.rightRows).toEqual(customLayout.rightRows);
+    expect(merged.panelHeights).toEqual(customLayout.panelHeights);
     expect(readWorkspaceLayout()).toEqual(merged);
   });
 
-  it('merges nested row patches field by field', () => {
-    writeWorkspaceLayout(customLayout);
+  it('pins only the panel named in the patch and leaves the rest automatic', () => {
+    const merged = writeWorkspaceLayout({ panelHeights: { code: 150 } });
 
-    const merged = writeWorkspaceLayout({ leftRows: { tutorial: 25 } });
-
-    expect(merged.leftRows).toEqual({ visualizer: 50, tutorial: 25, auxiliary: 20 });
+    expect(merged.panelHeights).toEqual({
+      visualizer: null,
+      code: 150,
+      complexity: null,
+    });
   });
 
-  it('clamps out-of-range values on write', () => {
+  it('treats an explicit null as "back to automatic" and an absent key as "unchanged"', () => {
+    writeWorkspaceLayout({ panelHeights: { code: 150, complexity: 300 } });
+
+    const merged = writeWorkspaceLayout({ panelHeights: { code: null } });
+
+    expect(merged.panelHeights.code).toBeNull();
+    expect(merged.panelHeights.complexity).toBe(300);
+  });
+
+  it('clamps out-of-range heights on write and degrades unusable numbers to automatic', () => {
     const merged = writeWorkspaceLayout({
       splitPercent: 250,
-      leftRows: { visualizer: -40, tutorial: 999, auxiliary: Number.NaN },
+      panelHeights: { visualizer: 1, complexity: 99999, code: Number.NaN },
     });
 
     expect(merged.splitPercent).toBe(MAX_SPLIT_PERCENT);
-    expect(merged.leftRows.visualizer).toBe(MIN_ROW_WEIGHT);
-    expect(merged.leftRows.tutorial).toBe(MAX_ROW_WEIGHT);
-    // NaN is unusable, so the field falls back to its default weight.
-    expect(merged.leftRows.auxiliary).toBe(DEFAULT_WORKSPACE_LAYOUT.leftRows.auxiliary);
+    expect(merged.panelHeights.visualizer).toBe(MIN_PANEL_HEIGHT_PX);
+    expect(merged.panelHeights.complexity).toBe(MAX_PANEL_HEIGHT_PX);
+    expect(merged.panelHeights.code).toBeNull();
   });
 
   it('clamps a below-minimum split percent up to the floor', () => {
     expect(writeWorkspaceLayout({ splitPercent: 1 }).splitPercent).toBe(MIN_SPLIT_PERCENT);
   });
 
-  it('falls back to defaults for a stale version', () => {
-    seed({ ...customLayout, version: 2 });
-    expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
+  it('clamps panel heights through the exported helper', () => {
+    expect(clampPanelHeight(null)).toBeNull();
+    expect(clampPanelHeight(Number.POSITIVE_INFINITY)).toBeNull();
+    expect(clampPanelHeight(10)).toBe(MIN_PANEL_HEIGHT_PX);
+    expect(clampPanelHeight(5000)).toBe(MAX_PANEL_HEIGHT_PX);
+    expect(clampPanelHeight(200)).toBe(200);
   });
 
   it('falls back to defaults for malformed JSON', () => {
@@ -105,16 +169,23 @@ describe('workspaceLayout persistence contract', () => {
 
   const invalidPayloads: [string, unknown][] = [
     ['a non-object payload', 42],
+    ['a missing splitPercent', { version: 5, panelHeights: customLayout.panelHeights }],
+    ['a null panelHeights group', { ...customLayout, panelHeights: null }],
+    ['an array panelHeights group', { ...customLayout, panelHeights: [180, 240] }],
     [
-      'a missing splitPercent',
-      { version: 3, leftRows: customLayout.leftRows, rightRows: customLayout.rightRows },
+      'a string height',
+      { ...customLayout, panelHeights: { ...customLayout.panelHeights, code: '180' } },
     ],
-    ['a null row group', { ...customLayout, leftRows: null }],
-    ['an array row group', { ...customLayout, rightRows: [70, 30] }],
-    ['a string weight', { ...customLayout, rightRows: { code: '70', complexity: 30 } }],
     ['an out-of-range splitPercent', { ...customLayout, splitPercent: 99 }],
-    ['a zero weight', { ...customLayout, rightRows: { code: 0, complexity: 30 } }],
-    ['a missing row key', { ...customLayout, leftRows: { visualizer: 50, tutorial: 30 } }],
+    [
+      'a height below the floor',
+      { ...customLayout, panelHeights: { ...customLayout.panelHeights, code: 4 } },
+    ],
+    [
+      'a height above the ceiling',
+      { ...customLayout, panelHeights: { ...customLayout.panelHeights, code: 9000 } },
+    ],
+    ['a missing panel key', { ...customLayout, panelHeights: { visualizer: null, code: 180 } }],
   ];
 
   it.each(invalidPayloads)('falls back to defaults for %s', (_label, payload) => {
@@ -123,12 +194,13 @@ describe('workspaceLayout persistence contract', () => {
   });
 
   it('drops unknown keys found in storage', () => {
-    seed({ ...customLayout, rogue: 'value' });
+    seed({ ...customLayout, rogue: 'value', panelHeights: { ...customLayout.panelHeights, tutorial: 180 } });
 
     const layout = readWorkspaceLayout();
 
     expect(layout).toEqual(customLayout);
-    expect(Object.keys(layout).sort()).toEqual(['leftRows', 'rightRows', 'splitPercent', 'version']);
+    expect(Object.keys(layout).sort()).toEqual(['panelHeights', 'splitPercent', 'version']);
+    expect(Object.keys(layout.panelHeights).sort()).toEqual(['code', 'complexity', 'visualizer']);
   });
 
   it('never throws when storage reads fail', () => {
@@ -158,7 +230,7 @@ describe('workspaceLayout persistence contract', () => {
     expect(() => clearWorkspaceLayout()).not.toThrow();
   });
 
-  it('clears the key only when asked, and then reads defaults again', () => {
+  it('clears the key only when asked, and then reads every panel back as automatic', () => {
     writeWorkspaceLayout(customLayout);
     expect(localStorage.getItem(WORKSPACE_LAYOUT_KEY)).not.toBeNull();
 
@@ -168,10 +240,10 @@ describe('workspaceLayout persistence contract', () => {
     expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
   });
 
-  it('clones deeply so nested row objects are not shared', () => {
+  it('clones deeply so nested panel heights are not shared', () => {
     const copy = cloneWorkspaceLayout(customLayout);
-    copy.leftRows.visualizer = 1;
+    copy.panelHeights.code = 1;
 
-    expect(customLayout.leftRows.visualizer).toBe(50);
+    expect(customLayout.panelHeights.code).toBe(180);
   });
 });
