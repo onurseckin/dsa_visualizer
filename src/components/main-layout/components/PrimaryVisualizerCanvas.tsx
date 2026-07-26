@@ -41,21 +41,33 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
       padding="none"
       style={{
         height: "100%",
+        width: "100%",
         borderColor: "var(--border-default)",
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          width: "100%",
+          minHeight: 0,
+          flex: 1,
+        }}
+      >
         <div
           data-region="canvas"
           style={{
             flex: 1,
+            width: "100%",
+            height: "100%",
             minHeight: 0,
             display: "flex",
             flexDirection: "column",
             overflowX: "auto",
             overflowY: "hidden",
-            padding: "var(--space-2)",
+            padding: "var(--space-6)",
             background: "var(--bg-inset)",
           }}
         >
@@ -89,7 +101,7 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
         </div>
 
         {resolvedControlProps && (
-          <div data-region="controls" style={{ flexShrink: 0 }}>
+          <div data-region="controls" style={{ flexShrink: 0, width: "100%" }}>
             <ControlPanel {...resolvedControlProps} variant="embedded" />
           </div>
         )}

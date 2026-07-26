@@ -111,7 +111,7 @@ describe("TutorialCard Component Spec", () => {
       );
 
       const body = container.querySelector(".ui-card__body > div") as HTMLElement;
-      expect(body.style.padding).toBe("var(--space-3)");
+      expect(body.style.padding).toBe("var(--space-4)");
       expect(body.style.flexDirection).toBe("column");
 
       // The counter row is above the prose, so the sentence is not squeezed into

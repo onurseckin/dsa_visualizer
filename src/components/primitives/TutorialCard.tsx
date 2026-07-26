@@ -61,7 +61,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
           display: "flex",
           flexDirection: "column",
           gap: "var(--space-2)",
-          padding: "var(--space-3)",
+          padding: "var(--space-4)",
           minWidth: 0,
         }}
       >

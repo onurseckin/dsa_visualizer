@@ -1,4 +1,4 @@
-import React, { DragEvent, MouseEvent, MutableRefObject } from "react";
+import React, { DragEvent, MouseEvent, MutableRefObject, useState } from "react";
 import { Eye, Lightbulb } from "lucide-react";
 import { IconButton, Kbd } from "../../../ui";
 import { PuzzleLine, TriviaGrade, TriviaMode } from "../../../types/trivia";
@@ -59,15 +59,34 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
   allowRowDrop,
   handleRowDrop,
 }) => {
+  const [isDragOver, setIsDragOver] = useState(false);
   const number = line.number;
   const graded = grade !== null;
   const wrong = graded && !grade.perBlank[number];
   const hoverHandlers =
     explanation !== undefined && rowHoverHandlers ? rowHoverHandlers(number) : undefined;
 
+  const handleDragOverRow = (e: DragEvent<HTMLDivElement>) => {
+    allowRowDrop(e);
+    if (!isDragOver) setIsDragOver(true);
+  };
+
+  const handleDragLeaveRow = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDropRow = (e: DragEvent<HTMLDivElement>) => {
+    setIsDragOver(false);
+    handleRowDrop(number)(e);
+  };
+
   return (
     <div
-      className="ui-code-line"
+      className={`ui-code-line transition-all ${
+        isDragOver
+          ? "bg-[var(--bg-hover)] rounded-[var(--radius-sm)] outline outline-1 outline-[var(--accent)]"
+          : ""
+      }`}
       data-testid={`blank-row-${number}`}
       ref={(el) => {
         if (el) blankRowRefs.current.set(number, el);
@@ -75,9 +94,10 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
       }}
       onMouseEnter={hoverHandlers?.onMouseEnter}
       onMouseLeave={hoverHandlers?.onMouseLeave}
-      onDragOver={allowRowDrop}
-      onDragEnter={allowRowDrop}
-      onDrop={handleRowDrop(number)}
+      onDragOver={handleDragOverRow}
+      onDragEnter={handleDragOverRow}
+      onDragLeave={handleDragLeaveRow}
+      onDrop={handleDropRow}
     >
       <div
         style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}

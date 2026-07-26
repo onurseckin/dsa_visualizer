@@ -23,7 +23,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   onSelectAlgorithm,
 }) => {
   const sortableHeader = (label: string, field: ProblemListSortField) => (
-    <th style={{ padding: "var(--space-2)" }}>
+    <th style={{ padding: cellPadding, background: "var(--bg-elevated)" }}>
       <Button
         size="sm"
         selected={sortBy === field}
@@ -43,6 +43,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
         <table
           style={{
             width: "100%",
+            tableLayout: "auto",
             borderCollapse: "collapse",
             textAlign: "left",
             fontSize: "var(--text-md)",
@@ -51,20 +52,46 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
           <thead>
             <tr
               style={{
-                background: "var(--bg-inset)",
+                background: "var(--bg-elevated)",
                 borderBottom: "1px solid var(--border-default)",
                 color: "var(--text-muted)",
                 fontSize: "var(--text-sm)",
                 fontWeight: 600,
               }}
             >
-              <th style={{ padding: cellPadding, width: "50px", fontWeight: 600 }}>#</th>
+              <th
+                style={{
+                  padding: cellPadding,
+                  width: "50px",
+                  fontWeight: 600,
+                  background: "var(--bg-elevated)",
+                }}
+              >
+                #
+              </th>
               {sortableHeader("Problem title", "title")}
               {sortableHeader("Topic / category", "category")}
               {sortableHeader("Difficulty", "difficulty")}
-              <th style={{ padding: cellPadding, fontWeight: 600 }}>Time complexity</th>
-              <th style={{ padding: cellPadding, fontWeight: 600 }}>Space complexity</th>
-              <th style={{ padding: cellPadding, textAlign: "center", fontWeight: 600 }}>Action</th>
+              <th
+                style={{ padding: cellPadding, fontWeight: 600, background: "var(--bg-elevated)" }}
+              >
+                Time complexity
+              </th>
+              <th
+                style={{ padding: cellPadding, fontWeight: 600, background: "var(--bg-elevated)" }}
+              >
+                Space complexity
+              </th>
+              <th
+                style={{
+                  padding: cellPadding,
+                  textAlign: "center",
+                  fontWeight: 600,
+                  background: "var(--bg-elevated)",
+                }}
+              >
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>

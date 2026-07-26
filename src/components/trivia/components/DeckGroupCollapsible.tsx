@@ -32,15 +32,11 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
 
   return (
     <Collapsible
-      className="w-full min-w-0 border-[var(--border-default)]"
+      className="w-full min-w-0 border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden shadow-sm"
       title={group.label}
       meta={
         <div className="flex items-center gap-2">
-          <Badge
-            variant={count > 0 ? (complete ? "success" : "info") : "neutral"}
-            size="sm"
-            className="border-[var(--border-default)]"
-          >
+          <Badge variant={count > 0 ? (complete ? "success" : "info") : "neutral"} size="sm">
             {count}/{group.entries.length}
           </Badge>
           <span
@@ -65,7 +61,7 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5 p-3 bg-[var(--bg-inset)]">
         {group.entries.map((entry) => {
           const isSelected = selected.has(entry.id);
           return (
@@ -73,7 +69,9 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
               key={entry.id}
               fullWidth
               selected={isSelected}
-              className="flex items-center justify-between gap-3 w-full text-left"
+              variant={isSelected ? "primary" : "ghost"}
+              size="sm"
+              className="flex items-center justify-between gap-3 w-full text-left border-none font-normal"
               onClick={() => onToggleOne(entry.id)}
             >
               <span className="min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">

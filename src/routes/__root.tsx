@@ -48,7 +48,7 @@ function RootShell(): React.ReactElement {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg-page)]">
+    <div className="flex flex-col w-full min-h-screen bg-[var(--bg-page)] overflow-x-hidden">
       <Navbar
         appView={appView}
         onSetAppView={handleSetAppView}
@@ -59,7 +59,9 @@ function RootShell(): React.ReactElement {
         onTogglePanel={togglePanel}
       />
 
-      <Outlet />
+      <div className="w-full flex-1 flex flex-col min-h-0 items-center">
+        <Outlet />
+      </div>
     </div>
   );
 }

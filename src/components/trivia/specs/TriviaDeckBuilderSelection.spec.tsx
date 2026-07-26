@@ -167,7 +167,7 @@ describe("TriviaDeckBuilderSelection", () => {
     const card = container.querySelector<HTMLElement>(".ui-card");
     expect(card?.className).toContain("border-[var(--border-default)]");
     container.querySelectorAll<HTMLElement>(".ui-collapsible").forEach((group) => {
-      expect(group.className).toContain("border-[var(--border-default)]");
+      expect(group.className).toMatch(/border-\[var\(--border-(default|subtle)\)\]/);
     });
     expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });

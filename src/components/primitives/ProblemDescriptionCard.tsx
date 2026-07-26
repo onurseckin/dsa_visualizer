@@ -29,9 +29,9 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   onToggleExpanded,
 }) => {
   return (
-    <Card padding="sm" className="border-[var(--border-default)]">
-      <div className="flex items-center flex-wrap gap-2">
-        <h1 className="m-0 text-lg font-semibold text-[var(--text-primary)] nowrap overflow-hidden text-ellipsis">
+    <Card padding="md" className="p-6 md:p-8 border-[var(--border-default)]">
+      <div className="flex items-center flex-wrap gap-3 py-1 px-1">
+        <h1 className="m-0 text-xl font-bold text-[var(--text-primary)] nowrap overflow-hidden text-ellipsis">
           {title}
         </h1>
 
@@ -55,7 +55,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
         <div
           id="problem-description-details"
           data-testid="problem-description-details"
-          className="mt-3 pt-3 border-t border-[var(--border-default)] flex flex-col gap-5"
+          className="mt-6 pt-6 border-t border-[var(--border-default)] flex flex-col gap-6"
           style={{ borderTop: "1px solid var(--border-default)" }}
         >
           <section>

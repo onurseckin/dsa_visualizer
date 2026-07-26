@@ -1,5 +1,5 @@
 import React from "react";
-import { Check as CheckIcon, Edit2, Play, Trash2 } from "lucide-react";
+import { Check as CheckIcon, Edit2, Trash2 } from "lucide-react";
 import type { TriviaSessionRecord } from "../../../types/trivia";
 import { Badge, Button, ButtonGroup, Card, IconButton, Input, BadgeVariant } from "../../../ui";
 
@@ -96,7 +96,6 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           <Button
             size="sm"
             variant="primary"
-            icon={<Play aria-hidden="true" />}
             onClick={() => onResumeSession(session)}
             title={stats ? `Resumes at Level ${stats.level} with a new round` : undefined}
           >

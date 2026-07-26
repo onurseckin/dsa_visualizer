@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, Check as CheckIcon, Edit2, Home, Play, X as CancelIcon } from "lucide-react";
+import { Brain, Check as CheckIcon, Edit2, X as CancelIcon } from "lucide-react";
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../types/trivia";
 import { Badge, Button, ButtonGroup, Card, IconButton, Input } from "../../ui";
 import { TriviaSettings } from "./TriviaSettings";
@@ -64,7 +64,7 @@ export function TriviaHeaderCard({
 
   return (
     <Card
-      className="border-[var(--border-default)]"
+      className="p-6 md:p-8 border-[var(--border-default)]"
       icon={<Brain aria-hidden="true" className="w-[22px] h-[22px] text-[var(--accent)]" />}
       title={
         <div className="flex flex-col gap-1">
@@ -119,52 +119,45 @@ export function TriviaHeaderCard({
         </div>
       }
       actions={
-        <ButtonGroup gap="sm" className="flex-wrap">
-          <Badge variant="info" size="md" className="border-[var(--border-default)]">
-            Level {level} of {config.maxBlanks}
-          </Badge>
-          <Badge variant="neutral" size="md" className="border-[var(--border-default)]">
-            {progress.roundsPlayed} {progress.roundsPlayed === 1 ? "round" : "rounds"}
-          </Badge>
-          <Badge variant="accent" size="md" className="border-[var(--border-default)]">
-            {sourcesCount} {sourcesCount === 1 ? "algorithm" : "algorithms"}
-          </Badge>
-          <Badge
-            variant={coverage >= 100 ? "success" : "neutral"}
-            size="md"
-            className="border-[var(--border-default)]"
-          >
-            {coverage}% covered
-          </Badge>
-          <Badge variant="neutral" size="md" className="border-[var(--border-default)]">
-            {deckLinesLabel}
-          </Badge>
-          <Badge variant="neutral" size="md" className="border-[var(--border-default)]">
-            {blanksLabel}
-          </Badge>
-
-          <Button
-            variant="secondary"
-            size="md"
-            icon={<Home aria-hidden="true" />}
-            onClick={onBackToHome}
-          >
+        <ButtonGroup gap="sm" className="items-center">
+          <Button variant="secondary" size="md" onClick={onBackToHome}>
             Back to Trivia Home
           </Button>
 
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Play aria-hidden="true" />}
-            disabled={isDeckEmpty}
-            onClick={onStartDrilling}
-          >
+          <Button variant="primary" size="md" disabled={isDeckEmpty} onClick={onStartDrilling}>
             Start drilling
           </Button>
         </ButtonGroup>
       }
     >
-      <TriviaSettings config={config} onChange={onChangeSettings} deckLineCounts={deckLineCounts} />
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2 flex-wrap p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)]">
+          <Badge variant="info" size="sm">
+            Level {level} of {config.maxBlanks}
+          </Badge>
+          <Badge variant="neutral" size="sm">
+            {progress.roundsPlayed} {progress.roundsPlayed === 1 ? "round" : "rounds"}
+          </Badge>
+          <Badge variant="accent" size="sm">
+            {sourcesCount} {sourcesCount === 1 ? "algorithm" : "algorithms"}
+          </Badge>
+          <Badge variant={coverage >= 100 ? "success" : "neutral"} size="sm">
+            {coverage}% covered
+          </Badge>
+          <Badge variant="neutral" size="sm">
+            {deckLinesLabel}
+          </Badge>
+          <Badge variant="neutral" size="sm">
+            {blanksLabel}
+          </Badge>
+        </div>
+
+        <TriviaSettings
+          config={config}
+          onChange={onChangeSettings}
+          deckLineCounts={deckLineCounts}
+        />
+      </div>
     </Card>
   );
 }

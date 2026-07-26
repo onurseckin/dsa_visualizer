@@ -29,7 +29,7 @@ describe("ProblemList Component Spec", () => {
     });
 
     const headerRow = container.querySelector<HTMLElement>("thead tr");
-    expect(headerRow?.style.background).toBe("var(--bg-inset)");
+    expect(headerRow?.style.background).toBe("var(--bg-elevated)");
     expect(headerRow?.style.borderBottom).toBe("1px solid var(--border-default)");
 
     const rows = Array.from(container.querySelectorAll<HTMLElement>("tbody tr"));
