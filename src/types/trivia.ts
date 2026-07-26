@@ -90,3 +90,16 @@ export interface TriviaMeta {
   /** Nudges shown on request, keyed by line number. */
   hints?: { line: number; hint: string }[];
 }
+
+export type TriviaSessionStatus = 'active' | 'paused' | 'completed';
+
+export interface TriviaSessionRecord {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  config: TriviaConfig;
+  progress: TriviaProgress;
+  status: TriviaSessionStatus;
+}
+
