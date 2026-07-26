@@ -10,6 +10,11 @@
     "no-explicit-any": "error",
     "typescript/no-explicit-any": "error",
     "typescript/ban-ts-comment": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
     "react/react-in-jsx-scope": "off",
     "react/no-array-index-key": "off",
     "react/no-object-type-as-default-prop": "off",
@@ -17,8 +22,6 @@
     "eslint/no-await-in-loop": "off",
     "eslint/no-shadow": "off",
     "unicorn/no-array-reverse": "off",
-    "no-unused-vars": "off",
-    "typescript/no-unused-vars": "off",
     "vitest/require-mock-type-parameters": "off",
     "vitest/no-conditional-expect": "off",
     "vitest/expect-expect": "off",
