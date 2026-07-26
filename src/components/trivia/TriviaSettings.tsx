@@ -98,11 +98,12 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
     if (value === 'choice' || value === 'type') onChange({ mode: value });
   };
 
-  /* Raising the floor above the ceiling pushes the ceiling up with it, rather
-     than rejecting the drag — the user's intent is "start harder". */
+  /* Bounded by the ceiling's current value, not the engine's outer limit —
+     the same way the ceiling below is bounded by the floor. Neither slider
+     ever moves the other; each simply cannot be dragged past the other's
+     value, so "starting" can never surpass "hardest" in the first place. */
   const handleMin = (value: number) => {
-    const next = Math.min(Math.max(value, MIN_BLANKS_FLOOR), MAX_BLANKS_CEILING);
-    onChange(next > maxBlanks ? { minBlanks: next, maxBlanks: next } : { minBlanks: next });
+    onChange({ minBlanks: Math.min(Math.max(value, MIN_BLANKS_FLOOR), maxBlanks) });
   };
 
   const handleMax = (value: number) => {
@@ -131,12 +132,11 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
           label="Starting blanks"
           value={minBlanks}
           min={MIN_BLANKS_FLOOR}
-          max={MAX_BLANKS_CEILING}
+          max={maxBlanks}
           onChange={handleMin}
         />
         <span style={hintStyle}>
-          How many lines the first level hides at once. Raising it past the ceiling raises the
-          ceiling too.
+          How many lines the first level hides at once. It can never exceed the hardest level.
         </span>
       </div>
 

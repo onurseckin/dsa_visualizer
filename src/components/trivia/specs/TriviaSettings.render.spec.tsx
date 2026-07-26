@@ -85,7 +85,7 @@ describe('TriviaSettings', () => {
     expect(onChange).toHaveBeenCalledWith({ minBlanks: 3 });
   });
 
-  it('pushes the ceiling up when the floor is raised past it', () => {
+  it('never lets the floor rise above the ceiling, and never moves the ceiling to do it', () => {
     const onChange = vi.fn();
     render(
       <TriviaSettings
@@ -95,8 +95,14 @@ describe('TriviaSettings', () => {
       />,
     );
 
-    fireEvent.change(slider(/starting blanks/i), { target: { value: '5' } });
-    expect(onChange).toHaveBeenCalledWith({ minBlanks: 5, maxBlanks: 5 });
+    const min = slider(/starting blanks/i);
+    // The range itself refuses the invalid span, not only the handler.
+    expect(min.max).toBe('2');
+
+    fireEvent.change(min, { target: { value: '5' } });
+    // Clamped to the ceiling's own value — the ceiling itself is never
+    // touched, so the two sliders never move each other.
+    expect(onChange).toHaveBeenCalledWith({ minBlanks: 2 });
   });
 
   it('never lets the ceiling drop below the floor', () => {

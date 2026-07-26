@@ -92,20 +92,6 @@ export function TriviaHeaderCard({
       icon={<Brain aria-hidden="true" style={{ width: 22, height: 22, color: 'var(--accent)' }} />}
       title={
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          {/* The one-word answer to "am I editing an existing session or
-              building a new one?" — always visible, never just implied by
-              the name/badge next to it. */}
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-            }}
-          >
-            Now editing session
-          </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             {isEditingTitle ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>

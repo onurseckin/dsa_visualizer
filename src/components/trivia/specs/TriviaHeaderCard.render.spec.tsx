@@ -38,7 +38,6 @@ describe('TriviaHeaderCard', () => {
       />
     );
 
-    expect(screen.getByText('Now editing session')).toBeInTheDocument();
     expect(screen.getByText('Session 1')).toBeInTheDocument();
     // roundsPlayed: 1 means this session has earned progress, so the badge
     // must say so regardless of the stored `status` field (paused here) —

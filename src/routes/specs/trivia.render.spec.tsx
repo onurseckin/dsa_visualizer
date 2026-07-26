@@ -96,7 +96,6 @@ describe('/trivia route', () => {
     await renderTriviaRoute();
 
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.getByText('Now editing session')).toBeInTheDocument();
     expect(screen.getByText('Session 1')).toBeInTheDocument();
     expect(screen.getByText('0 in deck')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start drilling' })).toBeDisabled();
@@ -121,7 +120,6 @@ describe('/trivia route', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]);
 
     expect(await screen.findByText('Build your deck')).toBeInTheDocument();
-    expect(screen.getByText('Now editing session')).toBeInTheDocument();
     expect(screen.getByText('New session')).toBeInTheDocument();
     expect(screen.getByText('0 in deck')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start drilling' })).toBeDisabled();
@@ -579,8 +577,7 @@ describe('/trivia route', () => {
     await waitFor(() => expect(readActiveSessionRecord().progress.roundsPlayed).toBe(1));
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit deck & settings' }));
-    expect(await screen.findByText('Now editing session')).toBeInTheDocument();
-    expect(screen.getByText('Paused · progress saved')).toBeInTheDocument();
+    expect(await screen.findByText('Paused · progress saved')).toBeInTheDocument();
     expect(screen.queryByText('New session')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to Trivia Home' }));
