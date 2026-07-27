@@ -9,7 +9,7 @@ const baseProps: ProblemDescriptionCardProps = {
   description: "Return the indices of the two numbers that add up to the target.",
   constraints: ["2 <= nums.length <= 10^4"],
   examples: [{ input: "nums = [2,7,11,15]", output: "[0,1]", explanation: "Because 2 + 7 == 9." }],
-  expanded: false,
+  expanded: true,
   onToggleExpanded: () => undefined,
 };
 
@@ -92,5 +92,18 @@ describe("ProblemDescriptionCard", () => {
     expect(screen.queryByText("Constraints")).toBeNull();
     expect(screen.queryByText("Examples")).toBeNull();
     expect(screen.getByText("Problem")).toBeInTheDocument();
+  });
+
+  it("keeps title, difficulty badge, and category tag visible when collapsed (expanded=false)", () => {
+    renderCard({ expanded: false });
+
+    // Header elements remain visible
+    expect(screen.getByText("Two Sum")).toBeInTheDocument();
+    expect(screen.getByText("Easy")).toBeInTheDocument();
+    expect(screen.getByText("Arrays and hashing")).toBeInTheDocument();
+
+    // Details content is collapsed/hidden
+    expect(screen.queryByTestId("problem-description-details")).toBeNull();
+    expect(screen.queryByText(baseProps.description)).toBeNull();
   });
 });

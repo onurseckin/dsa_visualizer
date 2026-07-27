@@ -6,6 +6,7 @@ import {
   CATEGORY_LABELS,
   ProblemListSortField,
 } from "../../components/problem-list/problemListUtils";
+import { Badge, difficultyBadgeVariant } from "../index";
 
 interface ProblemTableProps {
   filteredAlgorithms: AlgorithmDefinition[];
@@ -100,23 +101,15 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       </span>
                     </td>
                     <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
-                      <span className="px-3 py-1 text-xs rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]">
+                      <Badge variant="neutral" size="sm">
                         {catLabel}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
                       {alg.difficulty && (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            alg.difficulty === "Easy"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : alg.difficulty === "Medium"
-                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          }`}
-                        >
+                        <Badge variant={difficultyBadgeVariant(alg.difficulty)} size="sm">
                           {alg.difficulty}
-                        </span>
+                        </Badge>
                       )}
                     </td>
                     <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">

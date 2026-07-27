@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cx } from "../cx";
 
 export interface WellProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "subtle";
+  variant?: "default" | "subtle" | "info";
   padding?: "none" | "sm" | "md" | "lg";
   asChild?: boolean;
 }
@@ -37,7 +37,10 @@ export function Well({
       className={cx(
         "ui-well",
         `ui-well--padding-${padding}`,
-        "bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] shadow-sm overflow-hidden",
+        variant === "info"
+          ? "ui-well--info bg-[var(--bg-alert,#0d1f17)] border border-[var(--border-alert,rgba(16,185,129,0.25))]"
+          : "bg-[var(--bg-inset)] border border-[var(--border-default)]",
+        "rounded-[var(--radius-md)] shadow-sm overflow-hidden",
         variant === "subtle" && "ui-well--subtle",
         paddingClass,
         className,

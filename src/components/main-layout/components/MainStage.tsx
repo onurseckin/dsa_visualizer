@@ -90,12 +90,17 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: !panels.complexity,
       height: layoutState.layout.panelHeights.code,
       content: (
-        <CodeBlockViewer
-          code={algorithm.code}
-          activeLine={currentStep?.codeLine || 1}
-          variables={currentStep?.variables}
-          lineExplanations={algorithm.trivia?.lineExplanations}
-        />
+        <div
+          className="h-full w-full bg-[var(--bg-inset)]"
+          style={{ background: "var(--bg-inset)" }}
+        >
+          <CodeBlockViewer
+            code={algorithm.code}
+            activeLine={currentStep?.codeLine || 1}
+            variables={currentStep?.variables}
+            lineExplanations={algorithm.trivia?.lineExplanations}
+          />
+        </div>
       ),
     },
     {

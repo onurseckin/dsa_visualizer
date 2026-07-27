@@ -1,7 +1,9 @@
 import React from "react";
-import { Badge, Card, FieldLabel, Well, difficultyBadgeVariant } from "..";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Card, FieldLabel, Well } from "..";
 import { cx } from "../cx";
 import { CategoryType, DifficultyLevel, ProblemExample } from "../../types/dsa";
+import { ProblemHeader } from "../../components/primitives/ProblemHeader";
 
 export interface ProblemDescriptionCardProps {
   title: string;
@@ -14,12 +16,8 @@ export interface ProblemDescriptionCardProps {
   onToggleExpanded?: () => void;
   className?: string;
   style?: React.CSSProperties;
+  showHeader?: boolean;
 }
-
-const humanizeCategory = (category: string): string => {
-  const spaced = category.replace(/[-_]/g, " ").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-};
 
 export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   title,
@@ -28,9 +26,16 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   description,
   constraints,
   examples,
+  expanded = true,
+  onToggleExpanded,
   className,
   style,
+  showHeader = true,
 }) => {
+  if (!showHeader && !expanded) {
+    return null;
+  }
+
   return (
     <Card
       data-testid="problem-description-card"
@@ -40,77 +45,96 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
       )}
       style={style}
     >
-      <Card.Body className="p-4 md:p-5">
-        <div
-          id="problem-description-details"
-          data-testid="problem-description-details"
-          className="flex flex-col gap-6"
-        >
-          <div className="flex items-center flex-wrap gap-3">
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] m-0">
-              {title}
-            </h1>
-            <Badge variant={difficultyBadgeVariant(difficulty)}>{difficulty}</Badge>
-            <Badge variant="neutral">{humanizeCategory(category)}</Badge>
+      <Card.Body className="p-4 md:p-5 flex flex-col gap-4">
+        {showHeader && (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <ProblemHeader title={title} category={category} difficulty={difficulty} />
+            {onToggleExpanded && (
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-controls="problem-description-details"
+                onClick={onToggleExpanded}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-[var(--text-secondary)] bg-[var(--bg-inset)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer"
+              >
+                <span>{expanded ? "Hide Details" : "Show Details"}</span>
+                {expanded ? (
+                  <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                )}
+              </button>
+            )}
           </div>
+        )}
 
-          <section>
-            <FieldLabel label="Problem" />
-            <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-              <p className="m-0 text-base leading-relaxed text-[var(--text-secondary)]">
-                {description}
-              </p>
-            </Well>
-          </section>
-
-          {constraints && constraints.length > 0 && (
+        {expanded && (
+          <div
+            id="problem-description-details"
+            data-testid="problem-description-details"
+            className={cx(
+              "flex flex-col gap-6",
+              showHeader && "pt-2 border-t border-[var(--border-default)]",
+            )}
+          >
             <section>
-              <FieldLabel label="Constraints" />
+              <FieldLabel label="Problem" />
               <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-                <ul className="m-0 pl-4 font-mono text-sm leading-relaxed text-[var(--text-secondary)]">
-                  {constraints.map((constraint, idx) => (
-                    <li key={`constraint-${idx}`}>{constraint}</li>
-                  ))}
-                </ul>
+                <p className="m-0 text-base leading-relaxed text-[var(--text-secondary)]">
+                  {description}
+                </p>
               </Well>
             </section>
-          )}
 
-          {examples && examples.length > 0 && (
-            <section>
-              <FieldLabel label="Examples" />
-              <div
-                data-testid="problem-description-examples"
-                className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-x-5 gap-y-3 items-start"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
-                }}
-              >
-                {examples.map((example, idx) => (
-                  <Well
-                    key={`example-${idx}`}
-                    className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)] font-mono text-sm leading-relaxed"
-                  >
-                    <div>
-                      <span className="text-[var(--text-muted)]">Input: </span>
-                      <span className="text-[var(--text-primary)]">{example.input}</span>
-                    </div>
-                    <div>
-                      <span className="text-[var(--text-muted)]">Output: </span>
-                      <span className="text-[var(--text-primary)]">{example.output}</span>
-                    </div>
-                    {example.explanation && (
-                      <div className="mt-1 font-sans text-[var(--text-secondary)]">
-                        {example.explanation}
+            {constraints && constraints.length > 0 && (
+              <section>
+                <FieldLabel label="Constraints" />
+                <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
+                  <ul className="m-0 pl-4 font-mono text-sm leading-relaxed text-[var(--text-secondary)]">
+                    {constraints.map((constraint, idx) => (
+                      <li key={`constraint-${idx}`}>{constraint}</li>
+                    ))}
+                  </ul>
+                </Well>
+              </section>
+            )}
+
+            {examples && examples.length > 0 && (
+              <section>
+                <FieldLabel label="Examples" />
+                <div
+                  data-testid="problem-description-examples"
+                  className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-x-5 gap-y-3 items-start"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
+                  }}
+                >
+                  {examples.map((example, idx) => (
+                    <Well
+                      key={`example-${idx}`}
+                      className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)] font-mono text-sm leading-relaxed"
+                    >
+                      <div>
+                        <span className="text-[var(--text-muted)]">Input: </span>
+                        <span className="text-[var(--text-primary)]">{example.input}</span>
                       </div>
-                    )}
-                  </Well>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
+                      <div>
+                        <span className="text-[var(--text-muted)]">Output: </span>
+                        <span className="text-[var(--text-primary)]">{example.output}</span>
+                      </div>
+                      {example.explanation && (
+                        <div className="mt-1 font-sans text-[var(--text-secondary)]">
+                          {example.explanation}
+                        </div>
+                      )}
+                    </Well>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
       </Card.Body>
     </Card>
   );

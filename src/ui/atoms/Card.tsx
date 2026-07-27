@@ -98,12 +98,14 @@ export function CardBody({
   padding = "md",
   children,
   className,
+  style,
   id,
   "data-testid": dataTestId,
 }: {
   padding?: CardPadding;
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   id?: string;
   "data-testid"?: string;
 }): React.ReactElement {
@@ -120,6 +122,7 @@ export function CardBody({
     <div
       id={id}
       data-testid={dataTestId}
+      style={style}
       className={cx(
         "ui-card__body flex-1 min-h-0",
         padding === "none" ? "ui-card__body--none" : `ui-card__body--${padding}`,
@@ -168,6 +171,7 @@ export function Card({
         isInset ? "ui-card--inset bg-[var(--bg-inset)] shadow-none" : "bg-[var(--bg-surface)]",
         className,
       )}
+      style={isInset ? { background: "var(--bg-inset)", ...rest.style } : rest.style}
       {...rest}
     >
       {asChild ? (
