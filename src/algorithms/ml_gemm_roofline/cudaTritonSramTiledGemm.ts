@@ -142,6 +142,27 @@ export const generateCudaTritonSramTiledGemmSteps = (
     { m, kDim, n, tileK },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Computes block-tiled GEMM in SRAM iterating over K-dimension blocks.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: Read M and K dimensions
   addStep(
     5,

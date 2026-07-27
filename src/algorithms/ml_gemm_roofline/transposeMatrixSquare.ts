@@ -124,6 +124,27 @@ export const generateTransposeMatrixSquareSteps = (
     { n },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Transposes N x N matrix in-place by swapping symmetric upper/lower entries.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: n = len(matrix)
   addStep(
     5,

@@ -80,6 +80,27 @@ export const generateMicrogradForwardPassSteps = (
     { engine_mode: "EAGER_EXECUTION", grad_enabled: "True" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Evaluates forward pass scalar value and binds backward gradient function.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Begin DAG operation traversal
   addStep(
     5,

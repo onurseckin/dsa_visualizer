@@ -76,6 +76,27 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     { memory_mode: "CHECKPOINTED", interval: "2" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Saves activation checkpoints every K layers to trade re-computation FLOPs for SR",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init checkpoints list
   addStep(
     5,

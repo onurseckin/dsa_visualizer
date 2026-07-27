@@ -76,6 +76,27 @@ export const generateDetectTerminalNodesSteps = (
     { out_degree_status: "INITIALIZING", terminal_nodes: "[]" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Finds leaf sink nodes with out-degree 0 in autograd computation graph.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init Out-Degree Array
   addStep(
     5,

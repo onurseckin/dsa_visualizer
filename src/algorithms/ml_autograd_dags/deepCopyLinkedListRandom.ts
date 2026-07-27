@@ -82,6 +82,27 @@ export const generateDeepCopyLinkedListRandomSteps = (
   );
 
   addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Clones computation graph node structures preserving next and random edge pointer",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+  addStep(
     5,
     "Validate Input Nodes Array Boundary",
     "Checking if input graph nodes array is empty. Found valid nodes array.",

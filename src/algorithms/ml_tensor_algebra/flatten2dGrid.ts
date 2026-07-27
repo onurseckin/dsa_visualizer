@@ -119,6 +119,27 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
     { rows: numRows, cols: numCols },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Flattens a 2D matrix into a 1D contiguous row-major memory buffer.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Extract rows
   addStep(
     5,

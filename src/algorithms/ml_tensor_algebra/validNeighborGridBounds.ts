@@ -126,6 +126,27 @@ export const generateValidNeighborGridBoundsSteps = (
     { rows, cols, r, c },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Extracts valid 4-directional adjacent neighbor coordinates within grid bounds.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: directions
   addStep(
     5,

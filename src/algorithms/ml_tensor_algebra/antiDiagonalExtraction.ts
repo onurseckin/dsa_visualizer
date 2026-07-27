@@ -127,6 +127,27 @@ export const generateAntiDiagonalExtractionSteps = (
     { rows: numRows, cols: numCols },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Extracts anti-diagonals (row + col = k) for wavefront parallel processing.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Measure rows
   addStep(
     5,

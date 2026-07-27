@@ -133,6 +133,27 @@ export const generateVectorDotProductMacSteps = (
     { n, bias },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Computes multiply-accumulate vector dot product y = sum(a_i * b_i) + bias.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 1 (detail): Validate input dimensions
   addStep(
     1,

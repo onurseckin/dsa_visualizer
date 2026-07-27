@@ -95,6 +95,27 @@ export const generateEvalReversePolishNotationSteps = (
     { tokenCount: tokens.length, stackSize: 0, phase: "INIT_RPN" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Evaluates Reverse Polish Notation (RPN) expression using an explicit operand sta",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init stack array
   addStep(
     5,

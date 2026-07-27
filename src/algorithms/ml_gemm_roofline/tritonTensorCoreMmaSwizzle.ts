@@ -129,6 +129,27 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     { num_pid_m, num_pid_n, group_size },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Swizzles 1D Triton CTA program ID into 2D tile coordinates (pid_m, pid_n) for L2",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // First perform detailed step trace for the primary target pid_1d
   {
     const pid_1d = targetPid1d;

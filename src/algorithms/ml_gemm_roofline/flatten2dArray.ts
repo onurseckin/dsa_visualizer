@@ -139,6 +139,27 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
     { m, n },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Linearizes 2D row-major matrix into contiguous 1D memory array.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: Allocate flat array
   addStep(
     5,

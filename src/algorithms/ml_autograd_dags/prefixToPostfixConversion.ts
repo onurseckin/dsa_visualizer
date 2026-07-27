@@ -85,6 +85,27 @@ export const generatePrefixToPostfixConversionSteps = (
     { status: "INITIALIZING", stack_depth: "0" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Converts Polish prefix notation tokens to RPN postfix expression format.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init stack array
   addStep(
     5,

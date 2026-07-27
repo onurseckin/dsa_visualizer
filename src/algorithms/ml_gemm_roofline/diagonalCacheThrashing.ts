@@ -132,6 +132,27 @@ export const generateDiagonalCacheThrashingSteps = (
     { n, cache_sets: cacheSets },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Demonstrates L1 cache line thrashing when strided diagonal matrix access spans c",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: Read n
   addStep(
     5,

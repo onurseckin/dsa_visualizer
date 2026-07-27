@@ -88,6 +88,27 @@ export const generateRecipeIndegreeKahnBfsSteps = (
     { topo_order: "[]", queue: "[]" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Computes topological order using Kahn's BFS queue-based in-degree reduction algo",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init in_degree and adj
   addStep(
     5,

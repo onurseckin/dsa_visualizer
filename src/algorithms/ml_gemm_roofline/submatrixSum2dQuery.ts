@@ -146,6 +146,27 @@ export const generateSubmatrixSum2dQuerySteps = (
     { r1, c1, r2, c2 },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Queries 2D submatrix region sum using 4-corner integral image prefix table.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 1 (detail): Bounds validation
   addStep(
     1,

@@ -82,6 +82,27 @@ export const generateAstExpressionEvalVariablesSteps = (
     { env_x0: "10", env_w1: "20", env_b: "5" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Evaluates AST expression tree substituting variable bindings from environment.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Begin AST root traversal
   addStep(
     5,
