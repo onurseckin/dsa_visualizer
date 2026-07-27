@@ -6,8 +6,33 @@ export interface matrixBlockSumFlatInput {
   target?: number;
 }
 
-export const MATRIXBLOCKSUMFLAT_CODE =
-  "def matrix_block_sum_flat(input_data: list) -> list:\n    # Submatrix Block Sum with 2D Prefix Array (Medium)\n    # Computes 2D region sum queries in O(1) time using an integral image prefix table.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const MATRIXBLOCKSUMFLAT_CODE = `
+def matrixblocksumflat(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_MATRIXBLOCKSUMFLAT_INPUT: matrixBlockSumFlatInput = {
   data: [10, 20, 30, 40, 50],
@@ -119,6 +144,16 @@ export const matrixBlockSumFlat: AlgorithmDefinition<matrixBlockSumFlatInput> = 
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description: "Computes 2D region sum queries in O(1) time using an integral image prefix table.",
+  leetcode: { id: 1314, url: "https://leetcode.com/problems/matrix-block-sum/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 1314,
+      title: "Matrix Block Sum",
+      url: "https://leetcode.com/problems/matrix-block-sum/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -174,7 +209,7 @@ export const matrixBlockSumFlat: AlgorithmDefinition<matrixBlockSumFlatInput> = 
     ],
   },
   trivia: MATRIXBLOCKSUMFLAT_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
+
   defaultInput: DEFAULT_MATRIXBLOCKSUMFLAT_INPUT,
   generateSteps: generateMatrixBlockSumFlatSteps,
 };

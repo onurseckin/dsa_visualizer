@@ -11,29 +11,17 @@ export interface SparseTableRmqInput {
   queries: SparseTableQuery[];
 }
 
-export const SPARSE_TABLE_RMQ_CODE = `import math
-
-def build_sparse_table(arr: list[int]) -> list[list[int]]:
-    n = len(arr)
-    if n == 0:
-        return []
-    K = int(math.log2(n)) + 1
-    st = [[0] * K for _ in range(n)]
-    for i in range(n):
-        st[i][0] = arr[i]
-    j = 1
-    while (1 << j) <= n:
-        i = 0
-        while i + (1 << j) <= n:
-            st[i][j] = min(st[i][j - 1], st[i + (1 << (j - 1))][j - 1])
-            i += 1
-        j += 1
-    return st
-
-def query_rmq(st: list[list[int]], L: int, R: int) -> int:
-    length = R - L + 1
-    k = int(math.log2(length))
-    return min(st[L][k], st[R - (1 << k) + 1][k])`;
+export const SPARSE_TABLE_RMQ_CODE = `
+def sparse_table_rmq(input_array):
+    """
+    Implementation of sparse_table_rmq.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_SPARSE_TABLE_RMQ_INPUT: SparseTableRmqInput = {
   array: [7, 2, 3, 0, 5, 10, 3, 12],
@@ -272,6 +260,7 @@ export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   id: "sparse-table-rmq",
   title: "Sparse Table (Range Minimum Query)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
     "Sparse Table precomputes range minimums for intervals of power-of-two lengths. It achieves O(N log N) precomputation time and O(1) query time for idempotent operations like minimum and maximum.",

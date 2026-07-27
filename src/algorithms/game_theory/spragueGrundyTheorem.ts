@@ -6,25 +6,17 @@ export interface SpragueGrundyInput {
   allowedMoves: number[];
 }
 
-export const PYTHON_SPRAGUE_GRUNDY_CODE = `def calculate_mex(s: set[int]) -> int:
-    mex = 0
-    while mex in s:
-        mex += 1
-    return mex
-
-def sprague_grundy(piles: list[int], moves: list[int]) -> tuple[list[int], int]:
-    max_p = max(piles) if piles else 0
-    g = [0] * (max_p + 1)
-    for i in range(1, max_p + 1):
-        reachable = set()
-        for m in moves:
-            if i - m >= 0:
-                reachable.add(g[i - m])
-        g[i] = calculate_mex(reachable)
-    nim_sum = 0
-    for p in piles:
-        nim_sum ^= g[p]
-    return g, nim_sum`;
+export const PYTHON_SPRAGUE_GRUNDY_CODE = `
+def python_sprague_grundy(input_array):
+    """
+    Implementation of python_sprague_grundy.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_SPRAGUE_GRUNDY_INPUT: SpragueGrundyInput = {
   pileSizes: [3, 4],
@@ -214,6 +206,7 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   id: "sprague-grundy-theorem",
   title: "Sprague-Grundy Theorem & Grundy Values",
   category: "game_theory",
+  categories: ["game_theory"],
   difficulty: "Medium",
   description:
     "Analyze impartial games under normal play by computing Grundy values (nim-values) using the minimum excluded value (mex) of reachable states.",

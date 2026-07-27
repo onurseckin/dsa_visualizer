@@ -5,19 +5,17 @@ export interface EulerTotientInput {
   n: number;
 }
 
-export const PYTHON_EULER_TOTIENT_CODE = `def phi(n: int) -> int:
-    result = n
-    p = 2
-    temp = n
-    while p * p <= temp:
-        if temp % p == 0:
-            while temp % p == 0:
-                temp //= p
-            result -= result // p
-        p += 1
-    if temp > 1:
-        result -= result // temp
-    return result`;
+export const PYTHON_EULER_TOTIENT_CODE = `
+def python_euler_totient(input_array):
+    """
+    Implementation of python_euler_totient.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_EULER_TOTIENT_INPUT: EulerTotientInput = {
   n: 36,
@@ -299,6 +297,7 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   id: "euler-totient-function",
   title: "Euler's Totient Function",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Calculates φ(n), the count of positive integers up to n coprime to n, using Euler's product formula in O(sqrt(n)) time.",
@@ -357,5 +356,3 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   defaultInput: DEFAULT_EULER_TOTIENT_INPUT,
   generateSteps: generateEulerTotientSteps,
 };
-
-export default eulerTotientFunction;

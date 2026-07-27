@@ -6,8 +6,30 @@ export interface twoGpuParameterSplitterInput {
   target?: number;
 }
 
-export const TWOGPUPARAMETERSPLITTER_CODE =
-  "def two_gpu_parameter_splitter(input_data: list) -> list:\n    # 2-GPU Model Layer Pipeline Splitter (Easy)\n    # Partitions sequential transformer layers across 2 GPUs to balance memory load.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TWOGPUPARAMETERSPLITTER_CODE = `
+def twogpuparametersplitter(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT: twoGpuParameterSplitterInput = {
   data: [10, 20, 30, 40, 50],

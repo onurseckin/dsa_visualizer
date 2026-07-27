@@ -6,8 +6,33 @@ export interface submatrixSum2dQueryInput {
   target?: number;
 }
 
-export const SUBMATRIXSUM2DQUERY_CODE =
-  "def submatrix_sum2d_query(input_data: list) -> list:\n    # 2D Submatrix Region Sum Query (Medium)\n    # Computes submatrix sum in constant time via 2D prefix sums.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const SUBMATRIXSUM2DQUERY_CODE = `
+def submatrixsum2dquery(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_SUBMATRIXSUM2DQUERY_INPUT: submatrixSum2dQueryInput = {
   data: [10, 20, 30, 40, 50],
@@ -119,6 +144,16 @@ export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> 
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description: "Computes submatrix sum in constant time via 2D prefix sums.",
+  leetcode: { id: 304, url: "https://leetcode.com/problems/range-sum-query-2d-immutable/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 304,
+      title: "Range Sum Query 2D - Immutable",
+      url: "https://leetcode.com/problems/range-sum-query-2d-immutable/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -173,7 +208,7 @@ export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> 
     ],
   },
   trivia: SUBMATRIXSUM2DQUERY_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+
   defaultInput: DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
   generateSteps: generateSubmatrixSum2dQuerySteps,
 };

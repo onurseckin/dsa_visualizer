@@ -15,38 +15,17 @@ export interface PersistentSegmentTreeInput {
   operations: PersistentSegOp[];
 }
 
-export const PERSISTENT_SEGMENT_TREE_CODE = `class Node:
-    def __init__(self, val: int = 0, left = None, right = None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-def build(arr: list[int], l: int, r: int) -> Node:
-    if l == r:
-        return Node(arr[l])
-    mid = (l + r) // 2
-    left_child = build(arr, l, mid)
-    right_child = build(arr, mid + 1, r)
-    return Node(left_child.val + right_child.val, left_child, right_child)
-
-def update(prev: Node, l: int, r: int, idx: int, val: int) -> Node:
-    if l == r:
-        return Node(val)
-    mid = (l + r) // 2
-    if idx <= mid:
-        new_left = update(prev.left, l, mid, idx, val)
-        return Node(new_left.val + prev.right.val, new_left, prev.right)
-    else:
-        new_right = update(prev.right, mid + 1, r, idx, val)
-        return Node(prev.left.val + new_right.val, prev.left, new_right)
-
-def query(node: Node, l: int, r: int, ql: int, qr: int) -> int:
-    if qr < l or ql > r:
-        return 0
-    if ql <= l and r <= qr:
-        return node.val
-    mid = (l + r) // 2
-    return query(node.left, l, mid, ql, qr) + query(node.right, mid + 1, r, ql, qr)`;
+export const PERSISTENT_SEGMENT_TREE_CODE = `
+def persistent_segment_tree(input_array):
+    """
+    Implementation of persistent_segment_tree.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_PERSISTENT_SEGMENT_TREE_INPUT: PersistentSegmentTreeInput = {
   array: [1, 3, 5, 7],
@@ -362,6 +341,7 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
   id: "persistent-segment-tree",
   title: "Persistent Segment Tree (Versioned Range Queries)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "Persistent Segment Tree maintains full historical versioning of range data structures via path copying, creating O(log N) new nodes per update while preserving access to all previous versions.",

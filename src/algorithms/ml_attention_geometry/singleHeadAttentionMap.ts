@@ -7,43 +7,33 @@ export interface SingleHeadAttentionInput {
   v: number[][]; // [seq_len, d_v]
 }
 
-export const SINGLEHEADATTENTIONMAP_CODE = `import math
+export const SINGLEHEADATTENTIONMAP_CODE = `
+def singleheadattentionmap(q_tile, k_tile, v_tile, scale_factor):
+    """
+    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    """
+    import math
 
-def single_head_attention(Q: list[list[float]], K: list[list[float]], V: list[list[float]]) -> list[list[float]]:
-    # 1. Compute dot products Q * K^T
-    seq_len = len(Q)
-    d_k = len(Q[0])
-    d_v = len(V[0])
-    
-    scores = [[0.0] * seq_len for _ in range(seq_len)]
-    for i in range(seq_len):
-        for j in range(seq_len):
-            dot = 0.0
-            for d in range(d_k):
-                dot += Q[i][d] * K[j][d]
-            scores[i][j] = dot / math.sqrt(d_k)
-            
-    # 2. Softmax row-wise
-    attention_weights = [[0.0] * seq_len for _ in range(seq_len)]
-    for i in range(seq_len):
-        max_score = max(scores[i])
-        exp_sum = 0.0
-        for j in range(seq_len):
-            attention_weights[i][j] = math.exp(scores[i][j] - max_score)
-            exp_sum += attention_weights[i][j]
-        for j in range(seq_len):
-            attention_weights[i][j] /= exp_sum
-            
-    # 3. Multiply by V
-    output = [[0.0] * d_v for _ in range(seq_len)]
-    for i in range(seq_len):
-        for j in range(d_v):
-            val = 0.0
-            for t in range(seq_len):
-                val += attention_weights[i][t] * V[t][j]
-            output[i][j] = val
-            
-    return output`;
+    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
+    score_matrix = []
+    for q in q_tile:
+        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
+        score_matrix.append(row_scores)
+
+    # Step 2: Online max reduction and log-sum-exp normalization
+    tiled_output = []
+    for row in score_matrix:
+        row_max = max(row)
+        exp_vals = [math.exp(val - row_max) for val in row]
+        lse = sum(exp_vals)
+        weights = [val / lse for val in exp_vals]
+
+        # Step 3: Weighted value sum: O = Softmax(S) @ V
+        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
+        tiled_output.append(out_row)
+
+    return tiled_output
+`;
 
 export const DEFAULT_SINGLEHEADATTENTIONMAP_INPUT: SingleHeadAttentionInput = {
   q: [

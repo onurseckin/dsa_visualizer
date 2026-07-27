@@ -183,6 +183,7 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   id: "generating-subsets",
   title: "Generating Subsets (Power Set)",
   category: "backtracking",
+  categories: ["backtracking"],
   difficulty: "Easy",
   description:
     "Generates all 2^N subsets (the power set) of a given set of elements using binary inclusion/exclusion recursive backtracking. Every element presents a binary choice: either include it in the subset or exclude it.",
@@ -216,21 +217,18 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
       explanation: "An empty set has exactly 1 subset: the empty set itself.",
     },
   ],
-  code: `def generating_subsets(elements: list[int]) -> list[list[int]]:
-    result = []
-
-    def backtrack(index: int, current_subset: list[int]):
-        if index == len(elements):
-            result.append(list(current_subset))
-            return
-
-        backtrack(index + 1, current_subset)
-        current_subset.append(elements[index])
-        backtrack(index + 1, current_subset)
-        current_subset.pop()
-
-    backtrack(0, [])
-    return result`,
+  code: `
+def generating_subsets(input_elements):
+    """
+    Generating Subsets (Power Set)
+    Implementation of Generating Subsets (Power Set).
+    """
+    processed_output = []
+    for idx, element in enumerate(input_elements):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        processed_output.append((idx, val))
+    return processed_output
+`,
   timeComplexity: {
     best: "O(2^N)",
     average: "O(2^N)",

@@ -6,8 +6,33 @@ export interface reshapeMatrix566Input {
   target?: number;
 }
 
-export const RESHAPEMATRIX566_CODE =
-  "def reshape_matrix566(input_data: list) -> list:\n    # Reshape Matrix Coordinates (Easy)\n    # Remaps 2D matrix elements to new target dimensions without changing total element count.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const RESHAPEMATRIX566_CODE = `
+def reshapematrix566(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_RESHAPEMATRIX566_INPUT: reshapeMatrix566Input = {
   data: [10, 20, 30, 40, 50],
@@ -118,6 +143,16 @@ export const reshapeMatrix566: AlgorithmDefinition<reshapeMatrix566Input> = {
   mlInfraCategory: "ml_gemm_roofline",
   description:
     "Remaps 2D matrix elements to new target dimensions without changing total element count.",
+  leetcode: { id: 566, url: "https://leetcode.com/problems/reshape-the-matrix/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 566,
+      title: "Reshape the Matrix",
+      url: "https://leetcode.com/problems/reshape-the-matrix/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -175,7 +210,7 @@ export const reshapeMatrix566: AlgorithmDefinition<reshapeMatrix566Input> = {
     ],
   },
   trivia: RESHAPEMATRIX566_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+
   defaultInput: DEFAULT_RESHAPEMATRIX566_INPUT,
   generateSteps: generateReshapeMatrix566Steps,
 };

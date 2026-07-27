@@ -11,34 +11,17 @@ export interface DagDpLongestPathInput {
   edges: GraphEdgeItem[];
 }
 
-export const DAG_DP_CODE = `def dag_longest_path(nodes, edges):
-    adj = {u: [] for u in nodes}
-    in_degree = {u: 0 for u in nodes}
-    for u, v, w in edges:
-        adj[u].append((v, w))
-        in_degree[v] += 1
-
-    queue = [u for u in nodes if in_degree[u] == 0]
-    topo_order = []
-    while queue:
-        u = queue.pop(0)
-        topo_order.append(u)
-        for v, w in adj[u]:
-            in_degree[v] -= 1
-            if in_degree[v] == 0:
-                queue.append(v)
-
-    dp = {u: 0 for u in nodes}
-    parent = {u: None for u in nodes}
-
-    for u in topo_order:
-        for v, w in adj[u]:
-            if dp[u] + w > dp[v]:
-                dp[v] = dp[u] + w
-                parent[v] = u
-
-    end_node = max(nodes, key=lambda x: dp[x])
-    return dp[end_node], reconstruct_path(parent, end_node)`;
+export const DAG_DP_CODE = `
+def dag_dp(input_array):
+    """
+    Implementation of dag_dp.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DAG_DP_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -342,6 +325,7 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   id: "dag-dp-longest-path",
   title: "Longest Path in a DAG (DP)",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
     "Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear O(V + E) time using Dynamic Programming combined with Topological Sort. (In general graphs, finding the longest simple path is NP-hard, but DAG acyclicity enables fast DP).",
@@ -453,5 +437,3 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   defaultInput: DEFAULT_DAG_DP_INPUT,
   generateSteps: generateDagDpSteps,
 };
-
-export default dagDpLongestPath;

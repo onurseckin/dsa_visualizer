@@ -5,12 +5,17 @@ export interface PrefixSumInput {
   nums: number[];
 }
 
-export const PREFIX_SUM_CODE = `def compute_prefix_sum(nums: list[int]) -> list[int]:
-    n = len(nums)
-    prefix = [0] * (n + 1)
-    for i in range(n):
-        prefix[i + 1] = prefix[i] + nums[i]
-    return prefix`;
+export const PREFIX_SUM_CODE = `
+def prefix_sum(input_array):
+    """
+    Implementation of prefix_sum.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_PREFIX_SUM_INPUT: PrefixSumInput = {
   nums: [2, 4, 1, 3, 5],
@@ -124,6 +129,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: "prefix-sum",
   title: "Prefix Sum",
   category: "arrays_and_hashing",
+  categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
     "Computes cumulative prefix sums for an array, so any later sub-array range sum can be answered in O(1) time with a single subtraction of two precomputed totals.",

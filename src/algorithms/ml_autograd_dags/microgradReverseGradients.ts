@@ -6,8 +6,29 @@ export interface microgradReverseGradientsInput {
   target?: number;
 }
 
-export const MICROGRADREVERSEGRADIENTS_CODE =
-  "def micrograd_reverse_gradients(input_data: list) -> list:\n    # Micrograd Reverse-Mode Automatic Differentiation (Medium)\n    # Traverses reversed topological order accumulating gradient fan-outs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const MICROGRADREVERSEGRADIENTS_CODE = `
+def microgradreversegradients(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT: microgradReverseGradientsInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateMicrogradReverseGradientsSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },

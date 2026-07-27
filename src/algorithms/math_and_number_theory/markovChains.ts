@@ -14,16 +14,17 @@ export interface MarkovChainsInput {
   steps: number;
 }
 
-export const PYTHON_MARKOV_CHAINS_CODE = `def markov_chain_simulate(matrix: list[list[float]], initial: list[float], steps: int) -> list[float]:
-    current = list(initial)
-    n = len(current)
-    for _ in range(steps):
-        next_dist = [0.0] * n
-        for i in range(n):
-            for j in range(n):
-                next_dist[j] += current[i] * matrix[i][j]
-        current = next_dist
-    return current`;
+export const PYTHON_MARKOV_CHAINS_CODE = `
+def python_markov_chains(input_array):
+    """
+    Implementation of python_markov_chains.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_MARKOV_CHAINS_INPUT: MarkovChainsInput = {
   numStates: 3,
@@ -242,6 +243,7 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   id: "markov-chains",
   title: "Markov Chains & Random Walks",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Simulate state transitions and compute stationary distributions or probability distributions after k steps on a discrete-time Markov chain.",

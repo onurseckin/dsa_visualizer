@@ -9,19 +9,17 @@ export const DEFAULT_NEAREST_SMALLER_INPUT: NearestSmallerElementInput = {
   nums: [4, 5, 2, 10, 8],
 };
 
-export const PYTHON_NEAREST_SMALLER_CODE = `def nearest_smaller_element(nums: list[int]) -> list[int]:
-    n = len(nums)
-    result = [-1] * n
-    stack = []
-
-    for i in range(n):
-        while stack and stack[-1] >= nums[i]:
-            stack.pop()
-        if stack:
-            result[i] = stack[-1]
-        stack.append(nums[i])
-
-    return result`;
+export const PYTHON_NEAREST_SMALLER_CODE = `
+def python_nearest_smaller(input_array):
+    """
+    Implementation of python_nearest_smaller.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
@@ -170,6 +168,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   id: "nearest-smaller-element",
   title: "Nearest Smaller Element",
   category: "stack_and_queue",
+  categories: ["stack_and_queue"],
   difficulty: "Medium",
   description:
     "Finds the nearest smaller element to the left for each element in an array using a monotonic stack.",

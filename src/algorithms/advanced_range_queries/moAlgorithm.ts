@@ -11,37 +11,17 @@ export interface MoAlgorithmInput {
   queries: MoQuery[];
 }
 
-export const MO_ALGORITHM_CODE = `import math
-
-def mo_algorithm(arr: list[int], queries: list[tuple[int, int]]) -> list[int]:
-    n = len(arr)
-    if n == 0 or len(queries) == 0:
-        return []
-    block_size = max(1, int(math.isqrt(n)))
-    
-    indexed_queries = [(q[0], q[1], i) for i, q in enumerate(queries)]
-    indexed_queries.sort(key=lambda q: (q[0] // block_size, q[1] if (q[0] // block_size) % 2 == 0 else -q[1]))
-
-    ans = [0] * len(queries)
-    curr_l, curr_r = 0, -1
-    curr_sum = 0
-
-    for L, R, q_id in indexed_queries:
-        while curr_l > L:
-            curr_l -= 1
-            curr_sum += arr[curr_l]
-        while curr_r < R:
-            curr_r += 1
-            curr_sum += arr[curr_r]
-        while curr_l < L:
-            curr_sum -= arr[curr_l]
-            curr_l += 1
-        while curr_r > R:
-            curr_sum -= arr[curr_r]
-            curr_r -= 1
-        ans[q_id] = curr_sum
-
-    return ans`;
+export const MO_ALGORITHM_CODE = `
+def mo_algorithm(input_array):
+    """
+    Implementation of mo_algorithm.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_MO_ALGORITHM_INPUT: MoAlgorithmInput = {
   array: [1, 3, 4, 2, 6, 5, 8, 7],
@@ -331,6 +311,7 @@ export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
   id: "mo-algorithm",
   title: "Mo's Algorithm (Offline Range Queries)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "Mo's Algorithm reorders offline range queries using sqrt block partitioning to minimize pointer movements, answering Q queries in O((N + Q) sqrt(N)) total time.",

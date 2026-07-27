@@ -6,8 +6,33 @@ export interface flashDecodingSplitKSequenceParallelInput {
   target?: number;
 }
 
-export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE =
-  "def flash_decoding_split_k_sequence_parallel(input_data: list) -> list:\n    # Flash-Decoding Split-K Sequence Parallel Attention (Hard)\n    # Partitions KV cache sequence dimension across GPU thread blocks for fast decode.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE = `
+def flashdecodingsplitksequenceparallel(q_tile, k_tile, v_tile, scale_factor):
+    """
+    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    """
+    import math
+
+    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
+    score_matrix = []
+    for q in q_tile:
+        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
+        score_matrix.append(row_scores)
+
+    # Step 2: Online max reduction and log-sum-exp normalization
+    tiled_output = []
+    for row in score_matrix:
+        row_max = max(row)
+        exp_vals = [math.exp(val - row_max) for val in row]
+        lse = sum(exp_vals)
+        weights = [val / lse for val in exp_vals]
+
+        # Step 3: Weighted value sum: O = Softmax(S) @ V
+        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
+        tiled_output.append(out_row)
+
+    return tiled_output
+`;
 
 export const DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT: flashDecodingSplitKSequenceParallelInput =
   {

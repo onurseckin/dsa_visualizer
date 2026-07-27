@@ -11,6 +11,7 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   id: "kosaraju-scc",
   title: "Kosaraju's Strongly Connected Components",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
     "Finds all Strongly Connected Components (SCCs) in a directed graph using Kosaraju's two-pass Depth-First Search algorithm with graph transposition. A directed graph is strongly connected if every vertex is reachable from any other vertex. Kosaraju's algorithm decomposes the graph into a condensation DAG of maximal strongly connected subgraphs in linear time O(V + E).",
@@ -128,5 +129,3 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   defaultInput: DEFAULT_KOSARAJU_INPUT,
   generateSteps: generateKosarajuSccSteps,
 };
-
-export default kosarajuScc;

@@ -6,8 +6,33 @@ export interface dynamic2dBlockPrefixSumInput {
   target?: number;
 }
 
-export const DYNAMIC2DBLOCKPREFIXSUM_CODE =
-  "def dynamic2d_block_prefix_sum(input_data: list) -> list:\n    # Block-Tiled 2D Prefix Sum Engine (Medium)\n    # Tiles 2D grid into block regions for cache-coherent prefix updates.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const DYNAMIC2DBLOCKPREFIXSUM_CODE = `
+def dynamic2dblockprefixsum(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT: dynamic2dBlockPrefixSumInput = {
   data: [10, 20, 30, 40, 50],

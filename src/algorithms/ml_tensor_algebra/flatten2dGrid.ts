@@ -6,8 +6,33 @@ export interface flatten2dGridInput {
   target?: number;
 }
 
-export const FLATTEN2DGRID_CODE =
-  "def flatten2d_grid(input_data: list) -> list:\n    # Flatten 2D Grid into 1D Contiguous Buffer (Easy)\n    # Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FLATTEN2DGRID_CODE = `
+def flatten2dgrid(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_FLATTEN2DGRID_INPUT: flatten2dGridInput = {
   data: [10, 20, 30, 40, 50],
@@ -117,6 +142,16 @@ export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description: "Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic.",
+  leetcode: { id: 566, url: "https://leetcode.com/problems/reshape-the-matrix/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 566,
+      title: "Reshape the Matrix",
+      url: "https://leetcode.com/problems/reshape-the-matrix/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -169,7 +204,7 @@ export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
     keyTerms: [{ term: "Row-Major", definition: "Storing rows sequentially in flat memory." }],
   },
   trivia: FLATTEN2DGRID_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
+
   defaultInput: DEFAULT_FLATTEN2DGRID_INPUT,
   generateSteps: generateFlatten2dGridSteps,
 };

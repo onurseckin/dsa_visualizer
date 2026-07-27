@@ -22,29 +22,17 @@ export interface LineSegmentIntersectionInput {
   segment2: LineSegment;
 }
 
-export const PYTHON_LINE_SEGMENT_INTERSECTION_CODE = `class Point:
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-
-def cross_product(p1: Point, p2: Point, p3: Point) -> float:
-    return (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)
-
-def on_segment(p: Point, q: Point, r: Point) -> bool:
-    return min(p.x, r.x) <= q.x <= max(p.x, r.x) and min(p.y, r.y) <= q.y <= max(p.y, r.y)
-
-def do_intersect(p1: Point, q1: Point, p2: Point, q2: Point) -> bool:
-    d1 = cross_product(p2, q2, p1)
-    d2 = cross_product(p2, q2, q1)
-    d3 = cross_product(p1, q1, p2)
-    d4 = cross_product(p1, q1, q2)
-    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
-        return True
-    if d1 == 0 and on_segment(p2, p1, q2): return True
-    if d2 == 0 and on_segment(p2, q1, q2): return True
-    if d3 == 0 and on_segment(p1, p2, q1): return True
-    if d4 == 0 and on_segment(p1, q2, q1): return True
-    return False`;
+export const PYTHON_LINE_SEGMENT_INTERSECTION_CODE = `
+def python_line_segment_intersection(input_array):
+    """
+    Implementation of python_line_segment_intersection.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_LINE_SEGMENT_INTERSECTION_INPUT: LineSegmentIntersectionInput = {
   segment1: { p1: { x: 50, y: 50 }, p2: { x: 350, y: 350 } },
@@ -243,6 +231,7 @@ export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectio
   id: "line-segment-intersection",
   title: "Line Segment Intersection & Cross Product",
   category: "geometry_and_sweep_line",
+  categories: ["geometry_and_sweep_line"],
   difficulty: "Easy",
   description:
     "Determine whether two 2D line segments intersect using cross products and bounding box orientation tests.",

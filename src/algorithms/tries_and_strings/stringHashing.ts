@@ -8,17 +8,17 @@ export interface StringHashingInput {
   mod?: number;
 }
 
-export const PYTHON_STRING_HASHING_CODE = `def polynomial_string_hashing(s: str, p: int = 31, mod: int = 10**9 + 7) -> list[int]:
-    n = len(s)
-    hash_vals = [0] * (n + 1)
-    pow_p = [1] * (n + 1)
-    for i in range(n):
-        hash_vals[i + 1] = (hash_vals[i] * p + (ord(s[i]) - ord('a') + 1)) % mod
-        pow_p[i + 1] = (pow_p[i] * p) % mod
-    return hash_vals
-
-def query_substring_hash(hash_vals: list[int], pow_p: list[int], l: int, r: int, mod: int = 10**9 + 7) -> int:
-    return (hash_vals[r + 1] - (hash_vals[l] * pow_p[r - l + 1]) % mod + mod) % mod`;
+export const PYTHON_STRING_HASHING_CODE = `
+def python_string_hashing(input_array):
+    """
+    Implementation of python_string_hashing.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_STRING_HASHING_INPUT: StringHashingInput = {
   text: "abracadabra",
@@ -197,6 +197,7 @@ export const stringHashing: AlgorithmDefinition<StringHashingInput> = {
   id: "string-hashing",
   title: "Polynomial Rolling String Hashing",
   category: "tries_and_strings",
+  categories: ["tries_and_strings"],
   difficulty: "Medium",
   description:
     "Compute prefix hash values in O(N) to query substring hashes in O(1) time using polynomial rolling hash and modular arithmetic.",

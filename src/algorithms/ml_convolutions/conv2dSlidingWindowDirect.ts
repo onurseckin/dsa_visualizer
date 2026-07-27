@@ -7,32 +7,32 @@ export interface Conv2dInput {
   stride: number;
 }
 
-export const CONV2DSLIDINGWINDOWDIRECT_CODE = `def conv2d_sliding_window_direct(image: list[list[float]], kernel: list[list[float]], stride: int) -> list[list[float]]:
-    # 2D Direct Sliding Window Convolution
-    # Direct nested 4-loop spatial convolution over 2D input grids.
-    img_h = len(image)
-    img_w = len(image[0])
-    k_h = len(kernel)
-    k_w = len(kernel[0])
-    
-    out_h = (img_h - k_h) // stride + 1
-    out_w = (img_w - k_w) // stride + 1
-    
-    output = [[0.0] * out_w for _ in range(out_h)]
-    
-    for oh in range(out_h):
-        for ow in range(out_w):
-            val = 0.0
-            # Slide window
-            for kh in range(k_h):
-                for kw in range(k_w):
-                    ih = oh * stride + kh
-                    iw = ow * stride + kw
-                    val += image[ih][iw] * kernel[kh][kw]
-            
-            output[oh][ow] = val
-            
-    return output`;
+export const CONV2DSLIDINGWINDOWDIRECT_CODE = `
+def conv2dslidingwindowdirect(image_matrix, conv_kernel, stride=1, padding=0):
+    """
+    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    """
+    h_in, w_in = len(image_matrix), len(image_matrix[0])
+    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+
+    h_out = (h_in + 2 * padding - k_h) // stride + 1
+    w_out = (w_in + 2 * padding - k_w) // stride + 1
+
+    feature_map = [[0] * w_out for _ in range(h_out)]
+
+    for r in range(h_out):
+        for c in range(w_out):
+            acc_sum = 0
+            for kr in range(k_h):
+                for kc in range(k_w):
+                    ir = r * stride + kr - padding
+                    ic = c * stride + kc - padding
+                    if 0 <= ir < h_in and 0 <= ic < w_in:
+                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
+            feature_map[r][c] = acc_sum
+
+    return feature_map
+`;
 
 export const DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT: Conv2dInput = {
   image: [
@@ -82,6 +82,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
       },
       auxiliaryState: {
         customState: {
+          im2colBuffer: "[(val*2)]",
           out_h,
           out_w,
         },

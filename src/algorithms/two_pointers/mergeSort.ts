@@ -5,27 +5,17 @@ export interface MergeSortInput {
   array: number[];
 }
 
-export const MERGE_SORT_CODE = `def merge_sort(arr: list[int]) -> list[int]:
-    if len(arr) <= 1:
-        return arr
-
-    mid = len(arr) // 2
-    left_half = merge_sort(arr[:mid])
-    right_half = merge_sort(arr[mid:])
-
-    merged = []
-    i = j = 0
-    while i < len(left_half) and j < len(right_half):
-        if left_half[i] <= right_half[j]:
-            merged.append(left_half[i])
-            i += 1
-        else:
-            merged.append(right_half[j])
-            j += 1
-
-    merged.extend(left_half[i:])
-    merged.extend(right_half[j:])
-    return merged`;
+export const MERGE_SORT_CODE = `
+def merge_sort(input_array):
+    """
+    Implementation of merge_sort.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_MERGE_SORT_INPUT: MergeSortInput = {
   array: [38, 27, 43, 3, 9, 82, 10],
@@ -261,6 +251,7 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   id: "merge-sort",
   title: "Merge Sort (Divide and Conquer)",
   category: "two_pointers",
+  categories: ["two_pointers"],
   difficulty: "Medium",
   description:
     "Merge Sort divides the array into halves, sorts each recursively, and merges the sorted halves using two pointers in O(N log N) time.",

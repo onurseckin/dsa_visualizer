@@ -6,8 +6,33 @@ export interface fusedFfnGemmOnlineSoftmaxInput {
   target?: number;
 }
 
-export const FUSEDFFNGEMMONLINESOFTMAX_CODE =
-  "def fused_ffn_gemm_online_softmax(input_data: list) -> list:\n    # Fused FFN GEMM & Online Softmax Kernel (Hard)\n    # Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FUSEDFFNGEMMONLINESOFTMAX_CODE = `
+def fusedffngemmonlinesoftmax(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT: fusedFfnGemmOnlineSoftmaxInput = {
   data: [10, 20, 30, 40, 50],

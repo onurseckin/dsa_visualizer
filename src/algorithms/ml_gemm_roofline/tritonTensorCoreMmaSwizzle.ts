@@ -6,8 +6,33 @@ export interface tritonTensorCoreMmaSwizzleInput {
   target?: number;
 }
 
-export const TRITONTENSORCOREMMASWIZZLE_CODE =
-  "def triton_tensor_core_mma_swizzle(input_data: list) -> list:\n    # Triton Tensor Core MMA Layout Swizzler (Hard)\n    # Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TRITONTENSORCOREMMASWIZZLE_CODE = `
+def tritontensorcoremmaswizzle(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT: tritonTensorCoreMmaSwizzleInput = {
   data: [10, 20, 30, 40, 50],

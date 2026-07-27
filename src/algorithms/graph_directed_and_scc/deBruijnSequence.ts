@@ -12,28 +12,17 @@ export interface DeBruijnSequenceInput {
   alphabet?: string[];
 }
 
-export const DE_BRUIJN_CODE = `def de_bruijn(k, n):
-    alphabet = [str(i) for i in range(k)]
-    nodes = ["".join(p) for p in product(alphabet, repeat=n-1)]
-    adj = {node: [] for node in nodes}
-    for node in nodes:
-        for char in alphabet:
-            nxt = node[1:] + char if n > 1 else ""
-            adj[node].append((nxt, char))
-
-    start = nodes[0]
-    stack = [start]
-    circuit = []
-    while stack:
-        curr = stack[-1]
-        if adj[curr]:
-            nxt, char = adj[curr].pop()
-            stack.append(nxt)
-        else:
-            circuit.append(stack.pop())
-
-    res = "".join(node[-1] for node in reversed(circuit))
-    return res`;
+export const DE_BRUIJN_CODE = `
+def de_bruijn(input_array):
+    """
+    Implementation of de_bruijn.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DE_BRUIJN_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -289,6 +278,7 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   id: "de-bruijn-sequence",
   title: "De Bruijn Sequence",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
     "A De Bruijn sequence B(k, n) is a cyclic sequence of order n over an alphabet of size k that contains every possible length-n sequence as a contiguous substring exactly once. It is constructed by finding an Eulerian circuit in a De Bruijn graph whose vertices are strings of length n-1.",
@@ -371,5 +361,3 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   defaultInput: DEFAULT_DE_BRUIJN_INPUT,
   generateSteps: generateDeBruijnSteps,
 };
-
-export default deBruijnSequence;

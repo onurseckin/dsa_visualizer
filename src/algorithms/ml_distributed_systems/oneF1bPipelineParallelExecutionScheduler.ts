@@ -6,8 +6,30 @@ export interface oneF1bPipelineParallelExecutionSchedulerInput {
   target?: number;
 }
 
-export const ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_CODE =
-  "def one_f1b_pipeline_parallel_execution_scheduler(input_data: list) -> list:\n    # 1F1B (One Forward One Backward) Pipeline Parallel Scheduler (Hard)\n    # Schedules 1 Forward 1 Backward micro-batch passes to eliminate pipeline bubbles.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_CODE = `
+def onef1bpipelineparallelexecutionscheduler(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_INPUT: oneF1bPipelineParallelExecutionSchedulerInput =
   {

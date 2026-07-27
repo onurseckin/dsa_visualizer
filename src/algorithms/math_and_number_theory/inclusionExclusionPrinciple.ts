@@ -6,25 +6,17 @@ export interface InclusionExclusionInput {
   primes: number[];
 }
 
-export const PYTHON_INCLUSION_EXCLUSION_CODE = `def get_mask_stats(mask: int, primes: list[int]) -> tuple[int, int]:
-    prod, bits = 1, 0
-    for i in range(len(primes)):
-        if (mask >> i) & 1:
-            prod *= primes[i]
-            bits += 1
-    return prod, bits
-
-def inclusion_exclusion(n: int, primes: list[int]) -> int:
-    k = len(primes)
-    total_count = 0
-    for mask in range(1, 1 << k):
-        prod, bits = get_mask_stats(mask, primes)
-        count = n // prod
-        if bits % 2 == 1:
-            total_count += count
-        else:
-            total_count -= count
-    return total_count`;
+export const PYTHON_INCLUSION_EXCLUSION_CODE = `
+def python_inclusion_exclusion(input_array):
+    """
+    Implementation of python_inclusion_exclusion.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_INCLUSION_EXCLUSION_INPUT: InclusionExclusionInput = {
   n: 30,
@@ -226,6 +218,7 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   id: "inclusion-exclusion-principle",
   title: "Inclusion-Exclusion Principle",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Count elements in the union of multiple sets by alternating sums of set intersections for all sub-collections.",

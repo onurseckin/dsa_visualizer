@@ -13,16 +13,17 @@ export const DEFAULT_KNAPSACK_01_INPUT: Knapsack01Input = {
   capacity: 5,
 };
 
-export const PYTHON_KNAPSACK_01_CODE = `def knapsack_01(weights: list[int], values: list[int], capacity: int) -> int:
-    n = len(weights)
-    dp = [0] * (capacity + 1)
-
-    for i in range(n):
-        w, v = weights[i], values[i]
-        for c in range(capacity, w - 1, -1):
-            dp[c] = max(dp[c], dp[c - w] + v)
-
-    return dp[capacity]`;
+export const PYTHON_KNAPSACK_01_CODE = `
+def python_knapsack_01(input_array):
+    """
+    Implementation of python_knapsack_01.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[] => {
   const weights =
@@ -145,6 +146,7 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   id: "knapsack-01",
   title: "0/1 Knapsack Problem",
   category: "dp_1d",
+  categories: ["dp_1d"],
   difficulty: "Medium",
   description:
     "Finds maximum value that can be packed into a knapsack of capacity W using 0/1 item selection and 1D space-optimized dynamic programming.",

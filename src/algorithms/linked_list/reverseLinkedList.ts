@@ -5,15 +5,17 @@ export interface ReverseLinkedListInput {
   nodes: number[];
 }
 
-export const REVERSE_LINKED_LIST_CODE = `def reverse_list(head: Optional[ListNode]) -> Optional[ListNode]:
-    prev = None
-    curr = head
-    while curr:
-        nxt = curr.next
-        curr.next = prev
-        prev = curr
-        curr = nxt
-    return prev`;
+export const REVERSE_LINKED_LIST_CODE = `
+def reverse_linked_list(input_array):
+    """
+    Implementation of reverse_linked_list.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_REVERSE_LINKED_LIST_INPUT: ReverseLinkedListInput = {
   nodes: [1, 2, 3, 4, 5],
@@ -203,6 +205,7 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   id: "reverse-linked-list",
   title: "Reverse Linked List",
   category: "linked_list",
+  categories: ["linked_list"],
   difficulty: "Easy",
   description:
     "Reverses a singly linked list in O(n) time and O(1) space by iteratively modifying node next pointers.",

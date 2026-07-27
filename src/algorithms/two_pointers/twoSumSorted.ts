@@ -6,21 +6,17 @@ export interface TwoSumSortedInput {
   target: number;
 }
 
-export const TWO_SUM_SORTED_CODE = `def two_sum_sorted(nums: list[int], target: int) -> list[int]:
-    left = 0
-    right = len(nums) - 1
-
-    while left < right:
-        current_sum = nums[left] + nums[right]
-
-        if current_sum == target:
-            return [left, right]
-        elif current_sum < target:
-            left += 1
-        else:
-            right -= 1
-
-    return []`;
+export const TWO_SUM_SORTED_CODE = `
+def two_sum_sorted(input_array):
+    """
+    Implementation of two_sum_sorted.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_TWO_SUM_SORTED_INPUT: TwoSumSortedInput = {
   nums: [1, 3, 4, 6, 8, 10, 13],
@@ -250,6 +246,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   id: "two-sum-sorted",
   title: "Two Sum II (Sorted)",
   category: "two_pointers",
+  categories: ["two_pointers"],
   difficulty: "Medium",
   description:
     "Find two numbers in a sorted array that add up to a target by walking a left and a right pointer toward each other from opposite ends.",

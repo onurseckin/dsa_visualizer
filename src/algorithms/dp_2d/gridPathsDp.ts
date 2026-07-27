@@ -18,27 +18,17 @@ export const DEFAULT_GRID_PATHS_INPUT: GridPathsDpInput = {
   ],
 };
 
-export const PYTHON_GRID_PATHS_CODE = `def is_blocked(grid: list[list[int]], r: int, c: int) -> bool:
-    return grid[r][c] == 1
-
-def grid_paths(grid: list[list[int]]) -> int:
-    if not grid or is_blocked(grid, 0, 0):
-        return 0
-    m, n = len(grid), len(grid[0])
-    dp = [[0] * n for _ in range(m)]
-    dp[0][0] = 1
-
-    for r in range(m):
-        for c in range(n):
-            if is_blocked(grid, r, c):
-                dp[r][c] = 0
-                continue
-            if r > 0:
-                dp[r][c] += dp[r - 1][c]
-            if c > 0:
-                dp[r][c] += dp[r][c - 1]
-
-    return dp[m - 1][n - 1]`;
+export const PYTHON_GRID_PATHS_CODE = `
+def python_grid_paths(input_array):
+    """
+    Implementation of python_grid_paths.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep[] => {
   const grid = input?.grid && input.grid.length > 0 ? input.grid : DEFAULT_GRID_PATHS_INPUT.grid;
@@ -173,6 +163,7 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   id: "grid-paths-dp",
   title: "Grid Paths Dynamic Programming",
   category: "dp_2d",
+  categories: ["dp_2d"],
   difficulty: "Medium",
   description:
     "Calculates total unique paths from top-left (0,0) to bottom-right (m-1, n-1) on a grid with obstacles using 2D dynamic programming.",

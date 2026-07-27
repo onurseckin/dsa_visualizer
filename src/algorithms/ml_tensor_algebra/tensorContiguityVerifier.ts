@@ -6,8 +6,33 @@ export interface tensorContiguityVerifierInput {
   target?: number;
 }
 
-export const TENSORCONTIGUITYVERIFIER_CODE =
-  "def tensor_contiguity_verifier(input_data: list) -> list:\n    # PyTorch-Style Tensor Contiguity Verifier (Hard)\n    # Validates whether a tensor's memory strides match standard row-major contiguous ordering.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TENSORCONTIGUITYVERIFIER_CODE = `
+def tensorcontiguityverifier(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_TENSORCONTIGUITYVERIFIER_INPUT: tensorContiguityVerifierInput = {
   data: [10, 20, 30, 40, 50],

@@ -6,9 +6,23 @@ export interface fp8E4m3E5m2BitpackerInput {
   scale: number;
 }
 
-export const FP8E4M3E5M2BITPACKER_CODE = `def fp8E4m3E5m2Bitpacker(values: list, scale: float) -> list:
-    # Real implementation for Fp8 E4m3 E5m2 Bitpacker
-    return [max(min(int(v / scale), 127), -128) for v in values]`;
+export const FP8E4M3E5M2BITPACKER_CODE = `
+def fp8e4m3e5m2bitpacker(fp32_weights, scale, zero_point):
+    """
+    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    """
+    quantized_tensor = []
+    q_min, q_max = -128, 127
+
+    for w in fp32_weights:
+        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
+        raw_q = int(round(w / scale)) + zero_point
+        clamped_q = max(q_min, min(q_max, raw_q))
+        dequantized_w = (clamped_q - zero_point) * scale
+        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
+
+    return quantized_tensor
+`;
 
 export const DEFAULT_FP8E4M3E5M2BITPACKER_INPUT: fp8E4m3E5m2BitpackerInput = {
   values: [1.2, -3.4, 5.5],
@@ -36,7 +50,12 @@ export const generateFp8E4m3E5m2BitpackerSteps = (
       kind: "array",
       elements,
     },
-    auxiliaryState: { customState: {} },
+    auxiliaryState: {
+      customState: {
+        quantizedScale: "127.5",
+        zeroPoint: "0",
+      },
+    },
     variables: { scale: input.scale },
   });
 
@@ -52,7 +71,12 @@ export const generateFp8E4m3E5m2BitpackerSteps = (
         value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
       })),
     },
-    auxiliaryState: { customState: {} },
+    auxiliaryState: {
+      customState: {
+        quantizedScale: "127.5",
+        zeroPoint: "0",
+      },
+    },
     variables: { scale: input.scale, complete: true },
   });
 

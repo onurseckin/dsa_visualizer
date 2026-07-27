@@ -6,8 +6,29 @@ export interface tensorVjpEngineGradOfGradInput {
   target?: number;
 }
 
-export const TENSORVJPENGINEGRADOFGRAD_CODE =
-  "def tensor_vjp_engine_grad_of_grad(input_data: list) -> list:\n    # Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients (Hard)\n    # Computes Vector-Jacobian Products and constructs differentiable backward graphs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TENSORVJPENGINEGRADOFGRAD_CODE = `
+def tensorvjpenginegradofgrad(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT: tensorVjpEngineGradOfGradInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },

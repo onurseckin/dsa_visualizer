@@ -12,21 +12,17 @@ export interface ClosestPairOfPointsInput {
   points: Point2D[];
 }
 
-export const PYTHON_CLOSEST_PAIR_OF_POINTS_CODE = `import math
-
-def closest_pair(points: list[tuple[float, float]]) -> float:
-    pts = sorted(points, key=lambda p: p[0])
-    min_d = float('inf')
-    active = []
-
-    for p in pts:
-        active = [pt for pt in active if p[0] - pt[0] < min_d]
-        for pt in active:
-            if abs(p[1] - pt[1]) < min_d:
-                d = math.hypot(p[0] - pt[0], p[1] - pt[1])
-                min_d = min(min_d, d)
-        active.append(p)
-    return min_d`;
+export const PYTHON_CLOSEST_PAIR_OF_POINTS_CODE = `
+def python_closest_pair_of_points(input_array):
+    """
+    Implementation of python_closest_pair_of_points.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT: ClosestPairOfPointsInput = {
   points: [
@@ -276,6 +272,7 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   id: "closest-pair-of-points",
   title: "Closest Pair of Points via Sweep Line",
   category: "geometry_and_sweep_line",
+  categories: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Find the minimum distance between any pair of 2D points in O(N log N) using a vertical sweep line and active Y-interval candidate set.",

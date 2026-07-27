@@ -208,6 +208,7 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   id: "counting-bits",
   title: "Counting Bits",
   category: "bit_manipulation",
+  categories: ["bit_manipulation"],
   difficulty: "Easy",
   description:
     "Given an integer n, returns an array ans of length n + 1 where ans[i] is the number of 1s in the binary representation of i. Each count is derived from a smaller, already-solved one via a bitwise right-shift (i >> 1), giving linear time without any built-in bit-count functions.",

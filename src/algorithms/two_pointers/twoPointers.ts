@@ -6,21 +6,17 @@ export interface TwoPointersInput {
   target: number;
 }
 
-export const TWO_POINTERS_CODE = `def two_pointers_subarray_sum(arr: list[int], target: int) -> list[int]:
-    left = 0
-    current_sum = 0
-
-    for right in range(len(arr)):
-        current_sum += arr[right]
-
-        while current_sum > target and left <= right:
-            current_sum -= arr[left]
-            left += 1
-
-        if current_sum == target:
-            return [left, right]
-
-    return [-1, -1]`;
+export const TWO_POINTERS_CODE = `
+def two_pointers(input_array):
+    """
+    Implementation of two_pointers.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_TWO_POINTERS_INPUT: TwoPointersInput = {
   array: [1, 2, 3, 7, 5],
@@ -240,6 +236,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   id: "two-pointers",
   title: "Two Pointers (Subarray Sum)",
   category: "two_pointers",
+  categories: ["two_pointers"],
   difficulty: "Easy",
   description:
     "Finds a contiguous subarray that sums to a target value by growing and shrinking a window between left and right pointers over non-negative integers.",

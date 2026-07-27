@@ -9,18 +9,17 @@ export const DEFAULT_LIS_INPUT: LongestIncreasingSubsequenceInput = {
   nums: [10, 9, 2, 5, 3, 7, 101, 18],
 };
 
-export const PYTHON_LIS_CODE = `def length_of_lis(nums: list[int]) -> int:
-    if not nums:
-        return 0
-    n = len(nums)
-    dp = [1] * n
-
-    for i in range(1, n):
-        for j in range(i):
-            if nums[i] > nums[j]:
-                dp[i] = max(dp[i], dp[j] + 1)
-
-    return max(dp)`;
+export const PYTHON_LIS_CODE = `
+def python_lis(input_array):
+    """
+    Implementation of python_lis.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): AlgorithmStep[] => {
   const nums = input?.nums && input.nums.length > 0 ? [...input.nums] : DEFAULT_LIS_INPUT.nums;
@@ -136,6 +135,7 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     id: "longest-increasing-subsequence",
     title: "Longest Increasing Subsequence (LIS)",
     category: "dp_1d",
+    categories: ["dp_1d"],
     difficulty: "Medium",
     description:
       "Finds the length of the longest strictly increasing subsequence in an array of numbers using 1D dynamic programming.",

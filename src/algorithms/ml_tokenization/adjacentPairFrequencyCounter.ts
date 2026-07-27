@@ -38,7 +38,35 @@ export const adjacentPairFrequencyCounter: AlgorithmDefinition<string> = {
     },
   ],
   defaultInput: "unaffordability",
-  code: `def process_data(data):\n    """\n    Executes adjacentPairFrequencyCounter\n    """\n    result = []\n    for item in data:\n        result.append(item)\n    return result`,
+  code: `
+def adjacentPairFrequencyCounter(input_text, vocabulary_scores):
+    """
+    Adjacent Pair Frequency Counter
+    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
+    """
+    text_len = len(input_text)
+    dp_scores = [float('-inf')] * (text_len + 1)
+    dp_scores[0] = 0.0
+    backtrack = [0] * (text_len + 1)
+
+    for i in range(1, text_len + 1):
+        for j in range(i):
+            subword = input_text[j:i]
+            if subword in vocabulary_scores:
+                candidate_score = dp_scores[j] + vocabulary_scores[subword]
+                if candidate_score > dp_scores[i]:
+                    dp_scores[i] = candidate_score
+                    backtrack[i] = j
+
+    cursor = text_len
+    subword_sequence = []
+    while cursor > 0:
+        prev = backtrack[cursor]
+        subword_sequence.append(input_text[prev:cursor])
+        cursor = prev
+
+    return subword_sequence[::-1]
+`,
   timeComplexity: {
     best: "O(1)",
     average: "O(N log N)",

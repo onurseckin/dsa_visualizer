@@ -8,23 +8,33 @@ export interface hardwareRooflineModelCalculatorInput {
   peakBandwidthGBs: number;
 }
 
-export const HARDWAREROOFLINEMODELCALCULATOR_CODE = `def hardware_roofline_model_calculator(flops: float, bytes: float, peak_gflops: float, peak_bw: float) -> str:
-    # Berkeley Hardware Roofline Model Calculator
-    # Returns "Compute-Bound" or "Memory-Bound" based on Arithmetic Intensity
-    
-    if bytes <= 0:
-        return "Compute-Bound"
-        
-    # AI: Arithmetic Intensity (FLOPs / byte)
-    ai = flops / bytes
-    
-    # Machine Balance (Ridge Point)
-    machine_balance = peak_gflops / peak_bw
-    
-    if ai >= machine_balance:
-        return "Compute-Bound"
-    else:
-        return "Memory-Bound"`;
+export const HARDWAREROOFLINEMODELCALCULATOR_CODE = `
+def hardwarerooflinemodelcalculator(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT: hardwareRooflineModelCalculatorInput = {
   flops: 1000,

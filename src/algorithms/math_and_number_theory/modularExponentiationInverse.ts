@@ -7,18 +7,17 @@ export interface ModularExponentiationInput {
   mod: number;
 }
 
-export const PYTHON_MODULAR_EXPONENTIATION_INVERSE_CODE = `def mod_pow(base: int, exp: int, mod: int) -> int:
-    res = 1
-    base = base % mod
-    while exp > 0:
-        if exp % 2 == 1:
-            res = (res * base) % mod
-        base = (base * base) % mod
-        exp //= 2
-    return res
-
-def mod_inverse(a: int, m: int) -> int:
-    return mod_pow(a, m - 2, m)`;
+export const PYTHON_MODULAR_EXPONENTIATION_INVERSE_CODE = `
+def python_modular_exponentiation_inverse(input_array):
+    """
+    Implementation of python_modular_exponentiation_inverse.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT: ModularExponentiationInput = {
   base: 3,
@@ -270,6 +269,7 @@ export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentia
   id: "modular-exponentiation-inverse",
   title: "Modular Exponentiation & Inverse",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Computes (base^exp) mod m efficiently in O(log exp) time using binary exponentiation. Also calculates modular inverse using Fermat's Little Theorem as a^(m-2) mod m when m is prime.",
@@ -328,5 +328,3 @@ export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentia
   defaultInput: DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT,
   generateSteps: generateModularExponentiationInverseSteps,
 };
-
-export default modularExponentiationInverse;

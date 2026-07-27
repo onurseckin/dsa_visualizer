@@ -6,22 +6,29 @@ export interface pagedAttentionBlockTableAllocatorInput {
   block_size?: number;
 }
 
-export const PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE = `def paged_attention_allocator(token_chunks: list[int], block_size: int = 4) -> list[int]:
-    # Simulates PagedAttention block allocation for a single sequence.
-    # Returns the list of physical block indices allocated.
-    allocated_blocks = []
-    current_tokens = 0
-    next_physical_block = 0
-    
-    for tokens_to_add in token_chunks:
-        for _ in range(tokens_to_add):
-            if current_tokens % block_size == 0:
-                # Need a new physical block
-                allocated_blocks.append(next_physical_block)
-                next_physical_block += 1
-            current_tokens += 1
-            
-    return allocated_blocks
+export const PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE = `
+def pagedattentionblocktableallocator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
 `;
 
 export const DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT: pagedAttentionBlockTableAllocatorInput =

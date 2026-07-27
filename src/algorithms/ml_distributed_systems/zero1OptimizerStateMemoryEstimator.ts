@@ -6,23 +6,29 @@ export interface zero1OptimizerStateMemoryEstimatorInput {
   gpus: number;
 }
 
-export const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE = `def zero1_optimizer_memory(parameters: int, gpus: int) -> float:
-    # DeepSpeed ZeRO-1 shards the optimizer states across N GPUs.
-    # In mixed-precision Adam, optimizer states are:
-    # - FP32 master weights (4 bytes * P)
-    # - FP32 momentum (4 bytes * P)
-    # - FP32 variance (4 bytes * P)
-    # Total = 12 * P bytes.
-    # With ZeRO-1, these are sharded, so each GPU holds (12 * P) / N bytes.
-    # The FP16 weights (2*P) and FP16 gradients (2*P) are not sharded in ZeRO-1.
-    
-    if gpus == 0: return 0.0
-    
-    bytes_per_param = 12
-    total_optimizer_memory = parameters * bytes_per_param
-    per_gpu_memory = total_optimizer_memory / gpus
-    
-    return per_gpu_memory
+export const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE = `
+def zero1optimizerstatememoryestimator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
 `;
 
 export const DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT: zero1OptimizerStateMemoryEstimatorInput =

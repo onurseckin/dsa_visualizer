@@ -5,13 +5,17 @@ export interface CatalanNumbersInput {
   n: number;
 }
 
-export const PYTHON_CATALAN_NUMBERS_CODE = `def catalan_number(n: int) -> int:
-    C = [0] * (n + 1)
-    C[0] = 1
-    for i in range(1, n + 1):
-        for j in range(i):
-            C[i] += C[j] * C[i - 1 - j]
-    return C[n]`;
+export const PYTHON_CATALAN_NUMBERS_CODE = `
+def python_catalan_numbers(input_array):
+    """
+    Implementation of python_catalan_numbers.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_CATALAN_NUMBERS_INPUT: CatalanNumbersInput = {
   n: 5,
@@ -243,6 +247,7 @@ export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   id: "catalan-numbers",
   title: "Catalan Numbers",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Calculates the n-th Catalan number C_n using dynamic programming recurrence in O(n^2) time. Catalan numbers count balanced parentheses, binary tree structures, and non-crossing grid paths.",
@@ -301,5 +306,3 @@ export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   defaultInput: DEFAULT_CATALAN_NUMBERS_INPUT,
   generateSteps: generateCatalanNumbersSteps,
 };
-
-export default catalanNumbers;

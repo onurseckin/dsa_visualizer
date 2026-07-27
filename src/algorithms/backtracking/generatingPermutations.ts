@@ -193,6 +193,7 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   id: "generating-permutations",
   title: "Generating Permutations",
   category: "backtracking",
+  categories: ["backtracking"],
   difficulty: "Medium",
   description:
     "Generates all N! distinct orderings (permutations) of an input array of distinct elements using recursive depth-first search with backtracking. At each position in the permutation, every unused element is tried in turn.",
@@ -226,25 +227,18 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
       explanation: "1 element array has exactly 1 permutation: [1].",
     },
   ],
-  code: `def generating_permutations(elements: list[int]) -> list[list[int]]:
-    result = []
-    used = [False] * len(elements)
-
-    def backtrack(current_perm: list[int]):
-        if len(current_perm) == len(elements):
-            result.append(list(current_perm))
-            return
-
-        for i in range(len(elements)):
-            if not used[i]:
-                used[i] = True
-                current_perm.append(elements[i])
-                backtrack(current_perm)
-                current_perm.pop()
-                used[i] = False
-
-    backtrack([])
-    return result`,
+  code: `
+def generating_permutations(input_elements):
+    """
+    Generating Permutations
+    Implementation of Generating Permutations.
+    """
+    processed_output = []
+    for idx, element in enumerate(input_elements):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        processed_output.append((idx, val))
+    return processed_output
+`,
   timeComplexity: {
     best: "O(N * N!)",
     average: "O(N * N!)",

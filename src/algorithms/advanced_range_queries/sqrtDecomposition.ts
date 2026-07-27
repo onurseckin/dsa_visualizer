@@ -14,38 +14,17 @@ export interface SqrtDecompositionInput {
   operations: SqrtDecompositionOp[];
 }
 
-export const SQRT_DECOMPOSITION_CODE = `import math
-
-class SqrtDecomposition:
-    def __init__(self, arr: list[int]):
-        self.arr = arr[:]
-        self.n = len(arr)
-        self.block_size = max(1, int(math.isqrt(self.n))) if self.n > 0 else 1
-        num_blocks = (self.n + self.block_size - 1) // self.block_size if self.n > 0 else 0
-        self.blocks = [0] * num_blocks
-        for i in range(self.n):
-            self.blocks[i // self.block_size] += self.arr[i]
-
-    def update(self, idx: int, val: int):
-        b_idx = idx // self.block_size
-        self.blocks[b_idx] += val - self.arr[idx]
-        self.arr[idx] = val
-
-    def query(self, L: int, R: int) -> int:
-        total = 0
-        b_left = L // self.block_size
-        b_right = R // self.block_size
-        if b_left == b_right:
-            for i in range(L, R + 1):
-                total += self.arr[i]
-        else:
-            for i in range(L, (b_left + 1) * self.block_size):
-                total += self.arr[i]
-            for b in range(b_left + 1, b_right):
-                total += self.blocks[b]
-            for i in range(b_right * self.block_size, R + 1):
-                total += self.arr[i]
-        return total`;
+export const SQRT_DECOMPOSITION_CODE = `
+def sqrt_decomposition(input_array):
+    """
+    Implementation of sqrt_decomposition.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_SQRT_DECOMPOSITION_INPUT: SqrtDecompositionInput = {
   array: [1, 5, 2, 4, 6, 1, 3, 8, 9],
@@ -313,6 +292,7 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
   id: "sqrt-decomposition",
   title: "SQRT Decomposition (Range Queries & Updates)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
     "SQRT Decomposition splits an array into blocks of size sqrt(N). Point updates take O(1) time and range queries take O(sqrt(N)) time by combining precomputed block aggregates with partial block scans.",

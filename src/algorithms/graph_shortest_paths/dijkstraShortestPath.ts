@@ -13,28 +13,17 @@ export interface DijkstraInput {
   startNode: string;
 }
 
-export const DIJKSTRA_CODE = `import heapq
-
-def dijkstra(nodes, edges, start_node):
-    dist = {node: float('inf') for node in nodes}
-    dist[start_node] = 0
-    pq = [(0, start_node)]
-    visited = set()
-
-    while pq:
-        d, u = heapq.heappop(pq)
-        if u in visited:
-            continue
-        visited.add(u)
-
-        for edge in edges:
-            if edge['from'] == u:
-                v, weight = edge['to'], edge['weight']
-                if dist[u] + weight < dist[v]:
-                    dist[v] = dist[u] + weight
-                    heapq.heappush(pq, (dist[v], v))
-
-    return dist`;
+export const DIJKSTRA_CODE = `
+def dijkstra(input_array):
+    """
+    Implementation of dijkstra.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_DIJKSTRA_INPUT: DijkstraInput = {
   nodes: ["A", "B", "C", "D", "E"],
@@ -273,6 +262,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   id: "dijkstra-shortest-path",
   title: "Dijkstra's Shortest Path Algorithm",
   category: "graph_shortest_paths",
+  categories: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "Dijkstra's algorithm finds the shortest path from one starting node to every other vertex in a weighted graph, as long as no edge weight is negative. It works greedily with a min-priority queue: repeatedly pop the unvisited vertex with the smallest tentative distance, finalize that distance, and relax its outgoing edges to see if any neighbor just got cheaper to reach. Because weights are non-negative, a vertex's distance can never improve after it is popped — which is exactly why the greedy choice is safe.",

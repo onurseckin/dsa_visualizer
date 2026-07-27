@@ -225,6 +225,7 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   id: "dsu-on-tree",
   title: "DSU on Tree (Sack / Small-to-Large)",
   category: "tree_queries_and_diameter",
+  categories: ["tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
     "DSU on Tree (also called Sack or Small-to-Large merging) computes offline subtree statistics (such as color frequencies) for every node in a tree. By reusing the heavy child's accumulated data structure and only re-inserting elements from light subtrees, total work is bounded by O(N log N).",

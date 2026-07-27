@@ -267,6 +267,7 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   id: "disjoint-set-union",
   title: "Disjoint Set Union (DSU / Union-Find)",
   category: "graph_spanning_trees",
+  categories: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
     "Disjoint Set Union (DSU / Union-Find) maintains a collection of disjoint sets. It efficiently supports finding the representative leader of a set (find) and merging two sets (union) using path compression and union by rank in near-constant amortized O(α(N)) time.",

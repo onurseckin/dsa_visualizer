@@ -6,8 +6,32 @@ export interface conv2dPaddingStrideOutputShapeInput {
   target?: number;
 }
 
-export const CONV2DPADDINGSTRIDEOUTPUTSHAPE_CODE =
-  "def conv2d_padding_stride_output_shape(input_data: list) -> list:\n    # 2D Conv Output Shape Calculator (Easy)\n    # Computes O = floor((I + 2P - K) / S) + 1.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CONV2DPADDINGSTRIDEOUTPUTSHAPE_CODE = `
+def conv2dpaddingstrideoutputshape(image_matrix, conv_kernel, stride=1, padding=0):
+    """
+    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    """
+    h_in, w_in = len(image_matrix), len(image_matrix[0])
+    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+
+    h_out = (h_in + 2 * padding - k_h) // stride + 1
+    w_out = (w_in + 2 * padding - k_w) // stride + 1
+
+    feature_map = [[0] * w_out for _ in range(h_out)]
+
+    for r in range(h_out):
+        for c in range(w_out):
+            acc_sum = 0
+            for kr in range(k_h):
+                for kc in range(k_w):
+                    ir = r * stride + kr - padding
+                    ic = c * stride + kc - padding
+                    if 0 <= ir < h_in and 0 <= ic < w_in:
+                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
+            feature_map[r][c] = acc_sum
+
+    return feature_map
+`;
 
 export const DEFAULT_CONV2DPADDINGSTRIDEOUTPUTSHAPE_INPUT: conv2dPaddingStrideOutputShapeInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +69,7 @@ export const generateConv2dPaddingStrideOutputShapeSteps = (
       },
       auxiliaryState: {
         customState: {
+          im2colBuffer: "[(val*2)]",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -120,6 +145,16 @@ export const conv2dPaddingStrideOutputShape: AlgorithmDefinition<conv2dPaddingSt
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description: "Computes O = floor((I + 2P - K) / S) + 1.",
+    leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
+    sources: [
+      {
+        type: "leetcode",
+        kind: "leetcode",
+        id: 48,
+        title: "Rotate Image",
+        url: "https://leetcode.com/problems/rotate-image/",
+      },
+    ],
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
@@ -170,7 +205,7 @@ export const conv2dPaddingStrideOutputShape: AlgorithmDefinition<conv2dPaddingSt
       keyTerms: [{ term: "Output Shape Formula", definition: "O = floor((I + 2P - K) / S) + 1." }],
     },
     trivia: CONV2DPADDINGSTRIDEOUTPUTSHAPE_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+
     defaultInput: DEFAULT_CONV2DPADDINGSTRIDEOUTPUTSHAPE_INPUT,
     generateSteps: generateConv2dPaddingStrideOutputShapeSteps,
   };

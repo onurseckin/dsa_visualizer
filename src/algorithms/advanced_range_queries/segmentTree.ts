@@ -11,6 +11,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   id: "segment-tree",
   title: "Segment Tree (Range Sum Query & Update)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A Segment Tree covers an array with nested intervals: each leaf holds one element and each internal node caches the sum of its half-ranges. Because any query range can be assembled from a few of these precomputed intervals, both range-sum queries and point updates run in O(log N) time.",
@@ -102,5 +103,3 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   defaultInput: DEFAULT_SEGMENT_TREE_INPUT,
   generateSteps: generateSegmentTreeSteps,
 };
-
-export default segmentTree;

@@ -11,16 +11,17 @@ export interface TasksAndDeadlinesInput {
   tasks: TaskItem[];
 }
 
-export const PYTHON_TASKS_AND_DEADLINES_CODE = `def tasks_and_deadlines(tasks: list[tuple[int, int]]) -> int:
-    tasks.sort(key=lambda x: x[0])
-    current_time = 0
-    total_reward = 0
-
-    for duration, deadline in tasks:
-        current_time += duration
-        total_reward += (deadline - current_time)
-
-    return total_reward`;
+export const PYTHON_TASKS_AND_DEADLINES_CODE = `
+def python_tasks_and_deadlines(input_array):
+    """
+    Implementation of python_tasks_and_deadlines.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_TASKS_AND_DEADLINES_INPUT: TasksAndDeadlinesInput = {
   tasks: [
@@ -222,6 +223,7 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   id: "tasks-and-deadlines",
   title: "Tasks and Deadlines",
   category: "greedy_algorithms",
+  categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given n tasks with durations and deadlines, find an execution schedule that maximizes the total reward sum(deadline - completion_time). Greedily processing tasks in ascending order of duration maximizes total reward.",
@@ -300,5 +302,3 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   defaultInput: DEFAULT_TASKS_AND_DEADLINES_INPUT,
   generateSteps: generateTasksAndDeadlinesSteps,
 };
-
-export default tasksAndDeadlines;
