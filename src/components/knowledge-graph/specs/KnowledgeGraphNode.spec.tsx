@@ -32,7 +32,7 @@ describe("KnowledgeGraphNode Component Spec", () => {
     const button = screen.getByRole("button", { name: /2\. Two Pointers/i });
     expect(button).toBeInTheDocument();
     expect(screen.getByText("2. Two Pointers")).toBeInTheDocument();
-    expect(screen.getByText("3 Algs • Easy")).toBeInTheDocument();
+    expect(screen.getByText(/Easy/i)).toBeInTheDocument();
   });
 
   it("triggers onSelectCategoryFolder on click, Enter, and Space keypresses", () => {

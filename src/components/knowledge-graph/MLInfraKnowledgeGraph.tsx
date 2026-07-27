@@ -338,6 +338,9 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 }
               };
 
+              const problemCount =
+                node.questions.length > 0 ? node.questions.length : node.algorithmCount;
+
               return (
                 <g
                   key={node.id}
@@ -406,7 +409,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                     fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
                     className="font-mono text-[11px] transition-all duration-300"
                   >
-                    {node.algorithmCount} Problems • {node.difficulty}
+                    {problemCount} {problemCount === 1 ? "Problem" : "Problems"} • {node.difficulty}
                   </text>
                 </g>
               );

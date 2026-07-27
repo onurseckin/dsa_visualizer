@@ -1,4 +1,7 @@
 import React from "react";
+import { getAllAlgorithms } from "../../../algorithms/registry";
+import { getAlgorithmCategories } from "../../../app/categories";
+import type { CategoryType } from "../../../types/dsa";
 import {
   TOPIC_ROADMAP_NODE_MAP,
   TopicRoadmapNode,
@@ -28,6 +31,17 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
     hoveredNodeId !== null &&
     (node.prerequisites.includes(hoveredNodeId) ||
       (hoveredNode?.prerequisites.includes(node.id) ?? false));
+
+  const actualCount = React.useMemo(() => {
+    const allAlgs = getAllAlgorithms();
+    const count = allAlgs.filter((alg) => {
+      const cats = getAlgorithmCategories(alg);
+      return (
+        cats.includes(node.categoryFolder as CategoryType) || alg.category === node.categoryFolder
+      );
+    }).length;
+    return count > 0 ? count : node.algorithmCount;
+  }, [node.categoryFolder, node.algorithmCount]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -101,7 +115,7 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
         fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
         className="font-mono text-[11px] transition-all duration-300"
       >
-        {node.algorithmCount} Algs • {node.difficulty}
+        {actualCount} {actualCount === 1 ? "Problem" : "Problems"} • {node.difficulty}
       </text>
     </g>
   );

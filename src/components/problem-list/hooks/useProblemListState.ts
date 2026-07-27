@@ -145,7 +145,43 @@ export function useProblemListState({
     sortOrder,
   ]);
 
+  const [currentPage, setCurrentPageState] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  const setCurrentPage = (page: number) => {
+    setCurrentPageState(Math.max(1, page));
+  };
+
+  const handleSearchTermChange = (next: string) => {
+    setSearchTerm(next);
+    setCurrentPageState(1);
+  };
+
+  const handleDifficultyChange = (next: ProblemListDifficulty) => {
+    setSelectedDifficulty(next);
+    setCurrentPageState(1);
+  };
+
+  const handleSourceChange = (next: ProblemListSource) => {
+    setSelectedSource(next);
+    setCurrentPageState(1);
+  };
+
+  const handleCategorySelectWithReset = (next: CategoryType | "All") => {
+    setSelectedCategory(next);
+    setCurrentPageState(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filteredAlgorithms.length / ITEMS_PER_PAGE));
+
+  const paginatedAlgorithms = useMemo(() => {
+    const validPage = Math.min(currentPage, totalPages);
+    const start = (validPage - 1) * ITEMS_PER_PAGE;
+    return filteredAlgorithms.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredAlgorithms, currentPage, totalPages]);
+
   const toggleSort = (field: ProblemListSortField) => {
+    setCurrentPageState(1);
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -156,14 +192,14 @@ export function useProblemListState({
 
   return {
     searchTerm,
-    setSearchTerm,
+    setSearchTerm: handleSearchTermChange,
     selectedCategory,
-    setSelectedCategory,
-    handleCategorySelect: setSelectedCategory,
+    setSelectedCategory: handleCategorySelectWithReset,
+    handleCategorySelect: handleCategorySelectWithReset,
     selectedDifficulty,
-    setSelectedDifficulty,
+    setSelectedDifficulty: handleDifficultyChange,
     selectedSource,
-    setSelectedSource,
+    setSelectedSource: handleSourceChange,
     sortBy,
     setSortBy,
     sortOrder,
@@ -171,5 +207,10 @@ export function useProblemListState({
     toggleSort,
     stats,
     filteredAlgorithms,
+    paginatedAlgorithms,
+    currentPage: Math.min(currentPage, totalPages),
+    setCurrentPage,
+    totalPages,
+    ITEMS_PER_PAGE,
   };
 }

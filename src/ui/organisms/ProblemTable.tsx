@@ -8,6 +8,11 @@ import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../index";
 
 interface ProblemTableProps {
   filteredAlgorithms: AlgorithmDefinition[];
+  paginatedAlgorithms?: AlgorithmDefinition[];
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  itemsPerPage?: number;
   sortBy: ProblemListSortField;
   onToggleSort: (field: ProblemListSortField) => void;
   onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
@@ -15,10 +20,20 @@ interface ProblemTableProps {
 
 export const ProblemTable: React.FC<ProblemTableProps> = ({
   filteredAlgorithms,
+  paginatedAlgorithms,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
+  itemsPerPage = 50,
   sortBy,
   onToggleSort,
   onSelectAlgorithm,
 }) => {
+  const displayAlgorithms = paginatedAlgorithms || filteredAlgorithms;
+  const totalCount = filteredAlgorithms.length;
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalCount);
+
   const sortableHeader = (label: string, field: ProblemListSortField) => (
     <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
       <button
@@ -34,7 +49,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   );
 
   return (
-    <div className="ui-card border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-2xl overflow-hidden shadow-2xl">
+    <div className="ui-card border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-2xl overflow-hidden shadow-2xl flex flex-col">
       <div style={{ overflowX: "auto" }}>
         <table className="w-full border-collapse text-left">
           <thead className="bg-[var(--bg-surface)] border-b border-[var(--border-default)]">
@@ -57,7 +72,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
             </tr>
           </thead>
           <tbody className="bg-[var(--bg-inset)]">
-            {filteredAlgorithms.length === 0 ? (
+            {displayAlgorithms.length === 0 ? (
               <tr className="bg-[var(--bg-inset)]">
                 <td
                   colSpan={7}
@@ -67,9 +82,10 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredAlgorithms.map((alg, index) => {
+              displayAlgorithms.map((alg, index) => {
                 const primaryCat = getAlgorithmPrimaryCategory(alg);
                 const catLabel = CATEGORY_LABELS[primaryCat] || primaryCat;
+                const rowNum = (currentPage - 1) * itemsPerPage + index + 1;
 
                 return (
                   <tr
@@ -87,7 +103,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                     className="group bg-[var(--bg-inset)] border-b border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer outline-none focus:bg-[var(--bg-surface-hover)] focus:outline-2 focus:-outline-offset-2 focus:outline-[var(--border-accent)]"
                   >
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-muted)] font-mono w-[60px]">
-                      {index + 1}
+                      {rowNum}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)] font-semibold">
                       <span className="inline-flex items-center gap-2.5">
@@ -137,6 +153,67 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls Bar */}
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)]">
+          <div className="text-xs font-mono text-[var(--text-muted)]">
+            Showing <span className="font-bold text-[var(--text-primary)]">{startIndex}</span>–
+            <span className="font-bold text-[var(--text-primary)]">{endIndex}</span> of{" "}
+            <span className="font-bold text-[var(--text-primary)]">{totalCount}</span> problems
+          </div>
+
+          {totalPages > 1 && onPageChange && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => onPageChange(currentPage - 1)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-inset)] border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-page)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+              >
+                ← Previous
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                  .map((p, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev !== undefined && p - prev > 1;
+
+                    return (
+                      <React.Fragment key={p}>
+                        {showEllipsis && (
+                          <span className="px-1 text-xs text-[var(--text-muted)]">…</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onPageChange(p)}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            p === currentPage
+                              ? "bg-[var(--accent)] text-black font-extrabold shadow-md"
+                              : "bg-[var(--bg-inset)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-page)]"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-inset)] border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-page)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -155,7 +155,7 @@ describe("ProblemList Component Spec", () => {
     render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_infra" />);
 
     expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
-    expect(screen.getByText("FlashAttention Tiling & Online Softmax")).toBeInTheDocument();
+    expect(screen.getByText("1D Conv GPU SRAM Scratchpad Simulator")).toBeInTheDocument();
   });
 
   it("renders ML Infra problems when selectedSource='ml_infra'", () => {
@@ -165,7 +165,7 @@ describe("ProblemList Component Spec", () => {
     fireEvent.change(sourceSelect, { target: { value: "ml_infra" } });
 
     expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
-    expect(screen.getByText("FlashAttention Tiling & Online Softmax")).toBeInTheDocument();
+    expect(screen.getByText("1D Conv GPU SRAM Scratchpad Simulator")).toBeInTheDocument();
   });
 
   it("verifies ML Infra topic algorithms are present in the list and filterable", () => {
