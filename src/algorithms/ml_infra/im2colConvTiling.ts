@@ -224,10 +224,37 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
   addStep(
     1,
     "Initialize im2col Patch Extraction",
-    `Extracting overlapping ${K}x${K} kernel windows from input tensor of shape (${C}, ${H}, ${W}) into dense GEMM columns.`,
+    `Input tensor shape: C=${C}, H=${H}, W=${W}. Kernel size K=${K}, stride S=${S}, padding P=${P}.`,
     [],
     [],
-    { C, H, W, K, S, P, outH, outW, totalPatches },
+    { C, H, W, K, S, P },
+  );
+
+  addStep(
+    7,
+    `Compute Input Dimensions: C=${C}, H=${H}, W=${W}`,
+    "Reading spatial dimensions from the input image tensor.",
+    [],
+    [],
+    { C, H, W },
+  );
+
+  addStep(
+    11,
+    `Compute Output Dimensions: out_h=${outH}, out_w=${outW}`,
+    `out_h = (${H} + 2×${P} - ${K}) // ${S} + 1 = ${outH}. out_w = (${W} + 2×${P} - ${K}) // ${S} + 1 = ${outW}. Total patches: ${totalPatches}.`,
+    [],
+    [],
+    { outH, outW, totalPatches },
+  );
+
+  addStep(
+    14,
+    `Initialize col_matrix = [] (${totalPatches} patches expected)`,
+    `Will build a ${totalPatches}×${patchDim} matrix where each column is one kernel receptive field.`,
+    [],
+    [],
+    { totalPatches, patchDim },
   );
 
   const colMatrix: number[][] = [];
@@ -264,9 +291,9 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
       colMatrix.push(patch);
 
       addStep(
-        11,
+        20,
         `Extract Receptive Field Patch #${patchIndex} at Output (${r}, ${c})`,
-        `Extracted ${patch.length} elements from channel windows into GEMM column vector [${patch.join(", ")}].`,
+        `Iterating over all C×K×K elements of kernel window. Patch has ${patch.length} values: [${patch.slice(0,5).join(", ")}${patch.length > 5 ? "..." : ""}].`,
         colMatrix,
         patch,
         { patchIndex, r, c, patchSize: patch.length },
@@ -280,9 +307,18 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
   });
 
   addStep(
-    20,
-    "im2col Dense GEMM Flattening Complete",
-    `Transformed spatial convolution patches into a 2D GEMM matrix of shape (${colMatrix.length}, ${patchDim}) ready for BLAS matrix multiplication.`,
+    25,
+    `col_matrix.append(patch) — im2col Matrix Complete (${colMatrix.length}×${patchDim})`,
+    `All ${colMatrix.length} patches extracted. col_matrix shape: (${colMatrix.length}, ${patchDim}). Ready for BLAS matrix multiplication.`,
+    colMatrix,
+    [],
+    { totalColumns: colMatrix.length, columnWidth: patchDim },
+  );
+
+  addStep(
+    27,
+    `return col_matrix`,
+    `Returning dense 2D GEMM matrix of shape (${colMatrix.length}, ${patchDim}).`,
     colMatrix,
     [],
     { totalColumns: colMatrix.length, columnWidth: patchDim },
