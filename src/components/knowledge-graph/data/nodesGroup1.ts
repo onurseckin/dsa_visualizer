@@ -24,7 +24,7 @@ export const NODES_GROUP_1: TopicRoadmapNode[] = [
     difficulty: "Easy",
     family: "foundations",
     x: 675,
-    y: 160,
+    y: 60,
   },
   {
     id: "two-pointers",

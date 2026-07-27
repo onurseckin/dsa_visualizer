@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TriviaSetupView } from "../trivia/-components/TriviaSetupView";
 import { DEFAULT_TRIVIA_LAYOUT, TriviaLayout } from "../../trivia/triviaLayout";
@@ -71,14 +71,6 @@ describe("TriviaSetupView component", () => {
     expect(
       screen.getByText("Add at least one algorithm to the deck to start drilling."),
     ).toBeInTheDocument();
-
-    const handle = screen.getByRole("separator", {
-      name: "Resize drill settings and deck builder",
-    });
-    expect(handle).toHaveAttribute("aria-valuetext", "Automatic, sized to content");
-
-    fireEvent.mouseDown(handle);
-    expect(setSettingsDragging).toHaveBeenCalledWith(true);
   });
 
   it("renders with non-empty deck, pinned heights, and triggers settings changes", () => {
@@ -127,11 +119,5 @@ describe("TriviaSetupView component", () => {
     expect(
       screen.queryByText("Add at least one algorithm to the deck to start drilling."),
     ).not.toBeInTheDocument();
-
-    const handle = screen.getByRole("separator", {
-      name: "Resize drill settings and deck builder",
-    });
-    expect(handle).toHaveAttribute("aria-valuenow", "300");
-    expect(handle).not.toHaveAttribute("aria-valuetext");
   });
 });

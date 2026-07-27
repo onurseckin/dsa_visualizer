@@ -30,16 +30,10 @@ export const TriviaSessionFooter: React.FC<TriviaSessionFooterProps> = ({
         alignItems: "center",
         justifyContent: "space-between",
         gap: "var(--space-3)",
-        borderTop: "1px solid var(--border-default)",
-        paddingTop: "var(--space-3)",
       }}
     >
       <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-        {grade === null ? (
-          <span>
-            {filledCount} of {totalBlanks} blanks filled
-          </span>
-        ) : (
+        {grade !== null ? (
           <span
             role="status"
             aria-live="polite"
@@ -51,7 +45,7 @@ export const TriviaSessionFooter: React.FC<TriviaSessionFooterProps> = ({
             {`${correctCount} of ${totalBlanks} correct. `}
             {grade.allCorrect ? "All correct! Great recall." : "Review red lines and try next."}
           </span>
-        )}
+        ) : null}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>

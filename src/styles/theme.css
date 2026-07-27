@@ -2,10 +2,9 @@
 
    Black + carbon + smoke, with the reading surfaces DARKEST:
    - the page is carbon (#17171b) — the interactive backdrop the app sits on
-   - cards and panels are near-black (#0a0a0c), darker than the page, because
-     that is where the eye rests for long stretches (code, tutorials, guides)
+   - cards and panels are darkest black (#050506) to match canvases
    - controls raised ON those cards step lighter (--bg-elevated and up)
-   - code wells and inputs go deepest (--bg-inset)
+   - inner wells and info boxes revert to carbon (#17171b) to match the page
 
    Colour is reserved for meaning, never decoration: algorithm --state-* marks,
    the categorical --viz-* palette in graphs and the knowledge map, and semantic
@@ -21,10 +20,10 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — page is carbon (#17171b), cards are near-black (#0a0a0c), wells deepest (#050506). */
+  /* Surfaces — page is carbon (#17171b), cards are near-black (#0a0a0c), wells/canvases are pure black (#000000). */
   --bg-page: #17171b;
   --bg-surface: #0a0a0c;
-  --bg-inset: #050506;
+  --bg-inset: #000000;
   --bg-chrome: #141418;
   --bg-elevated: #1e1e24;
   --bg-hover: #282830;

@@ -84,16 +84,6 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
         }}
       />
 
-      <rect
-        x="8"
-        y="12"
-        width="5"
-        height="40"
-        rx="2.5"
-        fill={topicFamilyColor(node.family)}
-        style={{ filter: activeFocusOrHover ? "brightness(1.2)" : "none" }}
-      />
-
       <text
         x="95"
         y="28"

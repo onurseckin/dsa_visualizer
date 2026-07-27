@@ -42,7 +42,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
         />
       </div>
 
-      <div className="w-48 flex items-center gap-2">
+      <div className="min-w-[200px] flex items-center gap-2">
         <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}>
           Category:
         </label>
@@ -61,7 +61,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
         </Select>
       </div>
 
-      <div className="w-48 flex items-center gap-2">
+      <div className="min-w-[200px] flex items-center gap-2">
         <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}>
           Difficulty:
         </label>

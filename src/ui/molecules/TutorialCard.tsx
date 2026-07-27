@@ -1,6 +1,6 @@
 import React from "react";
-import { GraduationCap, X } from "lucide-react";
-import { Card, IconButton } from "../index";
+import { GraduationCap } from "lucide-react";
+import { Card } from "../index";
 import { StepExplanation } from "../../types/dsa";
 
 export interface TutorialCardProps {
@@ -9,7 +9,6 @@ export interface TutorialCardProps {
   why?: string;
   stepIndex?: number;
   totalSteps?: number;
-  onClose?: () => void;
 }
 
 const PROSE: React.CSSProperties = {
@@ -33,7 +32,6 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   why,
   stepIndex,
   totalSteps,
-  onClose,
 }) => {
   const whatText = (what || explanation?.what || "").trim();
   const whyText = (why || explanation?.why || "").trim();
@@ -52,7 +50,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
       data-testid="tutorial-card"
       className="h-full overflow-auto border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)]"
     >
-      <Card.Body className="p-6 md:p-8 flex flex-col gap-2 min-w-0">
+      <Card.Body className="p-3 md:p-4 flex flex-col gap-2 min-w-0">
         <div
           style={{
             display: "flex",
@@ -83,15 +81,6 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
           )}
 
           <div style={{ flex: 1, minWidth: 0 }} />
-
-          {onClose && (
-            <IconButton
-              icon={<X />}
-              aria-label="Hide tutorial"
-              title="Dismiss explanation"
-              onClick={onClose}
-            />
-          )}
         </div>
 
         <p style={PROSE}>

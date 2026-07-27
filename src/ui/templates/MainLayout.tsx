@@ -10,8 +10,8 @@ export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
   panels: PanelVisibility;
-  onToggleTutorial: () => void;
-  onToggleAuxiliary: () => void;
+  onToggleTutorial?: () => void;
+  onToggleAuxiliary?: () => void;
   controlProps?: ControlPanelProps;
   isPlaying?: boolean;
   onPlayPause?: () => void;
@@ -32,8 +32,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   algorithm,
   currentStep,
   panels,
-  onToggleTutorial,
-  onToggleAuxiliary,
+
   controlProps,
   isPlaying,
   onPlayPause,
@@ -98,8 +97,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         algorithm={algorithm}
         currentStep={currentStep}
         panels={panels}
-        onToggleTutorial={onToggleTutorial}
-        onToggleAuxiliary={onToggleAuxiliary}
+
         resolvedControlProps={resolvedControlProps}
         layoutState={layoutState}
         totalSteps={totalSteps}

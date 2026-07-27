@@ -128,12 +128,14 @@ describe("remainingAt and isLevelCovered", () => {
     expect(isLevelCovered(progress, sources, 1)).toBe(true);
   });
 
-  it("treats an algorithm shorter than the level as already satisfied", () => {
+  it("requires a short algorithm to be drilled fully blank at level 2 before level 2 is covered", () => {
     const mixed = sourcesOf({ tiny: ONE_LINE, alpha: SIMPLE_CODE });
-    const progress = withDrilled(createProgress(config), "alpha", 2, [1, 2, 4, 5, 6]);
+    let progress = withDrilled(createProgress(config), "alpha", 2, [1, 2, 4, 5, 6]);
 
+    expect(isLevelCovered(progress, mixed, 2)).toBe(false);
+
+    progress = withDrilled(progress, "tiny", 2, [1]);
     expect(isLevelCovered(progress, mixed, 2)).toBe(true);
-    expect(isLevelCovered(progress, mixed, 1)).toBe(false);
   });
 
   it("is vacuously covered for an empty deck", () => {
@@ -170,12 +172,12 @@ describe("coverageRatio", () => {
     expect(coverageRatio(progress, sources, config)).toBe(1);
   });
 
-  it("skips levels an algorithm is too short to reach when sizing the curriculum", () => {
+  it("includes levels an algorithm is short for by counting its available lines when sizing the curriculum", () => {
     const config = configOf({ minBlanks: 1, maxBlanks: 2 });
     const sources = sourcesOf({ tiny: ONE_LINE, alpha: THREE_LINE });
     const progress = withDrilled(createProgress(config), "tiny", 1, [1]);
 
-    expect(coverageRatio(progress, sources, config)).toBeCloseTo(1 / 7, 10);
+    expect(coverageRatio(progress, sources, config)).toBeCloseTo(1 / 5, 10);
   });
 
   it("rises monotonically and never exceeds 1 as rounds are recorded", () => {

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { AuxiliaryPanel, hasAuxiliaryContent } from "../../../ui";
 
 describe("hasAuxiliaryContent", () => {
@@ -29,7 +29,6 @@ describe("AuxiliaryPanel", () => {
   });
 
   it("renders all data groups and handles onClose", () => {
-    const onClose = vi.fn();
     render(
       <AuxiliaryPanel
         state={{
@@ -41,7 +40,6 @@ describe("AuxiliaryPanel", () => {
           customState: { step: 3 },
         }}
         variables={{ i: 0, found: true }}
-        onClose={onClose}
       />,
     );
 
@@ -57,17 +55,6 @@ describe("AuxiliaryPanel", () => {
     expect(screen.getByText("top")).toBeInTheDocument();
     expect(screen.getByText("front")).toBeInTheDocument();
     expect(screen.getByText("∞")).toBeInTheDocument();
-
-    const hideButton = screen.getByRole("button", { name: "Hide auxiliary panel" });
-    fireEvent.click(hideButton);
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders without close button when onClose prop is omitted and state is undefined", () => {
-    render(<AuxiliaryPanel variables={{ active: true }} />);
-
-    expect(screen.getByText("Variables")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Hide auxiliary panel" })).toBeNull();
   });
 
   it("renders correctly when state is present but variables is undefined", () => {

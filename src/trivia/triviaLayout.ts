@@ -32,9 +32,9 @@
    value is not carried forward — the panel simply reopens at its true
    default (expanded). */
 
-export const TRIVIA_LAYOUT_KEY = "dsa_visualizer_trivia_layout_v2";
+export const TRIVIA_LAYOUT_KEY = "dsa_visualizer_trivia_layout_v5";
 
-export const TRIVIA_LAYOUT_VERSION = 2;
+export const TRIVIA_LAYOUT_VERSION = 5;
 
 /* Reset is a navbar action but the layout state lives in the trivia route, so
    the two are joined by a window event rather than a shared React parent —
@@ -52,6 +52,8 @@ export interface TriviaPanelHeights {
   problem: number | null;
   /** Drill screen: the code puzzle + TileTray row. */
   puzzle: number | null;
+  /** Drill screen: the tile tray. */
+  tiles: number | null;
 }
 
 export type TriviaPanelKey = keyof TriviaPanelHeights;
@@ -62,10 +64,20 @@ export const TRIVIA_PANEL_KEYS: readonly TriviaPanelKey[] = [
   "settings",
   "problem",
   "puzzle",
+  "tiles",
 ] as const;
+
+export interface TriviaPanelVisibility {
+  problem: boolean;
+  puzzle: boolean;
+  tiles: boolean;
+  lineInfo: boolean;
+}
 
 export interface TriviaLayout {
   version: typeof TRIVIA_LAYOUT_VERSION;
+  /** Left column width for Problem vs Puzzle */
+  problemSplitPercent: number;
   /** Left (puzzle) column width as a percentage of the drill screen's
       puzzle+TileTray row. */
   puzzleSplitPercent: number;
@@ -73,15 +85,19 @@ export interface TriviaLayout {
   panelHeights: TriviaPanelHeights;
   /** Whether the Drill screen's problem-description panel is open (v2). */
   problemExpanded: boolean;
+  /** Toggles for panels */
+  panelVisibility: TriviaPanelVisibility;
 }
 
 /* In a patch, an absent key (or `undefined`) means "leave it alone" while an
    explicit `null` means "put this panel back on automatic" — same contract
    as WorkspaceLayoutPatch. */
 export interface TriviaLayoutPatch {
+  problemSplitPercent?: number;
   puzzleSplitPercent?: number;
   panelHeights?: Partial<TriviaPanelHeights>;
   problemExpanded?: boolean;
+  panelVisibility?: Partial<TriviaPanelVisibility>;
 }
 
 export const MIN_SPLIT_PERCENT = 40;
@@ -95,9 +111,11 @@ export const MAX_PANEL_HEIGHT_PX = 2000;
 /* The puzzle is the thing actually being drilled, so it gets the bulk of the
    row's width by default; TileTray only needs enough room for a tile list. */
 const DEFAULT_SPLIT_PERCENT = 65;
+const DEFAULT_PROBLEM_SPLIT_PERCENT = 40;
 
 const DEFAULT_LAYOUT: TriviaLayout = {
   version: TRIVIA_LAYOUT_VERSION,
+  problemSplitPercent: DEFAULT_PROBLEM_SPLIT_PERCENT,
   puzzleSplitPercent: DEFAULT_SPLIT_PERCENT,
   panelHeights: {
     sessionList: null,
@@ -105,17 +123,26 @@ const DEFAULT_LAYOUT: TriviaLayout = {
     settings: null,
     problem: null,
     puzzle: null,
+    tiles: null,
   },
   // First drill opens the panel: the learner should not have to hunt for it.
   problemExpanded: true,
+  panelVisibility: {
+    problem: true,
+    puzzle: true,
+    tiles: true,
+    lineInfo: true,
+  },
 };
 
 export function cloneTriviaLayout(layout: TriviaLayout): TriviaLayout {
   return {
     version: TRIVIA_LAYOUT_VERSION,
+    problemSplitPercent: layout.problemSplitPercent,
     puzzleSplitPercent: layout.puzzleSplitPercent,
     panelHeights: { ...layout.panelHeights },
     problemExpanded: layout.problemExpanded,
+    panelVisibility: { ...layout.panelVisibility },
   };
 }
 
@@ -196,12 +223,33 @@ export function readTriviaLayout(): TriviaLayout {
 
   if (typeof parsed.problemExpanded !== "boolean") return cloneTriviaLayout(DEFAULT_LAYOUT);
 
+  const panelVisibility = isRecord(parsed.panelVisibility)
+    ? {
+        problem:
+          typeof parsed.panelVisibility.problem === "boolean"
+            ? parsed.panelVisibility.problem
+            : true,
+        puzzle:
+          typeof parsed.panelVisibility.puzzle === "boolean" ? parsed.panelVisibility.puzzle : true,
+        tiles:
+          typeof parsed.panelVisibility.tiles === "boolean" ? parsed.panelVisibility.tiles : true,
+        lineInfo:
+          typeof parsed.panelVisibility.lineInfo === "boolean"
+            ? parsed.panelVisibility.lineInfo
+            : true,
+      }
+    : cloneTriviaLayout(DEFAULT_LAYOUT).panelVisibility;
+
   // Rebuilt field by field so unknown keys in storage never reach app state.
   return {
     version: TRIVIA_LAYOUT_VERSION,
+    problemSplitPercent: isInRange(parsed.problemSplitPercent, MIN_SPLIT_PERCENT, MAX_SPLIT_PERCENT)
+      ? parsed.problemSplitPercent
+      : DEFAULT_PROBLEM_SPLIT_PERCENT,
     puzzleSplitPercent: parsed.puzzleSplitPercent,
     panelHeights,
     problemExpanded: parsed.problemExpanded,
+    panelVisibility,
   };
 }
 
@@ -220,10 +268,19 @@ export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
 
   const merged: TriviaLayout = {
     version: TRIVIA_LAYOUT_VERSION,
+    problemSplitPercent: clampSplitPercent(
+      patch.problemSplitPercent ?? current.problemSplitPercent,
+    ),
     puzzleSplitPercent: clampSplitPercent(patch.puzzleSplitPercent ?? current.puzzleSplitPercent),
     panelHeights,
     // `??` and not `||`: collapsing the panel patches an explicit false.
     problemExpanded: patch.problemExpanded ?? current.problemExpanded,
+    panelVisibility: {
+      problem: patch.panelVisibility?.problem ?? current.panelVisibility.problem,
+      puzzle: patch.panelVisibility?.puzzle ?? current.panelVisibility.puzzle,
+      tiles: patch.panelVisibility?.tiles ?? current.panelVisibility.tiles,
+      lineInfo: patch.panelVisibility?.lineInfo ?? current.panelVisibility.lineInfo,
+    },
   };
 
   const storage = getStorage();

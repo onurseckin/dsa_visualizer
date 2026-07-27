@@ -94,7 +94,7 @@ describe("TriviaSession Component Spec - Rendering & Layout", () => {
     expect(roundHeading()).toBeInTheDocument();
     expect(screen.getByText("Hiding 2 lines")).toBeInTheDocument();
     expect(screen.getByText(/Drag the matching line into each blank/i)).toBeInTheDocument();
-    expect(screen.getByText("Tiles")).toBeInTheDocument();
+    expect(screen.getAllByText("Tiles").length).toBeGreaterThan(0);
   });
 
   it('says "Hiding 1 line" for a single-blank round', () => {

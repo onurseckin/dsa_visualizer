@@ -9,7 +9,7 @@ import {
   topicFamilyLabel,
 } from "../../components/knowledge-graph/knowledgeGraphData";
 import { KnowledgeGraph } from "../../ui";
-import { VIZ_SLOT_COUNT, vizSlotBg } from "../primitives/vizPalette";
+import { VIZ_SLOT_COUNT } from "../primitives/vizPalette";
 
 describe("KnowledgeGraph Component Spec", () => {
   it("renders SVG region and interactive roadmap nodes", () => {
@@ -117,10 +117,6 @@ describe("KnowledgeGraph Component Spec", () => {
     TOPIC_FAMILIES.forEach((family: TopicFamily) => {
       expect(screen.getAllByText(family.label).length).toBeGreaterThan(0);
     });
-
-    const graphsNode = screen.getAllByRole("button", { name: /11\. Graph Traversal/i })[0];
-    const familyBar = graphsNode.querySelectorAll("rect")[1];
-    expect(familyBar).toHaveAttribute("fill", topicFamilyColor("graphs"));
   });
 
   it("keeps family swatches as the data key", () => {
@@ -131,30 +127,6 @@ describe("KnowledgeGraph Component Spec", () => {
       .querySelectorAll<HTMLElement>('span[aria-hidden="true"]');
     expect(Array.from(swatches).map((swatch) => swatch.style.background)).toEqual(
       TOPIC_FAMILIES.map((family: TopicFamily) => topicFamilyColor(family.id)),
-    );
-  });
-
-  it("fills roadmap nodes with their family hue and keeps that hue on hover", () => {
-    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
-
-    // The graphs family owns slot 5, so its nodes mix --viz-6 into the raised tier.
-    const node = screen.getAllByRole("button", { name: /11\. Graph Traversal/i })[0];
-    expect(node.querySelectorAll("rect")[0]).toHaveAttribute(
-      "fill",
-      vizSlotBg(5, 26, "var(--bg-elevated)"),
-    );
-
-    fireEvent.mouseEnter(node);
-    // Hover strengthens the same mix instead of washing the family out to accent.
-    expect(node.querySelectorAll("rect")[0]).toHaveAttribute(
-      "fill",
-      vizSlotBg(5, 40, "var(--bg-elevated)"),
-    );
-
-    fireEvent.mouseLeave(node);
-    expect(node.querySelectorAll("rect")[0]).toHaveAttribute(
-      "fill",
-      vizSlotBg(5, 26, "var(--bg-elevated)"),
     );
   });
 

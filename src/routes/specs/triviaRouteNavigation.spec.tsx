@@ -67,18 +67,18 @@ describe("/trivia route navigation and layout", () => {
     seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
     await renderTriviaRoute();
     const sessionId = readActiveSessionId();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     fireEvent.click(screen.getByRole("button", { name: "Edit deck & settings" }));
 
     expect(await screen.findByText("Build your deck")).toBeInTheDocument();
     expect(screen.getByText("1 in deck")).toBeInTheDocument();
-    expect(screen.queryByText("solution.py")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("code-puzzle-well")).not.toBeInTheDocument();
     expect(readActiveSessionId()).toBe(sessionId);
     expect(readActiveSessionRecord().lastScreen).toBe("setup");
 
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
-    expect(await screen.findByText("solution.py")).toBeInTheDocument();
+    expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
   });
 
   it('"Back to Trivia Home" from Setup lands on Home, and a remount stays on Home — the user\'s exact repeated complaint', async () => {
@@ -104,7 +104,7 @@ describe("/trivia route navigation and layout", () => {
   it('"Back to Trivia Home" from Drill records lastScreen: drill, so Resume returns to Drill next time, with a fresh round (never claiming to restore exact blanks)', async () => {
     seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     fireEvent.click(screen.getByRole("button", { name: "Back to Trivia Home" }));
 
@@ -117,7 +117,7 @@ describe("/trivia route navigation and layout", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
 
-    expect(await screen.findByText("solution.py")).toBeInTheDocument();
+    expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
     expect(readActiveSessionRecord().lastScreen).toBe("drill");
   });
 

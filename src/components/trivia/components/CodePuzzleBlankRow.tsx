@@ -1,5 +1,5 @@
 import React, { DragEvent, MouseEvent, MutableRefObject, useState } from "react";
-import { Eye, Lightbulb } from "lucide-react";
+import { Eye } from "lucide-react";
 import { IconButton, Kbd } from "../../../ui";
 import { PuzzleLine, TriviaGrade, TriviaMode } from "../../../types/trivia";
 import { highlightPythonLine } from "../../../ui";
@@ -82,11 +82,10 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
 
   return (
     <div
-      className={`py-2 px-3 my-1 border border-[var(--border-default)] rounded-[var(--radius-sm)] flex items-center justify-between transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm ${
-        isDragOver
-          ? "bg-[var(--bg-hover)] !border-[var(--accent)] scale-[1.01] shadow-md z-10 relative"
-          : ""
+      className={`ui-code-line flex items-center justify-between transition-colors duration-200 w-full ${
+        isDragOver ? "bg-[var(--bg-hover)]" : ""
       }`}
+      style={{ whiteSpace: "normal" }}
       data-testid={`blank-row-${number}`}
       ref={(el) => {
         if (el) blankRowRefs.current.set(number, el);
@@ -121,35 +120,11 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
           />
         </div>
         <div style={ICON_GROUP}>
-          {hint !== undefined || explanation !== undefined ? (
-            <IconButton
-              icon={<Lightbulb />}
-              variant="secondary"
-              size="sm"
-              selected={showHint}
-              title="Toggle hint / explanation (⌘I)"
-              aria-label={`Hint for line ${number}`}
-              onClick={(e) => {
-                if (hint !== undefined) onToggleHint(number);
-                if (explanation !== undefined) onExplainClick(number, e);
-              }}
-            >
-              {isShortcutTarget ? (
-                <Kbd
-                  aria-hidden="true"
-                  data-testid={`shortcut-target-${number}`}
-                  title={`Line ${number} is the current target for the ⌘I shortcut`}
-                >
-                  ⌘I
-                </Kbd>
-              ) : null}
-            </IconButton>
-          ) : null}
           <IconButton
             icon={<Eye />}
             variant="secondary"
             size="sm"
-            title="Reveal answer (⌘E)"
+            title="Reveal answer (Alt+E)"
             aria-label={`Reveal line ${number}`}
             disabled={graded || revealed.includes(number)}
             onClick={() => onReveal(number)}
@@ -157,14 +132,10 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
             {isShortcutTarget ? (
               <Kbd
                 aria-hidden="true"
-                data-testid={
-                  hint === undefined && explanation === undefined
-                    ? `shortcut-target-${number}`
-                    : undefined
-                }
-                title={`Line ${number} is the current target for the ⌘E shortcut`}
+                data-testid={`shortcut-target-${number}`}
+                title={`Line ${number} is the current target for the Alt+E shortcut`}
               >
-                ⌘E
+                Alt+E
               </Kbd>
             ) : null}
           </IconButton>

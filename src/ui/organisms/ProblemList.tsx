@@ -31,7 +31,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      className="w-[90vw] py-8 mx-auto flex flex-col gap-8 box-border flex-1"
+      className="w-[90%] py-8 mx-auto flex flex-col gap-8 box-border flex-1"
     >
       <div className="flex flex-col gap-2 mt-6 md:mt-8 mb-2">
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Algorithm Directory</h1>
@@ -40,18 +40,16 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         </p>
       </div>
 
-      <div className="w-full flex flex-col gap-6">
-        <ProblemListFilterToolbar
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          selectedCategory={selectedCategory}
-          onCategorySelect={handleCategorySelect}
-          selectedDifficulty={selectedDifficulty}
-          onDifficultySelect={setSelectedDifficulty}
-          filteredCount={filteredAlgorithms.length}
-          stats={stats}
-        />
-      </div>
+      <ProblemListFilterToolbar
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        selectedCategory={selectedCategory}
+        onCategorySelect={handleCategorySelect}
+        selectedDifficulty={selectedDifficulty}
+        onDifficultySelect={setSelectedDifficulty}
+        filteredCount={filteredAlgorithms.length}
+        stats={stats}
+      />
 
       <div className="w-full">
         <ProblemTable

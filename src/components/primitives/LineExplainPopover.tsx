@@ -4,24 +4,6 @@ import { createPortal } from "react-dom";
 import { Lightbulb } from "lucide-react";
 import { IconButton } from "../../ui";
 
-export interface CodeExplainToggleProps {
-  enabled: boolean;
-  onToggle: () => void;
-}
-
-export function CodeExplainToggle({ enabled, onToggle }: CodeExplainToggleProps): ReactElement {
-  return (
-    <IconButton
-      icon={<Lightbulb />}
-      variant="secondary"
-      size="sm"
-      selected={enabled}
-      title="Toggle line explanations (hover a line to preview)"
-      aria-label="Toggle line explanations"
-      onClick={onToggle}
-    />
-  );
-}
 
 export interface HoveredLine {
   line: number;
@@ -33,26 +15,20 @@ export interface RowHoverHandlers {
   onMouseLeave: () => void;
 }
 
-export function useHoveredCodeLine(enabled: boolean): {
+export function useHoveredCodeLine(): {
   hovered: HoveredLine | null;
   rowHoverHandlers: (line: number) => RowHoverHandlers;
 } {
   const [hovered, setHovered] = useState<HoveredLine | null>(null);
 
   useEffect(() => {
-    if (!enabled) setHovered(null);
-  }, [enabled]);
-
-  useEffect(() => {
-    if (!enabled) return;
     const dismissOnScroll = (): void => setHovered(null);
     window.addEventListener("scroll", dismissOnScroll, true);
     return () => window.removeEventListener("scroll", dismissOnScroll, true);
-  }, [enabled]);
+  }, []);
 
   const rowHoverHandlers = (line: number): RowHoverHandlers => ({
     onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => {
-      if (!enabled) return;
       setHovered({ line, rect: event.currentTarget.getBoundingClientRect() });
     },
     onMouseLeave: () => {

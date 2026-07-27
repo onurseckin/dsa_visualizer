@@ -154,19 +154,30 @@ describe("recordRound progression & completion", () => {
     expect(next.stats.tiny["1"]).toEqual({ attempts: 1, misses: 1 });
   });
 
-  it("treats an algorithm too short for the level as satisfied rather than blocking", () => {
+  it("allows short algorithms to be drilled at higher levels too before advancing the level", () => {
     const mixedConfig = configOf({ minBlanks: 2, maxBlanks: 3, mode: "type" });
     const mixed = sourcesOf({ tiny: ONE_LINE, alpha: TWO_LINE_A });
     const alpha = linesFor(mixed, "alpha");
-    const next = recordRound(
-      createProgress(mixedConfig),
+    const tiny = linesFor(mixed, "tiny");
+
+    let progress = createProgress(mixedConfig);
+    progress = recordRound(
+      progress,
       roundOf("alpha", alpha, [1, 2], 2),
       gradeOf([1, 2], [1, 2]),
       mixedConfig,
       mixed,
     );
+    expect(progress.level).toBe(2);
 
-    expect(next.level).toBe(3);
+    progress = recordRound(
+      progress,
+      roundOf("tiny", tiny, [1], 2),
+      gradeOf([1], [1]),
+      mixedConfig,
+      mixed,
+    );
+    expect(progress.level).toBe(3);
   });
 
   it("sets completed when the ceiling level is covered and stops advancing", () => {

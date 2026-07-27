@@ -11,6 +11,11 @@ interface TriviaSessionHeaderProps {
   onStudyInWorkspace?: (algorithmId?: string) => void;
   onEditSettings?: () => void;
   onBackToHome?: () => void;
+  layout: import("../../../trivia/triviaLayout").TriviaLayout;
+  onTogglePanel: (
+    panel: keyof import("../../../trivia/triviaLayout").TriviaPanelVisibility,
+  ) => void;
+  mode: import("../../../types/trivia").TriviaMode;
 }
 
 export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
@@ -23,6 +28,9 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
   onStudyInWorkspace,
   onEditSettings,
   onBackToHome,
+  layout,
+  onTogglePanel,
+  mode,
 }) => {
   return (
     <header className="flex flex-col gap-4 p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm">
@@ -50,6 +58,38 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
       </div>
       <div className="flex items-center gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap shadow-sm">
         {`Level ${level} · ${coverage}% covered`}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={layout.panelVisibility.problem ? "primary" : "secondary"}
+            onClick={() => onTogglePanel("problem")}
+          >
+            Problem
+          </Button>
+          <Button
+            size="sm"
+            variant={layout.panelVisibility.puzzle ? "primary" : "secondary"}
+            onClick={() => onTogglePanel("puzzle")}
+          >
+            Puzzle
+          </Button>
+          {mode === "choice" && (
+            <Button
+              size="sm"
+              variant={layout.panelVisibility.tiles ? "primary" : "secondary"}
+              onClick={() => onTogglePanel("tiles")}
+            >
+              Tiles
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant={layout.panelVisibility.lineInfo ? "primary" : "secondary"}
+            onClick={() => onTogglePanel("lineInfo")}
+          >
+            Line Info
+          </Button>
+        </div>
       </div>
     </header>
   );

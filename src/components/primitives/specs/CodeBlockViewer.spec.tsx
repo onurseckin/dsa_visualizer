@@ -15,11 +15,6 @@ const CODE = [
   "            return [seen[target - n], i]",
 ].join("\n");
 
-const EXPLANATIONS = {
-  2: "Creates an empty map that will remember every value seen so far.",
-  4: "Checks whether the complement was already seen.",
-};
-
 describe("CodeBlockViewer Component Spec", () => {
   it("prints every source line with its 1-based line number", () => {
     const { container } = render(<CodeBlockViewer code={CODE} activeLine={1} />);
@@ -37,13 +32,6 @@ describe("CodeBlockViewer Component Spec", () => {
     expect(container.querySelector(".ui-card__header")).toBeNull();
     const card = container.querySelector('[data-testid="code-viewer"]');
     expect(card?.className).toContain("p-0");
-  });
-
-  it("renders line explanations inline by default when provided", () => {
-    render(<CodeBlockViewer code={CODE} activeLine={1} lineExplanations={EXPLANATIONS} />);
-
-    expect(screen.getByTestId("line-explanation-2")).toHaveTextContent(EXPLANATIONS[2]);
-    expect(screen.getByTestId("line-explanation-4")).toHaveTextContent(EXPLANATIONS[4]);
   });
 
   it("omits lineExplanations when not provided", () => {

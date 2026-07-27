@@ -83,11 +83,10 @@ export const pickRound = ({
 
   const level = clampInt(progress.level, normalized.minBlanks, normalized.maxBlanks);
 
-  /* Algorithms that can actually supply this many lines. Preferring the ones with
-     uncovered lines is what makes a multi-question deck converge instead of
-     re-drilling one lucky solution. */
+  /* Algorithms with at least one blankable line are eligible. If level exceeds
+     the algorithm's blankable count, all lines will be hidden at that level. */
   const eligible = [...sources.entries()].filter(
-    ([, lines]) => blankableLines(lines).length >= level,
+    ([, lines]) => blankableLines(lines).length > 0,
   );
   if (eligible.length === 0) return null;
 
@@ -99,15 +98,16 @@ export const pickRound = ({
 
   const remaining = remainingAt(progress, algorithmId, lines, level);
   const all = blankableLines(lines);
+  const targetCount = Math.min(level, all.length);
   const weightOf = (line: number) => statFor(progress, algorithmId, line).misses + 1;
 
   // Fill from undrilled lines first, then top up from the rest of the solution.
-  const primary = pickWeighted(remaining, level, weightOf, rng);
+  const primary = pickWeighted(remaining, targetCount, weightOf, rng);
   const filler =
-    primary.length < level
+    primary.length < targetCount
       ? pickWeighted(
           all.filter((n) => !primary.includes(n)),
-          level - primary.length,
+          targetCount - primary.length,
           weightOf,
           rng,
         )
@@ -124,7 +124,8 @@ export const pickRound = ({
         ? buildTiles(
             lines,
             blanks,
-            normalized.includeDistractors ? meta?.get(algorithmId) : undefined,
+            meta?.get(algorithmId),
+            normalized.includeDistractors,
             rng,
           )
         : [],
@@ -141,14 +142,26 @@ export const pickRound = ({
 export const buildTiles = (
   lines: readonly PuzzleLine[],
   blanks: readonly number[],
-  meta: TriviaMeta | undefined,
-  rng: Rng,
+  meta?: TriviaMeta | undefined,
+  includeDistractorsOrRng?: boolean | Rng,
+  maybeRng?: Rng,
 ): TriviaTile[] => {
+  const includeDistractors =
+    typeof includeDistractorsOrRng === "boolean" ? includeDistractorsOrRng : true;
+  const rng: Rng =
+    typeof includeDistractorsOrRng === "function"
+      ? includeDistractorsOrRng
+      : (maybeRng ?? Math.random);
+
   const blankSet = new Set(blanks);
   const answers: TriviaTile[] = blanks.map((number) => {
     const line = lines.find((candidate) => candidate.number === number);
     return { id: `answer-${number}`, text: line?.content ?? "", correctFor: number };
   });
+
+  if (!includeDistractors) {
+    return shuffle(answers, rng);
+  }
 
   // One decoy per blank keeps the tray proportional to the difficulty.
   const decoyPool = lines

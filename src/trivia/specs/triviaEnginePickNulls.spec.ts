@@ -99,18 +99,21 @@ describe("pickRound null guards and boundaries", () => {
     ).toBeNull();
   });
 
-  it("returns null when no deck entry has enough blankable lines for the level", () => {
+  it("hides all available lines when level exceeds the algorithm's line count", () => {
     const config = configOf({ minBlanks: 1, maxBlanks: 3 });
     const sources = sourcesOf({ tiny: ONE_LINE });
 
-    expect(
+    const round = requireRound(
       pickRound({
         config,
         progress: { ...createProgress(config), level: 2 },
         sources,
         rng: zeroRng(),
       }),
-    ).toBeNull();
+    );
+
+    expect(round.algorithmId).toBe("tiny");
+    expect(round.blanks).toHaveLength(1);
   });
 
   it("hides exactly `level` lines, ascending, unique and all blankable", () => {
@@ -142,17 +145,22 @@ describe("pickRound null guards and boundaries", () => {
     expect(round.lines).not.toBe(lines);
   });
 
-  it("skips algorithms with fewer blankable lines than the level", () => {
+  it("allows algorithms with fewer blankable lines than the level by hiding all their lines", () => {
     const config = configOf({ minBlanks: 3, maxBlanks: 3, mode: "type" });
     const sources = sourcesOf({ tiny: TWO_LINE_A, alpha: LONG_CODE });
+    let gotTiny = false;
 
     for (const seed of [1, 5, 11, 23]) {
       const round = requireRound(
         pickRound({ config, progress: createProgress(config), sources, rng: seededRng(seed) }),
       );
 
-      expect(round.algorithmId).toBe("alpha");
+      if (round.algorithmId === "tiny") {
+        expect(round.blanks).toHaveLength(2);
+        gotTiny = true;
+      }
     }
+    expect(gotTiny).toBe(true);
   });
 
   it("clamps a stored level into the configured range", () => {

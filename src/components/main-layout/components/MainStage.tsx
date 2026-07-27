@@ -18,8 +18,6 @@ export interface MainStageProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
   panels: PanelVisibility;
-  onToggleTutorial: () => void;
-  onToggleAuxiliary: () => void;
   resolvedControlProps: ControlPanelProps | null;
   layoutState: MainLayoutState;
   totalSteps?: number;
@@ -29,8 +27,6 @@ export const MainStage: React.FC<MainStageProps> = ({
   algorithm,
   currentStep,
   panels,
-  onToggleTutorial,
-  onToggleAuxiliary,
   resolvedControlProps,
   layoutState,
   totalSteps,
@@ -55,7 +51,6 @@ export const MainStage: React.FC<MainStageProps> = ({
               why={currentStep.explanation.why}
               stepIndex={currentStep.stepIndex}
               totalSteps={totalSteps}
-              onClose={onToggleTutorial}
             />
           </div>
         ) : null,
@@ -68,11 +63,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       height: layoutState.layout.panelHeights.auxiliary,
       content: (
         <div className="h-full overflow-auto">
-          <AuxiliaryPanel
-            state={currentStep?.auxiliaryState}
-            variables={currentStep?.variables}
-            onClose={onToggleAuxiliary}
-          />
+          <AuxiliaryPanel state={currentStep?.auxiliaryState} variables={currentStep?.variables} />
         </div>
       ),
     },
