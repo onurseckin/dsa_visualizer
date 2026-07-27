@@ -246,6 +246,7 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "continuous-batching-scheduler": continuousBatchingScheduler as AlgorithmDefinition,
   "speculative-decoding-verifier": speculativeDecodingVerifier as AlgorithmDefinition,
   "2d-array-matrix-traversal": arrayMatrixTraversal as AlgorithmDefinition,
+  "array-matrix-traversal": arrayMatrixTraversal as AlgorithmDefinition,
   "strided-index-arithmetic": stridedIndexArithmetic as AlgorithmDefinition,
   "matrix-multiplication-naive": matrixMultiplicationNaive as AlgorithmDefinition,
   "topological-sort-dag": topologicalSortDag as AlgorithmDefinition,
