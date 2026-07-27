@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Badge, difficultyBadgeVariant } from "../Badge";
+import { Badge, difficultyBadgeVariant } from "../index";
 
 describe("Badge", () => {
   it("renders neutral sm by default", () => {

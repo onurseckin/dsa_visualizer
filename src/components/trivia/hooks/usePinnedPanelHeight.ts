@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { usePointerDrag } from "../../ResizableLayout";
+import { usePointerDrag } from "../../../ui";
 import type { TriviaPanelHeights } from "../../../trivia/triviaLayout";
 
 export function usePinnedPanelHeight(

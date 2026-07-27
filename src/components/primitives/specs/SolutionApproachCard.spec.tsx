@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SolutionApproachCard, SolutionApproachCardProps } from "../SolutionApproachCard";
+import { SolutionApproachCard, SolutionApproachCardProps } from "../../../ui";
 import { TopicGuide } from "../../../types/dsa";
 
 const topicGuide: TopicGuide = {

@@ -11,7 +11,7 @@ import {
   readWorkspaceLayout,
   writeWorkspaceLayout,
 } from "../../../app/workspaceLayout";
-import { PanelHeightMap, usePointerDrag } from "../../ResizableLayout";
+import { PanelHeightMap, usePointerDrag } from "../../../ui";
 
 export function useMainLayoutState() {
   const [layout, setLayout] = useState<WorkspaceLayout>(() => readWorkspaceLayout());

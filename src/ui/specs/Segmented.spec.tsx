@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Segmented } from "../Segmented";
+import { Segmented } from "../index";
 
 const options = [
   { value: "graph", label: "Graph" },

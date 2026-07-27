@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SessionCard, badgeForSession } from "../components/SessionCard";
+import { SessionCard, badgeForSession } from "../../../ui";
 import type { TriviaSessionRecord } from "../../../types/trivia";
 import { DEFAULT_TRIVIA_CONFIG } from "../../../trivia/triviaEngine";
 

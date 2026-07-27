@@ -1,0 +1,28 @@
+.ui-card {
+}
+
+.ui-card--inset {
+}
+
+.ui-card__header {
+}
+
+.ui-card__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.ui-card__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ui-card__title {
+}
+
+.ui-card__actions {
+}
+
+.ui-card__body {
+}

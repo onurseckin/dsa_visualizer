@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { PanelHeader } from "../PanelHeader";
+import { PanelHeader } from "../index";
 
 describe("PanelHeader render spec", () => {
   it("renders title, icon, subtitle and actions", () => {

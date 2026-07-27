@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AppView } from "../types/dsa";
-import { Navbar } from "../components/Navbar";
+import { Navbar } from "../ui";
 import { CATEGORIES } from "../app/categories";
 import { SettingsProvider, useSettings } from "../app/SettingsContext";
 

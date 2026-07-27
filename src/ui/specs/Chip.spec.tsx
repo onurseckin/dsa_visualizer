@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Chip } from "../Chip";
+import { Chip } from "../index";
 
 describe("Chip render spec", () => {
   it("renders label and value with separator", () => {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import GraphVisualizer from "../../../components/primitives/GraphVisualizer";
-import { MainLayout } from "../../../components/MainLayout";
+import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateBFSGraphSteps, DEFAULT_BFS_INPUT } from "../bfsGraph";
 

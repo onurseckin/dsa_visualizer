@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Select } from "../Select";
+import { Select } from "../index";
 
 describe("Select render spec", () => {
   it("renders select element with options", () => {

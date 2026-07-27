@@ -4,7 +4,7 @@ import {
   MIN_PANEL_HEIGHT_PX,
   TriviaLayout,
 } from "../../../trivia/triviaLayout";
-import { DragHandle } from "../../../components/ResizableLayout";
+import { DragHandle } from "../../../ui";
 import { TriviaSessionsManager } from "../../../components/trivia/TriviaSessionsManager";
 import { TriviaSessionRecord } from "../../../types/trivia";
 
@@ -12,7 +12,7 @@ interface TriviaHomeViewProps {
   sessions: TriviaSessionRecord[];
   layout: TriviaLayout;
   sessionListPanel: {
-    ref: RefObject<HTMLDivElement>;
+    ref: RefObject<HTMLDivElement | null>;
     dragging: boolean;
     setDragging: (dragging: boolean) => void;
     nudge: (delta: number) => void;

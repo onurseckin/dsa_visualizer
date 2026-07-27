@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TutorialCard, hasTutorialContent } from "../TutorialCard";
+import { TutorialCard, hasTutorialContent } from "../../../ui";
 
 describe("hasTutorialContent helper", () => {
   it("returns false when no explanation, what, or why is present", () => {

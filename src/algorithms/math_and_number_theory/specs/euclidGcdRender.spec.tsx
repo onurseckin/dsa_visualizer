@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
-import { MainLayout } from "../../../components/MainLayout";
+import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateEuclidGcdSteps, DEFAULT_EUCLID_GCD_INPUT } from "../euclidGcd";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";

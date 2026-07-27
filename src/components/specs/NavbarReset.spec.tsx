@@ -6,7 +6,7 @@ import {
   WORKSPACE_LAYOUT_RESET_EVENT,
   WORKSPACE_LAYOUT_VERSION,
 } from "../../app/workspaceLayout";
-import { Navbar, NavbarProps } from "../Navbar";
+import { Navbar, NavbarProps } from "../../ui";
 
 const ALL_VISIBLE: PanelVisibility = {
   visualizer: true,

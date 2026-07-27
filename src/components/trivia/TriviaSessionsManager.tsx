@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { Brain } from "lucide-react";
 import type { PuzzleLine, TriviaSessionRecord } from "../../types/trivia";
-import { Button, ConfirmDialog } from "../../ui";
+import { Button, ConfirmDialog, SessionCard, SessionStats } from "../../ui";
 import { coverageRatio, parsePuzzleLines } from "../../trivia/triviaEngine";
 import { getAlgorithm } from "../../algorithms/registry";
-import { SessionCard, SessionStats } from "./components/SessionCard";
 
 export interface TriviaSessionsManagerProps {
   sessions: TriviaSessionRecord[];
@@ -67,7 +66,9 @@ export function TriviaSessionsManager({
   return (
     <div className="flex flex-col gap-5 min-h-0">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="m-0 text-xl font-bold text-[var(--text-primary)]">Trivia</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text-primary)] mb-2">
+          Trivia
+        </h1>
         <Button variant="primary" onClick={onCreateNewSession}>
           New session
         </Button>

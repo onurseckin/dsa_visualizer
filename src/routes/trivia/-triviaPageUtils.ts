@@ -7,8 +7,8 @@ import type { TriviaPanelHeights } from "../../trivia/triviaLayout";
 export const PANEL_BORDER: CSSProperties = { borderColor: "var(--border-default)" };
 
 export const pageStyle: CSSProperties = {
-  padding: "var(--space-6) var(--space-8)",
-  maxWidth: "100%",
+  padding: "var(--space-8) var(--space-10)",
+  maxWidth: "1280px",
   margin: "0 auto",
   width: "100%",
   display: "flex",

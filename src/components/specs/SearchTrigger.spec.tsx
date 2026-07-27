@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SearchTrigger } from "../SearchTrigger";
+import { SearchTrigger } from "../../ui";
 
 describe("SearchTrigger Component Spec", () => {
   it('renders a button styled like an input with placeholder text and "/" keycap hint', () => {

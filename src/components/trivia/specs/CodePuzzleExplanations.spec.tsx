@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { CodePuzzle } from "../CodePuzzle";
-import type { CodePuzzleProps } from "../CodePuzzle";
+import { CodePuzzle } from "../../../ui";
+import type { CodePuzzleProps } from "../../../ui";
 import { parsePuzzleLines } from "../../../trivia/triviaEngine";
 import type { TriviaRound } from "../../../types/trivia";
 

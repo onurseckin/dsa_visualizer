@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import GridVisualizer from "../../../components/primitives/GridVisualizer";
-import { MainLayout } from "../../../components/MainLayout";
+import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateEditDistanceSteps, DEFAULT_EDIT_DISTANCE_INPUT } from "../editDistance";
 import type { GridVisualSnapshot } from "../../../types/dsa";

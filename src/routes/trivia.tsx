@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { pageStyle } from "./trivia/-triviaPageUtils";
+
 import { useTriviaPage } from "./trivia/-hooks/useTriviaPage";
 import { TriviaHomeView } from "./trivia/-components/TriviaHomeView";
 import { TriviaSetupView } from "./trivia/-components/TriviaSetupView";
@@ -44,7 +44,10 @@ function TriviaPage() {
   } = useTriviaPage();
 
   return (
-    <main aria-label="Code trivia drill" style={pageStyle}>
+    <main
+      aria-label="Code trivia drill"
+      className="px-4 md:px-8 py-6 w-full max-w-7xl mx-auto flex flex-col flex-1 gap-6 min-h-0"
+    >
       {screen === "home" ? (
         <TriviaHomeView
           sessions={sessions}

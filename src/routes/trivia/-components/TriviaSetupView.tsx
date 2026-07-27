@@ -5,9 +5,9 @@ import {
   TriviaLayout,
 } from "../../../trivia/triviaLayout";
 import { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../../types/trivia";
-import { DragHandle } from "../../../components/ResizableLayout";
+import { DragHandle } from "../../../ui";
 import { TriviaHeaderCard } from "../../../components/trivia/TriviaHeaderCard";
-import { TriviaDeckBuilder } from "../../../components/trivia/TriviaDeckBuilder";
+import { TriviaDeckBuilder } from "../../../ui";
 
 interface TriviaSetupViewProps {
   activeSession: TriviaSessionRecord;
@@ -20,14 +20,14 @@ interface TriviaSetupViewProps {
   deckLineCounts: number[];
   layout: TriviaLayout;
   settingsPanel: {
-    ref: RefObject<HTMLDivElement>;
+    ref: RefObject<HTMLDivElement | null>;
     dragging: boolean;
     setDragging: (dragging: boolean) => void;
     nudge: (delta: number) => void;
     restoreDefault: () => void;
   };
   deckBuilderPanel: {
-    ref: RefObject<HTMLDivElement>;
+    ref: RefObject<HTMLDivElement | null>;
     dragging: boolean;
     setDragging: (dragging: boolean) => void;
     nudge: (delta: number) => void;

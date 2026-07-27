@@ -1,14 +1,14 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { MainLayout } from "../MainLayout";
+import { MainLayout } from "../../ui";
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
   PanelVisibility,
   TopicGuide,
 } from "../../types/dsa";
-import type { ControlPanelProps } from "../ControlPanel";
+import type { ControlPanelProps } from "../../ui";
 
 vi.mock("../primitives/ProblemDescriptionCard", () => ({
   ProblemDescriptionCard: ({

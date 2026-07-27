@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TriviaConfig } from "../../../types/trivia";
 import { DEFAULT_TRIVIA_CONFIG, MAX_BLANKS_CEILING } from "../../../trivia/triviaEngine";
-import { TriviaSettings } from "../TriviaSettings";
+import { TriviaSettings } from "../../../ui";
 
 const config = (patch: Partial<TriviaConfig> = {}): TriviaConfig => ({
   ...DEFAULT_TRIVIA_CONFIG,

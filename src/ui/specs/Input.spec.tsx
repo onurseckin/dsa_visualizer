@@ -2,7 +2,7 @@ import { createRef } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Search } from "lucide-react";
-import { Input } from "../Input";
+import { Input } from "../index";
 
 describe("Input", () => {
   it("renders a text input with md sizing by default", () => {

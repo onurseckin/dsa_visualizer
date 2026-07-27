@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PanelHeightMap, ResizableRow, ResizableRows } from "../ResizableLayout";
+import { PanelHeightMap, ResizableRow, ResizableRows } from "../../ui";
 
 afterEach(() => {
   vi.restoreAllMocks();

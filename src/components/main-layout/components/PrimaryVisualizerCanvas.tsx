@@ -4,7 +4,7 @@ import { ArrayVisualizer } from "../../primitives/ArrayVisualizer";
 import { GridVisualizer } from "../../primitives/GridVisualizer";
 import { GraphVisualizer } from "../../primitives/GraphVisualizer";
 import { TreeVisualizer } from "../../primitives/TreeVisualizer";
-import { ControlPanel, ControlPanelProps } from "../../ControlPanel";
+import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { Card } from "../../../ui";
 
 interface PrimaryVisualizerCanvasProps {
@@ -38,7 +38,6 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
   return (
     <Card
       data-panel="visualizer"
-      padding="none"
       style={{
         height: "100%",
         width: "100%",

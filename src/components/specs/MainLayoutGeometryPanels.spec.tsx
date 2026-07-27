@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { MainLayout } from "../MainLayout";
+import { MainLayout } from "../../ui";
 import type { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../types/dsa";
 import {
   MIN_PANEL_HEIGHT_PX,

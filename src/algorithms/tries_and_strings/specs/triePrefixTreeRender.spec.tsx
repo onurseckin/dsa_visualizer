@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { MainLayout } from "../../../components/MainLayout";
+import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { DEFAULT_TRIE_INPUT, generateTriePrefixTreeSteps } from "../triePrefixTree";
 

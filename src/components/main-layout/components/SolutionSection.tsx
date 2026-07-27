@@ -1,14 +1,14 @@
 import React from "react";
 import { TopicGuide } from "../../../types/dsa";
-import { SolutionApproachCard } from "../../primitives/SolutionApproachCard";
-import { DragHandle } from "../../ResizableLayout";
+import { SolutionApproachCard } from "../../../ui";
+import { DragHandle } from "../../../ui";
 
 interface SolutionSectionProps {
   topicGuide: TopicGuide;
   solutionExpanded: boolean;
   solutionPinned: number | null;
   solutionDragging: boolean;
-  solutionRef: React.RefObject<HTMLDivElement>;
+  solutionRef: React.RefObject<HTMLDivElement | null>;
   onToggleSolutionExpanded: () => void;
   onSetSolutionDragging: (dragging: boolean) => void;
   onNudgeSolution: (delta: number) => void;

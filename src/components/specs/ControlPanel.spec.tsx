@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ControlPanel } from "../ControlPanel";
+import { ControlPanel } from "../../ui";
 
 describe("ControlPanel render spec", () => {
   it("renders playback controls and step readout with embedded variant", () => {

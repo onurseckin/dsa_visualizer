@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { MainLayout } from "../MainLayout";
+import { MainLayout } from "../../ui";
 import type { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../types/dsa";
 import {
   DEFAULT_WORKSPACE_LAYOUT,
@@ -120,7 +120,7 @@ describe("MainLayoutDetailsPersistence Component Spec", () => {
   it("persists a collapse to the v8 key without disturbing the geometry", () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
 
     expect(problemExpandedAttr()).toBe("false");
     expect(storedLayout()?.problemExpanded).toBe(false);
@@ -154,7 +154,7 @@ describe("MainLayoutDetailsPersistence Component Spec", () => {
     expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
     expect(columnHandle()).toHaveAttribute("aria-valuenow", "55");
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
 
     expect(problemExpandedAttr()).toBe("true");
     expect(storedLayout()?.problemExpanded).toBe(true);
@@ -164,7 +164,7 @@ describe("MainLayoutDetailsPersistence Component Spec", () => {
   it("keeps the problem panel state through a later geometry drag", () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
     fireEvent.keyDown(columnHandle(), { key: "ArrowRight" });
 
     expect(storedLayout()?.splitPercent).toBe(62);
@@ -175,7 +175,7 @@ describe("MainLayoutDetailsPersistence Component Spec", () => {
   it("collapsing the solution panel never disturbs the problem panel, and vice versa", () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole("button", { name: "Solution Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
 
     expect(solutionExpandedAttr()).toBe("false");
     expect(problemExpandedAttr()).toBe("true");

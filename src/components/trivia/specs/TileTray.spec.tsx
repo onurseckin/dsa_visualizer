@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TileTray } from "../TileTray";
-import { TILE_MIME } from "../CodePuzzle";
+import { TileTray } from "../../../ui";
+import { TILE_MIME } from "../../../ui";
 import type { TriviaTile } from "../../../types/trivia";
 
 const TILES: TriviaTile[] = [

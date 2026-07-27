@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ComplexityCard } from "../ComplexityCard";
+import { ComplexityCard } from "../../ui";
 
 describe("ComplexityCard render spec", () => {
   it("renders time/space complexity and analysis", () => {

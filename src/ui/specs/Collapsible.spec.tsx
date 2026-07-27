@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Collapsible } from "../Collapsible";
+import { Collapsible } from "../index";
 
 describe("Collapsible (uncontrolled)", () => {
   it("starts closed by default and hides its content", () => {
