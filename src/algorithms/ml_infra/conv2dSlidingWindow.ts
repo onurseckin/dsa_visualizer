@@ -142,8 +142,8 @@ export const generateConv2dSlidingWindowSteps = (
 
   if (H === 0 || W === 0 || kH === 0 || kW === 0 || outH <= 0 || outW <= 0) {
     addStep(
-      19,
-      "Invalid Convolution dimensions",
+      2,
+      "Invalid Convolution dimensions — early return",
       "Input or kernel size is 0 or stride/padding leads to non-positive output dimensions.",
       null,
       null,
@@ -156,13 +156,43 @@ export const generateConv2dSlidingWindowSteps = (
   const output: number[][] = Array.from({ length: outH }, () => Array(outW).fill(0));
 
   addStep(
-    17,
+    1,
     `Initialize 2D Convolution (Input: ${H}x${W}, Kernel: ${kH}x${kW}, Stride: ${stride}, Pad: ${padding})`,
-    `Output feature map dimension: ${outH}x${outW}.`,
+    `H=${H}, W=${W}, kH=${kH}, kW=${kW}. Reading input tensor dimensions and kernel shape.`,
+    null,
+    null,
+    output.map((r) => [...r]),
+    { H, W, kH, kW, stride, padding },
+  );
+
+  addStep(
+    17,
+    `Compute Output Dimensions: out_H=${outH}, out_W=${outW}`,
+    `out_H = (${pH} - ${kH}) // ${stride} + 1 = ${outH}. out_W = (${pW} - ${kW}) // ${stride} + 1 = ${outW}.`,
     null,
     null,
     output.map((r) => [...r]),
     { outH, outW, stride, padding },
+  );
+
+  addStep(
+    23,
+    `Initialize output = [[0]*${outW} for _ in range(${outH})]`,
+    `Output feature map of shape (${outH}, ${outW}) initialized to zeros.`,
+    null,
+    null,
+    output.map((r) => [...r]),
+    { outH, outW },
+  );
+
+  addStep(
+    24,
+    `Begin sliding window: for r in range(0, ${pH}-${kH}+1, ${stride})`,
+    `Outer loop over padded input rows with stride ${stride}.`,
+    null,
+    null,
+    output.map((r) => [...r]),
+    { stride, maxR: pH - kH },
   );
 
   for (let r = 0; r <= pH - kH; r += stride) {
@@ -195,12 +225,22 @@ export const generateConv2dSlidingWindowSteps = (
 
   addStep(
     31,
-    `2D Convolution Sliding Window Complete`,
+    `output[out_r][out_c] = val — 2D Convolution Sliding Window Complete`,
     `Computed all ${outH * outW} elements of output feature map.`,
     null,
     null,
     output.map((row) => [...row]),
     { complete: true },
+  );
+
+  addStep(
+    33,
+    `return output`,
+    `Returning completed ${outH}x${outW} convolution output feature map.`,
+    null,
+    null,
+    output.map((row) => [...row]),
+    { outH, outW, totalElements: outH * outW },
   );
 
   return steps;
