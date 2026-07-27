@@ -50,6 +50,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       )}
       <div
         ref={ref}
+        data-testid="canvas-container"
         style={{
           flex: "1 1 auto",
           width: "100%",

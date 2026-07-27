@@ -1,7 +1,10 @@
 .ui-card {
+  background-color: var(--bg-surface);
+  border-color: var(--border-default);
 }
 
 .ui-card--inset {
+  background-color: var(--bg-inset);
 }
 
 .ui-card__header {
@@ -25,4 +28,14 @@
 }
 
 .ui-card__body {
+}
+
+.ui-card .ui-alert,
+.ui-card .ui-callout,
+.ui-card .ui-info-notice,
+.ui-card .ui-well--info {
+  background-color: var(--bg-alert-soft, rgba(16, 185, 129, 0.12));
+  background: var(--bg-alert, #0d1f17);
+  border: 1px solid var(--border-alert, rgba(16, 185, 129, 0.25));
+  color: var(--text-primary);
 }

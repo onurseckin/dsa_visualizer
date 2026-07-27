@@ -30,6 +30,10 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
   minPanelHeightPx,
   maxPanelHeightPx,
 }) => {
+  if (!problemExpanded) {
+    return null;
+  }
+
   return (
     <section aria-label="Problem description and details" className="flex flex-col shrink-0">
       <div
@@ -50,6 +54,7 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
           examples={algorithm.examples}
           expanded={problemExpanded}
           onToggleExpanded={onToggleProblemExpanded}
+          showHeader={false}
         />
       </div>
 

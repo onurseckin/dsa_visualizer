@@ -71,6 +71,8 @@ export type { ControlPanelProps } from "./organisms/ControlPanel";
 export { ComplexityCard } from "./organisms/ComplexityCard";
 export { ProblemDescriptionCard } from "./organisms/ProblemDescriptionCard";
 export type { ProblemDescriptionCardProps } from "./organisms/ProblemDescriptionCard";
+export { ProblemHeader } from "../components/primitives/ProblemHeader";
+export type { ProblemHeaderProps } from "../components/primitives/ProblemHeader";
 export { SolutionApproachCard } from "./organisms/SolutionApproachCard";
 export type { SolutionApproachCardProps } from "./organisms/SolutionApproachCard";
 export { ProblemListFilterToolbar } from "./organisms/ProblemListFilterToolbar";

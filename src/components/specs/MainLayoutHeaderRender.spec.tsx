@@ -158,12 +158,34 @@ afterEach(() => {
 });
 
 describe("MainLayoutHeaderRender Component Spec", () => {
-  it("renders the problem description card with algorithm identity above the stage", () => {
-    renderLayout();
+  it("renders the workspace header bar with algorithm title, difficulty badge and category tag always, even when panels.problem is false", () => {
+    const { rerender } = renderLayout({ panels: { ...allPanels(), problem: true } });
 
+    const header = screen.getByTestId("workspace-header");
+    expect(header).toBeInTheDocument();
+    expect(header).toHaveTextContent("Bubble Sort Algorithm");
+    expect(header).toHaveTextContent("Easy");
+    expect(header).toHaveTextContent("Arrays and hashing");
     expect(screen.getByTestId("problem-description-card")).toBeInTheDocument();
-    expect(screen.getByText("Bubble Sort Algorithm")).toBeInTheDocument();
-    expect(screen.getByText("Easy")).toBeInTheDocument();
+
+    // Now toggle problem panel OFF via panels.problem = false
+    rerender(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        panels={{ ...allPanels(), problem: false }}
+      />,
+    );
+
+    // Top workspace header bar MUST STILL BE VISIBLE with title and badges!
+    const headerAfterToggle = screen.getByTestId("workspace-header");
+    expect(headerAfterToggle).toBeInTheDocument();
+    expect(headerAfterToggle).toHaveTextContent("Bubble Sort Algorithm");
+    expect(headerAfterToggle).toHaveTextContent("Easy");
+    expect(headerAfterToggle).toHaveTextContent("Arrays and hashing");
+
+    // Problem description card container is hidden
+    expect(screen.queryByTestId("problem-description-card")).not.toBeInTheDocument();
   });
 
   it("renders the solution approach card with the topic guide, below every other section", () => {

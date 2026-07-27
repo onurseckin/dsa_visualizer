@@ -31,13 +31,19 @@ export const SolutionSection: React.FC<SolutionSectionProps> = ({
   maxPanelHeightPx,
 }) => {
   return (
-    <section aria-label="Solution approach and analysis" style={{ flexShrink: 0 }}>
+    <section
+      aria-label="Solution approach and analysis"
+      className="bg-[var(--bg-inset)]"
+      style={{ flexShrink: 0, background: "var(--bg-inset)" }}
+    >
       <div
         ref={solutionRef}
         data-height-mode={solutionPinned !== null ? "pinned" : "hug"}
+        className="bg-[var(--bg-inset)]"
         style={{
           height: solutionPinned !== null ? `${solutionPinned}px` : undefined,
           overflowY: solutionPinned !== null ? "auto" : undefined,
+          background: "var(--bg-inset)",
         }}
       >
         <SolutionApproachCard

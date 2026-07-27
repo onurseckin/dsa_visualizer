@@ -5,6 +5,7 @@ import { useMainLayoutState } from "../../components/main-layout/hooks/useMainLa
 import { ProblemSection } from "../../components/main-layout/components/ProblemSection";
 import { SolutionSection } from "../../components/main-layout/components/SolutionSection";
 import { MainStage } from "../../components/main-layout/components/MainStage";
+import { ProblemHeader } from "../../components/primitives/ProblemHeader";
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
@@ -77,6 +78,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       className="w-full max-w-full p-0 flex-1 flex flex-col gap-4 min-h-0 box-border overflow-y-auto overflow-x-hidden bg-[var(--bg-surface)]"
       style={{ display: "flex", overflowY: "auto" }}
     >
+      <div
+        data-testid="workspace-header"
+        className="w-full px-4 pt-4 md:px-6 md:pt-4 pb-2 bg-[var(--bg-surface)] flex flex-col gap-2 shrink-0"
+      >
+        <ProblemHeader
+          title={algorithm.title}
+          category={algorithm.category}
+          difficulty={algorithm.difficulty}
+        />
+      </div>
+
       {panels.problem && (
         <ProblemSection
           algorithm={algorithm}

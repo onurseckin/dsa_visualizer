@@ -85,7 +85,7 @@ export function CodePuzzle({
   return (
     <Card
       style={{ borderColor: "var(--border-default)", minWidth: 0 }}
-      className="border border-[var(--border-default)] rounded-2xl p-0 bg-[var(--bg-surface)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed overflow-hidden flex flex-col"
+      className="border border-[var(--border-default)] rounded-2xl p-0 bg-[var(--bg-inset)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed overflow-hidden flex flex-col"
     >
       <div
         data-testid="code-puzzle-well"

@@ -20,15 +20,20 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — page is carbon (#17171b), cards are near-black (#0a0a0c), wells/canvases are pure black (#000000). */
+  /* Surfaces — page is carbon (#17171b), cards are darkest black (#050506), wells/canvases are pure black (#000000). */
   --bg-page: #17171b;
-  --bg-surface: #0a0a0c;
+  --bg-surface: #050506;
   --bg-inset: #000000;
   --bg-chrome: #141418;
   --bg-elevated: #1e1e24;
   --bg-hover: #282830;
   --bg-pressed: #32323b;
   --bg-backdrop: rgba(3, 3, 4, 0.82);
+
+  /* Alert & Info sections inside cards — subtle carbon green */
+  --bg-alert: #0d1f17;
+  --bg-alert-soft: rgba(16, 185, 129, 0.12);
+  --border-alert: rgba(16, 185, 129, 0.25);
 
   /* Borders carry the edge definition on near-black cards. */
   --border-subtle: rgba(255, 255, 255, 0.06);

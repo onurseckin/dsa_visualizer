@@ -17,9 +17,14 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({ topi
     <Card
       data-testid="solution-approach-card"
       data-topic-sections="2"
-      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl"
+      variant="inset"
+      style={{ background: "var(--bg-inset)" }}
+      className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-2xl shadow-xl"
     >
-      <Card.Body className="flex flex-col gap-6 p-4 md:p-5">
+      <Card.Body
+        className="flex flex-col gap-6 p-4 md:p-5 bg-[var(--bg-inset)]"
+        style={{ background: "var(--bg-inset)" }}
+      >
         <div
           id="solution-approach-details"
           data-testid="solution-approach-details"

@@ -30,9 +30,14 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
     <Card
       data-testid="code-viewer"
       padding="none"
-      className="border border-[var(--border-default)] bg-[var(--bg-surface)] h-full flex flex-col p-0"
+      variant="inset"
+      style={{ background: "var(--bg-inset)" }}
+      className="border border-[var(--border-default)] bg-[var(--bg-inset)] h-full flex flex-col p-0"
     >
-      <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] p-0">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] p-0"
+        style={{ background: "var(--bg-inset)" }}
+      >
         {lines.map((lineText, idx) => {
           const lineNumber = idx + 1;
           const isActive = lineNumber === activeLine;

@@ -58,6 +58,7 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
       >
         <div
           data-region="canvas"
+          data-testid="canvas-container"
           style={{
             flex: 1,
             width: "100%",

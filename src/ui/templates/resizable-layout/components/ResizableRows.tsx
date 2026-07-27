@@ -161,7 +161,9 @@ export const ResizableRows: React.FC<ResizableRowsProps> = ({
                 minHeight: mode === "greedy" ? "var(--panel-min-h)" : undefined,
                 overflowX: mode === "hug" ? "visible" : "hidden",
                 overflowY: mode === "pinned" ? "auto" : mode === "greedy" ? "hidden" : "visible",
+                background: row.id === "code" ? "var(--bg-inset)" : undefined,
               }}
+              className={row.id === "code" ? "bg-[var(--bg-inset)]" : undefined}
             >
               {row.content}
             </div>
