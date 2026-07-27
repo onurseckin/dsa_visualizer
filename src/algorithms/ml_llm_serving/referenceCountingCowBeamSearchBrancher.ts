@@ -91,7 +91,35 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
   );
 
   // Step 2: Dict comprehension start
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Manages KV cache block reference counts and performs Copy-on-Write (CoW)",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "forking when beam search hypotheses diverge.",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     "Initialize ref_counts dict: {b_id: 1 for b_id in beams}",
     "Setting initial reference count = 1 for all active candidate physical KV blocks.",

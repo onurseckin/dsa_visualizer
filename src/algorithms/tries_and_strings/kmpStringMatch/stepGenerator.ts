@@ -72,20 +72,39 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     });
   };
 
+  // Python line 1: def kmp_search(text, pattern)
   addStep(
     1,
-    "Set up the search",
+    "Enter kmp_search",
     `We're looking for "${pattern}" (length ${m}) inside "${text}" (length ${n}). KMP will do it in a single pass over the text by first learning the pattern's internal structure.`,
     { n, m, pattern, text },
     "Preprocessing",
   );
 
+  // Python line 2: n, m = len(text), len(pattern)
+  addStep(
+    2,
+    "Measure the inputs",
+    `n = ${n} (text length) and m = ${m} (pattern length). These two sizes drive every bound check and LPS allocation that follows.`,
+    { n, m },
+    "Preprocessing",
+  );
+
   if (m === 0 || n === 0 || m > n) {
+    // Python line 3: if m == 0 or n == 0 or m > n
     addStep(
       3,
-      "Search complete — nothing to match",
-      "The pattern is empty, the text is empty, or the pattern is longer than the text, so a match is impossible and we return an empty result.",
-      { n, m, matchesCount: 0 },
+      "Early-exit condition is true",
+      "The pattern is empty, the text is empty, or the pattern is longer than the text — a match is impossible.",
+      { n, m },
+      "Complete",
+    );
+    // Python line 4: return []
+    addStep(
+      4,
+      "Return an empty list",
+      "No matches can exist, so we hand back [] immediately.",
+      { matchesCount: 0 },
       "Complete",
     );
     return steps;
@@ -94,11 +113,39 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   let len = 0;
   let i = 1;
 
+  // Python line 5: lps = [0] * m
   addStep(
     5,
-    "Prepare the LPS table",
-    `Before touching the text, we teach ourselves the pattern: LPS[i] will say how much of the pattern's own beginning repeats just before position i. That's exactly what tells us how far we can safely shift after a mismatch.`,
-    { len, i, "lps[0]": 0 },
+    "Allocate the LPS table",
+    `We create an array of ${m} zeros — one slot per pattern character. LPS[i] will record how much of the pattern's own beginning echoes just before position i.`,
+    { m, lps: lps.join(", ") },
+    "Building LPS",
+  );
+
+  // Python line 6: length = 0
+  addStep(
+    6,
+    "Initialise length = 0",
+    "length tracks how many leading pattern characters the current suffix matches. We start at zero because no prefix has been confirmed yet.",
+    { length: len },
+    "Building LPS",
+  );
+
+  // Python line 7: i = 1
+  addStep(
+    7,
+    "Initialise i = 1",
+    "LPS[0] is always 0 by definition, so we start filling from index 1.",
+    { i },
+    "Building LPS",
+  );
+
+  // Python line 8: while i < m
+  addStep(
+    8,
+    `Enter LPS build loop (i=${i}, m=${m})`,
+    "We iterate while i < m, computing every LPS entry in a single linear pass.",
+    { i, m },
     "Building LPS",
   );
 
@@ -106,17 +153,35 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     if (pattern[i] === pattern[len]) {
       len++;
       lps[i] = len;
+      // Python line 10: length += 1
       addStep(
-        9,
-        `Extend the prefix match to ${len}`,
-        `pattern[${i}] ('${pattern[i]}') equals pattern[${len - 1}] ('${pattern[len - 1]}'), so the copy of the pattern's start that echoes here grows by one — we record LPS[${i}] = ${len} and move on.`,
-        { i, len, "pattern[i]": pattern[i], "LPS[i]": len },
+        10,
+        `Extend the prefix match: length → ${len}`,
+        `pattern[${i}] ('${pattern[i]}') equals pattern[${len - 1}] ('${pattern[len - 1]}'), so the copy of the pattern's start grows by one.`,
+        { i, len, "pattern[i]": pattern[i] },
+        "Building LPS",
+      );
+      // Python line 11: lps[i] = length
+      addStep(
+        11,
+        `Record LPS[${i}] = ${len}`,
+        `The matching prefix now reaches ${len} characters, so we write that into LPS[${i}].`,
+        { i, "LPS[i]": len },
+        "Building LPS",
+      );
+      // Python line 12: i += 1
+      addStep(
+        12,
+        `Advance i to ${i + 1}`,
+        "The current position is fully resolved; move on to the next pattern character.",
+        { i: i + 1 },
         "Building LPS",
       );
       i++;
     } else if (len !== 0) {
       const prevLen = len;
       len = lps[len - 1];
+      // Python line 14: length = lps[length - 1]
       addStep(
         14,
         `Fall back to length ${len}`,
@@ -126,6 +191,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       );
     } else {
       lps[i] = 0;
+      // Python line 16: lps[i] = 0
       addStep(
         16,
         `Record LPS[${i}] = 0`,
@@ -137,11 +203,21 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     }
   }
 
+  // Python line 18: p_idx, t_idx = 0, 0
   addStep(
     18,
-    "LPS table complete",
-    `The table reads [${lps.join(", ")}]. Now we scan the text once — on any mismatch this table tells us exactly where to resume in the pattern, so the text pointer never has to rewind.`,
-    { lps: lps.join(", ") },
+    "Initialise search pointers",
+    `The LPS table reads [${lps.join(", ")}]. We set p_idx = 0 and t_idx = 0 to begin the single text scan.`,
+    { p_idx: 0, t_idx: 0, lps: lps.join(", ") },
+    "Matching",
+  );
+
+  // Python line 19: matches = []
+  addStep(
+    19,
+    "Create the matches list",
+    "An empty list to accumulate every starting index where the pattern is found.",
+    { matchesCount: 0 },
     "Matching",
   );
 
@@ -156,6 +232,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     elements[tIdx].state = "compare";
     elements[tIdx].pointers = [charT, `i=${tIdx}`, `pat[${pIdx}]=${charP}`];
 
+    // Python line 21: if pattern[p_idx] == text[t_idx]
     addStep(
       21,
       `Compare text[${tIdx}] with pattern[${pIdx}]`,
@@ -181,6 +258,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
         elements[k].pointers = [text[k], "match"];
       }
 
+      // Python line 25: matches.append(t_idx - p_idx)
       addStep(
         25,
         `Match found at index ${matchStart}`,
@@ -197,6 +275,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       if (pIdx !== 0) {
         const oldPIdx = pIdx;
         pIdx = lps[pIdx - 1];
+        // Python line 29: p_idx = lps[p_idx - 1]
         addStep(
           29,
           `Shift the pattern index to ${pIdx}`,
@@ -208,6 +287,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
       } else {
         const oldTIdx = tIdx;
         tIdx++;
+        // Python line 31: t_idx += 1
         addStep(
           31,
           `Advance the text pointer to ${tIdx}`,
@@ -241,9 +321,10 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     );
   }
 
+  // Python line 32: return matches
   addStep(
     32,
-    "Search complete",
+    "Return matches",
     `We found ${matches.length} match(es) at index(es): ${matches.length > 0 ? matches.join(", ") : "None"}. One pass to learn the pattern plus one pass over the text is what makes KMP run in O(n + m).`,
     { matchesCount: matches.length, matches: matches.join(", ") },
     "Complete",

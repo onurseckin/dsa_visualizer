@@ -123,7 +123,35 @@ export const generateFlashDecodingSplitKKvCacheGatherSteps = (
   );
 
   // Step 3: num_splits line 8
+    addStep(
+    4,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Reduces split-K partial attention outputs from parallel GPU thread blocks u",
+    {},
+  );
+
+  addStep(
+    6,
+    "Docstring body: algorithm description",
+    "Computes global rowmax, rescales partial softmax denominators, and performs",
+    {},
+  );
+
+  addStep(
+    7,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     8,
     `Compute num_splits = len(split_maxes) -> ${numSplits}`,
     `Found ${numSplits} parallel GPU thread block splits to reduce.`,

@@ -159,7 +159,42 @@ export const generateGreedyTreeBuilderSteps = (
 
   // Measure num_samples (15)
   const numSamples = y.length;
+    addStep(
+    10,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    11,
+    "Docstring body: algorithm description",
+    "Top-Down Greedy Decision Tree Builder (CART).",
+    {},
+  );
+
+  addStep(
+    12,
+    "Docstring body: algorithm description",
+    "Recursively finds the best feature split maximizing Gini Impurity reduction",
+    {},
+  );
+
+  addStep(
+    13,
+    "Docstring body: algorithm description",
+    "max_depth or min_samples_split termination criteria are reached.",
+    {},
+  );
+
+  addStep(
+    14,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     15,
     `Measure Node Samples Count: num_samples = ${numSamples}`,
     `Node sample count num_samples = ${numSamples}.`,

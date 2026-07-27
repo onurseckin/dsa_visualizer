@@ -119,7 +119,35 @@ export const generateWeightedQuantileSketchSteps = (
   );
 
   // Step 2: Validate inputs (6)
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Computes candidate split thresholds using the Weighted Quantile Sketch algo",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Iteratively selects quantile boundaries s_j such that the cumulative weight",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     "Validate Feature & Weight Input Lists",
     `Validated feature_values and weights are non-empty and equal length (${samples.length} elements).`,

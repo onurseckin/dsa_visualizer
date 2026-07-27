@@ -130,7 +130,35 @@ export const generateXgboostHistogramSplitSearchSteps = (
   );
 
   // Step 2: Compute G_total (6)
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Performs O(num_bins) fast split search over pre-built gradient and hessian ",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Iteratively accumulates G_L, H_L across bins and evaluates XGBoost regulari",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     `Calculate Total Gradient: G_total = sum(hist_G) = ${Gtotal.toFixed(4)}`,
     `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)}.`,

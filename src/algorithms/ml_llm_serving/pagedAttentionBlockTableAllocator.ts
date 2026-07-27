@@ -148,7 +148,35 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
     null,
   );
 
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Dynamically allocates physical GPU memory blocks (pages) for incoming seque",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "mapping logical token block indices to physical block table entries.",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     "Initialize Container block_table",
     "Creating physical block table mapping array for sequence KV cache.",

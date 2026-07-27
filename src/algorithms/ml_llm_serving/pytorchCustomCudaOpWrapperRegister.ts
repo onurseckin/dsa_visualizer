@@ -94,7 +94,35 @@ export const generatePytorchCustomCudaOpWrapperRegisterSteps = (
   );
 
   // Step 2: Init output buffer
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Simulates PyTorch @torch.library.custom_op registration and CUDA kernel dis",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Validates tensor input buffers, dispatches thread block grid, and executes ",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     "Initialize output_buffer = []",
     "Allocating PyTorch C++ output tensor buffer in device VRAM memory.",

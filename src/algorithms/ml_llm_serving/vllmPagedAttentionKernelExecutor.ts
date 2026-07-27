@@ -109,7 +109,42 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
   );
 
   // Step 4: Init output_scores line 9
+    addStep(
+    4,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Simulates vLLM PagedAttention GPU kernel execution:",
+    {},
+  );
+
+  addStep(
+    6,
+    "Docstring body: algorithm description",
+    "Gathers Key-Value memory blocks from physical block pointers in non-contigu",
+    {},
+  );
+
+  addStep(
+    7,
+    "Docstring body: algorithm description",
+    "computes scaled dot-product attention scores, and returns output tensor buf",
+    {},
+  );
+
+  addStep(
+    8,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     9,
     "Initialize output_scores = []",
     "Allocating device SRAM output buffer for attention scores.",

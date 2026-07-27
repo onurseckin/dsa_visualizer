@@ -163,7 +163,42 @@ export const generateXgboostSplitGainScoreSteps = (
   );
 
   // Step 8: Compute G_total (7)
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Calculates the XGBoost 2nd-order Taylor expansion split gain score (Chen & ",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Gain = 0.5 * [ G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda) - (G_L + G_R",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Returns (left_score, right_score, root_score, gain).",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     7,
     `Calculate Total Parent Gradient: G_total = G_L + G_R = ${Gtotal.toFixed(4)}`,
     `Evaluated G_total = ${GL.toFixed(4)} + ${GR.toFixed(4)} = ${Gtotal.toFixed(4)}.`,

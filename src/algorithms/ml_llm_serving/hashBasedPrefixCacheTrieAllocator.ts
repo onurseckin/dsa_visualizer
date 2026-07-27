@@ -115,7 +115,35 @@ export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
   );
 
   // Step 2: existing_hashes check
+    addStep(
+    4,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Computes cumulative block prefix hashes for prompt tokens and matches them ",
+    {},
+  );
+
+  addStep(
+    6,
+    "Docstring body: algorithm description",
+    "Returns matched prefix block hashes, hit rate, and number of cached KV phys",
+    {},
+  );
+
+  addStep(
+    7,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     8,
     "Check if existing_hashes is None",
     "Verifying existing hashes parameter.",

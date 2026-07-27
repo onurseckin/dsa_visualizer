@@ -133,7 +133,42 @@ export const generateTreeTraversalSteps = (
   );
 
   // Step 2: Init curr_id
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Decision Tree Prediction Traverser.",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Routes a test sample vector X through decision tree nodes from root_id down",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "At internal nodes, branches Left if sample[feature_idx] <= threshold, else ",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     7,
     `Initialize Current Node ID: curr_id = ${currId}`,
     `Set curr_id = ${currId} (Root Node).`,
