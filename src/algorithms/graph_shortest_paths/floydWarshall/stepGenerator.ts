@@ -31,18 +31,6 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
 
   const dist: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(Infinity));
 
-  for (let i = 0; i < n; i++) {
-    dist[i][i] = 0;
-  }
-
-  for (const edge of rawEdges) {
-    const uIdx = nodeToIdx[edge.from];
-    const vIdx = nodeToIdx[edge.to];
-    if (uIdx !== undefined && vIdx !== undefined) {
-      dist[uIdx][vIdx] = edge.weight;
-    }
-  }
-
   const buildGridSnapshot = (
     activePos?: [number, number],
     comparePositions: Array<[number, number]> = [],
@@ -85,10 +73,24 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `n = ${n} nodes in the graph`,
+      why: "We record the vertex count once. All three loop bounds and the matrix dimensions derive from n, so we calculate it up front.",
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: {
+      customState: { n, "Total Edges": rawEdges.length },
+    },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialize the ${n}x${n} distance matrix`,
-      why: "We seed the table with what we know directly: every node is 0 away from itself, and each edge fills in its own weight. Every other pair starts at ∞ until we discover some route between them.",
+      what: `Initialize the ${n}x${n} distance matrix to infinity`,
+      why: `We allocate an n×n table and fill every cell with ∞ — meaning “no direct route yet”. We'll overwrite cells as we discover paths.`,
     },
     primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
     auxiliaryState: {
@@ -96,6 +98,83 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
       customState: { "Total Nodes": n, "Total Edges": rawEdges.length },
     },
     variables: { n, edgeCount: rawEdges.length },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Build node-to-index mapping`,
+      why: "We map node labels to integer indices so we can address the dist matrix with integers rather than string lookups.",
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: {
+      customState: { "Node Map": rawNodes.map((n, i) => `${n}=${i}`).join(", ") },
+    },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Set diagonal entries: each node is 0 away from itself`,
+      why: "The distance from any node to itself is 0. This is the base case for self-paths and prevents Floyd-Warshall from treating the diagonal as ∞ during pivoting.",
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: { distanceTable: getDistanceTableRecord(), customState: { Diagonal: "dist[i][i] = 0" } },
+    variables: { n },
+  });
+
+  for (let i = 0; i < n; i++) {
+    dist[i][i] = 0;
+  }
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `All ${n} diagonal cells set to 0`,
+      why: `dist[0][0] through dist[${n - 1}][${n - 1}] are now 0. Every other cell stays at ∞ until a direct edge or a detour brings it down.`,
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: { distanceTable: getDistanceTableRecord() },
+    variables: { n },
+  });
+
+  for (const edge of rawEdges) {
+    const uIdx = nodeToIdx[edge.from];
+    const vIdx = nodeToIdx[edge.to];
+    if (uIdx !== undefined && vIdx !== undefined) {
+      dist[uIdx][vIdx] = edge.weight;
+    }
+  }
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 9,
+    explanation: {
+      what: `Seed matrix with direct edge weights`,
+      why: `We copy each edge (u, v, w) directly into dist[u][v] = w. These are the only non-∞ entries before the triple loop begins.`,
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: {
+      distanceTable: getDistanceTableRecord(),
+      customState: { "Edges Seeded": rawEdges.length },
+    },
+    variables: { edgeCount: rawEdges.length },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 10,
+    explanation: {
+      what: `Edge weights loaded into dist matrix`,
+      why: `All ${rawEdges.length} direct edges are now in the matrix. The triple loop will try routing every pair through every possible intermediate vertex.`,
+    },
+    primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+    auxiliaryState: { distanceTable: getDistanceTableRecord() },
+    variables: { edgeCount: rawEdges.length },
   });
 
   for (let k = 0; k < n; k++) {
@@ -117,6 +196,20 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
     });
 
     for (let i = 0; i < n; i++) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 13,
+        explanation: {
+          what: `Pivot ${pivotNode}: iterate source i = ${rawNodes[i] ?? i}`,
+          why: `For each source row i, we test whether routing through '${pivotNode}' improves paths from '${rawNodes[i] ?? i}' to any destination.`,
+        },
+        primarySnapshot: { kind: "grid", grid: buildGridSnapshot(undefined, [], k) },
+        auxiliaryState: {
+          distanceTable: getDistanceTableRecord(),
+          customState: { "Pivot (k)": pivotNode, "Source (i)": rawNodes[i] ?? i },
+        },
+        variables: { k, i },
+      });
       for (let j = 0; j < n; j++) {
         const uNode = rawNodes[i];
         const vNode = rawNodes[j];
@@ -124,25 +217,33 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
         const distKJ = dist[k][j];
         const distIJ = dist[i][j];
 
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 14,
+          explanation: {
+            what: `Test destination j = ${vNode}`,
+            why: `We check whether dist[${uNode}][${pivotNode}] + dist[${pivotNode}][${vNode}] improves dist[${uNode}][${vNode}] = ${distIJ === Infinity ? "∞" : distIJ}.`,
+          },
+          primarySnapshot: { kind: "grid", grid: buildGridSnapshot([i, j], [[i, k], [k, j]], k) },
+          auxiliaryState: {
+            distanceTable: getDistanceTableRecord(),
+            customState: { "Source (i)": uNode, "Target (j)": vNode, "Pivot (k)": pivotNode },
+          },
+          variables: { i, j, k },
+        });
+
         if (distIK !== Infinity && distKJ !== Infinity) {
           const newDist = distIK + distKJ;
           steps.push({
             stepIndex: stepIndex++,
             codeLine: 15,
             explanation: {
-              what: `Test path ${uNode} → ${pivotNode} → ${vNode}`,
-              why: `Evaluating detour: dist[${uNode}][${pivotNode}] (${distIK}) + dist[${pivotNode}][${vNode}] (${distKJ}) = ${newDist} vs current dist[${uNode}][${vNode}] (${distIJ === Infinity ? "∞" : distIJ}).`,
+              what: `Check if detour is finite: dist[${uNode}][${pivotNode}] and dist[${pivotNode}][${vNode}] are both finite`,
+              why: `Detour ${uNode} → ${pivotNode} → ${vNode} costs ${distIK} + ${distKJ} = ${newDist}. Only non-∞ paths qualify for comparison.`,
             },
             primarySnapshot: {
               kind: "grid",
-              grid: buildGridSnapshot(
-                [i, j],
-                [
-                  [i, k],
-                  [k, j],
-                ],
-                k,
-              ),
+              grid: buildGridSnapshot([i, j], [[i, k], [k, j]], k),
             },
             auxiliaryState: {
               distanceTable: getDistanceTableRecord(),
@@ -158,6 +259,18 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
           });
 
           if (newDist < distIJ) {
+            steps.push({
+              stepIndex: stepIndex++,
+              codeLine: 16,
+              explanation: {
+                what: `Improvement condition: ${newDist} < ${distIJ === Infinity ? "∞" : distIJ}`,
+                why: `Routing via '${pivotNode}' saves distance. We will update dist[${uNode}][${vNode}] in the next step.`,
+              },
+              primarySnapshot: { kind: "grid", grid: buildGridSnapshot([i, j], [[i, k], [k, j]], k) },
+              auxiliaryState: { distanceTable: getDistanceTableRecord() },
+              variables: { i, j, k, newDist, distIJ },
+            });
+
             dist[i][j] = newDist;
 
             steps.push({
@@ -165,27 +278,14 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
               codeLine: 17,
               explanation: {
                 what: `Improve dist['${uNode}']['${vNode}'] to ${newDist}`,
-                why: `Detouring through '${pivotNode}' gets us from '${uNode}' to '${vNode}' for ${distIK} + ${distKJ} = ${newDist}, beating the previous ${distIJ === Infinity ? "∞" : distIJ}. We write the cheaper value into the table.`,
+                why: `Detouring through '${pivotNode}' gets us from '${uNode}' to '${vNode}' for ${distIK} + ${distKJ} = ${newDist}, beating the previous ${distIJ === Infinity ? "∞" : distIJ}.`,
               },
-              primarySnapshot: {
-                kind: "grid",
-                grid: buildGridSnapshot(
-                  [i, j],
-                  [
-                    [i, k],
-                    [k, j],
-                  ],
-                  k,
-                ),
-              },
+              primarySnapshot: { kind: "grid", grid: buildGridSnapshot([i, j], [[i, k], [k, j]], k) },
               auxiliaryState: {
                 distanceTable: getDistanceTableRecord(),
                 customState: {
-                  "Source (i)": uNode,
-                  "Target (j)": vNode,
-                  "Pivot (k)": pivotNode,
-                  "New Dist": newDist,
-                  "Old Dist": distIJ === Infinity ? "∞" : distIJ,
+                  "Source (i)": uNode, "Target (j)": vNode, "Pivot (k)": pivotNode,
+                  "New Dist": newDist, "Old Dist": distIJ === Infinity ? "∞" : distIJ,
                 },
               },
               variables: { i, j, k, uNode, vNode, pivotNode, newDist },

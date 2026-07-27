@@ -50,6 +50,13 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   const startNodeExists = nodes.some((n) => n.id === startId);
 
   addStep(
+    1,
+    `Import deque from collections`,
+    `BFS needs a FIFO queue for level-order traversal. Python's deque gives O(1) append and popleft, unlike a plain list whose popleft is O(n).`,
+    { startNode: startId },
+  );
+
+  addStep(
     3,
     `Start BFS from node ${startId}`,
     `We'll explore the graph in rings of distance from '${startId}': first its direct neighbors, then their neighbors, and so on — a first-in-first-out queue keeps that order for us.`,

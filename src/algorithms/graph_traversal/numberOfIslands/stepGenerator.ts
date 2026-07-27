@@ -58,6 +58,18 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: "Import deque from collections",
+      why: "BFS flood fill needs a FIFO queue. Python's deque gives O(1) append and popleft — essential for efficient BFS without the O(n) cost of list.pop(0).",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
       what: `Scan the ${rows}x${cols} grid`,
@@ -66,6 +78,198 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: { visited: [], customState: { islandCount: 0 } },
     variables: { count: 0, rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Validate the grid is non-empty",
+      why: "An empty grid or a grid with no columns has no cells to scan, so we handle it early and return 0.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Record grid dimensions: maxRow=${rows}, maxCol=${cols}`,
+      why: "We cache the bounds once so every bounds check inside getNeighbors runs in O(1) without re-querying the grid.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0, maxRow: rows, maxCol: cols } },
+    variables: { maxRow: rows, maxCol: cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 8,
+    explanation: {
+      what: "Define the 4 cardinal directions",
+      why: "Islands are connected via orthogonal adjacency (up/down/left/right). Diagonal neighbors don't count as connected.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0, directions: "[(1,0),(-1,0),(0,1),(0,-1)]" } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 9,
+    explanation: {
+      what: "Initialize visited set",
+      why: "We use a hash set for O(1) membership checks to avoid re-processing cells that are already part of a previously flooded island.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { visitedSize: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 10,
+    explanation: {
+      what: "Initialize island counter to 0",
+      why: "The count variable tracks how many distinct BFS floods we've started, which equals the number of islands.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { count: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 12,
+    explanation: {
+      what: "Define getNeighbors(row, col) helper",
+      why: "This generator yields valid, unvisited land neighbors in the 4 cardinal directions. Encapsulating the bounds and water checks here keeps the BFS loop clean.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 13,
+    explanation: {
+      what: "getNeighbors: iterate over 4 directions",
+      why: "For each neighbor direction (dr, dc), compute the candidate cell and yield it if it passes the bounds and water checks.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 14,
+    explanation: {
+      what: "getNeighbors: compute newRow = row + rowDiff",
+      why: "Calculate the row index of the candidate neighbor cell.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 15,
+    explanation: {
+      what: "getNeighbors: compute newCol = col + colDiff",
+      why: "Calculate the column index of the candidate neighbor cell.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: "getNeighbors: check bounds",
+      why: "Discard neighbors that fall outside the grid. Out-of-bounds access would crash the grid lookup.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 17,
+    explanation: {
+      what: "getNeighbors: continue (skip out-of-bounds)",
+      why: "The candidate is outside the grid — skip it and move to the next direction.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: "getNeighbors: check water or already visited",
+      why: "Water cells ('0') are not part of any island and visited cells are already counted — skip both.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: "getNeighbors: continue (skip water/visited)",
+      why: "This cell is either water or already flooded into an island. Skip it.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: "getNeighbors: yield valid land neighbor",
+      why: "This cell is in-bounds, unvisited land — it's a valid BFS expansion candidate. The generator yields it for the caller to process.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
+    variables: { rows, cols },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 22,
+    explanation: {
+      what: `Begin row sweep (${rows} rows)`,
+      why: "We scan every row in order. The outer loop advances the sweep line downward through the grid.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: count } },
+    variables: { count, rows },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 23,
+    explanation: {
+      what: `Begin column sweep (${cols} cols)`,
+      why: "The inner loop checks each cell in the current row left to right, completing a full raster scan of the grid.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { visited: [], customState: { islandCount: count } },
+    variables: { count, cols },
   });
 
   for (let r = 0; r < rows; r++) {
@@ -82,8 +286,8 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
           stepIndex: stepIndex++,
           codeLine: 25,
           explanation: {
-            what: `Found island #${count} at (${r}, ${c})`,
-            why: `This land cell isn't part of any island we've flooded yet, so we count a new island and launch a BFS to claim every cell connected to it — that way none of them can be counted again.`,
+            what: `Count island #${count}`,
+            why: `Landing on unvisited land cell (${r},${c}). Incrementing count to ${count} and kicking off BFS to flood the whole island.`,
           },
           primarySnapshot: createGridSnapshot([r, c]),
           auxiliaryState: {
@@ -94,9 +298,56 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
           variables: { r, c, islandCount: count },
         });
 
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 26,
+          explanation: {
+            what: `Mark (${r},${c}) as visited`,
+            why: "We add the cell to visited immediately before BFS to prevent double-counting if another path reaches this cell during the flood.",
+          },
+          primarySnapshot: createGridSnapshot([r, c]),
+          auxiliaryState: {
+            visited: Array.from(visitedSet),
+            customState: { islandCount: count, markedCell: `(${r},${c})` },
+          },
+          variables: { r, c, visitedSize: visitedSet.size },
+        });
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 27,
+          explanation: {
+            what: `Initialize BFS queue with (${r},${c})`,
+            why: "Start the flood fill queue from the newly discovered island cell. The queue holds all cells to be explored and expanded.",
+          },
+          primarySnapshot: createGridSnapshot([r, c]),
+          auxiliaryState: {
+            queue: [`(${r},${c})`],
+            visited: Array.from(visitedSet),
+            customState: { islandCount: count },
+          },
+          variables: { r, c, queueSize: 1 },
+        });
+
         const queue: Array<[number, number]> = [[r, c]];
 
         while (queue.length > 0) {
+          steps.push({
+            stepIndex: stepIndex++,
+            codeLine: 28,
+            explanation: {
+              what: `BFS loop: ${queue.length} cell(s) in queue`,
+              why: "Continue the flood until we've explored every connected land cell belonging to this island.",
+            },
+            primarySnapshot: createGridSnapshot(undefined, queue),
+            auxiliaryState: {
+              queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
+              visited: Array.from(visitedSet),
+              customState: { islandCount: count },
+            },
+            variables: { queueLength: queue.length },
+          });
+
           const [cr, cc] = queue.shift()!;
 
           steps.push({
@@ -113,6 +364,22 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
               customState: { islandCount: count, activeCell: `(${cr},${cc})` },
             },
             variables: { cr, cc, queueLength: queue.length },
+          });
+
+          steps.push({
+            stepIndex: stepIndex++,
+            codeLine: 30,
+            explanation: {
+              what: `Iterate valid neighbors of (${cr},${cc})`,
+              why: "getNeighbors yields each in-bounds, unvisited land neighbor. For each one we mark it visited and enqueue it to spread the flood.",
+            },
+            primarySnapshot: createGridSnapshot([cr, cc], queue),
+            auxiliaryState: {
+              queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
+              visited: Array.from(visitedSet),
+              customState: { islandCount: count },
+            },
+            variables: { cr, cc },
           });
 
           const dirs = [
@@ -142,8 +409,24 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
                 stepIndex: stepIndex++,
                 codeLine: 31,
                 explanation: {
-                  what: `Add neighbor (${nr}, ${nc})`,
-                  why: `It's unvisited land touching the current cell, so it belongs to island #${count} — we mark it visited right away and queue it so the flood keeps spreading.`,
+                  what: `Mark (${nr},${nc}) visited`,
+                  why: `Immediately marking it prevents another cell from re-discovering (${nr},${nc}) and double-counting it.`,
+                },
+                primarySnapshot: createGridSnapshot([cr, cc], queue),
+                auxiliaryState: {
+                  queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
+                  visited: Array.from(visitedSet),
+                  customState: { islandCount: count, markedNeighbor: `(${nr},${nc})` },
+                },
+                variables: { nr, nc, visitedSize: visitedSet.size },
+              });
+
+              steps.push({
+                stepIndex: stepIndex++,
+                codeLine: 32,
+                explanation: {
+                  what: `Enqueue (${nr},${nc}) for BFS expansion`,
+                  why: `Adding (${nr},${nc}) to the queue so we'll explore its neighbors in a future iteration, continuing the flood fill outward.`,
                 },
                 primarySnapshot: createGridSnapshot([cr, cc], queue),
                 auxiliaryState: {

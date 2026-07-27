@@ -129,6 +129,30 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
 
   steps.push({
     stepIndex: stepIdx++,
+    codeLine: 2,
+    explanation: {
+      what: `Initialize visited set to track explored nodes.`,
+      why: "A hash set gives O(1) membership checks — crucial for detecting already-explored nodes and breaking cycles.",
+    },
+    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
+    auxiliaryState: { stack: [], visited: [], customState: { Order: "[]" } },
+    variables: { visitedSize: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize traversal list to record visit order.`,
+      why: "We collect nodes in the order DFS discovers them so we can return the full traversal sequence at the end.",
+    },
+    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
+    auxiliaryState: { stack: [], visited: [], customState: { Order: "[]" } },
+    variables: { traversalLength: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
     codeLine: 3,
     explanation: {
       what: `Pushed start node "${startNode}" to stack.`,
@@ -207,8 +231,31 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
         stepIndex: stepIdx++,
         codeLine: 9,
         explanation: {
-          what: `Marked node "${curr}" as visited and appended to traversal.`,
-          why: "Visited set updated; node recorded in DFS traversal order.",
+          what: `Mark "${curr}" as visited.`,
+          why: `Adding "${curr}" to the visited set ensures we never process it again, preventing infinite loops on cyclic graphs.`,
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: n.id === curr ? "active" : visited.has(n.id) ? "visited" : "default",
+          })),
+          edges: [...edges],
+        },
+        auxiliaryState: {
+          stack: [...stack],
+          visited: Array.from(visited),
+          customState: { Order: traversal.join(" -> ") || "[]" },
+        },
+        variables: { current: curr, visitedSize: visited.size },
+      });
+
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 10,
+        explanation: {
+          what: `Append "${curr}" to traversal output.`,
+          why: `Recording "${curr}" in the output sequence at position ${traversal.length}. DFS visits in the order nodes are first discovered.`,
         },
         primarySnapshot: {
           kind: "graph",

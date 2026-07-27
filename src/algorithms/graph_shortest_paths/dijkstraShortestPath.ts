@@ -99,6 +99,30 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: `Import heapq for priority queue operations`,
+      why: "Dijkstra's algorithm depends on a min-priority queue. Python's heapq module provides O(log n) heappush and heappop, giving us the efficient greedy extraction we need.",
+    },
+    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
+    auxiliaryState: { queue: [], visited: [], distanceTable: { ...dist } },
+    variables: { startNode },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize all distances to infinity`,
+      why: `We set dist[v] = ∞ for every node except the start. ∞ means "no path found yet." Only reachable nodes will get a finite value.`,
+    },
+    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
+    auxiliaryState: { queue: [], visited: [], distanceTable: { ...dist } },
+    variables: { nodeCount: rawNodes.length },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
       what: `Set dist['${startNode}'] to 0`,
@@ -111,6 +135,38 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
       distanceTable: { ...dist },
     },
     variables: { startNode, currentDist: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Initialize priority queue with (0, '${startNode}')`,
+      why: `The min-heap begins with the start node at distance 0. Heapq uses tuple comparison so the smallest-distance node is always at the top.`,
+    },
+    primarySnapshot: { kind: "graph", nodes: getGraphNodes(startNode), edges: getGraphEdges() },
+    auxiliaryState: {
+      queue: pq.map(([d, u]) => `${u}:${d}`),
+      visited: Array.from(visited),
+      distanceTable: { ...dist },
+    },
+    variables: { startNode, pqSize: pq.length },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Initialize visited set`,
+      why: "The visited set tracks finalized nodes. Once a node is popped from the priority queue and added to visited, its shortest distance is permanent.",
+    },
+    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
+    auxiliaryState: {
+      queue: pq.map(([d, u]) => `${u}:${d}`),
+      visited: [],
+      distanceTable: { ...dist },
+    },
+    variables: { visitedSize: 0 },
   });
 
   while (pq.length > 0) {
@@ -152,6 +208,21 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     if (visited.has(u)) {
       steps.push({
         stepIndex: stepIndex++,
+        codeLine: 11,
+        explanation: {
+          what: `Check if '${u}' is already in visited set`,
+          why: `With lazy deletion, the heap may hold stale entries. Before processing '${u}', we check if it was already finalized by a shorter path.`,
+        },
+        primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
+        auxiliaryState: {
+          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
+          visited: Array.from(visited),
+          distanceTable: { ...dist },
+        },
+        variables: { u, d, alreadyVisited: true },
+      });
+      steps.push({
+        stepIndex: stepIndex++,
         codeLine: 12,
         explanation: {
           what: `Skip stale entry for '${u}' (dist ${d})`,
@@ -187,6 +258,21 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
     });
 
     const neighbors = rawEdges.filter((e) => e.from === u);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 15,
+      explanation: {
+        what: `Explore neighbors of '${u}' (${neighbors.length} outgoing edges)`,
+        why: `We iterate over all edges leaving '${u}' to see if routing through it improves any neighbor's recorded distance.`,
+      },
+      primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
+      auxiliaryState: {
+        queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
+        visited: Array.from(visited),
+        distanceTable: { ...dist },
+      },
+      variables: { u, neighborCount: neighbors.length },
+    });
     for (const edge of neighbors) {
       const v = edge.to;
       const oldDist = dist[v];
@@ -194,10 +280,30 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
 
       steps.push({
         stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `Compute new_dist = dist['${u}'] + weight(${u}→${v}) = ${dist[u]} + ${edge.weight} = ${newDist}`,
+          why: `We calculate the candidate distance to '${v}' via '${u}'. If this beats dist['${v}'] = ${oldDist === Infinity ? "∞" : oldDist}, we will relax the edge.`,
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: getGraphNodes(v),
+          edges: getGraphEdges({ from: u, to: v }),
+        },
+        auxiliaryState: {
+          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
+          visited: Array.from(visited),
+          distanceTable: { ...dist },
+        },
+        variables: { u, v, weight: edge.weight, newDist, oldDist },
+      });
+
+      steps.push({
+        stepIndex: stepIndex++,
         codeLine: 17,
         explanation: {
-          what: `Check edge ${u} → ${v} (weight ${edge.weight})`,
-          why: `Comparing path via '${u}' (dist[${u}] + ${edge.weight} = ${newDist}) against recorded dist[${v}] (${oldDist === Infinity ? "∞" : oldDist}).`,
+          what: `Check edge ${u} → ${v}: is ${newDist} < ${oldDist === Infinity ? "∞" : oldDist}?`,
+          why: `Comparing path via '${u}' (${newDist}) against recorded dist['${v}'] (${oldDist === Infinity ? "∞" : oldDist}).`,
         },
         primarySnapshot: {
           kind: "graph",
@@ -218,10 +324,30 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
 
         steps.push({
           stepIndex: stepIndex++,
+          codeLine: 18,
+          explanation: {
+            what: `Relax: dist['${v}'] updated to ${newDist}`,
+            why: `Routing through '${u}' beats previous distance ${oldDist === Infinity ? "∞" : oldDist}. We write the new distance and push (${newDist}, '${v}') to the priority queue.`,
+          },
+          primarySnapshot: {
+            kind: "graph",
+            nodes: getGraphNodes(v),
+            edges: getGraphEdges({ from: u, to: v }),
+          },
+          auxiliaryState: {
+            queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
+            visited: Array.from(visited),
+            distanceTable: { ...dist },
+          },
+          variables: { u, v, weight: edge.weight, newDist },
+        });
+
+        steps.push({
+          stepIndex: stepIndex++,
           codeLine: 19,
           explanation: {
-            what: `Relax edge ${u} → ${v}: update dist['${v}'] = ${newDist}`,
-            why: `Routing through '${u}' beats previous distance ${oldDist === Infinity ? "∞" : oldDist}. We update dist['${v}'] and push (${newDist}, '${v}') to the priority queue.`,
+            what: `Push (${newDist}, '${v}') onto priority queue`,
+            why: `We add '${v}' with updated distance ${newDist} to the heap so it will be processed before any node with a greater distance.`,
           },
           primarySnapshot: {
             kind: "graph",
