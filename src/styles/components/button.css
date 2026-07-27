@@ -1,0 +1,144 @@
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  /* Interactive controls take the darkest fill and rely on their border to read
+     (DESIGN.md R7.1); hover/active step LIGHTER, which is the only direction
+     available once the resting state is already the floor. */
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.ui-btn:hover:not(:disabled):not(.ui-btn--selected):not(.ui-btn--primary) {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.ui-btn:active:not(:disabled):not(.ui-btn--selected):not(.ui-btn--primary) {
+  background: var(--bg-elevated);
+}
+
+.ui-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Primary is the emphasised action, not the brightest surface: a black fill with
+   a bright edge and ink reads as "the button to press" without turning into a
+   light slab on a dark page. */
+.ui-btn--primary {
+  background: var(--bg-inset);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.ui-btn--primary:hover:not(:disabled) {
+  background: var(--bg-surface);
+  border-color: var(--accent-hover);
+  color: var(--text-primary);
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ui-btn--danger {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.ui-btn--danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Selected/active: the one selection treatment used everywhere. */
+.ui-btn--selected {
+  background: var(--accent-soft);
+  border-color: var(--border-accent);
+  color: var(--accent);
+}
+
+.ui-btn--selected:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ui-btn--sm {
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  gap: var(--space-1);
+}
+
+.ui-btn--lg {
+  height: var(--control-h-lg);
+  padding: 0 var(--space-4);
+  font-size: var(--text-md);
+}
+
+.ui-btn--full {
+  width: 100%;
+}
+
+.ui-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Icon sizes: 14 / 16 / 18 for sm / md / lg controls. */
+.ui-btn__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ui-btn--sm .ui-btn__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ui-btn--lg .ui-btn__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Square / auto-width icon-only variant of .ui-btn. */
+.ui-icon-btn {
+  min-width: var(--control-h-md);
+  width: auto;
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+}
+
+.ui-icon-btn.ui-btn--sm {
+  min-width: var(--control-h-sm);
+  padding: 0 var(--space-1);
+}
+
+.ui-icon-btn.ui-btn--lg {
+  min-width: var(--control-h-lg);
+  padding: 0 var(--space-2);
+}

@@ -1,0 +1,16 @@
+/* Blank-row slot controls (CodePuzzle, TASKS.md 9.3 alignment fix). A plain
+   code row's first glyph sits exactly one CODE_GROUP flex gap after the
+   indent span, with no extra inset of its own. The Input/Button that stands
+   in for a blanked line, though, carries its own control-default left
+   padding on top of that same gap (12px for an Input's field, 8px for a
+   sm Button) — so the text a user is typing or has already placed starts
+   further right than the real code column it needs to align with. Zeroing
+   the slot's own left inset here means the flex gap alone decides that
+   distance, matching the plain code row exactly, at any indent depth. */
+.code-slot-input .ui-input__field {
+  padding-left: 0;
+}
+
+.ui-btn.code-slot-btn {
+  padding-left: 0;
+}
