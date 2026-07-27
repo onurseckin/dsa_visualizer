@@ -115,7 +115,7 @@ export const generateStridedIndexArithmeticSteps = (
         i === d ? { ...el, state: "compare", pointers: ["OOB"] } : el,
       );
       addStep(
-        10,
+        9,
         `Out of bounds at dimension ${d}`,
         `Index ${idx} is out of bounds for dimension size ${dimBound}. Returning -1.`,
         { d, idx, shape_d: dimBound, offset: -1 },
@@ -132,7 +132,7 @@ export const generateStridedIndexArithmeticSteps = (
     );
 
     addStep(
-      11,
+      10,
       `Accumulate dimension ${d} contribution: +${term}`,
       `Added ${idx} * ${stride} = ${term} to offset. Current total = ${totalOffset}.`,
       { d, idx, stride_d: stride, term, offset: totalOffset },
@@ -147,7 +147,7 @@ export const generateStridedIndexArithmeticSteps = (
   }));
 
   addStep(
-    12,
+    11,
     `Final 1D offset computed: ${totalOffset}`,
     `Successfully mapped multi-index [${indices.join(", ")}] to linear memory location ${totalOffset}.`,
     { offset: totalOffset, complete: true },

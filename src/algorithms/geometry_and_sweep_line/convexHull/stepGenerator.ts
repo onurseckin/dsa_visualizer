@@ -54,11 +54,6 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
     label: p.label || `P${idx}`,
   }));
 
-  const sorted = [...points].sort((a, b) => (a.x !== b.x ? a.x - b.x : a.y - b.y));
-
-  const cross = (o: Point2D, a: Point2D, b: Point2D): number =>
-    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-
   const createGraphSnapshot = (
     activePointId?: string,
     hullPoints: Required<Point2D>[] = [],
@@ -93,6 +88,45 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
 
     return { kind: "graph", nodes, edges };
   };
+
+  if (points.length <= 3) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 3,
+      explanation: {
+        what: `Check if point count (${points.length}) <= 3`,
+        why: "A set of 3 or fewer points is trivially convex; all points lie on the hull.",
+      },
+      primarySnapshot: createGraphSnapshot(undefined, points, true),
+      auxiliaryState: {
+        stack: points.map((p) => p.id),
+        visited: points.map((p) => p.id),
+        customState: { phase: "Base Case", count: points.length },
+      },
+      variables: { totalPoints: points.length, hullSize: points.length },
+    });
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 4,
+      explanation: {
+        what: `Return all ${points.length} points as the hull`,
+        why: "With 3 or fewer points, no interior points need to be eliminated.",
+      },
+      primarySnapshot: createGraphSnapshot(undefined, points, true),
+      auxiliaryState: {
+        stack: points.map((p) => p.id),
+        visited: points.map((p) => p.id),
+        customState: { phase: "Complete", count: points.length },
+      },
+      variables: { totalPoints: points.length, hullVerticesCount: points.length },
+    });
+    return steps;
+  }
+
+  const sorted = [...points].sort((a, b) => (a.x !== b.x ? a.x - b.x : a.y - b.y));
+
+  const cross = (o: Point2D, a: Point2D, b: Point2D): number =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 
   steps.push({
     stepIndex: stepIndex++,

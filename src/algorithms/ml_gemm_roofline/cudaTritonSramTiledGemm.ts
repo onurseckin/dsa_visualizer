@@ -76,7 +76,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
   const getMatrixSnapshot = (
     activeR?: number,
     activeC?: number,
-    activeK?: number,
+    _activeK?: number,
     titleExt?: string,
   ): MatrixVisualSnapshot => {
     const cells: MatrixCellItem[] = [];

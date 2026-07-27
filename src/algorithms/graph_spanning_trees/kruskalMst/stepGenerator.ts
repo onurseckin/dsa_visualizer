@@ -72,7 +72,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   if (nodes.length === 0) {
     addStep(
-      36,
+      39,
       "Kruskal's MST complete",
       "With no nodes there is nothing to connect, so the spanning tree is empty.",
       { mstEdgeCount: 0 },
@@ -210,7 +210,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const totalMstWeight = mstEdges.reduce((sum, e) => sum + (e.weight ?? 1), 0);
 
   addStep(
-    36,
+    39,
     `Kruskal's MST complete: total weight ${totalMstWeight}`,
     `We kept ${mstEdges.length} edges that connect every node for a total weight of ${totalMstWeight}, and no cheaper spanning tree exists. Fittingly, the up-front sort was the most expensive part — O(E log E) overall.`,
     {

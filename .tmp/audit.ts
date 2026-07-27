@@ -1,57 +1,111 @@
+import { ALGORITHM_REGISTRY } from "../src/algorithms/registry";
 import fs from "fs";
 import path from "path";
 
-const dirs = [
-  "src/algorithms/ml_vector_search",
-  "src/algorithms/ml_tokenization",
-  "src/algorithms/ml_attention_geometry"
-];
+const targetCategories = ["ml_tensor_algebra", "ml_gemm_roofline"];
 
-async function main() {
-  for (const dir of dirs) {
-    const files = fs.readdirSync(dir).filter(f => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
-    console.log(`\n================ ${dir} (${files.length} algorithms) ================`);
-    for (const f of files) {
-      const p = path.resolve(dir, f);
-      const mod = await import(p);
-      const algoKey = Object.keys(mod).find(k => mod[k] && mod[k].id && mod[k].generateSteps);
-      if (!algoKey) {
-        console.log(`- ${f}: COULD NOT LOAD ALGO DEFINITION`);
-        continue;
+// Also check files in src/algorithms/ml_tensor_algebra/ and src/algorithms/ml_gemm_roofline/
+const tensorDir = path.resolve("src/algorithms/ml_tensor_algebra");
+const gemmDir = path.resolve("src/algorithms/ml_gemm_roofline");
+
+const tensorFiles = fs.readdirSync(tensorDir).filter((f) => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
+const gemmFiles = fs.readdirSync(gemmDir).filter((f) => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
+
+console.log(`Tensor files (${tensorFiles.length}):`, tensorFiles);
+console.log(`GEMM files (${gemmFiles.length}):`, gemmFiles);
+
+interface Finding {
+  id: string;
+  category: string;
+  title: string;
+  pythonLineCount: number;
+  outOfBounds: Array<{ stepIndex: number; codeLine: number; inputLabel: string }>;
+  linesUsed: Set<number>;
+  stepsCountDefault: number;
+  exampleStepCounts: number[];
+  issues: string[];
+}
+
+const findings: Finding[] = [];
+
+for (const [id, algo] of Object.entries(ALGORITHM_REGISTRY)) {
+  if (!targetCategories.includes(algo.category)) continue;
+
+  const pythonCode = algo.code;
+  const lines = pythonCode.split("\n");
+  const N = lines.length;
+
+  const finding: Finding = {
+    id,
+    category: algo.category,
+    title: algo.title,
+    pythonLineCount: N,
+    outOfBounds: [],
+    linesUsed: new Set<number>(),
+    stepsCountDefault: 0,
+    exampleStepCounts: [],
+    issues: [],
+  };
+
+  const inputsToTest: Array<{ label: string; input: any }> = [
+    { label: "defaultInput", input: algo.defaultInput },
+    ...(algo.examples || []).map((ex, idx) => ({
+      label: `example[${idx}]: ${ex.title}`,
+      input: ex.input,
+    })),
+  ];
+
+  for (let i = 0; i < inputsToTest.length; i++) {
+    const { label, input } = inputsToTest[i];
+    try {
+      const steps = algo.generateSteps(input);
+      if (i === 0) {
+        finding.stepsCountDefault = steps.length;
+      } else {
+        finding.exampleStepCounts.push(steps.length);
       }
-      const algo = mod[algoKey];
-      const defaultInput = algo.defaultInput;
-      let stepCount = 0;
-      try {
-        const steps = algo.generateSteps(defaultInput);
-        stepCount = steps.length;
-      } catch (e: any) {
-        console.log(`Error running generateSteps for ${f}: ${e.message}`);
-        stepCount = -1;
-      }
-      const codeLines = algo.code.trim().split("\n").length;
-      const lineExps = algo.trivia?.lineExplanations || {};
-      const lineExpCount = Object.keys(lineExps).length;
-      
-      // Check 1-to-1 line explanations covering all lines from 1 to codeLines
-      let lineExpsComplete = true;
-      for (let i = 1; i <= codeLines; i++) {
-        if (!lineExps[i]) {
-          lineExpsComplete = false;
-          break;
+      for (const s of steps) {
+        finding.linesUsed.add(s.codeLine);
+        if (s.codeLine < 1 || s.codeLine > N) {
+          finding.outOfBounds.push({
+            stepIndex: s.stepIndex,
+            codeLine: s.codeLine,
+            inputLabel: label,
+          });
         }
       }
-      
-      const has20Steps = stepCount >= 20;
-      const hasLatexDesc = algo.description && algo.description.includes("$");
-      const hasLatexTopic = algo.topicGuide?.overview && algo.topicGuide.overview.includes("$");
+    } catch (err) {
+      finding.issues.push(`Error generating steps for ${label}: ${err}`);
+    }
+  }
 
-      console.log(`- ${f} [${algo.id}]:`);
-      console.log(`    steps=${stepCount} (${has20Steps ? ">=20 OK" : "NEED STEPS"})`);
-      console.log(`    codeLines=${codeLines}, lineExps=${lineExpCount} (${lineExpsComplete ? "Complete OK" : "NEED LINE EXPS"})`);
-      console.log(`    LaTeX in desc/topic: desc=${hasLatexDesc}, topic=${hasLatexTopic}`);
+  if (finding.linesUsed.size <= 1 && finding.stepsCountDefault > 1) {
+    finding.issues.push(`Stagnant codeLine: only ${finding.linesUsed.size} unique codeLine used across ${finding.stepsCountDefault} steps.`);
+  }
+
+  if (finding.outOfBounds.length > 0) {
+    finding.issues.push(`Out of bounds codeLine: ${finding.outOfBounds.length} occurrences (N=${N}).`);
+  }
+
+  findings.push(finding);
+}
+
+console.log(`\n=== DETAILED AUDIT FOR ${findings.length} ALGORITHMS ===\n`);
+
+let failCount = 0;
+for (const f of findings) {
+  const status = f.issues.length > 0 ? "❌ FAIL" : "✅ PASS";
+  console.log(`[${status}] ${f.id} (${f.category}) - Python lines: ${f.pythonLineCount}`);
+  console.log(`  Lines executed: [${Array.from(f.linesUsed).sort((a, b) => a - b).join(", ")}] (${f.linesUsed.size}/${f.pythonLineCount})`);
+  if (f.issues.length > 0) {
+    failCount++;
+    for (const issue of f.issues) {
+      console.log(`  -> ${issue}`);
+    }
+    if (f.outOfBounds.length > 0) {
+      console.log(`  -> Details:`, f.outOfBounds);
     }
   }
 }
 
-main();
+console.log(`\nSummary: ${findings.length - failCount}/${findings.length} PASSED, ${failCount} FAILED.`);

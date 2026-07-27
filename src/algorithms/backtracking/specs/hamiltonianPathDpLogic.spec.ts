@@ -27,4 +27,21 @@ describe("hamiltonianPathDp logic spec", () => {
       expect(hamiltonianPathDp.trivia?.lineExplanations[line]).toBeDefined();
     }
   });
+
+  it("should have codeLine in valid range (1..N) for defaultInput and all examples", () => {
+    const totalLines = hamiltonianPathDp.code.split("\n").length;
+    const inputsToTest = [
+      hamiltonianPathDp.defaultInput,
+      ...(hamiltonianPathDp.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const input of inputsToTest) {
+      const steps = generateHamiltonianPathDpSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+    }
+  });
 });

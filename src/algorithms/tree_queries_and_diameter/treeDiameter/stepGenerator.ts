@@ -94,7 +94,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     }
 
     addStep(
-      4,
+      3,
       `DFS 1: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
       `Node ${nodeMap.get(u)?.val ?? u} sits ${dist} edges from our starting point. The farthest we've seen so far is ${maxDistA} edges, at node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} — if a deeper branch turns up, the record moves with it.`,
       u,
@@ -112,6 +112,16 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     const neighbors = adj.get(u) || [];
     for (const v of neighbors) {
       if (v !== parent) {
+        addStep(
+          5,
+          `DFS 1: step to neighbor ${nodeMap.get(v)?.val ?? v}`,
+          `Exploring unexplored neighbor ${nodeMap.get(v)?.val ?? v} from node ${nodeMap.get(u)?.val ?? u}.`,
+          v,
+          farthestNodeA,
+          undefined,
+          undefined,
+          { current: nodeMap.get(v)?.val ?? v, parent: nodeMap.get(u)?.val ?? u },
+        );
         runDfs1(v, u, dist + 1);
       }
     }
@@ -157,7 +167,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     }
 
     addStep(
-      4,
+      3,
       `DFS 2: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
       `From endpoint A, node ${nodeMap.get(u)?.val ?? u} is ${dist} edges away. Our longest path so far runs ${diameter} edges, ending at node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}.`,
       u,
@@ -175,6 +185,16 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     const neighbors = adj.get(u) || [];
     for (const v of neighbors) {
       if (v !== parent) {
+        addStep(
+          5,
+          `DFS 2: step to neighbor ${nodeMap.get(v)?.val ?? v}`,
+          `Exploring neighbor ${nodeMap.get(v)?.val ?? v} from node ${nodeMap.get(u)?.val ?? u}.`,
+          v,
+          farthestNodeA,
+          farthestNodeB,
+          undefined,
+          { current: nodeMap.get(v)?.val ?? v, parent: nodeMap.get(u)?.val ?? u },
+        );
         runDfs2(v, u, dist + 1, newPath);
       }
     }

@@ -28,4 +28,21 @@ describe("generatingSubsets logic spec", () => {
       expect(generatingSubsets.trivia?.lineExplanations[line]).toBeDefined();
     }
   });
+
+  it("should have codeLine in valid range (1..N) for defaultInput and all examples", () => {
+    const totalLines = generatingSubsets.code.split("\n").length;
+    const inputsToTest = [
+      generatingSubsets.defaultInput,
+      ...(generatingSubsets.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const input of inputsToTest) {
+      const steps = generateGeneratingSubsetsSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+    }
+  });
 });

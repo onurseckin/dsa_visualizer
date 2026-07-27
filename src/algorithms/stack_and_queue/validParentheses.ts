@@ -125,6 +125,13 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       const stackTop = stack.length > 0 ? stack[stack.length - 1] : undefined;
 
       addStep(
+        7,
+        `'${char}' is a closing bracket — enter else branch`,
+        `'${char}' is not an opening bracket, so we take the else path to match it against the stack. Expected opener: '${expectedOpen ?? ""}'.`,
+        { i, char, isClosingBracket: true, expectedOpen: expectedOpen ?? "" },
+      );
+
+      addStep(
         8,
         `Match '${char}' against the stack top`,
         `Character '${char}' requires matching opener '${expectedOpen ?? ""}'. Current stack top is '${stackTop ?? "EMPTY"}'.`,

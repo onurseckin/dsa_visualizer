@@ -395,7 +395,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
   }
 
   addStep(
-    68,
+    67,
     "Reshape Y_2d Matrix to 4D Output Tensor & Complete",
     `Reshaped 2D matrix Y_2d (${cOut}x${numPatches}) back into 4D output tensor of shape (${nBatch}, ${cOut}, ${hOut}, ${wOut}). Lowered GEMM execution clean.`,
     { completed: true, nBatch, cOut, hOut, wOut },

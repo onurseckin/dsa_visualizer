@@ -70,4 +70,20 @@ describe("quickSort algorithm spec", () => {
       expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
     }
   });
+
+  it("ensures codeLine is 1-indexed and within total lines N for all inputs", () => {
+    const N = quickSort.code.split("\n").length;
+    const inputs = [
+      quickSort.defaultInput,
+      ...(quickSort.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const inp of inputs) {
+      const steps = quickSort.generateSteps(inp);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(N);
+      }
+    }
+  });
 });

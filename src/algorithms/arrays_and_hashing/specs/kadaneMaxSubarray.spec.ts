@@ -50,6 +50,22 @@ describe("kadaneMaxSubarray algorithm spec", () => {
     expect(lastStep.variables.end).toBe(3);
   });
 
+  it("ensures codeLine is 1-indexed (1..15) for defaultInput and all examples", () => {
+    const totalLines = kadaneMaxSubarray.code.split("\n").length;
+    expect(totalLines).toBe(15);
+    const inputs = [kadaneMaxSubarray.defaultInput, ...kadaneMaxSubarray.examples.map((e) => e.input)];
+    for (const input of inputs) {
+      const steps = generateKadaneMaxSubarraySteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+      const codeLines = new Set(steps.map((s) => s.codeLine));
+      expect(codeLines.size).toBeGreaterThan(1);
+    }
+  });
+
   it("maps every code line in lineExplanations", () => {
     const meta = kadaneMaxSubarray.trivia;
     const lines = kadaneMaxSubarray.code.split("\n");

@@ -56,6 +56,22 @@ describe("twoSum algorithm spec", () => {
     const emptyStep = steps.find((s) => s.explanation.what.includes("Return empty array"));
     expect(emptyStep).toBeDefined();
   });
+
+  it("ensures codeLine is 1-indexed (1..8) for defaultInput and all examples", () => {
+    const totalLines = twoSum.code.split("\n").length;
+    expect(totalLines).toBe(8);
+    const inputs = [twoSum.defaultInput, ...twoSum.examples.map((e) => e.input)];
+    for (const input of inputs) {
+      const steps = generateTwoSumSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+      const codeLines = new Set(steps.map((s) => s.codeLine));
+      expect(codeLines.size).toBeGreaterThan(1);
+    }
+  });
 });
 
 describe("twoSum trivia metadata", () => {

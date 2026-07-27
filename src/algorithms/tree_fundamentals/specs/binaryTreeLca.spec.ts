@@ -26,6 +26,23 @@ describe("binaryTreeLca algorithm spec", () => {
     }
   });
 
+  it("should have valid 1-indexed codeLine within 1..N for defaultInput and all examples", () => {
+    const numLines = binaryTreeLca.code.split("\n").length;
+    const defaultSteps = generateBinaryTreeLcaSteps(DEFAULT_BINARY_TREE_LCA_INPUT);
+    for (const step of defaultSteps) {
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(numLines);
+    }
+
+    for (const example of binaryTreeLca.examples!) {
+      const steps = generateBinaryTreeLcaSteps(example.input as typeof DEFAULT_BINARY_TREE_LCA_INPUT);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(numLines);
+      }
+    }
+  });
+
   it("should have lineExplanations for all lines in code", () => {
     const lines = binaryTreeLca.code.split("\n");
     const trivia = binaryTreeLca.trivia;

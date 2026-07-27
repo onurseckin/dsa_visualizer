@@ -96,4 +96,22 @@ describe("convexHull algorithm logic spec", () => {
       expect(steps.length).toBeGreaterThan(0);
     }
   });
+
+  it("ensures codeLine is within 1..N (N=25) for defaultInput and all examples", () => {
+    const codeLines = PYTHON_CONVEX_HULL_CODE.trim().split("\n").length;
+    expect(codeLines).toBe(25);
+
+    const inputsToTest = [
+      DEFAULT_CONVEX_HULL_INPUT,
+      ...convexHull.examples!.map((ex) => ex.input as ConvexHullInput),
+    ];
+
+    for (const input of inputsToTest) {
+      const steps = generateConvexHullSteps(input);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(codeLines);
+      }
+    }
+  });
 });

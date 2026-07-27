@@ -61,15 +61,22 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
 
   addStep(
     4,
-    "Create the result list and deque",
-    "We start with an empty result list and an empty deque. The deque will hold indices whose values stay in increasing order, so each window's minimum is always waiting at the front.",
-    { k, dequeSize: 0, resultSize: 0 },
+    "Initialize result list",
+    "We start with an empty result list to collect the minimum element for each window.",
+    { resultSize: 0 },
+  );
+
+  addStep(
+    5,
+    "Initialize monotonic deque",
+    "We create an empty deque. The deque will hold indices whose values stay in increasing order, so each window's minimum is always waiting at the front.",
+    { k, dequeSize: 0 },
   );
 
   for (let i = 0; i < n; i++) {
     const currentVal = nums[i];
-
     const windowStart = Math.max(0, i - k + 1);
+
     for (let idx = 0; idx < n; idx++) {
       if (idx >= windowStart && idx <= i) {
         elements[idx].state = idx === i ? "active" : "queued";
@@ -90,37 +97,35 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
 
     addStep(
       7,
-      `Look at nums[${i}] = ${currentVal}`,
-      `We slide the right edge to index ${i}, so the window in play is [${windowStart}..${i}] holding [${nums.slice(windowStart, i + 1).join(", ")}]. Now we update the deque to reflect it.`,
+      `Loop index i = ${i} (nums[${i}] = ${currentVal})`,
+      `We slide the right edge to index ${i}, so the window in play is [${windowStart}..${i}] holding [${nums.slice(windowStart, i + 1).join(", ")}].`,
       { i, "nums[i]": currentVal, windowStart, k },
     );
 
-    let removedOut = false;
+    addStep(
+      8,
+      `Check window expiry (dq[0] <= ${i - k})`,
+      deque.length > 0
+        ? `Front index dq[0] = ${deque[0]}. Expiry threshold is i - k = ${i - k}. ${deque[0] <= i - k ? `Index ${deque[0]} is out of window bounds and must be popped.` : `Index ${deque[0]} is within window bounds.`}`
+        : "Deque is empty, no front element to expire.",
+      { i, dequeFront: deque.length > 0 ? deque[0] : "None", expiryThreshold: i - k },
+    );
+
     while (deque.length > 0 && deque[0] <= i - k) {
       const removedIdx = deque.shift();
       if (removedIdx !== undefined) {
-        removedOut = true;
         addStep(
           9,
-          `Evict index ${removedIdx} — it left the window`,
-          `Index ${removedIdx} now sits outside the window's left edge, so its value can no longer be a candidate. We pop it off the front of the deque.`,
+          `Evict index ${removedIdx} (dq.popleft())`,
+          `Index ${removedIdx} now sits outside the window's left edge (<= ${i - k}), so its value can no longer be a candidate. We pop it off the front of the deque.`,
           { i, removedIdx },
         );
       }
     }
 
-    if (!removedOut && deque.length > 0) {
-      addStep(
-        8,
-        "Confirm the deque front still fits",
-        `The front index ${deque[0]} is still inside the window (dq[0] > i - k), so its value remains a legitimate minimum candidate. Nothing to evict from the front.`,
-        { i, dequeFront: deque[0] },
-      );
-    }
-
     addStep(
       11,
-      `Check if deque back element dominates nums[${i}] = ${currentVal}`,
+      `Check domination of dq[-1] by nums[${i}] = ${currentVal}`,
       deque.length > 0
         ? `Comparing nums[dq[-1]] (nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]}) >= nums[${i}] (${currentVal}).`
         : `Deque is empty, no domination check needed.`,
@@ -132,7 +137,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       if (poppedIdx !== undefined) {
         addStep(
           12,
-          `Pop index ${poppedIdx} from the back`,
+          `Pop index ${poppedIdx} (dq.pop())`,
           `nums[${poppedIdx}] = ${nums[poppedIdx]} is >= new value ${currentVal}, and ${currentVal} will outlive it in future windows. Discarding index ${poppedIdx}.`,
           { i, poppedIdx, "nums[popped]": nums[poppedIdx] },
         );
@@ -143,14 +148,14 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
 
     addStep(
       14,
-      `Push index ${i} onto the deque`,
-      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}] — still strictly increasing.`,
+      `Push index ${i} onto deque (dq.append(${i}))`,
+      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}].`,
       { i, dequeState: deque.join(", ") },
     );
 
     addStep(
       16,
-      `Check if window is full (i >= k - 1)`,
+      `Check if window is full (i >= k - 1: ${i} >= ${k - 1})`,
       i >= k - 1
         ? `Window size of ${k} is reached (i = ${i} >= ${k - 1}). Front index dq[0] holds the window minimum.`
         : `Window is still forming (i = ${i} < ${k - 1}).`,
@@ -166,8 +171,8 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
 
       addStep(
         17,
-        `Record ${minVal} as this window's minimum`,
-        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to the result.`,
+        `Record ${minVal} in result (result.append(nums[dq[0]]))`,
+        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to result.`,
         { windowStart, windowEnd: i, minVal, result: result.join(", ") },
       );
     }
@@ -179,15 +184,6 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
     `Every window of size ${k} has been answered: [${result.join(", ")}]. Each index entered and left the deque at most once, maintaining linear $O(N)$ runtime.`,
     { result: result.join(", ") },
   );
-
-  while (steps.length < 20) {
-    addStep(
-      19,
-      `Verification step ${steps.length + 1}`,
-      `Verifying monotonic deque invariants and window minimum completeness.`,
-      { result: result.join(", ") },
-    );
-  }
 
   return steps;
 };
