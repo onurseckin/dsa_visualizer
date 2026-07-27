@@ -163,13 +163,13 @@ export const pagedAttentionBlockTableAllocator: AlgorithmDefinition<pagedAttenti
     id: "paged-attention-block-table-allocator",
     title: "PagedAttention Block Table Allocator",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "arrays_and_hashing"],
+    categories: ["ml_llm_serving", "heap_and_priority_queue"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "Allocates fixed-size physical GPU memory blocks for dynamic token growth during LLM decoding.",
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), pagedattention block table allocator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["1 <= token_chunks.length <= 100", "1 <= token_chunks[i] <= 100"],
     examples: [
       {

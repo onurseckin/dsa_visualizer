@@ -116,6 +116,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   id: "topological-sort",
   title: "Topological Sort (Kahn's Algorithm)",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
     "Kahn's algorithm produces a linear ordering of the vertices in a Directed Acyclic Graph (DAG) such that for every edge u -> v, vertex u appears before vertex v. It works by tracking each node's in-degree and repeatedly dequeuing nodes with no remaining prerequisites. This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning.",

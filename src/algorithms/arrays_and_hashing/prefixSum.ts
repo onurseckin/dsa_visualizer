@@ -5,17 +5,12 @@ export interface PrefixSumInput {
   nums: number[];
 }
 
-export const PREFIX_SUM_CODE = `
-def prefix_sum(input_array):
-    """
-    Implementation of prefix_sum.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PREFIX_SUM_CODE = `def prefix_sum(nums: list[int]) -> list[int]:
+    n = len(nums)
+    prefix = [0] * (n + 1)
+    for i in range(n):
+        prefix[i + 1] = prefix[i] + nums[i]
+    return prefix`;
 
 export const DEFAULT_PREFIX_SUM_INPUT: PrefixSumInput = {
   nums: [2, 4, 1, 3, 5],

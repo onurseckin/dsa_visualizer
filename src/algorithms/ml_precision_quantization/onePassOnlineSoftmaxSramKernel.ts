@@ -95,12 +95,13 @@ export const onePassOnlineSoftmaxSramKernel: AlgorithmDefinition<onePassOnlineSo
     id: "one-pass-online-softmax-sram-kernel",
     title: "One Pass Online Softmax Sram Kernel",
     category: "ml_precision_quantization",
-    categories: ["ml_precision_quantization", "arrays_and_hashing"],
+    categories: ["ml_precision_quantization", "bit_manipulation"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 3,
     mlInfraCategory: "ml_precision_quantization",
-    description: "Implementation of One Pass Online Softmax Sram Kernel.",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), one pass online softmax sram kernel provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["Valid inputs only"],
     examples: [
       {

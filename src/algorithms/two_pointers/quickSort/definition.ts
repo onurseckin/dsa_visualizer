@@ -26,6 +26,7 @@ export const quickSort: AlgorithmDefinition<number[]> = {
   id: "quick-sort",
   title: "Quick Sort",
   category: "two_pointers",
+  categories: ["two_pointers"],
   difficulty: "Medium",
   description:
     "Quick Sort is an efficient divide-and-conquer sorting algorithm: it picks a pivot, partitions the array so smaller values sit to its left and larger values to its right, then recursively sorts each side.",

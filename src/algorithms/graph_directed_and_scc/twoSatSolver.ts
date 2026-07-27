@@ -318,11 +318,12 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "Solves the 2-Satisfiability (2-SAT) problem in linear O(V + E) time. Each clause (A OR B) is converted into implication edges (~A -> B) and (~B -> A). Kosaraju's SCC algorithm determines if any variable x and its negation ~x belong to the same SCC.",
+    "Solves the 2-Satisfiability (2-SAT) problem in linear O(V + E) time. Given a 2-CNF boolean formula with N variables and M clauses (where each clause contains 2 literals), 2-SAT is solved by constructing a directed implication graph (~u -> v) and (~v -> u). Kosaraju's algorithm computes the Strongly Connected Components (SCCs). If any variable x and its negation ~x belong to the same SCC, the formula is UNSATISFIABLE. Otherwise, a valid truth assignment is derived from the topological rank of SCCs.",
   constraints: [
     "1 <= Variables <= 500",
     "1 <= Clauses <= 2000",
     "Each clause consists of exactly 2 literals",
+    "Literals can be positive (x) or negated (~x)",
   ],
   examples: [
     {
@@ -378,20 +379,29 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Building the implication graph takes O(V + E). Kosaraju's two-pass DFS decomposes the graph into SCCs in O(V + E). Checking validity for each variable takes O(V). Overall time is linear O(V + E).",
-    space: "The implication graph stores 2V nodes and 2E edges, requiring O(V + E) memory.",
+    time: "Constructing the implication graph takes O(V + E) time. Finding SCCs via Kosaraju's algorithm takes O(V + E) time. Validating contradictions takes O(V) time. Total runtime is linear O(V + E).",
+    space:
+      "The implication graph, transpose graph, and SCC data structures consume O(V + E) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "2-SAT is a classical graph-theoretic reduction problem. Unlike 3-SAT (which is NP-complete), 2-SAT is solvable in linear time using implication graphs and SCC decomposition.",
+      "While general 3-SAT and Boolean Satisfiability are famous NP-complete problems (Cook-Levin Theorem), 2-SAT is restricted to 2 literals per clause and is solvable in linear time O(V + E). The key reduction transforms logic clauses into a directed Implication Graph and analyzes its Strongly Connected Components (SCCs).",
     sections: [
       {
-        heading: "Implication Graph Reduction",
-        body: "A disjunctive clause (A v B) is equivalent to two implications: NOT A => B, and NOT B => A. These implications define directed edges in the implication graph.",
+        heading: "Core Concept: Implication Graph Reduction",
+        body: "A disjunction clause (u OR v) is logically equivalent to two implication rules: NOT u => v (~u -> v) and NOT v => u (~v -> u). Constructing these directed edges for all clauses creates an Implication Graph G = (V, E) where vertices represent literals.",
       },
       {
-        heading: "Satisfiability Condition",
-        body: "A 2-SAT instance is satisfiable if and only if no variable x and its negation ~x belong to the same SCC. If they do, both x => ~x and ~x => x hold, creating an impossible logical contradiction.",
+        heading: "Contradiction Condition & Topological Assignment",
+        body: "If a variable x and its negation ~x belong to the same SCC, then x => ~x and ~x => x both hold, establishing a logical contradiction that renders the formula UNSATISFIABLE. Otherwise, assigning truth values according to the topological rank of SCCs (setting x = true if scc[x] > scc[~x]) guarantees a valid satisfying assignment.",
+      },
+      {
+        heading: "Systems Applications & Automated Reasoning",
+        body: "2-SAT solvers power package dependency resolution (Apt, Cargo, npm), hardware design verification (signal equivalence checking), register allocation under two-way interference, and automated theorem proving.",
+      },
+      {
+        heading: "Implementation Nuances & Edge Cases",
+        body: "Single literal constraints (x) are encoded as (x OR x), producing implication ~x -> x. Tautological clauses (x OR ~x) produce no constraint edges.",
       },
     ],
     keyTerms: [

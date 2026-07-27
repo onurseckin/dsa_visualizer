@@ -281,8 +281,8 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "A De Bruijn sequence B(k, n) is a cyclic sequence of order n over an alphabet of size k that contains every possible length-n sequence as a contiguous substring exactly once. It is constructed by finding an Eulerian circuit in a De Bruijn graph whose vertices are strings of length n-1.",
-  constraints: ["2 <= k <= 4", "2 <= n <= 4", "Output cyclic sequence has length k^n"],
+    "A De Bruijn sequence B(k, n) is a cyclic sequence of order n over an alphabet of size k that contains every possible length-n sequence as a contiguous substring exactly once. Given alphabet size k and length n, construct the De Bruijn sequence by finding an Eulerian circuit in a De Bruijn graph (whose vertices are strings of length n-1 and directed edges represent length-n transitions) using Hierholzer's algorithm in O(k^n) time.",
+  constraints: ["2 <= k <= 4", "2 <= n <= 4", "Generated cyclic sequence has exact length k^n"],
   examples: [
     {
       kind: "basic",
@@ -326,25 +326,45 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   },
   topicGuide: {
     overview:
-      "A De Bruijn sequence B(k, n) represents the shortest possible cyclic string containing all k^n length-n strings over an alphabet of size k. It maps directly to an Eulerian circuit on a De Bruijn graph.",
+      "A De Bruijn sequence B(k, n) represents the shortest possible cyclic string containing all k^n length-n strings over an alphabet of size k. It maps directly to an Eulerian circuit on a De Bruijn graph, demonstrating the deep link between combinatorics and graph theory.",
     sections: [
       {
-        heading: "De Bruijn Graph Topology",
-        body: "Each vertex represents a prefix of length n-1. Directed edges correspond to appending a symbol c to the suffix, forming a directed k-regular graph where every vertex has in-degree k and out-degree k.",
+        heading: "Core Concept: De Bruijn Graph Topology & Overlaps",
+        body: "Each vertex in a De Bruijn graph represents a prefix string of length n-1. A directed edge exists from vertex u to vertex v with label c if appending character c to the suffix of u forms a valid length-n string whose suffix matches v. The graph is k-regular, meaning every vertex has in-degree k and out-degree k.",
       },
       {
-        heading: "Eulerian Construction",
-        body: "Because every node in a De Bruijn graph has in-degree equal to out-degree, an Eulerian circuit always exists. Walking this circuit builds the De Bruijn sequence in linear time.",
+        heading: "Eulerian Construction via Hierholzer's Algorithm",
+        body: "Because every node in a De Bruijn graph has in-degree equal to out-degree, an Eulerian circuit is guaranteed to exist. Hierholzer's algorithm visits every directed edge exactly once, yielding the complete sequence in linear O(k^n) time.",
+      },
+      {
+        heading: "Systems & Real-World Applications",
+        body: "De Bruijn sequences are fundamental in DNA de novo genome assembly (De Bruijn graph assemblers like SPAdes and Velvet), rotary position encoders in robotics, pseudo-random number generation, and cryptographic stream ciphers.",
+      },
+      {
+        heading: "Implementation & Edge Cases",
+        body: "The output sequence is cyclic, so reading the last n-1 characters combined with the start wraps seamlessly around. Minimal cases k=2, n=1 yield simple binary toggles '01'.",
       },
     ],
     keyTerms: [
       {
         term: "De Bruijn Sequence",
-        definition: "A cyclic sequence containing all length-n substrings over alphabet k.",
+        definition:
+          "A cyclic sequence of order n over an alphabet of size k containing every length-n substring exactly once.",
       },
       {
         term: "De Bruijn Graph",
-        definition: "A directed graph representing overlaps between sequences of symbols.",
+        definition:
+          "A directed graph representing overlaps between sequences of symbols, where edges represent length-n words.",
+      },
+      {
+        term: "k-Regular Directed Graph",
+        definition:
+          "A directed graph where every vertex has in-degree equal to out-degree equal to k.",
+      },
+      {
+        term: "Genome Assembly",
+        definition:
+          "Reconstructing long genomic DNA sequences from short sequencing reads using De Bruijn graphs.",
       },
     ],
   },

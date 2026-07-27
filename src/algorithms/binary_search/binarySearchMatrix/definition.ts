@@ -122,6 +122,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   id: "binary-search-matrix",
   title: "Search a 2D Matrix",
   category: "binary_search",
+  categories: ["binary_search"],
   difficulty: "Medium",
   description:
     "Searches for a target value in an m x n integer matrix — each row sorted, rows strictly increasing — by binary searching the grid as one virtual sorted 1D array.",

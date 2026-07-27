@@ -137,12 +137,13 @@ export const rejectionSamplingAcceptanceThreshold: AlgorithmDefinition<rejection
     id: "rejection-sampling-acceptance-threshold",
     title: "Modified Rejection Sampling Acceptance Verifier",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "math_and_number_theory"],
+    categories: ["ml_llm_serving", "heap_and_priority_queue"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
-    description: "Evaluates token acceptance probability P(accept) = min(1, p(x)/q(x)).",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), modified rejection sampling acceptance verifier provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {

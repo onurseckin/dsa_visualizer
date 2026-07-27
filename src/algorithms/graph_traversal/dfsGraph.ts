@@ -254,8 +254,13 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   categories: ["graph_traversal"],
   difficulty: "Easy",
   description:
-    "Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each branch before backtracking. It uses a call stack (or explicit LIFO stack) and a visited set to avoid cycles and process all reachable vertices in O(V + E) time.",
-  constraints: ["1 <= V <= 1000", "0 <= E <= 5000", "Start node must be present in graph"],
+    "Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each branch before backtracking. Given a graph represented by vertices and directed/undirected edges, alongside a designated start node, DFS explores the graph by diving deep along each path until no further unvisited adjacent vertices remain. The search uses a call stack (or explicit LIFO stack) combined with a visited set to prevent reprocessing nodes or falling into infinite loops on cyclic graphs. Return the exact sequence of vertices visited in discovery order.",
+  constraints: [
+    "1 <= V <= 1000",
+    "0 <= E <= 5000",
+    "Start node must be present in the graph",
+    "Graph may contain directed/undirected edges, cycles, and isolated components",
+  ],
   examples: [
     {
       kind: "basic",
@@ -327,26 +332,44 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   },
   topicGuide: {
     overview:
-      "Depth-First Search (DFS) is a fundamental graph traversal algorithm that plunges deep along paths before backtracking. It forms the backbone of cycle detection, topological sorting, connected component analysis, and strong connectivity.",
+      "Depth-First Search (DFS) is a core graph traversal technique that prioritizes deep exploration along paths before backtracking. By leveraging a Last-In-First-Out (LIFO) execution order—either via call stack recursion or an explicit data structure—DFS naturally traverses trees, detects cycles, constructs topological orderings, and discovers strongly connected components.",
     sections: [
       {
-        heading: "LIFO Call Stack Discipline",
-        body: "Unlike BFS which uses a FIFO queue to explore layer-by-layer, DFS uses a LIFO stack (or function call stack) to prioritize deep branch expansion.",
+        heading: "Core Concept: Post-Order Discovery & Backtracking",
+        body: "Unlike BFS which expands in concentric frontier rings, DFS follows a single path to its absolute terminus before stepping backwards (backtracking) to explore remaining unexplored branches. Visited markers ensure that no vertex is processed more than once, yielding an O(V + E) sweep over reachable components.",
       },
       {
-        heading: "Applications",
-        body: "DFS is essential for detecting cycles (back-edges), finding topological orderings in DAGs, finding bridges and articulation points, and identifying connected components.",
+        heading: "Systems & Compiler Applications",
+        body: "DFS forms the basis for dependency resolution (build systems like Bazel and Make), dead code elimination in compilers (reachability analysis on call graphs), garbage collection (mark-and-sweep root reachability), and static analysis for control-flow graph (CFG) loop detection.",
+      },
+      {
+        heading: "Implementation Nuances: Recursive vs Explicit Stack",
+        body: "Recursive DFS relies on the runtime call stack, which can trigger stack overflow exceptions on deeply linear graphs (e.g. depth V = 10^5). An explicit stack data structure avoids stack depth limits, though neighbor iteration order must be carefully handled to match standard traversal orders.",
+      },
+      {
+        heading: "Edge Case Analysis & Graph Classifications",
+        body: "DFS classifies edges into Tree Edges, Back Edges (which indicate cycles), Forward Edges, and Cross Edges. Disconnected graphs require wrapping DFS in a loop across all vertices to guarantee total graph coverage.",
       },
     ],
     keyTerms: [
-      { term: "DFS", definition: "Depth-First Search algorithm." },
+      {
+        term: "Depth-First Search (DFS)",
+        definition:
+          "An algorithm for traversing or searching tree or graph data structures that explores as far as possible along each branch before backtracking.",
+      },
       {
         term: "Backtracking",
-        definition: "Retracting along the search tree when a branch is exhausted.",
+        definition:
+          "The process of retreating along the current search path when a dead end or fully visited vertex is encountered.",
+      },
+      {
+        term: "Back Edge",
+        definition:
+          "An edge pointing from a vertex to one of its ancestors in the DFS tree, indicating the presence of a directed or undirected cycle.",
       },
       {
         term: "Call Stack",
-        definition: "The stack storing pending search frames during recursive traversal.",
+        definition: "The memory stack managing function frames during recursive DFS execution.",
       },
     ],
   },

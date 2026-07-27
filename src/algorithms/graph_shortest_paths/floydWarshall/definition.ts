@@ -101,6 +101,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   id: "floyd-warshall",
   title: "Floyd-Warshall All-Pairs Shortest Path",
   category: "graph_shortest_paths",
+  categories: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "Floyd-Warshall computes the shortest path between every pair of vertices in a weighted directed graph using dynamic programming over a distance matrix. It considers each vertex k in turn as a potential intermediate stop between every pair (i, j): whenever routing through k is cheaper (dist[i][k] + dist[k][j] < dist[i][j]), the matrix entry is updated. Once every vertex has had its turn as the pivot, the matrix holds the true shortest distance between every pair of vertices in the graph.",

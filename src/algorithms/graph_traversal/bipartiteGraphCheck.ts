@@ -264,8 +264,13 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Determines whether an undirected graph is bipartite (2-colorable) in linear O(V + E) time using BFS/DFS. A graph is bipartite if its vertices can be divided into two disjoint sets such that no two vertices within the same set are adjacent (i.e. contains no odd cycles).",
-  constraints: ["1 <= V <= 1000", "0 <= E <= 5000", "Graph is undirected"],
+    "Determines whether an undirected graph is bipartite (2-colorable). Given an undirected graph with V vertices and E edges, return whether the vertices can be partitioned into two independent sets U and V such that every edge connects a vertex in U to a vertex in V (no edges exist between vertices within the same set). Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. Perform a 2-coloring traversal (using BFS or DFS) across all connected components, assigning alternate colors (0 and 1) to adjacent vertices. If any edge connects two vertices assigned the exact same color, return false; otherwise, return true.",
+  constraints: [
+    "1 <= V <= 1000",
+    "0 <= E <= 5000",
+    "Graph is undirected and may contain multiple disconnected components",
+    "Self-loops automatically render a graph non-bipartite",
+  ],
   examples: [
     {
       kind: "basic",
@@ -335,30 +340,44 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   },
   topicGuide: {
     overview:
-      "A bipartite graph (or 2-colorable graph) can be partitioned into two independent sets U and V such that every edge joins a vertex in U to a vertex in V. Bipartite testing checks for the existence of odd-length cycles.",
+      "A bipartite graph (or 2-colorable graph) can be partitioned into two independent sets U and V such that every edge joins a vertex in U to a vertex in V. Bipartite testing checks for the structural absence of odd-length cycles. It forms the prerequisite step for maximum bipartite matching algorithms (Hopcroft-Karp, Ford-Fulkerson on augmented networks) and resource assignment problems.",
     sections: [
       {
-        heading: "2-Coloring Criterion",
-        body: "By assigning color 0 to an arbitrary start node and propagating color 1 - c to adjacent neighbors, any edge connecting two nodes of the same color proves the presence of an odd cycle.",
+        heading: "Core Concept: 2-Coloring & Parity Invariants",
+        body: "By assigning color 0 to an arbitrary starting node and propagating color 1 - c to all adjacent neighbors, we establish an alternating parity along every path. If a neighbor has already been assigned a color and that color equals the current node's color, an edge exists between two nodes in the same partition — proving the existence of an odd cycle.",
       },
       {
-        heading: "Applications",
-        body: "Bipartite graphs model matching problems (job assignment, stable marriage, network flows) and schedule conflict detection.",
+        heading: "Systems & Practical Applications",
+        body: "Bipartite graph verification is used in compiler register allocation (interference graph partitioning), job scheduling (matching tasks to execution nodes), recommendation systems (user-item bipartite graphs), and error-correcting low-density parity-check (LDPC) codes.",
+      },
+      {
+        heading: "Implementation Nuances & Component Sweeping",
+        body: "Graphs may consist of multiple disconnected components. A single BFS/DFS from an arbitrary node only validates its connected component. The algorithm must maintain an outer loop iterating over all vertices v from 0 to V-1, launching a 2-coloring traversal whenever an uncolored vertex is encountered.",
+      },
+      {
+        heading: "Edge Cases & Conflict Detection",
+        body: "Graphs containing self-loops (an edge connecting vertex v to itself) fail immediately, as color[v] == color[v]. Isolated vertices with no edges are trivially bipartite. Trees and forest structures are always bipartite because they contain no cycles.",
       },
     ],
     keyTerms: [
       {
         term: "Bipartite Graph",
-        definition: "A graph whose vertices can be partitioned into two independent sets.",
+        definition:
+          "A graph whose vertices can be partitioned into two disjoint sets such that every edge connects a vertex in one set to a vertex in the other.",
       },
       {
         term: "2-Coloring",
         definition:
-          "Coloring vertices with 2 colors such that no two adjacent vertices share the same color.",
+          "Assigning one of two colors to each vertex such that no two adjacent vertices share the same color.",
       },
       {
         term: "Odd Cycle",
-        definition: "A cycle with an odd number of edges, which destroys 2-colorability.",
+        definition:
+          "A closed circuit with an odd number of edges (e.g. triangle of length 3, pentagon of length 5), which makes 2-coloring mathematically impossible.",
+      },
+      {
+        term: "Independent Set",
+        definition: "A set of vertices in a graph no two of which are adjacent to each other.",
       },
     ],
   },

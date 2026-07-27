@@ -7,17 +7,31 @@ export interface BinarySearch1dInput {
   mode?: "exact" | "lower_bound" | "upper_bound";
 }
 
-export const BINARY_SEARCH_1D_CODE = `
-def binary_search_1d(input_array):
-    """
-    Implementation of binary_search_1d.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const BINARY_SEARCH_1D_CODE = `def binary_search_1d(arr: list[int], target: int) -> int:
+    left, right = 0, len(arr) - 1
+    found_idx = -1
+
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:
+            found_idx = mid
+            break
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return found_idx
+
+def lower_bound(arr: list[int], target: int) -> int:
+    left, right = 0, len(arr)
+    while left < right:
+        mid = (left + right) // 2
+        if arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid
+    return left`;
 
 export const DEFAULT_BINARY_SEARCH_1D_INPUT: BinarySearch1dInput = {
   array: [2, 5, 8, 12, 16, 23, 38, 56, 72, 91],
@@ -232,31 +246,40 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
 
 export const BINARY_SEARCH_1D_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "1D Binary Search repeatedly divides a sorted array search space in half. By comparing the target with the middle element, it eliminates half of the remaining elements at each step, achieving O(log N) lookup time.",
+    "1D Binary Search is the fundamental logarithmic search algorithm operating on sorted domains. By repeatedly evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond simple value lookup in sorted arrays, binary search generalizes to monotonic predicate functions (binary search on answer), forms the core scan loop of database B-Tree index lookups, and underpins system primitives like C++ std::lower_bound and std::upper_bound.",
   sections: [
     {
-      heading: "Search Invariant and Monotonicity",
-      body: "Binary search requires the input sequence to be monotonic (sorted). At each step, if arr[mid] < target, all elements to the left of mid can be discarded because they are guaranteed to be smaller than target.",
+      heading: "Search Space Invariant & Bisecting",
+      body: "The core invariant is that if the target exists in the array, its index must lie within the inclusive range [left, right]. Midpoint calculation mid = left + (right - left) // 2 divides the search space into two equal halves. Comparing arr[mid] with target determines which half retains the target and which half can be discarded permanently.",
     },
     {
-      heading: "Lower Bound and Upper Bound Variants",
-      body: "Lower bound finds the first index where arr[i] >= target. Upper bound finds the first index where arr[i] > target. These bounds are used in range counting and finding insertion points.",
+      heading: "Lower Bound vs Upper Bound Formulations",
+      body: "Exact match binary search stops as soon as arr[mid] == target. Lower bound finds the first index i where arr[i] >= target, maintaining a half-open search space [0, N). Upper bound finds the first index i where arr[i] > target. Lower/upper bounds are critical for counting duplicates in O(log N) time as upper_bound - lower_bound.",
     },
     {
-      heading: "Avoiding Overflow",
-      body: "In languages with bounded integer types, mid is computed as left + (right - left) // 2 to avoid overflow when left + right exceeds maximum integer capacity.",
+      heading: "Overflow Prevention & Integer Arithmetic",
+      body: "Computing mid = (left + right) // 2 can overflow 32-bit signed integers when left + right > 2^31 - 1. Safe implementation uses mid = left + (right - left) // 2. In bitwise manipulation languages, mid = (left + right) >>> 1 is used for unsigned shift.",
+    },
+    {
+      heading: "Binary Search on Answer (Parametric Search)",
+      body: "When an optimization problem possesses a monotonic decision function f(x) (i.e. f(x) is False for all x < X and True for all x >= X), binary search can find the minimum valid parameter X in O(log(MAX - MIN) * cost(f)) time without explicitly generating an array.",
     },
   ],
   keyTerms: [
     {
       term: "Search Space",
       definition:
-        "The range of array indices [left, right] currently eligible to contain the target.",
+        "The current range of candidate indices [left, right] that could contain the desired element or boundary point.",
     },
     {
       term: "Lower Bound",
       definition:
-        "The smallest index i in a sorted array such that arr[i] is greater than or equal to target.",
+        "The smallest index i in a sorted array such that arr[i] is greater than or equal to the target value.",
+    },
+    {
+      term: "Parametric Search",
+      definition:
+        "Binary searching over a continuous or discrete range of candidate answer values using a monotonic predicate function.",
     },
   ],
 };

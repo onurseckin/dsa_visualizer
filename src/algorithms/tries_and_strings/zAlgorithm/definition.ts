@@ -34,9 +34,10 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   id: "z-algorithm",
   title: "Z-Algorithm String Matching",
   category: "tries_and_strings",
+  categories: ["tries_and_strings"],
   difficulty: "Hard",
   description:
-    'The Z-algorithm scans S = pattern + "$" + text once and computes the Z-array: Z[i] is how long a copy of S\'s own prefix starts at position i. Whenever Z[i] equals the pattern length, the pattern occurs there — so one linear O(n + m) pass finds every match.',
+    "Find all occurrences of a pattern in a text string in linear $O(N + M)$ time by constructing $S = \\text{pattern} + \\text{'$'} + \\text{text}$ and computing its Z-array.\n\n### Problem Statement\nGiven a text string `text` of length $N$ and a pattern string `pattern` of length $M$, find all starting indices in `text` where `pattern` occurs.\n\nThe Z-algorithm constructs a combined string $S = \\text{pattern} + \\text{'$'} + \\text{text}$ (where `'$'` is a unique sentinel character present in neither string) and computes the Z-array $Z$. $Z[i]$ stores the length of the longest substring starting at index $i$ that matches the prefix of $S$. Any position $i > M$ with $Z[i] == M$ corresponds to a complete match of `pattern` in `text` starting at index $i - M - 1$.\n\n### Input Parameters\n- `text`: Search text string of length $N$.\n- `pattern`: Target pattern string of length $M$.\n\n### Output\n- Returns an array of integers representing the starting 0-based text indices of all pattern matches.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= M <= 10^4`.\n- Sentinel character `'$'` must not appear in either input string.\n- Overlapping matches (e.g. `text = \"aaaaa\", pattern = \"aa\"`): Correctly reported at `[0, 1, 2, 3]`.",
   constraints: [
     "1 <= text.length <= 10^5",
     "1 <= pattern.length <= 10^4",

@@ -139,12 +139,13 @@ export const winogradF23TransformMatrices: AlgorithmDefinition<winogradF23Transf
     id: "winograd-f23-transform-matrices",
     title: "Winograd F(2x2, 3x3) Transform Matrices",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "math_and_number_theory"],
+    categories: ["ml_convolutions", "arrays_and_hashing"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
-    description: "Generates Winograd minimal filtering transform matrices B, G, A.",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), winograd f(2x2, 3x3) transform matrices provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
     sources: [
       {

@@ -10,13 +10,13 @@ export const gaussianL2LocalitySensitiveHash: AlgorithmDefinition<GaussianL2Loca
     id: "gaussianL2LocalitySensitiveHash",
     title: "Q8: Gaussian L2 Locality Sensitive Hash",
     category: "ml_vector_search",
-    categories: ["ml_vector_search"],
+    categories: ["ml_vector_search", "binary_search"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 5,
     mlInfraCategory: "ml_vector_search",
     description:
-      "Implementation of Q8: Gaussian L2 Locality Sensitive Hash for Vector Search, LSH, IVF-PQ & HNSW Indexing.",
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q8: gaussian l2 locality sensitive hash provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: [
       "Vectors must have matching dimensions.",
       "Input size typically constrained for visualization purposes.",

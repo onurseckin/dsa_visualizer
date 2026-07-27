@@ -37,9 +37,10 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   id: "binary-tree-lca",
   title: "Lowest Common Ancestor of a Binary Tree",
   category: "tree_fundamentals",
+  categories: ["tree_fundamentals"],
   difficulty: "Medium",
   description:
-    "Find the lowest common ancestor (LCA) node in a binary tree for two given nodes p and q. The LCA is defined as the lowest node in the tree that has both p and q as descendants (where a node is allowed to be a descendant of itself). Using a bottom-up post-order Depth-First Search (DFS) traversal, the algorithm recursively evaluates left and right subtrees: if both subtrees return non-null matches, the current node is the unique LCA; if only one subtree returns a match, that match is passed upward.",
+    "Find the lowest common ancestor (LCA) node in a binary tree for two given target nodes $p$ and $q$.\n\n### Problem Statement\nGiven the root node `root` of a binary tree and two distinct nodes `p` and `q` existing within the tree, find their Lowest Common Ancestor (LCA). The LCA is defined as the deepest node $T$ in the binary tree that has both $p$ and $q$ as descendants (where a node is allowed to be a descendant of itself per standard tree graph theory conventions).\n\nUsing a bottom-up post-order Depth-First Search (DFS) traversal, each node evaluates its subtrees: if both subtrees return a non-null match, the current node is the unique LCA; if only one subtree yields a match, that match is bubbled up to the parent caller.\n\n### Input Parameters\n- `root`: The root node of a binary tree.\n- `p`: Pointer/Value of the first target node.\n- `q`: Pointer/Value of the second target node.\n\n### Output\n- Returns the node object (or node ID) representing the Lowest Common Ancestor of $p$ and $q$.\n\n### Constraints & Edge Cases\n- `2 <= N <= 10^5` (Number of nodes in tree).\n- `-10^9 <= Node.val <= 10^9`.\n- All `Node.val` are guaranteed to be unique.\n- `p != q` and both `p` and `q` are guaranteed to exist in the tree.\n- Ancestor-Descendant Case: If `q` is in `p`'s subtree, `p` itself is returned as the LCA.",
   constraints: [
     "2 <= Number of nodes N <= 10^5",
     "-10^9 <= Node.val <= 10^9",

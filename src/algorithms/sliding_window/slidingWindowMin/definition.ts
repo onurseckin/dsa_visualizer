@@ -88,9 +88,10 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   id: "sliding-window-min",
   title: "Sliding Window Minimum",
   category: "sliding_window",
+  categories: ["sliding_window"],
   difficulty: "Hard",
   description:
-    "Finds the minimum element in every contiguous sliding window of size k by maintaining a monotonic increasing deque of candidate indices.",
+    "Finds the minimum element in every contiguous sliding window of size k in an array nums as the window slides from left to right. By maintaining a monotonic increasing deque of candidate indices, the algorithm computes each window minimum in amortized O(1) time per element (O(N) total).",
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4", "1 <= k <= nums.length"],
   examples: [
     {

@@ -14,7 +14,8 @@ export const Route = createFileRoute("/problems")({
   validateSearch: (
     search: Record<string, string | number | boolean | undefined | null | object>,
   ): ProblemsSearch => {
-    return isCategoryType(search.category) ? { category: search.category } : {};
+    const cat = typeof search.category === "string" ? search.category : undefined;
+    return cat && isCategoryType(cat) ? { category: cat } : {};
   },
   component: ProblemsPage,
 });

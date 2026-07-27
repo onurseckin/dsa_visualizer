@@ -137,12 +137,13 @@ export const oneF1bPipelineParallelExecutionScheduler: AlgorithmDefinition<oneF1
     id: "one-f1b-pipeline-parallel-execution-scheduler",
     title: "1F1B (One Forward One Backward) Pipeline Parallel Scheduler",
     category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "intervals"],
+    categories: ["ml_distributed_systems", "graph_traversal"],
     difficulty: "Hard",
     isMlInfra: true,
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
-    description: "Schedules 1 Forward 1 Backward micro-batch passes to eliminate pipeline bubbles.",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 1f1b (one forward one backward) pipeline parallel scheduler provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {

@@ -5,17 +5,17 @@ export interface ValidParenthesesInput {
   s: string;
 }
 
-export const VALID_PARENTHESES_CODE = `
-def valid_parentheses(input_array):
-    """
-    Implementation of valid_parentheses.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const VALID_PARENTHESES_CODE = `def is_valid(s: str) -> bool:
+    stack = []
+    mapping = {")": "(", "}": "{", "]": "["}
+    for char in s:
+        if char in "({[":
+            stack.append(char)
+        else:
+            if not stack or stack[-1] != mapping[char]:
+                return False
+            stack.pop()
+    return len(stack) == 0`;
 
 export const DEFAULT_VALID_PARENTHESES_INPUT: ValidParenthesesInput = {
   s: "({[]})",

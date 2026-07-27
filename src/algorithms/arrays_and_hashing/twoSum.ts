@@ -190,6 +190,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   id: "two-sum",
   title: "Two Sum",
   category: "arrays_and_hashing",
+  categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
     "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. A hash map of values we've already seen lets each element check for its partner in constant time.",

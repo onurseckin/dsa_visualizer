@@ -49,9 +49,10 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   id: "kmp-string-match",
   title: "KMP String Matching",
   category: "tries_and_strings",
+  categories: ["tries_and_strings"],
   difficulty: "Hard",
   description:
-    "Knuth-Morris-Pratt (KMP) finds a pattern in a text in linear O(n + m) time. It first preprocesses the pattern into a Longest Prefix Suffix (LPS) table, which records how the pattern overlaps with itself; on a mismatch, that table says exactly where to resume — so the text pointer never moves backwards and no comparison is repeated.",
+    'Find all starting index occurrences of a pattern string in a text string in linear $O(N + M)$ time using the Knuth-Morris-Pratt (KMP) algorithm.\n\n### Problem Statement\nGiven a text string `text` of length $N$ and a pattern string `pattern` of length $M$, find all starting indices in `text` where `pattern` appears as a contiguous substring.\n\nThe Knuth-Morris-Pratt (KMP) algorithm preprocesses `pattern` into a Longest Prefix Suffix (LPS) array in $O(M)$ time. The LPS table `lps[i]` stores the length of the longest proper prefix of `pattern[0..i]` that is also a suffix of `pattern[0..i]`. During text scanning, when a mismatch occurs between `text[i]` and `pattern[j]`, the text pointer $i$ never moves backward; instead, the pattern pointer $j$ falls back to `lps[j-1]`, guaranteeing linear $O(N + M)$ execution.\n\n### Input Parameters\n- `text`: Search text string of length $N$.\n- `pattern`: Target pattern string of length $M$.\n- `p`: Optional prime base parameter.\n\n### Output\n- Returns an array of integer indices representing all 0-based starting positions of `pattern` in `text`.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= M <= 10^4`.\n- Strings contain ASCII printable characters.\n- Pattern longer than text ($M > N$): Returns empty array `[]`.\n- Overlapping matches (e.g. `text = "AAAA", pattern = "AA"`): Returns all starting positions `[0, 1, 2]`.',
   constraints: [
     "1 <= text.length <= 10^5",
     "1 <= pattern.length <= 10^4",

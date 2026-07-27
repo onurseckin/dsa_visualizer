@@ -25,9 +25,10 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   id: "kth-largest-element",
   title: "Kth Largest Element in an Array",
   category: "heap_and_priority_queue",
+  categories: ["heap_and_priority_queue"],
   difficulty: "Medium",
   description:
-    "Find the Kth largest element in an unsorted array of numbers using a Min-Heap of fixed capacity K. As we iterate through each element in the array, we push it into the min-heap. Whenever the heap size exceeds K, the minimum element (located at the root) is evicted. Because smaller elements are systematically removed, the min-heap maintains the K largest elements seen so far across the entire array. Consequently, when all elements have been processed, the minimum element remaining at the heap's root is precisely the Kth largest element.",
+    "Find the $k$-th largest element in an unsorted array of numbers in $O(N \\log k)$ time and $O(k)$ memory using a min-heap of fixed capacity $k$.\n\n### Problem Statement\nGiven an unsorted array of integers `nums` and an integer `k`, return the $k$-th largest element in the array. Note that it is the $k$-th largest element in sorted order, not the $k$-th distinct element (duplicate values are counted individually).\n\nThe algorithm maintains a min-heap of capacity $k$. As elements are processed, each number is pushed into the min-heap. If the heap size exceeds $k$, the root element (the smallest candidate among the top $k+1$) is evicted via `heappop`. Once all $N$ elements are processed, the root of the min-heap contains the smallest value among the $k$ largest elements—which is precisely the $k$-th largest element.\n\n### Input Parameters\n- `nums`: Unsorted array of $N$ integers.\n- `k`: Rank position integer ($1 \\le k \\le N$).\n\n### Output\n- Returns the integer value corresponding to the $k$-th largest element.\n\n### Constraints & Edge Cases\n- `1 <= k <= nums.length <= 10^5`.\n- `-10^4 <= nums[i] <= 10^4`.\n- Single element array ($N=1, k=1$): Returns `nums[0]`.\n- Duplicates present (e.g. `nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4`): Handled correctly, outputting `4`.",
   constraints: [
     "1 <= k <= nums.length <= 10^5",
     "-10^4 <= nums[i] <= 10^4",

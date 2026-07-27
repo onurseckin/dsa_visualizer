@@ -230,7 +230,7 @@ export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   categories: ["tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
-    "Binary Lifting is a dynamic programming technique for rooted trees that precomputes up[u][j] = the 2^j-th ancestor of node u. This enables O(log N) queries for Lowest Common Ancestor (LCA) and K-th ancestor after O(N log N) preprocessing.",
+    "Compute the Lowest Common Ancestor (LCA) of nodes $u$ and $v$ in $O(\\log N)$ time per query after an $O(N \\log N)$ binary lifting precomputation.\n\n### Problem Statement\nGiven a tree with $N$ nodes rooted at node $0$ and a query pair of nodes $(u, v)$, find their Lowest Common Ancestor (LCA) using Binary Lifting (doubling dynamic programming).\n\nBinary Lifting precomputes a 2D dynamic programming table `up[u][j]` representing the $2^j$-th ancestor of node $u$. Query execution first equalizes the depths of $u$ and $v$ using powers-of-two jump steps, then lifts both nodes in parallel until they sit directly beneath their lowest common ancestor.\n\n### Input Parameters\n- `numNodes`: Integer $N$, total number of vertices ($0$ to $N-1$).\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `query`: A tuple `[u, v]` specifying the two target nodes for LCA evaluation.\n\n### Output\n- Returns the node index of the Lowest Common Ancestor $LCA(u, v)$.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `0 <= u, v < N`.\n- Root node is fixed at `0`.\n- Single node tree ($N=1$): returns `0`.\n- Ancestor query ($u$ is direct ancestor of $v$): returns $u$.",
   constraints: ["1 <= N <= 20", "0 <= u, v < N"],
   examples: [
     {
@@ -336,21 +336,40 @@ def binary_lifting_lca(n, edges, u, v):
   },
   topicGuide: {
     overview:
-      "Binary Lifting precomputes 2^j ancestor jumps for every node. Jumping using binary decomposition allows quickly lifting any node up the tree in O(log N) time.",
+      "Binary Lifting precomputes $2^j$-th ancestor jump steps for every tree node into a 2D dynamic programming table `up[u][j]`. Instead of stepping upward one parent at a time in $O(N)$ worst-case time, binary lifting decomposes any upward path length into powers of two (e.g. $13 = 8 + 4 + 1$), enabling $O(\\log N)$ queries.\n\nReal-world systems rely on binary lifting for fast tree/DAG queries: Linux kernel Control Group (cgroup) memory hierarchy inheritance lookups, distributed network routing tables, and compilers resolving parent scopes in Abstract Syntax Trees (ASTs). The fundamental DP relation is: $up[u][j] = up[up[u][j-1]][j-1]$.",
     sections: [
       {
-        heading: "2^j Ancestor Property",
-        body: "The 2^j-th ancestor of node u is up[u][j] = up[ up[u][j-1] ][j-1], composing two jumps of size 2^(j-1).",
+        heading: "Core Concept: Binary Jumping & DP Recurrence",
+        body: "The $2^j$-th ancestor of node $u$ is achieved by jumping $2^{j-1}$ levels up to intermediate node $m = up[u][j-1]$, and then jumping another $2^{j-1}$ levels up from $m$. Precomputation uses a single DFS pass to record depths and 1-step parents (`up[u][0]`), followed by DP table construction in $O(N \\log N)$ total time.",
+      },
+      {
+        heading: "Systems & Performance Impact",
+        body: "Memory layout of `up[N][LOGN]` should be organized contiguous in memory (row-major vs column-major) to optimize CPU L1/L2 cache locality during batch query processing. Space complexity is $O(N \\log N)$, which easily scales to millions of nodes in memory (e.g., $N=10^6, \\log_2 N \\approx 20$, using only $\\sim 80$ MB RAM).",
+      },
+      {
+        heading: "Implementation Nuances: Two-Phase Query",
+        body: "Phase 1: Depth Equalization. Calculate $\\Delta = depth[u] - depth[v]$. Jump $u$ upward by inspecting binary bits of $\\Delta$ from $\\lfloor\\log_2 N\\rfloor$ down to 0.\nPhase 2: Parallel Binary Lifting. If $u \\neq v$, iterate $j$ from $\\lfloor\\log_2 N\\rfloor$ down to 0: if $up[u][j] \\neq up[v][j]$, jump both $u \\leftarrow up[u][j]$ and $v \\leftarrow up[v][j]$. At completion, $up[u][0]$ is the unique LCA.",
+      },
+      {
+        heading: "Edge Case Analysis",
+        body: "1. Ancestor-Descendant queries ($u$ is ancestor of $v$): Phase 1 equalizes $v$ to $u$, resulting in $u == v$ immediately.\n2. Root level nodes: Attempting to jump past the root clamps to root or sentinel 0/null.\n3. Degenerate chain trees ($N=10^5$, max depth $N-1$): Binary lifting operates in $O(\\log N)$ steps regardless of tree skewness.",
       },
     ],
     keyTerms: [
       {
-        term: "Lowest Common Ancestor (LCA)",
-        definition: "The deepest node that is an ancestor of both node u and node v.",
+        term: "Binary Lifting Table (`up[u][j]`)",
+        definition:
+          "A dynamic programming table storing the $2^j$-th ancestor node for every vertex $u$.",
       },
       {
-        term: "Binary Lifting",
-        definition: "A technique storing power-of-two jump steps to move up trees efficiently.",
+        term: "Lowest Common Ancestor (LCA)",
+        definition:
+          "The deepest node in a rooted tree that is an ancestor of both target nodes $u$ and $v$.",
+      },
+      {
+        term: "Binary Decomposition of Paths",
+        definition:
+          "Expressing any integer distance $K$ as a sum of powers of two to perform $O(\\log K)$ total pointer jumps.",
       },
     ],
   },

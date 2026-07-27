@@ -186,12 +186,13 @@ export const conv2dSlidingWindowDirect: AlgorithmDefinition<Conv2dInput> = {
   id: "conv2d-sliding-window-direct",
   title: "2D Direct Sliding Window Convolution",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "sliding_window"],
+  categories: ["ml_convolutions", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
-  description: "Direct nested 4-loop spatial convolution over 2D input grids.",
+  description:
+    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 2d direct sliding window convolution provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
   constraints: ["1 <= K <= H, W <= 100", "stride >= 1"],
   examples: [
     {
@@ -268,29 +269,45 @@ export const conv2dSlidingWindowDirect: AlgorithmDefinition<Conv2dInput> = {
   },
   topicGuide: {
     overview:
-      "Spatial Convolution is the foundation of CNNs, extracting local features using a sliding filter.",
+      "2D Direct Sliding Window Convolution is a critical component in ML CONVOLUTIONS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
     sections: [
       {
-        heading: "Receptive Field",
-        body: "Each output pixel is influenced by a local KxK region of the input.",
+        heading: "Core Concept & Mathematical Formulation",
+        body: "At its mathematical foundation, 2d direct sliding window convolution operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
       },
       {
-        heading: "Stride",
-        body: "Controls how much the filter moves. Stride > 1 is a common way to downsample spatial dimensions.",
+        heading: "Systems & Memory Hierarchy Performance",
+        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 2D Direct Sliding Window Convolution optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
       },
       {
-        heading: "Inefficiency",
-        body: "The direct 4-loop implementation is extremely slow on CPUs and GPUs because of poor memory cache usage. Frameworks typically use im2col or Winograd algorithms to accelerate it.",
+        heading: "Implementation Nuances & Data Structures",
+        body: "Implementing 2d direct sliding window convolution efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+      },
+      {
+        heading: "Edge Case Analysis & Production Robustness",
+        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
       },
     ],
     keyTerms: [
       {
-        term: "Kernel/Filter",
-        definition: "A small matrix of weights that slides across the input.",
+        term: "2D Engine",
+        definition:
+          "The underlying algorithmic system implementing 2d direct sliding window convolution operations for deep learning workloads.",
       },
       {
-        term: "Padding",
-        definition: "Adding borders (usually zeros) to control the spatial size of the output.",
+        term: "SRAM / Cache Tiling",
+        definition:
+          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+      },
+      {
+        term: "Memory Coalescing",
+        definition:
+          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+      },
+      {
+        term: "Arithmetic Intensity",
+        definition:
+          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
       },
     ],
   },

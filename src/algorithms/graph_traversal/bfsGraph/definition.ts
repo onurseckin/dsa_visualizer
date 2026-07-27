@@ -68,9 +68,10 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   id: "bfs-graph",
   title: "BFS Graph Traversal",
   category: "graph_traversal",
+  categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Breadth-First Search (BFS) explores a graph layer by layer from a source node: all distance-1 neighbors first, then distance-2, and so on. A first-in-first-out queue keeps the layers in order while a visited set stops cycles from causing repeat visits. Because nodes are reached in order of distance, BFS finds the shortest path (fewest edges) from the source to every reachable vertex in an unweighted graph.",
+    "Given a directed or undirected graph represented by a set of nodes and edges, along with a specified start node, perform a Breadth-First Search (BFS) to traverse all reachable vertices layer by layer. BFS starts at the designated source node and explores all immediately adjacent neighbors (distance 1), then moves on to explore neighbors of neighbors (distance 2), and so forth. The algorithm utilizes a First-In-First-Out (FIFO) queue data structure to maintain discovery order and a visited set to prevent processing duplicate vertices or getting trapped in infinite loops caused by cycles. Return the sequence of visited vertices in exact order of discovery.",
   constraints: [
     "1 <= Number of vertices V <= 10^4",
     "0 <= Number of edges E <= 10^5",

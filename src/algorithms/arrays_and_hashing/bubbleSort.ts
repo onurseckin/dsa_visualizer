@@ -192,6 +192,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   id: "bubble-sort",
   title: "Bubble Sort",
   category: "arrays_and_hashing",
+  categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
     "Bubble Sort is a simple comparison-based sorting algorithm: it sweeps through the array repeatedly, swapping adjacent neighbours that are out of order, so each sweep floats the largest remaining value to the end.",

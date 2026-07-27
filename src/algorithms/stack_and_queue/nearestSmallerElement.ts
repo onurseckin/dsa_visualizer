@@ -9,17 +9,19 @@ export const DEFAULT_NEAREST_SMALLER_INPUT: NearestSmallerElementInput = {
   nums: [4, 5, 2, 10, 8],
 };
 
-export const PYTHON_NEAREST_SMALLER_CODE = `
-def python_nearest_smaller(input_array):
-    """
-    Implementation of python_nearest_smaller.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_NEAREST_SMALLER_CODE = `def nearest_smaller_element(nums: list[int]) -> list[int]:
+    n = len(nums)
+    result = [-1] * n
+    stack = []
+
+    for i in range(n):
+        while stack and stack[-1] >= nums[i]:
+            stack.pop()
+        if stack:
+            result[i] = stack[-1]
+        stack.append(nums[i])
+
+    return result`;
 
 export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
@@ -171,8 +173,8 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   categories: ["stack_and_queue"],
   difficulty: "Medium",
   description:
-    "Finds the nearest smaller element to the left for each element in an array using a monotonic stack.",
-  constraints: ["1 <= nums.length <= 15", "-10^4 <= nums[i] <= 10^4"],
+    "Given an array of integers nums, find the nearest smaller element to the left for each element in the array. For each element at index i, find the nearest element at index j < i such that nums[j] < nums[i]. If no such element exists, output -1 for that index. A monotonic stack algorithm computes the answer in linear O(N) time by maintaining an increasing stack of candidates.",
+  constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
       kind: "basic",
@@ -211,11 +213,40 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   },
   topicGuide: {
     overview:
-      "Monotonic stack maintains elements in strictly increasing order to efficiently find nearest smaller items.",
+      "The Nearest Smaller Element algorithm uses a monotonic stack to efficiently find the closest preceding smaller value for every position in an array. Rather than running a quadratic O(N²) nested search for every element, a monotonic increasing stack prunes elements that are larger than or equal to the current item, as those items can never serve as a smaller neighbor for any future element. This linear pattern powers foundational algorithms in computer graphics (Largest Rectangle in Histogram), stock span calculations, and compiler instruction scheduling.",
     sections: [
       {
-        heading: "Monotonic Property",
-        body: "By popping larger elements, the top of the stack is guaranteed to be the nearest smaller element to the left.",
+        heading: "The Monotonic Invariant",
+        body: "The algorithm maintains a stack whose elements are always strictly increasing from bottom to top. When inspecting element nums[i], all stack elements >= nums[i] are popped off. Once the loop finishes popping, if the stack is non-empty, the top element is guaranteed to be the nearest smaller element to the left of index i.",
+      },
+      {
+        heading: "Domination & Amortized Linear Time",
+        body: "Popping an element x because x >= current is safe due to domination: current is smaller than x and sits to the right of x, so any future element that could have picked x as its smaller neighbor will pick current (or something even smaller) instead. Because each array index is pushed onto the stack exactly once and popped at most once, total stack operations are bounded by 2N, guaranteeing amortized O(N) execution time.",
+      },
+      {
+        heading: "Systems & Memory Performance",
+        body: "Monotonic stack traversals access the stack and input array sequentially. Pushing and popping from a dynamic array backed stack (e.g. C++ std::vector or Python list) takes advantage of CPU L1/L2 cache prefetching, outperforming tree-based search structures like std::set or AVL trees.",
+      },
+      {
+        heading: "Edge Cases & Duplicate Handling",
+        body: "Strict vs non-strict inequalities control how duplicate values behave. Using stack[-1] >= nums[i] pops equal values, ensuring the stack strictly increases. If duplicate values should point to an equal preceding element, change the condition to stack[-1] > nums[i].",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Monotonic Stack",
+        definition:
+          "A stack data structure whose elements are kept strictly sorted (either increasing or decreasing) by popping violating elements prior to pushing new ones.",
+      },
+      {
+        term: "Domination Rule",
+        definition:
+          "The logical condition where a newer, smaller element renders an older, larger element permanently irrelevant for future nearest-smaller queries.",
+      },
+      {
+        term: "Amortized Complexity",
+        definition:
+          "An analysis method showing that while individual step pop loops may perform multiple operations, the total operations across all N iterations cannot exceed 2N.",
       },
     ],
   },

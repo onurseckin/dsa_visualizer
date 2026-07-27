@@ -103,6 +103,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   id: "bellman-ford",
   title: "Bellman-Ford Shortest Path",
   category: "graph_shortest_paths",
+  categories: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "Bellman-Ford computes shortest paths from one source vertex to every other vertex in a weighted graph — and unlike Dijkstra's algorithm, it tolerates negative edge weights. The idea is simple: relax every edge, and repeat that sweep V - 1 times so improvements can propagate along even the longest simple path. A final extra sweep doubles as a detector: if any edge can still be relaxed after V - 1 passes, the graph must contain a negative-weight cycle reachable from the source.",

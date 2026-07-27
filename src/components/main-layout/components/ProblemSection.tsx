@@ -1,6 +1,7 @@
 import React from "react";
 import { AlgorithmDefinition, ProblemExample } from "../../../types/dsa";
 import { ProblemDescriptionCard, ProblemExamplesCard, DragHandle } from "../../../ui";
+import { getAlgorithmPrimaryCategory } from "../../../app/categories";
 
 export interface ProblemSectionProps {
   algorithm: AlgorithmDefinition;
@@ -63,7 +64,7 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
         {renderProblem && (
           <ProblemDescriptionCard
             title={algorithm.title}
-            category={algorithm.category}
+            category={getAlgorithmPrimaryCategory(algorithm)}
             difficulty={algorithm.difficulty}
             description={algorithm.description}
             constraints={algorithm.constraints}

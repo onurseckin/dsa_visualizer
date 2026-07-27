@@ -160,26 +160,40 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
 
 const STRING_HASHING_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Polynomial Rolling Hashing maps strings to integer values such that equality of string substrings can be checked in O(1) time after O(N) prefix preprocessing.",
+    "Polynomial Rolling Hashing maps string prefixes to modular integers such that the hash value of any arbitrary substring $S[L..R]$ can be evaluated in $O(1)$ constant time following an initial $O(N)$ linear preprocessing pass.\n\nReal-world production applications include Rabin-Karp multi-pattern search, de Novo genome sequence alignment (K-mer search in bioinformatics), duplicate document detection in web crawlers, and rolling checksums in dynamic content synchronization protocols (like rsync).",
   sections: [
     {
-      heading: "Polynomial Rolling Hash Formula",
-      body: "The hash of string S[0..N-1] is H(S) = sum(S[i] * p^(N-1-i)) mod M. Prime base p (typically 31 or 53) and large prime mod M (like 10^9 + 7) minimize hash collisions.",
+      heading: "Core Concept: Polynomial Rolling Hash Formula",
+      body: "The prefix hash $H[i]$ for prefix $S[0..i-1]$ is defined as:\n$$H[i] = \\left( \\sum_{k=0}^{i-1} S[k] \\cdot p^{i-1-k} \\right) \\pmod M$$\nwhere $p$ is a prime base (typically $p=31$ for lowercase English or $p=131$ for ASCII) and $M$ is a large prime modulus (such as $10^9 + 7$ or $10^9 + 9$). Recurrence: $H[i] = (H[i-1] \\cdot p + S[i-1]) \\pmod M$.",
     },
     {
-      heading: "O(1) Substring Hash Queries",
-      body: "Given prefix hashes H[i], the hash of substring S[L..R] is computed as H(S[L..R]) = (H[R+1] - H[L] * p^(R-L+1)) mod M.",
+      heading: "Systems & Performance Impact: $O(1)$ Substring Hash Queries",
+      body: "Using precomputed prefix hashes $H$ and powers of base $p$ (`powP`), the hash of substring $S[L..R]$ is calculated in $O(1)$ time without examining individual characters:\n$$hash(S[L..R]) = \\left( H[R+1] - (H[L] \\cdot p^{R-L+1}) \\pmod M + M \\right) \\pmod M$$\nBecause integer math operates directly in registers, comparing hashes is significantly faster than pointer-chasing string comparisons.",
+    },
+    {
+      heading: "Implementation Nuances: Collision Mitigation & Double Hashing",
+      body: "A single 32-bit modulo $M \\approx 10^9$ yields a collision probability of $\\sim 10^{-9}$ per pair, which by the Birthday Paradox guarantees collisions when evaluating $\\sim 10^5$ substrings. To achieve zero practical collisions, systems employ Double Hashing: using two distinct primes $(p_1, M_1)$ and $(p_2, M_2)$ in parallel, forming a composite 64-bit hash key.",
+    },
+    {
+      heading: "Edge Case Analysis",
+      body: "1. Negative Modular Results: Integer subtraction $H[R+1] - H[L] \\cdot p^{R-L+1}$ can produce negative numbers in C++/JS; adding $+ M$ before taking `% M` prevents negative modulo errors.\n2. Substring Length 0 or 1: Handled naturally as $powP[0] = 1$.\n3. Character Encoding: Mapping `'a' -> 1` (1-indexed) avoids zero-value prefix cancellation where `'a'` behaves as a leading zero.",
     },
   ],
   keyTerms: [
     {
-      term: "Prefix Hash",
-      definition: "An array where H[i] stores the rolling hash of prefix string S[0..i-1].",
+      term: "Prefix Hash Table",
+      definition:
+        "An array $H$ where $H[i]$ stores the polynomial rolling hash of prefix string $S[0..i-1]$.",
     },
     {
-      term: "Rolling Property",
+      term: "Polynomial Rolling Property",
       definition:
-        "Updating hash value when sliding a fixed-size window over text in constant time.",
+        "The mathematical structure allowing prefix hashes to be extended or subtracted in $O(1)$ time.",
+    },
+    {
+      term: "Double Hashing",
+      definition:
+        "Evaluating two independent polynomial hashes with different prime moduli to eliminate collision risk.",
     },
   ],
 };
@@ -200,7 +214,7 @@ export const stringHashing: AlgorithmDefinition<StringHashingInput> = {
   categories: ["tries_and_strings"],
   difficulty: "Medium",
   description:
-    "Compute prefix hash values in O(N) to query substring hashes in O(1) time using polynomial rolling hash and modular arithmetic.",
+    "Compute prefix hashes in $O(N)$ time to evaluate the hash value of any arbitrary substring $S[L..R]$ in $O(1)$ constant time using modular arithmetic.\n\n### Problem Statement\nGiven a text string `text` of length $N$ and a pattern string `pattern` of length $M$, find all starting indices in `text` where `pattern` occurs by using Polynomial Rolling String Hashing.\n\nThe algorithm computes an array of prefix hashes $H$ and powers of a prime base $p$ modulo $M$. Using these precomputed tables, the hash of any substring `text[L..R]` is extracted in $O(1)$ time and compared directly against `patternHash`.\n\n### Input Parameters\n- `text`: The primary search text string of length $N$.\n- `pattern`: Target query pattern string of length $M$.\n- `p`: Prime base (default: 31).\n- `mod`: Prime modulus (default: $10^9 + 7$).\n\n### Output\n- Returns an array of integers representing the starting indices of all match occurrences.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= M <= N`.\n- Strings contain lowercase ASCII characters (`'a'` to `'z'`).\n- Handle modulo overflow and negative intermediate results correctly.",
   constraints: ["1 <= text.length <= 1000", "1 <= pattern.length <= text.length"],
   examples: [
     {
