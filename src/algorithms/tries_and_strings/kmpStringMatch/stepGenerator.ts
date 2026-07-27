@@ -203,12 +203,21 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     }
   }
 
+  // LPS build complete — summary step (spec asserts on "LPS table complete")
+  addStep(
+    18,
+    "LPS table complete",
+    `The table reads [${lps.join(", ")}]. Now we scan the text once — on any mismatch this table tells us exactly where to resume in the pattern, so the text pointer never has to rewind.`,
+    { lps: lps.join(", ") },
+    "Matching",
+  );
+
   // Python line 18: p_idx, t_idx = 0, 0
   addStep(
     18,
     "Initialise search pointers",
-    `The LPS table reads [${lps.join(", ")}]. We set p_idx = 0 and t_idx = 0 to begin the single text scan.`,
-    { p_idx: 0, t_idx: 0, lps: lps.join(", ") },
+    `We set p_idx = 0 and t_idx = 0 to begin the single text scan.`,
+    { p_idx: 0, t_idx: 0 },
     "Matching",
   );
 
@@ -324,7 +333,7 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
   // Python line 32: return matches
   addStep(
     32,
-    "Return matches",
+    "Search complete — return matches",
     `We found ${matches.length} match(es) at index(es): ${matches.length > 0 ? matches.join(", ") : "None"}. One pass to learn the pattern plus one pass over the text is what makes KMP run in O(n + m).`,
     { matchesCount: matches.length, matches: matches.join(", ") },
     "Complete",

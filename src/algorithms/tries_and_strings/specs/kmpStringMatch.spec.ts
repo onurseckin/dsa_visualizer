@@ -70,7 +70,7 @@ describe("kmpStringMatch algorithm spec", () => {
       text: undefined as unknown as string,
       pattern: undefined as unknown as string,
     });
-    expect(steps1.length).toBe(2);
+    expect(steps1.length).toBe(4);
 
     const steps2 = generateKmpSteps({ text: "AAABAAAB", pattern: "AAAB" });
     const lpsStep = steps2.find((s) => s.explanation.what.includes("Fall back to length"));
