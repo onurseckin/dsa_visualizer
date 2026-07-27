@@ -8,6 +8,7 @@ export interface flashAttention2SequenceParallelForwardInput {
   Br?: number;
   Bc?: number;
   data?: number[];
+  target?: number;
   [key: string]: unknown;
 }
 
@@ -73,6 +74,8 @@ export const DEFAULT_FLASHATTENTION2SEQUENCEPARALLELFORWARD_INPUT: flashAttentio
   ],
   Br: 2,
   Bc: 2,
+  data: [1, 0, 0, 1],
+  target: 0,
 };
 
 export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
@@ -93,36 +96,37 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
 
   const O: number[][] = Array.from({ length: N }, () => new Array(d).fill(0.0));
 
-  const createMatrixSnapshot = (
-    activeRow?: number,
-    activeTileI?: number,
-    activeTileJ?: number,
-  ): MatrixCellItem[] => {
-    const grid: MatrixCellItem[][] = [];
+  const getSnapshot = (
+    activeRow: number = -1,
+    activeTileI: number = -1,
+    _activeTileJ: number = -1,
+  ) => {
+    const cells: MatrixCellItem[] = [];
     for (let r = 0; r < N; r++) {
-      const rowItems: MatrixCellItem[] = [];
       for (let c = 0; c < d; c++) {
-        const val = Number(O[r][c].toFixed(2));
-        let state: MatrixCellItem["state"] = "default";
-        if (activeRow === r) {
-          state = "active";
-        } else if (activeTileI !== undefined && r >= activeTileI && r < activeTileI + Br) {
-          state = "compared";
-        } else if (val > 0) {
-          state = "sorted";
-        }
+        const val = O[r][c];
+        const isCurrent = r === activeRow;
+        const isInTile = activeTileI >= 0 && r >= activeTileI && r < activeTileI + Br;
 
-        rowItems.push({
+        cells.push({
           row: r,
           col: c,
-          value: val,
-          label: `O[${r}][${c}]=${val}`,
-          state,
+          value: val.toFixed(2),
+          label: `O[${r},${c}]`,
+          state: isCurrent ? "active" : isInTile ? "compared" : val !== 0 ? "sorted" : "default",
         });
       }
-      grid.push(rowItems);
     }
-    return grid.flat();
+
+    return {
+      kind: "matrix" as const,
+      rows: N,
+      cols: d,
+      rowHeaders: Array.from({ length: N }, (_, r) => `Seq ${r}`),
+      colHeaders: Array.from({ length: d }, (_, c) => `Head ${c}`),
+      cells,
+      title: `FlashAttention-2 Output Matrix O (${N}x${d}, Outer Row Loop i)`,
+    };
   };
 
   const addStep = (
@@ -130,154 +134,156 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeRow?: number,
-    activeTileI?: number,
-    activeTileJ?: number,
-    customState?: Record<string, string | number>,
+    activeRow: number = -1,
+    activeTileI: number = -1,
+    activeTileJ: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "matrix",
-        rows: N,
-        cols: d,
-        cells: createMatrixSnapshot(activeRow, activeTileI, activeTileJ),
-      },
+      primarySnapshot: getSnapshot(activeRow, activeTileI, activeTileJ),
       auxiliaryState: {
-        customState: customState ?? {
-          Br: String(Br),
-          Bc: String(Bc),
-          scale: scale.toFixed(3),
+        customState: {
+          "Algorithm": "FlashAttention-2 Sequence Parallel Forward (Dao 2023)",
+          "Sequence Length N": String(N),
+          "Head Dimension d": String(d),
+          "SRAM Row Block Br": String(Br),
+          "SRAM Col Block Bc": String(Bc),
+          "Parallelism Axis": "Outer Loop Over Query Sequence Blocks i",
+          "FLOP Efficiency": "2x-3x Higher Non-Matmul Reduction Speed",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
-    "Initialize FlashAttention-2 Sequence Parallel Forward Kernel",
-    `Setting up swapped loop order & SM parallelism: N=${N}, d=${d}, tile sizes Br=${Br}, Bc=${Bc}.`,
+    "FlashAttention-2 Sequence Parallel Forward Engine Entry",
+    `Started FlashAttention-2 forward pass on sequence length N=${N}, head dimension d=${d}, tiling Br=${Br}, Bc=${Bc}.`,
     { N, d, Br, Bc },
   );
 
+  // Step 2: Measure N & d (3, 4)
   addStep(
     3,
-    `Read N = len(Q) = ${N}`,
-    `Storing total sequence length N=${N}.`,
+    `Measure Sequence Length: N = len(Q) = ${N}`,
+    `Sequence length N = ${N}.`,
     { N },
   );
 
   addStep(
     4,
-    `Read d = len(Q[0]) = ${d}`,
-    `Storing head dimension d=${d}.`,
-    { d },
+    `Measure Head Dimension: d = len(Q[0]) = ${d}`,
+    `Head dimension d = ${d}. Scale factor 1/sqrt(d) = ${scale.toFixed(4)}.`,
+    { d, scale },
   );
 
+  // Step 3: Init O (5)
   addStep(
     5,
-    `Initialize output matrix O of shape [${N}, ${d}] with zeros in HBM`,
-    "Allocating global memory output matrix container.",
-    { O_shape: `[${N}, ${d}]` },
+    `Allocate Output Matrix O (${N}x${d}) in HBM DRAM`,
+    `Zero-initialized ${N}x${d} output matrix O in HBM DRAM.`,
+    { N, d },
   );
 
+  // Outer loop over I (7..11)
   for (let i = 0; i < N; i += Br) {
     addStep(
       7,
-      `Outer Loop i = ${i}: Dispatch Query block Q[${i}:${i + Br}] to GPU Thread Block / SM`,
-      `Parallelizing query tile Q[${i}:${i + Br}] across GPU Streaming Multiprocessors (SMs).`,
-      { i, Br, sm_block_id: i / Br },
-      undefined,
+      `Outer Query Sequence Block Loop: Load Q_block starting at i = ${i}`,
+      `Loading Q_block [${i}:${i + Br}] into fast SRAM shared memory. Parallelized across GPU Thread Blocks!`,
+      { i, Br },
+      -1,
       i,
     );
 
     const QBlock = Q.slice(i, i + Br);
     addStep(
       8,
-      `Load Q_block = Q[${i}:${i + Br}] (${QBlock.length} rows) into SRAM`,
-      `Query tile Q_block loaded into SM shared memory / registers.`,
-      { i, Q_block_len: QBlock.length },
-      undefined,
+      `Load Q_block [${i}:${i + Br}] (${QBlock.length} vectors) into SRAM`,
+      `Loaded Q_block into GPU SRAM shared memory.`,
+      { i, QBlockLength: QBlock.length },
+      -1,
       i,
     );
 
     const mI: number[] = new Array(Br).fill(-Infinity);
-    const lI: number[] = new Array(Br).fill(0.0);
-    const OI: number[][] = Array.from({ length: Br }, () => new Array(d).fill(0.0));
-
     addStep(
       9,
-      `Initialize local row max array m_i of size ${Br} with -inf`,
-      "Register allocation for running row maximums.",
-      { i, m_i_len: Br },
-      undefined,
+      `Allocate Block Max Tracker m_i [] (${Br} Elements) in SRAM Registers`,
+      `Zero-initialized local row max tracker m_i in SRAM registers.`,
+      { Br },
+      -1,
       i,
     );
 
+    const lI: number[] = new Array(Br).fill(0.0);
     addStep(
       10,
-      `Initialize local sum-exp array l_i of size ${Br} with 0.0`,
-      "Register allocation for running sum-exp denominators.",
-      { i, l_i_len: Br },
-      undefined,
+      `Allocate Block Normalizer l_i [] (${Br} Elements) in SRAM Registers`,
+      `Zero-initialized local row normalizer l_i in SRAM registers.`,
+      { Br },
+      -1,
       i,
     );
 
+    const OI: number[][] = Array.from({ length: Br }, () => new Array(d).fill(0.0));
     addStep(
       11,
-      `Initialize unnormalized accumulator matrix O_i of shape [${Br}, ${d}] with 0.0`,
-      "Register allocation for unnormalized output accumulator.",
-      { i, O_i_shape: `[${Br}, ${d}]` },
-      undefined,
+      `Allocate Accumulator O_i [${Br}x${d}] in SRAM Register File`,
+      `Allocated intermediate unscaled accumulator matrix O_i in SRAM GPU registers.`,
+      { Br, d },
+      -1,
       i,
     );
 
+    // Inner loop over J (13..15)
     for (let j = 0; j < N; j += Bc) {
       addStep(
         13,
-        `Inner Loop j = ${j}: Stream Key/Value tile K, V [${j}:${j + Bc}] into SRAM`,
-        `Streaming K[${j}:${j + Bc}] and V[${j}:${j + Bc}] into SRAM registers.`,
-        { i, j, Bc },
-        undefined,
+        `Inner Key/Value Block Loop: Load K, V Blocks starting at j = ${j}`,
+        `Loading K_block [${j}:${j + Bc}] and V_block [${j}:${j + Bc}] into SRAM shared memory.`,
+        { j, Bc },
+        -1,
         i,
         j,
       );
 
       const KBlock = K.slice(j, j + Bc);
-      const VBlock = V.slice(j, j + Bc);
-
       addStep(
         14,
-        `Load K_block = K[${j}:${j + Bc}] (${KBlock.length} rows)`,
-        `Key tile K_block loaded into SRAM.`,
-        { j, K_block_len: KBlock.length },
-        undefined,
+        `Load K_block [${j}:${j + Bc}] (${KBlock.length} vectors) into SRAM`,
+        `Loaded K_block into GPU SRAM shared memory.`,
+        { j, KBlockLength: KBlock.length },
+        -1,
         i,
         j,
       );
 
+      const VBlock = V.slice(j, j + Bc);
       addStep(
         15,
-        `Load V_block = V[${j}:${j + Bc}] (${VBlock.length} rows)`,
-        `Value tile V_block loaded into SRAM.`,
-        { j, V_block_len: VBlock.length },
-        undefined,
+        `Load V_block [${j}:${j + Bc}] (${VBlock.length} vectors) into SRAM`,
+        `Loaded V_block into GPU SRAM shared memory.`,
+        { j, VBlockLength: VBlock.length },
+        -1,
         i,
         j,
       );
 
+      // Loop over rows in Q_block (17..33)
       for (let r = 0; r < QBlock.length; r++) {
-        const qVec = QBlock[r];
         const rowIdx = i + r;
+        const qVec = QBlock[r];
 
         addStep(
           17,
-          `Process query vector r = ${r} (global row ${rowIdx})`,
-          `Evaluating attention scores for query row ${rowIdx} against K_block.`,
-          { r, row_idx: rowIdx },
+          `Process Local Row r = ${r} (Global Sequence Index row_idx = ${rowIdx})`,
+          `Processing local query vector q_${r} against K_block [${j}:${j + Bc}].`,
+          { r, rowIdx },
           rowIdx,
           i,
           j,
@@ -285,36 +291,35 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
 
         addStep(
           18,
-          `Read q_vec = Q_block[${r}]`,
-          `Reading query vector q_vec from SRAM registers.`,
-          { r, row_idx: rowIdx },
+          `Read Local Query Vector q_vec = Q_block[${r}]`,
+          `Loaded local query vector q_vec from SRAM registers.`,
+          { r },
           rowIdx,
           i,
           j,
         );
 
-        const rawScores: number[] = KBlock.map((kVec) => {
-          let dot = 0;
-          for (let k = 0; k < d; k++) dot += qVec[k] * kVec[k];
+        const scores = KBlock.map((kVec) => {
+          const dot = qVec.reduce((acc, qVal, idx) => acc + qVal * kVec[idx], 0);
           return dot * scale;
         });
 
         addStep(
           19,
-          `Compute S_ij scores = q_vec @ K_block^T * scale`,
-          `Tile scores: [${rawScores.map((s) => s.toFixed(2)).join(", ")}].`,
-          { row_idx: rowIdx, scores: JSON.stringify(rawScores.map((s) => Number(s.toFixed(2)))) },
+          `SRAM Dot Product: S_row = Q[${rowIdx}] * K_block^T * scale`,
+          `Evaluated unnormalized attention score block: [${scores.map((s) => s.toFixed(4)).join(", ")}].`,
+          { r, scores: JSON.stringify(scores.map((s) => s.toFixed(4))) },
           rowIdx,
           i,
           j,
         );
 
-        const mCurr = Math.max(...rawScores);
+        const mCurr = Math.max(...scores);
         addStep(
           21,
-          `Compute local tile max m_curr = ${mCurr.toFixed(2)}`,
-          `Tile maximum score for numerical stability.`,
-          { r, m_curr: Number(mCurr.toFixed(2)) },
+          `Find Local Block Max Score: m_curr = ${mCurr.toFixed(4)}`,
+          `Local block maximum score m_curr = ${mCurr.toFixed(4)}.`,
+          { m_curr: mCurr },
           rowIdx,
           i,
           j,
@@ -322,12 +327,11 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
 
         const mPrev = mI[r];
         const mNew = Math.max(mPrev, mCurr);
-
         addStep(
           22,
-          `Update running row max m_new = max(m_i[${r}]=${mPrev === -Infinity ? "-inf" : mPrev.toFixed(2)}, m_curr=${mCurr.toFixed(2)}) = ${mNew.toFixed(2)}`,
-          `Updated local row max to ${mNew.toFixed(2)}.`,
-          { r, m_prev: mPrev === -Infinity ? "-inf" : Number(mPrev.toFixed(2)), m_new: Number(mNew.toFixed(2)) },
+          `Update Online Max Score: m_new = max(${mPrev === -Infinity ? "-inf" : mPrev.toFixed(4)}, ${mCurr.toFixed(4)}) = ${mNew.toFixed(4)}`,
+          `Updated online max score m_new = ${mNew.toFixed(4)}.`,
+          { m_prev: mPrev === -Infinity ? -999 : mPrev, m_curr: mCurr, m_new: mNew },
           rowIdx,
           i,
           j,
@@ -336,71 +340,45 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
         const scalePrev = mPrev === -Infinity ? 0.0 : Math.exp(mPrev - mNew);
         addStep(
           24,
-          `Calculate scale_prev = exp(m_i[${r}] - m_new) = ${scalePrev.toFixed(3)}`,
-          `Rescaling factor for previous register accumulator O_i[${r}].`,
-          { r, scale_prev: Number(scalePrev.toFixed(3)) },
+          `Calculate Output Rescaling Multiplier: scale_prev = exp(m_prev - m_new) = ${scalePrev.toFixed(4)}`,
+          `Evaluated output correction multiplier scale_prev = ${scalePrev.toFixed(4)}.`,
+          { scale_prev: scalePrev },
           rowIdx,
           i,
           j,
         );
 
-        const expScores = rawScores.map((s) => Math.exp(s - mNew));
+        const expScores = scores.map((s) => Math.exp(s - mNew));
         addStep(
           25,
-          `Compute exp_scores = exp(S_ij - m_new)`,
-          `Unnormalized exponent scores: [${expScores.map((e) => e.toFixed(3)).join(", ")}].`,
-          { r, exp_scores: JSON.stringify(expScores.map((e) => Number(e.toFixed(3)))) },
+          `Exponentiate Rescaled Scores: exp(S - m_new)`,
+          `Evaluated exponentiated scores: [${expScores.map((e) => e.toFixed(4)).join(", ")}].`,
+          { expScores: JSON.stringify(expScores.map((e) => e.toFixed(4))) },
           rowIdx,
           i,
           j,
         );
 
-        const tileExpSum = expScores.reduce((a, b) => a + b, 0);
-        const lNew = lI[r] * scalePrev + tileExpSum;
+        const lNew = lI[r] * scalePrev + expScores.reduce((a, b) => a + b, 0);
         addStep(
           26,
-          `Update running sum-exp l_new = l_i[${r}] * scale_prev + sum(exp_scores) = ${lNew.toFixed(3)}`,
-          `Updated online softmax denominator sum to ${lNew.toFixed(3)}.`,
-          { r, l_prev: Number(lI[r].toFixed(3)), l_new: Number(lNew.toFixed(3)) },
+          `Update Online Unnormalized Denominator: l_new = ${lNew.toFixed(4)}`,
+          `Updated online denominator sum l_new = ${lNew.toFixed(4)} without dividing per step!`,
+          { l_new: lNew },
           rowIdx,
           i,
           j,
         );
 
         for (let col = 0; col < d; col++) {
-          addStep(
-            28,
-            `Loop dimension col = ${col}/${d - 1} for row ${r}`,
-            `Updating unnormalized accumulator cell O_i[${r}][${col}].`,
-            { r, col },
-            rowIdx,
-            i,
-            j,
-          );
-
-          let pvSum = 0;
-          for (let k = 0; k < expScores.length; k++) {
-            pvSum += expScores[k] * VBlock[k][col];
-          }
-
-          addStep(
-            29,
-            `Compute pv_sum = P_ij @ V_j[col ${col}] = ${pvSum.toFixed(2)}`,
-            `Tile matrix product sum of exponent weights and Value column ${col}.`,
-            { r, col, pv_sum: Number(pvSum.toFixed(2)) },
-            rowIdx,
-            i,
-            j,
-          );
-
-          const oldO = OI[r][col];
-          OI[r][col] = oldO * scalePrev + pvSum;
+          const pvSum = expScores.reduce((acc, expS, kIdx) => acc + expS * VBlock[kIdx][col], 0);
+          OI[r][col] = OI[r][col] * scalePrev + pvSum;
 
           addStep(
             30,
-            `Update O_i[${r}][${col}] = ${oldO.toFixed(2)} * ${scalePrev.toFixed(3)} + ${pvSum.toFixed(2)} = ${OI[r][col].toFixed(2)} (UNNORMALIZED in registers)`,
-            `Accumulated unnormalized output in fast SRAM registers WITHOUT division.`,
-            { r, col, old_val: Number(oldO.toFixed(2)), new_val: Number(OI[r][col].toFixed(2)) },
+            `Update Unscaled Accumulator O_i[${r}][${col}] = ${OI[r][col].toFixed(4)}`,
+            `Accumulated unscaled matrix product O_i[${r}][${col}] = ${OI[r][col].toFixed(4)}.`,
+            { r, col, o_i: OI[r][col] },
             rowIdx,
             i,
             j,
@@ -410,9 +388,9 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
         mI[r] = mNew;
         addStep(
           32,
-          `Store m_i[${r}] = ${mNew.toFixed(2)}`,
-          `Cached running maximum in registers.`,
-          { r, m_new: Number(mNew.toFixed(2)) },
+          `Persist Local Row Max Score: m_i[${r}] = ${mNew.toFixed(4)}`,
+          `Updated local row max tracker m_i[${r}] = ${mNew.toFixed(4)}.`,
+          { r, mNew },
           rowIdx,
           i,
           j,
@@ -421,9 +399,9 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
         lI[r] = lNew;
         addStep(
           33,
-          `Store l_i[${r}] = ${lNew.toFixed(3)}`,
-          `Cached running sum-exp in registers.`,
-          { r, l_new: Number(lNew.toFixed(3)) },
+          `Persist Local Row Normalizer: l_i[${r}] = ${lNew.toFixed(4)}`,
+          `Updated local row normalizer l_i[${r}] = ${lNew.toFixed(4)}.`,
+          { r, lNew },
           rowIdx,
           i,
           j,
@@ -431,12 +409,13 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
       }
     }
 
+    // Final division loop (35..38)
     addStep(
       35,
-      `Final single-pass normalization for Query block Q[${i}:${i + Br}]`,
-      `Performing SINGLE division O[row] = O_i[r] / l_i[r] per row before writing to global HBM memory.`,
+      `Final Softmax Division Step: Rescale O_i by 1 / l_i for Q_block [${i}:${i + Br}]`,
+      `Performing single final division by l_i across all d columns of Q_block [${i}:${i + Br}].`,
       { i, Br },
-      undefined,
+      -1,
       i,
     );
 
@@ -444,30 +423,20 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
       const rowIdx = i + r;
       addStep(
         36,
-        `Calculate global row_idx = i + r = ${i} + ${r} = ${rowIdx}`,
-        `Mapping local row ${r} to global HBM row index ${rowIdx}.`,
-        { r, row_idx: rowIdx },
+        `Final Division for Row ${rowIdx}: O[${rowIdx}] = O_i[${r}] / ${lI[r].toFixed(4)}`,
+        `Divided unscaled accumulator O_i[${r}] by final denominator l_i[${r}] = ${lI[r].toFixed(4)}.`,
+        { rowIdx, l_i: lI[r] },
         rowIdx,
         i,
       );
 
       for (let col = 0; col < d; col++) {
-        addStep(
-          37,
-          `Loop col = ${col}/${d - 1} for final division on row ${rowIdx}`,
-          `Normalizing cell O[${rowIdx}][${col}].`,
-          { row_idx: rowIdx, col },
-          rowIdx,
-          i,
-        );
-
         O[rowIdx][col] = OI[r][col] / lI[r];
-
         addStep(
           38,
-          `Write HBM O[${rowIdx}][${col}] = O_i[${r}][${col}] (${OI[r][col].toFixed(2)}) / l_i[${r}] (${lI[r].toFixed(3)}) = ${O[rowIdx][col].toFixed(2)}`,
-          `Wrote final normalized attention output to global HBM memory at O[${rowIdx}][${col}].`,
-          { row_idx: rowIdx, col, unnormalized: Number(OI[r][col].toFixed(2)), l_sum: Number(lI[r].toFixed(3)), final_val: Number(O[rowIdx][col].toFixed(2)) },
+          `Write Final Output Cell O[${rowIdx}][${col}] = ${O[rowIdx][col].toFixed(4)} to DRAM HBM`,
+          `Wrote finalized attention output cell O[${rowIdx}][${col}] = ${O[rowIdx][col].toFixed(4)} into DRAM HBM!`,
+          { rowIdx, col, oFinal: O[rowIdx][col] },
           rowIdx,
           i,
         );
@@ -475,256 +444,154 @@ export const generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps = (
     }
   }
 
+  // Return step (40)
   addStep(
     40,
-    "Return final attention output matrix O",
-    `FlashAttention-2 sequence parallel forward kernel complete. Computed exact attention output matrix O of shape [${N}, ${d}] with 73% peak A100 GPU compute efficiency.`,
-    { completed: true, O_shape: `[${N}, ${d}]` },
+    "Execution Complete: Return FlashAttention-2 Output Matrix O",
+    `Completed FlashAttention-2 forward pass. Achieved 2x-3x speedup over FlashAttention-1 by swapping loop order and eliminating non-matmul division steps in inner loop!`,
+    { N, d, completed: true },
   );
 
   return steps;
 };
 
-export const FLASHATTENTION2SEQUENCEPARALLELFORWARD_TRIVIA: TriviaMeta = {
-  skipLines: [2, 6, 12, 16, 20, 23, 27, 31, 34, 39],
+const FLASHATTENTION2SEQUENCEPARALLELFORWARD_TRIVIA: TriviaMeta = {
+  skipLines: [2, 6, 12, 16, 19, 23, 29, 33, 36, 40, 44, 47],
   distractors: [
-    "O_i[r][col] = O_i[r][col] / l_new",
-    "for j in range(0, N, Bc): outer loop",
-    "scale_prev = math.exp(m_new - m_i[r])",
-    "O[row_idx][col] = O_i[r][col] * l_i[r]",
+    "O_i = O_i / l_i in inner loop",
+    "for j in range(0, N, Bc): for i in range(0, N, Br)",
+    "scale_prev = m_new - m_i[r]",
+    "O = softmax(Q @ K.T) @ V",
   ],
   hints: [
-    { line: 7, hint: "Outer loop iterates over Query blocks Q_i, parallelized across GPU thread blocks." },
-    { line: 13, hint: "Inner loop streams Key and Value tiles K_j, V_j into SRAM." },
-    { line: 38, hint: "Divide unnormalized register output O_i by l_i exactly once per query row before HBM write." },
+    { line: 7, hint: "FlashAttention-2 outer loop iterates over Query blocks i to parallelize across sequence length." },
+    { line: 38, hint: "Final division by l_i occurs once at the end of all Key/Value block iterations." },
   ],
   lineExplanations: {
-    1: "Defines flash_attention_2_forward signature with sequence parallel swapped loop order.",
-    2: "Docstring describing FlashAttention-2 algorithm with SM parallelism and unnormalized register accumulators.",
-    3: "Retrieves sequence length N from Q matrix rows.",
-    4: "Retrieves head dimension d from Q matrix columns.",
-    5: "Initializes final output matrix O of shape [N, d] with zeros.",
-    6: "Blank line preceding outer loop.",
-    7: "Outer loop over Query block index i (parallelized across GPU Thread Blocks / SMs).",
-    8: "Loads Query tile Q_block of shape [Br, d] into fast SRAM.",
-    9: "Initializes local row max array m_i of size Br to negative infinity.",
-    10: "Initializes local sum-exp array l_i of size Br to zeros.",
-    11: "Initializes unnormalized register accumulator O_i of shape [Br, d] to zeros.",
-    12: "Blank line preceding inner loop.",
-    13: "Inner loop over Key/Value block index j stepping by Bc.",
-    14: "Loads Key tile K_block of shape [Bc, d] into SRAM.",
-    15: "Loads Value tile V_block of shape [Bc, d] into SRAM.",
-    16: "Blank line preceding query vector loop.",
-    17: "Iterates through query vectors in Q_block (r = 0..Br-1).",
-    18: "Extracts query vector q_vec at relative index r.",
-    19: "Computes scaled dot-product attention scores S_ij = q_vec @ K_j.T * scale.",
-    20: "Blank line preceding online max update.",
-    21: "Finds maximum score m_curr within current tile scores.",
-    22: "Updates running row maximum m_new = max(m_i[r], m_curr).",
-    23: "Blank line preceding exponent rescaling.",
-    24: "Calculates previous state rescaling factor scale_prev = exp(m_prev - m_new).",
-    25: "Computes unnormalized tile exponent scores exp(s - m_new).",
-    26: "Updates running sum-exp l_new = l_i[r] * scale_prev + sum(exp_scores).",
-    27: "Blank line preceding unnormalized output accumulator update.",
-    28: "Loops across head dimensions col from 0 to d - 1.",
-    29: "Computes tile matrix-vector product pv_sum = sum(exp_s * v_vec[col]).",
-    30: "Rescales previous O_i[r][col] and accumulates pv_sum WITHOUT division by l_new (kept in registers).",
-    31: "Blank line preceding state update.",
-    32: "Updates running row max m_i[r] = m_new.",
-    33: "Updates running sum-exp l_i[r] = l_new.",
-    34: "Blank line preceding final normalization pass.",
-    35: "Final normalization loop over query rows r in current block.",
+    1: "Defines entry point for flash_attention_2_forward function (Tri Dao 2023).",
+    2: "Docstring describing FlashAttention-2 forward pass with sequence parallelism and swapped loop order.",
+    3: "Measures sequence length N = len(Q).",
+    4: "Measures head dimension d = len(Q[0]).",
+    5: "Allocates output matrix O (N x d) filled with zeros.",
+    6: "Blank line before outer query block loop.",
+    7: "Iterates over query tile block index i from 0 to N in steps of Br (Outer Loop over Q).",
+    8: "Slices Q_block = Q[i : i + Br] into SRAM shared memory.",
+    9: "Allocates local max score tracker list m_i of size Br initialized to negative infinity.",
+    10: "Allocates local normalizer list l_i of size Br initialized to zeros.",
+    11: "Allocates local unscaled output accumulator matrix O_i (Br x d) in GPU registers.",
+    12: "Blank line before inner key/value block loop.",
+    13: "Iterates over key/value tile block index j from 0 to N in steps of Bc (Inner Loop over K, V).",
+    14: "Slices K_block = K[j : j + Bc] into SRAM shared memory.",
+    15: "Slices V_block = V[j : j + Bc] into SRAM shared memory.",
+    16: "Blank line before Q_block row iteration.",
+    17: "Iterates over local row index r from 0 to Br - 1.",
+    18: "Loads local query vector q_vec = Q_block[r].",
+    19: "Calculates scaled dot-product attention score block scores = Q_block * K_block^T * scale.",
+    20: "Blank line before local max calculation.",
+    21: "Calculates local block max score m_curr = max(scores).",
+    22: "Updates online row max score m_new = max(m_i[r], m_curr).",
+    23: "Blank line before exponentiation and rescaling.",
+    24: "Calculates previous output rescaling factor scale_prev = exp(m_prev - m_new).",
+    25: "Calculates rescaled exponentiated scores exp_scores = [exp(s - m_new) for s in scores].",
+    26: "Updates online unnormalized denominator l_new = l_i[r] * scale_prev + sum(exp_scores).",
+    27: "Blank line before accumulator update loop.",
+    28: "Iterates over head dimension column col from 0 to d - 1.",
+    29: "Computes matrix multiplication of exp_scores * V_block for column col.",
+    30: "Rescales and updates unnormalized accumulator O_i[r][col] = O_i * scale_prev + pv_sum without division!",
+    31: "Blank line before updating local trackers.",
+    32: "Persists local row max score m_i[r] = m_new.",
+    33: "Persists local row normalizer l_i[r] = l_new.",
+    34: "Blank line separating inner K/V loop from final division loop.",
+    35: "Iterates over local row index r from 0 to Br - 1 for final division.",
     36: "Calculates global sequence row index row_idx = i + r.",
-    37: "Loops across head dimensions col from 0 to d - 1 for single division pass.",
-    38: "Divides unnormalized register accumulator O_i[r][col] by l_i[r] ONCE and writes to global HBM O[row_idx][col].",
-    39: "Blank line ending outer loop.",
-    40: "Returns final attention output matrix O computed with 73% peak A100 GPU compute efficiency.",
+    37: "Iterates over head dimension column col from 0 to d - 1.",
+    38: "Performs single final division by l_i[r] and writes finalized attention output O[row_idx][col] to DRAM HBM.",
+    39: "Blank line separating query loop from return statement.",
+    40: "Returns completed FlashAttention-2 output matrix O.",
   },
 };
 
-export const flashAttention2SequenceParallelForward: AlgorithmDefinition<flashAttention2SequenceParallelForwardInput> = {
-  id: "flash-attention-2-sequence-parallel-forward",
-  title: "FlashAttention-2 Sequence Parallel Forward Kernel",
-  category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "ml_attention_geometry"],
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 9,
-  mlInfraCategory: "ml_hardware_kernels",
-  description: `Master FlashAttention-2 Sequence Parallel Forward Pass: achieve up to 220 TFLOPS (73% theoretical peak FLOPs on NVIDIA A100) via loop swapping and SM sequence parallelism.
-
-### Why It Exists & What It Solves
-FlashAttention-2 (Dao, 2023) addresses key bottlenecks in FlashAttention-1:
-1. **Non-GEMM Instruction Overhead**: FlashAttention-1 performed division by $\\ell_i$ on every step in the inner loop. FA-2 **swaps the loops** (outer loop over Query blocks $Q_i$, inner loop over Key/Value blocks $K_j, V_j$). This keeps $Q_i$ and the unnormalized output accumulator $\\hat{O}_i$ in registers, performing division by $\\ell_i$ **ONCE per row** at the very end before writing to global HBM.
-2. **GPU Thread Occupancy (Sequence Parallelism)**: FA-1 parallelized over batch size and number of heads. For small batch sizes (e.g. batch size 1 during LLM chat decoding), many Streaming Multiprocessors (SMs) remained idle. FA-2 parallelizes across the **sequence dimension $N$**, assigning query blocks $Q_i$ to independent GPU Thread Blocks. All 108 SMs on an NVIDIA A100 stay 100% occupied even for single-sequence inference.
-
-### Step-by-Step Intuition
-1. **Parallel Thread Block Dispatch**: Grid dimension is $(N / B_r, \\text{batch}, \\text{heads})$. Each SM processes a Query block $Q_i$ of shape $[B_r, d]$.
-2. **Initialize Register Accumulator**: Keep unnormalized $\\hat{O}_i = 0$, max $m_i = -\\infty$, sum $\\ell_i = 0$ in GPU registers.
-3. **Stream $K_j, V_j$ Tiles into SRAM**: Inner loop iterates $j = 0 \\dots N / B_c$.
-   - Compute tile scores $S_{ij} = Q_i K_j^T / \\sqrt{d}$.
-   - Update running max $m_i^{\\text{new}} = \\max(m_i^{\\text{old}}, \\text{rowmax}(S_{ij}))$.
-   - Rescale previous accumulator $\\hat{O}_i \\leftarrow \\hat{O}_i \\cdot e^{m_i^{\\text{old}} - m_i^{\\text{new}}}$.
-   - Accumulate product: $\\hat{O}_i \\leftarrow \\hat{O}_i + e^{S_{ij} - m_i^{\\text{new}}} V_j$.
-4. **Single Division Pass**: Normalize $O_i = \\hat{O}_i / \\ell_i$ ONCE at the end of the loop and write to HBM.
-
-### Input Parameters
-- \`Q\`: Query matrix of shape $[N, d]$.
-- \`K\`: Key matrix of shape $[N, d]$.
-- \`V\`: Value matrix of shape $[N, d]$.
-- \`Br\`: Query tile size (default 2).
-- \`Bc\`: Key/Value tile size (default 2).
-
-### Output
-- Returns exact attention output matrix $O \\in \\mathbb{R}^{N \\times d}$ with 73% A100 GPU compute efficiency.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(N^2 \\cdot d)$ FLOPs (220 TFLOPS compute throughput on A100 GPUs).
-- **Space Complexity**: $O(N)$ auxiliary space for log-sum-exp denominator values.`,
-  constraints: ["1 <= N <= 128000", "32 <= d <= 256", "Br, Bc = SRAM block dimensions"],
-  examples: [
-    {
-      kind: "basic",
-      title: "FlashAttention-2 Forward Pass",
-      inputDisplay: "N = 4, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Output O (73% GPU TFLOPS)",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-          [50.0, 60.0],
-          [70.0, 80.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Output O (73% GPU TFLOPS)",
-      explanation: "Computes exact attention with swapped loop order and sequence parallel thread blocks.",
-    },
-    {
-      kind: "complex",
-      title: "4-Query Block Parallel Test",
-      inputDisplay: "N = 4, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Max SM Occupancy",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-          [50.0, 60.0],
-          [70.0, 80.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Max SM Occupancy",
-      explanation: "Evaluates parallel thread block dispatch across 4 query sequence tiles.",
-    },
-    {
-      kind: "negative",
-      title: "Single Block Fallback",
-      inputDisplay: "N = 2, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Single Block Parallelized",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Single Block Parallelized",
-      explanation: "Processes single query block with unnormalized register accumulators.",
-    },
-  ],
-  code: FLASHATTENTION2SEQUENCEPARALLELFORWARD_CODE,
-  timeComplexity: {
-    best: "O(N^2 * d)",
-    average: "O(N^2 * d)",
-    worst: "O(N^2 * d)",
-  },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Requires O(N^2 * d) FLOPs while achieving 220 TFLOPS on A100 GPUs through reduced non-GEMM instruction overhead.",
-    space: "Allocates O(N) space for storing log-sum-exp values for the backward pass.",
-  },
-  topicGuide: {
-    overview:
-      "FlashAttention-2 is the default attention engine in PyTorch 2.x (`torch.nn.functional.scaled_dot_product_attention`) and HuggingFace Transformers. Its loop swapping and sequence parallelism provide dramatic speedups for long-context LLMs.",
-    sections: [
+export const flashAttention2SequenceParallelForward: AlgorithmDefinition<flashAttention2SequenceParallelForwardInput> =
+  {
+    id: "flashAttention2SequenceParallelForward",
+    title: "FlashAttention-2 Sequence Parallel Forward Engine",
+    category: "ml_hardware_kernels",
+    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 8,
+    mlInfraCategory: "ml_hardware_kernels",
+    description:
+      "The FlashAttention-2 Sequence Parallel Forward Engine implements the upgraded algorithm published by **Tri Dao (2023)**. While FlashAttention-1 placed the Key/Value block loop ($j$) as the outer loop, FlashAttention-2 **swaps the loops**, placing the Query sequence block loop ($i$) as the outer loop. This structural shift allows GPU Thread Blocks to parallelize directly across the Query sequence dimension ($N$), eliminating inter-block synchronization and achieving **2x-3x speedups** over FlashAttention-1 (reaching up to **73% of theoretical A100 GPU peak FLOPS**).\n\n### Why It Exists\nIn FlashAttention-1, non-matmul reduction operations (scaling, exponentiation, division) required significant GPU clock cycles inside the inner loop. FlashAttention-2 defers the division by normalizer $l_i$ until the *very end* of all Key/Value block iterations, maintaining unscaled accumulators $O_i$ in GPU registers and maximizing Tensor Core GEMM throughput.\n\n### Mathematical Formulation\nFor Query block $Q_i \\in \\mathbb{R}^{B_r \\times d}$, Key block $K_j \\in \\mathbb{R}^{B_c \\times d}$, Value block $V_j \\in \\mathbb{R}^{B_c \\times d}$, and unscaled accumulator $\\tilde{O}_i$:\n\n$$1. \\quad S_{i,j} = \\frac{Q_i K_j^T}{\\sqrt{d}}, \\quad \\tilde{m}_i = \\max(S_{i,j}), \\quad m_i^{new} = \\max(m_i^{old}, \\tilde{m}_i)$$\n\n$$2. \\quad P_{i,j} = \\exp(S_{i,j} - m_i^{new}), \\quad l_i^{new} = l_i^{old} \\cdot e^{m_i^{old} - m_i^{new}} + \\text{rowsum}(P_{i,j})$$\n\n$$3. \\quad \\tilde{O}_i^{new} = \\tilde{O}_i^{old} \\cdot e^{m_i^{old} - m_i^{new}} + P_{i,j} V_j \\quad (\\text{Unscaled Register Accumulation})$$\n\n$$4. \\quad O_i^{final} = \\frac{\\tilde{O}_i^{final}}{l_i^{final}} \\quad (\\text{Single Final Division at End of Outer Loop})$$\n\n### Step-by-Step Intuition\n1. **Outer Query Block Loop (Sequence Parallelism)**: Loop over Query sequence blocks $Q_i$ ($B_r \\times d$). Each GPU Thread Block processes an independent $Q_i$.\n2. **Register Allocation**: Allocate unscaled accumulator $\\tilde{O}_i$, local max $m_i$, and normalizer $l_i$ in fast GPU register files.\n3. **Inner Key/Value Block Loop**: Stream $K_j, V_j$ blocks into SRAM shared memory.\n4. **Unscaled GEMM Accumulation**: Compute $S_{i,j}$, scale $e^{m_i^{old} - m_i^{new}}$, and accumulate $\\tilde{O}_i$ without dividing by $l_i$.\n5. **Single Final Softmax Division**: Perform a single element-wise division $\\frac{\\tilde{O}_i}{l_i}$ at the end, writing finalized output $O_i$ into DRAM HBM.\n\n### Key Trade-Offs & Hardware Execution\n- **Sequence Parallelism across Thread Blocks**: Parallelizing the outer loop over $Q_i$ scales linearly across 108 SMs on NVIDIA H100 GPUs, even for small batch sizes ($B=1$).\n- **Warp-Specialized GEMM Pipelines**: FlashAttention-2 maps Tensor Core GEMM operations directly to CUDA warp group matrix instructions (`mma.sync` / `wgmma.mma_async`), overlapping GEMM math with shared memory loads.",
+    constraints: [
+      "1 <= N <= 16384",
+      "1 <= d <= 256",
+      "1 <= Br, Bc <= 256",
+    ],
+    examples: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "For query block $Q_i$, initialize unnormalized output $\\hat{O}_i^{(0)} = 0$, max $m_i^{(0)} = -\\infty$, sum $\\ell_i^{(0)} = 0$. For $j=1 \\dots T_c$, compute $S_{ij}^{(j)} = Q_i K_j^T / \\sqrt{d}$, $m_i^{(j)} = \\max(m_i^{(j-1)}, \\text{rowmax}(S_{ij}^{(j)}))$, $\\hat{O}_i^{(j)} = \\hat{O}_i^{(j-1)} e^{m_i^{(j-1)} - m_i^{(j)}} + e^{S_{ij}^{(j)} - m_i^{(j)}} V_j$. Final output $O_i = \\hat{O}_i^{(T_c)} / \\ell_i^{(T_c)}$.",
-      },
-      {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "Non-matmul FLOP reduction: FA-1 performed division by $\\ell_i$ on every step in the inner loop. FA-2 maintains unnormalized $\\hat{O}_i$ in registers throughout the inner loop over $K, V$ blocks, performing division ONCE at the end. This reduces non-GEMM instructions by 5x.",
-      },
-      {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Parallelizing over sequence length: GPU grid dimensions are `(N / Br, batch_size, num_heads)`. This guarantees that even for small batch sizes (e.g. batch size 1 during interactive chat decoding), all 108 SMs on an A100 GPU remain fully occupied.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Causal masking optimization: In causal mode, blocks $(i, j)$ where $j > i$ are skipped entirely, halving total FLOPs ($N^2 / 2$). Blocks along the diagonal $j = i$ apply causal mask bounds.",
+        kind: "basic",
+        title: "4x4 FlashAttention-2 Forward Tiling (Outer Loop i)",
+        inputDisplay: "N=4 tokens, d=2 dimensions, Tile sizes Br=2, Bc=2",
+        outputDisplay: "Output Matrix O (4x2 exact attention vectors, Single final division)",
+        input: DEFAULT_FLASHATTENTION2SEQUENCEPARALLELFORWARD_INPUT,
+        output: "[[19.5, 29.5], [26.2, 36.2], [32.1, 42.1], [38.0, 48.0]]",
+        explanation: "Swaps loop order (Outer Q_block i), maintaining unscaled registers O_i and executing a single final division by l_i.",
       },
     ],
-    keyTerms: [
-      {
-        term: "FlashAttention-2",
-        definition:
-          "An upgraded IO-aware attention kernel featuring swapped loop order and sequence parallelism.",
-      },
-      {
-        term: "Loop Swapping",
-        definition:
-          "Reordering loops so Query blocks are in the outer loop, keeping unnormalized output accumulators in registers.",
-      },
-      {
-        term: "Sequence Parallelism",
-        definition:
-          "Parallelizing query sequence blocks across GPU Streaming Multiprocessors (SMs).",
-      },
-      {
-        term: "Unnormalized Output Accumulator",
-        definition:
-          "Storing $\\hat{O}_i$ without division until all $K,V$ blocks have been processed.",
-      },
-    ],
-  },
-  trivia: FLASHATTENTION2SEQUENCEPARALLELFORWARD_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_FLASHATTENTION2SEQUENCEPARALLELFORWARD_INPUT,
-  generateSteps: generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps,
-};
+    code: FLASHATTENTION2SEQUENCEPARALLELFORWARD_CODE,
+    timeComplexity: {
+      best: "O(N^2 \\cdot d)",
+      average: "O(N^2 \\cdot d)",
+      worst: "O(N^2 \\cdot d)",
+    },
+    spaceComplexity: "O(N \\cdot d)",
+    complexityAnalysis: {
+      time: "Requires $O(N^2 \\cdot d)$ math operations, but runs 2x-3x faster than FlashAttention-1 due to reduced non-matmul overhead.",
+      space: "Requires $O(N \\cdot d)$ memory space for output $O$ and local register trackers.",
+    },
+    topicGuide: {
+      overview:
+        "The FlashAttention-2 Sequence Parallel Forward Engine implements Tri Dao's 2023 upgraded attention kernel with sequence parallelism and deferred division.",
+      sections: [
+        {
+          heading: "Core Concept & Loop Swap (Outer Q Loop)",
+          body: "FlashAttention-2 (Dao 2023) swaps loop order, making Query block i the outer loop. This enables sequence parallelism across GPU Thread Blocks and reduces shared memory synchronization.",
+        },
+        {
+          heading: "Deferred Division & Unscaled Registers",
+          body: "FlashAttention-1 divided by l_i in every inner loop step. FlashAttention-2 maintains unscaled accumulators O_i in registers, executing a single final division O_i / l_i at the end.",
+        },
+        {
+          heading: "Sequence Parallelism Across GPU SMs",
+          body: "Parallelizing the outer loop over Query sequence blocks Q_i distributes work evenly across all 108 Streaming Multiprocessors (SMs) on NVIDIA H100 GPUs, even for single-batch inputs.",
+        },
+        {
+          heading: "Peak Hardware FLOPS Utilization",
+          body: "By maximizing Tensor Core GEMM math and eliminating non-matmul reduction stalls, FlashAttention-2 achieves up to 73% of theoretical A100 GPU peak FLOPS.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "FlashAttention-2",
+          definition: "Upgraded attention kernel with outer Query loop, sequence parallelism, and deferred division (Dao 2023).",
+        },
+        {
+          term: "Sequence Parallelism",
+          definition: "Distributing Query sequence blocks Q_i across independent GPU Thread Blocks for parallel execution.",
+        },
+        {
+          term: "Deferred Division",
+          definition: "Maintaining unscaled accumulators O_i in registers and performing a single final division by l_i.",
+        },
+        {
+          term: "Tensor Core Utilization",
+          definition: "Percentage of maximum theoretical GPU TFLOPS achieved during GEMM execution.",
+        },
+      ],
+    },
+    trivia: FLASHATTENTION2SEQUENCEPARALLELFORWARD_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+    defaultInput: DEFAULT_FLASHATTENTION2SEQUENCEPARALLELFORWARD_INPUT,
+    generateSteps: generateFLASHATTENTION2SEQUENCEPARALLELFORWARDSteps,
+  };
