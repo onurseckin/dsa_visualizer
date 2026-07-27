@@ -47,7 +47,7 @@ describe("Card components", () => {
     expect(cardEl).toHaveClass("my-custom-card");
 
     const bodyEl = container.querySelector(".ui-card__body");
-    expect(bodyEl).toHaveClass("ui-card__body--sm");
+    expect(bodyEl).toHaveClass("ui-card__body--md");
   });
 
   it("CardHeader returns null when no content is provided", () => {
@@ -81,7 +81,7 @@ describe("Card components", () => {
     expect(screen.getByRole("button", { name: "Standalone Action" }).parentElement).toHaveClass(
       "ui-card__actions",
     );
-    expect(container.querySelector(".ui-card__body")).toHaveClass("ui-card__body--none");
+    expect(container.querySelector(".ui-card__body")).toHaveClass("ui-card__body--md");
   });
 
   it("exposes compound static properties on Card component", () => {

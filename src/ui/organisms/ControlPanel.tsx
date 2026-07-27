@@ -50,7 +50,7 @@ export function ControlPanel({
       className={`px-6 py-4 gap-6 flex items-center flex-wrap bg-[var(--bg-surface)] w-full box-border ${
         isEmbedded
           ? "border-t border-[var(--border-default)]"
-          : "border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm"
+          : "border border-[var(--border-default)] rounded-[var(--radius-md)] shadow-sm"
       }`}
     >
       <div className="flex items-center gap-2">
