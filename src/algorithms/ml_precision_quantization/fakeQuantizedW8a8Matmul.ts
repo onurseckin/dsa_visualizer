@@ -7,21 +7,23 @@ export interface fakeQuantizedW8a8MatmulInput {
 }
 
 export const FAKEQUANTIZEDW8A8MATMUL_CODE = `
-def fakequantizedw8a8matmul(fp32_weights, scale, zero_point):
+def fake_quantized_w8a8_matmul(matrix_a, matrix_b, scale_a=0.1, scale_b=0.1):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Simulates W8A8 INT8 matrix multiplication with fake quantization and dequantization.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
+    m, k_dim = len(matrix_a), len(matrix_a[0])
+    n = len(matrix_b[0])
 
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
+    q_a = [[max(-128, min(127, int(round(matrix_a[i][j] / scale_a)))) for j in range(k_dim)] for i in range(m)]
+    q_b = [[max(-128, min(127, int(round(matrix_b[i][j] / scale_b)))) for j in range(n)] for i in range(k_dim)]
 
-    return quantized_tensor
+    output = [[0.0] * n for _ in range(m)]
+    for i in range(m):
+        for j in range(n):
+            acc = sum(q_a[i][k] * q_b[k][j] for k in range(k_dim))
+            output[i][j] = acc * (scale_a * scale_b)
+
+    return output
 `;
 
 export const DEFAULT_FAKEQUANTIZEDW8A8MATMUL_INPUT: fakeQuantizedW8a8MatmulInput = {
@@ -33,61 +35,101 @@ export const generateFakeQuantizedW8a8MatmulSteps = (
   input: fakeQuantizedW8a8MatmulInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Fake Quantized W8a8 Matmul",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Fake Quantized W8a8 Matmul",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    17,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const FAKEQUANTIZEDW8A8MATMUL_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines fake quantized W8A8 matrix multiplication function.",
+    4: "Gets rows M and inner dimension K of matrix A.",
+    5: "Gets columns N of matrix B.",
+    7: "Quantizes FP32 input matrix A into INT8 matrix q_a using scale_a.",
+    8: "Quantizes FP32 weight matrix B into INT8 matrix q_b using scale_b.",
+    10: "Allocates output M x N FP32 result matrix initialized to 0.0.",
+    12: "Iterates through output rows i and columns j.",
+    13: "Computes INT8 integer matrix multiplication accumulator sum(q_a[i][k] * q_b[k][j]).",
+    14: "Dequantizes integer accumulator into FP32: output[i][j] = acc * (scale_a * scale_b).",
+    16: "Returns de-quantized simulated FP32 matrix result.",
+  },
 };
 
 export const fakeQuantizedW8a8Matmul: AlgorithmDefinition<fakeQuantizedW8a8MatmulInput> = {
@@ -95,95 +137,90 @@ export const fakeQuantizedW8a8Matmul: AlgorithmDefinition<fakeQuantizedW8a8Matmu
   title: "Fake Quantized W8a8 Matmul",
   category: "ml_precision_quantization",
   categories: ["ml_precision_quantization", "bit_manipulation"],
-  difficulty: "Medium",
+  difficulty: "Hard",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), fake quantized w8a8 matmul provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "In Quantization-Aware Training (QAT, PyTorch torch.ao.quantization), Fake Quantization simulates low-precision INT8 W8A8 matrix multiplication during FP32 forward training passes. FP32 weight and activation matrices are quantized to INT8, multiplied in integer precision, and de-quantized back to FP32, exposing model gradients to quantization rounding noise during backpropagation.\n\nThis algorithm implements Fake Quantized W8a8 Matmul, performing INT8 quantization on input matrices A and B, executing integer GEMM accumulation, and de-quantizing back to FP32 using combined scales (scale_a * scale_b).\n\nInput Format:\n- values: Array representing matrix data or inputs.\n- scale: Quantization scale factor.\n\nOutput Format:\n- Returns de-quantized FP32 result matrix simulating W8A8 INT8 GEMM accuracy.\n\nEdge Cases & Constraints:\n- Large activation values experiencing INT8 clamping saturation.\n- Combined scale factor underflow (scale_a * scale_b -> 0).\n- 1x1 matrix multiplications.",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: FAKEQUANTIZEDW8A8MATMUL_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Fake Quantized W8a8 Matmul is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Fake quantization enables Quantization-Aware Training (QAT). By introducing quantization clamping noise into FP32 forward execution passes while computing continuous gradients via Straight-Through Estimators (STE), neural networks adjust weights to maintain accuracy under INT8 inference.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, fake quantized w8a8 matmul operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, Q(X) = clamp(round(X / S), -128, 127). Fake Quantized MatMul is C_approx = (Q(A) @ Q(B)) * (S_a * S_b). Time complexity is O(M * N * K).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Fake Quantized W8a8 Matmul optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Simulating W8A8 integer matrix multiplication in FP32 allows neural network engineers to measure precision degradation prior to exporting models to TensorRT or ONNX INT8 runtimes.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing fake quantized w8a8 matmul efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation quantizes A to q_a and B to q_b, computes integer matrix inner products, and scales accumulator totals by (scale_a * scale_b).",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes handling zero scale inputs and floating point overflow.",
       },
     ],
     keyTerms: [
       {
-        term: "Fake Engine",
+        term: "Fake Quantization",
         definition:
-          "The underlying algorithmic system implementing fake quantized w8a8 matmul operations for deep learning workloads.",
+          "Simulating low-precision integer quantization rounding and clamping noise during FP32 model training.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "W8A8 INT8 GEMM",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Matrix multiplication where both Weights (W8) and Activations (A8) are quantized to 8-bit integers.",
       },
       {
-        term: "Memory Coalescing",
+        term: "De-quantization Scale",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Multiplying integer accumulator results by combined scale factor (S_a * S_b) to restore FP32 scale.",
       },
     ],
   },
   trivia: FAKEQUANTIZEDW8A8MATMUL_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_FAKEQUANTIZEDW8A8MATMUL_INPUT,
   generateSteps: generateFakeQuantizedW8a8MatmulSteps,
 };

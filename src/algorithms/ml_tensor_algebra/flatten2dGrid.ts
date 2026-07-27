@@ -7,31 +7,20 @@ export interface flatten2dGridInput {
 }
 
 export const FLATTEN2DGRID_CODE = `
-def flatten2dgrid(tensor_shape, strides, memory_buffer):
+def flatten_2d_grid(grid):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Flattens a 2D matrix into a 1D contiguous row-major memory buffer.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
+    rows = len(grid)
+    cols = len(grid[0]) if rows > 0 else 0
+    flat_buffer = []
 
     for r in range(rows):
         for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
+            flat_idx = r * cols + c
+            flat_buffer.append((flat_idx, grid[r][c]))
 
-    return is_contiguous, flat_offsets
+    return flat_buffer
 `;
 
 export const DEFAULT_FLATTEN2DGRID_INPUT: flatten2dGridInput = {
@@ -95,7 +84,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -107,7 +96,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -118,17 +107,22 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
 };
 
 const FLATTEN2DGRID_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Flatten 2D Grid into 1D Contiguous Buffer.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 2D grid flattening function.",
+    4: "Determines row count M.",
+    5: "Determines column count N.",
+    8: "Iterates through row index r.",
+    9: "Iterates through column index c.",
+    10: "Calculates flat 1D memory index = r * cols + c.",
+    11: "Appends linear index tuple (flat_idx, val) to flat_buffer.",
+    13: "Returns flattened contiguous memory buffer.",
   },
 };
 
@@ -142,45 +136,35 @@ export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), flatten 2d grid into 1d contiguous buffer provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 566, url: "https://leetcode.com/problems/reshape-the-matrix/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 566,
-      title: "Reshape the Matrix",
-      url: "https://leetcode.com/problems/reshape-the-matrix/",
-    },
-  ],
+    "Deep learning frameworks store multi-dimensional tensors as contiguous 1D memory buffers on CPU/GPU DRAM. Translating 2D grid coordinates (row, col) into 1D physical addresses flat_idx = row * cols + col is the standard row-major memory mapping convention.\n\nThis algorithm implements Flatten 2D Grid into 1D Contiguous Buffer, serializing 2D matrix elements into flat linear memory buffers while recording row-major index calculations.\n\nInput Format:\n- data: 1D array representing a flattened matrix or raw input array.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns an array of (flat_idx, val) tuples preserving row-major ordering.\n\nEdge Cases & Constraints:\n- 1x1 single element matrices.\n- Empty 2D grids (rows = 0 or cols = 0).\n- Asymmetric matrix dimensions (rows != cols).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: FLATTEN2DGRID_CODE,
@@ -192,50 +176,45 @@ export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   },
   topicGuide: {
     overview:
-      "Flatten 2D Grid into 1D Contiguous Buffer is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Row-major memory linearization is fundamental to C/C++, PyTorch, and CUDA memory layouts. When a 2D matrix is passed to a GPU kernel, it resides in memory as a single contiguous array. Knowing how row-major indexing maps (r, c) coordinates to linear offsets is essential for writing custom ML kernels.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, flatten 2d grid into 1d contiguous buffer operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "For a 2D matrix of shape M x N, element (r, c) maps to physical linear index I = r * N + c. Inverse mapping reconstructs row and column coordinates via r = I // N and c = I mod N.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Flatten 2D Grid into 1D Contiguous Buffer optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Row-major flattening enables sequential memory reads during matrix iteration. Continuous sequential access allows GPU memory controllers to issue coalesced 128-bit memory transactions, maximizing memory bandwidth utilization.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing flatten 2d grid into 1d contiguous buffer efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates row-by-row, column-by-column, appending linearized index tuples into a 1D result buffer.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes single-row matrices (cols stride = N), single-column matrices (cols stride = 1), and zero-sized empty grids.",
       },
     ],
     keyTerms: [
       {
-        term: "Flatten Engine",
+        term: "Row-Major Order",
         definition:
-          "The underlying algorithmic system implementing flatten 2d grid into 1d contiguous buffer operations for deep learning workloads.",
+          "Memory storage layout where consecutive elements of a matrix row are stored in contiguous memory addresses.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Linearization",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Mapping multidimensional grid coordinates into a 1D linear physical memory offset.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Stride Arithmetic",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Mathematical formula (r * cols + c) converting 2D spatial coordinates into 1D memory pointers.",
       },
     ],
   },
   trivia: FLATTEN2DGRID_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
   defaultInput: DEFAULT_FLATTEN2DGRID_INPUT,
   generateSteps: generateFlatten2dGridSteps,
 };

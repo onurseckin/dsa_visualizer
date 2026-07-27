@@ -7,31 +7,22 @@ export interface tensorContiguityVerifierInput {
 }
 
 export const TENSORCONTIGUITYVERIFIER_CODE = `
-def tensorcontiguityverifier(tensor_shape, strides, memory_buffer):
+def tensor_contiguity_verifier(shape, strides):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Verifies C-style row-major tensor contiguity and calculates expected strides.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
+    dims = len(shape)
     is_contiguous = True
     expected_stride = 1
+    expected_strides = [0] * dims
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
+    for i in range(dims - 1, -1, -1):
+        expected_strides[i] = expected_stride
+        if strides[i] != expected_stride:
             is_contiguous = False
-        expected_stride *= dim
+        expected_stride *= shape[i]
 
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return is_contiguous, expected_strides
 `;
 
 export const DEFAULT_TENSORCONTIGUITYVERIFIER_INPUT: tensorContiguityVerifierInput = {
@@ -97,7 +88,7 @@ export const generateTensorContiguityVerifierSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +100,7 @@ export const generateTensorContiguityVerifierSteps = (
   }));
 
   addStep(
-    6,
+    16,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +111,25 @@ export const generateTensorContiguityVerifierSteps = (
 };
 
 const TENSORCONTIGUITYVERIFIER_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for PyTorch-Style Tensor Contiguity Verifier.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines PyTorch-style tensor contiguity verifier.",
+    4: "Gets total dimension count (rank) of tensor.",
+    5: "Initializes contiguity status flag to True.",
+    6: "Initializes inner-most expected stride multiplier to 1.",
+    7: "Allocates array for calculated expected strides.",
+    9: "Iterates through dimensions in reverse order from rank-1 down to 0.",
+    10: "Assigns accumulated expected_stride to dimension i.",
+    11: "Checks if actual tensor stride[i] matches expected_stride.",
+    12: "Sets contiguity status flag to False upon stride mismatch.",
+    13: "Updates expected_stride multiplier by multiplying current dimension shape[i].",
+    15: "Returns contiguity boolean result and expected stride vector.",
   },
 };
 
@@ -139,40 +138,40 @@ export const tensorContiguityVerifier: AlgorithmDefinition<tensorContiguityVerif
   title: "PyTorch-Style Tensor Contiguity Verifier",
   category: "ml_tensor_algebra",
   categories: ["ml_tensor_algebra", "arrays_and_hashing"],
-  difficulty: "Hard",
+  difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), pytorch-style tensor contiguity verifier provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In PyTorch's ATen C++ runtime, calling tensor.is_contiguous() determines whether underlying scalar data is stored continuously in standard C-style row-major memory order. If a tensor is non-contiguous (e.g. after tensor.transpose(0, 1)), operations like view() raise errors until tensor.contiguous() is called to execute a contiguous memory re-allocation copy.\n\nThis algorithm implements PyTorch-Style Tensor Contiguity Verifier, traversing dimension shapes in reverse order, building expected C-contiguous strides, and comparing them against actual tensor strides.\n\nInput Format:\n- data: Array representing shape and stride values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns boolean contiguity status and calculated expected stride vector.\n\nEdge Cases & Constraints:\n- 1D tensors (always contiguous if stride = 1).\n- Tensors with dimension size 1 (stride value can be arbitrary without breaking contiguity).\n- Transposed 2D tensors (swapped strides breaking contiguity).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: TENSORCONTIGUITYVERIFIER_CODE,
@@ -184,45 +183,40 @@ export const tensorContiguityVerifier: AlgorithmDefinition<tensorContiguityVerif
   },
   topicGuide: {
     overview:
-      "PyTorch-Style Tensor Contiguity Verifier is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Tensor contiguity verification is checked before invoking optimized CUDA kernels (cuBLAS, FlashAttention). Kernels expecting row-major memory layouts will fail or produce incorrect results if passed non-contiguous input views without contiguity verification.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, pytorch-style tensor contiguity verifier operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for a D-dimensional tensor with shape (d_0, d_1, ..., d_{D-1}), expected C-contiguous strides S_exp are computed right-to-left: S_exp[D-1] = 1, and S_exp[i] = S_exp[i+1] * d_{i+1}. A tensor is C-contiguous if actual strides match expected strides S[i] == S_exp[i] for all dimensions i where d_i > 1.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. PyTorch-Style Tensor Contiguity Verifier optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "When is_contiguous is false, PyTorch allocates a new contiguous physical buffer of size prod(d_i) and executes a strided C++ memcpy kernel to restore unit contiguity.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing pytorch-style tensor contiguity verifier efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates backward from dimension D-1 down to 0, maintaining accumulated stride multiplier expected_stride, setting expected_strides[i], and flagging non-contiguity whenever actual strides mismatch.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge cases include zero-element empty tensors and size-1 dimensions where stride values do not affect physical offset stepping.",
       },
     ],
     keyTerms: [
       {
-        term: "PyTorch-Style Engine",
+        term: "C-Contiguity",
         definition:
-          "The underlying algorithmic system implementing pytorch-style tensor contiguity verifier operations for deep learning workloads.",
+          "Memory layout where elements along the last dimension occupy adjacent memory addresses.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Expected Stride",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The canonical row-major memory step size computed backwards as product of outer dimension sizes.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Memory Re-Allocation",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Allocating new memory to copy non-contiguous tensor data into contiguous storage.",
       },
     ],
   },

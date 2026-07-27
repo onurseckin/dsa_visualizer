@@ -8,16 +8,41 @@ export interface StringHashingInput {
   mod?: number;
 }
 
-export const PYTHON_STRING_HASHING_CODE = `
-def python_string_hashing(input_array):
+export const PYTHON_STRING_HASHING_CODE = `def string_hashing_search(text: str, pattern: str, p: int = 31, mod: int = 1000000007) -> list[int]:
     """
-    Implementation of python_string_hashing.
+    Finds all occurrences of pattern in text using Polynomial Rolling Hash.
+    Returns 0-based starting indices.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    n, m = len(text), len(pattern)
+    if m > n or m == 0:
+        return []
+
+    # Precompute prefix hashes and powers of p
+    h = [0] * (n + 1)
+    pow_p = [1] * (n + 1)
+    for i in range(n):
+        char_val = ord(text[i]) - ord('a') + 1
+        h[i + 1] = (h[i] * p + char_val) % mod
+        pow_p[i + 1] = (pow_p[i] * p) % mod
+
+    # Calculate pattern hash
+    pattern_hash = 0
+    for ch in pattern:
+        char_val = ord(ch) - ord('a') + 1
+        pattern_hash = (pattern_hash * p + char_val) % mod
+
+    # Query substring hash text[l..r] in O(1) time
+    def query_hash(l: int, r: int) -> int:
+        return (h[r + 1] - (h[l] * pow_p[r - l + 1]) % mod + mod) % mod
+
+    matches = []
+    for i in range(n - m + 1):
+        if query_hash(i, i + m - 1) == pattern_hash:
+            # Full match check to eliminate hash collisions
+            if text[i : i + m] == pattern:
+                matches.append(i)
+
+    return matches
 `;
 
 export const DEFAULT_STRING_HASHING_INPUT: StringHashingInput = {

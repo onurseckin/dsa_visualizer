@@ -7,31 +7,15 @@ export interface flatten2dArrayInput {
 }
 
 export const FLATTEN2DARRAY_CODE = `
-def flatten2darray(tensor_shape, strides, memory_buffer):
+def flatten_2d_array(matrix):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Linearizes 2D row-major matrix into contiguous 1D memory array.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    flat = []
+    for row in matrix:
+        for val in row:
+            flat.append(val)
+    return flat
 `;
 
 export const DEFAULT_FLATTEN2DARRAY_INPUT: flatten2dArrayInput = {
@@ -95,7 +79,7 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -107,7 +91,7 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
   }));
 
   addStep(
-    6,
+    9,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -118,17 +102,20 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
 };
 
 const FLATTEN2DARRAY_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for 1D Buffer Matrix Flattening.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 1D matrix flattening function.",
+    4: "Initializes 1D flat memory result array.",
+    5: "Iterates through rows in input matrix.",
+    6: "Iterates through scalar values in current row.",
+    7: "Appends scalar value to flat array.",
+    8: "Returns flattened 1D contiguous memory array.",
   },
 };
 
@@ -142,100 +129,82 @@ export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 1d buffer matrix flattening provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 566, url: "https://leetcode.com/problems/reshape-the-matrix/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 566,
-      title: "Reshape the Matrix",
-      url: "https://leetcode.com/problems/reshape-the-matrix/",
-    },
-  ],
+    "Preparing matrix data for BLAS GEMM calls (e.g. cuBLAS sgemm, PyTorch tensor memory flattening) requires serializing 2D grid structures into 1D contiguous memory buffers.\n\nThis algorithm implements 1D Buffer Matrix Flattening, iterating through matrix rows and serializing scalar values into a 1D flat memory payload buffer.\n\nInput Format:\n- data: Array representing 2D matrix structure.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns 1D flat linear array containing all matrix elements in row-major order.\n\nEdge Cases & Constraints:\n- Empty matrix buffers.\n- Single row or single column matrices.\n- Asymmetric matrix dimensions.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_FLATTEN2DARRAY_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_FLATTEN2DARRAY_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_FLATTEN2DARRAY_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: FLATTEN2DARRAY_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "1D Buffer Matrix Flattening is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Matrix flattening converts 2D array representation into 1D continuous memory buffers required by hardware BLAS subroutines. Row-major order ensures row elements occupy consecutive memory addresses.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, 1d buffer matrix flattening operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "For an M x N matrix, element (r, c) maps to 1D flat index idx = r * N + c. Total serialized length is M * N.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 1D Buffer Matrix Flattening optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Contiguous 1D buffers maximize SIMD vector instruction efficiency and GPU HBM memory coalescing during matrix operations.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing 1d buffer matrix flattening efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation loops row-by-row, column-by-column, appending each element into a flat 1D array.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes 1x1 matrices and zero-sized empty grids.",
       },
     ],
     keyTerms: [
       {
-        term: "1D Engine",
-        definition:
-          "The underlying algorithmic system implementing 1d buffer matrix flattening operations for deep learning workloads.",
+        term: "Buffer Linearization",
+        definition: "Converting multidimensional grid structures into a 1D flat array.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Row-Major Order",
+        definition: "Storing elements of consecutive row entries in contiguous physical memory.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Memory Alignment",
+        definition: "Ensuring 1D buffer start pointers align with hardware SIMD boundaries.",
       },
     ],
   },
   trivia: FLATTEN2DARRAY_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
   defaultInput: DEFAULT_FLATTEN2DARRAY_INPUT,
   generateSteps: generateFlatten2dArraySteps,
 };

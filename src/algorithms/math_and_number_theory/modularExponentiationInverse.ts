@@ -8,15 +8,24 @@ export interface ModularExponentiationInput {
 }
 
 export const PYTHON_MODULAR_EXPONENTIATION_INVERSE_CODE = `
-def python_modular_exponentiation_inverse(input_array):
+def mod_pow(base: int, exp: int, mod: int) -> int:
     """
-    Implementation of python_modular_exponentiation_inverse.
+    Computes (base^exp) % mod in O(log exp) time using binary exponentiation.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    res = 1
+    base = base % mod
+    while exp > 0:
+        if exp % 2 == 1:
+            res = (res * base) % mod
+        base = (base * base) % mod
+        exp //= 2
+    return res
+
+def mod_inverse(a: int, m: int) -> int:
+    """
+    Calculates modular inverse a^(-1) mod m using Fermat's Little Theorem (for prime m).
+    """
+    return mod_pow(a, m - 2, m)
 `;
 
 export const DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT: ModularExponentiationInput = {
@@ -225,26 +234,39 @@ export const generateModularExponentiationInverseSteps = (
 
 export const MODULAR_EXPONENTIATION_INVERSE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Modular Exponentiation computes (base^exp) mod m in O(log exp) operations using repeated squaring. According to Fermat's Little Theorem, if m is prime and a is not divisible by m, the modular inverse a^(-1) mod m equals a^(m-2) mod m.",
+    "Modular Exponentiation evaluates (base^exp) mod m in O(log exp) operations using repeated squaring. Coupled with Fermat's Little Theorem, if m is prime and gcd(a, m) = 1, the modular multiplicative inverse a^(-1) mod m is efficiently calculated as a^(m-2) mod m, enabling modular division in cryptographic algorithms.",
   sections: [
     {
-      heading: "Repeated Squaring Principle",
-      body: "By writing exp in binary, base^exp can be rewritten as a product of terms base^(2^k) for bits that are 1. Each term is obtained by repeatedly squaring the previous term.",
+      heading: "Repeated Squaring & Binary Decomposition",
+      body: "Linear exponentiation computes base^exp via exp multiplications in O(exp) time, which is completely unfeasible for 64-bit exponents like 10^18. Binary exponentiation breaks exp into its binary bits exp = sum b_i * 2^i. We maintain a running base power base^(2^i) by squaring at each step: if bit b_i is 1, we multiply the accumulator by the current base power modulo m. This guarantees completion in at most log2(exp) steps.",
     },
     {
-      heading: "Fermat's Little Theorem",
-      body: "For prime m and integer a coprime to m, a^(m-1) = 1 (mod m). Multiplying both sides by a^(-1) gives a^(-1) = a^(m-2) (mod m).",
+      heading: "Fermat's Little Theorem & Modular Inverse",
+      body: "Fermat's Little Theorem states that if p is prime and a is not divisible by p, then a^(p-1) ≡ 1 (mod p). Multiplying both sides by a^(-1) yields a^(-1) ≡ a^(p-2) (mod p). Thus, modular division (a / b) mod p can be performed as (a * b^(p-2)) mod p. If p is composite, Euler's Totient function or the Extended Euclidean Algorithm is used instead.",
+    },
+    {
+      heading: "Cryptographic & Algorithmic Applications",
+      body: "Modular exponentiation is a foundational primitive across computer science: 1) RSA Encryption and Decryption (c = m^e mod N and m = c^d mod N), 2) Diffie-Hellman Key Exchange (g^a mod p), 3) Miller-Rabin Primality Testing (probabilistic primality checks via repeated squaring), and 4) Combinatorics (computing combinations C(n, k) % p using modular inverse factorials).",
+    },
+    {
+      heading: "Implementation Nuances & Overflow Guarding",
+      body: "When multiplying (res * base) mod m, the product can reach up to (m-1)^2. For m up to 2^31 - 1, standard 64-bit integers prevent overflow. For larger 64-bit moduli (m ~ 10^18), 128-bit integer types (__int128) or modular multiplication algorithms (like Montgomery Multiplication) prevent 64-bit multiplication overflow.",
     },
   ],
   keyTerms: [
     {
       term: "Binary Exponentiation",
       definition:
-        "Algorithm that computes powers in logarithmic time by squaring base and halving exponent.",
+        "An algorithm computing (base^exp) mod m in logarithmic time by repeated squaring of base and halving exponent.",
+    },
+    {
+      term: "Fermat's Little Theorem",
+      definition:
+        "The number-theoretic theorem stating that a^(p-1) ≡ 1 (mod p) for prime p and a not divisible by p.",
     },
     {
       term: "Modular Multiplicative Inverse",
-      definition: "An integer x such that (a * x) = 1 (mod m), denoted a^(-1) mod m.",
+      definition: "An integer x such that (a * x) ≡ 1 (mod m), denoted as a^(-1) mod m.",
     },
   ],
 };
@@ -272,7 +294,7 @@ export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentia
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Computes (base^exp) mod m efficiently in O(log exp) time using binary exponentiation. Also calculates modular inverse using Fermat's Little Theorem as a^(m-2) mod m when m is prime.",
+    "Computes (base^exp) mod m in O(log exp) time using binary exponentiation (repeated squaring). Additionally calculates the modular multiplicative inverse a^(-1) mod m using Fermat's Little Theorem as a^(m-2) mod m when m is prime.",
   constraints: ["0 <= base, exp <= 2^31 - 1", "1 <= mod <= 2^31 - 1"],
   examples: [
     {

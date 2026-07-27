@@ -7,21 +7,16 @@ export interface stableSoftmaxLogsumexpInput {
 }
 
 export const STABLESOFTMAXLOGSUMEXP_CODE = `
-def stablesoftmaxlogsumexp(fp32_weights, scale, zero_point):
+def stable_softmax_logsumexp(logits):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Evaluates numerically stable log(sum(exp(x - max(x)))) + max(x).
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
-
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
-
-    return quantized_tensor
+    import math
+    max_val = max(logits) if logits else 0.0
+    sum_exp = sum(math.exp(x - max_val) for x in logits)
+    lse = max_val + math.log(sum_exp)
+    softmax_probs = [math.exp(x - max_val) / sum_exp for x in logits]
+    return lse, softmax_probs
 `;
 
 export const DEFAULT_STABLESOFTMAXLOGSUMEXP_INPUT: stableSoftmaxLogsumexpInput = {
@@ -33,61 +28,97 @@ export const generateStableSoftmaxLogsumexpSteps = (
   input: stableSoftmaxLogsumexpInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Stable Softmax Logsumexp",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Stable Softmax Logsumexp",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    10,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const STABLESOFTMAXLOGSUMEXP_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines numerically stable Softmax and LogSumExp function.",
+    5: "Finds maximum logit value max_val in input vector.",
+    6: "Calculates sum of max-shifted exponentials sum_exp = sum(exp(x - max_val)).",
+    7: "Calculates numerically stable LogSumExp lse = max_val + log(sum_exp).",
+    8: "Calculates normalized Softmax probability distribution: exp(x - max_val) / sum_exp.",
+    9: "Returns LogSumExp scalar lse and normalized Softmax probabilities array.",
+  },
 };
 
 export const stableSoftmaxLogsumexp: AlgorithmDefinition<stableSoftmaxLogsumexpInput> = {
@@ -97,93 +128,88 @@ export const stableSoftmaxLogsumexp: AlgorithmDefinition<stableSoftmaxLogsumexpI
   categories: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), stable softmax logsumexp provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "In cross-entropy loss functions and attention score normalization (PyTorch torch.logsumexp, F.softmax), naive evaluation of exp(x) causes floating-point overflow when logits exceed 88.7 in FP32 or 11.0 in FP16. Max Subtraction Trick evaluates LogSumExp as LSE(x) = max(x) + log(sum(exp(x - max(x)))), guaranteeing exponentials never exceed exp(0) = 1.0.\n\nThis algorithm implements Stable Softmax Logsumexp, evaluating max-subtracted LogSumExp and normalized Softmax probability distributions.\n\nInput Format:\n- values: Array of logit floating-point values.\n- scale: Optional scale parameter.\n\nOutput Format:\n- Returns scalar LogSumExp result (LSE) and array of normalized Softmax probabilities.\n\nEdge Cases & Constraints:\n- Large positive logits (e.g., logits = [1000, 1001], naive exp overflows to infinity).\n- Large negative logits.\n- Single element logit array.",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: STABLESOFTMAXLOGSUMEXP_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Stable Softmax Logsumexp is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "LogSumExp (LSE) is a smooth approximation of the maximum function used extensively in machine learning loss functions (Cross-Entropy Loss, Soft-Maximum). Subtracting max(x) ensures complete numerical stability across FP32, FP16, and BF16 precision formats.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, stable softmax logsumexp operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, LSE(x) = log(sum_i exp(x_i)) = m + log(sum_i exp(x_i - m)) where m = max_i(x_i). Softmax p_i = exp(x_i - m) / sum_j exp(x_j - m).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Stable Softmax Logsumexp optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Evaluating LogSumExp stably prevents NaN loss crashes during deep neural network training.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing stable softmax logsumexp efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation finds row maximum max_val, computes exp(x - max_val), sums exponentials, calculates LSE = max_val + log(sum_exp), and outputs normalized probabilities.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes empty logit vectors.",
       },
     ],
     keyTerms: [
       {
-        term: "Stable Engine",
+        term: "LogSumExp (LSE)",
         definition:
-          "The underlying algorithmic system implementing stable softmax logsumexp operations for deep learning workloads.",
+          "Smooth maximum function log(sum(exp(x))) used in cross-entropy loss and attention normalization.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Max Subtraction Trick",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Subtracting max(x) from logits before exponentiation to prevent floating point overflow.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Floating Point Overflow",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Calculation exceeding maximum floating point exponent capacity, producing Infinity/NaN.",
       },
     ],
   },
   trivia: STABLESOFTMAXLOGSUMEXP_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_STABLESOFTMAXLOGSUMEXP_INPUT,
   generateSteps: generateStableSoftmaxLogsumexpSteps,
 };

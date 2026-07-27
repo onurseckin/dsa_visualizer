@@ -1,163 +1,292 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const iterativeBpeVocabularyTrainer: AlgorithmDefinition<string> = {
-  id: "iterativeBpeVocabularyTrainer",
-  title: "Iterative BPE Vocabulary Trainer",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
-  difficulty: "Medium",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), iterative bpe vocabulary trainer provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  isMlInfra: true,
-  mlInfraLevel: 6,
-  mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
-  examples: [
-    {
-      kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for iterativeBpeVocabularyTrainer.",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
-    },
-    {
-      kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
-    },
-  ],
-  defaultInput: "unaffordability",
-  code: `
-def iterativeBpeVocabularyTrainer(input_text, vocabulary_scores):
-    """
-    Iterative BPE Vocabulary Trainer
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
+export interface IterativeBpeVocabularyTrainerInput {
+  initialCorpus: Record<string, number>;
+  targetVocabSize: number;
+}
 
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
-  timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+export const DEFAULT_ITERATIVE_BPE_TRAINER_INPUT: IterativeBpeVocabularyTrainerInput = {
+  initialCorpus: {
+    "l o w </w>": 5,
+    "l o w e r </w>": 2,
+    "n e w e s t </w>": 6,
+    "w i d e s t </w>": 3,
   },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
-  },
-  topicGuide: {
-    overview:
-      "Iterative BPE Vocabulary Trainer is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
-    sections: [
-      {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, iterative bpe vocabulary trainer operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
-      },
-      {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Iterative BPE Vocabulary Trainer optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
-      },
-      {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing iterative bpe vocabulary trainer efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
-      },
-    ],
-    keyTerms: [
-      {
-        term: "Iterative Engine",
-        definition:
-          "The underlying algorithmic system implementing iterative bpe vocabulary trainer operations for deep learning workloads.",
-      },
-      {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
-      },
-      {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
-      },
-    ],
-  },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  targetVocabSize: 10,
 };
+
+export const ITERATIVE_BPE_TRAINER_CODE = `def train_bpe_vocabulary(initial_corpus: dict[str, int], target_vocab_size: int) -> tuple[list[tuple[str, str]], list[str]]:
+    """
+    Iterative Byte-Pair Encoding (BPE) Vocabulary Trainer.
+    Repeatedly finds the most frequent adjacent symbol pair, adds it to the merge rule list,
+    and updates the corpus words until target_vocab_size is reached.
+    """
+    corpus = {w: freq for w, freq in initial_corpus.items()}
+
+    # Initialize base vocabulary with single characters
+    vocab = set()
+    for word_str in corpus:
+        vocab.update(word_str.split())
+
+    merges = []
+
+    while len(vocab) < target_vocab_size:
+        # Step 1: Count pair frequencies across current corpus
+        pair_counts = {}
+        for word_str, freq in corpus.items():
+            symbols = word_str.split()
+            for i in range(len(symbols) - 1):
+                pair = (symbols[i], symbols[i + 1])
+                pair_counts[pair] = pair_counts.get(pair, 0) + freq
+
+        if not pair_counts:
+            break
+
+        # Step 2: Select most frequent pair
+        best_pair = max(pair_counts.items(), key=lambda x: x[1])[0]
+        merges.append(best_pair)
+        new_token = best_pair[0] + best_pair[1]
+        vocab.add(new_token)
+
+        # Step 3: Replace best_pair in corpus words
+        pair_str = f"{best_pair[0]} {best_pair[1]}"
+        new_corpus = {}
+        for word_str, freq in corpus.items():
+            new_word = word_str.replace(pair_str, new_token)
+            new_corpus[new_word] = freq
+
+        corpus = new_corpus
+
+    return merges, sorted(list(vocab))`;
+
+export const generateIterativeBpeTrainerSteps = (
+  input: IterativeBpeVocabularyTrainerInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { initialCorpus, targetVocabSize } = input;
+  let stepIndex = 0;
+
+  let corpus = { ...initialCorpus };
+  const vocabSet = new Set<string>();
+  Object.keys(corpus).forEach((w) => w.split(" ").forEach((s) => vocabSet.add(s)));
+  const merges: [string, string][] = [];
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Iterative BPE Vocabulary Trainer (Target Size = ${targetVocabSize})`,
+      why: `Base character vocabulary contains ${vocabSet.size} unique symbols: [${Array.from(
+        vocabSet,
+      ).join(", ")}]. Training until vocab size reaches ${targetVocabSize}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Array.from(vocabSet).map((sym, idx) => ({
+        id: `sym-${idx}`,
+        value: idx,
+        label: `"${sym}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        baseVocabSize: String(vocabSet.size),
+        targetVocabSize: String(targetVocabSize),
+        status: "Initialized",
+      },
+    },
+    variables: { currentVocabSize: vocabSet.size, targetVocabSize },
+  });
+
+  while (vocabSet.size < targetVocabSize) {
+    const pairCounts: Record<string, number> = {};
+
+    for (const [wStr, freq] of Object.entries(corpus)) {
+      const syms = wStr.split(" ");
+      for (let i = 0; i < syms.length - 1; i++) {
+        const pairKey = `${syms[i]},${syms[i + 1]}`;
+        pairCounts[pairKey] = (pairCounts[pairKey] || 0) + freq;
+      }
+    }
+
+    const pairEntries = Object.entries(pairCounts).sort((a, b) => b[1] - a[1]);
+    if (pairEntries.length === 0) break;
+
+    const [bestPairStr, bestFreq] = pairEntries[0];
+    const [p1, p2] = bestPairStr.split(",");
+    const newToken = `${p1}${p2}`;
+
+    merges.push([p1, p2]);
+    vocabSet.add(newToken);
+
+    // Replace in corpus
+    const oldPairStr = `${p1} ${p2}`;
+    const newCorpus: Record<string, number> = {};
+    for (const [wStr, freq] of Object.entries(corpus)) {
+      const updatedWord = wStr.split(oldPairStr).join(newToken);
+      newCorpus[updatedWord] = freq;
+    }
+    corpus = newCorpus;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 24,
+      explanation: {
+        what: `BPE Merge Step ${merges.length}: Added Rule ("${p1}", "${p2}") -> "${newToken}" (count = ${bestFreq})`,
+        why: `Merged pair ("${p1}", "${p2}") into new token "${newToken}". Vocabulary size expanded to ${vocabSet.size}/${targetVocabSize}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(vocabSet).map((tok, idx) => ({
+          id: `tok-${idx}`,
+          value: idx,
+          label: `"${tok}"`,
+          state: tok === newToken ? ("active" as ElementState) : ("visited" as ElementState),
+          pointers: tok === newToken ? [`New Token (${merges.length})`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          mergeRule: `("${p1}", "${p2}") -> "${newToken}"`,
+          frequency: String(bestFreq),
+          currentVocabSize: String(vocabSet.size),
+          targetVocabSize: String(targetVocabSize),
+          corpusSample: Object.keys(corpus).slice(0, 2).join(" | "),
+        },
+      },
+      variables: { mergeStep: merges.length, newToken, vocabSize: vocabSet.size },
+    });
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 35,
+    explanation: {
+      what: `BPE Training Complete: Final Vocabulary Size ${vocabSet.size}`,
+      why: `Learned ${merges.length} merge rules: [${merges
+        .map(([a, b]) => `("${a}","${b}")`)
+        .join(", ")}]. Vocabulary ready for model tokenizer deployment.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Array.from(vocabSet).map((tok, rank) => ({
+        id: `vocab-${rank}`,
+        value: rank,
+        label: `"${tok}"`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        finalVocabSize: String(vocabSet.size),
+        totalMergeRules: String(merges.length),
+        status: "Completed",
+      },
+    },
+    variables: { totalMerges: merges.length, finalSize: vocabSet.size, complete: true },
+  });
+
+  return steps;
+};
+
+export const iterativeBpeVocabularyTrainer: AlgorithmDefinition<IterativeBpeVocabularyTrainerInput> =
+  {
+    id: "iterativeBpeVocabularyTrainer",
+    title: "Iterative BPE Vocabulary Trainer",
+    category: "ml_tokenization",
+    categories: ["ml_tokenization"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 5,
+    mlInfraCategory: "ml_tokenization",
+    description:
+      "Full iterative Byte-Pair Encoding (BPE) vocabulary training loop (Sennrich et al., 2016). Starts with a base character vocabulary, repeatedly identifies the most frequent adjacent symbol pair, appends a new merge rule to the vocabulary, and updates corpus words until reaching `targetVocabSize`.\n\nInput Format:\n- initialCorpus: Dictionary mapping word symbol strings to corpus frequency counts.\n- targetVocabSize: Target total vocabulary size V.\n\nOutput Format:\n- Returns tuple (learnedMergeRulesList, finalVocabularyList).\n\nEdge Cases & Constraints:\n- Target size smaller than base character vocabulary: Terminates immediately without merges.",
+    constraints: ["targetVocabSize >= base character count."],
+    examples: [
+      {
+        kind: "basic",
+        title: "Train BPE Vocabulary to Target Size 10",
+        inputDisplay: "initialCorpus (4 words), targetVocabSize = 10",
+        outputDisplay:
+          "Learned 3 merges: ('e','s') -> 'es', ('es','t') -> 'est', ('e','r') -> 'er'",
+        input: DEFAULT_ITERATIVE_BPE_TRAINER_INPUT,
+        output: "3 merge rules learned",
+        explanation: "Iteratively adds most frequent pairs until vocabulary reaches size 10.",
+      },
+      {
+        kind: "complex",
+        title: "Small Target Size Equal to Base Vocab",
+        inputDisplay: "targetVocabSize = 7",
+        outputDisplay: "0 merge rules learned",
+        input: {
+          ...DEFAULT_ITERATIVE_BPE_TRAINER_INPUT,
+          targetVocabSize: 7,
+        },
+        output: "0 merges",
+        explanation: "Base characters already fill target vocabulary size of 7.",
+      },
+      {
+        kind: "negative",
+        title: "Single Word Corpus",
+        inputDisplay: "initialCorpus = {'a b c </w>': 10}, targetVocabSize = 6",
+        outputDisplay: "Learned merges ('a','b') -> 'ab', ('ab','c') -> 'abc'",
+        input: {
+          initialCorpus: { "a b c </w>": 10 },
+          targetVocabSize: 6,
+        },
+        output: "2 merges",
+        explanation: "Merges single word characters sequentially.",
+      },
+    ],
+    defaultInput: DEFAULT_ITERATIVE_BPE_TRAINER_INPUT,
+    code: ITERATIVE_BPE_TRAINER_CODE,
+    timeComplexity: {
+      best: "O(V * W * L)",
+      average: "O(V * W * L)",
+      worst: "O(V * W * L)",
+    },
+    spaceComplexity: "O(V + W * L)",
+    complexityAnalysis: {
+      time: "O(V * W * L) where V is target vocabulary merges, W is word count, and L is word length.",
+      space: "O(V + W * L) auxiliary memory to store corpus dictionary and vocabulary set.",
+    },
+    topicGuide: {
+      overview:
+        "Iterative BPE training builds the subword merge table used by LLM tokenizers (RoBERTa, GPT-2, LLaMA). By greedily selecting the most frequent adjacent pair at each iteration, BPE learns subwords that capture common prefix, suffix, and word stem patterns.",
+      sections: [
+        {
+          heading: "Core Concept & Greedy Merge Selection",
+          body: "Starting with base characters, each iteration computes pair frequencies over current corpus states, selecting argmax_{(a,b)} count(a, b).",
+        },
+        {
+          heading: "Corpus Rewriting Optimization",
+          body: "Rewriting the corpus after each merge shrinks average word length L, accelerating subsequent pair counting passes.",
+        },
+        {
+          heading: "Vocabulary Size Hyperparameter Trade-Offs",
+          body: "Smaller vocabularies (e.g. 32k tokens) reduce embedding memory but result in longer sequence lengths. Larger vocabularies (e.g. 128k in LLaMA 3 or 200k in GPT-4o) reduce sequence token count, improving inference QPS.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Vocabulary Size (V)",
+          definition: "Total number of discrete subword tokens recognized by a model tokenizer.",
+        },
+        {
+          term: "BPE Merge List",
+          definition: "Ordered sequence of pair substitution rules learned during training.",
+        },
+        {
+          term: "Compression Ratio",
+          definition: "Ratio of original character length to final token sequence length.",
+        },
+      ],
+    },
+    sources: [
+      { type: "ml_infra", kind: "ml_infra", label: "BPE Vocabulary Training (Sennrich 2016)" },
+    ],
+    generateSteps: generateIterativeBpeTrainerSteps,
+  };

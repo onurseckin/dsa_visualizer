@@ -274,7 +274,7 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   categories: ["binary_search"],
   difficulty: "Hard",
   description:
-    "Given an array of integers nums and a target integer target, determine whether there exists any subset of numbers in nums that sums up to target. When array length N is up to 40, brute-force subset sum requires 2^40 (~10^12) operations which is intractable. Meet in the Middle splits the array into two halves of size N/2, precomputes all 2^(N/2) subset sums for both halves, sorts the right subset sums, and uses binary search to find complementary sums in O(N 2^(N/2)) time.",
+    "Determine if there exists a non-empty subset of numbers in an array array that sums to target using the Meet in the Middle technique in O(N * 2^(N/2)) time.\n\n### Problem Statement\nGiven an array of N integers array and an integer target, determine whether any subset of elements from array sums to target.\n\nWhen N is around 30 to 40, a standard brute-force subset sum check of O(2^N) requires up to 2^40 operations, which is intractable. The Meet in the Middle technique divides the array into two equal halves of size N/2, computes all 2^(N/2) subset sums for each half, sorts the right subset sums, and uses binary search to find complementary sum pairs in O(N * 2^(N/2)) total time and O(2^(N/2)) space.\n\n### Input Parameters\n- array: An array of N integers.\n- target: The integer target sum to search for.\n\n### Output\n- Returns true if a subset exists whose sum equals target, otherwise false.\n\n### Edge Cases & Constraints\n- 1 <= N <= 40\n- -10^9 <= array[i], target <= 10^9\n- target = 0: The empty subset always sums to 0.\n- All positive vs mixed positive/negative array elements.\n- Array with a single element.",
   constraints: ["1 <= N <= 40", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {
@@ -327,7 +327,45 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
     time: "Generating 2^(n/2) subset sums for both halves takes O(2^(n/2)). Sorting right sums takes O(n 2^(n/2)). Doing 2^(n/2) binary searches of size 2^(n/2) takes O(n 2^(n/2)) total time.",
     space: "Requires O(2^(n/2)) memory to store subset sums for left and right halves.",
   },
-  topicGuide: MEET_IN_THE_MIDDLE_TOPIC_GUIDE,
+  topicGuide: {
+    overview:
+      "Meet in the Middle is a powerful algorithmic paradigm designed to solve hard exponential search problems (such as Subset Sum, 4-Sum, 0-1 Knapsack, or Discrete Logarithms) when problem sizes N are around 30–40. Brute-force state space exploration scales as O(2^N), which quickly becomes impossible (2^40 ~ 10^12). By splitting the input into two equal halves of size N/2, computing all 2^(N/2) state sums for each side, and joining them using binary search or hash tables, the overall computational complexity drops to O(N 2^(N/2)). This technique is foundational in cryptanalysis (e.g., Meet-in-the-Middle attacks on Double DES) and competitive programming.",
+    sections: [
+      {
+        heading: "Exponential Reduction via Halving",
+        body: "For N = 40, searching 2^40 combinations requires over 1 trillion operations. Partitioning the array into two sub-arrays of size 20 generates 2^20 (~1,048,576) subset sums for each half. Storing and sorting 1 million integers takes a few megabytes of memory and milliseconds of CPU time.",
+      },
+      {
+        heading: "Binary Search Coupling",
+        body: "Once all subset sums of the left half (L) and right half (R) are generated, we sort R in O(N 2^(N/2)) time. For every sum s in L, the required complement is target - s. Performing a binary search for target - s in R takes O(N/2) time, giving a total query time of O(N 2^(N/2)).",
+      },
+      {
+        heading: "Two-Pointer Join Variant",
+        body: "Alternatively, after sorting both L and R, a converging two-pointer scan can find all matching pairs (s_L + s_R == target) or the closest sum to target in linear O(|L| + |R|) = O(2^(N/2)) time, avoiding individual binary searches.",
+      },
+      {
+        heading: "Applications & Cryptographic Impact",
+        body: "Meet-in-the-middle is famous for proving Double DES insecure: encrypting plaintext with key K1 and decrypting ciphertext with key K2 allows an attacker to meet in the middle on 2^56 intermediate states instead of 2^112 key pairs. In DSA, it solves 4-Sum, 0-1 Knapsack with N <= 40, and Baby-Step Giant-Step for discrete logarithms.",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Meet in the Middle",
+        definition:
+          "A search strategy that splits an exponential problem of size N into two halves of size N/2, precomputes solutions for each half, and joins them to reduce runtime from 2^N to N 2^(N/2).",
+      },
+      {
+        term: "Subset Sum Problem",
+        definition:
+          "The decision problem of finding whether any non-empty subset of numbers sums to a given target. It is NP-complete in general, but solvable in O(N 2^(N/2)) for small N via Meet in the Middle.",
+      },
+      {
+        term: "Baby-Step Giant-Step",
+        definition:
+          "A meet-in-the-middle algorithm for computing discrete logarithms in finite abelian groups in O(sqrt(N)) time and space.",
+      },
+    ],
+  },
   trivia: MEET_IN_THE_MIDDLE_TRIVIA,
   sources: [
     {

@@ -7,27 +7,31 @@ export interface parallelCourseCriticalPathInput {
 }
 
 export const PARALLELCOURSECRITICALPATH_CODE = `
-def parallelcoursecriticalpath(graph_nodes, adjacency_map):
+def parallel_course_critical_path(num_nodes, edges, node_durations):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Calculates longest critical path execution time through DAG.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    in_degree = [0] * num_nodes
+    adj = [[] for _ in range(num_nodes)]
+    for u, v in edges:
+        adj[u].append(v)
+        in_degree[v] += 1
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    dist = [0] * num_nodes
+    queue = [i for i in range(num_nodes) if in_degree[i] == 0]
+    for i in queue:
+        dist[i] = node_durations[i]
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    while queue:
+        u = queue.pop(0)
+        for v in adj[u]:
+            if dist[u] + node_durations[v] > dist[v]:
+                dist[v] = dist[u] + node_durations[v]
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                queue.append(v)
 
-    return topological_order
+    return max(dist) if dist else 0
 `;
 
 export const DEFAULT_PARALLELCOURSECRITICALPATH_INPUT: parallelCourseCriticalPathInput = {
@@ -40,7 +44,8 @@ export const generateParallelCourseCriticalPathSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +71,8 @@ export const generateParallelCourseCriticalPathSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +83,11 @@ export const generateParallelCourseCriticalPathSteps = (
     1,
     "Initialize Critical Path Latency Bounds in Computational Graph",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +98,7 @@ export const generateParallelCourseCriticalPathSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +110,9 @@ export const generateParallelCourseCriticalPathSteps = (
   }));
 
   addStep(
-    6,
+    25,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +121,28 @@ export const generateParallelCourseCriticalPathSteps = (
 };
 
 const PARALLELCOURSECRITICALPATH_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Critical Path Latency Bounds in Computational Graph.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines critical path latency calculator function.",
+    4: "Allocates in-degree array for num_nodes nodes.",
+    5: "Allocates adjacency list adj.",
+    6: "Populates adjacency list and in-degree counts from edges.",
+    10: "Allocates dist array tracking maximum path duration to each node.",
+    11: "Enqueues root nodes with in_degree == 0 into BFS queue.",
+    12: "Initializes root node distances with their node_durations.",
+    15: "Executes BFS queue loop while queue is non-empty.",
+    16: "Pops current node u from BFS queue.",
+    17: "Iterates through outgoing neighbor nodes v of u.",
+    18: "Updates dist[v] if path through u (dist[u] + node_durations[v]) is longer.",
+    20: "Decrements in-degree count in_degree[v].",
+    21: "Enqueues neighbor v when in_degree[v] reaches 0.",
+    24: "Returns maximum critical path latency distance among all nodes.",
   },
 };
 
@@ -136,105 +151,90 @@ export const parallelCourseCriticalPath: AlgorithmDefinition<parallelCourseCriti
   title: "Critical Path Latency Bounds in Computational Graph",
   category: "ml_autograd_dags",
   categories: ["ml_autograd_dags", "graph_traversal"],
-  difficulty: "Medium",
+  difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), critical path latency bounds in computational graph provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 2050, url: "https://leetcode.com/problems/parallel-courses-iii/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 2050,
-      title: "Parallel Courses III",
-      url: "https://leetcode.com/problems/parallel-courses-iii/",
-    },
-  ],
+    "In parallel GPU graph scheduling (e.g., PyTorch CUDA Graphs, TVM graph scheduler, LeetCode 2050 / 1136), the Critical Path of a computation DAG determines the absolute minimum execution time required to complete all operations even with infinite parallel GPU streams. The critical path is the longest weighted path from any root input node to any terminal output node.\n\nThis algorithm implements Critical Path Latency Bounds in Computation Graph, evaluating dynamic programming longest path distances across topological BFS graph layers.\n\nInput Format:\n- data: Array representing graph node/edge definitions.\n- target: Optional target value.\n\nOutput Format:\n- Returns scalar maximum critical path latency time.\n\nEdge Cases & Constraints:\n- Disconnected graph components with different path lengths.\n- Single-node graph (critical path equals node duration).\n- All node durations equal to 1 (unweighted longest path).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: PARALLELCOURSECRITICALPATH_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Critical Path Latency Bounds in Computational Graph is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "The Critical Path Method (CPM) finds the minimum total execution time of a parallel workload DAG. Nodes on the critical path have zero slack time; delaying any operation on the critical path directly delays overall model completion time.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, critical path latency bounds in computational graph operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for node v in DAG G, Dist(v) = Duration(v) + max_{(u, v) in E} Dist(u). Critical path length is MaxDist = max_{v in V} Dist(v). Time complexity is O(V + E).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Critical Path Latency Bounds in Computational Graph optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "GPU kernel schedulers prioritize launching operations on the critical path first to minimize total model latency.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing critical path latency bounds in computational graph efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation uses Kahn's BFS topological queue, initializing dist[root] = duration[root], updating dist[v] = max(dist[v], dist[u] + duration[v]), and returning max(dist).",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes empty graphs and disconnected parallel sub-graphs.",
       },
     ],
     keyTerms: [
       {
-        term: "Critical Engine",
+        term: "Critical Path",
         definition:
-          "The underlying algorithmic system implementing critical path latency bounds in computational graph operations for deep learning workloads.",
+          "The longest time-weighted path through a DAG defining the minimum total execution time.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Slack Time",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The amount of time a non-critical operation can be delayed without increasing total DAG latency.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Dynamic Programming on DAGs",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Computing longest path metrics by propagating values along topological graph order.",
       },
     ],
   },
   trivia: PARALLELCOURSECRITICALPATH_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_PARALLELCOURSECRITICALPATH_INPUT,
   generateSteps: generateParallelCourseCriticalPathSteps,
 };

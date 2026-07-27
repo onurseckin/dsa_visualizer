@@ -124,10 +124,9 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: "prefix-sum",
   title: "Prefix Sum",
   category: "arrays_and_hashing",
-  categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
-    "Computes cumulative prefix sums for an array, so any later sub-array range sum can be answered in O(1) time with a single subtraction of two precomputed totals.",
+    "Computes cumulative prefix sums for an array. Given an array nums of N integers, construct a prefix sum array prefix of size N + 1 where prefix[i] stores the sum of elements from nums[0] to nums[i-1].\n\nUsing this prefix array, compute any sub-array range sum from index L to R inclusive in O(1) time using the formula: sum(L..R) = prefix[R + 1] - prefix[L].\n\n### Input Parameters\n- nums (list[int]): An array of integers.\n\n### Output\n- list[int]: An array prefix of size len(nums) + 1 where prefix[0] = 0 and prefix[i+1] = prefix[i] + nums[i].\n\n### Edge Cases & Constraints\n- Empty range sum (L > R): Evaluates to 0.\n- Full array range sum (0..N-1): prefix[N] - prefix[0] = prefix[N].\n- Negative values: Handled seamlessly via standard addition/subtraction.",
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
@@ -173,61 +172,44 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   },
   topicGuide: {
     overview:
-      "A prefix sum is a precomputed table of running totals: prefix[k] holds the sum of the first k elements of your array. Once you have that table, the sum of any contiguous range becomes a single subtraction instead of a loop, which turns a problem with many range queries from repeated scanning into constant-time lookups. It is the simplest member of a family of precomputation techniques where you pay once up front to make an unbounded number of later questions cheap. You will meet it whenever a problem asks about sums, counts, or averages over sub-arrays.",
+      "Prefix Sum is a foundational precomputation technique that converts O(N) range sum queries into O(1) scalar subtractions. In production software engineering, prefix sums power 2D integral images in computer vision (Box Blurs, Viola-Jones face detection), causal mask cumulative sequence lengths in LLM serving (FlashAttention, vLLM continuous batching), and cumulative distribution function (CDF) sampling in Monte Carlo simulations.",
     sections: [
       {
-        heading: "The core idea: pay once, answer forever",
-        body: 'The naive way to answer "what is the sum from index i to index j" is to walk from i to j and add as you go. If a problem asks that question many times, you keep re-adding the same middle elements over and over. The prefix-sum insight is that every range sum is the difference of two totals that both start at the beginning of the array: everything up to j plus one, minus everything up to i. Because both of those totals can be looked up rather than recomputed, the shared middle work cancels out algebraically instead of being repeated. That reframing — express the thing you want as a difference of cumulative quantities — is the whole technique.',
+        heading: "Core Concept & Mathematical Principle",
+        body: "The core formula prefix[i] = sum_{j=0}^{i-1} nums[j] creates a monotonic or cumulative sequence. The sum of elements between 0-indexed bounds L and R inclusive is computed in O(1) time as prefix[R + 1] - prefix[L].",
       },
       {
-        heading: "How the table is actually built",
-        body: 'You allocate an array of length n + 1 and set prefix[0] to zero, which represents the sum of no elements at all. Then you sweep left to right and define each entry in terms of the one before it: prefix[i + 1] is prefix[i] plus nums[i]. Each entry therefore costs one addition, and you never look back further than a single slot, which is why the build is a single clean pass. For nums = [2, 4, 1, 3, 5] you end up with [0, 2, 6, 7, 10, 15], and the sum from index 1 through 3 is prefix[4] minus prefix[1], or 10 minus 2, which is 8. The off-by-one that trips people up disappears once you internalise that prefix[k] means "sum of the first k elements", not "sum up to index k".',
+        heading: "Systems & Performance Impact: LLM KV-Cache & Image Processing",
+        body: "In LLM inference engines like vLLM and TensorRT-LLM, prefix sums calculate total sequence lengths across batched inputs to dynamically allocate GPU memory for KV-caches. In computer vision, 2D Summed-Area Tables (Integral Images) compute box filter convolutions over arbitrary rectangular regions in O(1) operations.",
       },
       {
-        heading: "Why it is correct: the running-total invariant",
-        body: "The loop maintains one promise at all times: after processing index i, prefix[i + 1] equals the exact sum of nums[0] through nums[i]. That holds at the start because prefix[0] is zero and the empty sum is zero, and each iteration preserves it because adding one more element to a correct total gives the correct larger total. Since the invariant holds for every k, the difference prefix[j + 1] minus prefix[i] is the sum of the first j + 1 elements minus the sum of the first i elements, and the shared front portion cancels exactly. What remains is precisely nums[i] through nums[j], which is what a range query asks for. Correctness never depends on the values being positive, so negatives and zeros work with no special handling.",
+        heading: "Implementation Nuances & 1-Based Offset Sentinel",
+        body: "Allocating the prefix array with size N + 1 and setting prefix[0] = 0 provides a sentinel value. This eliminates special-case branching when querying ranges starting at index 0 (L = 0), avoiding off-by-one errors.",
       },
       {
-        heading: "When to reach for it, and when not to",
-        body: "Prefix sums win when the array is static and you expect many range questions, because the O(n) build amortises across all of them. If you only need one range sum, just loop over that range and skip the table entirely. If the underlying values change between queries, a plain prefix array becomes stale after every update and rebuilding it each time is worse than scanning, so that is the moment to move up to a Fenwick tree or a segment tree, which support updates and queries together. And if your question is not decomposable as a difference of cumulative values — for example, the maximum in a range rather than the sum — prefix sums do not apply, because maxima do not subtract.",
-      },
-      {
-        heading: "Pitfalls and edge cases",
-        body: "The most common bug is indexing: because the table is shifted by one, writing prefix[j] minus prefix[i] instead of prefix[j + 1] minus prefix[i] silently drops the last element of the range. Some people avoid the extra slot and store the running total in place, which works but forces an awkward special case when the range starts at index 0. Watch overflow in fixed-width integer languages, since running totals grow much larger than any single element even when the individual values look small. An empty range should answer zero, and the n + 1 layout gives you that for free rather than requiring a guard.",
-      },
-      {
-        heading: "How the pattern generalises",
-        body: "Swap addition for another invertible operation and the same trick keeps working: prefix products answer range products, and prefix XOR answers range XOR, because XOR is its own inverse. Extend the sweep to two dimensions and you get the integral-image technique, where the sum of any rectangle is four table lookups combined with two subtractions and one addition. Pair prefix sums with a hash map of previously seen totals and you can count sub-arrays summing to a target, since a range sums to k exactly when two prefix values differ by k — the same insight that powers Two Sum, applied to cumulative totals. The mirror image of the technique is the difference array, where you write range updates cheaply and take one prefix pass at the end to materialise the final values.",
+        heading: "Edge Case & Boundary Analysis",
+        body: "For N=0 or N=1, the sentinel prefix[0] = 0 prevents out-of-bound memory reads. With large integers, prefix sums can overflow 32-bit signed integer storage, requiring 64-bit wide buffers (int64_t).",
       },
     ],
     keyTerms: [
       {
-        term: "Prefix sum",
-        definition:
-          "The cumulative total of an array from its start up to some position. Stored as a table so that any prefix total is a single lookup instead of a loop.",
-      },
-      {
-        term: "Range sum query",
-        definition:
-          "A request for the total of a contiguous slice of the array, given by its start and end indices. With a prefix table it costs one subtraction regardless of how long the slice is.",
-      },
-      {
-        term: "Sentinel zero",
-        definition:
-          "The leading prefix[0] = 0 entry standing for the sum of no elements. It exists so that ranges beginning at index 0 need no special-case branch.",
-      },
-      {
         term: "Precomputation",
         definition:
-          "Doing extra work once, before any queries arrive, so each later query becomes cheap. It is a trade of memory and setup time for query speed.",
+          "Performing upfront calculation to store results, enabling subsequent queries to execute in O(1) time.",
       },
       {
-        term: "Difference array",
+        term: "Integral Image / Summed-Area Table",
         definition:
-          "The inverse construction, where you record only the changes at range boundaries and recover the real values with a final prefix-sum pass. It makes many range updates cheap instead of many range queries.",
+          "A 2D generalization of prefix sums used in image processing to compute sub-grid sums in constant time.",
+      },
+      {
+        term: "Sentinel Value",
+        definition:
+          "A dummy value (such as prefix[0] = 0) placed at the beginning of a data structure to simplify boundary conditions.",
       },
     ],
   },
+  categories: ["arrays_and_hashing"],
   trivia: PREFIX_SUM_TRIVIA,
   leetcode: {
     id: 303,

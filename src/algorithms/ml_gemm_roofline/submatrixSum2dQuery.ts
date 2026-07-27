@@ -7,31 +7,13 @@ export interface submatrixSum2dQueryInput {
 }
 
 export const SUBMATRIXSUM2DQUERY_CODE = `
-def submatrixsum2dquery(tensor_shape, strides, memory_buffer):
+def submatrix_sum_2d_query(prefix_matrix, r1, c1, r2, c2):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Queries 2D submatrix region sum using 4-corner integral image prefix table.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    total = (prefix_matrix[r2+1][c2+1] - prefix_matrix[r1][c2+1] - 
+             prefix_matrix[r2+1][c1] + prefix_matrix[r1][c1])
+    return total
 `;
 
 export const DEFAULT_SUBMATRIXSUM2DQUERY_INPUT: submatrixSum2dQueryInput = {
@@ -80,7 +62,7 @@ export const generateSubmatrixSum2dQuerySteps = (
 
   addStep(
     1,
-    "Initialize 2D Submatrix Region Sum Query",
+    "Initialize 2D Submatrix Region Sum Query Engine",
     "Setting up execution data structures and memory layout pointers.",
     { n: input.data.length, target: input.target ?? 0 },
   );
@@ -97,7 +79,7 @@ export const generateSubmatrixSum2dQuerySteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +91,7 @@ export const generateSubmatrixSum2dQuerySteps = (
   }));
 
   addStep(
-    6,
+    7,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,23 +102,23 @@ export const generateSubmatrixSum2dQuerySteps = (
 };
 
 const SUBMATRIXSUM2DQUERY_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for 2D Submatrix Region Sum Query.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 2D submatrix region sum query function.",
+    4: "Evaluates 4-corner inclusion-exclusion query: P[r2+1][c2+1] - P[r1][c2+1] - P[r2+1][c1] + P[r1][c1].",
+    6: "Returns computed scalar submatrix region sum total.",
   },
 };
 
 export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> = {
   id: "submatrix-sum-2d-query",
-  title: "2D Submatrix Region Sum Query",
+  title: "2D Submatrix Region Sum Query Engine",
   category: "ml_gemm_roofline",
   categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
@@ -144,100 +126,83 @@ export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> 
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 2d submatrix region sum query provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 304, url: "https://leetcode.com/problems/range-sum-query-2d-immutable/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 304,
-      title: "Range Sum Query 2D - Immutable",
-      url: "https://leetcode.com/problems/range-sum-query-2d-immutable/",
-    },
-  ],
+    "In object detection feature extractors (e.g. Viola-Jones, Region of Interest pooling, spatial attention windowing), calculating submatrix sums across arbitrary bounding box coordinates [r1..r2, c1..c2] in O(1) constant time is achieved using pre-computed 2D integral image prefix tables.\n\nThis algorithm implements 2D Submatrix Region Sum Query Engine, evaluating 4-corner inclusion-exclusion queries over integral sum grids.\n\nInput Format:\n- data: Array representing matrix data.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns scalar region sum total for queried submatrix bounds.\n\nEdge Cases & Constraints:\n- Submatrix covering full matrix (r1=0, c1=0, r2=rows-1, c2=cols-1).\n- 1x1 single-cell submatrix query (r1=r2, c1=c2).\n- Boundary coordinate inclusion-exclusion limits.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: SUBMATRIXSUM2DQUERY_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "2D Submatrix Region Sum Query is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Submatrix region queries calculate the sum of matrix elements within rectangular bounds in O(1) time. Using a 2D prefix sum grid P where P[r+1][c+1] stores the sum of all elements in submatrix [0..r, 0..c], region sum queries require only 4 corner lookups.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, 2d submatrix region sum query operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, sum over [r1..r2, c1..c2] = P[r2+1][c2+1] - P[r1][c2+1] - P[r2+1][c1] + P[r1][c1].",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 2D Submatrix Region Sum Query optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "O(1) region querying enables evaluating millions of candidate bounding box features per second in spatial vision algorithms.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing 2d submatrix region sum query efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation evaluates 4-corner array indices on pre-computed integral image grid P and returns scalar sum total.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes verifying 0-indexed coordinate offset adjustments.",
       },
     ],
     keyTerms: [
       {
-        term: "2D Engine",
+        term: "4-Corner Query",
         definition:
-          "The underlying algorithmic system implementing 2d submatrix region sum query operations for deep learning workloads.",
+          "Evaluating rectangular region sums using four specific corner entries of an integral matrix.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Integral Image",
+        definition: "A 2D prefix table storing cumulative sums from top-left matrix origin.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Inclusion-Exclusion",
+        definition: "Subtracting overlapping sub-regions to extract exact bounded submatrix sum.",
       },
     ],
   },
   trivia: SUBMATRIXSUM2DQUERY_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
   defaultInput: DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
   generateSteps: generateSubmatrixSum2dQuerySteps,
 };

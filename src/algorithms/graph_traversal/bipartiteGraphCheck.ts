@@ -11,20 +11,26 @@ export interface BipartiteGraphCheckInput {
   edges: GraphEdgeItem[];
 }
 
-export const BIPARTITE_CHECK_CODE = `
-def bipartite_check(input_array):
-    """
-    Implementation of bipartite_check.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const BIPARTITE_CHECK_CODE = `from collections import deque
+
+def is_bipartite(graph):
+    color = {}
+    for node in graph:
+        if node not in color:
+            color[node] = 0
+            queue = deque([node])
+            while queue:
+                u = queue.popleft()
+                for v in graph[u]:
+                    if v not in color:
+                        color[v] = 1 - color[u]
+                        queue.append(v)
+                    elif color[v] == color[u]:
+                        return False
+    return True`;
 
 export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5],
+  skipLines: [1, 2],
   distractors: [
     "color[v] = color[u]",
     "if color[v] != color[u]: return False",
@@ -33,29 +39,35 @@ export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 7,
+      line: 4,
       hint: "Stores assigned vertex colors (0 or 1) in a map/dictionary.",
     },
     {
-      line: 16,
+      line: 13,
       hint: "Assign opposite color (1 - color[u]) to unvisited neighbors.",
     },
     {
-      line: 19,
+      line: 15,
       hint: "If a neighbor already shares the same color, an odd-length cycle exists, breaking 2-colorability.",
     },
     {
-      line: 21,
+      line: 17,
       hint: "If all connected components are 2-colored without conflict, the graph is bipartite.",
     },
   ],
   lineExplanations: {
-    1: "Defines 2-coloring bipartite graph validation algorithm.",
-    7: "Initializes color assignment table.",
-    12: "Runs BFS/DFS traversal over each connected component.",
-    16: "Assigns opposite color (1 - color[u]) to neighboring vertices.",
-    19: "Detects color collision indicating an odd-length cycle.",
-    21: "Confirms graph is 2-colorable (bipartite).",
+    1: "Imports deque for efficient O(1) queue operations during BFS traversal.",
+    3: "Defines 2-coloring bipartite graph validation algorithm accepting an adjacency list.",
+    4: "Initializes color assignment dictionary mapping node IDs to color 0 or 1.",
+    5: "Sweeps every vertex in the graph to ensure all disconnected components are checked.",
+    7: "Assigns initial color 0 to unvisited root of a new connected component.",
+    8: "Initializes BFS queue with the component root node.",
+    10: "Pops next vertex u from the front of the queue.",
+    11: "Scans each neighbor v adjacent to node u.",
+    13: "Assigns opposite color (1 - color[u]) to unvisited neighbor v.",
+    15: "Detects color collision when adjacent nodes share identical color.",
+    16: "Returns False immediately when an odd-length cycle conflict is discovered.",
+    17: "Confirms graph is 2-colorable (bipartite) after all components pass without conflict.",
   },
 };
 
@@ -92,7 +104,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 1,
+    codeLine: 3,
     explanation: {
       what: "Initialized Bipartite Graph 2-Coloring Check.",
       why: "A graph is bipartite if its nodes can be colored using 2 colors (Group 0 & Group 1) with no adjacent nodes sharing a color.",
@@ -115,7 +127,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 10,
+        codeLine: 7,
         explanation: {
           what: `Started 2-coloring component from node "${startNode.id}" (assigned Color 0).`,
           why: "Uncolored component root assigned initial color 0.",
@@ -150,7 +162,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
             steps.push({
               stepIndex: stepIdx++,
-              codeLine: 16,
+              codeLine: 13,
               explanation: {
                 what: `Colored neighbor "${v}" with Color ${color[v]} (opposite of "${u}": ${color[u]}).`,
                 why: "Adjacent nodes in a bipartite graph must have opposite colors.",
@@ -182,7 +194,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
             steps.push({
               stepIndex: stepIdx++,
-              codeLine: 19,
+              codeLine: 15,
               explanation: {
                 what: `Conflict detected on edge ${u} -- ${v}! Both nodes share Color ${color[u]}.`,
                 why: "An odd-length cycle prevents 2-coloring. Graph is NOT bipartite.",
@@ -220,7 +232,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
   if (isBipartite) {
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 21,
+      codeLine: 17,
       explanation: {
         what: "Graph is BIPARTITE! Successfully 2-colored all vertices with zero conflicts.",
         why: "No odd-length cycles exist in the graph.",

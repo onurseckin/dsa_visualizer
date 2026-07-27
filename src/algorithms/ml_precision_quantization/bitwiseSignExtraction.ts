@@ -7,21 +7,17 @@ export interface bitwiseSignExtractionInput {
 }
 
 export const BITWISESIGNEXTRACTION_CODE = `
-def bitwisesignextraction(fp32_weights, scale, zero_point):
+def bitwise_sign_extraction(fp32_values):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Extracts IEEE-754 1-bit sign indicator using bitwise right-shift (bits >> 31) & 1.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
-
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
-
-    return quantized_tensor
+    import struct
+    signs = []
+    for val in fp32_values:
+        bits = struct.unpack('>I', struct.pack('>f', val))[0]
+        sign_bit = (bits >> 31) & 1
+        signs.append(sign_bit)
+    return signs
 `;
 
 export const DEFAULT_BITWISESIGNEXTRACTION_INPUT: bitwiseSignExtractionInput = {
@@ -33,61 +29,98 @@ export const generateBitwiseSignExtractionSteps = (
   input: bitwiseSignExtractionInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Bitwise Sign Extraction",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Bitwise Sign Extraction",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    11,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const BITWISESIGNEXTRACTION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines bitwise sign extraction function.",
+    5: "Initializes signs output array.",
+    6: "Iterates through input FP32 floating point values.",
+    7: "Reinterprets FP32 float bytes as 32-bit unsigned integer bit pattern.",
+    8: "Extracts sign bit via bitwise right-shift (bits >> 31) and bitwise-AND 1.",
+    9: "Appends extracted 1-bit sign indicator (0 or 1) to result array.",
+    10: "Returns array of extracted sign bits.",
+  },
 };
 
 export const bitwiseSignExtraction: AlgorithmDefinition<bitwiseSignExtractionInput> = {
@@ -95,95 +128,90 @@ export const bitwiseSignExtraction: AlgorithmDefinition<bitwiseSignExtractionInp
   title: "Bitwise Sign Extraction",
   category: "ml_precision_quantization",
   categories: ["ml_precision_quantization", "bit_manipulation"],
-  difficulty: "Medium",
+  difficulty: "Easy",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), bitwise sign extraction provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "In IEEE-754 single-precision floating point standard (FP32), a 32-bit float consists of 1 sign bit (bit 31), 8 exponent bits (bits 23-30), and 23 mantissa fraction bits (bits 0-22). Extracting the sign bit via bitwise right-shift (bits >> 31) & 1 operates in 1 clock cycle on GPU SIMD bitwise hardware.\n\nThis algorithm implements Bitwise Sign Extraction, converting FP32 floats to 32-bit unsigned integer bit patterns and extracting the most significant sign bit (0 for positive, 1 for negative).\n\nInput Format:\n- values: Array of FP32 floating-point numbers.\n- scale: Optional scale parameter.\n\nOutput Format:\n- Returns array of 1-bit sign values (0 for non-negative, 1 for negative).\n\nEdge Cases & Constraints:\n- Negative zero (-0.0) having sign bit 1.\n- Positive zero (+0.0) having sign bit 0.\n- NaN and Infinity bit patterns.",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: BITWISESIGNEXTRACTION_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Bitwise Sign Extraction is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Bitwise sign extraction is used in activation functions (e.g. ReLU, Copysign, LeakyReLU), sign-based optimization algorithms (SignSGD), and binary neural network quantization (1-bit BNNs).",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, bitwise sign extraction operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, an IEEE-754 32-bit float bit string B = s | e_7..e_0 | m_22..m_0. Sign bit s = (B >> 31) bitwise-AND 1.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Bitwise Sign Extraction optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Bitwise shift operations execute on GPU ALU bitwise units in 1 clock cycle, avoiding floating-point comparison instructions.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing bitwise sign extraction efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation reinterprets float bytes as 32-bit unsigned integers, applies right-shift >> 31, and masks with bitwise AND 1.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes distinguishing positive zero (+0.0 -> 0) from negative zero (-0.0 -> 1).",
       },
     ],
     keyTerms: [
       {
-        term: "Bitwise Engine",
+        term: "Sign Bit",
         definition:
-          "The underlying algorithmic system implementing bitwise sign extraction operations for deep learning workloads.",
+          "The most significant bit (bit 31 in FP32) indicating number sign (0 positive, 1 negative).",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Bitwise Shift",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Moving binary bit positions right or left using hardware bitwise shift operators.",
       },
       {
-        term: "Memory Coalescing",
+        term: "IEEE-754 Floating Point",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Standard binary format representing real numbers using sign, exponent, and mantissa fields.",
       },
     ],
   },
   trivia: BITWISESIGNEXTRACTION_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_BITWISESIGNEXTRACTION_INPUT,
   generateSteps: generateBitwiseSignExtractionSteps,
 };

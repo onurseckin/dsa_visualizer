@@ -1,159 +1,245 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface RandomHyperplaneSignHashInput {
-  vectors: number[][];
-  target?: number[];
+  vector: number[];
+  hyperplanes: number[][];
 }
+
+export const DEFAULT_RANDOM_HYPERPLANE_INPUT: RandomHyperplaneSignHashInput = {
+  vector: [1.5, -2.0, 0.5],
+  hyperplanes: [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0],
+    [Math.SQRT1_2, Math.SQRT1_2, 0.0],
+  ],
+};
+
+export const RANDOM_HYPERPLANE_SIGN_HASH_CODE = `def random_hyperplane_sign_hash(vector: list[float], hyperplanes: list[list[float]]) -> tuple[str, int]:
+    """
+    Computes angular Locality-Sensitive Hash (LSH) bitcode via random hyperplanes (Charikar 2002).
+    For each hyperplane normal vector w_i, bit b_i = 1 if (w_i . v) >= 0 else 0.
+    Maps cosine similarity to Hamming distance between bitcodes.
+    """
+    bits = []
+    bitcode_int = 0
+
+    for idx, w in enumerate(hyperplanes):
+        dot_product = sum(wi * vi for wi, vi in zip(w, vector))
+        bit_val = 1 if dot_product >= 0 else 0
+        bits.append(str(bit_val))
+        bitcode_int = (bitcode_int << 1) | bit_val
+
+    bitcode_str = "".join(bits)
+    return bitcode_str, bitcode_int`;
+
+export const generateRandomHyperplaneSteps = (
+  input: RandomHyperplaneSignHashInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { vector, hyperplanes } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Random Hyperplane Sign Hashing (Charikar LSH)`,
+      why: `Computing K = ${hyperplanes.length}-bit angular LSH code for vector [${vector.join(", ")}].`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: hyperplanes.map((w, idx) => ({
+        id: `plane-${idx}`,
+        value: idx,
+        label: `H${idx} normal [${w.join(",")}]`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        vector: `[${vector.join(", ")}]`,
+        numHyperplanes: String(hyperplanes.length),
+        status: "Initialized",
+      },
+    },
+    variables: { totalPlanes: hyperplanes.length },
+  });
+
+  const bits: number[] = [];
+  let bitcodeInt = 0;
+
+  for (let i = 0; i < hyperplanes.length; i++) {
+    const w = hyperplanes[i];
+    const dotProduct = w.reduce((acc, wi, d) => acc + wi * vector[d], 0);
+    const bitVal = dotProduct >= 0 ? 1 : 0;
+
+    bits.push(bitVal);
+    bitcodeInt = (bitcodeInt << 1) | bitVal;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 12,
+      explanation: {
+        what: `Evaluate Hyperplane H${i} Normal [${w.join(", ")}]`,
+        why: `Dot product (w . v) = ${dotProduct.toFixed(3)}. Sign is ${dotProduct >= 0 ? ">= 0" : "< 0"} -> Bit b_${i} = ${bitVal}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: hyperplanes.map((_, idx) => ({
+          id: `plane-${idx}`,
+          value: idx === i ? bitVal : idx < i ? bits[idx] : idx,
+          label: `b_${idx} = ${idx <= i ? bits[idx] : "?"}`,
+          state:
+            idx === i
+              ? ("active" as ElementState)
+              : idx < i
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`bit=${bitVal}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          activePlane: `H${i}`,
+          dotProduct: dotProduct.toFixed(3),
+          bitResult: String(bitVal),
+          accumulatedBitstring: bits.join(""),
+          bitcodeInteger: String(bitcodeInt),
+        },
+      },
+      variables: { planeIdx: i, dotProduct: Math.round(dotProduct * 100) / 100, bitVal },
+    });
+  }
+
+  // Step Final: Complete
+  const bitcodeStr = bits.join("");
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 17,
+    explanation: {
+      what: `Random Hyperplane Sign Hash Complete: Bitcode "${bitcodeStr}" (Int: ${bitcodeInt})`,
+      why: `Vector mapped to binary bitcode "${bitcodeStr}". Angular distance cos(theta) corresponds to Hamming distance between bitcodes.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: bits.map((b, idx) => ({
+        id: `bit-${idx}`,
+        value: b,
+        label: `Bit ${idx} = ${b}`,
+        state: "sorted" as ElementState,
+        pointers: idx === 0 ? [`Bitcode: "${bitcodeStr}"`] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        bitcodeString: bitcodeStr,
+        bitcodeInteger: String(bitcodeInt),
+        status: "Completed",
+      },
+    },
+    variables: { bitcodeStr, bitcodeInt, complete: true },
+  });
+
+  return steps;
+};
 
 export const randomHyperplaneSignHash: AlgorithmDefinition<RandomHyperplaneSignHashInput> = {
   id: "randomHyperplaneSignHash",
-  title: "Q5: Random Hyperplane Sign Hash",
+  title: "Random Hyperplane Sign Hashing (Charikar Angular LSH)",
   category: "ml_vector_search",
-  categories: ["ml_vector_search", "binary_search"],
-  difficulty: "Easy",
+  categories: ["ml_vector_search"],
+  difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 5,
   mlInfraCategory: "ml_vector_search",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q5: random hyperplane sign hash provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: [
-    "Vectors must have matching dimensions.",
-    "Input size typically constrained for visualization purposes.",
-  ],
+    "Computes angular Locality-Sensitive Hashing (LSH) bitcodes using random hyperplanes (Charikar 2002). For each random hyperplane normal vector w_i, bit b_i = 1 if (w_i · v) >= 0 else 0. Maps vector cosine similarity directly to Hamming distance between binary bitcode integers.\n\nInput Format:\n- vector: Multi-dimensional query vector.\n- hyperplanes: K random normal vectors w_i defining hyperplanes through the origin.\n\nOutput Format:\n- Returns tuple (bitcodeString, bitcodeInteger).\n\nEdge Cases & Constraints:\n- Exact origin vector [0,0,...,0]: Dot product is 0, assigned bit 1.",
+  constraints: ["hyperplanes normal vectors must match vector dimension D."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: {} as unknown as RandomHyperplaneSignHashInput, // Will need actual data but cast to any
-      output: "Basic Success",
-      explanation: "A simple clear basic example for randomHyperplaneSignHash.",
+      title: "4-Bit Random Hyperplane Bitcode",
+      inputDisplay: "vector = [1.5, -2.0, 0.5], 4 hyperplanes",
+      outputDisplay: "Bitcode: '1010' (Int: 10)",
+      input: DEFAULT_RANDOM_HYPERPLANE_INPUT,
+      output: "'1010'",
+      explanation: "Evaluates signs of dot products against 4 coordinate and diagonal hyperplanes.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: {} as unknown as RandomHyperplaneSignHashInput,
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Opposite Vector Inverted Bitcode",
+      inputDisplay: "vector = [-1.5, 2.0, -0.5]",
+      outputDisplay: "Bitcode: '0101' (Int: 5)",
+      input: {
+        ...DEFAULT_RANDOM_HYPERPLANE_INPUT,
+        vector: [-1.5, 2.0, -0.5],
+      },
+      output: "'0101'",
+      explanation: "Diametrically opposed vector produces exact bitwise NOT complement ('0101').",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: {} as unknown as RandomHyperplaneSignHashInput,
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "Zero Vector",
+      inputDisplay: "vector = [0.0, 0.0, 0.0]",
+      outputDisplay: "Bitcode: '1111' (Int: 15)",
+      input: {
+        ...DEFAULT_RANDOM_HYPERPLANE_INPUT,
+        vector: [0.0, 0.0, 0.0],
+      },
+      output: "'1111'",
+      explanation: "Zero vector dot products evaluate to 0 >= 0, producing all ones.",
     },
   ],
-  defaultInput: {} as unknown as RandomHyperplaneSignHashInput,
-  code: `
-def randomHyperplaneSignHash(query_vector, database_embeddings, top_k=3):
-    """
-    Q5: Random Hyperplane Sign Hash
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+  defaultInput: DEFAULT_RANDOM_HYPERPLANE_INPUT,
+  code: RANDOM_HYPERPLANE_SIGN_HASH_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(K * D)",
+    average: "O(K * D)",
+    worst: "O(K * D)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(K)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(K * D) where K is number of hyperplanes and D is vector dimension.",
+    space: "O(K) auxiliary space to store binary bitcode strings and integers.",
   },
   topicGuide: {
     overview:
-      "Q5: Random Hyperplane Sign Hash is a critical component in ML VECTOR SEARCH systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Random Hyperplane LSH (Charikar 2002, Goemans & Williamson 1995) provides a theoretical guarantee connecting angular distance to Hamming bit distance: P(b_i(u) == b_i(v)) = 1 - theta(u, v) / pi. This allows vector similarity search over high-dimensional spaces to be executed as hardware POPCNT (population count) bitwise XOR instructions on 64-bit integers.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, q5: random hyperplane sign hash operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "A random hyperplane passing through origin splits R^D into two half-spaces. The probability that two vectors u, v fall on opposite sides of a random hyperplane is directly proportional to angle theta(u, v) = arccos(u . v / (||u|| ||v||)).",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Q5: Random Hyperplane Sign Hash optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Hardware POPCNT & Hamming Distance Speedups",
+        body: "Hamming distance between two K-bit hash codes is computed via CPU `POPCNT(code1 ^ code2)` in 1 CPU instruction cycle, running up to 100x faster than floating-point dot products.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing q5: random hyperplane sign hash efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Bit Packing (uint64_t)",
+        body: "Bitcodes are packed into 64-bit integer registers (`uint64_t`). For K = 64 hyperplanes, each vector requires only 8 bytes of storage.",
       },
     ],
     keyTerms: [
       {
-        term: "Q5: Engine",
+        term: "Charikar LSH",
         definition:
-          "The underlying algorithmic system implementing q5: random hyperplane sign hash operations for deep learning workloads.",
+          "Locality-Sensitive Hashing algorithm preserving cosine angle using random hyperplanes.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Hamming Distance",
+        definition: "The number of bit positions in which two binary strings differ.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "POPCNT (Population Count)",
+        definition: "Hardware instruction returning the number of set 1-bits in a binary word.",
       },
     ],
   },
-  generateSteps: (_input: RandomHyperplaneSignHashInput) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "Charikar Random Hyperplane LSH (STOC 2002)" },
+  ],
+  generateSteps: generateRandomHyperplaneSteps,
 };

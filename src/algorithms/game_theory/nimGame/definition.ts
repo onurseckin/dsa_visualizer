@@ -96,6 +96,7 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   id: "nim-game",
   title: "Nim Game Sprague-Grundy",
   category: "game_theory",
+  categories: ["game_theory"],
   difficulty: "Easy",
   description:
     "Nim is the classic impartial game solved by the Sprague-Grundy theorem. Computing the Nim-sum — the bitwise XOR of all pile sizes — instantly reveals whether the position is a forced win for the First Player (non-zero) or the Second Player (zero), and pinpoints the optimal opening move.",

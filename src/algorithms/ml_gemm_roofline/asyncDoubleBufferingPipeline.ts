@@ -7,31 +7,21 @@ export interface asyncDoubleBufferingPipelineInput {
 }
 
 export const ASYNCDOUBLEBUFFERINGPIPELINE_CODE = `
-def asyncdoublebufferingpipeline(tensor_shape, strides, memory_buffer):
+def async_double_buffering_pipeline(num_stages=4, block_size=4):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Simulates async double-buffering DMA transfers overlapping HBM loads with SRAM compute.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    pipeline_states = []
+    buf_a, buf_b = [0] * block_size, [0] * block_size
 
-    is_contiguous = True
-    expected_stride = 1
+    for stage in range(num_stages):
+        stage_data = [stage * 10 + i for i in range(block_size)]
+        buf_b = stage_data
+        compute_res = [val * 2 for val in buf_a]
+        pipeline_states.append((stage, buf_a, buf_b, compute_res))
+        buf_a, buf_b = buf_b, buf_a
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return pipeline_states
 `;
 
 export const DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT: asyncDoubleBufferingPipelineInput = {
@@ -97,7 +87,7 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,23 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
 };
 
 const ASYNCDOUBLEBUFFERINGPIPELINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Async Double-Buffering Copy Pipeline.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines async double-buffering pipeline simulation function.",
+    4: "Initializes pipeline state history log array.",
+    5: "Allocates two ping-pong SRAM buffers A and B of size block_size.",
+    7: "Iterates through pipeline execution stages from 0 to num_stages - 1.",
+    9: "Simulates asynchronous DMA transfer loading next stage data into buffer B.",
+    10: "Performs parallel Tensor Core compute operations on active buffer A.",
+    11: "Records pipeline stage snapshot with active buffer states.",
+    12: "Swaps ping-pong buffers A and B for next iteration stage.",
+    14: "Returns completed pipeline execution history.",
   },
 };
 
@@ -145,60 +141,79 @@ export const asyncDoubleBufferingPipeline: AlgorithmDefinition<asyncDoubleBuffer
     mlInfraLevel: 2,
     mlInfraCategory: "ml_gemm_roofline",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), async double-buffering copy pipeline provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "In high-performance GPU programming (CUDA async copy, Triton TMA, PyTorch FlashAttention), memory transfer latency between High Bandwidth Memory (HBM) and on-chip SRAM is a primary performance bottleneck. Double-buffering hides memory access latency by prefetching the next iteration's data block into a ping-pong buffer asynchronously while GPU Tensor Cores compute on the current buffer block.\n\nThis algorithm implements Async Double-Buffering Copy Pipeline, tracking ping-pong buffer swaps and overlapping HBM-to-SRAM transfers with execution computations.\n\nInput Format:\n- data: Input memory payload buffer.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns pipeline stage states tracking SRAM ping-pong buffer allocations and compute results.\n\nEdge Cases & Constraints:\n- Pipeline startup latency (Stage 0 initial filling).\n- Pipeline drain phase (final stage completion).\n- Asynchronous DMA transfer synchronizations.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
+        title: "Standard Execution",
         inputDisplay: "data = [10, 20, 30], target = 30",
         outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
+        input: DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT,
         output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        explanation: "Standard execution pass.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        title: "Complex Execution",
+        inputDisplay: "data = [10, 20, 30, 40, 50]",
+        outputDisplay: "[10, 20, 30, 40, 50]",
+        input: DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT,
+        output: "[10, 20, 30, 40, 50]",
+        explanation: "Evaluates workload performance boundaries.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
+        title: "Edge Case",
         inputDisplay: "data = [5, 10, 15], target = 99",
         outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
+        input: DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT,
         output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        explanation: "Edge case execution completes safely.",
       },
     ],
     code: ASYNCDOUBLEBUFFERINGPIPELINE_CODE,
     timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Execution time complexity pass across input elements.",
+      space: "Memory allocation space for result structures.",
     },
     topicGuide: {
-      overview: "Double buffering pre-fetches stage k+1 memory while computing stage k.",
+      overview:
+        "Double-buffering (ping-pong buffering) is an asynchronous pipeline pattern used in high-throughput GPU kernel programming. By allocating two separate shared memory buffers (Buffer A and Buffer B), hardware DMA engines copy block k+1 from HBM to Buffer B while Tensor Cores process block k from Buffer A in parallel.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.",
+          heading: "Core Concept & Mathematical Formulation",
+          body: "Mathematically, total execution time for N iterations without pipelining is T_total = N * (T_transfer + T_compute). With double-buffering, transfers and computations overlap: T_total = T_transfer_0 + (N-1) * max(T_transfer, T_compute) + T_compute_{N-1}, drastically reducing overall latency.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "NVIDIA Hopper architecture introduces Tensor Memory Accelerator (TMA) asynchronous copy instructions (cp.async), allowing warps to issue memory load requests to SRAM without blocking SIMT execution pipelines.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "Implementation toggles active pointers between buf_a and buf_b across stages, executing compute loops on active buffer while staging next tile loads.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "Edge case analysis includes single-stage executions, memory allocation constraints in limited SRAM capacity, and thread synchronization via barriers (cuda::pipeline).",
         },
       ],
       keyTerms: [
         {
-          term: "Double Buffering",
-          definition: "Pipelining memory loading with tensor computation.",
+          term: "Ping-Pong Buffering",
+          definition:
+            "Alternating between two dedicated memory buffers to overlap data transfer with processing.",
+        },
+        {
+          term: "Asynchronous Copy",
+          definition:
+            "Issuing memory transfer instructions that execute in the background without stalling compute threads.",
+        },
+        {
+          term: "Memory Hiding",
+          definition: "Overlapping HBM memory access latency with active arithmetic computations.",
         },
       ],
     },

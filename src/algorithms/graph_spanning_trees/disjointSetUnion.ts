@@ -29,11 +29,15 @@ export const DEFAULT_DISJOINT_SET_UNION_INPUT: DisjointSetUnionInput = {
 
 const DSU_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Signature: initialize DSU structure with N elements.",
-    2: "Set parent[i] = i (each element is initially its own root leader) and rank[i] = 0.",
-    6: "find(u) with path compression: flattens tree by pointing visited nodes directly to root.",
-    12: "union(u, v) with union by rank: attaches lower-rank root under higher-rank root.",
-    19: "Increment rank[root_i] if both roots had equal rank.",
+    1: "Defines DSU class initializing parent and rank arrays for N elements.",
+    3: "Sets parent[i] = i (each element starts as its own representative root leader).",
+    4: "Initializes rank array to zero for all elements.",
+    6: "find(i) retrieves the representative root leader of the set containing i.",
+    9: "Path compression: flattens tree by reparenting node i directly to root leader.",
+    12: "union(i, j) merges components containing element i and element j.",
+    16: "Union by rank: swaps roots if necessary to attach lower-rank tree under higher-rank tree.",
+    18: "Updates parent pointer of root_j to point to root_i.",
+    20: "Increments rank of root_i when merging trees of identical rank.",
   },
 };
 

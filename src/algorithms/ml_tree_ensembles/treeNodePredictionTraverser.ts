@@ -1,204 +1,296 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export interface treeNodePredictionTraverserInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface DecisionTreeNodeData {
+  id: number;
+  featureIdx?: number;
+  threshold?: number;
+  leftId?: number;
+  rightId?: number;
+  leafValue?: number;
 }
 
-export const TREENODEPREDICTIONTRAVERSER_CODE = `
-def treenodepredictiontraverser(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
+export interface TreeNodePredictionTraverserInput {
+  sample: number[]; // Feature vector X
+  treeNodes: Record<number, DecisionTreeNodeData>;
+  rootId: number;
+}
 
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_TREENODEPREDICTIONTRAVERSER_INPUT: treeNodePredictionTraverserInput = {
-  data: [1, 2, 3],
+export const DEFAULT_TREE_TRAVERSAL_INPUT: TreeNodePredictionTraverserInput = {
+  sample: [2.5, 4.0],
+  rootId: 0,
+  treeNodes: {
+    0: { id: 0, featureIdx: 0, threshold: 3.0, leftId: 1, rightId: 2 },
+    1: { id: 1, featureIdx: 1, threshold: 3.5, leftId: 3, rightId: 4 },
+    2: { id: 2, leafValue: 10.5 },
+    3: { id: 3, leafValue: 2.0 },
+    4: { id: 4, leafValue: 7.8 },
+  },
 };
 
-export const generateTREENODEPREDICTIONTRAVERSERSteps = (
-  input: treeNodePredictionTraverserInput,
+export const TREE_NODE_PREDICTION_TRAVERSER_CODE = `def traverse_decision_tree(sample: list[float], tree_nodes: dict, root_id: int) -> tuple[float, list[int]]:
+    """
+    Decision Tree Prediction Traverser.
+    Routes a test sample vector X through decision tree nodes from root_id down to a leaf node.
+    At internal nodes, branches Left if sample[feature_idx] <= threshold, else Right.
+    """
+    curr_id = root_id
+    traversal_path = [curr_id]
+
+    while curr_id in tree_nodes:
+        node = tree_nodes[curr_id]
+
+        # Terminal leaf node
+        if "leafValue" in node and node["leafValue"] is not None:
+            return node["leafValue"], traversal_path
+
+        f_idx = node["featureIdx"]
+        threshold = node["threshold"]
+        feat_val = sample[f_idx]
+
+        if feat_val <= threshold:
+            curr_id = node["leftId"]
+        else:
+            curr_id = node["rightId"]
+
+        traversal_path.append(curr_id)
+
+    return 0.0, traversal_path`;
+
+export const generateTreeTraversalSteps = (
+  input: TreeNodePredictionTraverserInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
+  const { sample, treeNodes, rootId } = input;
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  let currId = rootId;
+  const path: number[] = [currId];
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Decision Tree Traversal at Root Node ${rootId}`,
+      why: `Routing sample vector X = [${sample.join(", ")}] from Root node ${rootId} down to leaf node.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: Object.keys(treeNodes).map((nIdStr) => {
+        const nId = Number(nIdStr);
+        const node = treeNodes[nId];
+        const isLeaf = "leafValue" in node && node.leafValue !== undefined;
+        return {
+          id: `node-${nId}`,
+          value: nId,
+          label: isLeaf
+            ? `Leaf ${nId} (${node.leafValue})`
+            : `Node ${nId} (X[${node.featureIdx}]<=${node.threshold})`,
+          state: nId === rootId ? ("active" as ElementState) : ("default" as ElementState),
+          pointers: nId === rootId ? ["Root"] : [],
+        };
+      }),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        sample: `[${sample.join(", ")}]`,
+        path: `[Node ${rootId}]`,
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { rootId, currId },
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  while (currId in treeNodes) {
+    const node = treeNodes[currId];
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
-    },
-    auxiliaryState: {
-      customState: { done: "true" },
-    },
-    variables: { result: "calculated" },
-  });
+    if ("leafValue" in node && node.leafValue !== undefined) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 11,
+        explanation: {
+          what: `Reached Leaf Node ${currId}: Output Prediction = ${node.leafValue}`,
+          why: `Reached terminal leaf node ${currId}. Tree prediction value = ${node.leafValue}.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: Object.keys(treeNodes).map((nIdStr) => {
+            const nId = Number(nIdStr);
+            const isLeafNode = nId === currId;
+            return {
+              id: `node-${nId}`,
+              value: nId,
+              label: isLeafNode ? `Leaf ${nId} (${node.leafValue})` : `Node ${nId}`,
+              state: isLeafNode
+                ? ("sorted" as ElementState)
+                : path.includes(nId)
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+              pointers: isLeafNode ? [`Leaf Output: ${node.leafValue}`] : [],
+            };
+          }),
+        },
+        auxiliaryState: {
+          customState: {
+            leafNode: `Node ${currId}`,
+            leafValue: String(node.leafValue),
+            traversalPath: path.map((id) => `Node ${id}`).join(" -> "),
+            status: "Completed",
+          },
+        },
+        variables: { leafValue: node.leafValue, complete: true },
+      });
+      break;
+    }
+
+    const fIdx = node.featureIdx!;
+    const threshold = node.threshold!;
+    const featVal = sample[fIdx];
+    const isLeft = featVal <= threshold;
+
+    const nextId = isLeft ? node.leftId! : node.rightId!;
+    const prevId = currId;
+    currId = nextId;
+    path.push(currId);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 18,
+      explanation: {
+        what: `Node ${prevId}: X[${fIdx}] (${featVal}) <= ${threshold} -> Branch ${isLeft ? "LEFT" : "RIGHT"} to Node ${currId}`,
+        why: `Feature X[${fIdx}] value (${featVal}) is ${isLeft ? "<=" : ">"} threshold ${threshold}. Routed to Node ${currId}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.keys(treeNodes).map((nIdStr) => {
+          const nId = Number(nIdStr);
+          const isCurr = nId === currId;
+          return {
+            id: `node-${nId}`,
+            value: nId,
+            label: `Node ${nId}`,
+            state: isCurr
+              ? ("active" as ElementState)
+              : path.includes(nId)
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+            pointers: isCurr ? [`Branched ${isLeft ? "LEFT" : "RIGHT"}`] : [],
+          };
+        }),
+      },
+      auxiliaryState: {
+        customState: {
+          evaluatedNode: `Node ${prevId}`,
+          featureIdx: String(fIdx),
+          featVal: String(featVal),
+          threshold: String(threshold),
+          branch: isLeft ? "LEFT" : "RIGHT",
+          traversalPath: path.map((id) => `Node ${id}`).join(" -> "),
+        },
+      },
+      variables: { prevId, currId, fIdx, featVal, isLeft },
+    });
+  }
 
   return steps;
 };
 
-const TREENODEPREDICTIONTRAVERSER_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
-};
-
-export const treeNodePredictionTraverser: AlgorithmDefinition<treeNodePredictionTraverserInput> = {
-  id: "tree-node-prediction-traverser",
+export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePredictionTraverserInput> = {
+  id: "treeNodePredictionTraverser",
   title: "Decision Tree Prediction Traverser",
   category: "ml_tree_ensembles",
   categories: ["ml_tree_ensembles", "tree_fundamentals"],
-  difficulty: "Medium",
+  difficulty: "Easy",
   isMlInfra: true,
-  mlInfraLevel: 9,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), decision tree prediction traverser provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Routes a test sample feature vector X through a decision tree from root node down to a terminal leaf node. At each internal split node, evaluates condition `X[featureIdx] <= threshold`, branching Left or Right until arriving at a leaf node containing output prediction value f(x).\n\nInput Format:\n- sample: Feature vector X.\n- treeNodes: Dictionary mapping node ID to node structure.\n- rootId: Root node ID.\n\nOutput Format:\n- Returns tuple (leafPredictionValue, traversalPathList).\n\nEdge Cases & Constraints:\n- Single leaf root tree: Returns root leaf value immediately.",
+  constraints: ["rootId must exist in treeNodes."],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 2, 3] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Sample Traversal to Leaf Node 4",
+      inputDisplay: "sample = [2.5, 4.0], root = 0",
+      outputDisplay: "Output Prediction: 7.8 (Path: 0 -> 1 -> 4)",
+      input: DEFAULT_TREE_TRAVERSAL_INPUT,
+      output: "Leaf 4 value 7.8",
+      explanation:
+        "Node 0: X[0] (2.5) <= 3.0 -> Left to Node 1. Node 1: X[1] (4.0) > 3.5 -> Right to Leaf 4 (value 7.8).",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 2, 3] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "Direct Branch Right at Root Node",
+      inputDisplay: "sample = [5.0, 4.0]",
+      outputDisplay: "Output Prediction: 10.5 (Path: 0 -> 2)",
+      input: {
+        ...DEFAULT_TREE_TRAVERSAL_INPUT,
+        sample: [5.0, 4.0],
+      },
+      output: "Leaf 2 value 10.5",
+      explanation: "Node 0: X[0] (5.0) > 3.0 -> Right directly to Leaf 2 (value 10.5).",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 2, 3] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Single Root Leaf Tree",
+      inputDisplay: "treeNodes = {0: {id: 0, leafValue: 5.0}}",
+      outputDisplay: "Output Prediction: 5.0",
+      input: {
+        sample: [1.0, 1.0],
+        rootId: 0,
+        treeNodes: { 0: { id: 0, leafValue: 5.0 } },
+      },
+      output: "5.0",
+      explanation: "Single root node returns prediction 5.0 without branching.",
     },
   ],
-  code: TREENODEPREDICTIONTRAVERSER_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  defaultInput: DEFAULT_TREE_TRAVERSAL_INPUT,
+  code: TREE_NODE_PREDICTION_TRAVERSER_CODE,
+  timeComplexity: {
+    best: "O(Depth)",
+    average: "O(Depth)",
+    worst: "O(Depth)",
+  },
+  spaceComplexity: "O(Depth)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "O(Depth) traversal steps where Depth is the depth of the decision tree.",
+    space: "O(Depth) auxiliary memory to record node traversal history path.",
   },
   topicGuide: {
     overview:
-      "Decision Tree Prediction Traverser is a critical component in ML TREE ENSEMBLES systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Decision tree inference routes test sample feature vectors through nested `if-else` conditionals. High-performance inference runtimes (Treelite, ONNX Runtime, XGBoost C++ Predictor) flatten decision trees into inline if-else C++ code or GPU block threads.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, decision tree prediction traverser operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Branch Routing",
+        body: "Starting at root node r, if X[f_r] <= v_r control passes to left child, else to right child. The process repeats until a leaf node holding prediction output w is reached.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Decision Tree Prediction Traverser optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Tree Serialization & Binary Layout",
+        body: "To maximize CPU L1 cache throughput, decision tree nodes are packed into 16-byte contiguous binary structures `[float threshold, uint16_t feature_idx, uint16_t left_child_offset]`.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing decision tree prediction traverser efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Native Machine Code Compilation (Treelite)",
+        body: "Treelite compiles ensemble models directly into native assembly or C code, replacing node pointer dereferences with hardcoded branch instructions.",
       },
     ],
     keyTerms: [
       {
-        term: "Decision Engine",
-        definition:
-          "The underlying algorithmic system implementing decision tree prediction traverser operations for deep learning workloads.",
+        term: "Tree Traversal",
+        definition: "Process of following node split conditions from root to a terminal leaf.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Leaf Node",
+        definition: "Terminal node in a decision tree containing scalar prediction output.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Treelite",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "C++ framework compiling tree ensemble models into native machine code for fast inference.",
       },
     ],
   },
-  trivia: TREENODEPREDICTIONTRAVERSER_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_TREENODEPREDICTIONTRAVERSER_INPUT,
-  generateSteps: generateTREENODEPREDICTIONTRAVERSERSteps,
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "CART Inference & Treelite Architecture" },
+  ],
+  generateSteps: generateTreeTraversalSteps,
 };

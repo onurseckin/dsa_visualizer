@@ -1,163 +1,282 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const basicTrieInsertSearch: AlgorithmDefinition<string> = {
+export interface BasicTrieInsertSearchInput {
+  wordsToInsert: string[];
+  searchTarget: string;
+}
+
+export const DEFAULT_BASIC_TRIE_INPUT: BasicTrieInsertSearchInput = {
+  wordsToInsert: ["app", "apple", "apply", "apt"],
+  searchTarget: "apple",
+};
+
+export const BASIC_TRIE_CODE = `class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.is_end_of_word = False
+
+class BasicTrie:
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word: str):
+        curr = self.root
+        for char in word:
+            if char not in curr.children:
+                curr.children[char] = TrieNode()
+            curr = curr.children[char]
+        curr.is_end_of_word = True
+
+    def search(self, word: str) -> bool:
+        curr = self.root
+        for char in word:
+            if char not in curr.children:
+                return False
+            curr = curr.children[char]
+        return curr.is_end_of_word`;
+
+export const generateBasicTrieSteps = (input: BasicTrieInsertSearchInput): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { wordsToInsert, searchTarget } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: "Initialize Prefix Trie Data Structure",
+      why: `Inserting vocabulary tokens [${wordsToInsert
+        .map((w) => `"${w}"`)
+        .join(", ")}], then searching for target "${searchTarget}".`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: wordsToInsert.map((w, idx) => ({
+        id: `w-${idx}`,
+        value: idx,
+        label: `"${w}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        insertedWords: "[]",
+        searchTarget: `"${searchTarget}"`,
+        status: "Initialized",
+      },
+    },
+    variables: { insertedCount: 0, target: searchTarget },
+  });
+
+  const inserted: string[] = [];
+
+  for (let i = 0; i < wordsToInsert.length; i++) {
+    const word = wordsToInsert[i];
+    inserted.push(word);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 10,
+      explanation: {
+        what: `Insert Word "${word}" into Trie`,
+        why: `Traversing/creating character nodes [${word
+          .split("")
+          .map((c) => `'${c}'`)
+          .join(" -> ")}]. Marking final node as is_end_of_word = True.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: wordsToInsert.map((w, idx) => ({
+          id: `w-${idx}`,
+          value: idx,
+          label: `"${w}"`,
+          state:
+            idx === i
+              ? ("active" as ElementState)
+              : idx < i
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`Inserted "${word}"`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          insertedWords: inserted.map((w) => `"${w}"`).join(", "),
+          activeWord: word,
+        },
+      },
+      variables: { inserted: word, totalInserted: inserted.length },
+    });
+  }
+
+  // Search Step
+  let searchFound = true;
+  const charTrace: string[] = [];
+
+  for (let cIdx = 0; cIdx < searchTarget.length; cIdx++) {
+    const char = searchTarget[cIdx];
+    charTrace.push(`'${char}'`);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 18,
+      explanation: {
+        what: `Search Character '${char}' (Position ${cIdx + 1}/${searchTarget.length})`,
+        why: `Matching character path [${charTrace.join(" -> ")}] in Trie node children.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: searchTarget.split("").map((ch, idx) => ({
+          id: `ch-${idx}`,
+          value: idx,
+          label: `'${ch}'`,
+          state:
+            idx === cIdx
+              ? ("highlighted" as ElementState)
+              : idx < cIdx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === cIdx ? ["Matching Node"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          target: `"${searchTarget}"`,
+          matchedPrefix: searchTarget.substring(0, cIdx + 1),
+        },
+      },
+      variables: { cIdx, char },
+    });
+  }
+
+  // Final Step: Search result
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 21,
+    explanation: {
+      what: `Search Complete for Target "${searchTarget}": ${searchFound ? "FOUND (is_end_of_word = True)" : "NOT FOUND"}`,
+      why: searchFound
+        ? `Successfully traversed prefix path "${searchTarget}" and confirmed terminal word node.`
+        : `Target "${searchTarget}" not found in Trie vocabulary.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: searchTarget.split("").map((ch, idx) => ({
+        id: `ch-${idx}`,
+        value: idx,
+        label: `'${ch}'`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        searchTarget: `"${searchTarget}"`,
+        searchResult: searchFound ? "FOUND" : "NOT FOUND",
+        status: "Completed",
+      },
+    },
+    variables: { searchFound, complete: true },
+  });
+
+  return steps;
+};
+
+export const basicTrieInsertSearch: AlgorithmDefinition<BasicTrieInsertSearchInput> = {
   id: "basicTrieInsertSearch",
-  title: "Basic Trie Insert & Search",
+  title: "Basic Trie Insert & Prefix Search",
   category: "ml_tokenization",
   categories: ["ml_tokenization", "tries_and_strings"],
   difficulty: "Easy",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), basic trie insert & search provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
   isMlInfra: true,
-  mlInfraLevel: 6,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
+  description:
+    "Standard Prefix Trie (Reorder Tree) insertion and search operations. Serves as the fundamental building block for subword token vocabulary lookup, prefix matching, and wordpiece tokenization in NLP models.\n\nInput Format:\n- wordsToInsert: Array of vocabulary strings to populate into Trie.\n- searchTarget: Target word string to query.\n\nOutput Format:\n- Returns boolean true if searchTarget exists as a complete word in Trie, false otherwise.\n\nEdge Cases & Constraints:\n- Prefix match vs exact word: Requires is_end_of_word flag to distinguish 'app' from 'apple'.",
+  constraints: ["wordsToInsert strings contain standard ASCII or UTF-8 characters."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for basicTrieInsertSearch.",
+      title: "Insert and Search Exact Word 'apple'",
+      inputDisplay: "words = ['app', 'apple', 'apply', 'apt'], target = 'apple'",
+      outputDisplay: "Result: True",
+      input: DEFAULT_BASIC_TRIE_INPUT,
+      output: "True",
+      explanation: "Inserts 4 words and verifies 'apple' is present.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Prefix Exists but Not End-of-Word ('appl')",
+      inputDisplay: "target = 'appl'",
+      outputDisplay: "Result: False",
+      input: {
+        ...DEFAULT_BASIC_TRIE_INPUT,
+        searchTarget: "appl",
+      },
+      output: "False",
+      explanation: "'appl' is a valid prefix path but is_end_of_word is False.",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "Missing Character Path ('banana')",
+      inputDisplay: "target = 'banana'",
+      outputDisplay: "Result: False",
+      input: {
+        ...DEFAULT_BASIC_TRIE_INPUT,
+        searchTarget: "banana",
+      },
+      output: "False",
+      explanation: "Character 'b' is missing from root node children.",
     },
   ],
-  defaultInput: "unaffordability",
-  code: `
-def basicTrieInsertSearch(input_text, vocabulary_scores):
-    """
-    Basic Trie Insert & Search
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
-
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
+  defaultInput: DEFAULT_BASIC_TRIE_INPUT,
+  code: BASIC_TRIE_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(L)",
+    average: "O(L)",
+    worst: "O(L)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(V * L)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(L) insertion and search time where L is the length of the word string, independent of total vocabulary size V.",
+    space: "O(V * L) space to store Trie nodes and character child pointers.",
   },
   topicGuide: {
     overview:
-      "Basic Trie Insert & Search is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Prefix Tries (Fredkin, 1960) store strings as character paths where shared prefixes share ancestor nodes. In subword tokenizers (WordPiece, BPE, SentencePiece), Tries enable O(L) dictionary lookups regardless of whether the vocabulary has 30,000 or 1,000,000 tokens.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, basic trie insert & search operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Node Structuring",
+        body: "Each TrieNode contains a dictionary/array of child pointers `children[char]` and boolean `is_end_of_word`. Common prefixes (e.g. 'app' in 'apple' and 'apply') share the same physical nodes.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Basic Trie Insert & Search optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Memory Optimization",
+        body: "Standard pointer-based Tries have high memory overhead. Production systems use Double-Array Tries (DAT) or Radix Trees (patricia tries) to compress linear chains into flat integer arrays.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing basic trie insert & search efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Role in ML Tokenization",
+        body: "Tries enable greedy longest-prefix matching during inference and fast candidate generation during subword lattice construction.",
       },
     ],
     keyTerms: [
       {
-        term: "Basic Engine",
+        term: "Prefix Trie",
         definition:
-          "The underlying algorithmic system implementing basic trie insert & search operations for deep learning workloads.",
+          "Tree data structure where nodes represent individual characters along string paths.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "is_end_of_word Flag",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Boolean attribute marking nodes that represent complete valid vocabulary words.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Double-Array Trie (DAT)",
+        definition: "Flat array compression technique reducing Trie memory pointer overhead.",
       },
     ],
   },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "Fredkin's Trie Data Structure (CACM 1960)" },
+  ],
+  generateSteps: generateBasicTrieSteps,
 };

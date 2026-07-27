@@ -258,8 +258,8 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   categories: ["backtracking"],
   difficulty: "Medium",
   description:
-    "A Knight's Tour is a sequence of moves on an N×N chessboard such that the knight visits every square exactly once. Warnsdorff's heuristic directs the knight to always move to an unvisited square with the smallest number of valid onward unvisited moves, turning exponential backtracking into a greedy polynomial search.",
-  constraints: ["3 <= N <= 8", "0 <= startRow, startCol < N"],
+    "Given an N×N chessboard and a starting coordinate (startRow, startCol), construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.\n\nWhile brute-force depth-first search exhibits exponential explosion O(8^(N^2)), Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial O(N^2) time without deep backtracking.",
+  constraints: ["3 <= size <= 8", "0 <= startRow, startCol < size"],
   examples: [
     {
       kind: "basic",
@@ -326,32 +326,50 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   },
   spaceComplexity: "O(N^2)",
   complexityAnalysis: {
-    time: "Warnsdorff's heuristic reduces move choices to the minimum degree onward vertex. On standard boards, this heuristic finds a valid tour in O(N^2) time without deep backtracking.",
-    space: "O(N^2) space required to maintain the N×N chessboard matrix.",
+    time: "Warnsdorff's heuristic evaluates up to 8 candidate moves per step, counting onward degrees. On valid standard boards (N >= 5), this heuristic finds a full tour in O(N^2) time without requiring backtracks.",
+    space: "O(N^2) memory required for the N×N chessboard matrix tracking step numbers.",
   },
   topicGuide: {
     overview:
-      "The Knight's Tour problem is a classical Hamiltonian path problem on a knight's graph representation of a chessboard. Using pure depth-first search results in severe combinatorial explosion. Warnsdorff's heuristic solves the tour efficiently by choosing candidates with minimum onward degree.",
+      "The Knight's Tour is a classic Hamiltonian path problem on a graph where vertices are chessboard squares and edges are valid L-shaped knight moves. Naive depth-first search suffers from combinatorial explosion. In 1823, H. C. von Warnsdorff introduced the minimum-degree onward move heuristic, turning exponential state space exploration into a polynomial greedy search. Modern systems application of this heuristic technique include robotic arm joint path trajectory optimization and spatial space-filling curve generation.",
     sections: [
       {
-        heading: "Warnsdorff's Rule",
-        body: "Always move the knight to an unvisited square that has the FEWEST onward valid unvisited knight moves. This keeps open options on harder-to-reach edge and corner squares.",
+        heading: "Warnsdorff's Minimum-Degree Rule",
+        body: "Always select the candidate unvisited square that has the FEWEST valid onward unvisited knight moves. Prioritizing constrained squares (such as board corners and edges) early prevents them from becoming isolated un-reachable nodes later in the tour.",
       },
       {
-        heading: "Tie Breaking",
-        body: "When multiple candidate squares tie for minimum degree, breaking ties uniformly or based on distance from board center helps prevent getting trapped in early dead ends.",
+        heading: "Tie-Breaking & Squirrel Strategies",
+        body: "When multiple candidate squares share equal minimum onward degrees, ties can cause dead ends on large boards. Breaking ties by favoring candidates furthest from the board center (or using Roth's tie-breaking rules) guarantees deterministic completion for arbitrary board dimensions.",
+      },
+      {
+        heading: "Systems Applications & Space-Filling Curves",
+        body: "Space-filling traversals on 2D grids (similar to Hilbert curves and Morton Z-order curves) are used in database spatial indexing and memory cache locality optimizations. Warnsdorff-style greedy graph walks offer efficient continuous coverage for robotic vacuum cleaners and automated 3D printing nozzles.",
+      },
+      {
+        heading: "Closed vs Open Tours",
+        body: "An open tour visits all N^2 squares without returning to the start. A closed (or re-entrant) tour requires the last visited square (step N^2-1) to be a single knight's move away from (startRow, startCol), creating a continuous directed cycle.",
       },
     ],
     keyTerms: [
       {
         term: "Knight's Graph",
         definition:
-          "A graph where each chessboard square is a vertex and edges connect valid knight moves.",
+          "An undirected graph where each cell on an N×N board is a node and edges connect valid chess knight moves.",
       },
       {
         term: "Warnsdorff Degree",
         definition:
-          "The number of valid onward unvisited squares accessible from a candidate square.",
+          "The number of unvisited valid neighbor cells reachable from a candidate cell in one knight move.",
+      },
+      {
+        term: "Greedy Heuristic",
+        definition:
+          "A problem-solving approach that makes locally optimal choices at each stage with the goal of finding a global solution.",
+      },
+      {
+        term: "Re-entrant (Closed) Tour",
+        definition:
+          "A Knight's Tour where the final square is adjacent to the starting square, forming a closed cycle.",
       },
     ],
   },

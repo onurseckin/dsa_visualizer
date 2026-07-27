@@ -80,7 +80,7 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   },
   topicGuide: {
     overview:
-      "Selection problems ask for a rank rather than an order: you want the Kth largest value, not the fully sorted array, and computing the whole ordering is doing far more work than the question requires. A heap is the data structure that gives you cheap access to the extreme element of a collection while you are still feeding data into it, and a heap deliberately capped at K entries becomes a filter that retains only the top K values it has ever seen. That bounded-heap idea is the standard tool for every top-K question, and it is the only one of the usual approaches that survives when the data arrives as an endless stream you cannot store.",
+      "Selection problems ask for a rank rather than a full ordering: you want the $k$-th largest value, not a completely sorted array, and computing the whole ordering is doing far more work than required.\n\nIn real-world ML systems and data infrastructure, bounded min-heaps drive essential pipelines: PyTorch and vLLM inference engines use Top-K filtering during LLM logit sampling to bound candidate token selection before softmax normalization; database query engines (PostgreSQL/MySQL) execute `ORDER BY column DESC LIMIT k` using heap-based priority queues to avoid full $O(N \\log N)$ disk sorts; and real-time streaming analytics maintain running Top-K frequency metrics in memory.",
     sections: [
       {
         heading: "Asking for a rank, not an order",

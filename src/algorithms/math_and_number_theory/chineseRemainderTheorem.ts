@@ -7,15 +7,22 @@ export interface ChineseRemainderInput {
 }
 
 export const PYTHON_CHINESE_REMAINDER_CODE = `
-def python_chinese_remainder(input_array):
+def chinese_remainder(num: list[int], rem: list[int]) -> int:
     """
-    Implementation of python_chinese_remainder.
+    Solves a system of linear congruences x = rem[i] (mod num[i])
+    for pairwise coprime moduli num[i].
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    prod = 1
+    for n in num:
+        prod *= n
+
+    result = 0
+    for n_i, r_i in zip(num, rem):
+        p = prod // n_i
+        inv = pow(p, n_i - 2, n_i)
+        result += r_i * p * inv
+
+    return result % prod
 `;
 
 export const DEFAULT_CHINESE_REMAINDER_INPUT: ChineseRemainderInput = {
@@ -208,25 +215,40 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
 export const CHINESE_REMAINDER_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Chinese Remainder Theorem (CRT) states that if one knows the remainders of the Euclidean division of an integer n by several integers, then one can determine uniquely the remainder of the division of n by the product of these integers, provided the divisors are pairwise coprime.",
+    "The Chinese Remainder Theorem (CRT) is a core structural result in number theory guaranteeing that a system of simultaneous linear congruences x ≡ r_i (mod m_i) with pairwise coprime moduli has a unique solution modulo M = m_1 * m_2 * ... * m_k. It allows high-precision calculations over large numbers to be decomposed into independent parallel computations over smaller modular fields.",
   sections: [
     {
-      heading: "Constructive Solution Formula",
-      body: "Given x ≡ r_i (mod m_i), let M = m_1 * m_2 * ... * m_k and M_i = M / m_i. Then x = sum(r_i * M_i * (M_i^(-1) mod m_i)) mod M.",
+      heading: "Constructive Explicit Solution Formula",
+      body: "Given k congruences x ≡ r_i (mod m_i), let M = m_1 * m_2 * ... * m_k and M_i = M / m_i. Because M_i is coprime to m_i, its modular multiplicative inverse M_i^(-1) mod m_i exists. The combined solution is constructed as x = sum_{i=1}^k (r_i * M_i * (M_i^(-1) mod m_i)) mod M. For each term i, modulo m_i cancels out all other terms j != i (where M_j is divisible by m_i) and yields r_i * 1 = r_i.",
     },
     {
-      heading: "Pairwise Coprime Condition",
-      body: "CRT requires that gcd(m_i, m_j) = 1 for all i != j to guarantee existence and uniqueness of the solution modulo M.",
+      heading: "Pairwise Coprime Condition & Generalization",
+      body: "Pairwise coprimality (gcd(m_i, m_j) = 1 for all i != j) ensures that each modular inverse M_i^(-1) mod m_i exists. If moduli are not pairwise coprime, a solution exists if and only if r_i ≡ r_j (mod gcd(m_i, m_j)) for all pairs, which can be solved by splitting moduli into prime powers or applying Extended GCD iteratively.",
+    },
+    {
+      heading: "Systems & Real-World Applications",
+      body: "CRT is heavily utilized in modern computing: 1) RSA Cryptography (CRT-RSA accelerates private key operations like modular exponentiation by factorizing 2048-bit operations into parallel 1024-bit prime factor computations), 2) Multi-Modular Arithmetic in Computer Algebra Systems (computing huge integer matrix determinants by performing parallel single-word prime operations), and 3) Fast Fourier Transform (FFT / NTT) over composite modulus domains.",
+    },
+    {
+      heading: "Implementation & Edge Cases",
+      body: "Care must be taken to prevent integer overflow when computing intermediate terms r_i * M_i * inv. In Python, arbitrary precision integers handle this automatically; in standard C++/Java, 128-bit integers (__int128) or BigInteger are used. Key boundary cases include r_i = 0 for all i (yielding 0 mod M) and single congruence systems (k = 1).",
     },
   ],
   keyTerms: [
     {
       term: "Linear Congruence",
-      definition: "An equation of the form x ≡ r (mod m).",
+      definition:
+        "An equation x ≡ r (mod m) stating that x and r leave the identical remainder when divided by m.",
     },
     {
-      term: "Modulus Product",
-      definition: "The total product M = prod(m_i) of all pairwise coprime moduli.",
+      term: "Pairwise Coprime Moduli",
+      definition:
+        "A set of integers where every pair shares no common factor greater than 1 (gcd(m_i, m_j) = 1).",
+    },
+    {
+      term: "CRT Basis Term",
+      definition:
+        "The value M_i * (M_i^(-1) mod m_i), which evaluates to 1 modulo m_i and 0 modulo all other m_j (j != i).",
     },
   ],
 };
@@ -253,7 +275,7 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   categories: ["math_and_number_theory"],
   difficulty: "Hard",
   description:
-    "Solves a system of simultaneous linear congruences x ≡ r_i (mod m_i) for pairwise coprime moduli m_i. Constructs a unique solution modulo the product of all moduli.",
+    "Solves a system of simultaneous linear congruences x ≡ r_i (mod m_i) for pairwise coprime moduli m_i. Constructs the minimal unique non-negative integer solution x modulo M = prod(m_i) using modular inverse basis terms.",
   constraints: ["1 <= num.length <= 10", "2 <= num[i] <= 10^3 (pairwise coprime)"],
   examples: [
     {

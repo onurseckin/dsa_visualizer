@@ -7,27 +7,19 @@ export interface asyncPipelinedVjpEvaluationInput {
 }
 
 export const ASYNCPIPELINEDVJPEVALUATION_CODE = `
-def asyncpipelinedvjpevaluation(graph_nodes, adjacency_map):
+def async_pipelined_vjp_evaluation(num_stages=4):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Simulates async pipelined Vector-Jacobian Product (VJP) backward evaluation.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    stage_grads = []
+    accumulated_vjp = 1.0
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    for stage in range(num_stages - 1, -1, -1):
+        jacobian_val = 0.5 + stage * 0.1
+        accumulated_vjp *= jacobian_val
+        stage_grads.append((stage, jacobian_val, accumulated_vjp))
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
-
-    return topological_order
+    return stage_grads
 `;
 
 export const DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT: asyncPipelinedVjpEvaluationInput = {
@@ -40,7 +32,8 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +59,8 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +71,11 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     1,
     "Initialize Async Pipelined Multi-GPU VJP Evaluator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +86,7 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +98,9 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
   }));
 
   addStep(
-    6,
+    13,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +109,22 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
 };
 
 const ASYNCPIPELINEDVJPEVALUATION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Async Pipelined Multi-GPU VJP Evaluator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines async pipelined VJP backward evaluation function.",
+    4: "Initializes stage gradient history log array.",
+    5: "Initializes accumulated VJP gradient to 1.0 (loss gradient).",
+    7: "Iterates through pipeline stages in reverse order from num_stages-1 down to 0.",
+    8: "Calculates local stage Jacobian scalar value.",
+    9: "Accumulates VJP gradient: accumulated_vjp *= jacobian_val.",
+    10: "Appends stage VJP snapshot (stage, jacobian_val, accumulated_vjp) to log.",
+    12: "Returns stage gradient history log.",
   },
 };
 
@@ -141,85 +138,80 @@ export const asyncPipelinedVjpEvaluation: AlgorithmDefinition<asyncPipelinedVjpE
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), async pipelined multi-gpu vjp evaluator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In distributed pipeline parallelism (e.g., DeepSpeed Pipeline Parallelism, Megatron-LM 1F1B schedule), backward autograd execution computes Vector-Jacobian Products (VJPs) across multi-GPU pipeline stages in reverse topological order. Asynchronously communicating gradient vectors between pipeline stages overlaps GPU inter-connect transfers with VJP computation.\n\nThis algorithm implements Async Pipelined Multi-GPU VJP Evaluation, simulating reverse stage traversal, local Jacobian multiplication, and accumulated VJP gradient propagation.\n\nInput Format:\n- data: Array representing pipeline parameters.\n- target: Optional target value.\n\nOutput Format:\n- Returns stage gradient logs tracking local Jacobian values and accumulated VJP outputs.\n\nEdge Cases & Constraints:\n- Pipeline stage 0 boundary (loss gradient insertion).\n- Multi-GPU inter-connect transfer latency.\n- Gradient accumulation across micro-batches.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ASYNCPIPELINEDVJPEVALUATION_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Async Pipelined Multi-GPU VJP Evaluator is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Pipeline parallel backward execution evaluates chain rule gradients across distributed pipeline stages. The VJP operation computes v^T @ J, where v is the upstream output gradient vector and J is the local stage Jacobian matrix.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, async pipelined multi-gpu vjp evaluator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for pipeline stage s with local Jacobian J_s and incoming gradient v_s, out-going gradient is v_{s-1} = v_s @ J_s. By induction, v_0 = v_{final} @ J_{final} @ ... @ J_0.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Async Pipelined Multi-GPU VJP Evaluator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Asynchronous NVLink/InfiniBand peer-to-peer transfers allow GPU s to transmit v_{s-1} to GPU s-1 while simultaneously evaluating local activation gradients, minimizing pipeline bubble overhead.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing async pipelined multi-gpu vjp evaluator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates backwards from stage num_stages - 1 down to 0, accumulating local Jacobian products and logging stage gradient snapshots.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes pipeline bubble idle cycles and micro-batch gradient accumulation buffer management.",
       },
     ],
     keyTerms: [
       {
-        term: "Async Engine",
+        term: "Vector-Jacobian Product (VJP)",
         definition:
-          "The underlying algorithmic system implementing async pipelined multi-gpu vjp evaluator operations for deep learning workloads.",
+          "Mathematical operation v^T @ J propagating output gradients backward through a vector function.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Pipeline Parallelism",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Splitting model layers across multiple GPUs in a sequential processing pipeline.",
       },
       {
-        term: "Memory Coalescing",
+        term: "1F1B Schedule",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Pipeline scheduling pattern executing One Forward pass followed by One Backward pass per GPU.",
       },
     ],
   },

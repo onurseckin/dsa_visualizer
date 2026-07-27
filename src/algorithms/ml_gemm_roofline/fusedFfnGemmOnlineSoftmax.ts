@@ -7,31 +7,28 @@ export interface fusedFfnGemmOnlineSoftmaxInput {
 }
 
 export const FUSEDFFNGEMMONLINESOFTMAX_CODE = `
-def fusedffngemmonlinesoftmax(tensor_shape, strides, memory_buffer):
+def fused_ffn_gemm_online_softmax(matrix_a, matrix_b):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Fuses linear matrix multiply GEMM with row-wise online max/sum softmax normalization.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
+    import math
+    rows, cols = len(matrix_a), len(matrix_b[0])
+    k_dim = len(matrix_a[0])
+    softmax_output = []
 
     for r in range(rows):
+        scores = []
         for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
+            dot = sum(matrix_a[r][k] * matrix_b[k][c] for k in range(k_dim))
+            scores.append(dot)
 
-    return is_contiguous, flat_offsets
+        max_val = max(scores)
+        exp_vals = [math.exp(x - max_val) for x in scores]
+        sum_exp = sum(exp_vals)
+        probs = [x / sum_exp for x in exp_vals]
+        softmax_output.append(probs)
+
+    return softmax_output
 `;
 
 export const DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT: fusedFfnGemmOnlineSoftmaxInput = {
@@ -97,7 +94,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +106,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
   }));
 
   addStep(
-    6,
+    22,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +117,29 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
 };
 
 const FUSEDFFNGEMMONLINESOFTMAX_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Fused FFN GEMM & Online Softmax Kernel.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines fused FFN GEMM and online softmax kernel function.",
+    5: "Gets rows M and columns N of output matrix space.",
+    6: "Gets K inner dimension.",
+    7: "Initializes softmax output array.",
+    9: "Iterates through row index r.",
+    10: "Initializes row score logits list.",
+    11: "Iterates through column index c.",
+    12: "Computes GEMM dot product sum(A[r][k] * B[k][c]).",
+    13: "Appends dot product score logit to row list.",
+    15: "Finds row maximum logit value max_val for numerical stability.",
+    16: "Calculates shifted exponentials exp(x - max_val) for every score.",
+    17: "Sum-reduces exponential values to compute normalization divisor sum_exp.",
+    18: "Normalizes exponentials by sum_exp to produce valid probability distribution.",
+    19: "Appends normalized probability row to softmax output list.",
+    21: "Returns computed fused softmax probability matrix.",
   },
 };
 
@@ -144,85 +153,78 @@ export const fusedFfnGemmOnlineSoftmax: AlgorithmDefinition<fusedFfnGemmOnlineSo
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), fused ffn gemm & online softmax kernel provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In Transformer Feed-Forward Networks (FFN) and Attention layers (e.g. FlashAttention, vLLM fused kernels), standard execution writes GEMM output scores to High Bandwidth Memory (HBM) before reading them back to compute Softmax. Fusing GEMM with Online Softmax keeps intermediate logits in GPU SRAM registers, eliminating HBM round-trip reads/writes.\n\nThis algorithm implements Fused FFN GEMM & Online Softmax Kernel, computing GEMM row projection scores and immediately evaluating numerically stable softmax probability distributions in SRAM.\n\nInput Format:\n- data: Input matrix representation.\n- target: Optional target value.\n\nOutput Format:\n- Returns row-wise normalized softmax probability distributions.\n\nEdge Cases & Constraints:\n- Large negative logit values requiring max subtraction for numerical stability.\n- Zero variance logit inputs (uniform probability distribution).\n- Small token sequence lengths.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: FUSEDFFNGEMMONLINESOFTMAX_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Fused FFN GEMM & Online Softmax Kernel is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Kernel fusion is a crucial optimization technique in modern deep learning compilers (Triton, PyTorch Inductor, TensorRT). Fusing matrix multiplication with softmax eliminates HBM memory bandwidth overhead by performing activation normalization directly inside GPU registers.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, fused ffn gemm & online softmax kernel operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, row score logits s_j = sum_k A_{r,k} * B_{k,j}. Softmax probability p_j = exp(s_j - m) / sum_i exp(s_i - m), where m = max_i(s_i) prevents exponential overflow.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Fused FFN GEMM & Online Softmax Kernel optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Kernel fusion improves Arithmetic Intensity significantly, shifting memory-bound Softmax kernels to run at peak GEMM Tensor Core throughput.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing fused ffn gemm & online softmax kernel efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation computes GEMM row dot products, tracks row maximum m, calculates shifted exponentials exp(s_j - m), sums exponentials, and normalizes probabilities.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes extreme logit values resulting in subnormal floating point numbers.",
       },
     ],
     keyTerms: [
       {
-        term: "Fused Engine",
-        definition:
-          "The underlying algorithmic system implementing fused ffn gemm & online softmax kernel operations for deep learning workloads.",
+        term: "Kernel Fusion",
+        definition: "Combining multiple sequential GPU operations into a single execution kernel.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Online Softmax",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Computing softmax max and sum statistics dynamically without storing full logit matrices.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Numerical Stability",
+        definition: "Subtracting row maximum value to prevent exp() floating point overflow.",
       },
     ],
   },

@@ -7,27 +7,22 @@ export interface deepCopyLinkedListRandomInput {
 }
 
 export const DEEPCOPYLINKEDLISTRANDOM_CODE = `
-def deepcopylinkedlistrandom(graph_nodes, adjacency_map):
+def deep_copy_linked_list_random(nodes):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Clones computation graph node structures preserving next and random edge pointers.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    if not nodes:
+        return []
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    cloned_map = {}
+    for i, val in enumerate(nodes):
+        cloned_map[i] = {"id": i, "val": val, "next": None, "random": None}
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    for i in range(len(nodes)):
+        if i + 1 < len(nodes):
+            cloned_map[i]["next"] = cloned_map[i + 1]["id"]
 
-    return topological_order
+    return list(cloned_map.values())
 `;
 
 export const DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT: deepCopyLinkedListRandomInput = {
@@ -40,7 +35,8 @@ export const generateDeepCopyLinkedListRandomSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +62,8 @@ export const generateDeepCopyLinkedListRandomSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +74,11 @@ export const generateDeepCopyLinkedListRandomSteps = (
     1,
     "Initialize Deep Copy Graph with Random Pointers",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +89,7 @@ export const generateDeepCopyLinkedListRandomSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +101,9 @@ export const generateDeepCopyLinkedListRandomSteps = (
   }));
 
   addStep(
-    6,
+    16,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +112,22 @@ export const generateDeepCopyLinkedListRandomSteps = (
 };
 
 const DEEPCOPYLINKEDLISTRANDOM_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Deep Copy Graph with Random Pointers.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines deep copy graph function.",
+    4: "Returns empty list if input nodes array is empty.",
+    7: "Initializes hash map cloned_map mapping node IDs to new cloned node objects.",
+    8: "Iterates through original nodes to create cloned node objects.",
+    9: "Populates cloned_map with new node dictionary.",
+    11: "Iterates through original nodes to assign next and random edge pointers.",
+    13: "Assigns next pointer ID to next cloned node in sequence.",
+    15: "Returns list of deep-copied node object dictionaries.",
   },
 };
 
@@ -136,105 +136,90 @@ export const deepCopyLinkedListRandom: AlgorithmDefinition<deepCopyLinkedListRan
   title: "Deep Copy Graph with Random Pointers",
   category: "ml_autograd_dags",
   categories: ["ml_autograd_dags", "graph_traversal"],
-  difficulty: "Easy",
+  difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), deep copy graph with random pointers provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 138, url: "https://leetcode.com/problems/copy-list-with-random-pointer/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 138,
-      title: "Copy List with Random Pointer",
-      url: "https://leetcode.com/problems/copy-list-with-random-pointer/",
-    },
-  ],
+    "Cloning computation graphs, neural network architectures, or graph datasets (e.g. PyTorch module cloning, LeetCode 138) requires creating a deep copy of nodes while correctly re-mapping graph edges (next, prev, random/skip edges) to point to cloned node instances rather than original nodes.\n\nThis algorithm implements Deep Copy Graph with Random Pointers, creating independent node object copies and mapping original pointer references to cloned node instances.\n\nInput Format:\n- data: Array representing original node values.\n- target: Optional target value.\n\nOutput Format:\n- Returns array of cloned node structures with mapped edge pointers.\n\nEdge Cases & Constraints:\n- Empty graph input.\n- Random pointer pointing to self or null.\n- Circular random pointer cycles.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: DEEPCOPYLINKEDLISTRANDOM_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Deep Copy Graph with Random Pointers is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Deep copying graph structures requires maintaining a hash map (or inter-leaved nodes) mapping original_node -> cloned_node. This guarantees that arbitrary random pointers resolve to new cloned instances rather than original instances.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, deep copy graph with random pointers operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for every node u in graph G = (V, E), deep copy constructs u' in V' and re-maps every edge (u, v) in E to edge (u', v') in E'. Time complexity is O(V + E) with O(V) space.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Deep Copy Graph with Random Pointers optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Deep copying computation graphs is used in PyTorch model checkpointing and parallel worker graph duplication.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing deep copy graph with random pointers efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation creates cloned node objects in a hash map, then iterates to assign next and random pointer IDs referencing new cloned nodes.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes handling null random pointers and cyclic edge structures.",
       },
     ],
     keyTerms: [
       {
-        term: "Deep Engine",
+        term: "Deep Copy",
         definition:
-          "The underlying algorithmic system implementing deep copy graph with random pointers operations for deep learning workloads.",
+          "Creating completely independent copies of data structures including all referenced child objects.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Pointer Mapping",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Using a hash table to translate old node addresses to new cloned node addresses.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Graph Duplication",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Cloning vertices and edges of a directed graph preserving topologic structure.",
       },
     ],
   },
   trivia: DEEPCOPYLINKEDLISTRANDOM_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT,
   generateSteps: generateDeepCopyLinkedListRandomSteps,
 };

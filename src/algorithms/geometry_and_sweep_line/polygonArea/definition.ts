@@ -90,6 +90,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   id: "polygon-area",
   title: "Polygon Area (Shoelace Formula)",
   category: "geometry_and_sweep_line",
+  categories: ["geometry_and_sweep_line"],
   difficulty: "Medium",
   description:
     "Calculates the area of a simple (non-self-intersecting) polygon from its ordered vertices using the Shoelace formula, also known as the Gauss area formula. Walking the perimeter once, it cross-multiplies each pair of adjacent vertices and sums the signed trapezoid areas, so the whole computation is a single O(N) pass.",

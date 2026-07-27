@@ -7,15 +7,27 @@ export interface MatrixExponentiationInput {
 }
 
 export const PYTHON_MATRIX_EXPONENTIATION_CODE = `
-def python_matrix_exponentiation(input_array):
+def multiply_matrix(A: list[list[int]], B: list[list[int]], mod: int) -> list[list[int]]:
+    return [
+        [(A[0][0]*B[0][0] + A[0][1]*B[1][0]) % mod, (A[0][0]*B[0][1] + A[0][1]*B[1][1]) % mod],
+        [(A[1][0]*B[0][0] + A[1][1]*B[1][0]) % mod, (A[1][0]*B[0][1] + A[1][1]*B[1][1]) % mod]
+    ]
+
+def fibonacci_matrix_pow(n: int, mod: int = 1000000007) -> int:
     """
-    Implementation of python_matrix_exponentiation.
+    Computes the n-th Fibonacci number modulo mod using binary matrix exponentiation in O(log n) time.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    if n == 0:
+        return 0
+    res = [[1, 0], [0, 1]]
+    base = [[1, 1], [1, 0]]
+    power = n - 1
+    while power > 0:
+        if power % 2 == 1:
+            res = multiply_matrix(res, base, mod)
+        base = multiply_matrix(base, base, mod)
+        power //= 2
+    return res[0][0]
 `;
 
 export const DEFAULT_MATRIX_EXPONENTIATION_INPUT: MatrixExponentiationInput = {
@@ -217,34 +229,46 @@ export const generateMatrixExponentiationSteps = (
   return steps;
 };
 
-const MATRIX_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
+export const MATRIX_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Matrix Exponentiation is an indispensable technique for computing the n-th term of linear recurrences in O(K^3 log N) time, where K is the size of the recurrence system.",
+    "Matrix Exponentiation is an indispensable technique for computing the n-th term of linear recurrences in O(K^3 log N) time, where K is the size of the recurrence system. By reformulating linear recurrence transitions as matrix-vector multiplications and applying binary exponentiation (repeated squaring), calculating terms for N up to 10^18 finishes in logarithmic operations.",
   sections: [
     {
       heading: "Linear Recurrences as Matrix Transformations",
-      body: "Any linear recurrence F(n) = a1*F(n-1) + a2*F(n-2) + ... can be expressed as a linear matrix transformation M * V(n-1) = V(n). Applying M repeatedly yields V(n) = M^(n-1) * V(1).",
+      body: "Any linear recurrence of order K defined by F(n) = c1*F(n-1) + c2*F(n-2) + ... + cK*F(n-K) can be expressed as a linear matrix transformation M * V(n-1) = V(n), where V(n) = [F(n), F(n-1), ..., F(n-K+1)]^T. For Fibonacci, the 2x2 transformation matrix M = [[1, 1], [1, 0]] acts on state [F(n-1), F(n-2)]^T to produce [F(n), F(n-1)]^T. Applying M repeatedly yields V(n) = M^(n-1) * V(1).",
     },
     {
       heading: "Binary Exponentiation on Matrices",
-      body: "Just as scalar exponentiation a^N can be computed in O(log N) multiplications by repeated squaring, matrix exponentiation computes M^N in O(K^3 log N) matrix multiplications.",
+      body: "Scalar exponentiation a^N is computed in O(log N) operations using repeated squaring. Similarly, matrix exponentiation computes M^N by halving the exponent power at each step and squaring the K x K base matrix: when the current exponent bit is 1, the accumulated result matrix is multiplied by the current base matrix. Each K x K matrix multiplication takes O(K^3) operations, leading to O(K^3 log N) total runtime.",
+    },
+    {
+      heading: "Systems & ML Applications",
+      body: "Matrix exponentiation is widely applied across computational domains: 1) Graph Theory (computing the number of paths of length N between all pairs of nodes using adjacency matrix powers A^N), 2) Markov Chains (calculating state transition probabilities after N steps P^N), 3) DP Optimization (accelerating DP transitions with massive state steps N <= 10^18), and 4) Linear System Simulation.",
+    },
+    {
+      heading: "Implementation Nuances & Modulo Arithmetic",
+      body: "All intermediate additions and multiplications during matrix multiplication must be reduced modulo m at every step to prevent integer overflow. Identity matrices serve as the multiplicative base case (res = I_K). For 2x2 Fibonacci matrices, unrolling matrix multiplication loops into explicit scalar arithmetic avoids nested loop overhead.",
     },
   ],
   keyTerms: [
     {
       term: "Transformation Matrix",
       definition:
-        "A matrix describing how previous state values combine to yield the next state in a recurrence.",
+        "A square matrix M that transitions a state vector of previous recurrence terms to the next term vector.",
     },
     {
       term: "Binary Exponentiation",
       definition:
-        "Computing powers in logarithmic steps by halving the exponent and squaring the base.",
+        "An algorithm computing powers of scalars or matrices in logarithmic steps by repeated squaring.",
+    },
+    {
+      term: "Linear Recurrence",
+      definition: "A sequence where each term is a fixed linear combination of previous terms.",
     },
   ],
 };
 
-const MATRIX_EXPONENTIATION_TRIVIA: TriviaMeta = {
+export const MATRIX_EXPONENTIATION_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines matrix multiplication helper function.",
     10: "Defines main function computing n-th Fibonacci number via matrix power.",
@@ -264,7 +288,7 @@ export const matrixExponentiation: AlgorithmDefinition<MatrixExponentiationInput
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Compute the n-th term of linear recurrences (like Fibonacci) in O(k^3 log n) time using binary matrix power under modulo.",
+    "Compute the n-th term of a linear recurrence (such as Fibonacci F(n)) modulo m in O(k^3 log n) time. The algorithm transforms the linear recurrence into a k x k matrix multiplication and applies binary matrix exponentiation (repeated squaring) to evaluate large n up to 10^18 logarithmic steps.",
   constraints: ["0 <= n <= 10^18", "1 <= modulo <= 2 * 10^9"],
   examples: [
     {

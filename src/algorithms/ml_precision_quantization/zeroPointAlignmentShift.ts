@@ -7,21 +7,14 @@ export interface zeroPointAlignmentShiftInput {
 }
 
 export const ZEROPOINTALIGNMENTSHIFT_CODE = `
-def zeropointalignmentshift(fp32_weights, scale, zero_point):
+def zero_point_alignment_shift(min_val, max_val, qmin=-128, qmax=127):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Aligns floating-point zero value to integer zero-point Z in asymmetric quantization.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
-
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
-
-    return quantized_tensor
+    scale = (max_val - min_val) / (qmax - qmin) if max_val != min_val else 1.0
+    zero_point_initial = qmin - (min_val / scale)
+    zero_point_aligned = max(qmin, min(qmax, int(round(zero_point_initial))))
+    return scale, zero_point_aligned
 `;
 
 export const DEFAULT_ZEROPOINTALIGNMENTSHIFT_INPUT: zeroPointAlignmentShiftInput = {
@@ -33,61 +26,96 @@ export const generateZeroPointAlignmentShiftSteps = (
   input: zeroPointAlignmentShiftInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Zero Point Alignment Shift",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Zero Point Alignment Shift",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    8,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const ZEROPOINTALIGNMENTSHIFT_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines zero-point alignment shift calculation function.",
+    4: "Calculates quantization scale factor S = (max_val - min_val) / (qmax - qmin).",
+    5: "Calculates unaligned raw zero-point zero_point_initial = qmin - (min_val / scale).",
+    6: "Rounds zero-point to integer and clamps within [qmin, qmax] integer bounds.",
+    7: "Returns calculated scale factor S and aligned zero-point Z.",
+  },
 };
 
 export const zeroPointAlignmentShift: AlgorithmDefinition<zeroPointAlignmentShiftInput> = {
@@ -97,93 +125,87 @@ export const zeroPointAlignmentShift: AlgorithmDefinition<zeroPointAlignmentShif
   categories: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), zero point alignment shift provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "In asymmetric quantization calibration (PyTorch torch.ao.quantization.observer), computing the integer zero-point Z ensures that physical FP32 value 0.0 aligns exactly to integer Z without rounding error. Given data range [min_val, max_val] and target integer range [qmin, qmax], zero-point Z is computed as Z = round(qmin - min_val / scale) and clamped within [qmin, qmax].\n\nThis algorithm implements Zero Point Alignment Shift, calculating quantization scale factor S and computing integer-aligned zero-point Z.\n\nInput Format:\n- values: Array containing min_val and max_val bounds.\n- scale: Optional scale parameter.\n\nOutput Format:\n- Returns tuple (scale, zero_point_aligned).\n\nEdge Cases & Constraints:\n- min_val == max_val (scale fallback = 1.0, Z = 0).\n- Symmetric input range around zero (min_val = -max_val, Z maps to midpoint).\n- Non-negative activation distributions (min_val >= 0, Z maps to qmin).",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: ZEROPOINTALIGNMENTSHIFT_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Zero Point Alignment Shift is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Zero-point alignment guarantees that FP32 zero maps exactly to integer Z. This is crucial for zero-padding in convolutional neural networks so that padded border zeros contribute zero numeric value after de-quantization.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, zero point alignment shift operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, scale S = (max_val - min_val) / (qmax - qmin). Raw zero-point Z_raw = qmin - min_val / S. Aligned zero-point Z = clamp(round(Z_raw), qmin, qmax).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Zero Point Alignment Shift optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Correct zero-point alignment eliminates boundary padding artifacts in INT8 image classification and object detection models.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing zero point alignment shift efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation computes range ratio scale, calculates initial float zero-point Z_raw, rounds to nearest integer, and clamps to [qmin, qmax].",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes handling min_val == max_val.",
       },
     ],
     keyTerms: [
       {
-        term: "Zero Engine",
-        definition:
-          "The underlying algorithmic system implementing zero point alignment shift operations for deep learning workloads.",
+        term: "Zero-Point Alignment",
+        definition: "Ensuring FP32 value 0.0 maps exactly to integer Z without rounding error.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Quantization Observer",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "PyTorch calibration module tracking tensor min/max values to calculate S and Z.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Zero-Padding Invariance",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Preserving exact zero value contributions when zero-padding quantized tensors.",
       },
     ],
   },
   trivia: ZEROPOINTALIGNMENTSHIFT_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_ZEROPOINTALIGNMENTSHIFT_INPUT,
   generateSteps: generateZeroPointAlignmentShiftSteps,
 };

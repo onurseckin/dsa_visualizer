@@ -243,7 +243,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   categories: ["two_pointers"],
   difficulty: "Easy",
   description:
-    "Finds a contiguous subarray that sums to a target value by growing and shrinking a window between left and right pointers over non-negative integers.",
+    "Finds a contiguous subarray that sums to a target value by growing and shrinking a window between left and right pointers over non-negative integers.\n\nGiven an array of non-negative integers arr and an integer target, find a contiguous subarray that sums to target.\n\n### Input Parameters\n- arr (list[int]): An array of non-negative integers.\n- target (int): The target sum to match.\n\n### Output\n- list[int]: Indices [left, right] of the contiguous subarray that sums to target, or [-1, -1] if no such subarray exists.\n\n### Edge Cases & Constraints\n- Elements must be non-negative (arr[i] >= 0) to preserve window monotonicity.\n- If multiple valid windows exist, the algorithm returns the first one encountered.\n- Empty array or target unreachable: Returns [-1, -1].",
   constraints: ["1 <= arr.length <= 10^5", "0 <= arr[i] <= 10^4", "1 <= target <= 10^9"],
   examples: [
     {

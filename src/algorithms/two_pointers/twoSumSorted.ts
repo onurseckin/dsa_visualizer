@@ -173,58 +173,40 @@ export const generateTwoSumSortedSteps = (input: TwoSumSortedInput): AlgorithmSt
 
 const TWO_SUM_SORTED_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The converging two-pointer technique searches sorted data from both ends at once and lets the sortedness itself tell you which end to give up. Instead of testing every pair, you hold the smallest remaining value on the left and the largest on the right, and one comparison against the target decides which pointer moves. That turns quadratic pair-hunting into a single sweep with no extra memory, which is why it is the default tool whenever a problem asks you to find a pair inside an ordered sequence.",
+    "The converging two-pointer technique searches sorted data from both ends at once and lets the sortedness itself tell you which end to give up. Two Sum II demonstrates the power of exploiting monotonicity in sorted arrays to achieve O(N) time complexity and O(1) auxiliary space without requiring a hash map. In database systems (e.g., MySQL InnoDB, PostgreSQL B-Tree indexes), sorted two-pointer scans mirror Sort-Merge Joins and index-range evaluations, eliminating random RAM lookups in favor of sequential pointer increments.",
   sections: [
     {
-      heading: "Sorted order is the whole trick",
-      body: `When you add nums[left] and nums[right] you get more than a number, you get a direction. Because the array is sorted, nums[left] is the smallest value still available and nums[right] is the largest, so their sum sits at a known place in the range of sums still reachable. If that sum falls short of the target, nothing can rescue nums[left]: every other partner still on the table is smaller than nums[right], so pairing left with any of them falls even shorter, and left is hopeless. If the sum overshoots, the mirror argument condemns nums[right] instead. Each comparison therefore does not test one pair, it retires an entire family of pairs, which is exactly why a single pass is enough.`,
+      heading: "Core Concept & Shrinking Search Space",
+      body: "Starting with left at index 0 and right at index N - 1, we compute current_sum = nums[left] + nums[right]. If current_sum < target, any pair using nums[left] with a smaller right element is guaranteed to be < target, so left must be incremented. Conversely, if current_sum > target, right must be decremented. This eliminates an entire row or column of candidate pairs in O(1) time per comparison.",
     },
     {
-      heading: "How the two pointers move",
-      body: `You place left at index 0 and right at the last index, then repeat one decision until they meet. Add the two values; if they hit the target you return both indices; if the sum is short you advance left by one to pull in a larger number; if it overshoots you pull right back by one to pull in a smaller one. You never move both pointers in the same iteration and neither ever moves backwards, so the interval between them only shrinks. The loop condition is left < right rather than left <= right, because the problem wants two distinct positions and a pointer must never pair an element with itself.`,
+      heading: "Systems & Performance Impact: Memory Locality vs. Hash Tables",
+      body: "Unlike standard Two Sum (which relies on hash map lookups subject to hash collisions and cache misses), Two Sum II operates directly on contiguous memory arrays. B-Tree index scans in databases exploit this exact property to perform merge operations directly within L1/L2 cache lines.",
     },
     {
-      heading: "The invariant that makes it correct",
-      body: `Everything rests on one claim: if a valid pair exists at all, both of its indices lie inside the current window from left to right. That is trivially true at the start, when the window is the whole array, and each move preserves it. When you advance left past an index you have already paired that index with the largest partner available and still fallen short, so it cannot belong to any answer; pulling right inward is justified the same way. Since the window loses exactly one element per iteration and never loses a viable pair, you either land on the answer or the window empties, and an empty window is a proof that no answer exists rather than a guess. That is what licenses returning an empty result the moment the pointers meet.`,
+      heading: "Implementation Nuances & Loop Termination",
+      body: "The loop condition left < right strictly prevents an element from pairing with itself. Because the array is sorted in non-decreasing order, negative values, zeroes, and duplicate numbers are naturally handled by the monotonic sum response.",
     },
     {
-      heading: "When to use it instead of a hash map",
-      body: `The unsorted version of Two Sum is solved with a hash map, which spends linear memory to look up a complement in one step. Here the input arrives sorted, so the order does the map's job for free and you get a linear scan in constant space. Reach for converging pointers when the data is already sorted, when constant extra space is required, or when you need a pair with an ordering property such as the closest sum rather than an exact hit. If the array is unsorted and you only need existence, hashing usually wins, because sorting first costs more than the scan you would save.`,
-    },
-    {
-      heading: "Pitfalls and edge cases",
-      body: `The most common bug is the loop condition: writing left <= right lets a single element pair with itself, so an array containing one 7 would falsely report a pair summing to 14. The second is forgetting that the technique depends on sortedness, since running it on unsorted input produces confident nonsense instead of an error. Check which index base the problem wants, because the classic interview phrasing is one-indexed while the array is not. Duplicates are harmless, as moving past one copy simply brings its twin into play, and negative numbers are fine too because the elimination argument needs order, not positivity.`,
-    },
-    {
-      heading: "Where the pattern generalizes",
-      body: `Once you can see the shape, the same skeleton solves a whole family of problems. Container With Most Water moves whichever wall is shorter, because that wall is what limits the area and nothing inside it can help. Three Sum sorts the array, fixes one element, and runs this exact converging scan over the remainder. Valid Palindrome walks the ends inward comparing characters, and Squares of a Sorted Array reads from the ends inward because the largest magnitudes live at the extremes. In every one of these the ends carry extremal information, so a single comparison lets you retire one end for good.`,
+      heading: "Edge Case & Boundary Analysis",
+      body: "For N=2, a single comparison determines the output. When no valid pair exists, left and right converge until left == right, returning an empty list [].",
     },
   ],
   keyTerms: [
     {
-      term: "Converging pointers",
+      term: "Monotonicity",
       definition:
-        "Two indices that start at opposite ends of a sequence and move toward each other, never backwards, so the interval between them only ever shrinks.",
+        "The property that increasing an index strictly increases (or non-decreases) the value, allowing monotonic decisions.",
     },
     {
-      term: "Monotone sum",
+      term: "Sort-Merge Join",
       definition:
-        "The property that advancing left can only raise the pair sum and pulling right back can only lower it. It is the reason one comparison is enough to know which pointer to move.",
+        "A relational database join technique that operates on two sorted datasets using pointer traversal.",
     },
     {
-      term: "Elimination argument",
+      term: "Search Space Pruning",
       definition:
-        "The reasoning that proves a specific index can never appear in any valid answer, which is what makes moving a pointer past it permanent rather than risky.",
-    },
-    {
-      term: "Search window",
-      definition:
-        "The still-unexamined range between left and right. The algorithm keeps the promise that any valid pair lies entirely inside it.",
-    },
-    {
-      term: "Complement",
-      definition:
-        "The value you would need to complete a pair, target minus nums[left]. A hash-map solution looks it up directly, while this scan walks the right pointer toward it.",
+        "Eliminating large sets of candidate solutions simultaneously based on mathematical invariants.",
     },
   ],
 };
@@ -253,7 +235,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   categories: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "Find two numbers in a sorted array that add up to a target by walking a left and a right pointer toward each other from opposite ends.",
+    "Find two numbers in a sorted array that add up to a target by walking a left and a right pointer toward each other from opposite ends.\n\nGiven a 1-indexed (or 0-indexed) array of integers nums that is already sorted in non-decreasing order, find two numbers such that they add up to a specific target number. Return their 0-indexed indices [i, j].\n\n### Input Parameters\n- nums (list[int]): A non-decreasing sorted array of integers.\n- target (int): The target integer sum.\n\n### Output\n- list[int]: Indices [i, j] such that nums[i] + nums[j] == target.\n\n### Edge Cases & Constraints\n- Exactly one solution exists.\n- You may not use the same element twice (i != j).\n- Negative numbers and zero values are supported naturally.",
   constraints: [
     "2 <= nums.length <= 3 * 10^4",
     "-1000 <= nums[i] <= 1000",

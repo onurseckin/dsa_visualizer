@@ -211,7 +211,7 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   categories: ["bit_manipulation"],
   difficulty: "Easy",
   description:
-    "Given an integer n, returns an array ans of length n + 1 where ans[i] is the number of 1s in the binary representation of i. Each count is derived from a smaller, already-solved one via a bitwise right-shift (i >> 1), giving linear time without any built-in bit-count functions.",
+    "Given an integer n, return an array ans of length n + 1 where ans[i] is the number of 1s (population count / Hamming weight) in the binary representation of i.\n\nSolve this in O(n) linear time without relying on built-in bit-count functions by using bottom-up dynamic programming: for each integer i, derive its 1-bit count from ans[i >> 1] plus (i & 1).",
   constraints: ["0 <= n <= 10^5"],
   examples: [
     {

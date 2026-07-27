@@ -7,31 +7,21 @@ export interface matrixVectorMultiplicationInput {
 }
 
 export const MATRIXVECTORMULTIPLICATION_CODE = `
-def matrixvectormultiplication(tensor_shape, strides, memory_buffer):
+def matrix_vector_multiplication(matrix, vector):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes GEMV y = A * x matrix-vector product.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
+    rows = len(matrix)
+    cols = len(vector)
+    result = []
 
     for r in range(rows):
+        dot = 0
         for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
+            dot += matrix[r][c] * vector[c]
+        result.append(dot)
 
-    return is_contiguous, flat_offsets
+    return result
 `;
 
 export const DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT: matrixVectorMultiplicationInput = {
@@ -97,7 +87,7 @@ export const generateMatrixVectorMultiplicationSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateMatrixVectorMultiplicationSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,24 @@ export const generateMatrixVectorMultiplicationSteps = (
 };
 
 const MATRIXVECTORMULTIPLICATION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Matrix-Vector Multiplication (GEMV).",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines GEMV matrix-vector multiplication function.",
+    4: "Gets matrix row count M.",
+    5: "Gets vector length N.",
+    6: "Initializes output result vector y.",
+    8: "Iterates through matrix row index r.",
+    9: "Initializes row dot product accumulator to 0.",
+    10: "Iterates through column index c.",
+    11: "Accumulates matrix element matrix[r][c] * vector[c] product into dot.",
+    12: "Appends computed row dot product to output result vector.",
+    14: "Returns computed GEMV output result vector.",
   },
 };
 
@@ -144,85 +141,79 @@ export const matrixVectorMultiplication: AlgorithmDefinition<matrixVectorMultipl
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), matrix-vector multiplication (gemv) provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In auto-regressive LLM inference (e.g. LLaMA, GPT-4 single-token decoding), generating each new token involves multiplying weights matrix A (M x N) by a single token activation vector x (N x 1). This GEMV operation (BLAS Level 2) has an Arithmetic Intensity of ~1 FLOP/Byte, making it strictly memory-bandwidth bound.\n\nThis algorithm implements Matrix-Vector Multiplication (GEMV), computing row-wise vector dot products y_r = sum_c (A[r][c] * x[c]).\n\nInput Format:\n- data: Array representing matrix or vector entries.\n- target: Optional target value.\n\nOutput Format:\n- Returns 1D output vector y of length M.\n\nEdge Cases & Constraints:\n- Vector length matching matrix column dimension N.\n- Single-row matrix (M = 1, single dot product).\n- Zero vector or zero matrix inputs.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: MATRIXVECTORMULTIPLICATION_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Matrix-Vector Multiplication (GEMV) is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "GEMV (General Matrix-Vector Multiplication) is the primary computational bottleneck during LLM decoding. Because batch size is 1, weight matrix A is loaded from DRAM once per generated token without opportunities for weight reuse, bounding throughput strictly by HBM memory bandwidth.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, matrix-vector multiplication (gemv) operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, y_i = sum_{j=0}^{N-1} A_{i,j} * x_j. Operational Intensity AI = (2 * M * N FLOPs) / (M * N * sizeof(weight) + (M + N) * sizeof(activation)) Bytes approx 1 / sizeof(weight) FLOPs/Byte.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Matrix-Vector Multiplication (GEMV) optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "For FP16 weights (2 bytes/weight), GEMV AI is ~0.5 FLOPs/Byte. On an NVIDIA A100 GPU (2 TB/s HBM2e), maximum GEMV weight read throughput is 1 TB/s, generating ~500 token passes per second.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing matrix-vector multiplication (gemv) efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates through matrix rows r, accumulates row dot products against input vector x, and appends results to output vector y.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes vector dimension mismatch validation.",
       },
     ],
     keyTerms: [
       {
-        term: "Matrix-Vector Engine",
+        term: "GEMV Kernel",
         definition:
-          "The underlying algorithmic system implementing matrix-vector multiplication (gemv) operations for deep learning workloads.",
+          "General Matrix-Vector multiplication kernel operating on 2D matrix and 1D vector.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "LLM Decode Phase",
+        definition: "Auto-regressive token generation step operating with batch size 1.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Memory-Bound Bottleneck",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Performance bottleneck caused by DRAM memory bandwidth limits rather than compute capacity.",
       },
     ],
   },

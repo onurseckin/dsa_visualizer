@@ -7,31 +7,19 @@ export interface tritonTensorCoreMmaSwizzleInput {
 }
 
 export const TRITONTENSORCOREMMASWIZZLE_CODE = `
-def tritontensorcoremmaswizzle(tensor_shape, strides, memory_buffer):
+def triton_tensor_core_mma_swizzle(pid_1d, num_pid_m, num_pid_n, group_size=8):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Swizzles 1D Triton CTA program ID into 2D tile coordinates (pid_m, pid_n) for L2 cache locality.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    num_pids_in_group = group_size * num_pid_n
+    group_id = pid_1d // num_pids_in_group
+    first_pid_m = group_id * group_size
+    group_size_m = min(num_pid_m - first_pid_m, group_size)
 
-    is_contiguous = True
-    expected_stride = 1
+    pid_m = first_pid_m + (pid_1d % group_size_m)
+    pid_n = (pid_1d % num_pids_in_group) // group_size_m
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return pid_m, pid_n
 `;
 
 export const DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT: tritonTensorCoreMmaSwizzleInput = {
@@ -97,7 +85,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +97,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
   }));
 
   addStep(
-    6,
+    13,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +108,22 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
 };
 
 const TRITONTENSORCOREMMASWIZZLE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Triton Tensor Core MMA Layout Swizzler.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines Triton tensor core MMA layout swizzle function.",
+    4: "Calculates total 1D program IDs in a macro-tile group num_pids_in_group = group_size * num_pid_n.",
+    5: "Calculates macro-tile group ID = pid_1d // num_pids_in_group.",
+    6: "Calculates starting row tile index first_pid_m = group_id * group_size.",
+    7: "Calculates effective group height group_size_m handling tail boundary conditions.",
+    9: "Calculates swizzled row CTA coordinate pid_m = first_pid_m + (pid_1d % group_size_m).",
+    10: "Calculates swizzled column CTA coordinate pid_n = (pid_1d % num_pids_in_group) // group_size_m.",
+    12: "Returns swizzled 2D CTA tile coordinate tuple (pid_m, pid_n).",
   },
 };
 
@@ -144,85 +137,80 @@ export const tritonTensorCoreMmaSwizzle: AlgorithmDefinition<tritonTensorCoreMma
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), triton tensor core mma layout swizzler provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "When launch thread blocks (CTAs) execute matrix multiplication on GPUs, mapping 1D CTA program IDs (pid_1d) sequentially row-by-row causes adjacent CTA blocks to miss L2 cache lines for matrix B. Swizzling program IDs into 2D tile groups (group_size CTAs tall) ensures adjacent CTAs reuse matrix B tile loads from L2 cache, boosting throughput.\n\nThis algorithm implements Triton Tensor Core MMA Layout Swizzle, mapping 1D CTA program IDs into 2D grid block coordinates (pid_m, pid_n) using grouped block swizzling arithmetic.\n\nInput Format:\n- data: Array representing program ID or grid shape values.\n- target: Optional target value.\n\nOutput Format:\n- Returns swizzled (pid_m, pid_n) 2D CTA tile block coordinate tuple.\n\nEdge Cases & Constraints:\n- Last group along M dimension containing fewer than group_size CTAs.\n- Group size = 1 (linear un-swizzled row-major CTA mapping).\n- Large grid launch sizes (e.g. 100x100 CTA blocks).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: TRITONTENSORCOREMMASWIZZLE_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Triton Tensor Core MMA Layout Swizzler is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "L2 cache swizzling is a critical optimization in OpenAI Triton GEMM kernels. By grouping CTA scheduling into 2D macro-tiles (e.g. 8 CTAs high by N CTAs wide), all CTAs in a group reuse loaded matrix B tiles directly from L2 cache instead of making repeated DRAM calls.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, triton tensor core mma layout swizzler operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for 1D program ID pid_1d, total CTAs in a group is G_size = GROUP_SIZE * NUM_PID_N. Group ID group_id = pid_1d // G_size. Starting row block first_pid_m = group_id * GROUP_SIZE. Swizzled 2D coordinates are pid_m = first_pid_m + (pid_1d mod group_size_m) and pid_n = (pid_1d mod G_size) // group_size_m.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Triton Tensor Core MMA Layout Swizzler optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "On NVIDIA H100 GPUs (50MB L2 cache), L2 block swizzling increases L2 cache hit rate from ~20% up to >85% for large GEMM operations.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing triton tensor core mma layout swizzler efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation computes group boundaries, calculates local group offsets, and outputs swizzled (pid_m, pid_n) 2D CTA block coordinates.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes tail groups where remaining M blocks are fewer than group_size using min(num_pid_m - first_pid_m, group_size).",
       },
     ],
     keyTerms: [
       {
-        term: "Triton Engine",
+        term: "CTA Program ID (pid)",
         definition:
-          "The underlying algorithmic system implementing triton tensor core mma layout swizzler operations for deep learning workloads.",
+          "The 1D hardware identifier assigned to a GPU thread block tile during kernel launch.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "L2 Cache Swizzling",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Re-ordering CTA block execution order to maximize L2 cache line reuse across adjacent thread blocks.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Macro-Tile Group",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "A 2D cluster of CTA blocks scheduled together to share matrix data loads in L2 cache.",
       },
     ],
   },

@@ -7,27 +7,20 @@ export interface tensorVjpEngineGradOfGradInput {
 }
 
 export const TENSORVJPENGINEGRADOFGRAD_CODE = `
-def tensorvjpenginegradofgrad(graph_nodes, adjacency_map):
+def tensor_vjp_engine_grad_of_grad(vjp_vector, jacobian_matrix):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Evaluates Vector-Jacobian Product v^T @ J for higher-order double-backward gradients.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    m = len(jacobian_matrix)
+    n = len(jacobian_matrix[0]) if m > 0 else 0
+    output_vjp = [0.0] * n
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    for i in range(m):
+        v_val = vjp_vector[i]
+        for j in range(n):
+            output_vjp[j] += v_val * jacobian_matrix[i][j]
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
-
-    return topological_order
+    return output_vjp
 `;
 
 export const DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT: tensorVjpEngineGradOfGradInput = {
@@ -40,7 +33,8 @@ export const generateTensorVjpEngineGradOfGradSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +60,8 @@ export const generateTensorVjpEngineGradOfGradSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +72,11 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     1,
     "Initialize Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +87,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +99,9 @@ export const generateTensorVjpEngineGradOfGradSteps = (
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +110,23 @@ export const generateTensorVjpEngineGradOfGradSteps = (
 };
 
 const TENSORVJPENGINEGRADOFGRAD_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines Vector-Jacobian Product (VJP) engine function.",
+    4: "Gets row count M of Jacobian matrix.",
+    5: "Gets column count N of Jacobian matrix.",
+    6: "Allocates 1D VJP output gradient vector initialized to 0.0.",
+    8: "Iterates through row index i from 0 to M-1.",
+    9: "Fetches upstream gradient scalar v_val = vjp_vector[i].",
+    10: "Iterates through column index j from 0 to N-1.",
+    11: "Accumulates product v_val * jacobian_matrix[i][j] into output_vjp[j].",
+    13: "Returns computed VJP gradient vector.",
   },
 };
 
@@ -141,85 +140,79 @@ export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradO
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), vector-jacobian product (vjp) engine with higher-order gradients provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Higher-order automatic differentiation (e.g. computing Hessian-vector products, WGAN gradient penalties, PyTorch torch.autograd.grad with create_graph=True) requires evaluating Vector-Jacobian Products (VJPs) through gradient operations. VJP evaluates v^T @ J, propagating upstream gradient vector v through Jacobian matrix J without constructing full dense M x N Jacobian matrices in memory.\n\nThis algorithm implements Vector-Jacobian Product (VJP) Engine, evaluating vector-matrix multiplication v^T @ J for higher-order double-backward gradient calculations.\n\nInput Format:\n- data: Array representing vector or matrix values.\n- target: Optional target value.\n\nOutput Format:\n- Returns 1D output gradient vector of length N.\n\nEdge Cases & Constraints:\n- Vector length m matching Jacobian row dimension.\n- Sparse or zero-valued Jacobian entries.\n- Single-element 1x1 Jacobian matrices.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: TENSORVJPENGINEGRADOFGRAD_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Vector-Jacobian Products (VJPs) evaluate reverse-mode automatic differentiation without explicitly forming huge Jacobian matrices. The VJP operation computes v^T @ J, yielding a vector of input gradients in a single pass.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, vector-jacobian product (vjp) engine with higher-order gradients operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for vector function f: R^N -> R^M with Jacobian J (M x N) and upstream gradient v (1 x M), VJP computes output vector w (1 x N) where w_j = sum_{i=0}^{M-1} v_i * J_{i,j}.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Evaluating VJPs implicitly avoids storing O(M * N) dense Jacobian memory, enabling double-backward autograd (grad-of-grad) for physics-informed neural networks (PINNs).",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing vector-jacobian product (vjp) engine with higher-order gradients efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates over row index i, multiplies upstream gradient v_val by row entries J_{i,j}, and accumulates into output_vjp[j].",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes dimension mismatch checks between vector v and matrix J.",
       },
     ],
     keyTerms: [
       {
-        term: "Vector-Jacobian Engine",
-        definition:
-          "The underlying algorithmic system implementing vector-jacobian product (vjp) engine with higher-order gradients operations for deep learning workloads.",
+        term: "Vector-Jacobian Product (VJP)",
+        definition: "Vector-matrix product v^T @ J evaluating reverse-mode autograd gradients.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Double-Backward (Grad-of-Grad)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Computing gradients of gradient operations to evaluate higher-order derivatives.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Implicit Jacobian",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Evaluating gradient vector products without explicitly constructing full dense Jacobian matrices.",
       },
     ],
   },

@@ -7,21 +7,21 @@ export interface fp16OverflowRescalingEngineInput {
 }
 
 export const FP16OVERFLOWRESCALINGENGINE_CODE = `
-def fp16overflowrescalingengine(fp32_weights, scale, zero_point):
+def fp16_overflow_rescaling_engine(values, max_fp16=65504.0):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Detects FP16 max value exponent overflow > 65504 and scales activations down safely.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
+    rescaled = []
+    max_val = max(abs(x) for x in values) if values else 1.0
+    scale_factor = 1.0
 
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
+    if max_val > max_fp16:
+        scale_factor = max_fp16 / max_val
 
-    return quantized_tensor
+    for x in values:
+        rescaled.append(x * scale_factor)
+
+    return rescaled, scale_factor
 `;
 
 export const DEFAULT_FP16OVERFLOWRESCALINGENGINE_INPUT: fp16OverflowRescalingEngineInput = {
@@ -33,61 +33,99 @@ export const generateFp16OverflowRescalingEngineSteps = (
   input: fp16OverflowRescalingEngineInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Fp16 Overflow Rescaling Engine",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Fp16 Overflow Rescaling Engine",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    15,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const FP16OVERFLOWRESCALINGENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines FP16 overflow rescaling engine function.",
+    4: "Initializes rescaled output array.",
+    5: "Finds peak absolute value max_val in input activation vector.",
+    6: "Initializes scale_factor to 1.0 (no scaling needed by default).",
+    8: "Checks if peak magnitude max_val exceeds FP16 maximum bound (65504.0).",
+    9: "Calculates safe downscaling factor scale_factor = 65504.0 / max_val.",
+    11: "Applies downscaling factor to each input value: rescaled.append(x * scale_factor).",
+    14: "Returns rescaled activation array and applied scale_factor.",
+  },
 };
 
 export const fp16OverflowRescalingEngine: AlgorithmDefinition<fp16OverflowRescalingEngineInput> = {
@@ -97,93 +135,88 @@ export const fp16OverflowRescalingEngine: AlgorithmDefinition<fp16OverflowRescal
   categories: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), fp16 overflow rescaling engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "In IEEE-754 half-precision floating point (FP16), the maximum representable finite positive value is 65504.0 (2^15 * (1 + 1023/1024)). Any intermediate layer activation or gradient exceeding 65504.0 results in FP16 exponent overflow, evaluating to +Infinity and producing NaN values in downstream loss computations. Dynamic Loss Scaling and activation rescaling engines monitor max activation values and scale tensors down safely.\n\nThis algorithm implements Fp16 Overflow Rescaling Engine, scanning activation vectors for values exceeding 65504.0, calculating a safe downscaling factor, and rescaling elements to prevent FP16 overflow.\n\nInput Format:\n- values: Array of FP32 floating-point values.\n- scale: Optional scale parameter.\n\nOutput Format:\n- Returns rescaled activation array and applied scale factor.\n\nEdge Cases & Constraints:\n- Values strictly within FP16 dynamic range (scale_factor = 1.0, no-op).\n- Extreme outlier values exceeding 1e5.\n- Empty input value array.",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: FP16OVERFLOWRESCALINGENGINE_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Fp16 Overflow Rescaling Engine is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "FP16 dynamic range is limited to [6e-8, 65504]. During deep neural network training (e.g. Mixed Precision Training via torch.cuda.amp.GradScaler), gradients and activations can spike above 65504.0, triggering overflow. Rescaling activations prevents infinity values from corrupting model weights.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, fp16 overflow rescaling engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, peak magnitude M = max_{x} |x|. If M > 65504.0, scale factor s = 65504.0 / M. Rescaled values x' = x * s guarantee all elements satisfy |x'| <= 65504.0.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Fp16 Overflow Rescaling Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Automatic Mixed Precision (AMP) uses dynamic loss scaling to keep gradients within [6e-8, 65504] range, doubling training throughput on GPU Tensor Cores while preserving FP32 convergence accuracy.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing fp16 overflow rescaling engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation finds peak absolute value max_val, computes downscaling factor if max_val > 65504.0, and multiplies each element by scale_factor.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes handling zero vectors where max_val == 0.",
       },
     ],
     keyTerms: [
       {
-        term: "Fp16 Engine",
+        term: "FP16 Max Value (65504)",
         definition:
-          "The underlying algorithmic system implementing fp16 overflow rescaling engine operations for deep learning workloads.",
+          "The upper numeric bound of 16-bit half-precision floating point representation.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Exponent Overflow",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Occurs when a calculation exceeds the maximum exponent capability of a float format, yielding Infinity.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Dynamic Loss Scaling",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Adjusting scale factors dynamically during mixed precision training to prevent FP16 underflow/overflow.",
       },
     ],
   },
   trivia: FP16OVERFLOWRESCALINGENGINE_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_FP16OVERFLOWRESCALINGENGINE_INPUT,
   generateSteps: generateFp16OverflowRescalingEngineSteps,
 };

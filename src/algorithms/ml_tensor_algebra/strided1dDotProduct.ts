@@ -7,31 +7,20 @@ export interface strided1dDotProductInput {
 }
 
 export const STRIDED1DDOTPRODUCT_CODE = `
-def strided1ddotproduct(tensor_shape, strides, memory_buffer):
+def strided_1d_dot_product(vec_a, vec_b, stride_a=1, stride_b=1):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes dot product of two vectors with arbitrary strided memory layouts.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    n = min(len(vec_a) // stride_a, len(vec_b) // stride_b)
+    dot_sum = 0
 
-    is_contiguous = True
-    expected_stride = 1
+    for i in range(n):
+        idx_a = i * stride_a
+        idx_b = i * stride_b
+        product = vec_a[idx_a] * vec_b[idx_b]
+        dot_sum += product
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return dot_sum
 `;
 
 export const DEFAULT_STRIDED1DDOTPRODUCT_INPUT: strided1dDotProductInput = {
@@ -97,7 +86,7 @@ export const generateStrided1dDotProductSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +98,7 @@ export const generateStrided1dDotProductSteps = (
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +109,23 @@ export const generateStrided1dDotProductSteps = (
 };
 
 const STRIDED1DDOTPRODUCT_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Strided 1D Vector Dot Product.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines strided 1D vector dot product function.",
+    4: "Calculates max valid dot product step count K based on vector lengths and strides.",
+    5: "Initializes dot product accumulation sum to 0.",
+    7: "Iterates through element step index i from 0 to K - 1.",
+    8: "Calculates physical offset in vector A = i * stride_a.",
+    9: "Calculates physical offset in vector B = i * stride_b.",
+    10: "Multiplies scalar elements A[idx_a] * B[idx_b].",
+    11: "Accumulates product into dot_sum total.",
+    13: "Returns accumulated dot product scalar result.",
   },
 };
 
@@ -139,40 +134,40 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
   title: "Strided 1D Vector Dot Product",
   category: "ml_tensor_algebra",
   categories: ["ml_tensor_algebra", "arrays_and_hashing"],
-  difficulty: "Medium",
+  difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), strided 1d vector dot product provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In BLAS level-1 routines (e.g., sdot/ddot in cuBLAS, PyTorch torch.dot), dot products often process non-contiguous vector slices stored with non-unit memory strides (e.g., extracting column vectors from row-major matrices).\n\nThis algorithm implements Strided 1D Vector Dot Product, computing the inner product sum(vec_a[i * stride_a] * vec_b[i * stride_b]) across arbitrary memory strides.\n\nInput Format:\n- data: Numerical array representing vector values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns scalar floating-point or integer dot product total.\n\nEdge Cases & Constraints:\n- Vector strides stride_a = 1, stride_b = 1 (contiguous BLAS unit stride).\n- Asymmetric vector strides (e.g., stride_a = 1, stride_b = 2).\n- Single element vectors or zero vector inputs.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: STRIDED1DDOTPRODUCT_CODE,
@@ -184,45 +179,39 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
   },
   topicGuide: {
     overview:
-      "Strided 1D Vector Dot Product is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Strided vector dot products are fundamental to basic linear algebra kernels (BLAS). When multiplying transposed matrix columns or computing attention score projections, vector elements are accessed with step sizes larger than 1.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, strided 1d vector dot product operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, given vectors A and B with strides s_a and s_b, the strided dot product over K elements is P = sum_{i=0}^{K-1} A[i * s_a] * B[i * s_b].",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Strided 1D Vector Dot Product optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "When s_a = 1 and s_b = 1, SIMD vector instructions (AVX-512, CUDA FMA) achieve maximum throughput by loading 8/16 packed floats simultaneously. When s_a > 1, memory reads become non-coalesced, reducing instruction throughput.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing strided 1d vector dot product efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation calculates valid step count K = min(len(A)//s_a, len(B)//s_b), loops over step index i, computes element products, and accumulates sum.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge cases include zero vectors (returning 0), negative values, and strides larger than vector length.",
       },
     ],
     keyTerms: [
       {
-        term: "Strided Engine",
-        definition:
-          "The underlying algorithmic system implementing strided 1d vector dot product operations for deep learning workloads.",
+        term: "Strided Vector Access",
+        definition: "Reading vector elements spaced apart by stride step increments.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "BLAS Level-1",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Basic Linear Algebra Subprograms performing vector-vector operations like dot product and norm.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Fused Multiply-Add (FMA)",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Hardware instruction performing a * b + c in a single clock cycle with single rounding.",
       },
     ],
   },

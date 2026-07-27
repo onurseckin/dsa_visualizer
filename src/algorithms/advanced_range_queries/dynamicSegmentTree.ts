@@ -16,15 +16,42 @@ export interface DynamicSegmentTreeInput {
 }
 
 export const DYNAMIC_SEGMENT_TREE_CODE = `
-def dynamic_segment_tree(input_array):
+class Node:
+    def __init__(self, l: int, r: int):
+        self.l = l
+        self.r = r
+        self.val = 0
+        self.left = None
+        self.right = None
+
+class DynamicSegmentTree:
     """
-    Implementation of dynamic_segment_tree.
+    Dynamic Segment Tree allocating nodes lazily on demand for range [l, r].
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    def __init__(self, l: int, r: int):
+        self.root = Node(l, r)
+
+    def update(self, node: Node, idx: int, val: int):
+        if node.l == node.r:
+            node.val += val
+            return
+        mid = (node.l + node.r) // 2
+        if idx <= mid:
+            if not node.left:
+                node.left = Node(node.l, mid)
+            self.update(node.left, idx, val)
+        else:
+            if not node.right:
+                node.right = Node(mid + 1, node.r)
+            self.update(node.right, idx, val)
+        node.val = (node.left.val if node.left else 0) + (node.right.val if node.right else 0)
+
+    def query(self, node: Node, ql: int, qr: int) -> int:
+        if not node or qr < node.l or ql > node.r:
+            return 0
+        if ql <= node.l and node.r <= qr:
+            return node.val
+        return self.query(node.left, ql, qr) + self.query(node.right, ql, qr)
 `;
 
 export const DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT: DynamicSegmentTreeInput = {

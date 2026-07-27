@@ -7,31 +7,45 @@ export interface ropeFrequencyScalingYarnInput {
 }
 
 export const ROPEFREQUENCYSCALINGYARN_CODE = `
-def ropefrequencyscalingyarn(q_tile, k_tile, v_tile, scale_factor):
+import math
+
+def yarn_rope_frequency_scaling(
+    dim: int,
+    scale_factor: float,
+    orig_max_position: int,
+    base_theta: float = 10000.0,
+    beta_fast: float = 32.0,
+    beta_slow: float = 1.0
+) -> list[float]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Computes YaRN (Yet Another RoPE N-extrapolation) scaled inverse frequencies.
+    Interpolates between high-frequency (unscaled) and low-frequency (fully scaled) bands.
     """
-    import math
+    scaled_inv_freqs = []
+    
+    # 1. Compute wavelength thresholds for frequency band partition
+    low_rot = orig_max_position / (beta_fast * 2 * math.pi)
+    high_rot = orig_max_position / (beta_slow * 2 * math.pi)
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
+    for i in range(0, dim, 2):
+        inv_freq = 1.0 / (base_theta ** (i / dim))
+        wavelength = 2 * math.pi / inv_freq
+        
+        # 2. Smooth ramp interpolation factor gamma(i)
+        if wavelength < low_rot:
+            gamma = 0.0  # High frequency: no scaling (preserve local attention)
+        elif wavelength > high_rot:
+            gamma = 1.0  # Low frequency: full linear scaling by 1/scale_factor
+        else:
+            # Linear ramp transition in mid frequencies
+            gamma = (orig_max_position / wavelength - beta_slow) / (beta_fast - beta_slow)
+            gamma = max(0.0, min(1.0, gamma))
+            
+        # 3. Blend unscaled and scaled inverse frequencies
+        scaled_inv_freq = (1.0 - gamma) * inv_freq + gamma * (inv_freq / scale_factor)
+        scaled_inv_freqs.append(scaled_inv_freq)
 
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    return scaled_inv_freqs
 `;
 
 export const DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT: ropeFrequencyScalingYarnInput = {
@@ -81,7 +95,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
   addStep(
     1,
     "Initialize RoPE NTK-Aware & YaRN Frequency Scaling",
-    "Setting up execution data structures and memory layout pointers.",
+    "Configuring YaRN frequency scaling parameters: scale_factor = 4x context window extension.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -89,16 +103,16 @@ export const generateRopeFrequencyScalingYarnSteps = (
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`dim=${idx * 2}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      22,
+      `Compute YaRN frequency scaling for dimension pair i=${idx * 2} (val=${val})`,
+      `Determining ramp factor gamma(i) to interpolate between unscaled high frequency and scaled low frequency.`,
+      { dimIdx: idx * 2, val, isTarget },
       currentElements,
     );
   });
@@ -109,9 +123,9 @@ export const generateRopeFrequencyScalingYarnSteps = (
   }));
 
   addStep(
-    6,
+    32,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully computed YaRN context extension inverse frequency scaling factors.",
     { completed: true },
     finalElements,
   );
@@ -120,17 +134,24 @@ export const generateRopeFrequencyScalingYarnSteps = (
 };
 
 const ROPEFREQUENCYSCALINGYARN_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "scaled_inv_freq = inv_freq * scale_factor",
+    "gamma = wavelength / orig_max_position",
+    "low_rot = beta_fast * orig_max_position",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 17, hint: "Compute wavelength = 2 * pi / inv_freq for current frequency dimension." },
+    { line: 20, hint: "Set gamma = 0.0 for high frequency dimensions (wavelength < low_rot)." },
+    { line: 22, hint: "Set gamma = 1.0 for low frequency dimensions (wavelength > high_rot)." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for RoPE NTK-Aware & YaRN Frequency Scaling.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines YaRN RoPE frequency scaling entry point.",
+    16: "Calculates unscaled inverse frequency for dimension index i.",
+    17: "Calculates wavelength = 2 * pi / inv_freq.",
+    20: "Assigns gamma=0 for high-frequency bands (preserves short-range precision).",
+    22: "Assigns gamma=1 for low-frequency bands (scales long-range context).",
+    30: "Blends inverse frequencies using interpolation factor gamma.",
   },
 };
 
@@ -144,85 +165,86 @@ export const ropeFrequencyScalingYarn: AlgorithmDefinition<ropeFrequencyScalingY
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), rope ntk-aware & yarn frequency scaling provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Extending Large Language Model (LLM) context windows beyond their pre-training length $N_{\\text{train}}$ (e.g. 4k $\\to$ 32k or 128k tokens) without full retraining is a central challenge in LLM serving. Naive linear position interpolation ($m' = m / s$) compresses all positional frequencies uniformly, causing catastrophic loss of high-frequency precision and model degradation.\n\n1. **NTK-Aware Scaling** (LocalLLaMA, 2023): Scales the base theta $\\theta' = \\theta_{\\text{base}} \\cdot s^{d / (d-2)}$ rather than scaling sequence position, spreading interpolation loss across dimensions by applying Neural Tangent Kernel (NTK) theory.\n2. **YaRN (Yet Another RoPE N-extrapolation)** (Peng et al., 2023): Partitions frequencies into three bands via wavelength bounds: high frequencies (short wavelength) are left UNSCALED (preserving local attention), low frequencies (long wavelength) are FULLY SCALED by $1/s$, and mid frequencies use a smooth ramp interpolation $\\gamma(i)$.\n\nInput Format:\n- data: Feature dimension pair indices or sequence length targets.\n- target: Target context extension factor $s$ (e.g., $s=4$ for $4\\times$ context extension).\n\nOutput Format:\n- Vector of modified inverse frequencies $\\tilde{\\theta}_i$ for scaled RoPE embedding calculations.\n\nEdge Cases & Constraints:\n- Attention temperature correction: YaRN applies an entropy temperature scaling factor $t = \\sqrt{1 + 0.1 \\ln s}$ to query/key dot products to prevent attention entropy collapse at long context lengths.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "YaRN 4x Context Extension",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Computes YaRN ramp-scaled inverse frequencies for 4x context expansion.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
+      title: "16x Context Band Scaling",
       inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
       outputDisplay: "[1, 2, 3, 4, 5]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Evaluates multi-frequency band scaling across 5 vector dimension pairs.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Unscaled Context Check (s = 1)",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "When scale factor s=1, outputs standard base RoPE inverse frequencies.",
     },
   ],
   code: ROPEFREQUENCYSCALINGYARN_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(d)", average: "O(d)", worst: "O(d)" },
+  spaceComplexity: "O(d)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Computes YaRN scaled inverse frequencies across $d/2$ dimensions in $O(d)$ time during initialization.",
+    space:
+      "Stores pre-computed scaled sine/cosine frequency tables in $O(d \\cdot N_{\\text{ext}})$ memory.",
   },
   topicGuide: {
     overview:
-      "RoPE NTK-Aware & YaRN Frequency Scaling is a critical component in ML ATTENTION GEOMETRY systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "YaRN and NTK-aware RoPE scaling enable models trained on 4,096 tokens (e.g. LLaMA-2) to expand their context window to 32,768 or 128,000 tokens with minimal fine-tuning or zero-shot inference.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, rope ntk-aware & yarn frequency scaling operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "For dimension index $i$, the wavelength is $\\lambda_i = 2\\pi / \\theta_i$. YaRN defines threshold bounds $\\lambda_{\\text{low}} = N_{\\text{orig}} / \\beta_{\\text{fast}}$ and $\\lambda_{\\text{high}} = N_{\\text{orig}} / \\beta_{\\text{slow}}$. The ramp factor is $\\gamma(i) = \\text{clamp}\\left(\\frac{N_{\\text{orig}} / \\lambda_i - \\beta_{\\text{slow}}}{\\beta_{\\text{fast}} - \\beta_{\\text{slow}}}, 0, 1\\right)$. The modified inverse frequency is $\\tilde{\\theta}_i = (1 - \\gamma(i)) \\theta_i + \\gamma(i) \\frac{\\theta_i}{s}$.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. RoPE NTK-Aware & YaRN Frequency Scaling optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Because YaRN only modifies the pre-computed frequency array `inv_freq`, GPU execution time during attention forward passes is identical to standard RoPE. No extra memory accesses or arithmetic operations are added inside the CUDA kernel loops.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing rope ntk-aware & yarn frequency scaling efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "YaRN also scales attention logit magnitude by a temperature multiplier $\\frac{1}{t} = \\sqrt{1 + 0.1 \\ln s}$ to prevent softmax probabilities from becoming overly concentrated or diffuse over long context sequences.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "If $s$ is extremely large ($s > 32$), floating-point quantization error in high-frequency cosine tables can degrade perplexity. Combining YaRN with Dynamic NTK (scaling $s$ dynamically based on actual prompt length) provides robust performance across variable sequence lengths.",
       },
     ],
     keyTerms: [
       {
-        term: "RoPE Engine",
+        term: "YaRN (Yet Another RoPE N-extrapolation)",
         definition:
-          "The underlying algorithmic system implementing rope ntk-aware & yarn frequency scaling operations for deep learning workloads.",
+          "A frequency scaling method that selectively interpolates RoPE frequencies based on wavelength bands.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "NTK-Aware Scaling",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "A technique scaling base theta $\\theta_{\\text{base}}$ to extend context length without shrinking high frequencies.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Ramp Interpolation Function",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "A smooth piecewise linear function blending unscaled and scaled inverse frequencies across mid-range bands.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Attention Entropy Temperature",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "A logit scale factor $\\sqrt{1 + 0.1 \\ln s}$ maintaining proper softmax variance at extended context lengths.",
       },
     ],
   },

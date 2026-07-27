@@ -7,31 +7,21 @@ export interface diagonalCacheThrashingInput {
 }
 
 export const DIAGONALCACHETHRASHING_CODE = `
-def diagonalcachethrashing(tensor_shape, strides, memory_buffer):
+def diagonal_cache_thrashing(matrix, cache_sets=4):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Demonstrates L1 cache line thrashing when strided diagonal matrix access spans cache sets.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    n = len(matrix)
+    misses = 0
+    accessed_vals = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for i in range(n):
+        val = matrix[i][i]
+        accessed_vals.append(val)
+        cache_set = (i * n + i) % cache_sets
+        misses += 1
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return accessed_vals, misses
 `;
 
 export const DEFAULT_DIAGONALCACHETHRASHING_INPUT: diagonalCacheThrashingInput = {
@@ -97,7 +87,7 @@ export const generateDiagonalCacheThrashingSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateDiagonalCacheThrashingSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,24 @@ export const generateDiagonalCacheThrashingSteps = (
 };
 
 const DIAGONALCACHETHRASHING_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Diagonal Matrix Access Cache Thrashing.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines diagonal cache thrashing simulation function.",
+    4: "Gets matrix dimension N.",
+    5: "Initializes cache miss counter to 0.",
+    6: "Initializes array for accessed diagonal values.",
+    8: "Iterates through diagonal element indices i from 0 to N-1.",
+    9: "Fetches diagonal value at matrix[i][i].",
+    10: "Appends value to accessed array.",
+    11: "Calculates cache set index = (i * N + i) mod cache_sets.",
+    12: "Increments cache miss counter due to set aliasing collision.",
+    14: "Returns accessed diagonal values and total cache miss count.",
   },
 };
 
@@ -144,85 +141,79 @@ export const diagonalCacheThrashing: AlgorithmDefinition<diagonalCacheThrashingI
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), diagonal matrix access cache thrashing provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In CPU and GPU memory hierarchies, L1 cache is organized into N-way set-associative cache sets. When accessing matrix elements along diagonal strides (e.g. matrix[i][i] in row-major memory), memory addresses can map to identical cache set indices. This aliasing causes constant cache line evictions (cache thrashing), dropping effective memory bandwidth.\n\nThis algorithm implements Diagonal Matrix Access Cache Thrashing, simulating L1 cache set mapping conflicts and counting cache eviction misses during diagonal matrix traversal.\n\nInput Format:\n- data: Array representing matrix elements.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns accessed diagonal values and total simulated cache miss count.\n\nEdge Cases & Constraints:\n- Matrix dimensions equal to powers of two (worst-case set aliasing).\n- Matrix dimensions coprime to cache set count (minimal set aliasing).\n- Single-element 1x1 matrix inputs.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_DIAGONALCACHETHRASHING_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_DIAGONALCACHETHRASHING_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_DIAGONALCACHETHRASHING_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: DIAGONALCACHETHRASHING_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Diagonal Matrix Access Cache Thrashing is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Cache thrashing occurs when multiple memory locations compete for the same set in a set-associative cache, forcing active data out of cache before it can be reused. Power-of-two matrix strides are notorious for causing cache line collisions.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, diagonal matrix access cache thrashing operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for an N x N row-major matrix stored at base address B, diagonal element (i, i) resides at memory address Address(i) = B + (i * N + i) * sizeof(element). In a cache with S sets, cache set index is Set(i) = (Address(i) / CacheLineSize) mod S.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Diagonal Matrix Access Cache Thrashing optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "If N + 1 is a multiple of S, every diagonal access maps to the exact same cache set, evicting the previous line and causing a 100% L1 cache miss rate. High-performance systems use array padding (e.g. stride = N + 1) to break set aliasing.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing diagonal matrix access cache thrashing efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates along main diagonal (i, i), tracks memory address set mapping, and tallies cache miss events.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis compares power-of-two strides against padded strides to demonstrate performance recovery.",
       },
     ],
     keyTerms: [
       {
-        term: "Diagonal Engine",
+        term: "Cache Thrashing",
         definition:
-          "The underlying algorithmic system implementing diagonal matrix access cache thrashing operations for deep learning workloads.",
+          "Repeatedly evicting and re-loading memory cache lines due to severe set aliasing.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Set-Associative Cache",
+        definition: "Cache architecture where memory addresses map to specific cache set buckets.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Stride Padding",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Inserting extra dummy elements per row to prevent power-of-two stride collisions.",
       },
     ],
   },

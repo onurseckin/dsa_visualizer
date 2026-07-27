@@ -11,17 +11,16 @@ export interface TasksAndDeadlinesInput {
   tasks: TaskItem[];
 }
 
-export const PYTHON_TASKS_AND_DEADLINES_CODE = `
-def python_tasks_and_deadlines(input_array):
-    """
-    Implementation of python_tasks_and_deadlines.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_TASKS_AND_DEADLINES_CODE = `def tasks_and_deadlines(tasks: list[tuple[int, int]]) -> int:
+    tasks.sort(key=lambda x: x[0])
+    current_time = 0
+    total_reward = 0
+
+    for duration, deadline in tasks:
+        current_time += duration
+        total_reward += (deadline - current_time)
+
+    return total_reward`;
 
 export const DEFAULT_TASKS_AND_DEADLINES_INPUT: TasksAndDeadlinesInput = {
   tasks: [
@@ -183,25 +182,45 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
 
 export const TASKS_AND_DEADLINES_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Tasks and Deadlines asks us to order n tasks, each taking d_i time and having deadline D_i. If task i finishes at time X_i, we get D_i - X_i reward points. Sorting tasks by duration yields maximum total reward.",
+    "Tasks and Deadlines asks us to order n tasks (each taking duration d_i and having deadline D_i) on a single processor to maximize total reward sum(D_i - X_i), where X_i is the completion time of task i. Remarkably, sorting tasks purely by duration in ascending order (Shortest Processing Time first) yields the maximum total reward, completely independent of the deadlines.",
   sections: [
     {
-      heading: "Why Duration Ordering Works",
-      body: "Notice that total reward = sum(D_i - X_i) = sum(D_i) - sum(X_i). Since sum(D_i) is fixed regardless of ordering, maximizing total reward is equivalent to minimizing sum(X_i). Min-sum completion time is achieved by processing shortest tasks first.",
+      heading: "Mathematical Formulation & Algebraic Equivalence",
+      body: "Notice that total reward = sum(D_i - X_i) = sum(D_i) - sum(X_i). Since sum(D_i) is a constant sum over all given deadlines, maximizing total reward is mathematically identical to minimizing total completion time sum(X_i). Min-sum completion time is achieved by processing shorter tasks first.",
     },
     {
-      heading: "Deadlines Do Not Affect Optimal Order",
-      body: "Counter-intuitively, the deadlines D_i do not influence the optimal task order! Shortest processing time first (SPT) minimizes total waiting time, which optimizes total reward.",
+      heading: "Why Deadlines Do Not Affect Optimal Order",
+      body: "Counter-intuitively, individual deadlines D_i do not alter the relative order of tasks! Processing a task with duration d_i delays every subsequent task in queue by exactly d_i. Thus, placing smaller d_i values earlier minimizes cumulative delays experienced by all downstream tasks.",
+    },
+    {
+      heading: "Systems Applications & OS Job Scheduling",
+      body: "In operating system CPU scheduling (Shortest Job First / SJF) and packet scheduling in network router queues, executing short duration payloads minimizes average response latency and queue waiting times across all concurrent processes.",
+    },
+    {
+      heading: "Exchange Argument & Large Integer Overflow",
+      body: "Swapping any adjacent tasks where d_i > d_{i+1} decreases total completion time sum(X_i), proving SPT optimality. In production implementations (e.g. CSES 1630), accumulators X_i and total_reward can exceed 32-bit signed integers, requiring 64-bit integer (long long in C++, int in Python) variables.",
     },
   ],
   keyTerms: [
     {
       term: "Shortest Processing Time (SPT)",
-      definition: "Greedy heuristic that executes jobs with smallest duration first.",
+      definition:
+        "A greedy scheduling rule that orders tasks by duration in ascending order to minimize cumulative completion times.",
     },
     {
-      term: "Completion Time",
-      definition: "The exact point in time X_i when task i completes.",
+      term: "Completion Time (X_i)",
+      definition:
+        "The exact moment in time when task i finishes execution after all preceding tasks have completed.",
+    },
+    {
+      term: "SJF Scheduling",
+      definition:
+        "Shortest Job First operating system dispatch algorithm that optimizes average process latency.",
+    },
+    {
+      term: "Reward Function",
+      definition:
+        "The objective sum(D_i - X_i) measuring cumulative deadline buffer margin across scheduled tasks.",
     },
   ],
 };
@@ -226,7 +245,7 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "Given n tasks with durations and deadlines, find an execution schedule that maximizes the total reward sum(deadline - completion_time). Greedily processing tasks in ascending order of duration maximizes total reward.",
+    "Given n tasks with durations and deadlines, find an execution order on a single processor that maximizes total reward sum(deadline_i - completion_time_i).\n\nIf task i completes at time X_i, its reward contribution is D_i - X_i. Greedily processing tasks in ascending order of duration (Shortest Processing Time first) minimizes total completion time sum(X_i) and maximizes overall reward.",
   constraints: ["1 <= tasks.length <= 10^5", "1 <= duration, deadline <= 10^9"],
   examples: [
     {
@@ -285,7 +304,7 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Sorting N tasks by duration takes O(N log N) time. The sequential sum of completion times takes O(N) time.",
+    time: "Sorting N tasks by duration takes O(N log N) time. Computing cumulative completion times takes a single O(N) pass.",
     space: "O(N) space for storing task structures and auxiliary step snapshots.",
   },
   topicGuide: TASKS_AND_DEADLINES_TOPIC_GUIDE,

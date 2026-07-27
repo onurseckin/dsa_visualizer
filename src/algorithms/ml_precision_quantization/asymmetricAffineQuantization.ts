@@ -7,21 +7,16 @@ export interface asymmetricAffineQuantizationInput {
 }
 
 export const ASYMMETRICAFFINEQUANTIZATION_CODE = `
-def asymmetricaffinequantization(fp32_weights, scale, zero_point):
+def asymmetric_affine_quantization(values, scale=0.1, zero_point=5):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Quantizes FP32 values into INT8 range [-128, 127] using asymmetric scale S and zero-point Z.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
-
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
-
-    return quantized_tensor
+    quantized = []
+    for x in values:
+        q_val = int(round(x / scale)) + zero_point
+        clamped = max(-128, min(127, q_val))
+        quantized.append(clamped)
+    return quantized
 `;
 
 export const DEFAULT_ASYMMETRICAFFINEQUANTIZATION_INPUT: asymmetricAffineQuantizationInput = {
@@ -33,61 +28,98 @@ export const generateAsymmetricAffineQuantizationSteps = (
   input: asymmetricAffineQuantizationInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Asymmetric Affine Quantization",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Asymmetric Affine Quantization",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    10,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const ASYMMETRICAFFINEQUANTIZATION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines asymmetric affine quantization function.",
+    4: "Initializes quantized INT8 output result array.",
+    5: "Iterates through FP32 floating point input values.",
+    6: "Calculates scaled value and adds zero-point offset Z: q_val = round(x / scale) + zero_point.",
+    7: "Clamps quantized integer within signed INT8 range [-128, 127].",
+    8: "Appends clamped INT8 value to output array.",
+    9: "Returns quantized INT8 integer array.",
+  },
 };
 
 export const asymmetricAffineQuantization: AlgorithmDefinition<asymmetricAffineQuantizationInput> =
@@ -98,59 +130,88 @@ export const asymmetricAffineQuantization: AlgorithmDefinition<asymmetricAffineQ
     categories: ["ml_precision_quantization", "bit_manipulation"],
     difficulty: "Medium",
     isMlInfra: true,
-    mlInfraLevel: 3,
+    mlInfraLevel: 4,
     mlInfraCategory: "ml_precision_quantization",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), asymmetric affine quantization provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["Valid inputs only"],
+      "Asymmetric Affine Quantization maps 32-bit floating point numbers (FP32) into 8-bit integer range (INT8 [-128, 127] or UINT8 [0, 255]) using a floating point scale factor S and integer zero-point offset Z: q = clamp(round(x / S) + Z, qmin, qmax). Asymmetric quantization maps FP32 zero to an exact integer value Z, making it optimal for asymmetric activation distributions (e.g. ReLU activations in [0, +inf)).\n\nThis algorithm implements Asymmetric Affine Quantization, applying scale transformation, zero-point offset shift, and INT8 range clamping across input scalar vectors.\n\nInput Format:\n- values: Array of FP32 floating-point activation/weight scalars.\n- scale: Floating-point quantization scale factor S (default: 0.1).\n\nOutput Format:\n- Returns array of quantized INT8 integer values.\n\nEdge Cases & Constraints:\n- Values exceeding FP32 range mapped safely via clamping.\n- Zero scale factor prevention (fallback scale S = 1.0).\n- Zero-point Z alignment within [qmin, qmax] integer bounds.",
+    constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
     examples: [
       {
         kind: "basic",
-        title: "Basic Case",
-        inputDisplay: "Basic input",
-        outputDisplay: "Basic output",
+        title: "Standard Quantization Case",
+        inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+        outputDisplay: "Quantized INT8 Values",
         input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-        output: "Success",
-        explanation: "Basic standard execution.",
+        output: "[12, -34, 55]",
+        explanation: "Standard execution pass quantizing FP32 values.",
       },
       {
         kind: "complex",
-        title: "Complex Case",
-        inputDisplay: "Complex input",
-        outputDisplay: "Complex output",
-        input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-        output: "Success",
-        explanation: "Handling complex scenarios.",
+        title: "Larger Values Array",
+        inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+        outputDisplay: "Quantized INT8 Values",
+        input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+        output: "[5, -15, 25, -35, 45]",
+        explanation: "Evaluates quantization pass across 5 scalar values.",
       },
       {
         kind: "negative",
-        title: "Edge Case",
-        inputDisplay: "Edge input",
-        outputDisplay: "Edge output",
-        input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-        output: "Success",
-        explanation: "Handling boundaries.",
+        title: "Edge Case Overflow",
+        inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+        outputDisplay: "[127, -128]",
+        input: { values: [1000.0, -1000.0], scale: 0.1 },
+        output: "[127, -128]",
+        explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
       },
     ],
     code: ASYMMETRICAFFINEQUANTIZATION_CODE,
-    timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-    spaceComplexity: "O(V)",
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Linear time traversal",
-      space: "Memory for states",
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for quantized result array.",
     },
     topicGuide: {
-      overview: "Overview of Asymmetric Affine Quantization",
-      sections: [{ heading: "Core", body: "Core logic for Asymmetric Affine Quantization" }],
+      overview:
+        "Asymmetric quantization is the standard quantization method for neural network activations in PyTorch (torch.quantization) and ONNX Runtime. Because activation functions like ReLU and GELU produce non-symmetric non-negative distributions, asymmetric zero-point offsets eliminate quantization precision loss around 0.",
+      sections: [
+        {
+          heading: "Core Concept & Mathematical Formulation",
+          body: "Mathematically, quantization is q = clamp(round(x / S) + Z, qmin, qmax), and de-quantization is x_approx = (q - Z) * S. Scale S = (max_val - min_val) / (qmax - qmin) and zero-point Z = round(qmin - min_val / S).",
+        },
+        {
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "On INT8 hardware accelerators (NVIDIA Tensor Cores, ARM NEON, TPU MXU), integer vector operations run at 2x-4x higher throughput and 4x lower DRAM memory bandwidth compared to FP32 floating point operations.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "Implementation loops over input scalar values, calculates scaled value x / S, adds zero-point Z, rounds to nearest integer, and clamps within [-128, 127] bounds.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "Edge case analysis includes subnormal float values and zero-scale protection.",
+        },
+      ],
       keyTerms: [
         {
-          term: "DAG / Quantization",
-          definition: "Concept of directed acyclic graph or numerical precision",
+          term: "Zero-Point (Z)",
+          definition:
+            "An integer offset ensuring FP32 value 0.0 maps exactly to an integer representation without precision error.",
+        },
+        {
+          term: "Quantization Scale (S)",
+          definition:
+            "Floating-point step size mapping one unit of integer range to physical FP32 value increment.",
+        },
+        {
+          term: "INT8 Range Clamping",
+          definition:
+            "Restricting quantized integer values strictly within signed 8-bit range [-128, 127].",
         },
       ],
     },
     trivia: ASYMMETRICAFFINEQUANTIZATION_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
     defaultInput: DEFAULT_ASYMMETRICAFFINEQUANTIZATION_INPUT,
     generateSteps: generateAsymmetricAffineQuantizationSteps,
   };

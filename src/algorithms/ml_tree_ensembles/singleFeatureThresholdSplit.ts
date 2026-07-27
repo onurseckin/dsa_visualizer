@@ -1,204 +1,237 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export interface singleFeatureThresholdSplitInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface SingleFeatureThresholdSplitInput {
+  featureValues: number[];
+  threshold: number;
 }
 
-export const SINGLEFEATURETHRESHOLDSPLIT_CODE = `
-def singlefeaturethresholdsplit(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
-
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_SINGLEFEATURETHRESHOLDSPLIT_INPUT: singleFeatureThresholdSplitInput = {
-  data: [1, 2, 3],
+export const DEFAULT_SINGLE_FEATURE_SPLIT_INPUT: SingleFeatureThresholdSplitInput = {
+  featureValues: [1.2, 2.5, 3.1, 4.8, 5.0],
+  threshold: 3.0,
 };
 
-export const generateSINGLEFEATURETHRESHOLDSPLITSteps = (
-  input: singleFeatureThresholdSplitInput,
+export const SINGLE_FEATURE_THRESHOLD_SPLIT_CODE = `def single_feature_threshold_split(feature_values: list[float], threshold: float) -> tuple[list[int], list[int]]:
+    """
+    Partitions dataset sample indices based on a single continuous feature threshold X[j] <= threshold.
+    Returns (leftIndices, rightIndices).
+    """
+    left_indices = []
+    right_indices = []
+
+    for idx, val in enumerate(feature_values):
+        if val <= threshold:
+            left_indices.append(idx)
+        else:
+            right_indices.append(idx)
+
+    return left_indices, right_indices`;
+
+export const generateSingleFeatureSplitSteps = (
+  input: SingleFeatureThresholdSplitInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
+  const { featureValues, threshold } = input;
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
-
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Single Feature Threshold Splitter (Threshold = ${threshold})`,
+      why: `Partitioning ${featureValues.length} samples into Left (x <= ${threshold}) and Right (x > ${threshold}) subsets.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: featureValues.map((val, idx) => ({
+        id: `s-${idx}`,
+        value: Math.round(val * 10),
+        label: `S${idx} (x=${val})`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        threshold: String(threshold),
+        totalSamples: String(featureValues.length),
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { threshold, totalSamples: featureValues.length },
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  const left: number[] = [];
+  const right: number[] = [];
 
+  for (let i = 0; i < featureValues.length; i++) {
+    const val = featureValues[i];
+    const isLeft = val <= threshold;
+
+    if (isLeft) left.push(i);
+    else right.push(i);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 10,
+      explanation: {
+        what: `Evaluate Sample S${i} (x = ${val}): ${val} <= ${threshold} -> ${isLeft ? "LEFT Child" : "RIGHT Child"}`,
+        why: `Sample x value ${val} is ${isLeft ? "<=" : ">"} threshold ${threshold}. Routed to ${isLeft ? "Left" : "Right"} child.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: featureValues.map((v, idx) => ({
+          id: `s-${idx}`,
+          value: Math.round(v * 10),
+          label: `S${idx} (x=${v})`,
+          state:
+            idx === i
+              ? ("active" as ElementState)
+              : left.includes(idx)
+                ? ("sorted" as ElementState)
+                : right.includes(idx)
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+          pointers: idx === i ? [isLeft ? "To Left" : "To Right"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          sample: `S${i}`,
+          val: String(val),
+          route: isLeft ? "LEFT" : "RIGHT",
+          leftCount: String(left.length),
+          rightCount: String(right.length),
+        },
+      },
+      variables: { i, val, isLeft },
+    });
+  }
+
+  // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 15,
+    explanation: {
+      what: `Single Feature Threshold Split Complete: Left (${left.length} samples), Right (${right.length} samples)`,
+      why: `Left subset indices: [${left.join(", ")}], Right subset indices: [${right.join(", ")}].`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: featureValues.map((v, idx) => ({
+        id: `s-${idx}`,
+        value: Math.round(v * 10),
+        label: `S${idx} (${v <= threshold ? "LEFT" : "RIGHT"})`,
+        state: v <= threshold ? ("sorted" as ElementState) : ("visited" as ElementState),
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        leftIndices: `[${left.join(", ")}]`,
+        rightIndices: `[${right.join(", ")}]`,
+        status: "Completed",
+      },
     },
-    variables: { result: "calculated" },
+    variables: { leftSize: left.length, rightSize: right.length, complete: true },
   });
 
   return steps;
 };
 
-const SINGLEFEATURETHRESHOLDSPLIT_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
-};
-
-export const singleFeatureThresholdSplit: AlgorithmDefinition<singleFeatureThresholdSplitInput> = {
-  id: "single-feature-threshold-split",
-  title: "Single Feature Continuous Threshold Partition",
+export const singleFeatureThresholdSplit: AlgorithmDefinition<SingleFeatureThresholdSplitInput> = {
+  id: "singleFeatureThresholdSplit",
+  title: "Single Feature Threshold Split Evaluator",
   category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "tree_fundamentals"],
-  difficulty: "Medium",
+  categories: ["ml_tree_ensembles"],
+  difficulty: "Easy",
   isMlInfra: true,
-  mlInfraLevel: 9,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), single feature continuous threshold partition provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Partitions a dataset sample array into Left and Right child subsets based on a single continuous feature condition X[j] <= threshold. Serves as the fundamental binary branching primitive for decision trees.\n\nInput Format:\n- featureValues: Feature array for N samples.\n- threshold: Scalar partition threshold value.\n\nOutput Format:\n- Returns tuple (leftSampleIndices, rightSampleIndices).\n\nEdge Cases & Constraints:\n- Threshold below all values: All samples route Right.\n- Threshold above all values: All samples route Left.",
+  constraints: ["featureValues.length >= 1."],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 2, 3] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Split 5 Samples at Threshold 3.0",
+      inputDisplay: "featureValues = [1.2, 2.5, 3.1, 4.8, 5.0], threshold = 3.0",
+      outputDisplay: "Left: [S0, S1], Right: [S2, S3, S4]",
+      input: DEFAULT_SINGLE_FEATURE_SPLIT_INPUT,
+      output: "Left: 2 samples, Right: 3 samples",
+      explanation:
+        "Samples <= 3.0 (1.2, 2.5) route Left; samples > 3.0 (3.1, 4.8, 5.0) route Right.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 2, 3] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "Threshold Higher Than All Values",
+      inputDisplay: "threshold = 10.0",
+      outputDisplay: "Left: All 5 samples, Right: 0 samples",
+      input: {
+        featureValues: [1.2, 2.5, 3.1, 4.8, 5.0],
+        threshold: 10.0,
+      },
+      output: "Left: 5, Right: 0",
+      explanation: "All samples satisfy x <= 10.0.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 2, 3] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Threshold Lower Than All Values",
+      inputDisplay: "threshold = 0.0",
+      outputDisplay: "Left: 0 samples, Right: All 5 samples",
+      input: {
+        featureValues: [1.2, 2.5, 3.1, 4.8, 5.0],
+        threshold: 0.0,
+      },
+      output: "Left: 0, Right: 5",
+      explanation: "No samples satisfy x <= 0.0.",
     },
   ],
-  code: SINGLEFEATURETHRESHOLDSPLIT_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  defaultInput: DEFAULT_SINGLE_FEATURE_SPLIT_INPUT,
+  code: SINGLE_FEATURE_THRESHOLD_SPLIT_CODE,
+  timeComplexity: {
+    best: "O(N)",
+    average: "O(N)",
+    worst: "O(N)",
+  },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "O(N) single-pass scan across N samples.",
+    space: "O(N) auxiliary space to store left and right index arrays.",
   },
   topicGuide: {
     overview:
-      "Single Feature Continuous Threshold Partition is a critical component in ML TREE ENSEMBLES systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Every decision tree split node represents an axis-aligned hyperplane partition X[j] <= threshold. Feature threshold splitting is the fundamental decision logic executed at millions of decision tree nodes in Random Forests and XGBoost models.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, single feature continuous threshold partition operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Axis-Aligned Hyperplanes",
+        body: "A single feature threshold split divides R^D feature space into two half-spaces along the j-th coordinate axis.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Single Feature Continuous Threshold Partition optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Vectorized SIMD Branching",
+        body: "In C++ decision tree runtimes, threshold comparisons use bit-masking `_mm256_cmp_ps` instructions to evaluate 8 feature values simultaneously.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing single feature continuous threshold partition efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Continuous vs Categorical Feature Splits",
+        body: "Continuous features use inequality `x <= v`. Categorical features use subset membership `x in S_left`.",
       },
     ],
     keyTerms: [
       {
-        term: "Single Engine",
+        term: "Threshold Split",
         definition:
-          "The underlying algorithmic system implementing single feature continuous threshold partition operations for deep learning workloads.",
+          "Binary partition dividing samples based on scalar inequality X[j] <= threshold.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Left Child / Right Child",
+        definition: "Sub-datasets resulting from splitting a node into two child branches.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Axis-Aligned Partition",
+        definition: "Hyperplane boundary perpendicular to a single feature axis.",
       },
     ],
   },
-  trivia: SINGLEFEATURETHRESHOLDSPLIT_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_SINGLEFEATURETHRESHOLDSPLIT_INPUT,
-  generateSteps: generateSINGLEFEATURETHRESHOLDSPLITSteps,
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "CART Decision Trees (Breiman et al. 1984)" },
+  ],
+  generateSteps: generateSingleFeatureSplitSteps,
 };

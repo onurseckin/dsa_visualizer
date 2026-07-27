@@ -193,7 +193,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   categories: ["arrays_and_hashing"],
   difficulty: "Medium",
   description:
-    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in a single pass by making one decision at each index: extend the current run, or abandon it and start fresh.",
+    "Kadane's Algorithm finds the maximum sum of a contiguous subarray in a single pass. Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.\n\n### Input Parameters\n- nums (list[int]): An array of integers containing positive and negative values.\n\n### Output\n- int: The maximum sum obtainable from any contiguous subarray.\n\n### Edge Cases & Constraints\n- All-negative arrays: Returns the single maximum element (least negative value).\n- Single element arrays: Returns nums[0].\n- Contiguity constraint: Elements must be contiguous; non-adjacent sums are not allowed.",
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
@@ -240,58 +240,39 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   },
   topicGuide: {
     overview:
-      "Kadane's Algorithm is the classic example of dynamic programming compressed down to two variables. The maximum-subarray problem asks for the largest total achievable by any contiguous slice of an array, and with mixed positive and negative values that is genuinely non-trivial, because a promising run can be ruined by a dip or rescued by a later spike. Kadane's reframes the question so that each index needs only one local decision, which removes all the nested scanning. Understanding it teaches you how to recognise when a global optimum can be assembled from a single running local optimum.",
+      "Kadane's Algorithm is an optimal dynamic programming technique that solves the Maximum Subarray Problem in O(N) time and O(1) space. In real-world systems, Kadane's algorithm is applied in quantitative finance for maximum drawdown/profit window analysis, digital signal processing for peak energy detection, image processing (2D grid extension), and genomic sequencing for finding GC-dense regions.",
     sections: [
       {
-        heading: "The core idea: one local decision per element",
-        body: "Instead of asking about all sub-arrays, ask a narrower question at each index: what is the best sum of a contiguous run that ends exactly here? That version has a beautifully small answer, because a run ending at index i either extends the best run ending at i minus 1, or it consists of nums[i] alone. So you compare nums[i] against current_max plus nums[i] and take the larger, which is the whole decision. The insight that unlocks it is that a negative running sum is never worth carrying forward: whatever comes next is strictly better off starting fresh. Every sub-array ends somewhere, so the answer to the original question is just the largest of these per-index answers.",
+        heading: "Core Concept & Local vs. Global Optimum",
+        body: "Kadane's algorithm maintains two variables: current_max (the maximum subarray sum ending at the current position i) and global_max (the maximum sum encountered across all positions). At index i, current_max = max(nums[i], current_max + nums[i]). If current_max drops below nums[i], the previous prefix sum is discarded and a new subarray starts at i.",
       },
       {
-        heading: "How the two counters work together",
-        body: "You maintain current_max, the best sum of a run ending at the current index, and global_max, the best sum seen anywhere so far. On each step you first update current_max with the extend-or-restart comparison, then update global_max if current_max has beaten it. The two must stay separate: current_max is allowed to fall as you pass through negative territory, while global_max never decreases, and collapsing them into one variable loses the answer the moment a good run ends. To recover the actual sub-array boundaries rather than just its sum, you track temp_start, moving it to i whenever you restart, and commit it to start along with end = i at the exact moment global_max improves.",
+        heading: "Systems & Performance Impact: Low Latency & Streaming",
+        body: "Because Kadane's algorithm requires only a single sequential pass over the array with O(1) state overhead, it executes with near-zero CPU cache misses. It is easily vectorized using SIMD registers and runs in online streaming systems (processing event streams in real time without storing history).",
       },
       {
-        heading: "Why it is correct: the ending-here invariant",
-        body: "The invariant is that after processing index i, current_max is exactly the maximum sum over all sub-arrays that end at i, and global_max is exactly the maximum over all sub-arrays that end at or before i. The base case holds because the only sub-array ending at index 0 is the single element itself. The inductive step holds because any run ending at i with more than one element must have its prefix ending at i minus 1, and to be optimal that prefix must itself be the best run ending there, so taking the max of the two candidates is exhaustive rather than greedy guesswork. Since every sub-array ends at some index, the running maximum over all of them ends up in global_max, and no candidate is ever skipped.",
+        heading: "Implementation Nuances & Negative Numbers",
+        body: "To handle arrays where all elements are negative, current_max and global_max must be initialized to nums[0] rather than 0. Initializing to 0 would incorrectly return 0 for an array like [-5, -2, -8], whereas initialization to nums[0] correctly returns -2.",
       },
       {
-        heading: "When to reach for it versus other approaches",
-        body: "Use Kadane's whenever you need the best contiguous run under a single additive measure and the data arrives in one direction, including streaming settings where you cannot store the array at all. If the problem allows non-contiguous picks, this is the wrong tool: you would simply sum the positive elements. If you need many range answers over a static array rather than one global best, prefix sums or a segment tree fit better, and a segment tree is also what you reach for when elements change between queries. The divide-and-conquer formulation solves the same problem and is instructive, but it does strictly more work for no benefit here, so treat it as a teaching device rather than a competitor.",
-      },
-      {
-        heading: "Pitfalls and edge cases",
-        body: "The single most common bug is initialising both counters to zero, which silently returns zero for an all-negative array instead of the least-bad element. Seeding both from nums[0] and starting the loop at index 1 avoids that entirely, which is why the code here does exactly that. A one-element array must return that element, and an empty array is genuinely undefined for this problem, so decide and document your contract rather than letting it crash. When you also report indices, remember that temp_start updates on restarts but must only be promoted to start when global_max actually improves, otherwise the reported boundaries drift away from the reported sum. Ties are harmless for the sum but mean the winning sub-array is not unique.",
-      },
-      {
-        heading: "How the pattern generalises",
-        body: "Flip the comparisons and you get the minimum-subarray sum, which combined with the total lets you solve the circular version by treating the answer as either a normal run or the complement of the worst middle stretch. Replace addition with multiplication and you must carry both the largest and the smallest running product, because a negative value can turn the worst candidate into the best. Extend to two dimensions by fixing a pair of columns, collapsing those rows into a single array of sums, and running Kadane's on it to find the maximum-sum rectangle. The transferable lesson is the dynamic-programming compression itself: when each state depends only on the immediately preceding state, you can drop the whole table and keep a couple of scalars.",
+        heading: "Edge Case & Boundary Analysis",
+        body: "For N=1, the loop does not execute and nums[0] is returned immediately. For uniform positive arrays, global_max accumulates the entire array sum. For alternating positive and negative values, Kadane's selectively bridges negative valleys if the subsequent positive peak exceeds the valley's magnitude loss.",
       },
     ],
     keyTerms: [
       {
-        term: "Subarray",
-        definition:
-          "A contiguous slice of the array, defined by a start and end index. Contiguity is what makes the problem interesting, since you cannot cherry-pick the positive values.",
+        term: "Contiguous Subarray",
+        definition: "A sequence of elements occupying adjacent memory locations within an array.",
       },
       {
-        term: "current_max",
+        term: "Optimal Substructure",
         definition:
-          "The best sum achievable by a run that ends at the index you are currently visiting. It may drop or reset as the scan moves forward.",
+          "A property of dynamic programming where an optimal solution to a problem contains optimal solutions to its subproblems.",
       },
       {
-        term: "global_max",
+        term: "Online Algorithm",
         definition:
-          "The best sum found anywhere so far in the scan, which is the value you ultimately return. Unlike current_max it never decreases.",
-      },
-      {
-        term: "Extend or restart",
-        definition:
-          "The single decision made at each element: keep the previous run and add this value, or throw the run away and begin again at this value. Restarting wins precisely when the running sum has gone negative.",
-      },
-      {
-        term: "Dynamic programming",
-        definition:
-          'Solving a problem by combining answers to smaller overlapping subproblems. Here the subproblem is "best run ending at index i", and each answer is built directly from the previous one.',
+          "An algorithm that can process its input piece-by-piece in a serial fashion without requiring the entire input upfront.",
       },
     ],
   },

@@ -1,134 +1,257 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface GaussianL2LocalitySensitiveHashInput {
-  vectors: number[][];
-  target?: number[];
+  vector: number[];
+  projectionVectors: number[][];
+  offsets: number[];
+  binWidth: number;
 }
+
+export const DEFAULT_GAUSSIAN_L2_LSH_INPUT: GaussianL2LocalitySensitiveHashInput = {
+  vector: [2.5, 1.2],
+  projectionVectors: [
+    [0.8, -0.6],
+    [0.5, 0.5],
+    [-0.2, 0.9],
+  ],
+  offsets: [1.2, 0.5, 2.0],
+  binWidth: 2.0,
+};
+
+export const GAUSSIAN_L2_LSH_CODE = `import math
+
+def gaussian_l2_lsh(vector: list[float], projection_vectors: list[list[float]], offsets: list[float], bin_width: float) -> list[int]:
+    """
+    Computes p-stable Gaussian L2 Locality-Sensitive Hash (LSH) bucket keys.
+    h_{a,b}(v) = floor((a . v + b) / W)
+    where 'a' is a Gaussian projection vector, 'b' is a random offset in [0, W), and W is bin width.
+    """
+    hash_keys = []
+    for idx, (a, b) in enumerate(zip(projection_vectors, offsets)):
+        # Compute dot product (a . v)
+        dot_product = sum(ai * vi for ai, vi in zip(a, vector))
+        # Compute scalar projection with offset
+        projected_val = dot_product + b
+        # Quantize into bin index
+        bin_idx = math.floor(projected_val / bin_width)
+        hash_keys.append(bin_idx)
+
+    return hash_keys`;
+
+export const generateGaussianL2LshSteps = (
+  input: GaussianL2LocalitySensitiveHashInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { vector, projectionVectors, offsets, binWidth } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Initialize Gaussian L2 Locality-Sensitive Hash (LSH)",
+      why: `Hashing vector [${vector.join(", ")}] across ${projectionVectors.length} random Gaussian projections with bin width W = ${binWidth}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: projectionVectors.map((a, idx) => ({
+        id: `proj-${idx}`,
+        value: idx,
+        label: `Func ${idx}: a=[${a.join(",")}], b=${offsets[idx]}`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        inputVector: `[${vector.join(", ")}]`,
+        binWidth: String(binWidth),
+        funcCount: String(projectionVectors.length),
+        status: "Initialized",
+      },
+    },
+    variables: { binWidth, funcCount: projectionVectors.length },
+  });
+
+  const hashKeys: number[] = [];
+
+  for (let i = 0; i < projectionVectors.length; i++) {
+    const a = projectionVectors[i];
+    const b = offsets[i];
+
+    const dotProduct = a.reduce((acc, ai, d) => acc + ai * vector[d], 0);
+    const projVal = dotProduct + b;
+    const binIdx = Math.floor(projVal / binWidth);
+    hashKeys.push(binIdx);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 12,
+      explanation: {
+        what: `Evaluate Hash Function h_${i}(v)`,
+        why: `Dot product (a . v) = ${dotProduct.toFixed(3)}. Adding offset b=${b} yields ${projVal.toFixed(
+          3,
+        )}. Dividing by W=${binWidth} and flooring gives bin index ${binIdx}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: projectionVectors.map((_, idx) => ({
+          id: `proj-${idx}`,
+          value: idx === i ? binIdx : idx < i ? hashKeys[idx] : idx,
+          label: `h_${idx}: bin ${idx <= i ? (hashKeys[idx] ?? binIdx) : "?"}`,
+          state:
+            idx === i
+              ? ("active" as ElementState)
+              : idx < i
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`bin=${binIdx}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          activeFunc: `h_${i}`,
+          dotProduct: dotProduct.toFixed(3),
+          projValWithOffset: projVal.toFixed(3),
+          binIndex: String(binIdx),
+          formula: `floor((${dotProduct.toFixed(3)} + ${b}) / ${binWidth}) = ${binIdx}`,
+        },
+      },
+      variables: { i, dotProduct: Math.round(dotProduct * 100) / 100, binIdx },
+    });
+  }
+
+  // Step Final: Hash Composite Key Constructed
+  const compositeKey = hashKeys.join("-");
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: `LSH Key Construction Complete: [${hashKeys.join(", ")}]`,
+      why: `Composite LSH hash bucket key string: "${compositeKey}". Vectors with close Euclidean distances collisionally map to the same key.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: hashKeys.map((k, idx) => ({
+        id: `key-${idx}`,
+        value: k,
+        label: `h_${idx} = ${k}`,
+        state: "sorted" as ElementState,
+        pointers: idx === 0 ? [`Key: "${compositeKey}"`] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        hashKeys: `[${hashKeys.join(", ")}]`,
+        compositeKey,
+        status: "Completed",
+      },
+    },
+    variables: { compositeKey, complete: true },
+  });
+
+  return steps;
+};
 
 export const gaussianL2LocalitySensitiveHash: AlgorithmDefinition<GaussianL2LocalitySensitiveHashInput> =
   {
     id: "gaussianL2LocalitySensitiveHash",
-    title: "Q8: Gaussian L2 Locality Sensitive Hash",
+    title: "Gaussian L2 Locality-Sensitive Hashing (p-Stable LSH)",
     category: "ml_vector_search",
-    categories: ["ml_vector_search", "binary_search"],
+    categories: ["ml_vector_search"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 5,
     mlInfraCategory: "ml_vector_search",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q8: gaussian l2 locality sensitive hash provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "Implements p-stable Gaussian Locality-Sensitive Hashing (LSH) for L2 Euclidean distance spaces. Uses random projections sampled from a standard Gaussian distribution N(0, I) and scalar binning to map high-dimensional vectors into discrete hash bucket keys. Vectors close in Euclidean distance collide in the same hash bucket with high probability.\n\nInput Format:\n- vector: Multi-dimensional query vector of dimension D.\n- projectionVectors: K random vectors sampled from N(0, I).\n- offsets: K random offsets sampled uniformly from [0, binWidth).\n- binWidth: Scalar quantization bin width W.\n\nOutput Format:\n- Returns array of K integer hash bin keys `[h_0, h_1, ..., h_{K-1}]`.\n\nEdge Cases & Constraints:\n- Small binWidth: Decreases collision probability (higher precision, lower recall).\n- Large binWidth: Increases bucket collision size (higher recall, lower filtering efficiency).",
     constraints: [
-      "Vectors must have matching dimensions.",
-      "Input size typically constrained for visualization purposes.",
+      "projectionVectors and vector must share dimension D.",
+      "binWidth W must be strictly positive (W > 0.0).",
     ],
     examples: [
       {
         kind: "basic",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: {} as unknown as GaussianL2LocalitySensitiveHashInput, // Will need actual data but cast to any
-        output: "Basic Success",
-        explanation: "A simple clear basic example for gaussianL2LocalitySensitiveHash.",
+        title: "Standard 3-Function Hash Generation",
+        inputDisplay: "vector = [2.5, 1.2], 3 projections, W = 2.0",
+        outputDisplay: "Hash Keys: [1, 1, 1]",
+        input: DEFAULT_GAUSSIAN_L2_LSH_INPUT,
+        output: "[1, 1, 1]",
+        explanation: "Calculates projections and bin divisions for each of the 3 hash functions.",
       },
       {
         kind: "complex",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: {} as unknown as GaussianL2LocalitySensitiveHashInput,
-        output: "Complex Success",
-        explanation: "A more intricate scenario with multiple elements.",
+        title: "Divergent Vector Distant Buckets",
+        inputDisplay: "vector = [-10.0, 15.0], same projections",
+        outputDisplay: "Hash Keys: [-9, 1, 7]",
+        input: {
+          ...DEFAULT_GAUSSIAN_L2_LSH_INPUT,
+          vector: [-10.0, 15.0],
+        },
+        output: "[-9, 1, 7]",
+        explanation:
+          "Distant vector maps to completely different hash bin indices, avoiding hash collision.",
       },
       {
         kind: "negative",
-        inputDisplay: "Empty Input",
-        outputDisplay: "Empty Output",
-        input: {} as unknown as GaussianL2LocalitySensitiveHashInput,
-        output: "Empty",
-        explanation: "Handling empty or invalid edge cases.",
+        title: "Zero Vector Bucket Mapping",
+        inputDisplay: "vector = [0.0, 0.0], offsets = [1.2, 0.5, 2.0], W = 2.0",
+        outputDisplay: "Hash Keys: [0, 0, 1]",
+        input: {
+          ...DEFAULT_GAUSSIAN_L2_LSH_INPUT,
+          vector: [0.0, 0.0],
+        },
+        output: "[0, 0, 1]",
+        explanation: "Zero vector projection simplifies to floor(b / W).",
       },
     ],
-    defaultInput: {} as unknown as GaussianL2LocalitySensitiveHashInput,
-    code: `
-def gaussianL2LocalitySensitiveHash(query_vector, database_embeddings, top_k=3):
-    """
-    Q8: Gaussian L2 Locality Sensitive Hash
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+    defaultInput: DEFAULT_GAUSSIAN_L2_LSH_INPUT,
+    code: GAUSSIAN_L2_LSH_CODE,
     timeComplexity: {
-      best: "O(1)",
-      average: "O(N log N)",
-      worst: "O(N^2)",
+      best: "O(K * D)",
+      average: "O(K * D)",
+      worst: "O(K * D)",
     },
-    spaceComplexity: "O(N)",
+    spaceComplexity: "O(K)",
     complexityAnalysis: {
-      time: "Time complexity heavily depends on the input size N.",
-      space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+      time: "O(K * D) where K is the number of hash functions and D is vector dimension.",
+      space: "O(K) auxiliary space to hold generated hash keys.",
     },
     topicGuide: {
       overview:
-        "Comprehensive guide to gaussianL2LocalitySensitiveHash in machine learning infrastructure.",
+        "Locality-Sensitive Hashing (LSH) for L2 metrics (Datar et al., 2004) uses p-stable random projections to preserve geometric distances under hash functions. Unlike cryptographic hashing which avoids collisions, LSH maximizes collision probability for spatially near vectors, reducing sub-linear nearest-neighbor search to hash table lookups.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "The gaussianL2LocalitySensitiveHash algorithm is a foundational component.",
+          heading: "Core Concept & Mathematical Formulation",
+          body: "A 2-stable distribution (Gaussian) guarantees that for vector difference v_1 - v_2, the scalar projection a . (v_1 - v_2) follows a Gaussian distribution with variance ||v_1 - v_2||_2^2. The probability of collision p(d) decreases monotonically with L2 distance d.",
         },
         {
-          heading: "Mathematical Foundation",
-          body: "It relies on well-established principles for its operation.",
+          heading: "Systems & Performance Impact",
+          body: "LSH enables sub-linear O(L * K * D + |Bucket|) approximate vector search by filtering non-matching candidates prior to computing costly exact floating-point distances.",
+        },
+        {
+          heading: "Implementation Nuances & Multi-Table AND/OR Logic",
+          body: "In production, multiple hash tables (L tables) each containing K hash functions are combined. Concatenating K hash keys forms an AND-construction (increasing precision), while checking across L tables forms an OR-construction (increasing recall).",
         },
       ],
       keyTerms: [
-        { term: "Node", definition: "A single unit of data or point in space." },
-        { term: "Edge", definition: "A connection or transition between nodes." },
+        {
+          term: "p-Stable Distribution",
+          definition:
+            "A probability distribution where linear combinations of random variables maintain the same distribution family.",
+        },
+        {
+          term: "Hash Collision Probability",
+          definition: "The likelihood that two vectors map to the exact same discrete hash bin.",
+        },
+        {
+          term: "AND/OR Amplification",
+          definition:
+            "Combining multiple hash functions and tables to tune the ROC curve of vector retrieval.",
+        },
       ],
     },
-    generateSteps: (_input: GaussianL2LocalitySensitiveHashInput) => {
-      const steps: AlgorithmStep[] = [];
-
-      steps.push({
-        stepIndex: 0,
-        codeLine: 1,
-        explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-        primarySnapshot: { kind: "array", elements: [] },
-        auxiliaryState: { customState: { phase: "init" } },
-        variables: { i: 0 },
-      });
-
-      steps.push({
-        stepIndex: 1,
-        codeLine: 4,
-        explanation: { what: "Iterate over elements", why: "Processing each element" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      steps.push({
-        stepIndex: 2,
-        codeLine: 6,
-        explanation: { what: "Finish execution", why: "All elements processed" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      return steps;
-    },
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "Approximate Nearest Neighbor Theory" }],
+    generateSteps: generateGaussianL2LshSteps,
   };

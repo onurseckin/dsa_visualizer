@@ -313,8 +313,27 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   category: "binary_search",
   categories: ["binary_search"],
   difficulty: "Easy",
-  description:
-    "1D Binary Search locates targets or boundary thresholds (lower/upper bounds) in a sorted array by halving the search space at each comparison in O(log N) time.",
+  description: `Locate a target value or find boundary thresholds (\`lower_bound\` / \`upper_bound\`) within a sorted 1D array using binary search in $O(\\log N)$ time.
+
+### Problem Statement
+Given an array \`array\` sorted in non-decreasing order and an integer \`target\`, search for \`target\` using the halving principle:
+- **\`exact\` mode**: Find any index \`i\` such that \`array[i] == target\`. Returns \`-1\` if not found.
+- **\`lower_bound\` mode**: Find the smallest index \`i\` such that \`array[i] >= target\`. If all elements are less than \`target\`, returns \`array.length\`.
+
+### Input Parameters
+- \`array\`: A 1D array of numbers sorted in non-decreasing order.
+- \`target\`: The integer target value to locate.
+- \`mode\` (optional): \`"exact"\` | \`"lower_bound"\` | \`"upper_bound"\`. Defaults to \`"exact"\`.
+
+### Output
+- Returns the index matching the target or boundary condition, or \`-1\` if not found in \`exact\` mode.
+
+### Edge Cases & Constraints
+- \`1 <= array.length <= 10^5\`
+- \`-10^9 <= array[i], target <= 10^9\`
+- Target smaller than all array elements or larger than all elements.
+- Array with duplicate elements (\`lower_bound\` finds first occurrence).
+- Integer arithmetic overflow prevention when calculating midpoint.`,
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {
@@ -369,7 +388,45 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
     space:
       "Uses O(1) auxiliary space as search maintains only left, right, and mid integer pointers.",
   },
-  topicGuide: BINARY_SEARCH_1D_TOPIC_GUIDE,
+  topicGuide: {
+    overview:
+      "1D Binary Search is the fundamental logarithmic search algorithm operating on sorted domains. By repeatedly evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond simple value lookup in sorted arrays, binary search powers CUDA kernel tensor searches (e.g. PyTorch torch.bucketize), database B-Tree index lookups, and system primitives like C++ std::lower_bound and std::upper_bound.",
+    sections: [
+      {
+        heading: "Search Space Invariant & Bisecting",
+        body: "The core invariant is that if the target exists in the array, its index must lie within the active range [left, right]. Midpoint calculation mid = left + (right - left) // 2 divides the search space into two equal halves. Comparing arr[mid] with target determines which half retains the target and which half can be discarded permanently.",
+      },
+      {
+        heading: "Lower Bound vs Upper Bound Formulations",
+        body: "Exact match binary search stops as soon as arr[mid] == target. Lower bound finds the first index i where arr[i] >= target, maintaining a half-open search space [0, N). Upper bound finds the first index i where arr[i] > target. Lower/upper bounds are critical for counting duplicates in O(log N) time as upper_bound - lower_bound.",
+      },
+      {
+        heading: "Systems & Memory Performance",
+        body: "Because binary search jumps non-sequentially across memory pages, array sizes exceeding CPU L3 cache size may experience cache misses. However, inside fast L1/L2 cache SRAM, binary search performs orders of magnitude faster than linear scans. Bitwise unsigned shift `mid = (left + right) >>> 1` is commonly used in high-performance runtimes to avoid integer overflow.",
+      },
+      {
+        heading: "Binary Search on Answer (Parametric Search)",
+        body: "When an optimization problem possesses a monotonic decision function f(x) (i.e. f(x) is False for all x < X and True for all x >= X), binary search can find the minimum valid parameter X in O(log(MAX - MIN) * cost(f)) time without explicitly generating an array.",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Search Space",
+        definition:
+          "The current range of candidate indices [left, right] that could contain the desired element or boundary point.",
+      },
+      {
+        term: "Lower Bound",
+        definition:
+          "The smallest index i in a sorted array such that arr[i] is greater than or equal to the target value.",
+      },
+      {
+        term: "Parametric Search",
+        definition:
+          "Binary searching over a continuous or discrete range of candidate answer values using a monotonic predicate function.",
+      },
+    ],
+  },
   trivia: BINARY_SEARCH_1D_TRIVIA,
   sources: [
     {

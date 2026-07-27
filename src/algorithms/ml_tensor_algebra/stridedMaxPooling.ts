@@ -7,31 +7,29 @@ export interface stridedMaxPoolingInput {
 }
 
 export const STRIDEDMAXPOOLING_CODE = `
-def stridedmaxpooling(tensor_shape, strides, memory_buffer):
+def strided_max_pooling(matrix, pool_size=2, stride=2):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Applies 2D max-pooling operation over sliding window with given stride.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    rows = len(matrix)
+    cols = len(matrix[0]) if rows > 0 else 0
+    out_rows = (rows - pool_size) // stride + 1
+    out_cols = (cols - pool_size) // stride + 1
+    pooled = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for r in range(out_rows):
+        row_out = []
+        for c in range(out_cols):
+            max_val = float('-inf')
+            for pr in range(pool_size):
+                for pc in range(pool_size):
+                    val = matrix[r * stride + pr][c * stride + pc]
+                    if val > max_val:
+                        max_val = val
+            row_out.append(max_val)
+        pooled.append(row_out)
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return pooled
 `;
 
 export const DEFAULT_STRIDEDMAXPOOLING_INPUT: stridedMaxPoolingInput = {
@@ -95,7 +93,7 @@ export const generateStridedMaxPoolingSteps = (input: stridedMaxPoolingInput): A
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -107,7 +105,7 @@ export const generateStridedMaxPoolingSteps = (input: stridedMaxPoolingInput): A
   }));
 
   addStep(
-    6,
+    23,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -118,17 +116,28 @@ export const generateStridedMaxPoolingSteps = (input: stridedMaxPoolingInput): A
 };
 
 const STRIDEDMAXPOOLING_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for 2D Strided Max Pooling Operator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 2D strided max pooling function.",
+    4: "Gets input matrix row count.",
+    5: "Gets input matrix column count.",
+    6: "Calculates pooled output row count = (rows - pool_size) // stride + 1.",
+    7: "Calculates pooled output column count = (cols - pool_size) // stride + 1.",
+    10: "Iterates through output spatial row index r.",
+    12: "Iterates through output spatial column index c.",
+    13: "Initializes local receptive window max tracker to negative infinity.",
+    14: "Iterates through window relative row offset pr.",
+    15: "Iterates through window relative column offset pc.",
+    16: "Fetches input feature map activation at matrix[r*stride + pr][c*stride + pc].",
+    17: "Updates local window max tracker if current val is larger.",
+    19: "Appends spatial max value to current output row.",
+    22: "Returns downsampled 2D max-pooled output matrix.",
   },
 };
 
@@ -142,45 +151,35 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 2d strided max pooling operator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 239, url: "https://leetcode.com/problems/sliding-window-maximum/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 239,
-      title: "Sliding Window Maximum",
-      url: "https://leetcode.com/problems/sliding-window-maximum/",
-    },
-  ],
+    "Convolutional neural networks (CNNs, e.g., ResNet, VGG, UNet) use 2D max-pooling layers to downsample spatial feature map dimensions, providing translation invariance and reducing memory consumption for downstream layers.\n\nThis algorithm implements 2D Strided Max Pooling Operator, sliding a pool_size x pool_size receptive window over 2D input feature maps with spatial stride step sizes and computing local maximum reductions.\n\nInput Format:\n- data: Array representing 2D matrix feature map values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns downsampled 2D pooled feature map matrix.\n\nEdge Cases & Constraints:\n- Non-overlapping pooling windows (stride = pool_size).\n- Overlapping pooling windows (stride < pool_size).\n- Feature map spatial bounds not perfectly divisible by stride.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: STRIDEDMAXPOOLING_CODE,
@@ -192,50 +191,45 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
   },
   topicGuide: {
     overview:
-      "2D Strided Max Pooling Operator is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "2D max-pooling downsamples feature maps by partitioning inputs into spatial windows and extracting the maximum activation value in each window. Spatial output dimensions are calculated as out_dim = (in_dim - pool_size) // stride + 1.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, 2d strided max pooling operator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for output spatial coordinate (r, c), pooled activation is P[r][c] = max_{0 <= pr < K, 0 <= pc < K} (M[r * S + pr][c * S + pc]), where K is pool_size and S is stride.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 2D Strided Max Pooling Operator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In GPU CNN kernels (cuDNN), max pooling preserves maximum activation indices (argmax masks) during forward execution so backward gradient pass can route gradients strictly back to winning activation locations.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing 2d strided max pooling operator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation calculates output grid dimensions, loops through output cell positions, initializes max tracker to negative infinity, and scans receptive window elements to find spatial max values.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes pool_size = 1 (identity pass) and input dimensions smaller than pool_size.",
       },
     ],
     keyTerms: [
       {
-        term: "2D Engine",
+        term: "Max Pooling",
         definition:
-          "The underlying algorithmic system implementing 2d strided max pooling operator operations for deep learning workloads.",
+          "Downsampling operation selecting the maximum scalar value within a local sliding window.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Spatial Stride",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The step size distance the pooling window shifts across feature map dimensions.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Receptive Window",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The local spatial grid region (pool_size x pool_size) evaluated in each pooling step.",
       },
     ],
   },
   trivia: STRIDEDMAXPOOLING_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
   defaultInput: DEFAULT_STRIDEDMAXPOOLING_INPUT,
   generateSteps: generateStridedMaxPoolingSteps,
 };

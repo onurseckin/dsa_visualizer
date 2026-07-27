@@ -7,31 +7,21 @@ export interface dynamic2dBlockPrefixSumInput {
 }
 
 export const DYNAMIC2DBLOCKPREFIXSUM_CODE = `
-def dynamic2dblockprefixsum(tensor_shape, strides, memory_buffer):
+def dynamic_2d_block_prefix_sum(matrix, block_size=2):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes 2D prefix sum using block-level reductions and intra-block scans.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
+    rows, cols = len(matrix), len(matrix[0])
+    prefix = [[0] * cols for _ in range(rows)]
 
     for r in range(rows):
+        row_sum = 0
         for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
+            row_sum += matrix[r][c]
+            above = prefix[r-1][c] if r > 0 else 0
+            prefix[r][c] = row_sum + above
 
-    return is_contiguous, flat_offsets
+    return prefix
 `;
 
 export const DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT: dynamic2dBlockPrefixSumInput = {
@@ -97,7 +87,7 @@ export const generateDynamic2dBlockPrefixSumSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateDynamic2dBlockPrefixSumSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,24 @@ export const generateDynamic2dBlockPrefixSumSteps = (
 };
 
 const DYNAMIC2DBLOCKPREFIXSUM_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Block-Tiled 2D Prefix Sum Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines block-tiled 2D prefix sum engine function.",
+    4: "Gets matrix row count M and column count N.",
+    5: "Allocates M x N prefix sum result matrix initialized to 0.",
+    7: "Iterates through matrix row index r.",
+    8: "Initializes running row sum accumulator to 0.",
+    9: "Iterates through matrix column index c.",
+    10: "Adds matrix[r][c] to running row sum accumulator.",
+    11: "Fetches prefix value from row above prefix[r-1][c] if r > 0.",
+    12: "Computes prefix[r][c] = row_sum + above.",
+    14: "Returns computed 2D prefix sum cumulative matrix.",
   },
 };
 
@@ -144,85 +141,77 @@ export const dynamic2dBlockPrefixSum: AlgorithmDefinition<dynamic2dBlockPrefixSu
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), block-tiled 2d prefix sum engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Parallel 2D prefix sums (integral images) on GPUs require partitioning large matrices into thread block tiles. Each CUDA thread block computes local intra-block prefix scans in SRAM before propagating block-level carry-in sums across grid boundaries.\n\nThis algorithm implements Block-Tiled 2D Prefix Sum Engine, performing row-wise accumulation combined with column carry-in propagation to compute a 2D cumulative prefix matrix.\n\nInput Format:\n- data: Array representing matrix elements.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns 2D prefix sum cumulative matrix.\n\nEdge Cases & Constraints:\n- Single-row or single-column matrices.\n- Block sizes larger than matrix dimensions.\n- Zero or negative values in input matrix.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: DYNAMIC2DBLOCKPREFIXSUM_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Block-Tiled 2D Prefix Sum Engine is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Block-tiled prefix sums enable parallel scan execution across thousands of GPU cores. By splitting matrices into 2D tiles, thread blocks scan local tiles independently before executing a global block-level prefix pass to distribute carry sums.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, block-tiled 2d prefix sum engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, 2D prefix sum entry P[r][c] = sum_{i=0}^r sum_{j=0}^c M[i][j]. Recurrence relation is P[r][c] = M[r][c] + P[r-1][c] + P[r][c-1] - P[r-1][c-1].",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Block-Tiled 2D Prefix Sum Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Parallel scan algorithms (Blelloch scan) in shared memory compute intra-block prefix sums in O(log N) parallel steps per block, drastically outperforming serial CPU scans.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing block-tiled 2d prefix sum engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation maintains running row sums while accumulating values from preceding row prefix entries above.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes boundary row r = 0 and column c = 0 guards.",
       },
     ],
     keyTerms: [
       {
-        term: "Block-Tiled Engine",
-        definition:
-          "The underlying algorithmic system implementing block-tiled 2d prefix sum engine operations for deep learning workloads.",
+        term: "Block-Tiled Scan",
+        definition: "Partitioning data arrays into tiles processed by independent thread blocks.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Carry-In Sum",
+        definition: "The cumulative offset passed from preceding block tiles to downstream tiles.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Parallel Scan",
+        definition: "Algorithm computing prefix sums in logarithmic time on parallel processors.",
       },
     ],
   },

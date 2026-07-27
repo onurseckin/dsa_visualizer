@@ -16,12 +16,12 @@ const SUBSETS_TRIVIA: TriviaMeta = {
     4: "Recursive helper function backtrack(index, current_subset).",
     5: "Base case: when index equals n, record a copy of current_subset.",
     6: "Append current subset copy to result list.",
-    9: "Branch 1: exclude elements[index] and recurse to next index.",
-    10: "Branch 2: append elements[index] to current_subset.",
-    11: "Recurse with updated current_subset containing elements[index].",
-    12: "Un-choose: pop element to restore current_subset before unwinding.",
-    14: "Start backtracking recursion from index 0 with empty subset.",
-    15: "Return all generated subsets.",
+    10: "Branch 1: exclude elements[index] and recurse to next index.",
+    13: "Branch 2: append elements[index] to current_subset.",
+    14: "Recurse with updated current_subset containing elements[index].",
+    15: "Un-choose: pop element to restore current_subset before unwinding.",
+    17: "Start backtracking recursion from index 0 with empty subset.",
+    18: "Return all generated subsets.",
   },
 };
 
@@ -100,7 +100,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
     // Decision: Exclude nums[idx]
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 9,
+      codeLine: 10,
       explanation: {
         what: `Decision at index ${idx} (element ${nums[idx]}): EXCLUDE.`,
         why: "Exploring branch without adding this element to current subset.",
@@ -128,7 +128,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 10,
+      codeLine: 13,
       explanation: {
         what: `Decision at index ${idx} (element ${nums[idx]}): INCLUDE.`,
         why: `Added ${nums[idx]} to current subset.`,
@@ -157,7 +157,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 15,
+    codeLine: 18,
     explanation: {
       what: `Completed power set generation! Produced all ${allSubsets.length} subsets.`,
       why: "Recursive backtracking systematically explored all 2^N binary decision paths.",
@@ -186,49 +186,59 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   categories: ["backtracking"],
   difficulty: "Easy",
   description:
-    "Generates all 2^N subsets (the power set) of a given set of elements using binary inclusion/exclusion recursive backtracking. Every element presents a binary choice: either include it in the subset or exclude it.",
-  constraints: ["1 <= N <= 10"],
+    "Given an integer array nums of unique elements, return all possible subsets (the power set) of the array in any order.\n\nThe power set of a set contains all subsets including the empty set and the set itself. The solution set must not contain duplicate subsets. Using depth-first search with recursive backtracking, each element presents a binary choice: either include it in the subset or exclude it.",
+  constraints: [
+    "1 <= nums.length <= 10",
+    "-10 <= nums[i] <= 10",
+    "All elements of nums are unique.",
+  ],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "[1, 2, 3]",
+      inputDisplay: "nums = [1, 2, 3]",
       outputDisplay: "8 subsets",
       title: "3 Elements Power Set",
       input: DEFAULT_GENERATING_SUBSETS_INPUT,
       output: "[[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]",
-      explanation: "3 elements produce 2^3 = 8 distinct subsets.",
+      explanation: "3 unique elements produce 2^3 = 8 distinct subsets.",
     },
     {
       kind: "complex",
-      inputDisplay: "[1, 2, 3, 4]",
+      inputDisplay: "nums = [1, 2, 3, 4]",
       outputDisplay: "16 subsets",
       title: "4 Elements Power Set",
       input: { elements: [1, 2, 3, 4] },
       output: "16 distinct subsets",
-      explanation: "4 elements produce 2^4 = 16 distinct subsets.",
+      explanation: "4 unique elements produce 2^4 = 16 distinct subsets.",
     },
     {
       kind: "negative",
-      inputDisplay: "[]",
-      outputDisplay: "1 subset ([])",
+      inputDisplay: "nums = []",
+      outputDisplay: "[[]]",
       title: "Empty Input Array",
       input: { elements: [] },
       output: "[[]]",
       explanation: "An empty set has exactly 1 subset: the empty set itself.",
     },
   ],
-  code: `
-def generating_subsets(input_elements):
-    """
-    Generating Subsets (Power Set)
-    Implementation of Generating Subsets (Power Set).
-    """
-    processed_output = []
-    for idx, element in enumerate(input_elements):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        processed_output.append((idx, val))
-    return processed_output
-`,
+  code: `def subsets(nums: list[int]) -> list[list[int]]:
+    result = []
+
+    def backtrack(index: int, current_subset: list[int]):
+        if index == len(nums):
+            result.append(current_subset.copy())
+            return
+
+        # Branch 1: Exclude nums[index]
+        backtrack(index + 1, current_subset)
+
+        # Branch 2: Include nums[index]
+        current_subset.append(nums[index])
+        backtrack(index + 1, current_subset)
+        current_subset.pop()
+
+    backtrack(0, [])
+    return result`,
   timeComplexity: {
     best: "O(2^N)",
     average: "O(2^N)",
@@ -236,26 +246,51 @@ def generating_subsets(input_elements):
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Each of the N elements has 2 choices (include/exclude), creating a binary recursion tree of depth N with 2^N leaves, taking O(2^N) time.",
-    space: "O(N) stack memory required for recursion of depth N.",
+    time: "Each of the N elements has 2 choices (include/exclude), creating a binary decision tree of depth N with 2^N leaf states, taking O(2^N) overall time.",
+    space:
+      "O(N) stack memory required for recursion of depth N plus array space for building current_subset.",
   },
   topicGuide: {
     overview:
-      "Generating all subsets of a set is a fundamental backtracking pattern. By modeling decisions as a binary choice at each index, recursive search systematically visits every element in the power set.",
+      "Generating the power set of a set is a foundational backtracking pattern. By modeling decision making as a binary choice at each index, recursive search systematically visits every element in the power set. In real-world machine learning systems, power set enumeration underpins brute-force feature selection, combinatorial subset-sum solutions in resource allocation, and boolean satisfiability (SAT) clause evaluation.",
     sections: [
       {
-        heading: "Binary Decision Tree",
-        body: "At step i, we choose whether element i belongs to the subset. The search tree depth is N with 2^N leaves.",
+        heading: "Binary Decision Tree Structure",
+        body: "At step i, the search tree branches into two choices: exclude element nums[i] or include element nums[i]. The search tree has depth N with 2^N leaves, where each leaf represents a unique subset.",
+      },
+      {
+        heading: "Backtracking vs Bitwise Manipulation",
+        body: "An alternative O(2^N * N) iterative approach iterates over integers mask from 0 to (1 << N) - 1. For each integer, bit j set to 1 indicates inclusion of nums[j]. While bitwise iteration is non-recursive, depth-first backtracking allows natural pruning when subset constraints (such as target sum caps) are introduced.",
+      },
+      {
+        heading: "Feature Selection & System Applications",
+        body: "In automated feature engineering and model ablation studies, evaluate subsets of feature matrices to determine optimal predictive performance under model size constraints. Similarly, DB query rewrites test feature subsets for index condition pushdown.",
+      },
+      {
+        heading: "Handling Duplicate Elements (Subsets II)",
+        body: "When the input array contains duplicate values, generating unique subsets requires sorting the array first and skipping identical choices at the same depth: if nums[i] == nums[i-1] during inclusion loops, skip to avoid duplicate subset branches.",
       },
     ],
     keyTerms: [
       {
         term: "Power Set",
-        definition: "The set of all subsets of a set, including the empty set and the set itself.",
+        definition:
+          "The set of all subsets of a set, including the empty set and the set itself, containing 2^N elements.",
       },
       {
-        term: "Inclusion-Exclusion Principle",
-        definition: "Branching pattern where each element is tested both included and excluded.",
+        term: "Inclusion-Exclusion Branching",
+        definition:
+          "A recursive search pattern where every item is evaluated under two explicit states: present or absent.",
+      },
+      {
+        term: "Bitmask Enumeration",
+        definition:
+          "Using integer bit flags to represent subset membership, mapping integers 0..2^N-1 to subsets.",
+      },
+      {
+        term: "Combinatorial Explosion",
+        definition:
+          "The exponential growth rate of decision trees (2^N) requiring domain pruning for large N.",
       },
     ],
   },

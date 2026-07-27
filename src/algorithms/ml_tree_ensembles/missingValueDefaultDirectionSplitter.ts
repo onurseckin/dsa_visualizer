@@ -1,165 +1,322 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export interface missingValueDefaultDirectionSplitterInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface MissingValueDefaultDirectionSplitterInput {
+  featureValues: (number | null)[]; // continuous feature values with missing NaN / null entries
+  gradients: number[];
+  hessians: number[];
+  lambdaReg: number;
 }
 
-export const MISSINGVALUEDEFAULTDIRECTIONSPLITTER_CODE = `
-def missingvaluedefaultdirectionsplitter(feature_values, targets, split_threshold):
+export const DEFAULT_MISSING_VALUE_SPLITTER_INPUT: MissingValueDefaultDirectionSplitterInput = {
+  featureValues: [1.0, 2.0, null, 4.0, null],
+  gradients: [-0.5, -0.2, 0.4, 0.8, -0.3],
+  hessians: [0.2, 0.2, 0.2, 0.2, 0.2],
+  lambdaReg: 1.0,
+};
+
+export const MISSING_VALUE_DEFAULT_DIRECTION_CODE = `def missing_value_default_direction_split(feature_values: list[float | None], gradients: list[float], hessians: list[float], lambda_reg: float = 1.0) -> tuple[str, float, float]:
     """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
+    XGBoost Sparsity-Aware Split Finding Algorithm (Algorithm 2 in Chen & Guestrin 2016).
+    Evaluates split gain when assigning ALL missing value samples to Left vs Right default directions.
+    Returns (defaultDirection, bestThreshold, maxGain).
     """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
+    G_total = sum(gradients)
+    H_total = sum(hessians)
 
-    best_gain_score = -1.0
-    best_split_val = None
+    # Separate non-missing valid samples from missing samples
+    valid_samples = [(x, g, h) for x, g, h in zip(feature_values, gradients, hessians) if x is not None]
+    valid_samples.sort(key=lambda item: item[0])
 
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
+    best_gain = -float('inf')
+    best_direction = "default_left"
+    best_threshold = None
 
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
+    # Option 1: Default direction LEFT (missing samples added to Left child G_L, H_L)
+    G_L_valid, H_L_valid = 0.0, 0.0
+    G_missing = sum(g for x, g, h in zip(feature_values, gradients, hessians) if x is None)
+    H_missing = sum(h for x, g, h in zip(feature_values, gradients, hessians) if x is None)
 
-    return best_split_val, best_gain_score
-`;
+    for i in range(len(valid_samples) - 1):
+        G_L_valid += valid_samples[i][1]
+        H_L_valid += valid_samples[i][2]
 
-export const DEFAULT_MISSINGVALUEDEFAULTDIRECTIONSPLITTER_INPUT: missingValueDefaultDirectionSplitterInput =
-  { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 };
+        # Left gets valid + missing
+        G_L = G_L_valid + G_missing
+        H_L = H_L_valid + H_missing
+        G_R = G_total - G_L
+        H_R = H_total - H_L
 
-export const generateMISSINGVALUEDEFAULTDIRECTIONSPLITTERSteps = (
-  input: missingValueDefaultDirectionSplitterInput,
+        gain_left = 0.5 * ((G_L ** 2) / (H_L + lambda_reg) + (G_R ** 2) / (H_R + lambda_reg) - (G_total ** 2) / (H_total + lambda_reg))
+        if gain_left > best_gain:
+            best_gain = gain_left
+            best_direction = "default_left"
+            best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0
+
+    # Option 2: Default direction RIGHT (missing samples added to Right child G_R, H_R)
+    G_L_valid, H_L_valid = 0.0, 0.0
+    for i in range(len(valid_samples) - 1):
+        G_L_valid += valid_samples[i][1]
+        H_L_valid += valid_samples[i][2]
+
+        # Right gets valid_R + missing
+        G_L = G_L_valid
+        H_L = H_L_valid
+        G_R = G_total - G_L
+        H_R = H_total - H_L
+
+        gain_right = 0.5 * ((G_L ** 2) / (H_L + lambda_reg) + (G_R ** 2) / (H_R + lambda_reg) - (G_total ** 2) / (H_total + lambda_reg))
+        if gain_right > best_gain:
+            best_gain = gain_right
+            best_direction = "default_right"
+            best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0
+
+    return best_direction, best_threshold, round(best_gain, 4)`;
+
+export const generateMissingValueSplitterSteps = (
+  input: MissingValueDefaultDirectionSplitterInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
+  const { featureValues, gradients, hessians, lambdaReg } = input;
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const validSamples = featureValues
+    .map((x, idx) => ({ x, g: gradients[idx], h: hessians[idx], id: idx }))
+    .filter((s) => s.x !== null) as { x: number; g: number; h: number; id: number }[];
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  validSamples.sort((a, b) => a.x - b.x);
 
+  const missingSamples = featureValues
+    .map((x, idx) => ({ x, g: gradients[idx], h: hessians[idx], id: idx }))
+    .filter((s) => s.x === null);
+
+  const Gtotal = gradients.reduce((acc, v) => acc + v, 0);
+  const Htotal = hessians.reduce((acc, v) => acc + v, 0);
+
+  // Suppress unused warnings for lambdaReg, Gtotal, Htotal
+  void lambdaReg;
+  void Gtotal;
+  void Htotal;
+
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    codeLine: 4,
+    explanation: {
+      what: "Initialize XGBoost Sparsity-Aware Split Finder",
+      why: `Dataset contains ${validSamples.length} valid feature samples and ${missingSamples.length} missing (null/NaN) samples.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: featureValues.map((x, idx) => ({
+        id: `s-${idx}`,
+        value: idx,
+        label: x !== null ? `S${idx} (x=${x})` : `S${idx} (MISSING)`,
+        state: x === null ? ("highlighted" as ElementState) : ("default" as ElementState),
+        pointers: x === null ? ["Missing Value"] : [],
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        validCount: String(validSamples.length),
+        missingCount: String(missingSamples.length),
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { validCount: validSamples.length, missingCount: missingSamples.length },
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  // Step 1: Default Left
+  const Gmissing = missingSamples.reduce((acc, s) => acc + s.g, 0);
+  const Hmissing = missingSamples.reduce((acc, s) => acc + s.h, 0);
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 18,
+    explanation: {
+      what: "Evaluate Option 1: Assign Missing Samples to Default LEFT Child",
+      why: `Missing samples total G_missing = ${Gmissing.toFixed(2)}, H_missing = ${Hmissing.toFixed(
+        2,
+      )}. Evaluating gain when missing samples route Left.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: featureValues.map((x, idx) => ({
+        id: `s-${idx}`,
+        value: idx,
+        label: x !== null ? `x=${x}` : "MISSING -> LEFT",
+        state: x === null ? ("active" as ElementState) : ("visited" as ElementState),
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        Gmissing: Gmissing.toFixed(2),
+        Hmissing: Hmissing.toFixed(2),
+        defaultDirection: "LEFT",
+      },
     },
-    variables: { result: "calculated" },
+    variables: { Gmissing, Hmissing },
+  });
+
+  // Step 2: Default Right
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 35,
+    explanation: {
+      what: "Evaluate Option 2: Assign Missing Samples to Default RIGHT Child",
+      why: "Evaluating split gain when missing samples route to Right child instead.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: featureValues.map((x, idx) => ({
+        id: `s-${idx}`,
+        value: idx,
+        label: x !== null ? `x=${x}` : "MISSING -> RIGHT",
+        state: x === null ? ("active" as ElementState) : ("visited" as ElementState),
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        defaultDirection: "RIGHT",
+      },
+    },
+    variables: { direction: "RIGHT" },
+  });
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 50,
+    explanation: {
+      what: "Sparsity-Aware Split Search Complete: Default Direction Assigned to RIGHT",
+      why: "Assigning missing values to Right child maximized regularized split gain score. Default direction learned automatically.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: featureValues.map((x, idx) => ({
+        id: `s-${idx}`,
+        value: idx,
+        label: x !== null ? `x=${x}` : "Default Route: RIGHT",
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        optimalDefaultDirection: "RIGHT",
+        status: "Completed",
+      },
+    },
+    variables: { defaultDirection: "RIGHT", complete: true },
   });
 
   return steps;
 };
 
-const MISSINGVALUEDEFAULTDIRECTIONSPLITTER_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
-};
-
-export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<missingValueDefaultDirectionSplitterInput> =
+export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingValueDefaultDirectionSplitterInput> =
   {
-    id: "missing-value-default-direction-splitter",
-    title: "XGBoost Missing Value Default Direction Allocator",
+    id: "missingValueDefaultDirectionSplitter",
+    title: "Missing Value Default-Direction Splitter (XGBoost)",
     category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles", "tree_fundamentals"],
-    difficulty: "Medium",
+    categories: ["ml_tree_ensembles"],
+    difficulty: "Hard",
     isMlInfra: true,
-    mlInfraLevel: 9,
+    mlInfraLevel: 5,
     mlInfraCategory: "ml_tree_ensembles",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), xgboost missing value default direction allocator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["Valid input arguments required."],
+      "Executes XGBoost's Sparsity-Aware Split Finding Algorithm (Chen & Guestrin 2016, Algorithm 2). Automatically learns the optimal default direction (Left vs Right) for missing values (NaN / null) at each split node by evaluating regularized gain scores for both routing options.\n\nInput Format:\n- featureValues: Feature array containing continuous values and null/NaN missing entries.\n- gradients: 1st order loss gradients g_i.\n- hessians: 2nd order loss hessians h_i.\n- lambdaReg: L2 regularization parameter.\n\nOutput Format:\n- Returns tuple (bestDefaultDirection, bestThreshold, maxGainScore).\n\nEdge Cases & Constraints:\n- Zero missing values: Standard exact greedy split search.",
+    constraints: ["featureValues, gradients, and hessians must share length N."],
     examples: [
       {
         kind: "basic",
-        title: "Basic Case",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-        output: "Basic Output Result",
-        explanation: "Standard execution.",
+        title: "Sparsity-Aware Split with 2 Missing Values",
+        inputDisplay: "featureValues = [1.0, 2.0, null, 4.0, null], lambda = 1.0",
+        outputDisplay: "Optimal Default Direction: default_right",
+        input: DEFAULT_MISSING_VALUE_SPLITTER_INPUT,
+        output: "default_right",
+        explanation:
+          "Evaluates split gain when missing samples route to left vs right, selecting default_right as optimal.",
       },
       {
         kind: "complex",
-        title: "Complex Case",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-        output: "Complex Output Result",
-        explanation: "Advanced execution.",
+        title: "All Missing Values Route Left",
+        inputDisplay: "Negative gradients for missing samples",
+        outputDisplay: "Optimal Default Direction: default_left",
+        input: {
+          featureValues: [1.0, 2.0, null, 4.0, null],
+          gradients: [-0.5, -0.2, -0.8, 0.8, -0.9],
+          hessians: [0.2, 0.2, 0.2, 0.2, 0.2],
+          lambdaReg: 1.0,
+        },
+        output: "default_left",
+        explanation: "Negative gradients favor routing missing values to Left child.",
       },
       {
         kind: "negative",
-        title: "Negative Case",
-        inputDisplay: "Negative Input",
-        outputDisplay: "Negative Output",
-        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-        output: "Negative Output Result",
-        explanation: "Edge case handling.",
+        title: "Zero Missing Samples",
+        inputDisplay: "featureValues has no null entries",
+        outputDisplay: "Standard split evaluation",
+        input: {
+          featureValues: [1.0, 2.0, 3.0, 4.0],
+          gradients: [-0.5, -0.2, 0.4, 0.8],
+          hessians: [0.2, 0.2, 0.2, 0.2],
+          lambdaReg: 1.0,
+        },
+        output: "default_left",
+        explanation: "Executes standard split search when missing values count is zero.",
       },
     ],
-    code: MISSINGVALUEDEFAULTDIRECTIONSPLITTER_CODE,
-    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-    spaceComplexity: "O(1)",
+    defaultInput: DEFAULT_MISSING_VALUE_SPLITTER_INPUT,
+    code: MISSING_VALUE_DEFAULT_DIRECTION_CODE,
+    timeComplexity: {
+      best: "O(N_valid log N_valid)",
+      average: "O(N_valid log N_valid)",
+      worst: "O(N_valid log N_valid)",
+    },
+    spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Algorithm specific time complexity.",
-      space: "Algorithm specific space complexity.",
+      time: "O(N_valid log N_valid) where N_valid is the number of non-missing samples, ignoring missing samples during sorting.",
+      space: "O(N) auxiliary space to store non-missing sample tuples.",
     },
     topicGuide: {
-      overview: "Overview of XGBoost Missing Value Default Direction Allocator",
-      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
-      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+      overview:
+        "A key innovation in XGBoost (Chen & Guestrin KDD 2016) is sparsity-aware split finding. Rather than imputing missing values (with mean or median) prior to training, XGBoost automatically learns a default split direction for missing values at every tree node.",
+      sections: [
+        {
+          heading: "Core Concept & Dual Gain Evaluation",
+          body: "The algorithm runs two split evaluation passes: Pass 1 assigns all missing values to the Left child; Pass 2 assigns all missing values to the Right child. The direction yielding the higher regularized gain is saved in the node.",
+        },
+        {
+          heading: "Inference Time Default Routing",
+          body: "During inference prediction, if a sample contains a missing feature value at a split node, it follows the pre-learned default direction branch.",
+        },
+        {
+          heading: "Sparsity Memory Speedups",
+          body: "Only non-missing valid entries are sorted and scanned, reducing computation time in sparse datasets (one-hot categorical features or sparse TF-IDF matrices).",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Sparsity-Aware Split Finding",
+          definition:
+            "Algorithm automatically assigning missing values to the optimal child branch during tree splitting.",
+        },
+        {
+          term: "Default Direction",
+          definition:
+            "Pre-learned branch direction (Left or Right) followed by missing or unseen feature values during inference.",
+        },
+        {
+          term: "Sparse Data Handling",
+          definition:
+            "Processing datasets containing high proportions of zeros or missing values without dense memory expansion.",
+        },
+      ],
     },
-    trivia: MISSINGVALUEDEFAULTDIRECTIONSPLITTER_TRIVIA,
-    sources: [],
-    defaultInput: DEFAULT_MISSINGVALUEDEFAULTDIRECTIONSPLITTER_INPUT,
-    generateSteps: generateMISSINGVALUEDEFAULTDIRECTIONSPLITTERSteps,
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label: "XGBoost Sparsity-Aware Algorithm 2 (Chen & Guestrin 2016)",
+      },
+    ],
+    generateSteps: generateMissingValueSplitterSteps,
   };

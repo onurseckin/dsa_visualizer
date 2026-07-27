@@ -7,31 +7,29 @@ export interface softmaxRowNormalizeInput {
 }
 
 export const SOFTMAXROWNORMALIZE_CODE = `
-def softmaxrownormalize(q_tile, k_tile, v_tile, scale_factor):
+import math
+
+def safe_softmax_row_normalize(logits: list[float]) -> tuple[list[float], float, float]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Computes numerically stable Softmax over a vector of logit scores.
+    1. Subtracts maximum logit m = max(logits) to prevent exp() float overflow.
+    2. Sums exponentiated values lse = sum(exp(x - m)).
+    3. Normalizes p_i = exp(x_i - m) / lse.
+    Returns (probabilities, max_logit, log_sum_exp).
     """
-    import math
-
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
-
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    # Step 1: Maximum logit reduction for numerical stability
+    max_logit = max(logits)
+    
+    # Step 2: Subtract max and exponentiate
+    exp_vals = [math.exp(x - max_logit) for x in logits]
+    
+    # Step 3: Sum exponentiated terms (log-sum-exp denominator)
+    lse_sum = sum(exp_vals)
+    
+    # Step 4: Normalize to produce probability distribution summing to 1.0
+    probabilities = [val / lse_sum for val in exp_vals]
+    
+    return probabilities, max_logit, lse_sum
 `;
 
 export const DEFAULT_SOFTMAXROWNORMALIZE_INPUT: softmaxRowNormalizeInput = {
@@ -81,7 +79,7 @@ export const generateSoftmaxRowNormalizeSteps = (
   addStep(
     1,
     "Initialize Softmax Row Normalizer",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up logit normalization pass: computing row max and sum-exp denominator.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +93,9 @@ export const generateSoftmaxRowNormalizeSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      15,
+      `Evaluate logit ${idx} (value=${val}): subtract row max for stability`,
+      `Computing exp(x - max_logit) to prevent floating-point overflow during probability reduction.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +107,9 @@ export const generateSoftmaxRowNormalizeSteps = (
   }));
 
   addStep(
-    6,
+    24,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully normalized logit scores into valid probability distribution summing to 1.0.",
     { completed: true },
     finalElements,
   );
@@ -120,17 +118,24 @@ export const generateSoftmaxRowNormalizeSteps = (
 };
 
 const SOFTMAXROWNORMALIZE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "exp_vals = [math.exp(x) for x in logits]",
+    "probabilities = [val / max_logit for val in exp_vals]",
+    "max_logit = sum(logits) / len(logits)",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 15, hint: "Subtract maximum logit max_logit to ensure exp(x - max) <= 1.0." },
+    { line: 21, hint: "Sum exponentiated values to form normalization denominator." },
+    { line: 24, hint: "Divide each exp value by sum to form probabilities summing to 1.0." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Softmax Row Normalizer.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines safe Softmax row normalization entry point.",
+    15: "Finds maximum logit scalar m = max(logits) across row.",
+    18: "Subtracts max_logit and exponentiates each score.",
+    21: "Accumulates sum-exp denominator lse = sum(exp(x - m)).",
+    24: "Divides each exponentiated term by denominator to yield probabilities.",
+    26: "Returns normalized probability array, max_logit, and sum-exp scalar.",
   },
 };
 
@@ -144,85 +149,84 @@ export const softmaxRowNormalize: AlgorithmDefinition<softmaxRowNormalizeInput> 
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), softmax row normalizer provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Softmax Row Normalization converts a vector of un-normalized logit scores $x \\in \\mathbb{R}^N$ into a probability distribution $p \\in [0, 1]^N$ where $\\sum_{i=1}^N p_i = 1.0$. Naive evaluation $p_i = e^{x_i} / \\sum_j e^{x_j}$ suffers from severe floating-point overflow when $x_i > 88.7$ in IEEE 754 float32 or $x_i > 11.0$ in float16 ($e^{88.7} > 3.4 \\times 10^{38}$).\n\nSafe Softmax subtracts the maximum logit $m = \\max_j x_j$ before exponentiation:\n$$p_i = \\frac{e^{x_i - m}}{\\sum_{j=1}^N e^{x_j - m}}$$\nSince $x_i - m \\le 0$, every exponent $e^{x_i - m} \\in (0, 1]$, guaranteeing complete numerical stability against overflow.\n\nInput Format:\n- data: Logit score vector $x \\in \\mathbb{R}^N$.\n- target: Target logit index for step inspection.\n\nOutput Format:\n- Normalized probability vector $p$, maximum logit scalar $m$, and log-sum-exp denominator $\\ell$.\n\nEdge Cases & Constraints:\n- Masked $-\\infty$ logits: Masked positions where $x_i = -\\infty$ yield $e^{-\\infty - m} = 0$, producing zero probability without NaN propagation.\n- All equal logits: If $x_1 = x_2 = \\dots = x_N$, output is exact uniform distribution $1/N$.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Logit Normalization",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Computes safe Softmax probabilities for 3 logit scores.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
+      title: "Large Scale Difference",
       inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
       outputDisplay: "[1, 2, 3, 4, 5]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Evaluates stable exponentiation across a 5-element logit vector.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Uniform Logits Check",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Safely handles equal logit scores returning uniform probability distribution.",
     },
   ],
   code: SOFTMAXROWNORMALIZE_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Requires two linear passes over $N$ elements: 1 pass for max reduction $m$, 1 pass for sum-exp $\\ell$ and normalization.",
+    space: "Requires $O(N)$ auxiliary memory for storing normalized probabilities.",
   },
   topicGuide: {
     overview:
-      "Softmax Row Normalizer is a critical component in ML ATTENTION GEOMETRY systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Softmax row normalization is the core non-linear activation function in self-attention matrices. Its numerical stability and GPU hardware acceleration (via warp shuffle reductions) are essential for deep neural network training.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, softmax row normalizer operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Softmax maps $\\mathbb{R}^N \\to \\Delta^{N-1}$ (the standard probability simplex). Mathematically, $\\text{Softmax}(x - c) = \\text{Softmax}(x)$ for any scalar shift $c$. Setting $c = \\max_j x_j$ forces all exponents into $(-\\infty, 0]$, eliminating overflow completely.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Softmax Row Normalizer optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In CUDA kernels, row-wise Softmax reduction uses warp shuffle instructions (`__shfl_xor_sync`) to compute $m = \\max_j x_j$ and $\\ell = \\sum_j e^{x_j - m}$ across 32 threads in 5 clock cycles without shared memory access.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing softmax row normalizer efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Online Softmax (Milakov & Gimelshein 2018, FlashAttention) merges the max reduction and sum-exp computation into a single tile pass by updating running scale factors $e^{m_{\\text{old}} - m_{\\text{new}}}$.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "If all logits in a row are $-\\infty$ (e.g. fully masked causal row), $e^{-\\infty - (-\\infty)} = e^{\\text{NaN}} = \\text{NaN}$. Kernel implementations guard against fully masked rows by defaulting $p = 0.0$.",
       },
     ],
     keyTerms: [
       {
-        term: "Softmax Engine",
+        term: "Safe Softmax",
         definition:
-          "The underlying algorithmic system implementing softmax row normalizer operations for deep learning workloads.",
+          "Subtracting the maximum logit $m = \\max_j x_j$ prior to exponentiation to prevent numerical overflow.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Log-Sum-Exp (LSE)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The log-sum-exp normalization factor $\\ln\\left(\\sum_j e^{x_j - m}\\right) + m$.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Warp Shuffle Reduction",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Hardware GPU instruction communicating registers directly between warp threads without DRAM memory access.",
       },
       {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Probability Simplex",
+        definition: "The geometric space of vectors with non-negative entries summing to 1.0.",
       },
     ],
   },

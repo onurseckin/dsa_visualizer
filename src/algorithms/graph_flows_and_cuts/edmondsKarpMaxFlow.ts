@@ -13,20 +13,48 @@ export interface EdmondsKarpMaxFlowInput {
   edges: GraphEdgeItem[];
 }
 
-export const EDMONDS_KARP_CODE = `
-def edmonds_karp(input_array):
-    """
-    Implementation of edmonds_karp.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const EDMONDS_KARP_CODE = `from collections import deque
+
+def edmonds_karp(capacity, source, sink):
+    n = len(capacity)
+    flow = [[0] * n for _ in range(n)]
+    max_flow = 0
+    
+    while True:
+        parent = [-1] * n
+        queue = deque([source])
+        while queue:
+            u = queue.popleft()
+            if u == sink:
+                break
+            for v in range(n):
+                if parent[v] == -1 and capacity[u][v] - flow[u][v] > 0:
+                    parent[v] = u
+                    queue.append(v)
+                    
+        if parent[sink] == -1:
+            break
+            
+        push = float('inf')
+        v = sink
+        while v != source:
+            u = parent[v]
+            push = min(push, capacity[u][v] - flow[u][v])
+            v = u
+            
+        v = sink
+        while v != source:
+            u = parent[v]
+            flow[u][v] += push
+            flow[v][u] -= push
+            v = u
+            
+        max_flow += push
+        
+    return max_flow`;
 
 export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [1, 2],
   distractors: [
     "queue.pop()",
     "flow[p][curr] -= bottleneck",
@@ -39,7 +67,7 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
       hint: "Edmonds-Karp uses BFS (FIFO queue) to find augmenting paths with the fewest edges.",
     },
     {
-      line: 16,
+      line: 14,
       hint: "Residual capacity is defined as capacity[u][v] - flow[u][v].",
     },
     {
@@ -47,17 +75,20 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
       hint: "Find bottleneck flow as the minimum residual capacity along the augmenting path.",
     },
     {
-      line: 30,
+      line: 29,
       hint: "Add bottleneck flow to forward edges and subtract from reverse residual edges.",
     },
   ],
   lineExplanations: {
-    1: "Defines the Edmonds-Karp Max Flow algorithm using BFS augmenting paths.",
-    10: "Runs BFS to discover the shortest path from source to sink in the residual network.",
-    16: "Filters for edges with strictly positive residual capacity.",
-    21: "Terminates when sink is unreachable from source in residual graph.",
-    23: "Calculates bottleneck flow constraint along the discovered path.",
-    30: "Augments forward flow and updates reverse residual edge capacity.",
+    1: "Imports deque for BFS augmenting path search.",
+    3: "Defines Edmonds-Karp Max Flow algorithm taking capacity matrix, source, and sink.",
+    5: "Initializes flow matrix flow[u][v] = 0.",
+    10: "Runs BFS to discover shortest augmenting path from source to sink in residual network.",
+    14: "Filters for edges with strictly positive residual capacity capacity[u][v] - flow[u][v] > 0.",
+    17: "Terminates when sink is unreachable from source in residual graph (parent[sink] == -1).",
+    23: "Calculates bottleneck flow constraint as minimum residual capacity along path.",
+    29: "Augments forward flow flow[u][v] += push and updates reverse residual edge flow[v][u] -= push.",
+    33: "Accumulates bottleneck flow into max_flow.",
   },
 };
 

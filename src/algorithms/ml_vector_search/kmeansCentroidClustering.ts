@@ -1,159 +1,380 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface KmeansCentroidClusteringInput {
   vectors: number[][];
-  target?: number[];
+  k: number;
+  maxIter: number;
+  initialCentroids?: number[][];
 }
+
+export const DEFAULT_KMEANS_INPUT: KmeansCentroidClusteringInput = {
+  vectors: [
+    [1.0, 1.0],
+    [1.5, 2.0],
+    [3.0, 4.0],
+    [5.0, 7.0],
+    [3.5, 5.0],
+    [4.5, 6.0],
+  ],
+  k: 2,
+  maxIter: 3,
+  initialCentroids: [
+    [1.0, 1.0],
+    [5.0, 7.0],
+  ],
+};
+
+export const KMEANS_CENTROID_CLUSTERING_CODE = `import math
+
+def l2_distance_sq(v1: list[float], v2: list[float]) -> float:
+    return sum((a - b) ** 2 for a, b in zip(v1, v2))
+
+def kmeans_clustering(vectors: list[list[float]], k: int, max_iter: int = 10, initial_centroids: list[list[float]] = None) -> tuple[list[list[float]], list[int]]:
+    """
+    K-Means centroid clustering algorithm.
+    Iteratively assigns vectors to nearest centroid and updates centroids as cluster means.
+    """
+    dim = len(vectors[0])
+    if initial_centroids:
+        centroids = [c[:] for c in initial_centroids]
+    else:
+        centroids = [vectors[i][:] for i in range(k)]
+
+    assignments = [-1] * len(vectors)
+
+    for iteration in range(max_iter):
+        changed = False
+
+        # Expectation Step (E-step): Assign vectors to nearest centroid
+        for idx, vec in enumerate(vectors):
+            best_c = -1
+            min_dist = float('inf')
+            for c_idx, c_vec in enumerate(centroids):
+                dist_sq = l2_distance_sq(vec, c_vec)
+                if dist_sq < min_dist:
+                    min_dist = dist_sq
+                    best_c = c_idx
+
+            if assignments[idx] != best_c:
+                assignments[idx] = best_c
+                changed = True
+
+        if not changed:
+            break
+
+        # Maximization Step (M-step): Recompute centroids as mean of assigned vectors
+        for c_idx in range(k):
+            cluster_vecs = [vectors[i] for i, a in enumerate(assignments) if a == c_idx]
+            if cluster_vecs:
+                centroids[c_idx] = [sum(vec[d] for vec in cluster_vecs) / len(cluster_vecs) for d in range(dim)]
+
+    return centroids, assignments`;
+
+export const generateKmeansClusteringSteps = (
+  input: KmeansCentroidClusteringInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { vectors, k, maxIter, initialCentroids } = input;
+  let stepIndex = 0;
+
+  const dim = vectors[0].length;
+  let centroids = initialCentroids
+    ? initialCentroids.map((c) => [...c])
+    : vectors.slice(0, k).map((v) => [...v]);
+
+  const assignments = new Array(vectors.length).fill(-1);
+
+  const l2DistSq = (v1: number[], v2: number[]) =>
+    v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0);
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 8,
+    explanation: {
+      what: `Initialize K-Means Clustering (K = ${k}, N = ${vectors.length})`,
+      why: `Initial centroids: ${centroids.map((c, i) => `C${i} [${c.join(",")}]`).join("; ")}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: vectors.map((v, idx) => ({
+        id: `v-${idx}`,
+        value: idx,
+        label: `V${idx} [${v.join(",")}]`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        k: String(k),
+        centroids: centroids
+          .map((c, i) => `C${i}:[${c.map((x) => x.toFixed(1)).join(",")}]`)
+          .join(" | "),
+        phase: "Initialization",
+      },
+    },
+    variables: { k, N: vectors.length },
+  });
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let changed = false;
+
+    // E-Step: Assign
+    for (let i = 0; i < vectors.length; i++) {
+      const vec = vectors[i];
+      let bestC = -1;
+      let minD = Infinity;
+
+      for (let cIdx = 0; cIdx < k; cIdx++) {
+        const dSq = l2DistSq(vec, centroids[cIdx]);
+        if (dSq < minD) {
+          minD = dSq;
+          bestC = cIdx;
+        }
+      }
+
+      if (assignments[i] !== bestC) {
+        assignments[i] = bestC;
+        changed = true;
+      }
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 18,
+      explanation: {
+        what: `Iter ${iter + 1}: E-Step (Cluster Assignment)`,
+        why: `Assigned ${vectors.length} vectors to ${k} centroids. Cluster counts: ${Array.from(
+          { length: k },
+          (_, cIdx) => `C${cIdx}:${assignments.filter((a) => a === cIdx).length}`,
+        ).join(", ")}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: vectors.map((_, idx) => ({
+          id: `v-${idx}`,
+          value: assignments[idx],
+          label: `V${idx} -> C${assignments[idx]}`,
+          state: assignments[idx] === 0 ? ("active" as ElementState) : ("sorted" as ElementState),
+          pointers: [`Cluster ${assignments[idx]}`],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          iteration: String(iter + 1),
+          assignments: assignments.map((a, idx) => `V${idx}:C${a}`).join(", "),
+          step: "Expectation (E-Step)",
+        },
+      },
+      variables: { iter: iter + 1, changed },
+    });
+
+    if (!changed && iter > 0) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 28,
+        explanation: {
+          what: "Convergence Reached: Centroid assignments stabilized",
+          why: "No vector cluster assignments changed during iteration. Halting early.",
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: vectors.map((_, idx) => ({
+            id: `v-${idx}`,
+            value: assignments[idx],
+            label: `V${idx} (C${assignments[idx]})`,
+            state: "sorted" as ElementState,
+          })),
+        },
+        auxiliaryState: { customState: { status: "Converged" } },
+        variables: { converged: true },
+      });
+      break;
+    }
+
+    // M-Step: Recompute centroids
+    const newCentroids: number[][] = [];
+    for (let cIdx = 0; cIdx < k; cIdx++) {
+      const clusterVecs = vectors.filter((_, idx) => assignments[idx] === cIdx);
+      if (clusterVecs.length > 0) {
+        const mean = Array.from(
+          { length: dim },
+          (_, d) => clusterVecs.reduce((sum, v) => sum + v[d], 0) / clusterVecs.length,
+        );
+        newCentroids.push(mean);
+      } else {
+        newCentroids.push([...centroids[cIdx]]);
+      }
+    }
+    centroids = newCentroids;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 34,
+      explanation: {
+        what: `Iter ${iter + 1}: M-Step (Recompute Centroids)`,
+        why: `Updated centroid positions to cluster means: ${centroids
+          .map((c, i) => `C${i} [${c.map((x) => x.toFixed(2)).join(",")}]`)
+          .join("; ")}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: centroids.map((c, cIdx) => ({
+          id: `c-${cIdx}`,
+          value: cIdx,
+          label: `C${cIdx} mean [${c.map((x) => x.toFixed(2)).join(",")}]`,
+          state: "highlighted" as ElementState,
+          pointers: [`C${cIdx} Center`],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          iteration: String(iter + 1),
+          newCentroids: centroids
+            .map((c, i) => `C${i}:[${c.map((x) => x.toFixed(2)).join(",")}]`)
+            .join(" | "),
+          step: "Maximization (M-Step)",
+        },
+      },
+      variables: { iter: iter + 1 },
+    });
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 37,
+    explanation: {
+      what: "K-Means Clustering Complete",
+      why: `Final centroids: ${centroids
+        .map((c, i) => `C${i} [${c.map((x) => x.toFixed(2)).join(",")}]`)
+        .join("; ")}. Partitioned ${vectors.length} vectors into K=${k} clusters.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: vectors.map((_, idx) => ({
+        id: `v-${idx}`,
+        value: assignments[idx],
+        label: `V${idx} in C${assignments[idx]}`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        finalCentroids: centroids
+          .map((c, i) => `C${i}:[${c.map((x) => x.toFixed(2)).join(",")}]`)
+          .join(" | "),
+        status: "Completed",
+      },
+    },
+    variables: { k, complete: true },
+  });
+
+  return steps;
+};
 
 export const kmeansCentroidClustering: AlgorithmDefinition<KmeansCentroidClusteringInput> = {
   id: "kmeansCentroidClustering",
-  title: "Q9: K-Means Centroid Clustering",
+  title: "K-Means Centroid Clustering",
   category: "ml_vector_search",
-  categories: ["ml_vector_search", "binary_search"],
+  categories: ["ml_vector_search"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 5,
   mlInfraCategory: "ml_vector_search",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q9: k-means centroid clustering provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: [
-    "Vectors must have matching dimensions.",
-    "Input size typically constrained for visualization purposes.",
-  ],
+    "K-Means clustering partitions N multi-dimensional vectors into K distinct Voronoi clusters using Lloyd's Expectation-Maximization (EM) algorithm. Alternates between the Expectation step (assigning each vector to its nearest centroid) and the Maximization step (updating centroids to the arithmetic mean of assigned vectors).\n\nInput Format:\n- vectors: N data vectors of dimension D.\n- k: Target number of clusters K.\n- maxIter: Maximum optimization iterations.\n- initialCentroids: Optional K initial centroid coordinates.\n\nOutput Format:\n- Returns tuple (finalCentroids, clusterAssignments).\n\nEdge Cases & Constraints:\n- Empty cluster: Retains previous centroid position.\n- K >= N: Every vector becomes its own centroid.",
+  constraints: ["1 <= k <= vectors.length.", "All vectors must have matching dimension D."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: {} as unknown as KmeansCentroidClusteringInput, // Will need actual data but cast to any
-      output: "Basic Success",
-      explanation: "A simple clear basic example for kmeansCentroidClustering.",
+      title: "2-Cluster Partitioning of 6 Vectors",
+      inputDisplay: "6 vectors, K = 2, maxIter = 3",
+      outputDisplay: "C0 around [1.25, 1.5], C1 around [4.0, 5.5]",
+      input: DEFAULT_KMEANS_INPUT,
+      output: "Centroids updated over 3 iterations",
+      explanation:
+        "Separates low-coordinate vectors [1.0, 1.0], [1.5, 2.0] from high-coordinate vectors.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: {} as unknown as KmeansCentroidClusteringInput,
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Convergence in 1 Iteration",
+      inputDisplay: "Already well-separated vectors",
+      outputDisplay: "Converges immediately",
+      input: {
+        vectors: [
+          [0.0, 0.0],
+          [10.0, 10.0],
+        ],
+        k: 2,
+        maxIter: 5,
+      },
+      output: "Centroids: [0,0] and [10,10]",
+      explanation: "No assignment changes occur after 1st E-step.",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: {} as unknown as KmeansCentroidClusteringInput,
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "K = 1 Single Cluster",
+      inputDisplay: "K = 1 for 6 vectors",
+      outputDisplay: "Single centroid at overall vector mean",
+      input: {
+        ...DEFAULT_KMEANS_INPUT,
+        k: 1,
+        initialCentroids: [[0.0, 0.0]],
+      },
+      output: "Single mean centroid",
+      explanation: "All vectors assigned to cluster 0, centroid becomes dataset mean.",
     },
   ],
-  defaultInput: {} as unknown as KmeansCentroidClusteringInput,
-  code: `
-def kmeansCentroidClustering(query_vector, database_embeddings, top_k=3):
-    """
-    Q9: K-Means Centroid Clustering
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+  defaultInput: DEFAULT_KMEANS_INPUT,
+  code: KMEANS_CENTROID_CLUSTERING_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(I * K * N * D)",
+    average: "O(I * K * N * D)",
+    worst: "O(I * K * N * D)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(K * D + N)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(I * K * N * D) where I is iterations, K is cluster count, N is vector count, and D is dimension.",
+    space: "O(K * D + N) space for centroid positions and cluster assignments.",
   },
   topicGuide: {
     overview:
-      "Q9: K-Means Centroid Clustering is a critical component in ML VECTOR SEARCH systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "K-Means clustering (MacQueen 1967, Lloyd 1982) is the standard method for constructing coarse Voronoi index cells in IVF vector search engines (FAISS, ScaNN, Milvus). By grouping data into K representative cluster centroids, vector search engines narrow query searches down to relevant partitions.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, q9: k-means centroid clustering operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Minimizes within-cluster sum of squares (WCSS / Inertia): argmin_S sum_{i=1}^K sum_{x in S_i} ||x - mu_i||^2. The E-step solves spatial assignment; the M-step updates cluster mean mu_i = (1/|S_i|) sum_{x in S_i} x.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Q9: K-Means Centroid Clustering optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Performance Impact",
+        body: "In production, K-Means initialization uses K-Means++ to prevent poor local minima. GPU implementations (FAISS GPU-KMeans) leverage SIMD matrix operations to process millions of vectors.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing q9: k-means centroid clustering efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Implementation Nuances & Convergence",
+        body: "Handling empty clusters (when no vectors are assigned to a centroid) requires re-initializing the centroid to a random vector with maximum distance to existing centroids.",
       },
     ],
     keyTerms: [
       {
-        term: "Q9: Engine",
+        term: "Inertia / WCSS",
         definition:
-          "The underlying algorithmic system implementing q9: k-means centroid clustering operations for deep learning workloads.",
+          "Within-cluster sum of squared distances from vectors to their assigned centroid.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Expectation-Maximization (EM)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Two-step iterative optimization paradigm for finding maximum likelihood parameter estimates.",
       },
       {
-        term: "Memory Coalescing",
+        term: "K-Means++",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Initialization scheme choosing initial centroids proportional to squared distance from existing centroids.",
       },
     ],
   },
-  generateSteps: (_input: KmeansCentroidClusteringInput) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "Foundational ML Clustering (Lloyd / MacQueen)" },
+  ],
+  generateSteps: generateKmeansClusteringSteps,
 };

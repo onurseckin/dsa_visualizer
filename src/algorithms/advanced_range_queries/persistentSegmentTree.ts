@@ -16,15 +16,39 @@ export interface PersistentSegmentTreeInput {
 }
 
 export const PERSISTENT_SEGMENT_TREE_CODE = `
-def persistent_segment_tree(input_array):
-    """
-    Implementation of persistent_segment_tree.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+class Node:
+    def __init__(self, val: int, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def build(arr: list[int], l: int, r: int) -> Node:
+    if l == r:
+        return Node(arr[l])
+    mid = (l + r) // 2
+    left = build(arr, l, mid)
+    right = build(arr, mid + 1, r)
+    return Node(left.val + right.val, left, right)
+
+def update(prev: Node, l: int, r: int, idx: int, val: int) -> Node:
+    if l == r:
+        return Node(val)
+    mid = (l + r) // 2
+    if idx <= mid:
+        left = update(prev.left, l, mid, idx, val)
+        right = prev.right
+    else:
+        left = prev.left
+        right = update(prev.right, mid + 1, r, idx, val)
+    return Node(left.val + right.val, left, right)
+
+def query(node: Node, l: int, r: int, ql: int, qr: int) -> int:
+    if not node or qr < l or ql > r:
+        return 0
+    if ql <= l and r <= qr:
+        return node.val
+    mid = (l + r) // 2
+    return query(node.left, l, mid, ql, qr) + query(node.right, mid + 1, r, ql, qr)
 `;
 
 export const DEFAULT_PERSISTENT_SEGMENT_TREE_INPUT: PersistentSegmentTreeInput = {

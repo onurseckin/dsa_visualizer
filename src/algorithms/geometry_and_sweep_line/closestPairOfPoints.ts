@@ -13,15 +13,29 @@ export interface ClosestPairOfPointsInput {
 }
 
 export const PYTHON_CLOSEST_PAIR_OF_POINTS_CODE = `
-def python_closest_pair_of_points(input_array):
+import math
+
+def closest_pair_of_points(points: list[tuple[float, float]]) -> float:
     """
-    Implementation of python_closest_pair_of_points.
+    Finds the minimum distance between any pair of 2D points in O(N log N) using a sweep line.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    pts = sorted(points, key=lambda p: (p[0], p[1]))
+    min_dist = float('inf')
+    active_window = []
+
+    for p in pts:
+        while active_window and p[0] - active_window[0][0] >= min_dist:
+            active_window.pop(0)
+
+        for active_pt in active_window:
+            if abs(p[1] - active_pt[1]) < min_dist:
+                d = math.hypot(p[0] - active_pt[0], p[1] - active_pt[1])
+                if d < min_dist:
+                    min_dist = d
+
+        active_window.append(p)
+
+    return min_dist
 `;
 
 export const DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT: ClosestPairOfPointsInput = {

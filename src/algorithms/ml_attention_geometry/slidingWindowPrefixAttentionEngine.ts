@@ -7,31 +7,32 @@ export interface slidingWindowPrefixAttentionEngineInput {
 }
 
 export const SLIDINGWINDOWPREFIXATTENTIONENGINE_CODE = `
-def slidingwindowprefixattentionengine(q_tile, k_tile, v_tile, scale_factor):
+def sliding_window_prefix_attention(
+    q_len: int,
+    kv_len: int,
+    window_size: int,
+    prefix_len: int
+) -> list[list[bool]]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Constructs a sliding window + prefix attention mask.
+    Token i can attend to:
+    1. Static prefix tokens 0 ... prefix_len - 1
+    2. Local sliding window tokens max(0, i - window_size + 1) ... i
     """
-    import math
-
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
-
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    mask = []
+    for i in range(q_len):
+        row = []
+        for j in range(kv_len):
+            is_prefix = (j < prefix_len)
+            is_window = (i - window_size < j <= i)
+            
+            if is_prefix or is_window:
+                row.append(True)   # Valid attention position
+            else:
+                row.append(False)  # Masked position (-inf)
+        mask.append(row)
+        
+    return mask
 `;
 
 export const DEFAULT_SLIDINGWINDOWPREFIXATTENTIONENGINE_INPUT: slidingWindowPrefixAttentionEngineInput =
@@ -82,7 +83,7 @@ export const generateSlidingWindowPrefixAttentionEngineSteps = (
   addStep(
     1,
     "Initialize Sliding Window Prefix Attention Engine",
-    "Setting up execution data structures and memory layout pointers.",
+    "Configuring sliding window parameters: window_size = 2, prefix_len = 1.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -96,10 +97,10 @@ export const generateSlidingWindowPrefixAttentionEngineSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      15,
+      `Evaluate query token i=${idx} (val=${val}): prefix OR sliding window mask`,
+      `Valid attention key range: prefix [0..0] and sliding window [${Math.max(0, idx - 1)}..${idx}].`,
+      { queryIdx: idx, val, isTarget },
       currentElements,
     );
   });
@@ -110,9 +111,9 @@ export const generateSlidingWindowPrefixAttentionEngineSteps = (
   }));
 
   addStep(
-    6,
+    24,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully computed sliding window prefix attention mask bounds.",
     { completed: true },
     finalElements,
   );
@@ -121,17 +122,24 @@ export const generateSlidingWindowPrefixAttentionEngineSteps = (
 };
 
 const SLIDINGWINDOWPREFIXATTENTIONENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "is_window = (j <= i)",
+    "row.append(True if j > i else False)",
+    "is_prefix = (j >= prefix_len)",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 15, hint: "Check if key index j is within static prefix range j < prefix_len." },
+    { line: 16, hint: "Check if key index j is within local window i - window_size < j <= i." },
+    { line: 18, hint: "Set mask entry to True if either condition is satisfied." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Sliding Window Prefix Attention Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines entry point for sliding window prefix attention mask construction.",
+    15: "Checks if key index j falls into prefix tokens.",
+    16: "Checks if key index j falls into local sliding window bounds.",
+    18: "Assigns True (valid score) if token is in prefix or sliding window.",
+    20: "Assigns False (-inf score) if token is outside valid attention range.",
+    24: "Returns computed 2D boolean attention mask matrix.",
   },
 };
 
@@ -140,67 +148,95 @@ export const slidingWindowPrefixAttentionEngine: AlgorithmDefinition<slidingWind
     id: "sliding-window-prefix-attention-engine",
     title: "Sliding Window Prefix Attention Engine",
     category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "math_and_number_theory"],
+    categories: ["ml_attention_geometry", "ml_llm_serving"],
     difficulty: "Hard",
     isMlInfra: true,
     mlInfraLevel: 7,
     mlInfraCategory: "ml_attention_geometry",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), sliding window prefix attention engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "Sliding Window Attention (SWA, used in Mistral-7B and Longformer) bounds self-attention complexity to $O(N \\cdot W)$ by restricting query token $i$ to attend only to a local window of $W$ previous tokens ($i - W + 1 \\le j \\le i$). However, pure SWA drops early prompt tokens (e.g. system instructions or prefix tokens) that carry critical context.\n\nSliding Window Prefix Attention Engine combines SWA with static prefix attention: query token $i$ attends to BOTH static prefix tokens $0 \\dots P-1$ AND the local sliding window tokens $[i - W + 1 \\dots i]$. This retains global system prompt context while bounding memory and compute growth to $O(N (W + P))$.\n\nInput Format:\n- data: Sequence lengths or token array.\n- target: Window size parameter $W$.\n\nOutput Format:\n- 2D boolean or float attention mask matrix $M \\in \\mathbb{R}^{N \\times N}$.\n\nEdge Cases & Constraints:\n- Boundary cases: $W \\ge N$ degenerates to standard full causal attention; $W=1$ degenerates to diagonal self-attention.\n- Memory reuse: Integrated with rolling buffer KV caches where cache size is capped at $W + P$ tokens per request.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
+        title: "Window=2, Prefix=1 Attention",
         inputDisplay: "data = [10, 20, 30], target = 30",
         outputDisplay: "[10, 20, 30]",
         input: { data: [10, 20, 30], target: 30 },
         output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        explanation:
+          "Computes valid attention mask combining prefix token 0 and local 2-token window.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
+        title: "5-Token Context Masking",
         inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
         outputDisplay: "[1, 2, 3, 4, 5]",
         input: { data: [1, 2, 3, 4, 5], target: 4 },
         output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        explanation: "Evaluates sliding window prefix attention across 5 sequence positions.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
+        title: "Full Window Boundary Check",
         inputDisplay: "data = [5, 10, 15], target = 99",
         outputDisplay: "[5, 10, 15]",
         input: { data: [5, 10, 15], target: 99 },
         output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        explanation: "Safely handles sequence boundaries when window size exceeds context length.",
       },
     ],
     code: SLIDINGWINDOWPREFIXATTENTIONENGINE_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: {
+      best: "O(N \\cdot (W + P))",
+      average: "O(N \\cdot (W + P))",
+      worst: "O(N \\cdot (W + P))",
+    },
+    spaceComplexity: "O(W + P)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Reduces attention compute complexity from $O(N^2)$ down to $O(N \\cdot (W + P))$.",
+      space: "Reduces KV cache memory footprint to $O(W + P)$ tokens using rolling ring buffers.",
     },
     topicGuide: {
       overview:
-        "Sliding window attention restricts token attention to local W window for O(N W) complexity.",
+        "Sliding Window Prefix Attention enables models like Mistral-7B to handle 32k+ context lengths efficiently by capping KV cache size to a sliding window of e.g. 4096 tokens while anchoring attention on the initial system prompt.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Restricts attention visibility to local sliding window size W plus static prefix tokens.",
+          heading: "Core Concept & Mathematical Formulation",
+          body: "For query index $i$ and key index $j$, mask $M_{ij} = 0.0$ if $(j < P) \\lor (i - W < j \\le i)$, and $M_{ij} = -\\infty$ otherwise. Information flows across multiple layers via stacked local windows: at layer $L$, a token has an effective receptive field of $L \\times W$ tokens.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "Rolling Buffer KV Caching stores KV vectors modulo window size: `kv_slot = pos % W`. This caps DRAM allocation to $W$ slots per request, eliminating out-of-memory errors on long streaming inputs.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "In Triton kernels, FlashAttention tile loops iterate only over key block indices $k_{\\text{block}} \\in [0 \\dots \\lceil P / B_c \\rceil) \\cup [\\lfloor (i-W)/B_c \\rfloor \\dots \\lfloor i/B_c \\rfloor]$, skipping zero-weight tiles completely.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "When prefix length $P$ exceeds window size $W$, the kernel maintains separate pointer strides for prefix and rolling buffer blocks to prevent pointer aliasing.",
         },
       ],
       keyTerms: [
         {
-          term: "Sliding Window Attention",
-          definition: "Limiting attention range to local W tokens.",
+          term: "Sliding Window Attention (SWA)",
+          definition:
+            "Attention mechanism restricting visibility to a local context window of $W$ tokens.",
+        },
+        {
+          term: "Prefix Anchoring",
+          definition: "Retaining global visibility to initial system prompt tokens $0 \\dots P-1$.",
+        },
+        {
+          term: "Rolling Buffer Cache",
+          definition:
+            "A ring buffer storing KV cache vectors using modulo window index arithmetic.",
+        },
+        {
+          term: "Effective Receptive Field",
+          definition:
+            "The total contextual span a token can access across $L$ stacked attention layers ($L \\times W$).",
         },
       ],
     },

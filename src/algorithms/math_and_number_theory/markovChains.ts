@@ -15,15 +15,19 @@ export interface MarkovChainsInput {
 }
 
 export const PYTHON_MARKOV_CHAINS_CODE = `
-def python_markov_chains(input_array):
+def markov_chain(transition_matrix: list[list[float]], initial_dist: list[float], steps: int) -> list[float]:
     """
-    Implementation of python_markov_chains.
+    Simulates a discrete-time Markov chain for k steps given a transition matrix and initial distribution.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    n = len(initial_dist)
+    curr = list(initial_dist)
+    for _ in range(steps):
+        nxt = [0.0] * n
+        for i in range(n):
+            for j in range(n):
+                nxt[j] += curr[i] * transition_matrix[i][j]
+        curr = nxt
+    return curr
 `;
 
 export const DEFAULT_MARKOV_CHAINS_INPUT: MarkovChainsInput = {
@@ -202,27 +206,40 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
 
 const MARKOV_CHAINS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Markov Chains model stochastic processes where future state transitions depend exclusively on the present state (the Markov Property), without memory of past steps.",
+    "A Discrete-Time Markov Chain (DTMC) models a sequence of random events where the probability of transitioning to the next state depends exclusively on the current state (the memoryless Markov Property P(X_{n+1} | X_n, ..., X_0) = P(X_{n+1} | X_n)). It forms the mathematical backbone of probabilistic modeling, Google PageRank, MCMC sampling, and reinforcement learning MDPs.",
   sections: [
     {
-      heading: "The Markov Property & Transition Matrix",
-      body: "A transition matrix P has non-negative entries where each row sums to 1. P[i][j] represents the conditional probability of moving from state i to state j in a single time step.",
+      heading: "Transition Matrices & State Vector Dynamics",
+      body: "A finite Markov chain with N states is parameterized by an N x N right stochastic transition matrix P, where P[i][j] = P(X_{n+1} = j | X_n = i) and each row sums to 1. Given an initial probability vector v_0, the state distribution after k steps is computed by vector-matrix multiplication v_k = v_0 * P^k.",
     },
     {
-      heading: "Stationary Distributions & Random Walks",
-      body: "For irreducible and aperiodic Markov chains, repeated matrix multiplication converges to a stationary probability distribution vector π where π * P = π.",
+      heading: "Stationary Distributions & Convergence",
+      body: "For an irreducible (every state is reachable from any other) and aperiodic (no cyclic state lockstep) Markov chain, repeated transition multiplication converges to a unique stationary distribution vector π satisfying π * P = π and sum(π_i) = 1. This stationary vector represents the long-term steady-state proportion of time spent in each state.",
+    },
+    {
+      heading: "Systems & ML Applications",
+      body: "Markov chains are extensively deployed across AI and systems engineering: 1) Google PageRank (random surfer model over web graph adjacency matrices), 2) MCMC (Markov Chain Monte Carlo sampling methods like Metropolis-Hastings for Bayesian inference), 3) Reinforcement Learning (Markov Decision Processes), and 4) Queueing Theory & Server Traffic Modeling.",
+    },
+    {
+      heading: "Implementation Nuances & Numerical Stability",
+      body: "Simulating k steps via vector-matrix multiplication takes O(k * N^2) time and O(N) space. For large k, binary matrix exponentiation on P computes P^k in O(N^3 log k) time. In floating-point implementations, normalizing row sums to exactly 1 at each iteration prevents rounding drift.",
     },
   ],
   keyTerms: [
     {
-      term: "Transition Matrix",
+      term: "Markov Property",
       definition:
-        "A square stochastic matrix containing single-step transition probabilities between states.",
+        "The memoryless property stating that future states depend only on the current state, not on past states.",
+    },
+    {
+      term: "Stochastic Matrix",
+      definition:
+        "A square matrix with non-negative real numbers where each row sums to 1, representing transition probabilities.",
     },
     {
       term: "Stationary Distribution",
       definition:
-        "A state probability distribution that remains invariant under state transitions.",
+        "A probability vector π that remains invariant under state transitions: π * P = π.",
     },
   ],
 };
@@ -246,7 +263,7 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Simulate state transitions and compute stationary distributions or probability distributions after k steps on a discrete-time Markov chain.",
+    "Given an N-state discrete-time Markov chain defined by an N x N stochastic transition matrix and an initial probability distribution vector v_0, simulate state probability transitions over k time steps to compute the state probability vector v_k and observe steady-state convergence.",
   constraints: ["1 <= numStates <= 10", "1 <= steps <= 100", "0.0 <= matrix[i][j] <= 1.0"],
   examples: [
     {

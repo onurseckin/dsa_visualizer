@@ -1,164 +1,271 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const wordpiecePmiScoredTokenizer: AlgorithmDefinition<string> = {
+export interface WordpiecePmiScoredTokenizerInput {
+  tokenCounts: Record<string, number>;
+  pairCounts: Record<string, number>;
+}
+
+export const DEFAULT_WORDPIECE_PMI_INPUT: WordpiecePmiScoredTokenizerInput = {
+  tokenCounts: {
+    un: 10,
+    want: 20,
+    ed: 15,
+    in: 50,
+    side: 40,
+  },
+  pairCounts: {
+    "un,want": 8, // High PMI (8 / (10 * 20) = 0.04)
+    "want,ed": 12, // High PMI (12 / (20 * 15) = 0.04)
+    "in,side": 5, // Low PMI (5 / (50 * 40) = 0.0025)
+  },
+};
+
+export const WORDPIECE_PMI_CODE = `import math
+
+def compute_wordpiece_pmi_scores(token_counts: dict[str, int], pair_counts: dict[str, int]) -> list[tuple[float, str]]:
+    """
+    WordPiece candidate pair selection via Pointwise Mutual Information (PMI).
+    Score(A, B) = count(A, B) / (count(A) * count(B)).
+    Selects candidate pair with highest PMI score for merging into vocabulary.
+    """
+    pmi_scores = []
+
+    for pair_str, pair_freq in pair_counts.items():
+        sym_a, sym_b = pair_str.split(",")
+        count_a = token_counts.get(sym_a, 1)
+        count_b = token_counts.get(sym_b, 1)
+
+        # WordPiece PMI likelihood ratio score formula
+        pmi_score = pair_freq / (count_a * count_b)
+        pmi_scores.append((round(pmi_score, 6), f"('{sym_a}', '{sym_b}')"))
+
+    pmi_scores.sort(key=lambda x: x[0], reverse=True)
+    return pmi_scores`;
+
+export const generateWordpiecePmiSteps = (
+  input: WordpiecePmiScoredTokenizerInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { tokenCounts, pairCounts } = input;
+  let stepIndex = 0;
+
+  const pairEntries = Object.entries(pairCounts);
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Initialize WordPiece PMI Scored Pair Trainer (BERT Tokenizer)",
+      why: `Evaluating Pointwise Mutual Information (PMI) scores for ${pairEntries.length} candidate symbol pairs.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: pairEntries.map(([pStr, freq], idx) => ({
+        id: `pair-${idx}`,
+        value: freq,
+        label: `("${pStr.replace(",", `", "`)}") : freq ${freq}`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        totalPairs: String(pairEntries.length),
+        pmiFormula: "Score(A,B) = count(A,B) / (count(A) * count(B))",
+        status: "Initialized",
+      },
+    },
+    variables: { pairCount: pairEntries.length },
+  });
+
+  const pmiResults: {
+    pairStr: string;
+    score: number;
+    countAB: number;
+    countA: number;
+    countB: number;
+  }[] = [];
+
+  for (let i = 0; i < pairEntries.length; i++) {
+    const [pStr, pairFreq] = pairEntries[i];
+    const [symA, symB] = pStr.split(",");
+    const countA = tokenCounts[symA] || 1;
+    const countB = tokenCounts[symB] || 1;
+
+    const pmiScore = pairFreq / (countA * countB);
+    pmiResults.push({ pairStr: pStr, score: pmiScore, countAB: pairFreq, countA, countB });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `Calculate WordPiece PMI Score for Pair ("${symA}", "${symB}")`,
+        why: `PMI Score = count("${symA}","${symB}") / (count("${symA}") * count("${symB}")) = ${pairFreq} / (${countA} * ${countB}) = ${pmiScore.toFixed(
+          6,
+        )}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: pairEntries.map(([p, f], idx) => ({
+          id: `pair-${idx}`,
+          value: idx === i ? Math.round(pmiScore * 10000) : f,
+          label: `("${p.replace(",", `", "`)}") : ${idx <= i ? pmiResults[idx].score.toFixed(4) : "?"}`,
+          state: idx === i ? ("active" as ElementState) : ("visited" as ElementState),
+          pointers: idx === i ? [`PMI = ${pmiScore.toFixed(6)}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          activePair: `("${symA}", "${symB}")`,
+          countAB: String(pairFreq),
+          countA: String(countA),
+          countB: String(countB),
+          pmiScore: pmiScore.toFixed(6),
+        },
+      },
+      variables: { i, symA, symB, pmiScore: Math.round(pmiScore * 10000) / 10000 },
+    });
+  }
+
+  // Step Final: Sorted
+  pmiResults.sort((a, b) => b.score - a.score);
+  const best = pmiResults[0];
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: `WordPiece Pair Selection Complete: Top Pair ${best?.pairStr.replace(",", "+")} (Score = ${best?.score.toFixed(
+        6,
+      )})`,
+      why: `Selected highest PMI pair ("${best?.pairStr.replace(
+        ",",
+        `", "`,
+      )}") for inclusion in WordPiece vocabulary. Maximum mutual likelihood ratio achieved.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: pmiResults.map((res, rank) => ({
+        id: `res-${rank}`,
+        value: Math.round(res.score * 10000),
+        label: `Rank ${rank + 1}: ("${res.pairStr.replace(",", `", "`)}") : ${res.score.toFixed(6)}`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+        pointers: rank === 0 ? ["Top WordPiece Pair"] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        topPair: `("${best?.pairStr.replace(",", `", "`)}")`,
+        topPmiScore: best?.score.toFixed(6),
+        status: "Completed",
+      },
+    },
+    variables: { bestPair: best?.pairStr, topScore: best?.score, complete: true },
+  });
+
+  return steps;
+};
+
+export const wordpiecePmiScoredTokenizer: AlgorithmDefinition<WordpiecePmiScoredTokenizerInput> = {
   id: "wordpiecePmiScoredTokenizer",
-  title: "WordPiece PMI-Scored Tokenizer",
+  title: "WordPiece PMI-Scored Tokenizer Engine",
   category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
-  difficulty: "Medium",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), wordpiece pmi-scored tokenizer provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+  categories: ["ml_tokenization"],
+  difficulty: "Hard",
   isMlInfra: true,
-  mlInfraLevel: 6,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
+  description:
+    "Executes candidate pair scoring for WordPiece tokenization (Schuster & Nakajima 2012 / Devlin et al. BERT 2018). Unlike BPE which selects pairs based purely on raw co-occurrence frequency count(A, B), WordPiece maximizes Pointwise Mutual Information (PMI) Score(A, B) = count(A, B) / (count(A) * count(B)), prioritizing pairs whose constituents appear together more frequently than expected by chance.\n\nInput Format:\n- tokenCounts: Dictionary mapping individual subword tokens to unigram frequencies.\n- pairCounts: Dictionary mapping pair string 'A,B' to co-occurrence frequency counts.\n\nOutput Format:\n- Returns sorted list of (pmiScore, pairString) candidates in descending order.",
+  constraints: ["tokenCounts contains non-zero unigram frequency counts for constituents."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: '"unaffordability"',
-      outputDisplay: '["un", "##afford", "##ability"]',
-      input: "unaffordability",
-      output: '["un", "##afford", "##ability"]',
-      explanation: "Breaks token into prefix and continuation subwords based on PMI score.",
+      title: "PMI Selection of Rare Co-occurring Pair",
+      inputDisplay: "('un','want') vs ('in','side')",
+      outputDisplay: "Top Pair: ('un', 'want') with PMI Score 0.0400",
+      input: DEFAULT_WORDPIECE_PMI_INPUT,
+      output: "('un', 'want')",
+      explanation:
+        "('un','want') has higher PMI ratio (8/(10*20) = 0.04) than ('in','side') (5/(50*40) = 0.0025).",
     },
     {
       kind: "complex",
-      inputDisplay: '"internationalization"',
-      outputDisplay: '["inter", "##national", "##ization"]',
-      input: "internationalization",
-      output: '["inter", "##national", "##ization"]',
-      explanation: "Segments long compound word using vocabulary PMI lookup.",
+      title: "Equal Pair Frequencies Divergent PMI",
+      inputDisplay: "Equal pair frequencies with different unigram counts",
+      outputDisplay: "Higher score for rarer unigram pair",
+      input: {
+        tokenCounts: { a: 10, b: 10, x: 100, y: 100 },
+        pairCounts: { "a,b": 5, "x,y": 5 },
+      },
+      output: "('a', 'b')",
+      explanation: "('a','b') score = 5/100 = 0.05 vs ('x','y') score = 5/10000 = 0.0005.",
     },
     {
       kind: "negative",
-      inputDisplay: '""',
-      outputDisplay: "[]",
-      input: "",
-      output: "[]",
-      explanation: "Empty input string returns empty tokens.",
+      title: "Zero Co-occurrence Frequency",
+      inputDisplay: "pairCounts = {'a,b': 0}",
+      outputDisplay: "PMI Score: 0.0",
+      input: {
+        tokenCounts: { a: 10, b: 10 },
+        pairCounts: { "a,b": 0 },
+      },
+      output: "0.0",
+      explanation: "Zero pair frequency yields zero PMI score.",
     },
   ],
-  defaultInput: "unaffordability",
-  code: `def wordpiece_tokenize(text: str, vocab: set) -> list[str]:
-    tokens = []
-    start = 0
-    while start < len(text):
-        end = len(text)
-        cur_substr = None
-        while start < end:
-            substr = text[start:end]
-            if start > 0:
-                substr = "##" + substr
-            if substr in vocab:
-                cur_substr = substr
-                break
-            end -= 1
-        if cur_substr is None:
-            tokens.append("[UNK]")
-            break
-        tokens.append(cur_substr)
-        start = end
-    return tokens`,
+  defaultInput: DEFAULT_WORDPIECE_PMI_INPUT,
+  code: WORDPIECE_PMI_CODE,
   timeComplexity: {
-    best: "O(N)",
-    average: "O(N^2)",
-    worst: "O(N^2)",
+    best: "O(P log P)",
+    average: "O(P log P)",
+    worst: "O(P log P)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(P)",
   complexityAnalysis: {
-    time: "Longest prefix matching evaluates substrings up to vocabulary match or UNK.",
-    space: "Requires array storage for subword token strings.",
+    time: "O(P log P) where P is the number of candidate pairs evaluated for PMI scoring and sorting.",
+    space: "O(P) auxiliary memory to store candidate PMI scores.",
   },
   topicGuide: {
     overview:
-      "WordPiece PMI-Scored Tokenizer is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "WordPiece tokenization (Schuster & Nakajima 2012) is the subword algorithm powering BERT, RoBERTa-WordPiece, and Electra. While BPE tends to merge high-frequency trivial characters (like 'th' or 'in'), WordPiece uses Pointwise Mutual Information (PMI) to merge pairs that carry strong mutual information (like 'un' + 'wanted').",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, wordpiece pmi-scored tokenizer operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Likelihood Ratio Formulation",
+        body: "WordPiece maximizes the log-likelihood of a unigram language model. The gain from merging pair AB is delta L = count(A, B) * log(P(AB) / (P(A) * P(B))), which simplifies directly to PMI ratio count(A, B) / (count(A) * count(B)).",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. WordPiece PMI-Scored Tokenizer optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "WordPiece vs BPE Comparison",
+        body: "BPE: Merges argmax_{(A,B)} count(A, B). WordPiece: Merges argmax_{(A,B)} count(A, B) / (count(A) * count(B)). WordPiece favors domain-specific compound tokens.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing wordpiece pmi-scored tokenizer efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Vocabulary Size Tuning",
+        body: "BERT uses a 30,522 WordPiece vocabulary containing English subwords and subword continuation markers `##`.",
       },
     ],
     keyTerms: [
       {
-        term: "WordPiece Engine",
+        term: "Pointwise Mutual Information (PMI)",
         definition:
-          "The underlying algorithmic system implementing wordpiece pmi-scored tokenizer operations for deep learning workloads.",
+          "Statistical measure quantifying the discrepancy between the joint probability of two events and their independent probabilities.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "WordPiece Tokenizer",
+        definition: "PMI-based subword tokenization algorithm utilized by Google BERT and Electra.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Likelihood Ratio Gain",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Increase in corpus likelihood resulting from adding a merged token to vocabulary.",
       },
     ],
   },
-  generateSteps: (_input: string): AlgorithmStep[] => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: {
-        what: "Initialize WordPiece Tokenizer",
-        why: "Ready to segment input string.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "t1", value: 1, label: "unaffordability", state: "active" }],
-      },
-      auxiliaryState: { customState: { text: "unaffordability" } },
-      variables: { start: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 10,
-      explanation: { what: "Match longest prefix 'un'", why: "Found in vocabulary." },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "t1", value: 1, label: "un", state: "visited" }],
-      },
-      auxiliaryState: { customState: { token: "un" } },
-      variables: { start: 2 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 18,
-      explanation: { what: "Complete subword segmentation", why: "Tokens generated." },
-      primarySnapshot: {
-        kind: "array",
-        elements: [
-          { id: "t1", value: 1, label: "un", state: "sorted" },
-          { id: "t2", value: 1, label: "##afford", state: "sorted" },
-          { id: "t3", value: 1, label: "##ability", state: "sorted" },
-        ],
-      },
-      auxiliaryState: { customState: {} },
-      variables: {},
-    });
-
-    return steps;
-  },
+  sources: [
+    {
+      type: "ml_infra",
+      kind: "ml_infra",
+      label: "Japanese and Korean Voice Search (Schuster & Nakajima IEEE 2012)",
+    },
+  ],
+  generateSteps: generateWordpiecePmiSteps,
 };

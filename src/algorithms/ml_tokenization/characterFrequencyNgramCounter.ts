@@ -1,163 +1,230 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const characterFrequencyNgramCounter: AlgorithmDefinition<string> = {
-  id: "characterFrequencyNgramCounter",
-  title: "Character Frequency N-gram Counter",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
-  difficulty: "Easy",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), character frequency n-gram counter provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  isMlInfra: true,
-  mlInfraLevel: 6,
-  mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
-  examples: [
-    {
-      kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for characterFrequencyNgramCounter.",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
-    },
-    {
-      kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
-    },
-  ],
-  defaultInput: "unaffordability",
-  code: `
-def characterFrequencyNgramCounter(input_text, vocabulary_scores):
-    """
-    Character Frequency N-gram Counter
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
+export interface CharacterFrequencyNgramCounterInput {
+  text: string;
+  n: number;
+}
 
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
-  timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
-  },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
-  },
-  topicGuide: {
-    overview:
-      "Character Frequency N-gram Counter is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
-    sections: [
-      {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, character frequency n-gram counter operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
-      },
-      {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Character Frequency N-gram Counter optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
-      },
-      {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing character frequency n-gram counter efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
-      },
-    ],
-    keyTerms: [
-      {
-        term: "Character Engine",
-        definition:
-          "The underlying algorithmic system implementing character frequency n-gram counter operations for deep learning workloads.",
-      },
-      {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
-      },
-      {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
-      },
-    ],
-  },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+export const DEFAULT_NGRAM_COUNTER_INPUT: CharacterFrequencyNgramCounterInput = {
+  text: "banana",
+  n: 2,
 };
+
+export const CHARACTER_FREQUENCY_NGRAM_CODE = `def count_character_ngrams(text: str, n: int) -> tuple[dict[str, int], list[tuple[str, int]]]:
+    """
+    Computes character-level N-gram frequency counts for building subword tokenization vocabularies.
+    Extracts sliding windows of length N across input text string.
+    """
+    ngram_counts = {}
+    for i in range(len(text) - n + 1):
+        ngram = text[i : i + n]
+        ngram_counts[ngram] = ngram_counts.get(ngram, 0) + 1
+
+    sorted_ngrams = sorted(ngram_counts.items(), key=lambda x: x[1], reverse=True)
+    return ngram_counts, sorted_ngrams`;
+
+export const generateCharacterNgramSteps = (
+  input: CharacterFrequencyNgramCounterInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { text, n } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Character-Level ${n}-Gram Counter`,
+      why: `Extracting sliding windows of size N = ${n} across input text "${text}" (length ${text.length}).`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: text.split("").map((ch, idx) => ({
+        id: `c-${idx}`,
+        value: idx,
+        label: `'${ch}'`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        text: `"${text}"`,
+        n: String(n),
+        totalNgrams: String(Math.max(0, text.length - n + 1)),
+        status: "Initialized",
+      },
+    },
+    variables: { n, textLen: text.length },
+  });
+
+  const counts: Record<string, number> = {};
+
+  for (let i = 0; i <= text.length - n; i++) {
+    const ngram = text.substring(i, i + n);
+    counts[ngram] = (counts[ngram] || 0) + 1;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 8,
+      explanation: {
+        what: `Slide Window at Position ${i}: Extracted ${n}-Gram "${ngram}"`,
+        why: `Tallying frequency count for "${ngram}". Updated count = ${counts[ngram]}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: text.split("").map((ch, idx) => ({
+          id: `c-${idx}`,
+          value: idx,
+          label: `'${ch}'`,
+          state:
+            idx >= i && idx < i + n
+              ? ("active" as ElementState)
+              : idx < i
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`"${ngram}"`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          currentNgram: `"${ngram}"`,
+          count: String(counts[ngram]),
+          uniqueNgramsSoFar: String(Object.keys(counts).length),
+        },
+      },
+      variables: { i, ngram, count: counts[ngram] },
+    });
+  }
+
+  // Step Final: Complete
+  const sortedNgrams = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 11,
+    explanation: {
+      what: `${n}-Gram Frequency Counting Complete: Identified ${sortedNgrams.length} Unique ${n}-Grams`,
+      why: `Top N-gram: "${sortedNgrams[0]?.[0]}" with frequency ${sortedNgrams[0]?.[1]}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: sortedNgrams.map(([ng, cnt], rank) => ({
+        id: `ng-${rank}`,
+        value: cnt,
+        label: `"${ng}": ${cnt}`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+        pointers: rank === 0 ? ["Most Frequent"] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        topNgram: `"${sortedNgrams[0]?.[0]}" (${sortedNgrams[0]?.[1]})`,
+        totalUniqueNgrams: String(sortedNgrams.length),
+        status: "Completed",
+      },
+    },
+    variables: { topNgram: sortedNgrams[0]?.[0], topCount: sortedNgrams[0]?.[1], complete: true },
+  });
+
+  return steps;
+};
+
+export const characterFrequencyNgramCounter: AlgorithmDefinition<CharacterFrequencyNgramCounterInput> =
+  {
+    id: "characterFrequencyNgramCounter",
+    title: "Character Frequency & N-Gram Counter",
+    category: "ml_tokenization",
+    categories: ["ml_tokenization", "tries_and_strings"],
+    difficulty: "Easy",
+    isMlInfra: true,
+    mlInfraLevel: 5,
+    mlInfraCategory: "ml_tokenization",
+    description:
+      "Extracts sliding character N-gram frequencies across text corpora. Computes character frequency distributions used for seed vocabulary generation in Unigram LM and WordPiece tokenization trainers.\n\nInput Format:\n- text: Input text string.\n- n: N-gram sliding window size.\n\nOutput Format:\n- Returns tuple (ngramCountsMap, sortedNgramsList).\n\nEdge Cases & Constraints:\n- n > text.length: Returns empty N-gram frequency dictionary.",
+    constraints: ["1 <= n <= 10."],
+    examples: [
+      {
+        kind: "basic",
+        title: "2-Gram (Bigram) Frequency Counter",
+        inputDisplay: "text = 'banana', n = 2",
+        outputDisplay: "'an': 2, 'na': 2, 'ba': 1",
+        input: DEFAULT_NGRAM_COUNTER_INPUT,
+        output: "'an': 2, 'na': 2",
+        explanation:
+          "Extracts 2-grams 'ba', 'an', 'na', 'an', 'na'. Counts 'an' and 'na' twice each.",
+      },
+      {
+        kind: "complex",
+        title: "3-Gram (Trigram) Frequency Counter",
+        inputDisplay: "text = 'banana', n = 3",
+        outputDisplay: "'ana': 2, 'ban': 1, 'nan': 1",
+        input: { text: "banana", n: 3 },
+        output: "'ana': 2",
+        explanation: "'ana' occurs twice at positions 1 and 3.",
+      },
+      {
+        kind: "negative",
+        title: "Window Size Exceeding Text Length",
+        inputDisplay: "text = 'hi', n = 5",
+        outputDisplay: "Empty N-gram counts",
+        input: { text: "hi", n: 5 },
+        output: "{}",
+        explanation: "No 5-grams can be extracted from a 2-character string.",
+      },
+    ],
+    defaultInput: DEFAULT_NGRAM_COUNTER_INPUT,
+    code: CHARACTER_FREQUENCY_NGRAM_CODE,
+    timeComplexity: {
+      best: "O(N * n)",
+      average: "O(N * n)",
+      worst: "O(N * n)",
+    },
+    spaceComplexity: "O(U * n)",
+    complexityAnalysis: {
+      time: "O(N * n) sliding window scan where N is text length and n is N-gram size.",
+      space: "O(U * n) space to store U unique N-gram string keys in dictionary.",
+    },
+    topicGuide: {
+      overview:
+        "Character N-gram language models (Jelinek & Mercer 1980) serve as the foundation for token candidate generation in subword tokenizers (Unigram LM, Kudo 2018). Counting character N-gram frequencies enables statistical identification of common prefixes, suffixes, and root morphemes.",
+      sections: [
+        {
+          heading: "Core Concept & Sliding Window Extraction",
+          body: "A sliding window of fixed width N moves across string text[i..i+N-1], inserting each substring into a hash table frequency map.",
+        },
+        {
+          heading: "Role in Seed Vocabulary Construction",
+          body: "Unigram LM tokenization begins by collecting all frequent character N-grams (N = 1 to 16) to form an initial over-complete seed vocabulary V_0 before EM pruning.",
+        },
+        {
+          heading: "Systems & Memory Performance",
+          body: "In production, string hashing (`std::string_view`) avoids copying substring memory during window sliding.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "N-Gram",
+          definition:
+            "A contiguous sequence of N items (characters or words) from a given text sample.",
+        },
+        {
+          term: "Seed Vocabulary",
+          definition:
+            "The initial over-complete candidate set of subword tokens collected before pruning.",
+        },
+        {
+          term: "Sliding Window",
+          definition: "A fixed-size sub-array frame that steps sequentially across input data.",
+        },
+      ],
+    },
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label: "NLP N-Gram Modeling & Tokenization Primitives",
+      },
+    ],
+    generateSteps: generateCharacterNgramSteps,
+  };

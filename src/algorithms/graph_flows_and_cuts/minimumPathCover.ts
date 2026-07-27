@@ -27,17 +27,29 @@ export const DEFAULT_MINIMUM_PATH_COVER_INPUT: MinimumPathCoverInput = {
   ],
 };
 
-export const PYTHON_MINIMUM_PATH_COVER_CODE = `
-def python_minimum_path_cover(input_array):
-    """
-    Implementation of python_minimum_path_cover.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_MINIMUM_PATH_COVER_CODE = `def min_path_cover(n, edges):
+    adj = {i: [] for i in range(n)}
+    for u, v in edges:
+        adj[u].append(v)
+        
+    match = [-1] * n
+    
+    def dfs(u, visited):
+        for v in adj[u]:
+            if not visited[v]:
+                visited[v] = True
+                if match[v] < 0 or dfs(match[v], visited):
+                    match[v] = u
+                    return True
+        return False
+        
+    matching_size = 0
+    for i in range(n):
+        visited = [False] * n
+        if dfs(i, visited):
+            matching_size += 1
+            
+    return n - matching_size`;
 
 export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): AlgorithmStep[] => {
   const numNodes = Math.max(1, input?.numNodes ?? DEFAULT_MINIMUM_PATH_COVER_INPUT.numNodes);

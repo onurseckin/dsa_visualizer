@@ -8,35 +8,41 @@ export interface maskedMemoryLoadStoreGuardInput {
 }
 
 export const MASKEDMEMORYLOADSTOREGUARD_CODE = `
-def maskedmemoryloadstoreguard(q_tile, k_tile, v_tile, scale_factor):
+def triton_masked_load_store(
+    global_ptr: list[float],
+    block_start: int,
+    block_size: int,
+    valid_boundary: int,
+    other_val: float = 0.0
+) -> tuple[list[float], list[bool], list[float]]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Simulates Triton tl.load(ptr, mask=mask, other=other_val) and tl.store(ptr, val, mask=mask).
+    Guards out-of-bounds DRAM reads/writes for tail tiles when valid_boundary is unaligned.
     """
-    import math
+    offsets = [block_start + i for i in range(block_size)]
+    
+    # 1. Compute SIMD boolean mask predicate vector
+    mask = [offset < valid_boundary for offset in offsets]
+    
+    # 2. Masked Load: out-of-bounds reads return other_val (e.g. 0.0 or -inf)
+    loaded_vals = []
+    for offset, is_valid in zip(offsets, mask):
+        if is_valid:
+            loaded_vals.append(global_ptr[offset])
+        else:
+            loaded_vals.append(other_val)
+            
+    # 3. Masked Store: out-of-bounds writes are safely suppressed (no-op)
+    stored_output = list(global_ptr)
+    for offset, val, is_valid in zip(offsets, loaded_vals, mask):
+        if is_valid:
+            stored_output[offset] = val
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
-
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    return loaded_vals, mask, stored_output
 `;
 
 export const DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT: maskedMemoryLoadStoreGuardInput = {
-  data: [1, 2, 3],
+  data: [10, 20, 30, 40, 50],
 };
 
 export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
@@ -45,7 +51,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const arrayData = input.data || [10, 20, 30, 40, 50];
 
   const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
@@ -53,147 +59,188 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     state: "default",
   }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
-    },
-    auxiliaryState: {
-      customState: { initialized: "true" },
-    },
-    variables: { active: true },
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          block_size: "4",
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Masked Memory Load/Store Guard",
+    "Setting up Triton predicate masking: offsets = block_start + thread_ids; mask = offsets < valid_boundary.",
+    { valid_boundary: arrayData.length },
+  );
+
+  arrayData.forEach((val: number, idx: number) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`off=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      14,
+      `Evaluate SIMD predicate for offset ${idx} (val=${val})`,
+      `Offset ${idx} < boundary (${arrayData.length}): valid read issued to global memory.`,
+      { offset: idx, isValid: true, val },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
-    },
-    auxiliaryState: {
-      customState: { done: "true" },
-    },
-    variables: { result: "calculated" },
-  });
+  addStep(
+    28,
+    "Execution Complete",
+    "Successfully executed SIMD masked memory loads and stores without illegal memory access.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const MASKEDMEMORYLOADSTOREGUARD_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  distractors: [
+    "mask = [offset > valid_boundary for offset in offsets]",
+    "loaded_vals.append(global_ptr[offset] if not is_valid else other_val)",
+    "stored_output[offset] = other_val",
+  ],
+  hints: [
+    {
+      line: 14,
+      hint: "Compute SIMD predicate boolean array mask = [offset < valid_boundary for offset in offsets].",
+    },
+    {
+      line: 17,
+      hint: "Return other_val for out-of-bounds offsets to prevent illegal memory reads.",
+    },
+    { line: 26, hint: "Suppress store operations when is_valid is False." },
+  ],
+  lineExplanations: {
+    1: "Defines Triton masked memory load/store guard function.",
+    14: "Calculates boolean SIMD mask vector offsets < valid_boundary.",
+    17: "Reads valid global memory pointer offset when mask element is True.",
+    20: "Returns padding fallback value (e.g. 0.0 or -inf) when mask element is False.",
+    26: "Applies store mutation to global memory only for valid unmasked positions.",
+  },
 };
 
 export const maskedMemoryLoadStoreGuard: AlgorithmDefinition<maskedMemoryLoadStoreGuardInput> = {
   id: "masked-memory-load-store-guard",
-  title: "Triton Masked Load/Store Boundary Guard",
+  title: "Triton Masked Memory Load & Store Guard",
   category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "arrays_and_hashing"],
+  categories: ["ml_hardware_kernels", "ml_tensor_algebra"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 9,
   mlInfraCategory: "ml_hardware_kernels",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), triton masked load/store boundary guard provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "In GPU parallel kernel programming (OpenAI Triton, CUDA), memory tiles are processed in fixed block sizes (e.g. `BLOCK_M = 128`). However, real-world tensor dimensions $N$ (e.g. sequence length $N = 350$) are rarely exact multiples of block sizes.\n\nWhen a thread block processes the tail tile of a matrix, offsets $i \\in [384 \\dots 512)$ extend beyond the valid matrix boundary $N = 350$. Issuing un-guarded memory reads/writes to these addresses causes illegal memory access (CUDA Segmentation Fault) or memory corruption.\n\n**Masked Memory Load/Store Guard** evaluates a SIMD boolean predicate array:\n$$\\text{mask} = \\text{offsets} < N$$\n- `tl.load(ptr + offsets, mask=mask, other=0.0)`: Out-of-bounds positions return `0.0` (or `-\\infty` for Softmax attention logits) without reading DRAM.\n- `tl.store(ptr + offsets, values, mask=mask)`: Out-of-bounds positions suppress DRAM writes (no-op).\n\nInput Format:\n- data: Array of global memory values or offsets.\n- target: Valid memory boundary $N$.\n\nOutput Format:\n- Loaded vector values with padding, boolean predicate mask vector, and safely stored output array.",
+  constraints: ["1 <= block_size <= 1024", "valid_boundary >= 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 2, 3] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Triton Masked Load (N=5, Block=8)",
+      inputDisplay: "offsets = [0..7], N = 5",
+      outputDisplay: "Mask: [T,T,T,T,T,F,F,F], Padding: 0.0",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "Out-of-bounds padded with 0.0",
+      explanation: "Offsets >= 5 set mask=False and return other_val=0.0 without DRAM access.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 2, 3] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "Tail Tile Guard Test",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Zero Illegal Memory Access",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "Zero Illegal Memory Access",
+      explanation: "Evaluates predicate masks across 5 valid elements and 3 tail padding slots.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 2, 3] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Full Alignment Check",
+      inputDisplay: "data = [1, 2, 3, 4]",
+      outputDisplay: "All Mask True",
+      input: { data: [1, 2, 3, 4] },
+      output: "All Mask True",
+      explanation:
+        "When sequence length equals block size, all predicate mask entries evaluate to True.",
     },
   ],
   code: MASKEDMEMORYLOADSTOREGUARD_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(B)", average: "O(B)", worst: "O(B)" },
+  spaceComplexity: "O(B)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "Evaluates SIMD predicate masks over block size $B$ in $O(B)$ parallel thread instructions.",
+    space: "Requires $O(B)$ memory to store boolean mask predicates.",
   },
   topicGuide: {
     overview:
-      "Triton Masked Load/Store Boundary Guard is a critical component in ML HARDWARE KERNELS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Masked loads and stores are a core building block of Triton kernels (`tl.load` and `tl.store`). They allow kernels to process arbitrary matrix dimensions without needing specialized fallback loops.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, triton masked load/store boundary guard operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Let $P$ be a pointer vector $P_i = \\text{ptr} + \\text{offsets}_i$. The predicate $M_i = (\\text{offsets}_i < N)$. The load operator is $V_i = M_i ? *P_i : v_{\\text{other}}$. The store operator is $M_i ? (*P_i = V_i) : \\text{nop}$.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Triton Masked Load/Store Boundary Guard optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "PTX Translation: In CUDA PTX assembly, `tl.load` with a mask compiles to predicated vector load instructions `@p1 ld.global.v4.f32`. Threads where predicate `@p1` is false skip memory transactions entirely.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing triton masked load/store boundary guard efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Padding values in Attention: In FlashAttention / Triton softmax kernels, out-of-bounds logit loads MUST set `other=-float('inf')` so that Softmax exponentiation $e^{-\\infty} = 0.0$ naturally zeroes out padded key tokens.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "2D Masking: For 2D tile loads (`BLOCK_M, BLOCK_N`), masks are constructed via broadcasting: `mask = (offs_m[:, None] < M) & (offs_n[None, :] < N)`. Out-of-bounds elements in either dimension are masked out.",
       },
     ],
     keyTerms: [
       {
-        term: "Triton Engine",
+        term: "SIMD Predicate Mask",
         definition:
-          "The underlying algorithmic system implementing triton masked load/store boundary guard operations for deep learning workloads.",
+          "A boolean vector controlling which SIMD thread lanes execute memory load/store operations.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "tl.load / tl.store",
+        definition: "OpenAI Triton intrinsic functions for masked block memory transfers.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Tail Tile",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "The final block tile of a tensor when dimensions are not evenly divisible by block size.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Illegal Memory Access",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "GPU hardware fault triggered when a thread reads/writes un-allocated memory addresses.",
       },
     ],
   },

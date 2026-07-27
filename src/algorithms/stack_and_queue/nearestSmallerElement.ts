@@ -172,8 +172,22 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   category: "stack_and_queue",
   categories: ["stack_and_queue"],
   difficulty: "Medium",
-  description:
-    "Given an array of integers nums, find the nearest smaller element to the left for each element in the array. For each element at index i, find the nearest element at index j < i such that nums[j] < nums[i]. If no such element exists, output -1 for that index. A monotonic stack algorithm computes the answer in linear O(N) time by maintaining an increasing stack of candidates.",
+  description: `Given an array of integers \`nums\`, find the nearest smaller element to the left for each element in the array.
+
+For each element at index \`i\` ($0 \\le i < N$), locate the largest index $j < i$ such that \`nums[j] < nums[i]\`. If no such element exists, output \`-1\` for index \`i\`. A monotonic stack algorithm computes the answer in linear $O(N)$ time by maintaining an increasing stack of candidate elements.
+
+### Input Parameters
+- \`nums\`: An array of integers.
+
+### Output
+- Returns an array \`result\` of length $N$ where \`result[i]\` is the nearest smaller element to the left of \`nums[i]\`, or \`-1\` if no smaller element exists to its left.
+
+### Edge Cases & Constraints
+- \`1 <= nums.length <= 10^5\`
+- \`-10^4 <= nums[i] <= 10^4\`
+- Strictly increasing array: Each element's nearest smaller element is its immediate left neighbor.
+- Strictly decreasing array: No element has a smaller element to its left; all entries in \`result\` are \`-1\`.
+- Array with duplicate elements: Handled strictly via \`>=\` vs \`>\` stack popping logic.`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
@@ -213,7 +227,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   },
   topicGuide: {
     overview:
-      "The Nearest Smaller Element algorithm uses a monotonic stack to efficiently find the closest preceding smaller value for every position in an array. Rather than running a quadratic O(N²) nested search for every element, a monotonic increasing stack prunes elements that are larger than or equal to the current item, as those items can never serve as a smaller neighbor for any future element. This linear pattern powers foundational algorithms in computer graphics (Largest Rectangle in Histogram), stock span calculations, and compiler instruction scheduling.",
+      "The Nearest Smaller Element algorithm uses a monotonic stack to efficiently find the closest preceding smaller value for every position in an array. Rather than running a quadratic O(N²) nested search for every element, a monotonic increasing stack prunes elements that are larger than or equal to the current item, as those items can never serve as a smaller neighbor for any future element. This linear pattern powers foundational algorithms in graphics (Largest Rectangle in Histogram), PyTorch tensor shape reduction, stock span calculations, and compiler instruction scheduling.",
     sections: [
       {
         heading: "The Monotonic Invariant",
@@ -239,7 +253,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
           "A stack data structure whose elements are kept strictly sorted (either increasing or decreasing) by popping violating elements prior to pushing new ones.",
       },
       {
-        term: "Domination Rule",
+        term: "Domination Principle",
         definition:
           "The logical condition where a newer, smaller element renders an older, larger element permanently irrelevant for future nearest-smaller queries.",
       },

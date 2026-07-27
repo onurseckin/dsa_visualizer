@@ -7,15 +7,25 @@ export interface InclusionExclusionInput {
 }
 
 export const PYTHON_INCLUSION_EXCLUSION_CODE = `
-def python_inclusion_exclusion(input_array):
+def inclusion_exclusion(n: int, primes: list[int]) -> int:
     """
-    Implementation of python_inclusion_exclusion.
+    Computes the count of integers in [1, n] divisible by at least one prime in primes.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    k = len(primes)
+    total_count = 0
+    for mask in range(1, 1 << k):
+        prod = 1
+        bits = 0
+        for i in range(k):
+            if (mask >> i) & 1:
+                prod *= primes[i]
+                bits += 1
+        count = n // prod
+        if bits % 2 == 1:
+            total_count += count
+        else:
+            total_count -= count
+    return total_count
 `;
 
 export const DEFAULT_INCLUSION_EXCLUSION_INPUT: InclusionExclusionInput = {
@@ -173,27 +183,40 @@ export const generateInclusionExclusionSteps = (
 
 const INCLUSION_EXCLUSION_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Inclusion-Exclusion Principle (IEP) is a foundational counting technique in combinatorics and number theory. It computes the size of the union of multiple overlapping sets by alternating between adding the sizes of set intersections of odd cardinality and subtracting the sizes of set intersections of even cardinality.",
+    "The Inclusion-Exclusion Principle (IEP) is a foundational counting technique in combinatorics and probability. It computes the size of the union of multiple overlapping sets by alternating between adding the sizes of set intersections of odd cardinality and subtracting the sizes of set intersections of even cardinality: |U A_i| = sum |A_i| - sum |A_i ∩ A_j| + sum |A_i ∩ A_j ∩ A_k| - ...",
   sections: [
     {
       heading: "Why Alternating Sums Work",
-      body: "If we simply sum the sizes of individual sets |A| + |B| + |C|, elements belonging to multiple sets are counted more than once. Subtracting pairwise intersections |A ∩ B| corrects pairwise overlaps but over-subtracts triple overlaps |A ∩ B ∩ C|. Adding back triple intersections fixes the counts for all elements.",
+      body: "If we simply sum the individual set sizes |A| + |B| + |C|, any element belonging to multiple sets is overcounted. Subtracting pairwise intersections |A ∩ B| corrects pairwise overlaps but over-subtracts elements in three sets. Adding back triple intersections |A ∩ B ∩ C| fixes triple overlaps. In general, an element belonging to exactly m sets is counted C(m,1) - C(m,2) + C(m,3) - ... = 1 times.",
     },
     {
-      heading: "Bitmask Generation of Subsets",
-      body: "For k prime factors or conditions, there are 2^k - 1 non-empty subsets. Using integer bitmasks from 1 to 2^k - 1 lets us efficiently iterate over every subset, compute the product of selected primes, and alternate signs based on popcount.",
+      heading: "Bitmask Subset Iteration",
+      body: "For k prime factors or properties, there are 2^k - 1 non-empty subsets. Using integer bitmasks from 1 to 2^k - 1 lets us efficiently iterate over every subset of conditions. The set bits specify which primes to multiply together, and popcount parity decides whether to add (odd set bits) or subtract (even set bits) floor(N / product).",
+    },
+    {
+      heading: "Systems & Real-World Applications",
+      body: "Inclusion-Exclusion powers major algorithms: 1) Derangements (counting permutations with no fixed points), 2) Co-primality counting (finding how many integers in [1, N] are coprime to a given integer), 3) Graph Coloring (computing chromatic polynomials), and 4) Database Query Optimization (estimating union selectivity across overlapping attribute indexes).",
+    },
+    {
+      heading: "Complexity & Subgroup Limits",
+      body: "Bitmask evaluation runs in O(2^k) time where k is the number of sets/primes. For k <= 20, 2^k = 1,048,576 operations run in milliseconds. When k > 30, fast Möbius inversion on posets or SOS DP (Sum Over Subsets) is required to optimize subset combinations.",
     },
   ],
   keyTerms: [
     {
-      term: "Bitmask",
+      term: "Union of Sets",
       definition:
-        "An integer representation where the i-th bit indicates whether the i-th prime is included in the current subset.",
+        "The set containing all elements belonging to at least one of the component sets.",
     },
     {
-      term: "Parity / Popcount",
+      term: "Bitmask Subset Generation",
       definition:
-        "The number of set bits in the bitmask determines whether the subset intersection size is added (+ for odd) or subtracted (- for even).",
+        "Using binary representations of integers from 1 to 2^k - 1 to represent all non-empty subsets of k items.",
+    },
+    {
+      term: "Popcount Parity",
+      definition:
+        "The number of 1-bits in a binary mask, determining whether the term is added (+ for odd) or subtracted (- for even).",
     },
   ],
 };
@@ -221,7 +244,7 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Count elements in the union of multiple sets by alternating sums of set intersections for all sub-collections.",
+    "Given a target integer n and a list of k prime numbers, compute the total count of integers in the range [1, n] that are divisible by at least one of the given primes. The algorithm iterates over all 2^k - 1 non-empty subsets of primes using bitmasks, alternating between adding odd-sized intersection counts and subtracting even-sized intersection counts.",
   constraints: ["1 <= n <= 10^9", "1 <= primes.length <= 10", "2 <= primes[i] <= 10^5"],
   examples: [
     {
