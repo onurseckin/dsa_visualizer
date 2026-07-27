@@ -1,4 +1,4 @@
-import { vizSlotBg, vizSlotColor } from "../../primitives/vizPalette";
+import { vizSlotBg, vizSlotColor } from "../primitives/vizPalette";
 
 export type MLInfraFamilyId =
   | "foundations"

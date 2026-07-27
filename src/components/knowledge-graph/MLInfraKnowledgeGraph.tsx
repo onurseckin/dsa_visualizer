@@ -4,11 +4,13 @@ import {
   ML_INFRA_FAMILIES,
   ML_INFRA_NODES,
   ML_INFRA_NODE_MAP,
+  MLInfraFamily,
   MLInfraNode,
+  MLInfraQuestionItem,
   mlInfraFamilyColor,
   mlInfraFamilyFill,
   mlInfraFamilyFillHover,
-} from "./data/mlInfraGraphData";
+} from "./mlInfraGraphData";
 
 export {
   ML_INFRA_FAMILIES,
@@ -18,8 +20,8 @@ export {
   mlInfraFamilyFill,
   mlInfraFamilyFillHover,
   mlInfraFamilyLabel,
-} from "./data/mlInfraGraphData";
-export type { MLInfraNode, MLInfraFamily, MLInfraFamilyId, MLInfraQuestionItem } from "./data/mlInfraGraphData";
+} from "./mlInfraGraphData";
+export type { MLInfraNode, MLInfraFamily, MLInfraFamilyId, MLInfraQuestionItem } from "./mlInfraGraphData";
 
 export interface MLInfraKnowledgeGraphProps {
   onSelectCategoryFolder?: (folder: string) => void;
@@ -76,7 +78,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
         aria-label="Topic family colors"
         className="bg-[#141418]/90 backdrop-blur-xl border border-white/15 px-6 py-3 rounded-full shadow-xl mb-6 flex flex-wrap items-center justify-center gap-5 list-none mx-auto relative z-10"
       >
-        {ML_INFRA_FAMILIES.map((family) => (
+        {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
           <li
             key={family.id}
             className="text-xs font-semibold text-neutral-200 tracking-wide inline-flex items-center gap-2"
@@ -125,7 +127,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
           {activeDrawerTopic.prerequisites.length > 0 && (
             <div className="text-xs text-[var(--text-muted)] flex flex-wrap items-center gap-1.5">
               <span className="font-semibold text-[var(--text-secondary)]">Prerequisites:</span>
-              {activeDrawerTopic.prerequisites.map((pId) => {
+              {activeDrawerTopic.prerequisites.map((pId: string) => {
                 const pTopic = ML_INFRA_NODE_MAP.get(pId);
                 return (
                   <span
@@ -145,7 +147,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
               Curated Problems ({activeDrawerTopic.questions.length})
             </h3>
 
-            {activeDrawerTopic.questions.map((q) => {
+            {activeDrawerTopic.questions.map((q: MLInfraQuestionItem) => {
               const isFoundational = q.type === "Foundational Math & DSA";
 
               return (
@@ -207,7 +209,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
           className="w-full h-auto max-w-full mx-auto block relative z-0 drop-shadow-sm"
         >
           <defs>
-            {ML_INFRA_FAMILIES.map((family) => (
+            {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
               <marker
                 key={family.id}
                 id={`ml-arrow-${family.id}`}
@@ -240,8 +242,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
           {/* Connectors Group */}
           <g className="connectors">
-            {ML_INFRA_NODES.map((node) =>
-              node.prerequisites.map((prereqId) => {
+            {ML_INFRA_NODES.map((node: MLInfraNode) =>
+              node.prerequisites.map((prereqId: string) => {
                 const parent = ML_INFRA_NODE_MAP.get(prereqId);
                 if (!parent) return null;
 
@@ -289,7 +291,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
           {/* Nodes Group */}
           <g className="nodes">
-            {ML_INFRA_NODES.map((node) => {
+            {ML_INFRA_NODES.map((node: MLInfraNode) => {
               const isHovered = hoveredNodeId === node.id;
               const isFocused = focusedNodeId === node.id;
               const activeFocusOrHover = isHovered || isFocused;
