@@ -4,6 +4,8 @@ import { PanelKey, PanelVisibility, ViewMode } from "../types/dsa";
 const STORAGE_PREFIX = "dsa_visualizer_";
 
 const PANEL_STORAGE_KEYS: Record<PanelKey, string> = {
+  problem: "panel_problem",
+  solution: "panel_solution",
   visualizer: "panel_visualizer",
   code: "panel_code",
   tutorial: "panel_tutorial",
@@ -54,6 +56,8 @@ export function readPanelVisibility(): PanelVisibility {
   const legacyViewMode = readStored<ViewMode | null>("view_mode", null, isLegacyViewMode);
   const legacyStage = legacyViewMode === null ? null : LEGACY_STAGE_PANELS[legacyViewMode];
   return {
+    problem: readStored(PANEL_STORAGE_KEYS.problem, true, isBoolean),
+    solution: readStored(PANEL_STORAGE_KEYS.solution, true, isBoolean),
     visualizer: readStored(
       PANEL_STORAGE_KEYS.visualizer,
       legacyStage?.visualizer ?? true,

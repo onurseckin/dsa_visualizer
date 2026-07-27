@@ -13,7 +13,14 @@ describe("TwoSumSorted React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["two-sum-sorted"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -34,7 +41,14 @@ describe("TwoSumSorted React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["two-sum-sorted"]}
         currentStep={lastStep}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

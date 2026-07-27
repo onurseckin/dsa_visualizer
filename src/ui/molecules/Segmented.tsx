@@ -38,7 +38,7 @@ export const Segmented = forwardRef<HTMLDivElement, SegmentedProps>(function Seg
       className={cx(
         "ui-segmented",
         `ui-segmented--${_size}`,
-        "p-1 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] inline-flex gap-1",
+        "p-1 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl inline-flex gap-1",
         className,
       )}
       {...rest}
@@ -53,7 +53,7 @@ export const Segmented = forwardRef<HTMLDivElement, SegmentedProps>(function Seg
                 type="button"
                 className={cx(
                   "ui-segmented__btn",
-                  "px-4 py-2 text-xs md:text-sm font-medium rounded-[var(--radius-sm)] transition-colors",
+                  "px-4 py-2 text-xs md:text-sm font-medium rounded-xl min-h-[44px] inline-flex items-center justify-center gap-2 transition-colors",
                   selected && "ui-segmented__btn--selected",
                 )}
                 aria-pressed={selected}

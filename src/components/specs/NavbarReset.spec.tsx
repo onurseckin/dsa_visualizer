@@ -9,6 +9,8 @@ import {
 import { Navbar, NavbarProps } from "../../ui";
 
 const ALL_VISIBLE: PanelVisibility = {
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,

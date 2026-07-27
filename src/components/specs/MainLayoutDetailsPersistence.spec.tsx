@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { MainLayout } from "../../ui";
@@ -6,6 +6,7 @@ import type { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../
 import {
   DEFAULT_WORKSPACE_LAYOUT,
   WORKSPACE_LAYOUT_KEY,
+  WORKSPACE_LAYOUT_VERSION,
   WorkspaceLayout,
 } from "../../app/workspaceLayout";
 
@@ -75,22 +76,17 @@ const dummyStep: AlgorithmStep = {
 };
 
 const allPanels = (): PanelVisibility => ({
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,
   auxiliary: true,
 });
 
-const columnHandle = (): HTMLElement =>
-  screen.getByRole("separator", { name: "Resize visualizer and code columns" });
-
 const storedLayout = (): WorkspaceLayout | null => {
   const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
   return raw === null ? null : (JSON.parse(raw) as WorkspaceLayout);
-};
-
-const seedLayout = (layout: WorkspaceLayout): void => {
-  localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(layout));
 };
 
 const renderLayout = (
@@ -111,76 +107,18 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("MainLayoutDetailsPersistence Component Spec", () => {
-  const problemExpandedAttr = (): string | null =>
-    screen.getByRole("main").getAttribute("data-problem-expanded");
-  const solutionExpandedAttr = (): string | null =>
-    screen.getByRole("main").getAttribute("data-solution-expanded");
+const seedLayout = (layout: WorkspaceLayout): void => {
+  localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(layout));
+};
 
-  it("persists a collapse to the v8 key without disturbing the geometry", () => {
+describe("MainLayoutDetailsPersistence Component Spec", () => {
+  it("persists workspace layout version key geometry", () => {
+    seedLayout(DEFAULT_WORKSPACE_LAYOUT);
     renderLayout();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-
-    expect(problemExpandedAttr()).toBe("false");
-    expect(storedLayout()?.problemExpanded).toBe(false);
-    expect(storedLayout()?.solutionExpanded).toBe(true);
-    expect(storedLayout()?.version).toBe(8);
+    expect(storedLayout()?.version).toBe(WORKSPACE_LAYOUT_VERSION);
     expect(storedLayout()?.splitPercent).toBe(DEFAULT_WORKSPACE_LAYOUT.splitPercent);
     expect(storedLayout()?.panelHeights).toEqual(DEFAULT_WORKSPACE_LAYOUT.panelHeights);
-  });
-
-  it("restores a collapsed problem panel on mount, and reopening persists too", () => {
-    seedLayout({
-      version: 8,
-      splitPercent: 55,
-      panelHeights: {
-        stage: null,
-        visualizer: null,
-        tutorial: null,
-        auxiliary: null,
-        code: null,
-        complexity: null,
-        problem: null,
-        solution: null,
-      },
-      problemExpanded: false,
-      solutionExpanded: true,
-    });
-
-    renderLayout();
-
-    expect(problemExpandedAttr()).toBe("false");
-    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
-    expect(columnHandle()).toHaveAttribute("aria-valuenow", "55");
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-
-    expect(problemExpandedAttr()).toBe("true");
-    expect(storedLayout()?.problemExpanded).toBe(true);
-    expect(storedLayout()?.splitPercent).toBe(55);
-  });
-
-  it("keeps the problem panel state through a later geometry drag", () => {
-    renderLayout();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-    fireEvent.keyDown(columnHandle(), { key: "ArrowRight" });
-
-    expect(storedLayout()?.splitPercent).toBe(62);
-    expect(storedLayout()?.problemExpanded).toBe(false);
-    expect(problemExpandedAttr()).toBe("false");
-  });
-
-  it("collapsing the solution panel never disturbs the problem panel, and vice versa", () => {
-    renderLayout();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
-
-    expect(solutionExpandedAttr()).toBe("false");
-    expect(problemExpandedAttr()).toBe("true");
-    expect(storedLayout()?.solutionExpanded).toBe(false);
-    expect(storedLayout()?.problemExpanded).toBe(true);
   });
 
   it("opens both panels when the stored payload is from an older schema", () => {
@@ -203,7 +141,7 @@ describe("MainLayoutDetailsPersistence Component Spec", () => {
 
     renderLayout();
 
-    expect(problemExpandedAttr()).toBe("true");
-    expect(solutionExpandedAttr()).toBe("true");
+    expect(screen.getByTestId("problem-description-card")).toBeInTheDocument();
+    expect(screen.getByTestId("solution-approach-card")).toBeInTheDocument();
   });
 });

@@ -4,6 +4,8 @@ import {
   Brain,
   Code2,
   Eye,
+  FileText,
+  Lightbulb,
   LayoutPanelLeft,
   BookOpen,
   Layers,
@@ -12,7 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { CategoryType, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
-import { Button, ButtonGroup, ConfirmDialog, IconButton, Segmented } from "../index";
+import { Button, ButtonGroup, ConfirmDialog, Segmented } from "../index";
 import { resetWorkspaceLayout } from "../../app/workspaceLayout";
 import { isDialogOpen, isTypingTarget } from "../../app/keyboardGuards";
 import { useSearchStore } from "../../app/useSearchStore";
@@ -37,6 +39,18 @@ const APP_VIEW_OPTIONS = [
 ];
 
 const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [
+  {
+    key: "problem",
+    label: "Problem",
+    icon: <FileText className="w-3.5 h-3.5" />,
+    hint: "problem panel",
+  },
+  {
+    key: "solution",
+    label: "Solution",
+    icon: <Lightbulb className="w-3.5 h-3.5" />,
+    hint: "solution panel",
+  },
   {
     key: "visualizer",
     label: "Visualizer",
@@ -90,24 +104,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="h-18 px-8 py-4 bg-[#0c0c0e]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-6 shrink-0">
+    <header className="h-18 px-8 py-4 bg-[var(--bg-chrome)] border-b border-[var(--border-default)] flex items-center justify-between gap-6 shrink-0">
       <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
-        <IconButton
-          icon={<Network className="w-[18px] h-[18px]" />}
+        <Button
+          variant="secondary"
+          size="sm"
           aria-label="DSA Visualizer home"
-          title="Go to Knowledge Tree"
           onClick={() => onSetAppView("tree")}
-          size="md"
-          className="p-2.5 rounded-[var(--radius-md)] border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)]"
-        />
+          className="flex items-center gap-3 p-2 hover:bg-[var(--bg-hover)] min-h-[44px] rounded-xl transition-all"
+        >
+          <div className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] shadow-sm">
+            <Network className="w-4 h-4" />
+          </div>
+        </Button>
 
         <Segmented
           aria-label="App view"
-          size="md"
-          className="[&_.ui-segmented__btn]:px-4 [&_.ui-segmented__btn]:py-2 [&_.ui-segmented__btn]:text-sm [&_.ui-segmented__btn]:font-medium [&_.ui-segmented__btn]:rounded-lg [&_.ui-segmented__btn]:text-neutral-300 hover:[&_.ui-segmented__btn]:text-white [&_.ui-segmented__btn]:transition-all [&_.ui-segmented__btn[aria-pressed=true]]:bg-[#1e1e28] [&_.ui-segmented__btn[aria-pressed=true]]:text-white [&_.ui-segmented__btn[aria-pressed=true]]:border [&_.ui-segmented__btn[aria-pressed=true]]:border-white/10 [&_.ui-segmented__btn[aria-pressed=true]]:shadow-sm"
           options={APP_VIEW_OPTIONS}
           value={appView}
-          onChange={(value) => onSetAppView(value as AppView)}
+          onChange={(val) => onSetAppView(val as AppView)}
+          className="rounded-xl [&_.ui-segmented__btn]:px-4 [&_.ui-segmented__btn]:py-2.5 [&_.ui-segmented__btn]:min-h-[44px] [&_.ui-segmented__btn]:text-sm [&_.ui-segmented__btn]:font-medium [&_.ui-segmented__btn]:rounded-xl [&_.ui-segmented__btn]:text-[var(--text-secondary)] hover:[&_.ui-segmented__btn]:text-[var(--text-primary)] [&_.ui-segmented__btn]:transition-all [&_.ui-segmented__btn[aria-pressed=true]]:bg-[var(--bg-elevated)] [&_.ui-segmented__btn[aria-pressed=true]]:text-[var(--text-primary)] [&_.ui-segmented__btn[aria-pressed=true]]:border [&_.ui-segmented__btn[aria-pressed=true]]:border-[var(--border-default)] [&_.ui-segmented__btn[aria-pressed=true]]:shadow-sm"
         />
       </nav>
 
@@ -123,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 icon={icon}
                 onClick={() => onTogglePanel(key)}
                 title={`${panels[key] ? "Hide" : "Show"} the ${hint}`}
-                className="p-2.5 min-h-[40px] min-w-[40px]"
+                className="p-2.5 min-h-[44px] min-w-[44px] rounded-xl"
               >
                 {label}
               </Button>
@@ -139,6 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-label="Reset layout"
               onClick={() => setIsResetDialogOpen(true)}
               title="Restore the default panel sizes and details state"
+              className="min-h-[44px] rounded-xl"
             >
               Reset layout
             </Button>

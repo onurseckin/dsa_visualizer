@@ -124,6 +124,8 @@ export type ViewMode = "split" | "visual" | "code";
 /* Each workspace panel is shown or hidden by its own navbar toggle — there is
    no mutually exclusive "view mode" anymore. */
 export interface PanelVisibility {
+  problem: boolean;
+  solution: boolean;
   visualizer: boolean;
   code: boolean;
   tutorial: boolean;

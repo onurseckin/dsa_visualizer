@@ -108,6 +108,8 @@ const dummyControlProps: ControlPanelProps = {
 };
 
 const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,
@@ -172,7 +174,14 @@ describe("MainLayoutVisibilityColumns Component Spec", () => {
 
   it("shows a calm empty state instead of a blank stage when every panel is off", () => {
     const { container } = renderLayout({
-      panels: { visualizer: false, code: false, tutorial: false, auxiliary: false },
+      panels: {
+        problem: false,
+        solution: false,
+        visualizer: false,
+        code: false,
+        tutorial: false,
+        auxiliary: false,
+      },
       controlProps: dummyControlProps,
     });
 
@@ -181,13 +190,15 @@ describe("MainLayoutVisibilityColumns Component Spec", () => {
       screen.getByText(/Turn on Visualizer, Code, Tutorial or Aux data in the navbar/),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("separator").map((handle) => handle.getAttribute("aria-label")),
-    ).toEqual(["Resize the problem description height", "Resize the solution approach height"]);
+      Array.from(container.querySelectorAll<HTMLElement>('[role="separator"]')).map((handle) =>
+        handle.getAttribute("aria-label"),
+      ),
+    ).toEqual([]);
     expect(panelRow(container, "code")).toBeNull();
     expect(panelRow(container, "visualizer")).toBeNull();
     expect(screen.queryByTestId("control-panel")).not.toBeInTheDocument();
-    expect(screen.getByTestId("problem-description-card")).toBeInTheDocument();
-    expect(screen.getByTestId("solution-approach-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("problem-description-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("solution-approach-card")).not.toBeInTheDocument();
   });
 
   it("renders the canvas fallback and no strips when currentStep is null", () => {

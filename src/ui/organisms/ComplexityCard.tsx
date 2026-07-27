@@ -76,7 +76,7 @@ export function ComplexityCard({
       defaultOpen
       className="border-[var(--border-default)]"
     >
-      <div className="flex flex-col gap-3 p-6 md:p-8">
+      <div className="flex flex-col gap-3 p-5 md:p-6">
         <BigOChipRow chips={chips} />
         <ProseBlock label="Time" body={complexityAnalysis.time} />
         <ProseBlock label="Space" body={complexityAnalysis.space} />

@@ -31,12 +31,10 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      className="w-[90%] max-w-[1600px] py-8 mx-auto flex flex-col gap-8 box-border flex-1 overflow-y-auto"
+      className="w-[90vw] py-8 mx-auto flex flex-col gap-8 box-border flex-1"
     >
       <div className="flex flex-col gap-2 mt-6 md:mt-8 mb-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-          Algorithm Directory
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Algorithm Directory</h1>
         <p className="text-base text-neutral-400 max-w-2xl">
           Explore algorithms, data structures, and interactive visualizations
         </p>

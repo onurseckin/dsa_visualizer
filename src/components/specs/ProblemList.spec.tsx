@@ -29,7 +29,7 @@ describe("ProblemList Component Spec", () => {
     });
 
     const headerRow = container.querySelector<HTMLElement>("thead tr");
-    expect(headerRow?.className).toContain("bg-[var(--bg-elevated)]");
+    expect(headerRow?.className).toContain("bg-[#1a1a22]");
     expect(headerRow?.className).toContain("border-b");
 
     const rows = Array.from(container.querySelectorAll<HTMLElement>("tbody tr"));

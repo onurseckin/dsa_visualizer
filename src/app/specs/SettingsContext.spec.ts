@@ -98,6 +98,8 @@ describe("SettingsContext panel visibility, algorithm persistence, and error bou
 
     const { result } = renderSettings();
     expect(result.current.panels).toEqual({
+      problem: true,
+      solution: true,
       visualizer: true,
       code: false,
       tutorial: false,

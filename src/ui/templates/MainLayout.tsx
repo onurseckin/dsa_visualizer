@@ -78,19 +78,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       className="w-full max-w-full p-0 flex-1 flex flex-col gap-4 min-h-0 box-border overflow-y-auto overflow-x-hidden bg-[var(--bg-surface)]"
       style={{ display: "flex", overflowY: "auto" }}
     >
-      <ProblemSection
-        algorithm={algorithm}
-        problemExpanded={layoutState.problemExpanded}
-        problemPinned={layoutState.problemPinned}
-        problemDragging={layoutState.problemDragging}
-        problemRef={layoutState.problemRef}
-        onToggleProblemExpanded={layoutState.handleToggleProblemExpanded}
-        onSetProblemDragging={layoutState.setProblemDragging}
-        onNudgeProblem={layoutState.nudgeProblem}
-        onRestoreProblemDefault={() => layoutState.applyPanelHeights({ problem: null }, true)}
-        minPanelHeightPx={layoutState.minPanelHeightPx}
-        maxPanelHeightPx={layoutState.maxPanelHeightPx}
-      />
+      {panels.problem && (
+        <ProblemSection
+          algorithm={algorithm}
+          problemExpanded={layoutState.problemExpanded}
+          problemPinned={layoutState.problemPinned}
+          problemDragging={layoutState.problemDragging}
+          problemRef={layoutState.problemRef}
+          onToggleProblemExpanded={layoutState.handleToggleProblemExpanded}
+          onSetProblemDragging={layoutState.setProblemDragging}
+          onNudgeProblem={layoutState.nudgeProblem}
+          onRestoreProblemDefault={() => layoutState.applyPanelHeights({ problem: null }, true)}
+          minPanelHeightPx={layoutState.minPanelHeightPx}
+          maxPanelHeightPx={layoutState.maxPanelHeightPx}
+        />
+      )}
 
       <MainStage
         algorithm={algorithm}
@@ -103,19 +105,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         totalSteps={totalSteps}
       />
 
-      <SolutionSection
-        topicGuide={algorithm.topicGuide}
-        solutionExpanded={layoutState.solutionExpanded}
-        solutionPinned={layoutState.solutionPinned}
-        solutionDragging={layoutState.solutionDragging}
-        solutionRef={layoutState.solutionRef}
-        onToggleSolutionExpanded={layoutState.handleToggleSolutionExpanded}
-        onSetSolutionDragging={layoutState.setSolutionDragging}
-        onNudgeSolution={layoutState.nudgeSolution}
-        onRestoreSolutionDefault={() => layoutState.applyPanelHeights({ solution: null }, true)}
-        minPanelHeightPx={layoutState.minPanelHeightPx}
-        maxPanelHeightPx={layoutState.maxPanelHeightPx}
-      />
+      {panels.solution && (
+        <SolutionSection
+          topicGuide={algorithm.topicGuide}
+          solutionExpanded={layoutState.solutionExpanded}
+          solutionPinned={layoutState.solutionPinned}
+          solutionDragging={layoutState.solutionDragging}
+          solutionRef={layoutState.solutionRef}
+          onToggleSolutionExpanded={layoutState.handleToggleSolutionExpanded}
+          onSetSolutionDragging={layoutState.setSolutionDragging}
+          onNudgeSolution={layoutState.nudgeSolution}
+          onRestoreSolutionDefault={() => layoutState.applyPanelHeights({ solution: null }, true)}
+          minPanelHeightPx={layoutState.minPanelHeightPx}
+          maxPanelHeightPx={layoutState.maxPanelHeightPx}
+        />
+      )}
     </main>
   );
 };

@@ -31,7 +31,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
     >
       <KnowledgeGraphLegend />
 
-      <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden mx-auto">
+      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl relative overflow-hidden mx-auto">
         <svg
           viewBox="-20 -60 1380 1060"
           preserveAspectRatio="xMidYMid meet"

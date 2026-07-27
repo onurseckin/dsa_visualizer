@@ -43,9 +43,6 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
   return (
     <Card
       data-testid="code-viewer"
-      title={
-        <span className="font-mono text-xs font-normal text-[var(--text-muted)]">solution.py</span>
-      }
       actions={
         <>
           <CodeExplainToggle
@@ -55,9 +52,9 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
           <span className="font-mono text-xs text-[var(--text-muted)]">line {activeLine}</span>
         </>
       }
-      className="border-[#1e1e24] bg-[#0a0a0c] h-full flex flex-col"
+      className="border-[var(--border-default)] bg-[var(--bg-surface)] h-full flex flex-col"
     >
-      <div className="flex-1 min-h-0 overflow-y-auto bg-[#0a0a0c] border-t border-[#1e1e24] py-2">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] py-2">
         {lines.map((lineText, idx) => {
           const lineNumber = idx + 1;
           const isActive = lineNumber === activeLine;

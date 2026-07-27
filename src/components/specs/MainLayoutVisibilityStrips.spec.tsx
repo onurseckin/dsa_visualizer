@@ -91,6 +91,8 @@ const dummyStep: AlgorithmStep = {
 };
 
 const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,
@@ -177,7 +179,7 @@ describe("MainLayoutVisibilityStrips Component Spec", () => {
     const handleToggleTutorial = vi.fn();
     renderLayout({ onToggleTutorial: handleToggleTutorial });
 
-    fireEvent.click(screen.getByText("Dismiss explanation"));
+    fireEvent.click(screen.getByTitle("Dismiss explanation"));
 
     expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
   });

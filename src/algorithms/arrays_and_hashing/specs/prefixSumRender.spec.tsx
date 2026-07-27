@@ -13,7 +13,14 @@ describe("PrefixSum React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["prefix-sum"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -39,7 +46,14 @@ describe("PrefixSum React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["prefix-sum"]}
         currentStep={lastStep}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

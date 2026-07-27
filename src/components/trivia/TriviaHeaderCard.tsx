@@ -124,7 +124,13 @@ export function TriviaHeaderCard({
             Back to Trivia Home
           </Button>
 
-          <Button variant="primary" size="md" disabled={isDeckEmpty} onClick={onStartDrilling} className="min-h-[44px] px-6 py-3">
+          <Button
+            variant="primary"
+            size="md"
+            disabled={isDeckEmpty}
+            onClick={onStartDrilling}
+            className="min-h-[44px] px-6 py-3"
+          >
             Start drilling
           </Button>
         </ButtonGroup>

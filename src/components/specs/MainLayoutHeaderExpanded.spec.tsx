@@ -1,4 +1,4 @@
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { MainLayout } from "../../ui";
@@ -14,41 +14,23 @@ vi.mock("../primitives/ProblemDescriptionCard", () => ({
     title,
     difficulty,
     description,
-    expanded,
-    onToggleExpanded,
   }: {
     title: string;
     difficulty?: string;
     description: string;
-    expanded: boolean;
-    onToggleExpanded: () => void;
   }) => (
     <div data-testid="problem-description-card">
       <span>{title}</span>
       <span>{difficulty}</span>
-      <button aria-expanded={expanded} onClick={onToggleExpanded}>
-        Problem Details
-      </button>
-      {expanded && <p>{description}</p>}
+      <p>{description}</p>
     </div>
   ),
 }));
 
 vi.mock("../primitives/SolutionApproachCard", () => ({
-  SolutionApproachCard: ({
-    topicGuide,
-    expanded,
-    onToggleExpanded,
-  }: {
-    topicGuide: TopicGuide;
-    expanded: boolean;
-    onToggleExpanded: () => void;
-  }) => (
+  SolutionApproachCard: ({ topicGuide }: { topicGuide: TopicGuide }) => (
     <div data-testid="solution-approach-card" data-topic-sections={topicGuide.sections.length}>
-      <button aria-expanded={expanded} onClick={onToggleExpanded}>
-        Solution Details
-      </button>
-      {expanded && <p>{topicGuide.overview}</p>}
+      <p>{topicGuide.overview}</p>
     </div>
   ),
 }));
@@ -108,11 +90,14 @@ const dummyStep: AlgorithmStep = {
   variables: { i: 0, j: 0 },
 };
 
-const allPanels = (): PanelVisibility => ({
+const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,
   auxiliary: true,
+  ...overrides,
 });
 
 const renderLayout = (
@@ -141,61 +126,40 @@ describe("MainLayoutHeaderExpanded Component Spec", () => {
     const main = screen.getByRole("main");
     expect(main).toHaveStyle({ display: "flex", overflowY: "auto" });
     expect(main.style.overflow).not.toBe("hidden");
-    expect(main).toHaveAttribute("data-problem-expanded", "true");
-    expect(main).toHaveAttribute("data-solution-expanded", "true");
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-
-    expect(main).toHaveAttribute("data-problem-expanded", "false");
-    expect(main).toHaveAttribute("data-solution-expanded", "true");
-    expect(main).toHaveStyle({ overflowY: "auto" });
-    expect(main.style.overflow).not.toBe("hidden");
   });
 
-  it("shows problem details expanded by default and lets the toggle collapse them", () => {
-    renderLayout();
-
-    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
-  });
-
-  it("shows solution details expanded by default and lets the toggle collapse them, independently of the problem panel", () => {
-    renderLayout();
-
-    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
-    expect(screen.queryByText(dummyTopicGuide.overview)).not.toBeInTheDocument();
-    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
-    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
-  });
-
-  it("keeps each details panel collapsed across an algorithm change once the user collapsed it", () => {
+  it("shows problem details when panels.problem is true and hides when false", () => {
     const { rerender } = renderLayout();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
-    expect(screen.getByRole("main")).toHaveAttribute("data-problem-expanded", "false");
-    expect(screen.getByRole("main")).toHaveAttribute("data-solution-expanded", "false");
+    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
 
     rerender(
       <MainLayout
-        algorithm={{ ...dummyAlgorithm, id: "insertion-sort" }}
+        algorithm={dummyAlgorithm}
         currentStep={dummyStep}
-        panels={allPanels()}
+        panels={allPanels({ problem: false })}
         onToggleTutorial={vi.fn()}
         onToggleAuxiliary={vi.fn()}
       />,
     );
+    expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("main")).toHaveAttribute("data-problem-expanded", "false");
-    expect(screen.getByRole("main")).toHaveAttribute("data-solution-expanded", "false");
+  it("shows solution details when panels.solution is true and hides when false", () => {
+    const { rerender } = renderLayout();
+
+    expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
+
+    rerender(
+      <MainLayout
+        algorithm={dummyAlgorithm}
+        currentStep={dummyStep}
+        panels={allPanels({ solution: false })}
+        onToggleTutorial={vi.fn()}
+        onToggleAuxiliary={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(dummyTopicGuide.overview)).not.toBeInTheDocument();
+    expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
   });
 });

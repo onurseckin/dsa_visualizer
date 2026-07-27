@@ -4,6 +4,8 @@ import { AppView, PanelKey, PanelVisibility } from "../../types/dsa";
 import { Navbar, NavbarProps } from "../../ui";
 
 const ALL_VISIBLE: PanelVisibility = {
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,
@@ -11,6 +13,8 @@ const ALL_VISIBLE: PanelVisibility = {
 };
 
 const PANEL_LABELS: Record<PanelKey, string> = {
+  problem: "Problem",
+  solution: "Solution",
   visualizer: "Visualizer",
   code: "Code",
   tutorial: "Tutorial",
@@ -66,7 +70,7 @@ describe("NavbarControls Component Spec", () => {
     const { container } = render(<Navbar {...makeProps()} />);
 
     const brand = screen.getByRole("button", { name: "DSA Visualizer home" });
-    expect(brand).toHaveClass("ui-btn", "ui-btn--secondary", "ui-btn--md");
+    expect(brand).toHaveClass("ui-btn", "ui-btn--secondary", "ui-btn--sm");
     expect(brand.querySelector("svg")).toBeInTheDocument();
 
     expect(accentTintedText(container)).toEqual([]);
@@ -80,16 +84,25 @@ describe("NavbarControls Component Spec", () => {
     expect(screen.queryByRole("group", { name: /View mode/i })).not.toBeInTheDocument();
   });
 
-  it("renders the five toggles as one uniform sm row with aria-pressed on each", () => {
+  it("renders the toggles as one uniform sm row with aria-pressed on each", () => {
     render(
       <Navbar
         {...makeProps({
-          panels: { visualizer: true, code: false, tutorial: true, auxiliary: false },
+          panels: {
+            problem: true,
+            solution: false,
+            visualizer: true,
+            code: false,
+            tutorial: true,
+            auxiliary: false,
+          },
         })}
       />,
     );
 
     const expected: [string, string][] = [
+      ["Problem", "true"],
+      ["Solution", "false"],
       ["Visualizer", "true"],
       ["Code", "false"],
       ["Tutorial", "true"],
@@ -149,7 +162,8 @@ describe("NavbarControls Component Spec", () => {
 
       const group = screen.getByRole("group", { name: "App view" });
       const labels = Array.from(group.querySelectorAll("button")).map((btn) => btn.textContent);
-      console.log("LABELS:", labels); expect(labels).toEqual(["Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
+      console.log("LABELS:", labels);
+      expect(labels).toEqual(["Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
     });
 
     it("switches the app view when the Trivia segment is clicked", () => {

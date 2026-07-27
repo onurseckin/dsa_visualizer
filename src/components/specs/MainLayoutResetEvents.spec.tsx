@@ -74,6 +74,8 @@ const dummyStep: AlgorithmStep = {
 };
 
 const allPanels = (): PanelVisibility => ({
+  problem: true,
+  solution: true,
   visualizer: true,
   code: true,
   tutorial: true,

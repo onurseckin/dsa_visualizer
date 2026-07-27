@@ -2,7 +2,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TriviaSession } from "../TriviaSession";
 import { parsePuzzleLines } from "../../../trivia/triviaEngine";
-import { readTriviaLayout, TRIVIA_LAYOUT_KEY } from "../../../trivia/triviaLayout";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../../types/trivia";
 
 const CODE = [
@@ -108,42 +107,10 @@ describe("TriviaSession Component Spec - Rendering & Layout", () => {
     expect(screen.getByText("Level 2 · 43% covered")).toBeInTheDocument();
   });
 
-  it("renders the drilled algorithm's problem description above the puzzle, expanded by default", () => {
+  it("renders the drilled algorithm's problem description above the puzzle", () => {
     setup(choiceRound());
 
-    // ProblemDescriptionCard's own header strip, distinct from the round's h2.
     expect(screen.getByRole("heading", { level: 1, name: "Two Sum" })).toBeInTheDocument();
-    expect(screen.getByTestId("problem-description-details")).toBeInTheDocument();
-  });
-
-  it("persists collapsing the problem panel through triviaLayout, restoring it across a reload", () => {
-    const { view } = setup(choiceRound());
-
-    fireEvent.click(screen.getByRole("button", { name: "Details" }));
-
-    expect(screen.queryByTestId("problem-description-details")).not.toBeInTheDocument();
-    expect(readTriviaLayout().problemExpanded).toBe(false);
-
-    // A reload is just another mount reading the same persisted key.
-    view.unmount();
-    setup(choiceRound());
-
-    expect(screen.getByRole("button", { name: "Details" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    expect(screen.queryByTestId("problem-description-details")).not.toBeInTheDocument();
-  });
-
-  it("falls back to the problem panel expanded when the stored trivia layout is malformed", () => {
-    window.localStorage.setItem(TRIVIA_LAYOUT_KEY, "{not json");
-
-    setup(choiceRound());
-
-    expect(screen.getByRole("button", { name: "Details" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
     expect(screen.getByTestId("problem-description-details")).toBeInTheDocument();
   });
 

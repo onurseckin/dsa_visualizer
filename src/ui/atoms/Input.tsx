@@ -41,6 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         "w-full relative flex items-center",
         leadingIcon !== undefined && leadingIcon !== null && "ui-input--with-icon",
         showClear && "ui-input--clearable",
+        className,
       )}
       style={style}
     >
@@ -49,23 +50,30 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ) : (
         <>
           {leadingIcon !== undefined && leadingIcon !== null ? (
-            <span className="ui-input__leading absolute left-3.5 z-10 flex items-center text-neutral-400 pointer-events-none" aria-hidden="true">
+            <span
+              className="ui-input__leading absolute left-3.5 z-10 flex items-center text-neutral-400 pointer-events-none"
+              aria-hidden="true"
+            >
               {leadingIcon}
             </span>
           ) : null}
           <BaseInputPrimitive
             ref={ref}
             className={cx(
-              "ui-input__field w-full min-h-[44px] px-4 py-2.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-sm text-white placeholder-neutral-500 focus:border-indigo-500 focus:outline-none transition-all",
+              "ui-input__field w-full min-h-[44px] px-4 py-2.5 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--border-accent)] focus:outline-none transition-all",
               leadingIcon !== undefined && leadingIcon !== null && "!pl-11",
               showClear && "!pr-10",
-              className,
             )}
             value={value}
             {...rest}
           />
           {showClear ? (
-            <button type="button" className="ui-input__clear absolute right-3 z-10 text-neutral-400 hover:text-white" aria-label="Clear" onClick={onClear}>
+            <button
+              type="button"
+              className="ui-input__clear absolute right-3 z-10 text-neutral-400 hover:text-white"
+              aria-label="Clear"
+              onClick={onClear}
+            >
               <X aria-hidden="true" size={16} />
             </button>
           ) : null}
