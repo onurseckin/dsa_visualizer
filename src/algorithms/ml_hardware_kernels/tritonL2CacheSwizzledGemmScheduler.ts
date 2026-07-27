@@ -109,12 +109,13 @@ export const tritonL2CacheSwizzledGemmScheduler: AlgorithmDefinition<tritonL2Cac
     id: "triton-l2-cache-swizzled-gemm-scheduler",
     title: "Triton L2 Cache Swizzled GEMM Tile Scheduler",
     category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels"],
+    categories: ["ml_hardware_kernels", "arrays_and_hashing"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 9,
     mlInfraCategory: "ml_hardware_kernels",
-    description: "Implementation of Triton L2 Cache Swizzled GEMM Tile Scheduler.",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), triton l2 cache swizzled gemm tile scheduler provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["Valid input arguments required."],
     examples: [
       {

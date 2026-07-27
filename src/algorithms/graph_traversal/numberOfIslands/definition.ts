@@ -110,9 +110,10 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   id: "number-of-islands",
   title: "Number of Islands",
   category: "graph_traversal",
+  categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    'Given an M x N grid of land cells ("1") and water cells ("0"), count the distinct islands — groups of land cells connected horizontally or vertically. We sweep the grid cell by cell; each time we step on land that no previous flood has claimed, we count one new island and run a BFS (or DFS) flood fill to mark every connected land cell, so the same island is never counted twice.',
+    "Given an m x n 2D binary grid grid where '1' represents land and '0' represents water, return the total number of islands present in the grid. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional adjacency; diagonal connections are not considered adjacent). You may assume all four edges of the grid are surrounded by water. To determine the count, iterate through every cell in the grid; whenever an unvisited land cell ('1') is encountered, increment the island count and initiate a Breadth-First Search (BFS) or Depth-First Search (DFS) flood-fill to mark all connected land cells in that component as visited.",
   constraints: [
     "1 <= m, n <= 300",
     'grid[i][j] is either "0" (water) or "1" (land)',

@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { CategoryType, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
 import { getAllAlgorithms } from "../../../algorithms/registry";
-import { CATEGORY_LABELS } from "../../../app/categories";
+import {
+  CATEGORY_LABELS,
+  getAlgorithmCategories,
+  getAlgorithmPrimaryCategory,
+} from "../../../app/categories";
 import {
   ProblemListDifficulty,
   ProblemListSource,
@@ -88,11 +92,9 @@ export function useProblemListState({
     const filtered = algorithms.filter((alg) => {
       if (selectedDifficulty !== "All" && alg.difficulty !== selectedDifficulty) return false;
 
-      const isMlAlg =
-        Boolean(alg.isMlInfra) ||
-        alg.category.startsWith("ml_") ||
-        alg.category === "ml_infra" ||
-        alg.category === "ml_infrastructure";
+      const cats = getAlgorithmCategories(alg);
+      const primaryCat = getAlgorithmPrimaryCategory(alg);
+      const isMlAlg = Boolean(alg.isMlInfra) || cats.some((c) => c.startsWith("ml_"));
 
       if (selectedCategory !== "All") {
         const isMlGroupCategory =
@@ -100,9 +102,7 @@ export function useProblemListState({
         if (isMlGroupCategory) {
           if (!isMlAlg) return false;
         } else {
-          const algCategories =
-            alg.categories && alg.categories.length > 0 ? alg.categories : [alg.category];
-          if (!algCategories.includes(selectedCategory)) return false;
+          if (!cats.includes(selectedCategory)) return false;
         }
       }
 
@@ -116,7 +116,7 @@ export function useProblemListState({
 
       if (!q) return true;
       if (alg.title.toLowerCase().includes(q)) return true;
-      const catLabel = (CATEGORY_LABELS[alg.category] || alg.category).toLowerCase();
+      const catLabel = (CATEGORY_LABELS[primaryCat] || primaryCat).toLowerCase();
       if (catLabel.includes(q)) return true;
       return alg.description.toLowerCase().includes(q);
     });
@@ -126,9 +126,9 @@ export function useProblemListState({
       if (sortBy === "title") {
         comp = a.title.localeCompare(b.title);
       } else if (sortBy === "category") {
-        comp = (CATEGORY_LABELS[a.category] || a.category).localeCompare(
-          CATEGORY_LABELS[b.category] || b.category,
-        );
+        const aCat = getAlgorithmPrimaryCategory(a);
+        const bCat = getAlgorithmPrimaryCategory(b);
+        comp = (CATEGORY_LABELS[aCat] || aCat).localeCompare(CATEGORY_LABELS[bCat] || bCat);
       } else if (sortBy === "difficulty") {
         const order: Record<string, number | undefined> = { Easy: 1, Medium: 2, Hard: 3 };
         comp = (order[a.difficulty ?? ""] ?? 1) - (order[b.difficulty ?? ""] ?? 1);

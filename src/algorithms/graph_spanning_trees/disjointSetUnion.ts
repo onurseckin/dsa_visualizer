@@ -270,8 +270,8 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   categories: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "Disjoint Set Union (DSU / Union-Find) maintains a collection of disjoint sets. It efficiently supports finding the representative leader of a set (find) and merging two sets (union) using path compression and union by rank in near-constant amortized O(α(N)) time.",
-  constraints: ["1 <= N <= 20"],
+    "Disjoint Set Union (DSU / Union-Find) maintains a collection of disjoint non-overlapping sets over N elements (0 to N-1). It supports two primary operations efficiently: find(u), which determines the representative leader of the set containing element u (applying path compression to flatten tree structures), and union(u, v), which merges the sets containing elements u and v (applying union by rank/size to attach shorter trees under taller roots). Determine the resulting component structures and representative leaders after executing a sequence of union and find queries in near-constant amortized O(α(N)) time.",
+  constraints: ["1 <= N <= 10^5", "1 <= Number of operations Q <= 2 * 10^5"],
   examples: [
     {
       kind: "basic",
@@ -351,11 +351,23 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   },
   topicGuide: {
     overview:
-      "Disjoint Set Union (DSU) efficiently tracks partitioning of a set into disjoint components. Path compression flattens tree paths during find, while union by rank keeps component tree heights minimal.",
+      "Disjoint Set Union (DSU / Union-Find) is an elegant data structure designed to track a partition of a set into disjoint connected components. By combining two simple heuristics—Path Compression and Union by Rank—DSU achieves near-constant time operations, making it essential for graph connectivity algorithms (Kruskal's MST, Tarjan's offline LCA) and dynamic equivalence relation tracking.",
     sections: [
       {
-        heading: "Path Compression & Union by Rank",
-        body: "Path compression redirects traversed nodes directly to the root leader during find(). Union by rank attaches shorter tree roots under taller tree roots.",
+        heading: "Core Concept: Representative Leaders & Trees",
+        body: "Each set is represented as a tree rooted at a single canonical representative element. The parent array maps each element to its direct ancestor. Initializing N singleton sets sets parent[i] = i for all elements.",
+      },
+      {
+        heading: "Dual Optimizations: Path Compression & Union by Rank",
+        body: "Path Compression rewires all nodes traversed during a find(u) call directly to the set's root leader, flattening tree height. Union by Rank attaches the root of the lower-rank tree under the root of the higher-rank tree, preventing tree tallness on adversarial merge sequences.",
+      },
+      {
+        heading: "Theoretical Bounds: Inverse Ackermann Function α(N)",
+        body: "Robert Tarjan proved that combining path compression with union by rank guarantees an amortized time of O(α(N)) per operation, where α(N) is the inverse Ackermann function. For all physical inputs N <= 10^80, α(N) <= 4.",
+      },
+      {
+        heading: "Systems & Real-World Applications",
+        body: "DSU powers network connectivity tracking in distributed systems, image segmentation (merging adjacent region superpixels), grid component counting, and cycle detection in undirected graphs.",
       },
     ],
     keyTerms: [
@@ -370,8 +382,14 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
           "Optimization where visited nodes are reparented directly to the set's root during find.",
       },
       {
+        term: "Union by Rank",
+        definition:
+          "Heuristic attaching shorter component trees under taller component trees to keep tree depth minimal.",
+      },
+      {
         term: "Inverse Ackermann Function α(N)",
-        definition: "An extremely slow-growing function bounded by 4 for all realistic inputs.",
+        definition:
+          "An extremely slow-growing mathematical function bounded by 4 for all universe scale inputs.",
       },
     ],
   },

@@ -5,17 +5,27 @@ export interface MergeSortInput {
   array: number[];
 }
 
-export const MERGE_SORT_CODE = `
-def merge_sort(input_array):
-    """
-    Implementation of merge_sort.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const MERGE_SORT_CODE = `def merge_sort(arr: list[int]) -> list[int]:
+    if len(arr) <= 1:
+        return arr
+
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+
+    merged = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            merged.append(left[i])
+            i += 1
+        else:
+            merged.append(right[j])
+            j += 1
+
+    merged.extend(left[i:])
+    merged.extend(right[j:])
+    return merged`;
 
 export const DEFAULT_MERGE_SORT_INPUT: MergeSortInput = {
   array: [38, 27, 43, 3, 9, 82, 10],
@@ -196,31 +206,40 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
 
 export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Merge Sort is a classic Divide and Conquer sorting algorithm that recursively splits an array in half, sorts each half, and merges the two sorted halves back together in O(N log N) time.",
+    "Merge Sort is the canonical divide-and-conquer sorting algorithm. It guarantees O(N log N) performance across all input distributions by recursively partitioning an array into equal subproblems, sorting each half independently, and zipping them back together with a linear two-pointer merge step. Beyond fundamental algorithm design, Merge Sort is the backbone of external sorting algorithms in database engines (e.g. PostgreSQL, SQLite, RocksDB) and distributed MapReduce systems where datasets exceed main memory capacity and sequential disk read/write streams are mandatory.",
   sections: [
     {
-      heading: "Divide and Conquer Strategy",
-      body: "The array is repeatedly halved until subarrays contain 0 or 1 element, which are trivially sorted. These smaller sorted subarrays are then systematically merged back together.",
+      heading: "Divide and Conquer Mechanics",
+      body: "The array is partitioned at its arithmetic midpoint mid = floor((l + r) / 2). Recursion continues down to base cases of sub-arrays of size 0 or 1, which are trivially sorted. As call frames unwind, the merge phase combines two sorted adjacent sub-arrays of size A and B into a single sorted contiguous run of size A + B in O(A + B) comparisons and assignments.",
     },
     {
-      heading: "Two-Pointer Merging",
-      body: "Merging two sorted arrays of length A and B takes O(A + B) time by maintaining one pointer in each array and comparing their current elements, appending the smaller element to the result.",
+      heading: "Systems & Cache Impact: Sequential Memory Access",
+      body: "Unlike Quick Sort or Heap Sort, which exhibit unpredictable random pointer jumps, Merge Sort streams through memory sequentially during the merge phase. This sequential access pattern makes it ideal for hardware cache prefetching, SSD block transfers, and tape/disk storage engines (External Merge Sort).",
     },
     {
-      heading: "Guaranteed O(N log N) Performance",
-      body: "Unlike Quick Sort, Merge Sort guarantees O(N log N) worst-case time complexity regardless of initial array ordering, making it ideal when predictable performance is required.",
+      heading: "Implementation Nuances & Stability",
+      body: "Stability is preserved by taking elements from the left sub-array when elements in the left and right halves are equal (using left[i] <= right[j]). In-place variants of Merge Sort exist (e.g. block merge sort used in Timsort), but traditional Merge Sort requires O(N) auxiliary buffer space.",
+    },
+    {
+      heading: "Edge Case Analysis & Optimization",
+      body: "Small sub-arrays (typically N <= 16) suffer from call-stack overhead; practical implementations switch to Insertion Sort for tiny partitions. Already-sorted sub-arrays can skip the merge step entirely if left[last] <= right[first].",
     },
   ],
   keyTerms: [
     {
       term: "Divide and Conquer",
       definition:
-        "Breaking a problem into independent subproblems, solving subproblems recursively, and combining solutions.",
+        "An algorithmic paradigm that breaks a problem into non-overlapping subproblems of the same type, solves them recursively, and combines their solutions.",
     },
     {
       term: "Stable Sort",
       definition:
-        "A sorting algorithm that preserves the relative order of duplicate equal elements.",
+        "A sorting algorithm that preserves the original relative position of items with equal comparison keys.",
+    },
+    {
+      term: "External Merge Sort",
+      definition:
+        "A database sorting algorithm that sorts datasets larger than RAM by partitioning data into sorted chunks on disk and merging them using multi-way buffer streams.",
     },
   ],
 };

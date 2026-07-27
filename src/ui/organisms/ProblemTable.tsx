@@ -2,10 +2,8 @@ import React from "react";
 import { ArrowUpDown, Code2, Play } from "lucide-react";
 import { AlgorithmDefinition, CategoryType, getAlgorithmSources } from "../../types/dsa";
 
-import {
-  CATEGORY_LABELS,
-  ProblemListSortField,
-} from "../../components/problem-list/problemListUtils";
+import { CATEGORY_LABELS, getAlgorithmPrimaryCategory } from "../../app/categories";
+import { ProblemListSortField } from "../../components/problem-list/problemListUtils";
 import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../index";
 
 interface ProblemTableProps {
@@ -70,7 +68,8 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               </tr>
             ) : (
               filteredAlgorithms.map((alg, index) => {
-                const catLabel = CATEGORY_LABELS[alg.category] || alg.category;
+                const primaryCat = getAlgorithmPrimaryCategory(alg);
+                const catLabel = CATEGORY_LABELS[primaryCat] || primaryCat;
 
                 return (
                   <tr

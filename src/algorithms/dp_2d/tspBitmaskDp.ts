@@ -195,8 +195,13 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   categories: ["dp_2d"],
   difficulty: "Hard",
   description:
-    "Finds the minimum cost tour visiting every city exactly once and returning to the start using Held-Karp Bitmask Dynamic Programming.",
-  constraints: ["2 <= n <= 6", "dist[u][v] >= 0"],
+    "Given N cities and an N x N distance matrix dist where dist[u][v] represents the directed cost of traveling from city u to city v, find the minimum cost Hamiltonian cycle—a tour that visits every city exactly once and returns to the starting city (City 0). While brute force O(N!) permutation search is intractable for larger N, Held-Karp Bitmask Dynamic Programming optimizes the search to O(N^2 * 2^N) time. Define dp[mask][u] as the minimum travel cost to visit the subset of cities encoded by the bitmask mask, ending at city u. Initialize dp[1][0] = 0, transition via dp[mask | (1 << v)][v] = min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v]), and compute the final tour cost by returning to City 0.",
+  constraints: [
+    "2 <= N <= 20",
+    "0 <= dist[u][v] <= 10^4",
+    "Graph may be symmetric or asymmetric",
+    "If no valid tour exists, return -1",
+  ],
   examples: [
     {
       kind: "basic",
@@ -258,17 +263,45 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   },
   topicGuide: {
     overview:
-      "Held-Karp algorithm uses bitmask DP where bitmask represents set of visited cities and u is the current city.",
+      "The Traveling Salesperson Problem (TSP) is one of the most famous NP-hard problems in computer science and operations research. The Held-Karp algorithm uses Dynamic Programming with Bitmasking to reduce the brute-force time complexity from factorial O(N!) down to exponential O(N^2 * 2^N).",
     sections: [
       {
-        heading: "Bitmask State",
-        body: "dp[mask][u] stores min cost to visit cities in mask ending at city u.",
+        heading: "Core Concept: Bitmask Subset Representation",
+        body: "A bitmask of length N represents the subset of visited cities, where the i-th bit is 1 if city i has been visited and 0 otherwise. For example, mask = 13 (binary 01101_2) represents visited cities {0, 2, 3}.",
+      },
+      {
+        heading: "Held-Karp State Transitions",
+        body: "Define dp[mask][u] as the minimum path cost to visit exactly the subset of cities in mask, ending at city u. For any unvisited city v (where bit v is 0 in mask), the transition is: dp[mask | (1 << v)][v] = min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v]). The final answer adds dist[u][0] to complete the loop.",
+      },
+      {
+        heading: "Computational Complexity & NP-Hardness Boundary",
+        body: "While O(N^2 * 2^N) remains exponential, it permits exact solutions for N up to ~22 cities within seconds, whereas brute-force N! stalls at N=13. For larger N, heuristic approximations (Christofides 1.5-approximation, simulated annealing, Lin-Kernighan) are used in practice.",
+      },
+      {
+        heading: "Systems Applications & Logistics Routing",
+        body: "TSP models delivery route planning (FedEx/UPS vehicle routing), printed circuit board (PCB) drill head positioning, microchip manufacturing, and DNA sequencing contig assembly.",
       },
     ],
     keyTerms: [
       {
-        term: "Bitmask State",
-        definition: "Representation of visited city subset and current city endpoint.",
+        term: "Traveling Salesperson Problem (TSP)",
+        definition:
+          "An NP-hard optimization problem seeking the shortest closed tour visiting N cities exactly once.",
+      },
+      {
+        term: "Held-Karp Algorithm",
+        definition:
+          "A dynamic programming algorithm using bitmasking to solve TSP in O(N^2 * 2^N) time.",
+      },
+      {
+        term: "Bitmasking",
+        definition:
+          "Encoding small sets or boolean state flags as bitwise bit patterns in integer variables.",
+      },
+      {
+        term: "Hamiltonian Cycle",
+        definition:
+          "A closed loop in a graph that visits every vertex exactly once and returns to the start.",
       },
     ],
   },

@@ -305,8 +305,12 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Analyzes functional graphs where every node has out-degree 1. Uses Floyd's Tortoise and Hare algorithm to detect cycles, find cycle entry point and length in O(V) time, and binary lifting to compute k-th successor paths in O(log k) time.",
-  constraints: ["1 <= V <= 1000", "0 <= succ[i] < V for all 0 <= i < V", "1 <= k_steps <= 10^9"],
+    "Analyzes functional graphs where every node has out-degree 1. Given a functional graph defined by a successor array succ[i], detect directed cycles and compute arbitrary k-step successor queries efficiently. Because out-degree is 1, following successors from any starting vertex leads into a directed cycle. Floyd's Tortoise and Hare algorithm detects cycle entry and length in O(V) time and O(1) space. Binary lifting constructs a jump table succ_table[b][x] = 2^b-th successor of x in O(V log k) preprocessing time, enabling any k-step query to be answered in O(log k) time.",
+  constraints: [
+    "1 <= V <= 1000",
+    "0 <= succ[i] < V for all 0 <= i < V",
+    "1 <= stepsQuery k <= 10^9",
+  ],
   examples: [
     {
       kind: "basic",
@@ -357,31 +361,45 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   },
   topicGuide: {
     overview:
-      "A functional graph has out-degree 1 for every vertex, forming components made of directed trees pointing toward central cycles. Floyd's cycle detection and binary lifting are the foundational tools for querying functional graphs.",
+      "A functional graph is a directed graph where every vertex has an out-degree of exactly 1. Structural properties of functional graphs guarantee that every connected component consists of directed trees pointing toward a central directed cycle. Querying long paths or cycle properties in functional graphs is efficiently solved using Floyd's Cycle Detection and Binary Lifting.",
     sections: [
       {
-        heading: "Floyd's Cycle Detection",
-        body: "By running two pointers — Tortoise (1 step) and Hare (2 steps) — they are guaranteed to meet inside the cycle if one exists. Resetting Tortoise to the start node yields the exact cycle entry node.",
+        heading: "Core Concept: Floyd's Tortoise and Hare Cycle Detection",
+        body: "Floyd's algorithm uses two pointers moving at different speeds: Tortoise advances 1 step at a time (t = succ[t]), while Hare advances 2 steps (h = succ[succ[h]]). Since the graph component contains a cycle, the Hare is guaranteed to catch the Tortoise inside the cycle. Resetting Tortoise to the start node and stepping both by 1 isolates the exact cycle entry node.",
       },
       {
-        heading: "Binary Lifting for Successor Queries",
-        body: "Preprocessing succ_table[b][x] = 2^b-th successor allows jumping k steps in O(log k) operations by inspecting the binary expansion of k.",
+        heading: "Binary Lifting for Arbitrary Step Queries",
+        body: "To compute the k-th successor succ(x, k) for huge step counts (e.g. k = 10^9), standard linear stepping is too slow. Binary lifting precomputes table[b][x] = 2^b-th successor of x. Decomposing k into its binary bit representation allows jumping k steps in O(log k) table lookups.",
+      },
+      {
+        heading: "Applications in Pseudorandomness & Cryptography",
+        body: "Functional graphs model deterministic state transitions in pseudorandom number generators (PRNGs), Pollard's rho algorithm for integer factorization, memory pointer chasing, and cellular automata cycle analysis.",
+      },
+      {
+        heading: "Edge Cases & Functional Components",
+        body: "Self-loops (succ[x] = x) form 1-cycles. Pure cycle graphs have no incoming tails (all in-degrees = 1). Binary lifting jump tables handle arbitrarily large step counts without stack overflow or infinite loops.",
       },
     ],
     keyTerms: [
       {
         term: "Functional Graph",
-        definition: "A directed graph where every node has out-degree 1.",
+        definition:
+          "A directed graph where every vertex has out-degree exactly 1, representing a deterministic transition function.",
       },
       {
-        term: "Tortoise & Hare",
+        term: "Floyd's Cycle Detection",
         definition:
-          "Floyd's algorithm for finding cycles using two pointers moving at different speeds.",
+          "An O(V) time, O(1) space two-pointer algorithm for detecting cycles in linked structures or functional graphs.",
       },
       {
         term: "Binary Lifting",
         definition:
-          "Dynamic programming technique to compute k-th ancestor/successor in O(log k) time.",
+          "A dynamic programming technique precomputing 2^i ancestors or successors to enable O(log k) query traversal.",
+      },
+      {
+        term: "Cycle Entry Node",
+        definition:
+          "The first node reached when following successor edges from a starting point that belongs to a directed cycle.",
       },
     ],
   },

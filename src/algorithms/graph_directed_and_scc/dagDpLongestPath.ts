@@ -328,12 +328,12 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear O(V + E) time using Dynamic Programming combined with Topological Sort. (In general graphs, finding the longest simple path is NP-hard, but DAG acyclicity enables fast DP).",
+    "Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear O(V + E) time using Dynamic Programming combined with Topological Sort. Given a DAG with V vertices and E weighted edges, compute the length of the longest path along with the sequence of vertices forming that path. While finding the longest path in general graphs is NP-hard, DAG acyclicity allows evaluating DP transitions in topological order: dp[v] = max(dp[v], dp[u] + weight(u, v)). Return the maximum path length in the DAG.",
   constraints: [
-    "1 <= V <= 500",
-    "0 <= E <= 2000",
+    "1 <= V <= 1000",
+    "0 <= E <= 5000",
     "Graph must be acyclic (DAG)",
-    "Edge weights can be positive or negative",
+    "Edge weights can be positive, negative, or zero",
   ],
   examples: [
     {
@@ -400,15 +400,23 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   },
   topicGuide: {
     overview:
-      "While finding the longest path in general graphs is NP-hard (Hamiltonian Path reduction), in a Directed Acyclic Graph (DAG) it is solvable in linear time using dynamic programming.",
+      "While finding the longest path in general directed graphs is NP-hard (by reduction to the Hamiltonian Path problem), the structural absence of directed cycles in a DAG enables an optimal dynamic programming solution in linear O(V + E) time. By evaluating vertices in topological order, all predecessors of a node are fully processed before its own optimal path values are computed.",
     sections: [
       {
-        heading: "Topological Ordering Pre-Requisite",
-        body: "Processing nodes in topological order guarantees that when evaluating dp[u], all predecessors of u have already been fully computed.",
+        heading: "Core Concept: Topological Pre-Ordering & Optimal Substructure",
+        body: "Topological ordering ensures that for every directed edge u -> v, u appears before v in the traversal sequence. Consequently, when calculating dp[v], all potential incoming paths (u, v) have already had their maximal lengths dp[u] finalized.",
       },
       {
-        heading: "DP Transition",
-        body: "dp[v] = max_{(u, v) in E} (dp[u] + weight(u, v)). Tracking parent pointers reconstructs the actual optimal trajectory.",
+        heading: "DP State Transitions & Path Reconstruction",
+        body: "Define dp[v] as the maximum path weight ending at vertex v. The state transition equation is dp[v] = max(dp[v], dp[u] + weight(u, v)) for all incoming edges (u, v). Maintaining parent pointers parent[v] = u allows backtracking from max(dp) to reconstruct the exact optimal path sequence.",
+      },
+      {
+        heading: "Systems & Critical Path Method (CPM)",
+        body: "Longest path computation on DAGs is the core mathematical engine of Project Management Critical Path Method (CPM), build pipeline optimization (Bazel, Ninja), chip synthesis timing analysis (Static Timing Analysis in VLSI design), and ML compute graph execution scheduling.",
+      },
+      {
+        heading: "Edge Cases & Negative Weights",
+        body: "Unlike Dijkstra's algorithm, DAG DP natively handles negative edge weights without looping endlessly, because cycles do not exist. Isolated vertices have a longest path length of 0. Disconnected components are handled seamlessly by initializing dp[v] = 0 across all sources.",
       },
     ],
     keyTerms: [
@@ -419,8 +427,14 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
           "Linear ordering of vertices such that for every directed edge u -> v, u comes before v.",
       },
       {
-        term: "DP on DAGs",
-        definition: "Optimal substructure optimization enabled by topological node evaluation.",
+        term: "Critical Path",
+        definition:
+          "The sequence of dependent tasks that determines the minimum total execution time for a project or pipeline.",
+      },
+      {
+        term: "Optimal Substructure",
+        definition:
+          "The property that an optimal solution to a problem contains optimal solutions to its subproblems.",
       },
     ],
   },

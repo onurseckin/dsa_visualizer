@@ -205,7 +205,7 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   categories: ["tree_queries_and_diameter"],
   difficulty: "Medium",
   description:
-    "The Euler Tour Technique flattens a tree structure into a 1D array by recording entry (tin) and exit (tout) times during a depth-first search. Because all nodes in a subtree are visited continuously between tin[u] and tout[u], any subtree query becomes a simple contiguous range query [tin[u], tout[u]] on a Fenwick tree or Segment tree.",
+    "Flatten a 2D tree hierarchy into a linear 1D array using DFS entry (`tin`) and exit (`tout`) timestamps, enabling subtree updates and range queries in $O(1)$ mapping time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, compute entry timestamp `tin[u]` and exit timestamp `tout[u]` for every vertex $u$ during a Depth-First Search traversal.\n\nBecause DFS visits all descendants of node $u$ continuously before backtracking out of $u$, the entire subtree rooted at $u$ corresponds to a contiguous subsegment $[tin[u], tout[u]]$ in the flattened Euler Tour array. Subtree queries (sum, min, max, point/range updates) can thus be answered using standard range data structures (Fenwick Tree / Segment Tree) in $O(\\log N)$ time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `values`: Optional array of node values.\n\n### Output\n- Returns arrays `tin`, `tout`, and `flat_order` where node $u$'s subtree is mapped to index slice $[tin[u], tout[u]]$.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- Single node tree ($N=1$): `tin[0] = 0, tout[0] = 0` (slice of length 1).\n- Deep chain graph ($N=10^5$): `tin` spans $[0, N-1]$, `tout` spans $[0, N-1]$ accordingly.",
   constraints: ["1 <= N <= 20"],
   examples: [
     {
@@ -287,21 +287,40 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   },
   topicGuide: {
     overview:
-      "Euler Tour technique maps tree hierarchy to flat 1D array ranges. Subtree operations (sums, updates, max) translate directly to range queries on standard range data structures.",
+      "The Euler Tour Technique (Tree Flattening / Traversal Linearization) transforms hierarchical parent-child relationships into a contiguous 1D array interval. By storing DFS entry timestamp `tin[u]` and exit timestamp `tout[u]`, any node $u$'s entire subtree is mapped to the contiguous slice $[tin[u], tout[u]]$.\n\nIn real-life production systems, tree linearization is essential for high-performance spatial database indexing (R-Trees/B-Trees), database nested set model queries (SQL tree queries without recursive CTEs), and compiler AST optimizations.",
     sections: [
       {
-        heading: "Contiguous Subtree Invariant",
-        body: "All descendants of node u are visited between tin[u] and tout[u]. Thus, the subtree of u forms the contiguous slice flat_array[tin[u] .. tout[u]].",
+        heading: "Core Concept: The Subtree Invariant",
+        body: "During DFS traversal, a node $u$ is entered at timestamp `tin[u]`. All descendants of $u$ are visited recursively before DFS exits node $u$ at timestamp `tout[u]`. Because no non-descendant node can be visited within this window, the range $[tin[u], tout[u]]$ contains strictly the subtree of $u$.",
+      },
+      {
+        heading: "Systems & Performance Impact: Linear Array vs Tree Pointers",
+        body: "Pointer-chasing tree traversals cause heavy L1/L2 cache misses due to non-contiguous node heap allocations. Flattening the tree into a linear array allows hardware prefetchers to achieve maximum memory bandwidth during range updates or sum aggregations via Fenwick Trees.",
+      },
+      {
+        heading: "Implementation Nuances: 1-Pass vs 2-Pass Euler Tours",
+        body: "Standard Subtree Flattening (1 entry per node): `tin[u]` is assigned on entry, `tout[u]` is assigned after visiting all children. Length of array is $N$.\nLCA Euler Tour (RMQ reduction): Records node on entry AND after returning from every child branch. Length of array is $2N - 1$. RMQ over this array yields LCA in $O(1)$ query time.",
+      },
+      {
+        heading: "Edge Case Analysis",
+        body: "1. Ancestor Checks: Node $u$ is an ancestor of node $v$ if and only if $tin[u] \\le tin[v]$ and $tout[u] \\ge tout[v]$.\n2. Subtree Size: The number of vertices in $u$'s subtree is exactly $tout[u] - tin[u] + 1$.\n3. Leaf Nodes: `tin[u] == tout[u]`, forming a 1-element slice.",
       },
     ],
     keyTerms: [
       {
-        term: "Euler Tour",
-        definition: "A DFS traversal order that records entry and exit timestamps for tree nodes.",
+        term: "Euler Tour (`tin` / `tout`)",
+        definition:
+          "Entry (`tin`) and exit (`tout`) timestamps assigned during a depth-first search of a tree.",
       },
       {
-        term: "Tree Flattening",
-        definition: "Transforming tree parent-child structures into 1D contiguous range segments.",
+        term: "Tree Linearization",
+        definition:
+          "Mapping a 2D tree topology onto a 1D array to allow range query data structures (Fenwick/Segment tree) to operate on subtrees.",
+      },
+      {
+        term: "Subtree Contiguity",
+        definition:
+          "The property ensuring all nodes in a subtree reside in a single unbroken slice of the linearized array.",
       },
     ],
   },

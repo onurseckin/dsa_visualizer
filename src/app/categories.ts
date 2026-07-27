@@ -1,4 +1,46 @@
-import { CategoryType } from "../types/dsa";
+import type { CategoryType } from "../types/dsa";
+
+export const CATEGORY_KEYS = {
+  ARRAYS_AND_HASHING: "arrays_and_hashing",
+  TWO_POINTERS: "two_pointers",
+  SLIDING_WINDOW: "sliding_window",
+  STACK_AND_QUEUE: "stack_and_queue",
+  BINARY_SEARCH: "binary_search",
+  LINKED_LIST: "linked_list",
+  TREE_FUNDAMENTALS: "tree_fundamentals",
+  TREE_QUERIES_AND_DIAMETER: "tree_queries_and_diameter",
+  TRIES_AND_STRINGS: "tries_and_strings",
+  HEAP_AND_PRIORITY_QUEUE: "heap_and_priority_queue",
+  BACKTRACKING: "backtracking",
+  GRAPH_TRAVERSAL: "graph_traversal",
+  GRAPH_SHORTEST_PATHS: "graph_shortest_paths",
+  GRAPH_SPANNING_TREES: "graph_spanning_trees",
+  GRAPH_DIRECTED_AND_SCC: "graph_directed_and_scc",
+  GRAPH_FLOWS_AND_CUTS: "graph_flows_and_cuts",
+  DP_1D: "dp_1d",
+  DP_2D: "dp_2d",
+  INTERVALS: "intervals",
+  GREEDY_ALGORITHMS: "greedy_algorithms",
+  BIT_MANIPULATION: "bit_manipulation",
+  MATH_AND_NUMBER_THEORY: "math_and_number_theory",
+  GAME_THEORY: "game_theory",
+  ADVANCED_RANGE_QUERIES: "advanced_range_queries",
+  GEOMETRY_AND_SWEEP_LINE: "geometry_and_sweep_line",
+  ML_TENSOR_ALGEBRA: "ml_tensor_algebra",
+  ML_GEMM_ROOFLINE: "ml_gemm_roofline",
+  ML_AUTOGRAD_DAGS: "ml_autograd_dags",
+  ML_PRECISION_QUANTIZATION: "ml_precision_quantization",
+  ML_VECTOR_SEARCH: "ml_vector_search",
+  ML_TOKENIZATION: "ml_tokenization",
+  ML_TREE_ENSEMBLES: "ml_tree_ensembles",
+  ML_CONVOLUTIONS: "ml_convolutions",
+  ML_RECURRENT_GATES: "ml_recurrent_gates",
+  ML_ATTENTION_GEOMETRY: "ml_attention_geometry",
+  ML_HARDWARE_KERNELS: "ml_hardware_kernels",
+  ML_GRAPH_COMPILERS: "ml_graph_compilers",
+  ML_DISTRIBUTED_SYSTEMS: "ml_distributed_systems",
+  ML_LLM_SERVING: "ml_llm_serving",
+} as const;
 
 export const CATEGORIES: { id: CategoryType; label: string }[] = [
   { id: "arrays_and_hashing", label: "1. Arrays & Hashing" },
@@ -78,11 +120,34 @@ export const CATEGORY_LABELS: Record<string, string> = {
   ml_convolutions: "Convolutional Tiling & im2col",
   ml_recurrent_gates: "Recurrent Gates & Sequences",
   ml_attention_geometry: "Attention Geometry & KV-Cache",
-  ml_hardware_kernels: "Hardware Kernels & Fusion",
+  ml_hardware_kernels: "Hardware Kernels & GPU SRAM",
   ml_graph_compilers: "Model Compression & Compilers",
-  ml_distributed_systems: "Distributed ML & Interconnects",
-  ml_llm_serving: "LLM Serving & Continuous Batching",
+  ml_distributed_systems: "Distributed ML & Ring-AllReduce",
+  ml_llm_serving: "LLM Serving & PagedAttention",
 };
+
+export function getAlgorithmPrimaryCategory(alg: {
+  category?: CategoryType;
+  categories?: CategoryType[];
+}): CategoryType {
+  if (alg.categories && alg.categories.length > 0) {
+    return alg.categories[0];
+  }
+  return alg.category || "arrays_and_hashing";
+}
+
+export function getAlgorithmCategories(alg: {
+  category?: CategoryType;
+  categories?: CategoryType[];
+}): CategoryType[] {
+  if (alg.categories && alg.categories.length > 0) {
+    return alg.categories;
+  }
+  if (alg.category) {
+    return [alg.category];
+  }
+  return ["arrays_and_hashing"];
+}
 
 const CATEGORY_ID_SET = new Set<string>(CATEGORIES.map((category) => category.id));
 

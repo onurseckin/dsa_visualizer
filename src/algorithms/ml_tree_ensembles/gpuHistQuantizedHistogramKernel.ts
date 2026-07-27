@@ -110,12 +110,13 @@ export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<gpuHistQuantiz
     id: "gpu-hist-quantized-histogram-kernel",
     title: "GPU `gpu_hist` Shared Memory Quantized Histogram Builder",
     category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles"],
+    categories: ["ml_tree_ensembles", "tree_fundamentals"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 9,
     mlInfraCategory: "ml_tree_ensembles",
-    description: "Implementation of GPU `gpu_hist` Shared Memory Quantized Histogram Builder.",
+    description:
+      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), gpu `gpu_hist` shared memory quantized histogram builder provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
     constraints: ["Valid input arguments required."],
     examples: [
       {

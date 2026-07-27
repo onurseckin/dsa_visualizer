@@ -9,6 +9,7 @@ import type {
 } from "../../types/dsa";
 import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
 import { getAllAlgorithms } from "../../algorithms/registry";
+import { getAlgorithmCategories, getAlgorithmPrimaryCategory } from "../../app/categories";
 import {
   Badge,
   Button,
@@ -65,14 +66,18 @@ export function QuickAccessDrawer({
 
   const categoryIdSet = useMemo(() => new Set(categories.map((cat) => cat.id)), [categories]);
   const totalAlgorithms = useMemo(
-    () => allAlgorithms.filter((alg) => categoryIdSet.has(alg.category)).length,
+    () =>
+      allAlgorithms.filter((alg) => getAlgorithmCategories(alg).some((c) => categoryIdSet.has(c)))
+        .length,
     [allAlgorithms, categoryIdSet],
   );
 
   const groups = useMemo(() => {
     return categories
       .map((cat) => {
-        const catAlgorithms = allAlgorithms.filter((alg) => alg.category === cat.id);
+        const catAlgorithms = allAlgorithms.filter((alg) =>
+          getAlgorithmCategories(alg).includes(cat.id),
+        );
         const matches = catAlgorithms.filter((alg) => {
           if (sourceFilter !== "all") {
             const sources = getAlgorithmSources(alg);
@@ -80,9 +85,7 @@ export function QuickAccessDrawer({
             const isMl =
               sourceFilter === "ml_infra" &&
               (Boolean(alg.isMlInfra) ||
-                alg.category === "ml_infra" ||
-                alg.category === "ml_infrastructure" ||
-                alg.category.startsWith("ml_"));
+                getAlgorithmCategories(alg).some((c) => c.startsWith("ml_")));
             if (!matchesSource && !isMl) {
               return false;
             }
@@ -247,7 +250,7 @@ export function QuickAccessDrawer({
                               icon={
                                 isActive ? <Check className="w-3.5 h-3.5 shrink-0" /> : undefined
                               }
-                              onClick={() => handleSelect(alg.id, alg.category)}
+                              onClick={() => handleSelect(alg.id, getAlgorithmPrimaryCategory(alg))}
                               className="justify-start text-left font-normal"
                             >
                               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">

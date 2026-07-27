@@ -259,11 +259,12 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "Hierholzer's algorithm finds an Eulerian path or Eulerian circuit in a graph in linear O(V + E) time. An Eulerian path visits every edge in the graph exactly once. The algorithm maintains a stack to explore sub-cycles and backtracks to splice cycles together into a single continuous trail.",
+    "Hierholzer's algorithm finds an Eulerian path or Eulerian circuit in a graph in linear O(V + E) time. Given a directed or undirected graph with V vertices and E edges, construct an Eulerian Path (a trail visiting every edge exactly once) or Eulerian Circuit. The algorithm maintains an execution stack to explore directed sub-cycles, backtracking when dead-ends are reached, and splicing sub-cycles together into a single continuous trail.",
   constraints: [
-    "1 <= V <= 500",
-    "0 <= E <= 2000",
-    "Graph must contain an Eulerian path or circuit (in-degree == out-degree for all or all-but-two vertices)",
+    "1 <= V <= 1000",
+    "0 <= E <= 5000",
+    "For an Eulerian Circuit: in_degree(u) == out_degree(u) for all vertices u",
+    "For an Eulerian Path: exactly one vertex has out_degree - in_degree = 1 (start) and one vertex has in_degree - out_degree = 1 (end)",
   ],
   examples: [
     {
@@ -332,15 +333,23 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   },
   topicGuide: {
     overview:
-      "Hierholzer's algorithm constructs an Eulerian path or circuit in linear time by greedily following edges until trapped in a cycle, then backtracking along the stack to splice secondary cycles into the primary circuit.",
+      "Hierholzer's algorithm constructs an Eulerian path or circuit in linear O(V + E) time. By greedily following unvisited edges until getting trapped in a cycle, then using an explicit stack to backtrack and splice sub-cycles into the main traversal sequence, it avoids the exponential overhead of naive backtracking.",
     sections: [
       {
-        heading: "Eulerian Trail vs Eulerian Circuit",
-        body: "An Eulerian circuit starts and ends at the same vertex, requiring in-degree equal to out-degree for every vertex. An Eulerian path allows start and end vertices to differ, requiring exactly one vertex with out - in = 1 (start) and one with in - out = 1 (end).",
+        heading: "Core Concept: Degree Conditions & Existence Theorems",
+        body: "Euler proved that a connected directed graph contains an Eulerian Circuit if and only if in_degree(v) == out_degree(v) for all vertices v. An Eulerian Path exists if and only if at most one vertex has out_degree - in_degree = 1 (start) and at most one vertex has in_degree - out_degree = 1 (end).",
       },
       {
-        heading: "Hierholzer's Stack Mechanism",
-        body: "Instead of restarting DFS from scratch on disconnected sub-cycles, Hierholzer's algorithm uses a stack. As vertices with no remaining outgoing edges are popped from the stack, they are pushed into a post-order list which is reversed at the end.",
+        heading: "Hierholzer's Stack Mechanism & Post-Order Splacing",
+        body: "Starting from the designated start vertex, the algorithm pushes nodes onto an execution stack while removing traversed edges from the adjacency lists. When a node with no remaining outgoing edges is reached, it is popped from the stack and added to the output trail. Reversing the post-order sequence yields a valid Eulerian trail.",
+      },
+      {
+        heading: "Applications in Robotics & DNA Sequencing",
+        body: "Eulerian paths solve the Seven Bridges of Königsberg problem, street sweeping and snow plow route optimization (Chinese Postman Problem), DNA fragment assembly (Eulerian trail over De Bruijn graphs), and circuit board drill path planning.",
+      },
+      {
+        heading: "Edge Cases & Implementation Details",
+        body: "Disconnected graph components containing edges prevent a single Eulerian trail. Graph representations must support mutating or deleting edges efficiently during traversal so no edge is traversed twice.",
       },
     ],
     keyTerms: [
@@ -350,12 +359,17 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
       },
       {
         term: "Eulerian Circuit",
-        definition: "An Eulerian path that starts and ends on the same vertex.",
+        definition: "An Eulerian path that starts and ends on the exact same vertex.",
       },
       {
         term: "Hierholzer's Algorithm",
         definition:
-          "An O(V + E) algorithm for finding Eulerian paths via post-order cycle joining.",
+          "An linear O(V + E) algorithm for finding Eulerian paths via post-order cycle joining.",
+      },
+      {
+        term: "Degree Balance",
+        definition:
+          "The equality or exact offset between in-degree and out-degree required for Eulerian existence.",
       },
     ],
   },

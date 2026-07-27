@@ -166,8 +166,12 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   categories: ["dp_2d"],
   difficulty: "Medium",
   description:
-    "Calculates total unique paths from top-left (0,0) to bottom-right (m-1, n-1) on a grid with obstacles using 2D dynamic programming.",
-  constraints: ["1 <= m, n <= 10", "grid[r][c] in {0, 1}"],
+    "Given an m x n grid where grid[r][c] == 1 represents an obstacle and 0 represents a walkable cell, calculate the total number of unique paths from the top-left corner (0, 0) to the bottom-right corner (m-1, n-1). At any cell, movement is restricted to only rightward (c+1) or downward (r+1) steps. Solve using 2D Dynamic Programming: initialize dp[0][0] = 1 (if unblocked), set dp[r][c] = 0 for obstacles, and compute dp[r][c] = dp[r-1][c] + dp[r][c-1] for open cells. Return dp[m-1][n-1].",
+  constraints: [
+    "1 <= m, n <= 500",
+    "grid[r][c] is either 0 (empty) or 1 (obstacle)",
+    "Start or destination cell may be blocked",
+  ],
   examples: [
     {
       kind: "basic",
@@ -223,11 +227,45 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   },
   topicGuide: {
     overview:
-      "Grid Paths DP sums paths arriving from top (r-1, c) and left (r, c-1) while setting obstacle cells to 0.",
+      "Counting unique paths on a 2D grid with obstacles is a fundamental 2D dynamic programming problem (LeetCode #63). Because movement is strictly limited to moving right or down, the graph of cell transitions is implicitly a Directed Acyclic Graph (DAG), enabling an optimal O(M * N) grid tabulation.",
     sections: [
       {
-        heading: "Grid Transition",
-        body: "dp[r][c] = dp[r-1][c] + dp[r][c-1] for valid non-wall cells.",
+        heading: "Core Concept: Grid Recurrence & Addition Principle",
+        body: "Any path reaching cell (r, c) must come from either its top neighbor (r-1, c) or its left neighbor (r, c-1). By the addition principle of combinatorics, the number of unique paths to (r, c) is dp[r][c] = dp[r-1][c] + dp[r][c-1] for non-obstacle cells.",
+      },
+      {
+        heading: "Handling Obstacles & Boundary Conditions",
+        body: "If grid[r][c] == 1, cell (r, c) is an obstacle and dp[r][c] is set to 0. If the start cell (0, 0) or destination (m-1, n-1) contains an obstacle, the total path count is immediately 0.",
+      },
+      {
+        heading: "Space Optimization: 2D to 1D Row Vector",
+        body: "Because dp[r][c] relies only on the current row dp[r][c-1] and the previous row dp[r-1][c], space complexity can be compressed from O(M * N) down to O(N) by maintaining a single 1D array of length N.",
+      },
+      {
+        heading: "Combinatorial Proof for Unobstructed Grids",
+        body: "For an unobstructed m x n grid, the exact total unique paths equals the binomial coefficient C((m-1) + (n-1), (m-1)), which can be computed in O(min(M, N)) without dynamic programming.",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Grid DP",
+        definition:
+          "Dynamic programming on a 2D spatial grid where state transitions flow in fixed directional vectors.",
+      },
+      {
+        term: "Addition Principle",
+        definition:
+          "Rule of counting stating that if events are mutually exclusive, the total count is the sum of individual counts.",
+      },
+      {
+        term: "Binomial Coefficient",
+        definition:
+          "The number of ways to choose k items from n items, C(n, k), providing closed-form solutions for unblocked grids.",
+      },
+      {
+        term: "Space Compression",
+        definition:
+          "Reducing a multi-dimensional DP matrix to lower dimensions by storing only active preceding rows or columns.",
       },
     ],
   },

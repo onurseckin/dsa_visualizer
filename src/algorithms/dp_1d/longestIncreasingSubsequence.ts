@@ -138,8 +138,8 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     categories: ["dp_1d"],
     difficulty: "Medium",
     description:
-      "Finds the length of the longest strictly increasing subsequence in an array of numbers using 1D dynamic programming.",
-    constraints: ["1 <= nums.length <= 20", "-10^4 <= nums[i] <= 10^4"],
+      "Given an integer array nums, return the length of the longest strictly increasing subsequence. A subsequence is a sequence that can be derived from an array by deleting zero or more elements without changing the order of the remaining elements (unlike a subarray, elements are not required to be contiguous). Define dp[i] as the length of the longest strictly increasing subsequence ending at index i. Initialize dp[i] = 1 for all indices. For each index i from 1 to N-1, iterate over all previous indices j (0 <= j < i); if nums[i] > nums[j], update dp[i] = max(dp[i], dp[j] + 1). The answer is max(dp).",
+    constraints: ["1 <= nums.length <= 2500", "-10^4 <= nums[i] <= 10^4"],
     examples: [
       {
         kind: "basic",
@@ -173,28 +173,51 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     timeComplexity: { best: "O(N^2)", average: "O(N^2)", worst: "O(N^2)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Nested loops compare every pair of indices (i, j) where j < i, yielding N*(N-1)/2 iterations which is O(N^2).",
+      time: "Nested loops compare every pair of indices (i, j) where j < i, yielding N*(N-1)/2 iterations which is O(N^2). (An advanced O(N log N) binary search approach exists using Patience Sorting).",
       space:
         "Requires a 1D DP table of size N to store the LIS length ending at each index, taking O(N) extra space.",
     },
     topicGuide: {
       overview:
-        "Longest Increasing Subsequence (LIS) is a classic 1D dynamic programming problem where dp[i] represents the length of the longest increasing subsequence ending at index i.",
+        "The Longest Increasing Subsequence (LIS) problem is a classic dynamic programming challenge that requires finding the longest sequence of elements from an array that appear in strictly increasing order without altering their relative relative position. LIS introduces foundational concepts of subproblem definition, state transitions, and patience sorting optimization.",
       sections: [
         {
-          heading: "State Definition",
-          body: "dp[i] stores the length of the longest strictly increasing subsequence that ends exactly at index i.",
+          heading: "Core Concept: State Definition & Quadratic DP",
+          body: "Define dp[i] as the length of the longest strictly increasing subsequence whose final element is nums[i]. Every element forms a single-element subsequence of length 1 by default (dp[i] = 1). For every index i, examining all earlier indices j < i allows appending nums[i] whenever nums[i] > nums[j], yielding dp[i] = max(dp[i], dp[j] + 1).",
         },
         {
-          heading: "Transitions",
-          body: "For index i, iterate over all j < i. If nums[i] > nums[j], we can append nums[i] to the subsequence ending at j: dp[i] = max(dp[i], dp[j] + 1).",
+          heading: "O(N log N) Optimization: Patience Sorting & Binary Search",
+          body: "By maintaining a tails array where tails[k] holds the smallest tail value of all increasing subsequences of length k+1, elements can be binary searched in O(log N) time per array element. This optimizes the overall time complexity from O(N^2) down to O(N log N).",
+        },
+        {
+          heading: "Applications in Data Alignment & Systems",
+          body: "LIS forms the core algorithm for diff tools (git diff / Myers diff), sequence alignment in bioinformatics, version control merge resolution, and stock market trend trend analysis.",
+        },
+        {
+          heading: "Edge Cases & Non-Decreasing Variants",
+          body: "Strictly increasing (nums[i] > nums[j]) vs non-decreasing (nums[i] >= nums[j]) variants differ in handling duplicate elements. Arrays with identical elements yield LIS length 1 for strictly increasing rules, but length N for non-decreasing rules.",
         },
       ],
       keyTerms: [
         {
           term: "Subsequence",
           definition:
-            "A sequence derived by deleting zero or more elements without changing the order of remaining elements.",
+            "A sequence derived by deleting zero or more elements without altering the relative order of remaining elements.",
+        },
+        {
+          term: "Patience Sorting",
+          definition:
+            "An algorithm based on card games used to construct LIS in O(N log N) time using binary search over pile tops.",
+        },
+        {
+          term: "Optimal Substructure",
+          definition:
+            "The property that an optimal LIS ending at index i is built by extending an optimal LIS ending at some earlier index j.",
+        },
+        {
+          term: "Tails Array",
+          definition:
+            "An auxiliary sorted array tracking the minimum tail element for each candidate subsequence length.",
         },
       ],
     },

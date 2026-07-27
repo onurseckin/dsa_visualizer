@@ -40,7 +40,7 @@ describe("TriePrefixTree React Component Spec", () => {
 
     // Problem details render expanded by default, so the description is already visible.
     expect(
-      screen.getAllByText(/tree-like data structure for storing strings/i)[0],
+      screen.getAllByText(/tree data structure used to efficiently store and retrieve keys/i)[0],
     ).toBeInTheDocument();
   });
 

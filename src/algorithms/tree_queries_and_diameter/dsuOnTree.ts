@@ -228,7 +228,7 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   categories: ["tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
-    "DSU on Tree (also called Sack or Small-to-Large merging) computes offline subtree statistics (such as color frequencies) for every node in a tree. By reusing the heavy child's accumulated data structure and only re-inserting elements from light subtrees, total work is bounded by O(N log N).",
+    "Compute offline subtree statistics (such as distinct color counts) for every node in a tree using DSU on Tree (Sack / Small-to-Large merging) in $O(N \\log N)$ total time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, where each vertex $u$ has an associated integer attribute (e.g. `color[u]`), answer subtree queries for all nodes $u \\in [0, N-1]$.\n\nNaive subtree frequency aggregation takes $O(N^2)$ time as light subtrees are computed and discarded. DSU on Tree optimizes this by identifying the 'heavy child' (child with maximum subtree size $sz[v]$) for each node. The algorithm recursively computes light subtrees with `keep=False` (clearing their frequency table after evaluation), computes the heavy child with `keep=True` (retaining its accumulated table), and finally merges the light children back into the heavy child's table in $O(N \\log N)$ total time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `colors`: Array of size $N$ containing attribute values for each vertex.\n\n### Output\n- Returns an array `ans` of size $N$ where `ans[u]` is the count of distinct colors in node $u$'s subtree.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= colors[i] <= 10^9`.\n- Single node tree ($N=1$): returns `ans = [1]`.\n- Star graph topology: root has $N-1$ leaves, heavy child can be any leaf.",
   constraints: ["1 <= N <= 15"],
   examples: [
     {
@@ -336,22 +336,38 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   },
   topicGuide: {
     overview:
-      "DSU on Tree computes offline queries across all subtrees. By designating the largest child as heavy and retaining its sack frequency table, we avoid redundant rebuilds.",
+      "DSU on Tree (also known as Sack or Heavy-Light subtree merging) solves offline subtree query problems without complex data structures like persistent segment trees or dynamic merge trees. By exploiting the Heavy-Light Decomposition principle, a node reuses the frequency data structure ('sack') of its largest subtree (the heavy child) and only re-inserts nodes from smaller subtrees (light children).\n\nReal-life applications include compiler AST static analysis (evaluating scope symbol frequencies across nested AST blocks), structural clade analysis in computational biology trees, and hierarchical category metric aggregations.",
     sections: [
       {
-        heading: "Heavy-Light Decomposition Principle",
-        body: "A heavy child has the largest subtree size sz[v]. Reusing its frequency table means only light children need to be merged.",
+        heading: "Core Concept: The $O(N \\log N)$ Work Proof",
+        body: "A tree edge $(u, v)$ is defined as 'light' if $sz[v] \\le sz[u] / 2$. Consequently, any simple path from the root to a leaf node crosses at most $\\log_2 N$ light edges. Because a node is only re-inserted into the global sack when traversing upward through a light edge, each node is added/removed at most $\\log_2 N$ times. Total time complexity is strictly bounded by $O(N \\log N)$.",
+      },
+      {
+        heading: "Systems & Performance Impact",
+        body: "Unlike heavy pointer-based map merges (`std::map::merge`), DSU on tree utilizes a single, static flat global frequency array or hash map `cnt`. Re-inserting elements sequentially achieves cache-friendly memory access patterns without pointer allocations.",
+      },
+      {
+        heading: "Implementation Nuances: 3-Phase Execution",
+        body: "Phase 1: Pre-pass DFS calculates subtree sizes $sz[u]$ and identifies `big_child[u]` (the child with $\\max sz[v]$).\nPhase 2: Recurse on light children with `keep=False` (erasing their contributions from `cnt`).\nPhase 3: Recurse on `big_child[u]` with `keep=True` (retaining its frequency sack), then iterate through light subtrees and re-add their elements into `cnt` before recording `ans[u]`.",
+      },
+      {
+        heading: "Edge Case Analysis",
+        body: "1. Leaf nodes: `big_child[u] == -1`, requires only 1 insertion.\n2. Perfectly balanced binary trees: every edge is light except one, exact bound $\\frac{1}{2} N \\log_2 N$ steps.\n3. Skewed line trees: single heavy child path running from root to leaf, incurring $O(N)$ total operations (0 light edge traversals!).",
       },
     ],
     keyTerms: [
       {
-        term: "Heavy Child",
-        definition: "The child of node u that has the largest subtree size sz[v].",
+        term: "Heavy Child (`big_child`)",
+        definition: "The child $v$ of node $u$ with the largest subtree size $sz[v]$.",
+      },
+      {
+        term: "Light Edge",
+        definition: "An edge connecting parent $u$ to child $v$ where $sz[v] \\le sz[u] / 2$.",
       },
       {
         term: "Small-to-Large Merging",
         definition:
-          "Merging smaller data structures into larger ones to achieve O(N log N) complexity.",
+          "The algorithmic technique of merging smaller sets into a larger set to achieve logarithmic amortized cost per element.",
       },
     ],
   },

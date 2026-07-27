@@ -118,6 +118,7 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   id: "kruskal-mst",
   title: "Kruskal's Minimum Spanning Tree",
   category: "graph_spanning_trees",
+  categories: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
     "Kruskal's algorithm builds the Minimum Spanning Tree (MST) of a connected, undirected weighted graph — the cheapest possible set of edges that connects all V vertices without any cycles. It works greedily: sort every edge by weight, then walk the list from lightest to heaviest. For each edge (u, v), a union-find (DSU) structure with path compression checks whether u and v already belong to the same component. If they don't, the edge is kept and the two components are merged; if they do, the edge would close a cycle, so it is skipped.",

@@ -192,8 +192,13 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   categories: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "Grows a minimum spanning tree from a starting vertex by greedily adding the cheapest edge connecting an unvisited vertex.",
-  constraints: ["1 <= V <= 10", "0 <= E <= 20"],
+    "Given a connected, undirected graph with V vertices and E weighted edges, construct a Minimum Spanning Tree (MST)—a subset of V - 1 edges that connects all vertices together without any cycles while minimizing total edge weight sum. Prim's algorithm starts from an arbitrary initial vertex and grows the MST iteratively. At each step, a min-priority queue extracts the lightest edge connecting a vertex inside the current MST tree to an unvisited vertex outside the tree. If the graph is disconnected, report that a single spanning tree cannot be formed.",
+  constraints: [
+    "1 <= V <= 1000",
+    "0 <= E <= 10^5",
+    "0 <= Edge Weight <= 10^4",
+    "Graph is undirected and may contain duplicate edge weights",
+  ],
   examples: [
     {
       kind: "basic",
@@ -244,11 +249,45 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   },
   topicGuide: {
     overview:
-      "Prim's algorithm builds MST by maintaining a cut of visited and unvisited vertices, greedily selecting the minimum weight cross-cut edge.",
+      "Prim's algorithm is a greedy graph traversal algorithm that constructs a Minimum Spanning Tree (MST) by growing a single connected tree outward from an initial seed node. By prioritizing the minimum-weight edge across the cut dividing visited tree nodes from unvisited nodes, Prim's algorithm operates efficiently using a min-priority queue (or Fibonacci heap) in O(E log V) time.",
     sections: [
       {
-        heading: "Greedy Cut Property",
-        body: "The minimum weight edge connecting a node inside MST to a node outside MST is guaranteed to belong to MST.",
+        heading: "Core Concept: The Cut Property & Local Greedy Choices",
+        body: "A cut partitions the graph's vertices into two disjoint sets S and V \\ S. The Cut Property states that for any cut, the lightest edge crossing the cut boundary belongs to some Minimum Spanning Tree. Prim's algorithm maintains S as the set of nodes already in the MST, greedily absorbing the lightest edge leaving S at every step.",
+      },
+      {
+        heading: "Implementation: Priority Queues & Min-Heaps",
+        body: "Using a binary min-heap priority queue, candidate edges are ordered by weight. When a node u is added to S, all edges leaving u to unvisited neighbors are pushed onto the heap. Popping the top element extracts the cheapest valid cross-cut edge.",
+      },
+      {
+        heading: "Comparison: Prim vs Kruskal Algorithm",
+        body: "Prim's algorithm grows a single continuous tree component, whereas Kruskal's algorithm merges independent forest components. On dense graphs (E ≈ V^2), Prim with an adjacency matrix runs in O(V^2) without heap overhead, outperforming Kruskal's O(E log E). On sparse graphs (E ≈ V), binary heap Prim and Kruskal achieve comparable O(E log V) bounds.",
+      },
+      {
+        heading: "Systems Applications & Network Infrastructure",
+        body: "Prim's MST algorithm underpins physical network wiring (minimizing fiber optic conduit installation cost), circuit layout design (VLSI clock tree routing), and cluster analysis in machine learning.",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Minimum Spanning Tree (MST)",
+        definition:
+          "A spanning subgraph of a connected, edge-weighted undirected graph that connects all vertices together with minimum total edge weight and no cycles.",
+      },
+      {
+        term: "Cut Property",
+        definition:
+          "The fundamental theorem stating that for any vertex partition (S, V \\ S), the minimum weight edge crossing between S and V \\ S is part of an MST.",
+      },
+      {
+        term: "Min-Priority Queue",
+        definition:
+          "A abstract data structure that allows fast O(1) minimum element inspection and O(log N) extraction and insertion.",
+      },
+      {
+        term: "Fringe / Frontier",
+        definition:
+          "The set of candidate edges connecting visited tree nodes to adjacent unvisited vertices.",
       },
     ],
   },

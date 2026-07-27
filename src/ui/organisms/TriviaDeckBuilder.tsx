@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Layers, Search } from "lucide-react";
 import type { CategoryType, DifficultyLevel } from "../../types/dsa";
 import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
-import { CATEGORIES } from "../../app/categories";
+import { CATEGORIES, getAlgorithmCategories } from "../../app/categories";
 import { getAllAlgorithms } from "../../algorithms/registry";
 import { Badge, Button, ButtonGroup, Card, Input, Select } from "..";
 import { DeckGroup, DeckGroupCollapsible } from "./DeckGroupCollapsible";
@@ -38,28 +38,30 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     const byCategory = new Map<CategoryType, DeckEntry[]>();
 
     algorithms.forEach((algorithm) => {
-      if (categoryFilter !== "ALL" && algorithm.category !== categoryFilter) return;
+      const cats = getAlgorithmCategories(algorithm);
+      if (categoryFilter !== "ALL" && !cats.includes(categoryFilter as CategoryType)) return;
       if (difficultyFilter !== "ALL" && algorithm.difficulty !== difficultyFilter) return;
       const sources = getAlgorithmSources(algorithm);
       if (sourceFilter !== "ALL") {
         if (!sources.some((s) => getSourceKind(s) === sourceFilter)) return;
       }
 
-      const label = CATEGORY_LABELS[algorithm.category] ?? algorithm.category;
+      const primaryCat = cats[0] || "arrays_and_hashing";
+      const label = CATEGORY_LABELS[primaryCat] ?? primaryCat;
       const matches =
         query.length === 0 ||
         algorithm.title.toLowerCase().includes(query) ||
         label.toLowerCase().includes(query);
       if (!matches) return;
 
-      const entries = byCategory.get(algorithm.category) ?? [];
+      const entries = byCategory.get(primaryCat) ?? [];
       entries.push({
         id: algorithm.id,
         title: algorithm.title,
         difficulty: algorithm.difficulty,
         sources,
       });
-      byCategory.set(algorithm.category, entries);
+      byCategory.set(primaryCat, entries);
     });
 
     return CATEGORIES.filter((category) => byCategory.has(category.id)).map((category) => ({

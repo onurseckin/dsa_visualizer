@@ -32,9 +32,7 @@ describe("ReverseLinkedList React Component Spec", () => {
     expect(screen.getByText("Reverse Linked List")).toBeInTheDocument();
 
     // Problem details render expanded, so the description needs no disclosure click.
-    expect(
-      screen.getAllByText(/Reverses a singly linked list in O\(n\) time and O\(1\) space/i)[0],
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(/reverse the pointer directions/i)[0]).toBeInTheDocument();
   });
 
   it("renders step visualizer with auxiliary pointers state", () => {

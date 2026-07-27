@@ -4,6 +4,7 @@ import { ResizableLayout, ResizableRows } from "../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
 import { getAlgorithm } from "../../algorithms/registry";
 import { ProblemDescriptionCard } from "../../ui";
+import { getAlgorithmPrimaryCategory } from "../../app/categories";
 
 import { useTriviaSessionState } from "./hooks/useTriviaSessionState";
 import { TriviaSessionHeader } from "./components/TriviaSessionHeader";
@@ -93,7 +94,7 @@ export function TriviaSession({
                     content: (
                       <ProblemDescriptionCard
                         title={algorithm.title}
-                        category={algorithm.category}
+                        category={getAlgorithmPrimaryCategory(algorithm)}
                         difficulty={algorithm.difficulty}
                         description={algorithm.description}
                         constraints={algorithm.constraints}

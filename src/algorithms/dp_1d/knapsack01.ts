@@ -149,8 +149,8 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   categories: ["dp_1d"],
   difficulty: "Medium",
   description:
-    "Finds maximum value that can be packed into a knapsack of capacity W using 0/1 item selection and 1D space-optimized dynamic programming.",
-  constraints: ["1 <= weights.length <= 10", "1 <= capacity <= 15"],
+    "Given N items where each item i has a weight weights[i] and a value values[i], alongside a maximum knapsack weight capacity W, determine the maximum total value that can be packed into the knapsack. You cannot split items; each item can either be included (1) or excluded (0). Using a 1D space-optimized dynamic programming array dp of size W + 1, dp[c] stores the maximum value achievable with total weight at most c. To ensure each item is selected at most once, iterate capacity c backward from W down to weights[i], updating dp[c] = max(dp[c], dp[c - weights[i]] + values[i]).",
+  constraints: ["1 <= N <= 1000", "1 <= capacity W <= 10^4", "1 <= weights[i], values[i] <= 1000"],
   examples: [
     {
       kind: "basic",
@@ -191,11 +191,45 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   },
   topicGuide: {
     overview:
-      "0/1 Knapsack selects items to maximize value under capacity constraint. Iterating backward over capacities allows using a 1D DP table.",
+      "The 0/1 Knapsack problem is a foundational problem in combinatorial optimization and dynamic programming. Given a set of items with specific weights and values, the goal is to select a subset of items to maximize value without exceeding capacity W. The 0/1 constraint enforces that each item is either entirely included or excluded, differentiating it from the Fractional Knapsack (solvable greedily) and Unbounded Knapsack.",
     sections: [
       {
-        heading: "Backward Capacity Sweep",
-        body: "Iterating capacity c from W down to w guarantees that dp[c - w] contains values from previous item iterations, preventing duplicate item selection.",
+        heading: "Core Concept: State Space & Backward Inner Loop",
+        body: "A standard 2D DP table uses dp[i][c] to denote the maximum value using a subset of the first i items under capacity c. By noticing that row i depends only on row i-1, the space can be compressed to a 1D array of size W + 1. Sweeping capacity c backward from W down to weight[i] prevents using the same item multiple times in a single pass.",
+      },
+      {
+        heading: "State Transition Equation",
+        body: "The transition is dp[c] = max(dp[c], dp[c - weights[i]] + values[i]). If capacity c is less than weights[i], the item cannot be included, leaving dp[c] unchanged.",
+      },
+      {
+        heading: "Systems Applications & Pseudo-Polynomial Complexity",
+        body: "0/1 Knapsack models financial portfolio selection, cargo loading, memory allocation in embedded OS kernels, and server VM bin packing. The runtime O(N * W) is pseudo-polynomial because W depends on numeric magnitude rather than bit representation length.",
+      },
+      {
+        heading: "Edge Cases & Bounded Variations",
+        body: "Capacity W = 0 yields max value 0. Items with weight greater than W are automatically ignored. Bounded knapsack variants extend this model by allowing item counts up to K_i.",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "0/1 Knapsack",
+        definition:
+          "A constrained optimization problem where items cannot be divided and must be binary-chosen.",
+      },
+      {
+        term: "Space Optimization",
+        definition:
+          "Compressing a 2D DP table to a 1D array by maintaining backward iteration over the state variable.",
+      },
+      {
+        term: "Pseudo-Polynomial Time",
+        definition:
+          "An algorithm runtime polynomial in numeric value of input (W) rather than input size in bits.",
+      },
+      {
+        term: "Optimal Substructure",
+        definition:
+          "Property where an optimal capacity allocation consists of optimal sub-capacity allocations.",
       },
     ],
   },

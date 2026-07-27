@@ -208,7 +208,7 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   categories: ["linked_list"],
   difficulty: "Easy",
   description:
-    "Reverses a singly linked list in O(n) time and O(1) space by iteratively modifying node next pointers.",
+    "Given the head of a singly linked list, reverse the pointer directions of all nodes in-place and return the new head of the reversed list.\n\n### Problem Statement\nGiven the head node `head` of a singly linked list, modify the `.next` pointers of each node such that the direction of every link is inverted. The original head node becomes the tail node (pointing to `null`), and the original tail node becomes the new head of the reversed linked list. The operation must be completed in a single $O(N)$ pass using $O(1)$ auxiliary space without instantiating new node objects.\n\n### Input Parameters\n- `head`: The head node pointer of a singly linked list.\n\n### Output\n- Returns the new head pointer of the reversed singly linked list.\n\n### Edge Cases & Constraints\n- `0 <= N <= 5000` (Number of nodes in the list).\n- `-5000 <= Node.val <= 5000`.\n- Empty list (`head == null`): Should safely return `null`.\n- Single node list (`head.next == null`): Should return `head` without mutation.",
   constraints: ["0 <= number of nodes <= 5000", "-5000 <= Node.val <= 5000"],
   examples: [
     {
