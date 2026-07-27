@@ -117,6 +117,38 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
     vocab,
   );
 
+  addStep(
+    2,
+    `words = text.split() → [${rawWords.map(w => `'${w}'`).join(", ")}]`,
+    `Split input into ${rawWords.length} words by whitespace.`,
+    { words: rawWords.join(", "), word_count: rawWords.length },
+    vocab,
+  );
+
+  addStep(
+    3,
+    `vocab = [list(w) + ['</w>'] for w in words] → ${vocab.length} word token lists`,
+    `Each word split into character tokens with end-of-word '</w>' marker. Initial token count: ${vocab.flat().length}.`,
+    { initial_token_count: vocab.flat().length },
+    vocab,
+  );
+
+  addStep(
+    4,
+    `merges = [] (will accumulate merge pairs)`,
+    `Empty list to record each BPE merge operation applied to the vocabulary.`,
+    { merges_count: 0 },
+    vocab,
+  );
+
+  addStep(
+    6,
+    `Begin BPE Merge Loop: for iteration in range(${input.numMerges})`,
+    `Will run up to ${input.numMerges} merge passes over the vocabulary, stopping early if no qualifying pairs remain.`,
+    { num_merges: input.numMerges },
+    vocab,
+  );
+
   for (let iter = 0; iter < input.numMerges; iter++) {
     const pairCounts = new Map<string, number>();
 
@@ -129,9 +161,9 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
     if (pairCounts.size === 0) {
       addStep(
-        15,
-        "No adjacent pairs remaining to merge",
-        "Vocabulary contains no adjacent token pairs.",
+        14,
+        "if not pair_counts: break — No adjacent pairs remaining to merge",
+        "Vocabulary contains no adjacent token pairs. Halting early.",
         { iteration: iter },
         vocab,
       );
@@ -150,9 +182,9 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
     if (maxCount < 2) {
       addStep(
-        20,
-        `Stop condition reached at iteration ${iter}: highest pair frequency = ${maxCount}`,
-        `No pair appears at least 2 times. Halting BPE merge iterations.`,
+        18,
+        `if pair_counts[best_pair] < 2: break — Stop at iteration ${iter} (max count=${maxCount})`,
+        `Highest pair frequency ${maxCount} < 2. No pair appears at least 2 times. Halting BPE merge iterations.`,
         { iteration: iter, maxCount },
         vocab,
       );
@@ -165,8 +197,8 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
     const targetToken = t1 + t2;
 
     addStep(
-      18,
-      `Iteration ${iter + 1}: Most frequent pair is ('${t1}', '${t2}') with count=${maxCount}`,
+      17,
+      `Iteration ${iter + 1}: best_pair = max(pair_counts) = ('${t1}', '${t2}') with count=${maxCount}`,
       `Selected pair ('${t1}', '${t2}') for vocabulary merge into single subword token '${targetToken}'.`,
       { iteration: iter + 1, pair1: t1, pair2: t2, count: maxCount, newToken: targetToken },
       vocab,
@@ -192,9 +224,9 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
     vocab = newVocab;
 
     addStep(
-      34,
-      `Merged '${t1}' + '${t2}' -> '${targetToken}' across corpus`,
-      `Updated vocabulary tokens: [${vocab.map((w) => w.join("")).join(", ")}].`,
+      31,
+      `Merged '${t1}' + '${t2}' -> '${targetToken}' across corpus (iteration ${iter + 1})`,
+      `Applied merge rule: every adjacent (${t1}, ${t2}) replaced by '${targetToken}'. Updated vocabulary: [${vocab.map((w) => w.join("")).join(", ")}].`,
       { iteration: iter + 1, newToken: targetToken, totalMerges: merges.length },
       vocab,
       mergedPair,
@@ -204,9 +236,17 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
   const finalTokens = vocab.flat();
 
   addStep(
-    38,
-    `BPE Subword Tokenization Complete`,
-    `Final subword vocabulary tokens: [${finalTokens.map((t) => `'${t}'`).join(", ")}]. Total merges executed: ${merges.length}.`,
+    39,
+    `flat_tokens = [t for w in vocab for t in w] → ${finalTokens.length} tokens`,
+    `Flattened vocabulary into final token list: [${finalTokens.map((t) => `'${t}'`).join(", ")}]. Total merges executed: ${merges.length}.`,
+    { totalTokens: finalTokens.length, mergesExecuted: merges.length },
+    vocab,
+  );
+
+  addStep(
+    40,
+    `return flat_tokens, merges`,
+    `Returning final subword token sequence and the ${merges.length} merge operations applied.`,
     { totalTokens: finalTokens.length, mergesExecuted: merges.length },
     vocab,
   );
