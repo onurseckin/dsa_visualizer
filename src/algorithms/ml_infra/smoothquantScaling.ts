@@ -225,9 +225,9 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
   }
 
   addStep(
-    10,
-    "Calculated Per-Channel Outlier Magnitudes",
-    "Analyzed max absolute activation values X_max and max weight magnitudes W_max for each feature channel.",
+    11,
+    "Calculated Per-Channel Max Activation Magnitudes (max_act)",
+    "Analyzed max absolute activation values X_max for each feature channel.",
     maxAct,
     maxWeight,
     [],
@@ -247,7 +247,17 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
   }
 
   addStep(
-    19,
+    17,
+    "Calculated Per-Channel Max Weight Magnitudes (max_weight)",
+    `Analyzed max weight magnitudes W_max for each feature channel (${channels} channels, ${outFeatures} output features).`,
+    maxAct,
+    maxWeight,
+    [],
+    { channels, outFeatures },
+  );
+
+  addStep(
+    23,
     "Computed Diagonal Scaling Vector s",
     `Formed scale factors s_c = (X_max^${alpha.toFixed(2)}) / (W_max^${(1 - alpha).toFixed(2)}) to divide activation spikes into weights.`,
     maxAct,
@@ -266,8 +276,18 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
   });
 
   addStep(
-    29,
-    "SmoothQuant Equivalent Transformation Complete",
+    31,
+    "Computed X_hat = X × diag(s)^-1 (Scale Activations Down)",
+    `X_hat divides each activation channel by s_c, reducing outlier magnitudes so INT8 quantization is clean.`,
+    maxAct,
+    maxWeight,
+    scales,
+    { tokens: numTokens, channels, maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(2) },
+  );
+
+  addStep(
+    37,
+    "SmoothQuant Equivalent Transformation Complete: W_hat = diag(s) × W",
     "Successfully computed X_hat = X * diag(s)^-1 and W_hat = diag(s) * W. Both matrices can now be quantized cleanly to INT8 with minimal accuracy loss.",
     maxAct,
     maxWeight,
@@ -278,6 +298,16 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
       maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(2),
       maxScaledWeight: Math.max(...WHat.flat().map(Math.abs)).toFixed(2),
     },
+  );
+
+  addStep(
+    42,
+    "Return (scales, X_hat, W_hat)",
+    "Returning the per-channel scale vector and the equivalently-transformed activation/weight matrices.",
+    maxAct,
+    maxWeight,
+    scales,
+    { result: "scales, X_hat, W_hat" },
   );
 
   return steps;
