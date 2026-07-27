@@ -204,7 +204,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
         <svg
           width="100%"
           height="100%"
-          viewBox="-20 -60 1380 1060"
+          viewBox="-40 -60 1680 1150"
           preserveAspectRatio="xMidYMid meet"
           className="w-full h-auto max-w-full mx-auto block relative z-0 drop-shadow-sm"
         >
@@ -258,10 +258,27 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 const strokeWidth = isHighlighted ? 2.5 : 1.75;
                 const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
-                const startX = parent.x;
-                const startY = parent.y + 32;
-                const endX = node.x;
-                const endY = node.y - 32;
+                let startX = parent.x;
+                let startY = parent.y + 32;
+                let endX = node.x;
+                let endY = node.y - 32;
+
+                if (parent.y === node.y) {
+                  const parentWidth = Math.max(190, parent.title.length * 8.5 + 40);
+                  const nodeWidth = Math.max(190, node.title.length * 8.5 + 40);
+                  if (parent.x < node.x) {
+                    startX = parent.x + parentWidth / 2;
+                    startY = parent.y;
+                    endX = node.x - nodeWidth / 2;
+                    endY = node.y;
+                  } else {
+                    startX = parent.x - parentWidth / 2;
+                    startY = parent.y;
+                    endX = node.x + nodeWidth / 2;
+                    endY = node.y;
+                  }
+                }
+
                 const midY = (startY + endY) / 2;
 
                 const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
