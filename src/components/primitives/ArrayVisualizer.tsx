@@ -57,6 +57,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
+          padding: "32px",
         }}
       >
         <svg

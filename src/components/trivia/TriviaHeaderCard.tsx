@@ -64,7 +64,7 @@ export function TriviaHeaderCard({
 
   return (
     <Card
-      className="p-6 md:p-8 border-[var(--border-default)]"
+      className="p-6 md:p-8 border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm"
       icon={<Brain aria-hidden="true" className="w-[22px] h-[22px] text-[var(--accent)]" />}
       title={
         <div className="flex flex-col gap-1">

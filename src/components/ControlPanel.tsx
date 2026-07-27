@@ -61,7 +61,7 @@ export function ControlPanel({
 
   return (
     <div
-      className={`flex items-center flex-wrap gap-4 px-4 py-3 w-full box-border bg-[var(--bg-chrome)] ${
+      className={`flex items-center flex-wrap gap-6 px-6 py-4 w-full box-border bg-[var(--bg-chrome)] ${
         isEmbedded
           ? "border-t border-[var(--border-default)]"
           : "border border-[var(--border-default)] rounded-[var(--radius-md)]"
