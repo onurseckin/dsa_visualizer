@@ -318,6 +318,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   id: string;
   title: string;
   category: CategoryType;
+  categories?: CategoryType[];
   difficulty?: DifficultyLevel;
   description: string;
   isMlInfra?: boolean;

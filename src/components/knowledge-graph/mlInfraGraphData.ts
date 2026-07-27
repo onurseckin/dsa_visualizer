@@ -68,539 +68,1588 @@ export interface MLInfraNode {
 
 export const ML_INFRA_NODES: MLInfraNode[] = [
   {
-    id: "ml_tensor_algebra",
-    categoryFolder: "ml_tensor_algebra",
-    title: "Tensor Algebra & Memory Layout",
-    description:
-      "Multi-dimensional tensor indexing, strided memory layouts, NCHW/NHWC offsets, and contiguity validation.",
-    family: "foundations",
-    difficulty: "Medium",
-    prerequisites: [],
-    x: 450,
-    y: 80,
-    algorithmCount: 4,
-    questions: [
+    "id": "ml_tensor_algebra",
+    "categoryFolder": "ml_tensor_algebra",
+    "title": "Tensor Algebra & Memory Layout",
+    "description": "Multi-dimensional tensor indexing, strided memory layouts, NCHW/NHWC offsets, and contiguity validation.",
+    "family": "foundations",
+    "difficulty": "Easy",
+    "prerequisites": [],
+    "x": 450,
+    "y": 80,
+    "algorithmCount": 15,
+    "questions": [
       {
-        id: "2d-array-matrix-traversal",
-        title: "2D Matrix Memory Traversal",
-        algorithmId: "2d-array-matrix-traversal",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Sequential row-major vs column-major memory access patterns and cache line locality.",
+        "id": "tensor-contiguity-verifier",
+        "title": "PyTorch-Style Tensor Contiguity Verifier",
+        "algorithmId": "tensor-contiguity-verifier",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Validates whether a tensor"
       },
       {
-        id: "strided-index-arithmetic",
-        title: "Strided Index Arithmetic",
-        algorithmId: "strided-index-arithmetic",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Mapping N-dimensional tensor coordinates to 1D flat buffer offsets using stride dot products.",
+        "id": "strided-1d-dot-product",
+        "title": "Strided 1D Vector Dot Product",
+        "algorithmId": "strided-1d-dot-product",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Calculates inner dot product of non-contiguous vector views using custom stride steps."
       },
       {
-        id: "tensor-stride-offset",
-        title: "Tensor Stride & Offset Layout",
-        algorithmId: "tensor-stride-offset",
-        difficulty: "Easy",
-        type: "ML Systems Implementation",
-        description:
-          "Multi-dimensional tensor memory stride calculation, 1D flat buffer layout, and NCHW/NHWC offsets.",
+        "id": "anti-diagonal-extraction",
+        "title": "Anti-Diagonal Matrix Traversal",
+        "algorithmId": "anti-diagonal-extraction",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns."
       },
       {
-        id: "tensor-contiguity-reshape",
-        title: "Tensor Contiguity & Zero-Copy Reshape",
-        algorithmId: "tensor-contiguity-reshape",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Non-contiguous view stride validation, zero-copy transpose vs eager contiguous memory clone.",
+        "id": "transpose-square-matrix",
+        "title": "In-Place Square Matrix Transpose",
+        "algorithmId": "transpose-square-matrix",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Swaps off-diagonal matrix elements (A[i][j] <-> A[j][i]) to transpose a square tensor."
       },
-    ],
+      {
+        "id": "flatten-2d-grid",
+        "title": "Flatten 2D Grid into 1D Contiguous Buffer",
+        "algorithmId": "flatten-2d-grid",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic."
+      },
+      {
+        "id": "strided-max-pooling",
+        "title": "2D Strided Max Pooling Operator",
+        "algorithmId": "strided-max-pooling",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Applies sliding window max pooling with spatial stride steps over 2D activation tensors."
+      },
+      {
+        "id": "as-strided-tensor-view-engine",
+        "title": "PyTorch ATen `as_strided` Zero-Copy View Engine",
+        "algorithmId": "as-strided-tensor-view-engine",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Constructs custom virtual multi-dimensional views without reallocating underlying VRAM buffers."
+      },
+      {
+        "id": "virtual-matrix-addition-zero-stride",
+        "title": "Zero-Stride Broadcasting Matrix Addition",
+        "algorithmId": "virtual-matrix-addition-zero-stride",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Performs virtual tensor addition with zero-stride broadcast dimension pointers."
+      },
+      {
+        "id": "matrix-block-sum-flat",
+        "title": "Submatrix Block Sum with 2D Prefix Array",
+        "algorithmId": "matrix-block-sum-flat",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Computes 2D region sum queries in O(1) time using an integral image prefix table."
+      },
+      {
+        "id": "rotate-image-flat-buffer",
+        "title": "Rotate 2D Tensor 90 Degrees in Flat Memory",
+        "algorithmId": "rotate-image-flat-buffer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Rotates a 2D tensor by 90 degrees in-place using transpose and row reversal operations."
+      },
+      {
+        "id": "find-first-occurrence-1d",
+        "title": "Find First Occurrence in 1D Buffer",
+        "algorithmId": "find-first-occurrence-1d",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Scans a 1D linear memory buffer for the first occurrence of a target scalar value."
+      },
+      {
+        "id": "valid-neighbor-grid-bounds",
+        "title": "Valid 2D Grid Neighbor Bounds Check",
+        "algorithmId": "valid-neighbor-grid-bounds",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Validates row and column indices against 2D tensor height and width boundaries."
+      },
+      {
+        "id": "zero-copy-im2col-stride-unroller",
+        "title": "Zero-Copy im2col Stride Receptive Field Unroller",
+        "algorithmId": "zero-copy-im2col-stride-unroller",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Unrolls 2D image patches into matrix columns via strided views without copying memory."
+      },
+      {
+        "id": "aligned-simt-block-tiling",
+        "title": "SIMD/SIMT Aligned Memory Tiling Engine",
+        "algorithmId": "aligned-simt-block-tiling",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput."
+      },
+      {
+        "id": "flatten-strided-nd-view",
+        "title": "Multi-Dimensional Strided Coordinate Mapper",
+        "algorithmId": "flatten-strided-nd-view",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Maps N-dimensional tensor coordinates to 1D linear buffer offsets via stride dot products."
+      }
+    ]
   },
   {
-    id: "ml_tokenization",
-    categoryFolder: "ml_tokenization",
-    title: "Tokenization & Subword Tries",
-    description:
-      "Subword text tokenization, Byte-Pair Encoding (BPE), and Viterbi dynamic programming lattice decoding.",
-    family: "foundations",
-    difficulty: "Medium",
-    prerequisites: [],
-    x: 1150,
-    y: 80,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "trie-prefix-tree-search",
-        title: "Trie Prefix Tree Insert & Search",
-        algorithmId: "trie-prefix-tree-search",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Prefix trie structure for fast dictionary lookup and character transition routing.",
-      },
-      {
-        id: "bpe-tokenizer",
-        title: "Byte-Pair Encoding (BPE)",
-        algorithmId: "bpe-tokenizer",
-        difficulty: "Easy",
-        type: "ML Systems Implementation",
-        description:
-          "Greedy subword tokenization, adjacent symbol frequency table counting, and iterative pair merging.",
-      },
-      {
-        id: "viterbi-subword-segmenter",
-        title: "Viterbi Subword Segmenter",
-        algorithmId: "viterbi-subword-segmenter",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Unigram language model tokenization via Viterbi dynamic programming shortest-path lattice decoding.",
-      },
+    "id": "ml_gemm_roofline",
+    "categoryFolder": "ml_gemm_roofline",
+    "title": "GEMM & Roofline Modeling",
+    "description": "High-performance matrix multiplication, L1/L2/SRAM cache tiling, operational intensity, and hardware roofline bounds.",
+    "family": "foundations",
+    "difficulty": "Medium",
+    "prerequisites": [
+      "ml_tensor_algebra"
     ],
+    "x": 200,
+    "y": 220,
+    "algorithmCount": 17,
+    "questions": [
+      {
+        "id": "conv1d-shared-memory-scratchpad",
+        "title": "1D Conv GPU SRAM Scratchpad Simulator",
+        "algorithmId": "conv1d-shared-memory-scratchpad",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Loads input tiles and halo regions into fast shared memory scratchpad."
+      },
+      {
+        "id": "diagonal-cache-thrashing",
+        "title": "Diagonal Matrix Access Cache Thrashing",
+        "algorithmId": "diagonal-cache-thrashing",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Demonstrates memory latency degradation during non-stride-1 diagonal access."
+      },
+      {
+        "id": "submatrix-sum-2d-query",
+        "title": "2D Submatrix Region Sum Query",
+        "algorithmId": "submatrix-sum-2d-query",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Computes submatrix sum in constant time via 2D prefix sums."
+      },
+      {
+        "id": "vector-dot-product-mac",
+        "title": "Vector Multiply-Accumulate (MAC)",
+        "algorithmId": "vector-dot-product-mac",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Accumulates elementwise products of two 1D vectors into a scalar sum."
+      },
+      {
+        "id": "sparse-matmul-csr",
+        "title": "Sparse Matrix Multiplication (CSR Format)",
+        "algorithmId": "sparse-matmul-csr",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Multiplies sparse matrices encoded in Compressed Sparse Row (CSR) index format."
+      },
+      {
+        "id": "hardware-roofline-model-calculator",
+        "title": "Berkeley Hardware Roofline Model Calculator",
+        "algorithmId": "hardware-roofline-model-calculator",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Calculates kernel Arithmetic Intensity (FLOPs/byte) and bounds peak GFLOPS."
+      },
+      {
+        "id": "dynamic-2d-block-prefix-sum",
+        "title": "Block-Tiled 2D Prefix Sum Engine",
+        "algorithmId": "dynamic-2d-block-prefix-sum",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Tiles 2D grid into block regions for cache-coherent prefix updates."
+      },
+      {
+        "id": "triton-tensor-core-mma-swizzle",
+        "title": "Triton Tensor Core MMA Layout Swizzler",
+        "algorithmId": "triton-tensor-core-mma-swizzle",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions."
+      },
+      {
+        "id": "transpose-matrix-square",
+        "title": "Square Matrix Transpose Operator",
+        "algorithmId": "transpose-matrix-square",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Swaps rows and columns of a square matrix in-place."
+      },
+      {
+        "id": "l1-block-tiled-matmul",
+        "title": "L1 Cache Block-Tiled MatMul Engine",
+        "algorithmId": "l1-block-tiled-matmul",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Tiles matrix multiplication into B x B sub-blocks fitting in L1 cache."
+      },
+      {
+        "id": "fused-ffn-gemm-online-softmax",
+        "title": "Fused FFN GEMM & Online Softmax Kernel",
+        "algorithmId": "fused-ffn-gemm-online-softmax",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes."
+      },
+      {
+        "id": "flatten-2d-array",
+        "title": "1D Buffer Matrix Flattening",
+        "algorithmId": "flatten-2d-array",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Converts 2D matrix indices (r, c) to flat memory address (r * N + c)."
+      },
+      {
+        "id": "cuda-triton-sram-tiled-gemm",
+        "title": "CUDA/Triton SRAM Tiled GEMM Engine",
+        "algorithmId": "cuda-triton-sram-tiled-gemm",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "SRAM block-tiled GEMM with bank conflict padding and register accumulation."
+      },
+      {
+        "id": "async-double-buffering-pipeline",
+        "title": "Async Double-Buffering Copy Pipeline",
+        "algorithmId": "async-double-buffering-pipeline",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute."
+      },
+      {
+        "id": "reshape-matrix-566",
+        "title": "Reshape Matrix Coordinates",
+        "algorithmId": "reshape-matrix-566",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Remaps 2D matrix elements to new target dimensions without changing total element count."
+      },
+      {
+        "id": "naive-3-loop-matmul",
+        "title": "Naive Triply-Nested Loop GEMM O(N^3)",
+        "algorithmId": "naive-3-loop-matmul",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Baseline triple-loop matrix multiplication without cache optimization."
+      },
+      {
+        "id": "matrix-vector-multiplication",
+        "title": "Matrix-Vector Multiplication (GEMV)",
+        "algorithmId": "matrix-vector-multiplication",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Computes matrix-vector product Y = A * X using row-wise dot products."
+      }
+    ]
   },
   {
-    id: "ml_gemm_roofline",
-    categoryFolder: "ml_gemm_roofline",
-    title: "GEMM & Roofline Model",
-    description:
-      "High-performance matrix multiplication tiling, SRAM shared memory access, and arithmetic intensity classification.",
-    family: "core-math",
-    difficulty: "Medium",
-    prerequisites: ["ml_tensor_algebra"],
-    x: 280,
-    y: 240,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "matrix-multiplication-naive",
-        title: "Naive Matrix Multiplication O(N^3)",
-        algorithmId: "matrix-multiplication-naive",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Standard triple-loop matrix multiplication baseline and memory access bottlenecks.",
-      },
-      {
-        id: "sram-gemm-tiling",
-        title: "SRAM GEMM Tiling",
-        algorithmId: "sram-gemm-tiling",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Block matrix multiplication loading sub-tiles into high-speed GPU SRAM / shared memory.",
-      },
-      {
-        id: "roofline-intensity-classifier",
-        title: "Roofline Arithmetic Intensity",
-        algorithmId: "roofline-intensity-classifier",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Classification of kernels as memory-bound or compute-bound based on FLOPs per byte transferred.",
-      },
+    "id": "ml_autograd_dags",
+    "categoryFolder": "ml_autograd_dags",
+    "title": "Autograd & Computational DAGs",
+    "description": "Automatic differentiation, topological sorting over computational DAGs, reverse-mode VJPs, and activation checkpointing.",
+    "family": "core-math",
+    "difficulty": "Medium",
+    "prerequisites": [
+      "ml_tensor_algebra"
     ],
+    "x": 700,
+    "y": 220,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "A",
+        "title": "Evaluate Simple Reverse Polish Notation (RPN)",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Builds on basic array/stack usage by introducing stack-based expression evaluation, preparing for parsing logic that rearranges prefix expressions."
+      },
+      {
+        "id": "A",
+        "title": "Detect Terminal Nodes",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Identify out-degree 0 nodes (leaf variables / inputs in computational graphs)."
+      },
+      {
+        "id": "A",
+        "title": "Circular Dependency Detection in Recipes",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Traverse directed graphs and detect cycles using DFS recursion stacks or Kahn"
+      },
+      {
+        "id": "A",
+        "title": "Recipe Indegree Tracking (Available Recipes)",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Introduces Kahn"
+      },
+      {
+        "id": "A",
+        "title": "Parallel Course Completion Time (DAG Critical Path)",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Compute cumulative metrics along paths to find the critical path latency."
+      },
+      {
+        "id": "A",
+        "title": "Micrograd: Topological Reverse Gradients",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Perform reverse-mode gradient accumulation (`v.grad += ...`) on branching DAG nodes."
+      },
+      {
+        "id": "A",
+        "title": "Deep Copy a Singly Linked List",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Introduces node identity tracking via hash maps (essential for cloning graphs with shared references)."
+      },
+      {
+        "id": "A",
+        "title": "Optimal Sub-Graph Activation Checkpointing",
+        "algorithmId": "A",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Selectively recompute dropped activations during backprop under VRAM constraints."
+      },
+      {
+        "id": "A",
+        "title": "AST Expression Evaluation with Variables",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Evaluate explicit Abstract Syntax Trees (ASTs) using post-order traversal with variable dictionary bindings."
+      },
+      {
+        "id": "A",
+        "title": "Prefix to Postfix Conversion",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Builds on RPN stack evaluation by parsing and rearranging prefix expressions into postfix form, introducing implicit expression tree concepts."
+      },
+      {
+        "id": "A",
+        "title": "Compute Scalar Chain Rule (Forward & Backward)",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Builds on scalar operations by adding composite derivatives ($dz/dx = dz/dy \\cdot dy/dx$)."
+      },
+      {
+        "id": "A",
+        "title": "AST Constant Folding (Tree Transformation)",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Modify the tree bottom-up to replace pure-constant branches with single evaluated nodes."
+      },
+      {
+        "id": "A",
+        "title": "Custom Tensor VJP Engine with Grad-of-Grad Support",
+        "algorithmId": "A",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Extend to multi-dimensional tensors and higher-order derivatives, constructing the backward pass itself as a differentiable DAG."
+      },
+      {
+        "id": "A",
+        "title": "Asynchronous Pipelined VJP Evaluation",
+        "algorithmId": "A",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Schedule multi-device VJP DAG execution under inter-device communication latency constraints ($C$)."
+      },
+      {
+        "id": "A",
+        "title": "Find Nodes with Zero In-Degree",
+        "algorithmId": "A",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Identify in-degree 0 nodes (root variables / scalar loss outputs)."
+      },
+      {
+        "id": "A",
+        "title": "Micrograd: Scalar Graph Forward Pass",
+        "algorithmId": "A",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Dynamically construct and evaluate a scalar computational graph from inputs to output."
+      }
+    ]
   },
   {
-    id: "ml_autograd_dags",
-    categoryFolder: "ml_autograd_dags",
-    title: "Autograd & Computational DAGs",
-    description:
-      "Reverse-mode automatic differentiation, Vector-Jacobian Products (VJP), and memory activation checkpointing.",
-    family: "core-math",
-    difficulty: "Medium",
-    prerequisites: ["ml_tensor_algebra"],
-    x: 800,
-    y: 240,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "topological-sort-dag",
-        title: "Topological Sort for DAG Execution",
-        algorithmId: "topological-sort-dag",
-        difficulty: "Medium",
-        type: "Foundational Math & DSA",
-        description: "Ordering computational graph nodes based on dependency edge constraints.",
-      },
-      {
-        id: "autograd-vjp-dag",
-        title: "Autograd VJP DAG",
-        algorithmId: "autograd-vjp-dag",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Reverse-mode automatic differentiation computing Vector-Jacobian Products via topological DAG traversal.",
-      },
-      {
-        id: "activation-checkpointing",
-        title: "Activation Checkpointing",
-        algorithmId: "activation-checkpointing",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Trading compute for memory by saving a subset of activations and recomputing during backward pass.",
-      },
+    "id": "ml_precision_quantization",
+    "categoryFolder": "ml_precision_quantization",
+    "title": "Numeric Precision & Quantization",
+    "description": "IEEE 754 bit representations, FP16/FP8 overflow handling, INT8 uniform/affine quantization, and online softmax stability.",
+    "family": "core-math",
+    "difficulty": "Medium",
+    "prerequisites": [
+      "ml_gemm_roofline"
     ],
+    "x": 120,
+    "y": 380,
+    "algorithmCount": 15,
+    "questions": [
+      {
+        "id": "basic-symmetric-int8-scale",
+        "title": "Symmetric INT8 Scale Factor Calculator",
+        "algorithmId": "basic-symmetric-int8-scale",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates symmetric scale factor S = max(|X|) / 127.0."
+      },
+      {
+        "id": "scalar-int8-quantization",
+        "title": "Scalar Uniform INT8 Quantizer",
+        "algorithmId": "scalar-int8-quantization",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Quantizes FP32 values to INT8 integers via round(X / S)."
+      },
+      {
+        "id": "fake-quantized-w8a8-matmul",
+        "title": "Fake-Quantized W8A8 Matrix Multiplication",
+        "algorithmId": "fake-quantized-w8a8-matmul",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Simulates 8-bit quantized GEMM computation with FP32 dequantization."
+      },
+      {
+        "id": "asymmetric-affine-quantization",
+        "title": "Full Affine INT8 Quantize & Dequantize Pipeline",
+        "algorithmId": "asymmetric-affine-quantization",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements full bidirection affine quantization Q = clamp(round(X/S) + Z)."
+      },
+      {
+        "id": "stable-softmax-logsumexp",
+        "title": "Numerically Stable Softmax & LogSumExp",
+        "algorithmId": "stable-softmax-logsumexp",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Computes LogSumExp LSE(x) = max(x) + log sum(exp(x - max(x)))."
+      },
+      {
+        "id": "per-channel-symmetric-quantizer",
+        "title": "Per-Channel Symmetric INT8 Quantizer",
+        "algorithmId": "per-channel-symmetric-quantizer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Computes independent scale factors per channel to preserve activation dynamics."
+      },
+      {
+        "id": "fp8-e4m3-e5m2-bitpacker",
+        "title": "FP8 E4M3 vs E5M2 Bitwise Converter",
+        "algorithmId": "fp8-e4m3-e5m2-bitpacker",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Converts floats to FP8 E4M3 (higher precision) and E5M2 (higher dynamic range)."
+      },
+      {
+        "id": "two-element-max-subtraction-shift",
+        "title": "Shift-Invariant Log-Sum-Exp Normalization",
+        "algorithmId": "two-element-max-subtraction-shift",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Subtracts vector max to prevent floating point overflow in exponential calculations."
+      },
+      {
+        "id": "fp16-overflow-rescaling-engine",
+        "title": "FP16 Dynamic Loss Scaling Engine",
+        "algorithmId": "fp16-overflow-rescaling-engine",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Scales gradients dynamically to prevent FP16 underflow and overflow."
+      },
+      {
+        "id": "min-max-range-clipping",
+        "title": "Min-Max Saturated Value Clipping",
+        "algorithmId": "min-max-range-clipping",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Clips out-of-range numerical values to min and max boundaries."
+      },
+      {
+        "id": "smoothquant-outlier-migration",
+        "title": "SmoothQuant Activation Outlier Migration Engine",
+        "algorithmId": "smoothquant-outlier-migration",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Migrates activation channel magnitude outliers into static weight matrices."
+      },
+      {
+        "id": "ieee754-bitwise-dissector",
+        "title": "IEEE-754 Floating Point Bit Dissector",
+        "algorithmId": "ieee754-bitwise-dissector",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Parses FP32 / FP16 bits into Sign, Exponent, and Mantissa fields."
+      },
+      {
+        "id": "zero-point-alignment-shift",
+        "title": "Asymmetric Quantization Zero-Point Alignment",
+        "algorithmId": "zero-point-alignment-shift",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Aligns real zero value to integer zero-point Z."
+      },
+      {
+        "id": "bitwise-sign-extraction",
+        "title": "Bitwise Sign Bit Extraction",
+        "algorithmId": "bitwise-sign-extraction",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Extracts sign and exponent bits from 32-bit floating point representations."
+      },
+      {
+        "id": "one-pass-online-softmax-sram-kernel",
+        "title": "1-Pass Online Softmax Streaming GPU Kernel",
+        "algorithmId": "one-pass-online-softmax-sram-kernel",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Computes Softmax block-by-block in a single pass without storing full matrices."
+      }
+    ]
   },
   {
-    id: "ml_convolutions",
-    categoryFolder: "ml_convolutions",
-    title: "Convolutional Tiling & im2col",
-    description:
-      "Spatial 2D filter convolutions lowered into matrix multiplication via im2col memory unrolling.",
-    family: "core-math",
-    difficulty: "Medium",
-    prerequisites: ["ml_tensor_algebra"],
-    x: 1320,
-    y: 240,
-    algorithmCount: 2,
-    questions: [
-      {
-        id: "conv2d-sliding-window",
-        title: "2D Sliding Window Stride Convolution",
-        algorithmId: "conv2d-sliding-window",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Direct sliding window cross-correlation computation over 2D input grids.",
-      },
-      {
-        id: "im2col-conv-tiling",
-        title: "im2col Conv Tiling",
-        algorithmId: "im2col-conv-tiling",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Unrolling 2D image receptive fields into matrix columns for high-throughput GEMM execution.",
-      },
+    "id": "ml_vector_search",
+    "categoryFolder": "ml_vector_search",
+    "title": "Vector Search & Indexing",
+    "description": "Nearest neighbor search, Locality Sensitive Hashing (LSH), Product Quantization (PQ), and HNSW graph indexing.",
+    "family": "intermediate-systems",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_precision_quantization"
     ],
+    "x": 450,
+    "y": 380,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "hnswMultiLayerProbabilisticGraph",
+        "title": "Q12: HNSW Multi-Layer Probabilistic Graph",
+        "algorithmId": "hnswMultiLayerProbabilisticGraph",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q12: HNSW Multi-Layer Probabilistic Graph for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "linearScanKnnTopk",
+        "title": "Q3: Top-K Elements Using Min-Heap (KNN)",
+        "algorithmId": "linearScanKnnTopk",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q3: Top-K Elements Using Min-Heap (KNN) for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "binarySearchBucketIndex",
+        "title": "Q4: Binary Search Bucket Index",
+        "algorithmId": "binarySearchBucketIndex",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q4: Binary Search Bucket Index for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "kmeansCentroidClustering",
+        "title": "Q9: K-Means Centroid Clustering",
+        "algorithmId": "kmeansCentroidClustering",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q9: K-Means Centroid Clustering for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "hnswHeuristicSpatialPruning",
+        "title": "Q15: HNSW Heuristic Spatial Pruning",
+        "algorithmId": "hnswHeuristicSpatialPruning",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q15: HNSW Heuristic Spatial Pruning for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "ivfInvertedIndexPostingLists",
+        "title": "Q11: IVF Inverted Index Posting Lists",
+        "algorithmId": "ivfInvertedIndexPostingLists",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q11: IVF Inverted Index Posting Lists for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "simdSwizzledAdcDistanceLookup",
+        "title": "Q16: SIMD Swizzled ADC Distance Lookup",
+        "algorithmId": "simdSwizzledAdcDistanceLookup",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q16: SIMD Swizzled ADC Distance Lookup for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "gaussianL2LocalitySensitiveHash",
+        "title": "Q8: Gaussian L2 Locality Sensitive Hash",
+        "algorithmId": "gaussianL2LocalitySensitiveHash",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q8: Gaussian L2 Locality Sensitive Hash for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "l2DistancePairwise",
+        "title": "Q1: L2 (Euclidean) Distance",
+        "algorithmId": "l2DistancePairwise",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q1: L2 (Euclidean) Distance for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "lshMultiTableBucketGrouping",
+        "title": "Q7: LSH Multi-Table Bucket Grouping",
+        "algorithmId": "lshMultiTableBucketGrouping",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q7: LSH Multi-Table Bucket Grouping for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "randomHyperplaneSignHash",
+        "title": "Q5: Random Hyperplane Sign Hash",
+        "algorithmId": "randomHyperplaneSignHash",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q5: Random Hyperplane Sign Hash for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "hnswGreedyBeamSearchEngine",
+        "title": "Q13: HNSW Greedy Beam Search Engine",
+        "algorithmId": "hnswGreedyBeamSearchEngine",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q13: HNSW Greedy Beam Search Engine for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "ivfPqAsymmetricDistanceComputation",
+        "title": "Q14: IVF-PQ Asymmetric Distance Computation",
+        "algorithmId": "ivfPqAsymmetricDistanceComputation",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q14: IVF-PQ Asymmetric Distance Computation for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "subvectorDecompositionCodebook",
+        "title": "Q10: Sub-vector Decomposition Codebook",
+        "algorithmId": "subvectorDecompositionCodebook",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implementation of Q10: Sub-vector Decomposition Codebook for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "cosineSimilarityNormalized",
+        "title": "Q2: Cosine Similarity",
+        "algorithmId": "cosineSimilarityNormalized",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q2: Cosine Similarity for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      },
+      {
+        "id": "singleSkipListLayerTraversal",
+        "title": "Q6: Single Skip List Layer Traversal",
+        "algorithmId": "singleSkipListLayerTraversal",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implementation of Q6: Single Skip List Layer Traversal for Vector Search, LSH, IVF-PQ & HNSW Indexing."
+      }
+    ]
   },
   {
-    id: "ml_precision_quantization",
-    categoryFolder: "ml_precision_quantization",
-    title: "Precision & Quantization",
-    description:
-      "Numeric representation bounds, uniform scale/zero-point INT8 quantization, and SmoothQuant outlier scaling.",
-    family: "intermediate-systems",
-    difficulty: "Hard",
-    prerequisites: ["ml_tensor_algebra"],
-    x: 170,
-    y: 430,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "floating-point-overflow",
-        title: "FP16 / FP32 Numeric Underflow & Overflow",
-        algorithmId: "floating-point-overflow",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "IEEE-754 exponent ranges, denormal numbers, and precision loss in low-bit representations.",
-      },
-      {
-        id: "affine-quantization-sq8",
-        title: "Affine INT8 Quantization",
-        algorithmId: "affine-quantization-sq8",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Uniform scale and zero-point mapping between FP32 continuous values and INT8 quantized integers.",
-      },
-      {
-        id: "smoothquant-scaling",
-        title: "SmoothQuant Outlier Scaling",
-        algorithmId: "smoothquant-scaling",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Mathematical migration of activation channel magnitude outliers into static weight matrices.",
-      },
+    "id": "ml_tokenization",
+    "categoryFolder": "ml_tokenization",
+    "title": "Subword Tokenization & Tries",
+    "description": "BPE, WordPiece, and Unigram tokenization algorithms, prefix tries, and Viterbi dynamic programming segmentation.",
+    "family": "intermediate-systems",
+    "difficulty": "Medium",
+    "prerequisites": [
+      "ml_autograd_dags"
     ],
+    "x": 780,
+    "y": 380,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "byteLevelBpeTiktokenTokenizer",
+        "title": "Byte-Level BPE (Tiktoken) Tokenizer",
+        "algorithmId": "byteLevelBpeTiktokenTokenizer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements Byte-Level BPE (Tiktoken) Tokenizer for ML Tokenization."
+      },
+      {
+        "id": "characterFrequencyNgramCounter",
+        "title": "Character Frequency N-gram Counter",
+        "algorithmId": "characterFrequencyNgramCounter",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements Character Frequency N-gram Counter for ML Tokenization."
+      },
+      {
+        "id": "viterbiLatticeSubwordSegmenter",
+        "title": "Viterbi Lattice Subword Segmenter",
+        "algorithmId": "viterbiLatticeSubwordSegmenter",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements Viterbi Lattice Subword Segmenter for ML Tokenization."
+      },
+      {
+        "id": "iterativeBpeVocabularyTrainer",
+        "title": "Iterative BPE Vocabulary Trainer",
+        "algorithmId": "iterativeBpeVocabularyTrainer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements Iterative BPE Vocabulary Trainer for ML Tokenization."
+      },
+      {
+        "id": "sentencepieceByteFallbackEncoder",
+        "title": "SentencePiece Byte Fallback Encoder",
+        "algorithmId": "sentencepieceByteFallbackEncoder",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implements SentencePiece Byte Fallback Encoder for ML Tokenization."
+      },
+      {
+        "id": "unigramEmVocabularyPruner",
+        "title": "Unigram EM Vocabulary Pruner",
+        "algorithmId": "unigramEmVocabularyPruner",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements Unigram EM Vocabulary Pruner for ML Tokenization."
+      },
+      {
+        "id": "basicTrieInsertSearch",
+        "title": "Basic Trie Insert & Search",
+        "algorithmId": "basicTrieInsertSearch",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements Basic Trie Insert & Search for ML Tokenization."
+      },
+      {
+        "id": "adjacentPairFrequencyCounter",
+        "title": "Adjacent Pair Frequency Counter",
+        "algorithmId": "adjacentPairFrequencyCounter",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements Adjacent Pair Frequency Counter for ML Tokenization."
+      },
+      {
+        "id": "wordpiecePmiScoredTokenizer",
+        "title": "WordPiece PMI-Scored Tokenizer",
+        "algorithmId": "wordpiecePmiScoredTokenizer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements WordPiece PMI-Scored Tokenizer for ML Tokenization."
+      },
+      {
+        "id": "unigramCandidateLossRanks",
+        "title": "Unigram Candidate Loss Ranks",
+        "algorithmId": "unigramCandidateLossRanks",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements Unigram Candidate Loss Ranks for ML Tokenization."
+      },
+      {
+        "id": "singlePassBpeMerger",
+        "title": "Single-Pass BPE Merger",
+        "algorithmId": "singlePassBpeMerger",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements Single-Pass BPE Merger for ML Tokenization."
+      },
+      {
+        "id": "trieLongestPrefixMatcher",
+        "title": "Trie Longest Prefix Matcher",
+        "algorithmId": "trieLongestPrefixMatcher",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Implements Trie Longest Prefix Matcher for ML Tokenization."
+      },
+      {
+        "id": "fastSubwordLatticeViterbiBeam",
+        "title": "Fast Subword Lattice Viterbi Beam",
+        "algorithmId": "fastSubwordLatticeViterbiBeam",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implements Fast Subword Lattice Viterbi Beam for ML Tokenization."
+      },
+      {
+        "id": "parallelLockFreeBpeEncoder",
+        "title": "Parallel Lock-Free BPE Encoder",
+        "algorithmId": "parallelLockFreeBpeEncoder",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implements Parallel Lock-Free BPE Encoder for ML Tokenization."
+      },
+      {
+        "id": "ahoCorasickMultiTokenMatcher",
+        "title": "Aho-Corasick Multi-Token Matcher",
+        "algorithmId": "ahoCorasickMultiTokenMatcher",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Implements Aho-Corasick Multi-Token Matcher for ML Tokenization."
+      },
+      {
+        "id": "utf8ByteSequenceValidator",
+        "title": "UTF-8 Byte Sequence Validator",
+        "algorithmId": "utf8ByteSequenceValidator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Implements UTF-8 Byte Sequence Validator for ML Tokenization."
+      }
+    ]
   },
   {
-    id: "ml_recurrent_gates",
-    categoryFolder: "ml_recurrent_gates",
-    title: "Recurrent Gates & Sequences",
-    description:
-      "Recurrent sequence unrolling, Backpropagation Through Time (BPTT), and LSTM Constant Error Carousels.",
-    family: "intermediate-systems",
-    difficulty: "Medium",
-    prerequisites: ["ml_autograd_dags"],
-    x: 560,
-    y: 430,
-    algorithmCount: 2,
-    questions: [
-      {
-        id: "recurrent-unrolling-bptt",
-        title: "Recurrent Sequence Unrolling & BPTT",
-        algorithmId: "recurrent-unrolling-bptt",
-        difficulty: "Medium",
-        type: "Foundational Math & DSA",
-        description:
-          "Unrolling recurrent network transitions over time steps for gradient propagation.",
-      },
-      {
-        id: "lstm-constant-error-carousel",
-        title: "LSTM Error Carousel",
-        algorithmId: "lstm-constant-error-carousel",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Gated cell state updates maintaining constant error carousel to prevent vanishing gradients.",
-      },
+    "id": "ml_attention_geometry",
+    "categoryFolder": "ml_attention_geometry",
+    "title": "Attention Geometry & RoPE",
+    "description": "Scaled dot-product attention, multi-head/multi-query grouping, Rotary Position Embeddings (RoPE), and KV-cache math.",
+    "family": "intermediate-systems",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_gemm_roofline",
+      "ml_autograd_dags"
     ],
+    "x": 250,
+    "y": 540,
+    "algorithmCount": 0,
+    "questions": []
   },
   {
-    id: "ml_vector_search",
-    categoryFolder: "ml_vector_search",
-    title: "Vector Search & Spatial Geometry",
-    description:
-      "Approximate Nearest Neighbor (ANN) search via Locality-Sensitive Hashing, IVF-PQ, and HNSW skip-graphs.",
-    family: "intermediate-systems",
-    difficulty: "Hard",
-    prerequisites: ["ml_tensor_algebra"],
-    x: 990,
-    y: 430,
-    algorithmCount: 4,
-    questions: [
-      {
-        id: "distance-metrics-knn",
-        title: "Euclidean & Cosine Distance Metrics",
-        algorithmId: "distance-metrics-knn",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description: "Exact pairwise vector norm distances and cosine similarity metrics.",
-      },
-      {
-        id: "lsh-vector-hashing",
-        title: "LSH Vector Hashing",
-        algorithmId: "lsh-vector-hashing",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Random hyperplane projection hashing for sub-linear approximate cosine similarity search.",
-      },
-      {
-        id: "ivf-pq-adc-search",
-        title: "IVF-PQ ADC Search",
-        algorithmId: "ivf-pq-adc-search",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Inverted File Product Quantization with Asymmetric Distance Computation lookup tables.",
-      },
-      {
-        id: "hnsw-vector-search",
-        title: "HNSW Vector Search",
-        algorithmId: "hnsw-vector-search",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Multi-layer skip-list graph traversal for fast high-dimensional k-NN vector search.",
-      },
+    "id": "ml_convolutions",
+    "categoryFolder": "ml_convolutions",
+    "title": "Convolutional Lowering & im2col",
+    "description": "Spatial 2D convolutions, im2col GEMM unrolling, Winograd minimal filtering, and depthwise separable operators.",
+    "family": "advanced-kernels",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_gemm_roofline"
     ],
+    "x": 650,
+    "y": 540,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "transposed-conv2d-deconv-index-mapper",
+        "title": "Transposed 2D Convolution (Deconvolution) Engine",
+        "algorithmId": "transposed-conv2d-deconv-index-mapper",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Maps deconvolution upsampling indices without allocating sparse zero-filled tensors."
+      },
+      {
+        "id": "conv1d-sliding-window-direct",
+        "title": "1D Cross-Correlation Basics",
+        "algorithmId": "conv1d-sliding-window-direct",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Sliding window operations over 1D arrays with valid boundary handling."
+      },
+      {
+        "id": "col2im-grad-accumulator",
+        "title": "col2im Gradient Accumulator",
+        "algorithmId": "col2im-grad-accumulator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Reverses im2col unrolling to accumulate backward gradients into 4D tensor shapes."
+      },
+      {
+        "id": "multi-channel-conv2d-accumulation",
+        "title": "Multi-Channel Conv2D Accumulator",
+        "algorithmId": "multi-channel-conv2d-accumulation",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Accumulates cross-channel convolution products over C_in channels."
+      },
+      {
+        "id": "winograd-f23-transform-matrices",
+        "title": "Winograd F(2x2, 3x3) Transform Matrices",
+        "algorithmId": "winograd-f23-transform-matrices",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Generates Winograd minimal filtering transform matrices B, G, A."
+      },
+      {
+        "id": "winograd-minimal-filtering-execution",
+        "title": "Winograd F(2x2, 3x3) Execution Engine",
+        "algorithmId": "winograd-minimal-filtering-execution",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Executes Y = A^T [(G g G^T) (B^T d B)] A fast Winograd convolution."
+      },
+      {
+        "id": "conv2d-sliding-window-direct",
+        "title": "2D Direct Sliding Window Convolution",
+        "algorithmId": "conv2d-sliding-window-direct",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Direct nested 4-loop spatial convolution over 2D input grids."
+      },
+      {
+        "id": "lowered-conv2d-gemm-execution-engine",
+        "title": "Lowered Conv2D GEMM Execution Engine",
+        "algorithmId": "lowered-conv2d-gemm-execution-engine",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Executes convolution via lowered BLAS GEMM W_row * X_col."
+      },
+      {
+        "id": "conv2d-padding-stride-output-shape",
+        "title": "2D Conv Output Shape Calculator",
+        "algorithmId": "conv2d-padding-stride-output-shape",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Computes O = floor((I + 2P - K) / S) + 1."
+      },
+      {
+        "id": "fused-depthwise-separable-conv2d-engine",
+        "title": "Fused Depthwise Separable Conv2D Engine",
+        "algorithmId": "fused-depthwise-separable-conv2d-engine",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Fuses 3x3 depthwise spatial conv with 1x1 pointwise channel conv in SRAM."
+      },
+      {
+        "id": "cudnn-implicit-gemm-on-the-fly-kernel",
+        "title": "cuDNN Implicit GEMM On-The-Fly Kernel",
+        "algorithmId": "cudnn-implicit-gemm-on-the-fly-kernel",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Calculates im2col coordinates dynamically inside GPU SRAM without HBM unroll buffer."
+      },
+      {
+        "id": "receptive-field-growth-calculator",
+        "title": "2D Receptive Field Growth Calculator",
+        "algorithmId": "receptive-field-growth-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Tracks cumulative spatial receptive field growth across stacked convolution layers."
+      },
+      {
+        "id": "conv2d-to-gemm-receptive-field-unroll",
+        "title": "Conv2D Receptive Field Patch Unroller",
+        "algorithmId": "conv2d-to-gemm-receptive-field-unroll",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Unrolls spatial KxK patches into 1D matrix column vectors."
+      },
+      {
+        "id": "as-strided-zero-copy-im2col-view",
+        "title": "Zero-Copy `as_strided` im2col View Engine",
+        "algorithmId": "as-strided-zero-copy-im2col-view",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication."
+      },
+      {
+        "id": "fft-frequency-domain-convolution-2d",
+        "title": "2D Fast Fourier Transform (FFT) Convolution Engine",
+        "algorithmId": "fft-frequency-domain-convolution-2d",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Executes O(N log N) spatial convolution via 2D FFT point-wise multiplication."
+      },
+      {
+        "id": "im2col-4d-to-2d-unroller",
+        "title": "Strided im2col 4D-to-2D Matrix Unroller",
+        "algorithmId": "im2col-4d-to-2d-unroller",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out)."
+      }
+    ]
   },
   {
-    id: "ml_tree_ensembles",
-    categoryFolder: "ml_tree_ensembles",
-    title: "Tree Ensembles & Gradient Boosting",
-    description:
-      "Decision tree impurity splits, Gini index computation, and XGBoost 1st/2nd order gradient histogram splitting.",
-    family: "intermediate-systems",
-    difficulty: "Medium",
-    prerequisites: ["ml_autograd_dags"],
-    x: 1445,
-    y: 430,
-    algorithmCount: 2,
-    questions: [
-      {
-        id: "decision-tree-gini-split",
-        title: "Decision Tree Impurity & Split",
-        algorithmId: "decision-tree-gini-split",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description: "Gini impurity reduction calculation for optimal feature threshold partitioning.",
-      },
-      {
-        id: "xgboost-gradient-split",
-        title: "XGBoost Gradient Split",
-        algorithmId: "xgboost-gradient-split",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Exact greedy and histogram-based split finding utilizing 1st and 2nd order gradient statistics.",
-      },
+    "id": "ml_tree_ensembles",
+    "categoryFolder": "ml_tree_ensembles",
+    "title": "Decision Trees & XGBoost 2nd-Order Boosting",
+    "description": "Gini/Entropy splits, XGBoost 1st & 2nd order Taylor expansion split search, quantile sketches, and histogram building.",
+    "family": "advanced-kernels",
+    "difficulty": "Medium",
+    "prerequisites": [
+      "ml_precision_quantization"
     ],
+    "x": 150,
+    "y": 700,
+    "algorithmCount": 15,
+    "questions": [
+      {
+        "id": "single-feature-threshold-split",
+        "title": "Single Feature Continuous Threshold Partition",
+        "algorithmId": "single-feature-threshold-split",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Partitions dataset into left/right subsets based on continuous threshold X <= t."
+      },
+      {
+        "id": "gini-impurity-binary-split",
+        "title": "Gini Impurity Binary Split Evaluator",
+        "algorithmId": "gini-impurity-binary-split",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Computes Gini impurity G(S) = 1 - sum(p_i^2) for candidate split."
+      },
+      {
+        "id": "greedy-decision-tree-builder",
+        "title": "Recursive Greedy Decision Tree Builder",
+        "algorithmId": "greedy-decision-tree-builder",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Recursively constructs decision tree by selecting top Gini split."
+      },
+      {
+        "id": "multi-tree-additive-ensemble-predictor",
+        "title": "Gradient Boosted Multi-Tree Additive Ensemble Predictor",
+        "algorithmId": "multi-tree-additive-ensemble-predictor",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Sums predictions F_0 + eta * sum(tree_t(x)) across T boosted trees."
+      },
+      {
+        "id": "exact-greedy-split-search",
+        "title": "XGBoost Exact Greedy Split Finder O(n d log n)",
+        "algorithmId": "exact-greedy-split-search",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Sorts feature values to evaluate candidate split gains in single pass."
+      },
+      {
+        "id": "missing-value-default-direction-splitter",
+        "title": "XGBoost Missing Value Default Direction Allocator",
+        "algorithmId": "missing-value-default-direction-splitter",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Learns optimal default split direction (left vs right) for missing feature values."
+      },
+      {
+        "id": "xgboost-histogram-split-search",
+        "title": "XGBoost Histogram-Based Fast Split Search O(n d)",
+        "algorithmId": "xgboost-histogram-split-search",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Evaluates candidate splits over pre-binned histogram bucket boundaries."
+      },
+      {
+        "id": "variance-reduction-split",
+        "title": "Regression Variance Reduction Splitter",
+        "algorithmId": "variance-reduction-split",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Computes target variance reduction VR(S, A) for regression splits."
+      },
+      {
+        "id": "tree-node-prediction-traverser",
+        "title": "Decision Tree Prediction Traverser",
+        "algorithmId": "tree-node-prediction-traverser",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Traverses binary decision tree down to leaf predictor node."
+      },
+      {
+        "id": "weighted-quantile-sketch-histogram",
+        "title": "Weighted Quantile Sketch Feature Binning",
+        "algorithmId": "weighted-quantile-sketch-histogram",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Bins continuous features into discrete quantile histogram buckets weighted by Hessian h_i."
+      },
+      {
+        "id": "regularized-optimal-leaf-weight",
+        "title": "XGBoost Regularized Optimal Leaf Weight",
+        "algorithmId": "regularized-optimal-leaf-weight",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Calculates optimal leaf weight w* = -G / (H + lambda)."
+      },
+      {
+        "id": "shannon-entropy-calculator",
+        "title": "Shannon Entropy Calculator",
+        "algorithmId": "shannon-entropy-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Computes H(S) = -sum(p_i * log2(p_i)) uncertainty metric."
+      },
+      {
+        "id": "gpu-hist-quantized-histogram-kernel",
+        "title": "GPU `gpu_hist` Shared Memory Quantized Histogram Builder",
+        "algorithmId": "gpu-hist-quantized-histogram-kernel",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Accumulates G and H gradients into GPU SRAM shared memory histogram bins using atomic adds."
+      },
+      {
+        "id": "xgboost-split-gain-score-calculator",
+        "title": "XGBoost 2nd-Order Split Gain Score Calculator",
+        "algorithmId": "xgboost-split-gain-score-calculator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Evaluates split gain score L_split = 0.5 * [ G_L^2/(H_L+lambda) + G_R^2/(H_R+lambda) - G^2/(H+lambda) ] - gamma."
+      },
+      {
+        "id": "logloss-gradient-hessian-calculator",
+        "title": "LogLoss 1st & 2nd Order Gradient Calculator",
+        "algorithmId": "logloss-gradient-hessian-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates LogLoss gradient g_i = p_i - y_i and Hessian h_i = p_i(1 - p_i)."
+      }
+    ]
   },
   {
-    id: "ml_attention_geometry",
-    categoryFolder: "ml_attention_geometry",
-    title: "Attention Geometry & RoPE",
-    description:
-      "Scaled Dot-Product Attention, Rotary Position Embeddings (RoPE), and Grouped-Query Attention (GQA).",
-    family: "advanced-kernels",
-    difficulty: "Hard",
-    prerequisites: ["ml_gemm_roofline"],
-    x: 450,
-    y: 620,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "scaled-dot-attention-mask",
-        title: "Scaled Dot-Product Attention",
-        algorithmId: "scaled-dot-attention-mask",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Query-Key-Value matrix attention with scale factor and causal lower-triangular masking.",
-      },
-      {
-        id: "rope-rotary-position",
-        title: "RoPE Rotary Position Embedding",
-        algorithmId: "rope-rotary-position",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Rotational 2D complex plane matrix transformation encoding relative positional distance.",
-      },
-      {
-        id: "grouped-query-attention",
-        title: "Grouped-Query Attention (GQA)",
-        algorithmId: "grouped-query-attention",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Partitioning Q heads into G groups sharing KV heads to compress KV-cache memory bandwidth.",
-      },
+    "id": "ml_hardware_kernels",
+    "categoryFolder": "ml_hardware_kernels",
+    "title": "FlashAttention & Triton Hardware Kernels",
+    "description": "SRAM block tiling, FlashAttention-1/2/3 online softmax normalization, and Triton SPMD block pointer compilation.",
+    "family": "advanced-kernels",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_attention_geometry"
     ],
+    "x": 450,
+    "y": 700,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "tile-index-grid-mapper",
+        "title": "Triton SPMD Block Tile Grid Mapper",
+        "algorithmId": "tile-index-grid-mapper",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Maps 1D program ID to 2D block tile indices (pid_m, pid_n)."
+      },
+      {
+        "id": "online-max-logsumexp-tracker",
+        "title": "Online Softmax Running Max & LSE Tracker",
+        "algorithmId": "online-max-logsumexp-tracker",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Tracks running max m_new and log-sum-exp normalization across tiles."
+      },
+      {
+        "id": "autotune-config-grid-search-engine",
+        "title": "Triton `@triton.autotune` Configuration Search Engine",
+        "algorithmId": "autotune-config-grid-search-engine",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Searches optimal num_warps, num_stages, and BLOCK_M/N/K tile configurations."
+      },
+      {
+        "id": "triton-fused-add-softmax-dropout-kernel",
+        "title": "Triton Fused Add + Softmax + Dropout Kernel",
+        "algorithmId": "triton-fused-add-softmax-dropout-kernel",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Fuses residual add, softmax, and dropout into single pass SRAM kernel."
+      },
+      {
+        "id": "flash-attention-2-sequence-parallel-forward",
+        "title": "FlashAttention-2 Outer-KV Loop Sequence Parallel Kernel",
+        "algorithmId": "flash-attention-2-sequence-parallel-forward",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Swaps loop order to outer-Q inner-KV to eliminate atomic syncs and improve non-determinism."
+      },
+      {
+        "id": "triton-program-id-1d-to-2d-map",
+        "title": "Triton `tl.program_id` 1D-to-2D Coordinate Mapper",
+        "algorithmId": "triton-program-id-1d-to-2d-map",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Converts linear thread block ID into (pid_m, pid_n) tile coordinates."
+      },
+      {
+        "id": "triton-mlir-to-ptx-compiler-pipeline-simulator",
+        "title": "Triton MLIR-to-PTX Compiler Pipeline Simulator",
+        "algorithmId": "triton-mlir-to-ptx-compiler-pipeline-simulator",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Simulates compilation passes from Triton IR -> TTG IR -> LLVM IR -> PTX assembly."
+      },
+      {
+        "id": "masked-memory-load-store-guard",
+        "title": "Triton Masked Load/Store Boundary Guard",
+        "algorithmId": "masked-memory-load-store-guard",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Generates boolean mask guards preventing out-of-bounds SRAM memory access."
+      },
+      {
+        "id": "flash-attention-1-forward-tiling",
+        "title": "FlashAttention-1 SRAM Tiled Forward Kernel",
+        "algorithmId": "flash-attention-1-forward-tiling",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Tiles Q, K, V matrices into SRAM to execute exact attention with O(N) memory traffic."
+      },
+      {
+        "id": "triton-sram-swizzled-gemm-kernel",
+        "title": "Triton SRAM Swizzled Block GEMM Kernel",
+        "algorithmId": "triton-sram-swizzled-gemm-kernel",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Executes block GEMM in Triton using SRAM swizzling to prevent bank conflicts."
+      },
+      {
+        "id": "flash-attention-3-tma-warp-specialized-kernel",
+        "title": "FlashAttention-3 Hopper TMA & Warp-Specialized Kernel",
+        "algorithmId": "flash-attention-3-tma-warp-specialized-kernel",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Utilizes Hopper Tensor Memory Accelerator (TMA) and warp specialization for FP8 MMA."
+      },
+      {
+        "id": "hbm-vs-sram-bandwidth-calculator",
+        "title": "HBM vs SRAM Bandwidth & Latency Calculator",
+        "algorithmId": "hbm-vs-sram-bandwidth-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates access latency and bandwidth speedups comparing SRAM vs HBM."
+      },
+      {
+        "id": "triton-l2-cache-swizzled-gemm-scheduler",
+        "title": "Triton L2 Cache Swizzled GEMM Tile Scheduler",
+        "algorithmId": "triton-l2-cache-swizzled-gemm-scheduler",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Groups program IDs into super-groups (GROUP_M) to maximize L2 cache hit rate."
+      },
+      {
+        "id": "warp-shuffle-butterfly-reduction",
+        "title": "CUDA Warp Butterfly Reduction Primitive",
+        "algorithmId": "warp-shuffle-butterfly-reduction",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Executes 32-thread warp reduction using shfl_xor_sync butterfly exchange."
+      },
+      {
+        "id": "flash-attention-backward-recomputation-engine",
+        "title": "FlashAttention Backward Pass Recomputation Engine",
+        "algorithmId": "flash-attention-backward-recomputation-engine",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Recomputes attention scores S and softmax P tile-by-tile from stored LSE during backprop."
+      },
+      {
+        "id": "bank-conflict-swizzle-calculator",
+        "title": "GPU Shared Memory Bank Conflict Swizzle Calculator",
+        "algorithmId": "bank-conflict-swizzle-calculator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Calculates address swizzle permutations to distribute column accesses across 32 SRAM banks."
+      }
+    ]
   },
   {
-    id: "ml_hardware_kernels",
-    categoryFolder: "ml_hardware_kernels",
-    title: "Hardware Kernels & Fusion",
-    description:
-      "Fused softmax with Log-Sum-Exp tracking, Triton JIT block-wise compilation, and FlashAttention IO tiling.",
-    family: "advanced-kernels",
-    difficulty: "Hard",
-    prerequisites: ["ml_gemm_roofline"],
-    x: 1150,
-    y: 620,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "fused-softmax-lse",
-        title: "Fused Softmax & LSE",
-        algorithmId: "fused-softmax-lse",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Online single-pass softmax with Log-Sum-Exp tracking to eliminate HBM intermediate writes.",
-      },
-      {
-        id: "triton-kernel-fusion",
-        title: "Triton JIT Kernel Fusion",
-        algorithmId: "triton-kernel-fusion",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Block-wise Python JIT compiler emitting fused GPU CUDA/PTX kernels without manual C++.",
-      },
-      {
-        id: "flash-attention-tiling",
-        title: "FlashAttention IO Tiling",
-        algorithmId: "flash-attention-tiling",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Memory IO-aware exact attention loading Q, K, V blocks into SRAM with online softmax rescaling.",
-      },
+    "id": "ml_distributed_systems",
+    "categoryFolder": "ml_distributed_systems",
+    "title": "Distributed Interconnects & Parallelism",
+    "description": "Ring-AllReduce collective communications, Tensor Parallelism (Megatron-LM), and DeepSpeed ZeRO-1/2/3 memory sharding.",
+    "family": "distributed-systems",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_hardware_kernels"
     ],
+    "x": 750,
+    "y": 700,
+    "algorithmCount": 16,
+    "questions": [
+      {
+        "id": "column-parallel-linear-reshaper",
+        "title": "Megatron-LM Column Parallel Linear Layer Reshaper",
+        "algorithmId": "column-parallel-linear-reshaper",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Splits weight matrix W along columns (W_i = W[:, i*d/N:(i+1)*d/N]) for Tensor Parallelism."
+      },
+      {
+        "id": "two-gpu-parameter-splitter",
+        "title": "2-GPU Model Layer Pipeline Splitter",
+        "algorithmId": "two-gpu-parameter-splitter",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Partitions sequential transformer layers across 2 GPUs to balance memory load."
+      },
+      {
+        "id": "full-ring-allreduce-collective-simulator",
+        "title": "Full Ring-AllReduce Collective Communication Simulator",
+        "algorithmId": "full-ring-allreduce-collective-simulator",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Simulates full 2*(N-1) step Scatter-Reduce and All-Gather collective synchronization."
+      },
+      {
+        "id": "one-f1b-pipeline-parallel-execution-scheduler",
+        "title": "1F1B (One Forward One Backward) Pipeline Parallel Scheduler",
+        "algorithmId": "one-f1b-pipeline-parallel-execution-scheduler",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Schedules 1 Forward 1 Backward micro-batch passes to eliminate pipeline bubbles."
+      },
+      {
+        "id": "zero1-optimizer-state-memory-estimator",
+        "title": "DeepSpeed ZeRO-1 Optimizer State Sharding Estimator",
+        "algorithmId": "zero1-optimizer-state-memory-estimator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Calculates per-GPU VRAM footprint under ZeRO-1: 4*Psi + 12*Psi/N."
+      },
+      {
+        "id": "fp16-model-memory-footprint-calculator",
+        "title": "Mixed-Precision 16-Psi Model Memory Calculator",
+        "algorithmId": "fp16-model-memory-footprint-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates 16*Psi baseline memory (2*Psi params, 2*Psi grads, 12*Psi master optimizer states)."
+      },
+      {
+        "id": "ring-scatter-reduce-array-accumulator",
+        "title": "Ring Scatter-Reduce Phase Array Accumulator",
+        "algorithmId": "ring-scatter-reduce-array-accumulator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Simulates Scatter-Reduce phase accumulating array chunks over N-1 ring steps."
+      },
+      {
+        "id": "zero2-gradient-partitioning-engine",
+        "title": "DeepSpeed ZeRO-2 Gradient Partitioning Engine",
+        "algorithmId": "zero2-gradient-partitioning-engine",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Calculates per-GPU VRAM footprint under ZeRO-2: 2*Psi + 14*Psi/N."
+      },
+      {
+        "id": "zero3-parameter-sharding-dynamic-allgather",
+        "title": "DeepSpeed ZeRO-3 Parameter Sharding & Dynamic All-Gather Engine",
+        "algorithmId": "zero3-parameter-sharding-dynamic-allgather",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Shards model parameters to 16*Psi/N and dynamically All-Gathers layer weights just-in-time."
+      },
+      {
+        "id": "ring-allgather-vector-reconstructor",
+        "title": "Ring All-Gather Phase Vector Reconstructor",
+        "algorithmId": "ring-allgather-vector-reconstructor",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps."
+      },
+      {
+        "id": "nccl-tree-vs-ring-allreduce-simulator",
+        "title": "NCCL Tree vs Ring-AllReduce Topology Simulator",
+        "algorithmId": "nccl-tree-vs-ring-allreduce-simulator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Compares latency vs bandwidth bounds for NCCL Double Binary Tree vs Ring topologies."
+      },
+      {
+        "id": "ring-allreduce-data-volume-estimator",
+        "title": "Ring-AllReduce Total Data Volume Estimator",
+        "algorithmId": "ring-allreduce-data-volume-estimator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates exact data volume transferred per GPU: V = 2 * ((N-1)/N) * S."
+      },
+      {
+        "id": "ring-neighbor-rank-calculator",
+        "title": "Ring Topology Neighbor Rank Calculator",
+        "algorithmId": "ring-neighbor-rank-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates left and right neighbor ranks (r-1)%N and (r+1)%N in ring topology."
+      },
+      {
+        "id": "row-parallel-linear-allreducer",
+        "title": "Megatron-LM Row Parallel Linear All-Reduce Engine",
+        "algorithmId": "row-parallel-linear-allreducer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Splits weight matrix W along rows and performs All-Reduce sum over layer outputs."
+      },
+      {
+        "id": "cuda-ipc-shared-memory-pointer-mapper",
+        "title": "CUDA IPC Zero-Copy Shared Memory Pointer Mapper",
+        "algorithmId": "cuda-ipc-shared-memory-pointer-mapper",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC."
+      },
+      {
+        "id": "nvlink-symmetric-memory-peer-to-peer-engine",
+        "title": "NVLink SymmetricMemory Peer-to-Peer Direct Transfer Engine",
+        "algorithmId": "nvlink-symmetric-memory-peer-to-peer-engine",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Simulates NVLink 900 GB/s direct P2P VRAM reads bypassing host system RAM."
+      }
+    ]
   },
   {
-    id: "ml_distributed_systems",
-    categoryFolder: "ml_distributed_systems",
-    title: "Distributed Systems & Parallelism",
-    description:
-      "Ring-AllReduce topology, Megatron Tensor/Sequence Parallelism, and DeepSpeed ZeRO 1-3 memory sharding.",
-    family: "distributed-systems",
-    difficulty: "Hard",
-    prerequisites: ["ml_autograd_dags", "ml_hardware_kernels"],
-    x: 800,
-    y: 810,
-    algorithmCount: 3,
-    questions: [
-      {
-        id: "ring-allreduce-partition",
-        title: "Ring-AllReduce Partition",
-        algorithmId: "ring-allreduce-partition",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Bandwidth-optimal ring topology Scatter-Reduce and All-Gather distributed gradient synchronization.",
-      },
-      {
-        id: "megatron-tp-sp-split",
-        title: "Megatron TP/SP Parallelism",
-        algorithmId: "megatron-tp-sp-split",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Column/Row parallel GEMM splitting with Sequence Parallel All-Gather and Reduce-Scatter.",
-      },
-      {
-        id: "deepspeed-zero-sharding",
-        title: "ZeRO Memory Sharding",
-        algorithmId: "deepspeed-zero-sharding",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "ZeRO Stage 1-3 memory sharding of optimizer states, gradients, and model parameters across GPUs.",
-      },
+    "id": "ml_llm_serving",
+    "categoryFolder": "ml_llm_serving",
+    "title": "LLM Serving, PagedAttention & Speculative Decoding",
+    "description": "vLLM PagedAttention virtual memory block allocation, continuous batching iteration scheduling, and speculative decoding.",
+    "family": "llm-serving",
+    "difficulty": "Hard",
+    "prerequisites": [
+      "ml_hardware_kernels",
+      "ml_distributed_systems"
     ],
-  },
-  {
-    id: "ml_llm_serving",
-    categoryFolder: "ml_llm_serving",
-    title: "LLM Serving & Continuous Batching",
-    description:
-      "PagedAttention block table virtual memory allocation, iteration-level continuous batching, and speculative decoding.",
-    family: "llm-serving",
-    difficulty: "Hard",
-    prerequisites: ["ml_attention_geometry", "ml_hardware_kernels"],
-    x: 800,
-    y: 1000,
-    algorithmCount: 3,
-    questions: [
+    "x": 450,
+    "y": 860,
+    "algorithmCount": 16,
+    "questions": [
       {
-        id: "paged-attention-block-table",
-        title: "PagedAttention Block Table",
-        algorithmId: "paged-attention-block-table",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Virtual memory block allocation mapping logical sequence KV-tokens to non-contiguous physical GPU pages.",
+        "id": "kv-cache-sequence-memory-estimator",
+        "title": "KV-Cache Sequence Memory Footprint Calculator",
+        "algorithmId": "kv-cache-sequence-memory-estimator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Calculates KV-cache VRAM size 2 * L * H * D * S * bytes."
       },
       {
-        id: "continuous-batching-scheduler",
-        title: "Continuous Batching Scheduler",
-        algorithmId: "continuous-batching-scheduler",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Iteration-level prefill & decode scheduling dynamically inserting new requests without waiting for sequence completion.",
+        "id": "draft-model-lookahead-token-sampler",
+        "title": "Speculative Decoding Draft Token Sampler",
+        "algorithmId": "draft-model-lookahead-token-sampler",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Generates gamma lookahead candidate tokens using small draft model M_draft."
       },
       {
-        id: "speculative-decoding-verifier",
-        title: "Speculative Decoding Verifier",
-        algorithmId: "speculative-decoding-verifier",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Draft model speculative token generation verified in a single parallel target model forward pass.",
+        "id": "iteration-level-continuous-batch-scheduler",
+        "title": "Iteration-Level Continuous Batching Scheduler",
+        "algorithmId": "iteration-level-continuous-batch-scheduler",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Schedules requests at token iteration level, inserting new prefill requests alongside decode steps."
       },
-    ],
-  },
+      {
+        "id": "rejection-sampling-acceptance-threshold",
+        "title": "Modified Rejection Sampling Acceptance Verifier",
+        "algorithmId": "rejection-sampling-acceptance-threshold",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Evaluates token acceptance probability P(accept) = min(1, p(x)/q(x))."
+      },
+      {
+        "id": "full-speculative-decoding-serving-engine",
+        "title": "Full Speculative Decoding Production Serving Engine",
+        "algorithmId": "full-speculative-decoding-serving-engine",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Orchestrates draft model generation, target verification, rejection sampling, and KV rollback."
+      },
+      {
+        "id": "hash-based-prefix-cache-trie-allocator",
+        "title": "Hash-Based Prefix Caching Radix Trie Allocator",
+        "algorithmId": "hash-based-prefix-cache-trie-allocator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Caches system prompt KV blocks in a Radix Trie using token hash keys."
+      },
+      {
+        "id": "paged-attention-block-table-allocator",
+        "title": "vLLM-Style PagedAttention Block Table Allocator",
+        "algorithmId": "paged-attention-block-table-allocator",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Allocates fixed-size physical GPU memory blocks (B=16) for dynamic token growth."
+      },
+      {
+        "id": "sequence-length-padding-waste-calculator",
+        "title": "Static Batching VRAM Padding Waste Calculator",
+        "algorithmId": "sequence-length-padding-waste-calculator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Measures wasted VRAM from padding variable-length sequences in static batches."
+      },
+      {
+        "id": "speculative-decoding-residual-distribution-recoverer",
+        "title": "Speculative Decoding Residual Distribution Recovery Engine",
+        "algorithmId": "speculative-decoding-residual-distribution-recoverer",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Samples replacement token from residual distribution p"
+      },
+      {
+        "id": "logical-to-physical-block-address-translator",
+        "title": "PagedAttention Logical to Physical Address Translator",
+        "algorithmId": "logical-to-physical-block-address-translator",
+        "difficulty": "Easy",
+        "type": "Foundational Math & DSA",
+        "description": "Translates logical token index t into physical address Addr(t) = BlockPtr * B + (t % B)."
+      },
+      {
+        "id": "chunked-prefill-token-budget-scheduler",
+        "title": "Chunked Prefill Token Budget Scheduler",
+        "algorithmId": "chunked-prefill-token-budget-scheduler",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Chunks long prefill prompts into token budget u = min(max_tokens, remaining_tokens)."
+      },
+      {
+        "id": "reference-counting-cow-beam-search-brancher",
+        "title": "Copy-On-Write (CoW) Reference-Counted Beam Search Brancher",
+        "algorithmId": "reference-counting-cow-beam-search-brancher",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Shares physical KV blocks across beam search branches using reference counts and CoW."
+      },
+      {
+        "id": "pytorch-custom-cuda-op-wrapper-register",
+        "title": "PyTorch `@CustomOp.register` C++ CUDA Kernel Register",
+        "algorithmId": "pytorch-custom-cuda-op-wrapper-register",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Registers custom C++/CUDA PagedAttention kernels into PyTorch autograd dispatch tables."
+      },
+      {
+        "id": "vllm-paged-attention-kernel-executor",
+        "title": "vLLM PagedAttention GPU Kernel Execution Simulator",
+        "algorithmId": "vllm-paged-attention-kernel-executor",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers."
+      },
+      {
+        "id": "flash-decoding-split-k-kv-cache-gather",
+        "title": "FlashDecoding Split-K KV Cache Gather Engine",
+        "algorithmId": "flash-decoding-split-k-kv-cache-gather",
+        "difficulty": "Hard",
+        "type": "ML Systems Implementation",
+        "description": "Gathers split-K KV cache sequence partitions across GPU thread blocks."
+      },
+      {
+        "id": "target-model-parallel-verification-pass",
+        "title": "Speculative Decoding Target Model Parallel Verification Pass",
+        "algorithmId": "target-model-parallel-verification-pass",
+        "difficulty": "Medium",
+        "type": "ML Systems Implementation",
+        "description": "Verifies gamma draft tokens in a single parallel forward pass on target model M_target."
+      }
+    ]
+  }
 ];
 
 export const ML_INFRA_NODE_MAP = new Map<string, MLInfraNode>(
