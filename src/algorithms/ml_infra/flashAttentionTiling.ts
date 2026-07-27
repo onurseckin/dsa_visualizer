@@ -334,7 +334,7 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
 export const flashAttentionTiling: AlgorithmDefinition<FlashAttentionInput> = {
   id: "flash-attention-tiling",
   title: "FlashAttention Tiling & Online Softmax",
-  category: "ml_attention_geometry",
+  category: "ml_hardware_kernels",
   difficulty: "Hard",
   description:
     "IO-aware exact attention algorithm that tiles Query, Key, and Value matrices into fast SRAM blocks, computing online softmax updates without materializing the full N x N attention matrix in GPU memory.",

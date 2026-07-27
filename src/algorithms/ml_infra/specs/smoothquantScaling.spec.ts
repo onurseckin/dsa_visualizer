@@ -7,14 +7,14 @@ import {
   smoothquantScaling,
 } from "../smoothquantScaling";
 
-describe("smoothquantScaling (Level 8 ML Infra)", () => {
+describe("smoothquantScaling (Level 3 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(smoothquantScaling.id).toBe("smoothquant-scaling");
     expect(smoothquantScaling.isMlInfra).toBe(true);
-    expect(smoothquantScaling.mlInfraLevel).toBe(8);
-    expect(smoothquantScaling.category).toBe("ml_graph_compilers");
+    expect(smoothquantScaling.mlInfraLevel).toBe(3);
+    expect(smoothquantScaling.category).toBe("ml_precision_quantization");
     expect(smoothquantScaling.sources).toEqual([
-      { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" },
+      { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" },
     ]);
   });
 
