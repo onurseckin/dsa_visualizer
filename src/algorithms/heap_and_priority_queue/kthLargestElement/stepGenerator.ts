@@ -55,6 +55,18 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
 
   steps.push({
     stepIndex: stepIdx++,
+    codeLine: 1,
+    explanation: {
+      what: "Import heapq for min-heap operations",
+      why: "Python's heapq provides O(log k) push and pop on the heap, which is what makes this algorithm O(n log k) overall instead of O(n log n) with full sorting.",
+    },
+    primarySnapshot: { kind: "array", elements: createArrayElements(minHeap) },
+    auxiliaryState: { customState: { k, nums: `[${nums.join(", ")}]` } },
+    variables: { k },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
       what: `Create an empty min-heap for K = ${k}`,

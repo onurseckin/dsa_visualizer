@@ -88,6 +88,13 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   };
 
   addStep(
+    1,
+    "Import bisect for binary search",
+    "Python's bisect module provides O(log k) sorted-array search. We use bisect_left to check in O(log(2^(n/2))) = O(n/2) time whether a required sum exists in the right half.",
+    { n, target },
+  );
+
+  addStep(
     3,
     "Initialize Meet in the Middle Subset Sum",
     `Input set of N = ${n} numbers: [${nums.join(", ")}]. Target sum = ${target}.`,
@@ -95,6 +102,15 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   );
 
   if (n === 0) {
+    addStep(
+      5,
+      `Check if n == 0 (n = ${n})`,
+      n === 0
+        ? "The input array is empty. The only achievable sum is 0, so we return whether target itself equals 0."
+        : `n = ${n} — the array is non-empty, so we proceed with the split-and-search strategy.`,
+      { n, target },
+    );
+
     const matched = target === 0;
     addStep(
       6,
@@ -104,6 +120,13 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     );
     return steps;
   }
+
+  addStep(
+    5,
+    `Check if n == 0 (n = ${n})`,
+    `n = ${n} — the array is non-empty, so we proceed with the split-and-search strategy.`,
+    { n, target },
+  );
 
   addStep(
     4,
@@ -154,6 +177,15 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       const x = arr[i];
       const nextSums = sums.map((s) => s + x);
       sums = sums.concat(nextSums);
+
+      addStep(
+        14,
+        `for x = ${x}: build new subset sums`,
+        `For each existing sum s in ${label}_sums, we create s + ${x} as a new candidate. This doubles the list (2^${i + 1} combinations now).`,
+        { label, element: x, totalSums: sums.length },
+        label === "left" ? [i] : undefined,
+        label === "right" ? [i + mid] : undefined,
+      );
 
       addStep(
         15,

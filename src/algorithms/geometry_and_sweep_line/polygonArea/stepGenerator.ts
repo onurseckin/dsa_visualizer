@@ -81,12 +81,36 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   };
 
   addStep(
+    1,
+    `Enter polygon_area with ${n} vertices`,
+    `We receive the polygon vertices as a list of (x, y) tuples. The shoelace formula will compute the signed area in one pass around the boundary.`,
+    getBaseNodes(),
+    getBaseEdges(),
+    { vertexCount: `${n}` },
+    [],
+    { n },
+  );
+
+  addStep(
     2,
     "Start the shoelace formula",
     `We'll walk the ${n} vertices in order, cross-multiplying each edge's coordinates; the criss-cross pattern of those products is where the "shoelace" name comes from.`,
     getBaseNodes(),
     getBaseEdges(),
     { Formula: "Area = 0.5 * |sum(x_i * y_{i+1} - x_{i+1} * y_i)|" },
+    [],
+    { n },
+  );
+
+  addStep(
+    3,
+    `Check n < 3 (n = ${n})`,
+    n < 3
+      ? `Only ${n} vertices — not enough to form a polygon. The function returns 0.0 immediately.`
+      : `${n} vertices found — enough to form a polygon. We proceed to compute the area.`,
+    getBaseNodes(),
+    getBaseEdges(),
+    { n: `${n}`, validPolygon: `${n >= 3}` },
     [],
     { n },
   );
@@ -117,6 +141,17 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     { area_sum: "0.0" },
     [],
     { area_sum: 0.0 },
+  );
+
+  addStep(
+    7,
+    `Start the shoelace loop: iterate i from 0 to ${n - 1}`,
+    "We traverse each edge in order (wrapping from the last vertex back to the first), accumulating the cross-product terms that sum to twice the signed area.",
+    getBaseNodes(),
+    getBaseEdges(),
+    { iterations: `${n}`, wrap: `i+1 mod ${n}` },
+    [],
+    { n, area_sum: 0.0 },
   );
 
   for (let i = 0; i < n; i++) {

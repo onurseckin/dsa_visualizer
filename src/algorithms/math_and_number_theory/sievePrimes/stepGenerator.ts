@@ -158,6 +158,15 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
     );
 
     if (isPrime[p]) {
+      addStep(
+        11,
+        `Start inner loop: cross out multiples of ${p} beginning at ${p * p}`,
+        `We start at ${p}² = ${p * p} because all smaller multiples of ${p} were already crossed out by earlier (smaller) prime factors. Step size is ${p}.`,
+        { p, startAt: p * p, step: p },
+        [],
+        p,
+      );
+
       for (let i = p * p; i <= limit; i += p) {
         const wasPrime = isPrime[i];
         isPrime[i] = false;
@@ -200,10 +209,34 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
     { limit },
   );
 
+  addStep(
+    16,
+    `Begin collection loop: scan from 2 to ${limit}`,
+    "We now iterate over every index from 2 onwards to identify which positions remained True in the sieve.",
+    { limit, from: 2, to: limit },
+  );
+
   const primes: number[] = [];
   for (let i = 2; i <= limit; i++) {
+    addStep(
+      17,
+      `Check is_prime[${i}]`,
+      isPrime[i]
+        ? `is_prime[${i}] is True — ${i} survived the sieve and is prime.`
+        : `is_prime[${i}] is False — ${i} was crossed out by a smaller factor.`,
+      { i, "is_prime[i]": isPrime[i] },
+    );
+
     if (isPrime[i]) {
       primes.push(i);
+
+      addStep(
+        18,
+        `Append ${i} to primes list`,
+        `${i} is prime — we collect it. The primes list so far: [${[...primes].join(", ")}].`,
+        { i, primesCount: primes.length },
+        [...primes],
+      );
     }
   }
 

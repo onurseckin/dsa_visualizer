@@ -51,7 +51,7 @@ describe("meetInTheMiddle algorithm spec", () => {
 
   it("should handle empty array input", () => {
     const steps = generateMeetInTheMiddleSteps({ array: [], target: 0 });
-    expect(steps.length).toBe(2);
+    expect(steps.length).toBe(4);
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

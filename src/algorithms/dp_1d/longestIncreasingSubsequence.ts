@@ -32,6 +32,46 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `Check if nums is empty`,
+      why: "An empty list has no subsequence at all, so we return 0 immediately rather than entering the DP logic with an empty array.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default" as const,
+        pointers: [`nums[${idx}] = ${nums[idx]}`],
+      })),
+    },
+    auxiliaryState: { customState: { isEmpty: false, n } },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: `Input is non-empty (${n} elements) — skip early return`,
+      why: `nums has ${n} elements, so we proceed. If nums were empty, we would return 0 here.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default" as const,
+        pointers: [`nums[${idx}] = ${nums[idx]}`],
+      })),
+    },
+    auxiliaryState: { customState: { n } },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
       what: `Start Length of LIS algorithm with nums=[${nums.join(", ")}]`,
@@ -42,7 +82,7 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
       elements: dp.map((v, idx) => ({
         id: `dp-${idx}`,
         value: v,
-        state: "default",
+        state: "default" as const,
         pointers: [`nums[${idx}] = ${nums[idx]}`],
       })),
     },

@@ -78,6 +78,42 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
     };
   };
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: "Function docstring — describes algorithm contract",
+      why: "Euler's Totient \u03c6(n) counts positive integers ≤ n that are coprime with n. The O(\u221an) approach factors n by trial division up to \u221an, applying the product formula for each prime.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p),
+    auxiliaryState: { customState: { n: nVal } },
+    variables: { n: nVal },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Docstring body: algorithm description",
+      why: "The algorithm runs in O(\u221an) time by checking primes only up to \u221an, then handling any remaining large prime factor after the loop.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p),
+    auxiliaryState: { customState: { n: nVal } },
+    variables: { n: nVal },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 5,
+    explanation: {
+      what: "End of docstring",
+      why: "Docstring complete. We now enter the function body to compute \u03c6(n) using trial division.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p),
+    auxiliaryState: { customState: { n: nVal } },
+    variables: { n: nVal },
+  });
+
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
@@ -199,6 +235,22 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
       });
 
       let divisions = 0;
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 11,
+        explanation: {
+          what: `Inner while: eliminate all factors of ${p} from temp (temp = ${temp})`,
+          why: `We divide out every copy of prime ${p} from temp so that each prime factor is counted only once in the product formula.`,
+        },
+        primarySnapshot: createVectorSnapshot(result, temp, p, "temp"),
+        auxiliaryState: {
+          visited: [...primeFactors],
+          customState: { temp, p, divisionsRemaining: "while temp % p == 0" },
+        },
+        variables: { result, temp, p },
+      });
+
       while (temp % p === 0) {
         temp = Math.floor(temp / p);
         divisions++;
