@@ -189,7 +189,7 @@ export const generateTvmRelayGraphLoweringSteps = (
   );
 
   addStep(
-    8,
+    9,
     "Initialize Container transformed_nodes",
     "Creating empty list to store layout-transformed AST nodes.",
     { n },
@@ -200,8 +200,8 @@ export const generateTvmRelayGraphLoweringSteps = (
 
   // Pass 1: Layout Transformation Pass
   addStep(
-    10,
-    "Start Pass 1: AlterOpLayout Pass",
+    12,
+    "Start Pass 1: AlterOpLayout Pass — loop over relay_nodes",
     `Transforming NCHW tensors into SIMD-blocked layout ${targetLayout} for vector register alignment.`,
     { pass: "AlterOpLayout", targetLayout },
     relayNodes,
@@ -212,7 +212,7 @@ export const generateTvmRelayGraphLoweringSteps = (
   const layoutTransformed: RelayOpNode[] = [];
   relayNodes.forEach((node, idx) => {
     addStep(
-      11,
+      13,
       `Inspect Relay Node '${node.id}' (${node.op}) in Pass 1`,
       `Original layout: ${node.layout}, Original shape: [${node.shape.join(", ")}].`,
       { idx, node_id: node.id, op: node.op },
@@ -232,7 +232,7 @@ export const generateTvmRelayGraphLoweringSteps = (
       copy.shape = sh;
 
       addStep(
-        14,
+        15,
         `Transform Layout for Node '${node.id}' to ${targetLayout}`,
         `Split channel dimension into sub-blocks of 8. New shape: [${copy.shape.join(", ")}].`,
         { idx, new_layout: targetLayout, new_shape: copy.shape.join(",") },
@@ -244,7 +244,7 @@ export const generateTvmRelayGraphLoweringSteps = (
     layoutTransformed.push(copy);
 
     addStep(
-      21,
+      22,
       `Append Node '${node.id}' to transformed_nodes`,
       "Layout transformation applied; stored in transformed_nodes buffer.",
       { idx, count: layoutTransformed.length },
@@ -256,8 +256,8 @@ export const generateTvmRelayGraphLoweringSteps = (
 
   // Pass 2: FuseOps Pass
   addStep(
-    23,
-    "Start Pass 2: FuseOps Pass",
+    25,
+    "Start Pass 2: FuseOps Pass — init fused_groups, i, n",
     "Grouping Relay AST expression nodes into primitive function boundaries (kInjective, kFusedConv).",
     { pass: "FuseOps" },
     layoutTransformed,
@@ -275,7 +275,7 @@ export const generateTvmRelayGraphLoweringSteps = (
   let i = 0;
   while (i < n) {
     addStep(
-      27,
+      28,
       `Pass 2 FuseOps Window Check at i = ${i}`,
       `Inspecting node ${layoutTransformed[i].id} (${layoutTransformed[i].op}) for primitive fusion.`,
       { i, op: layoutTransformed[i].op },
@@ -314,7 +314,7 @@ export const generateTvmRelayGraphLoweringSteps = (
 
       i += 3;
       addStep(
-        38,
+        39,
         `Advance Index Pointer i by 3 to ${i}`,
         "Skipping fused Relay expression nodes.",
         { i },
@@ -332,7 +332,7 @@ export const generateTvmRelayGraphLoweringSteps = (
       fusedPrimitiveGroups.push(group);
 
       addStep(
-        40,
+        41,
         `Create Single Primitive Function '${group.groupId}' for '${group.primitiveOp}'`,
         `Wrapped single Relay op in primitive function boundary.`,
         { i, group_id: group.groupId, prim_op: group.primitiveOp },
@@ -343,7 +343,7 @@ export const generateTvmRelayGraphLoweringSteps = (
 
       i += 1;
       addStep(
-        46,
+        47,
         `Advance Index Pointer i to ${i}`,
         "Moving to next Relay node.",
         { i },
@@ -356,7 +356,7 @@ export const generateTvmRelayGraphLoweringSteps = (
 
   // Pass 3: TIR Code Generation
   addStep(
-    48,
+    50,
     "Start Pass 3: Tensor IR (TIR) Code Generation",
     `Emitting hardware-bound TIR loop AST for backend '${targetHardware.toUpperCase()}'.`,
     { pass: "TIR_Codegen", targetHardware },
@@ -369,7 +369,7 @@ export const generateTvmRelayGraphLoweringSteps = (
 
   fusedPrimitiveGroups.forEach((grp, idx) => {
     addStep(
-      50,
+      51,
       `Emit TIR Code for Group '${grp.groupId}' (${grp.primitiveOp})`,
       `Generating imperative loop AST for target hardware '${targetHardware}'.`,
       { idx, groupId: grp.groupId, primOp: grp.primitiveOp },
@@ -390,7 +390,7 @@ export const generateTvmRelayGraphLoweringSteps = (
     });
 
     addStep(
-      60,
+      56,
       `Store TIR Kernel Signature for '${grp.primitiveOp}'`,
       `TIR AST generated: ${tir.slice(0, 45)}...`,
       { idx, tir_preview: tir.slice(0, 30) },
@@ -401,7 +401,7 @@ export const generateTvmRelayGraphLoweringSteps = (
   });
 
   addStep(
-    67,
+    62,
     "TVM Relay IR Graph Lowering Pass Complete",
     `Successfully lowered ${n} Relay IR expression nodes into ${tirStatements.length} executable TIR hardware kernels for ${targetHardware.toUpperCase()}.`,
     { complete: true, totalRelayNodes: n, totalTirKernels: tirStatements.length },

@@ -227,11 +227,20 @@ export const generateXlaHloGraphOptimizerSteps = (
       inst.opcode,
     );
 
+    addStep(
+      12,
+      `Evaluate is_elementwise for '${inst.id}' (${inst.opcode})`,
+      `is_elementwise = ${["multiply", "add", "broadcast", "subtract", "divide"].includes(inst.opcode)}.`,
+      { idx, inst_id: inst.id, is_elementwise: isElementwise },
+      idx,
+      currentCluster.map((c) => c.id),
+    );
+
     if (isElementwise) {
       currentCluster.push(inst);
 
       addStep(
-        13,
+        15,
         `Add '${inst.opcode}' (${inst.id}) to Active Fusion Cluster`,
         `Cluster size is now ${currentCluster.length}/${maxFusionSize}. Operands cached in GPU SRAM registers.`,
         { idx, inst_id: inst.id, clusterSize: currentCluster.length },
@@ -240,6 +249,15 @@ export const generateXlaHloGraphOptimizerSteps = (
       );
 
       if (currentCluster.length >= maxFusionSize) {
+        addStep(
+          17,
+          `Cluster Size ${currentCluster.length} >= max_fusion_size ${maxFusionSize}: emit kLoop fusion`,
+          `Saturated max_fusion_size limit. Emitting kLoop fusion now.`,
+          { idx, clusterSize: currentCluster.length, maxFusionSize },
+          idx,
+          currentCluster.map((c) => c.id),
+        );
+
         const fusionNode = {
           id: `fusion_${currentCluster[0].id}_${currentCluster[currentCluster.length - 1].id}`,
           opcode: "fusion",
@@ -250,9 +268,9 @@ export const generateXlaHloGraphOptimizerSteps = (
         fusedInstructions.push(fusionNode);
 
         addStep(
-          22,
+          24,
           `Form kLoop Fusion Node '${fusionNode.id}' (Size ${maxFusionSize})`,
-          `Saturated max_fusion_size limit. Emitting kLoop parallel kernel for [${fusionNode.instructionsFused.join(", ")}].`,
+          `Appended kLoop fusion to fused_instructions: [${fusionNode.instructionsFused.join(", ")}].`,
           { idx, fusion_id: fusionNode.id, kind: "kLoop" },
           idx,
           [],
@@ -261,7 +279,7 @@ export const generateXlaHloGraphOptimizerSteps = (
         currentCluster = [];
 
         addStep(
-          23,
+          25,
           "Reset Active Cluster Buffer to Empty",
           "Flushed full cluster into fused_instructions; ready for new cluster.",
           { idx },
@@ -271,7 +289,7 @@ export const generateXlaHloGraphOptimizerSteps = (
       }
     } else if (inst.opcode === "reduce") {
       addStep(
-        24,
+        27,
         `Encountered Reduction Instruction '${inst.id}'`,
         "Checking if an active elementwise producer cluster exists to form a kInput reduction fusion.",
         { idx, inst_id: inst.id, hasCluster: currentCluster.length > 0 },
@@ -281,6 +299,16 @@ export const generateXlaHloGraphOptimizerSteps = (
 
       if (currentCluster.length > 0) {
         currentCluster.push(inst);
+
+        addStep(
+          29,
+          `Append Reduction '${inst.id}' to Cluster for kInput Fusion`,
+          `Cluster has ${currentCluster.length - 1} elementwise producers; including reduce makes kInput candidate.`,
+          { idx, inst_id: inst.id, clusterSize: currentCluster.length },
+          idx,
+          currentCluster.map((c) => c.id),
+        );
+
         const fusionNode = {
           id: `fusion_${currentCluster[0].id}_${inst.id}`,
           opcode: "fusion",
@@ -291,7 +319,7 @@ export const generateXlaHloGraphOptimizerSteps = (
         fusedInstructions.push(fusionNode);
 
         addStep(
-          34,
+          36,
           `Form kInput Reduction Fusion Node '${fusionNode.id}'`,
           `Fused elementwise producers [${currentCluster.slice(0, -1).map((c) => c.id).join(", ")}] directly into reduction consumer '${inst.id}'.`,
           { idx, fusion_id: fusionNode.id, kind: "kInput" },
@@ -302,7 +330,7 @@ export const generateXlaHloGraphOptimizerSteps = (
         currentCluster = [];
 
         addStep(
-          35,
+          37,
           "Reset Cluster Buffer After kInput Fusion",
           "Flushed reduction cluster; resetting buffer.",
           { idx },
@@ -313,7 +341,7 @@ export const generateXlaHloGraphOptimizerSteps = (
         fusedInstructions.push(inst);
 
         addStep(
-          37,
+          39,
           `Pass Through Unfused Reduction '${inst.id}'`,
           "No producer cluster available; appending standalone reduce instruction.",
           { idx, inst_id: inst.id },
@@ -323,7 +351,7 @@ export const generateXlaHloGraphOptimizerSteps = (
       }
     } else {
       addStep(
-        38,
+        41,
         `Encountered Non-Fusable Barrier '${inst.id}' (${inst.opcode})`,
         "Instruction acts as fusion boundary; flushing active cluster.",
         { idx, inst_id: inst.id, opcode: inst.opcode },
@@ -342,7 +370,7 @@ export const generateXlaHloGraphOptimizerSteps = (
         fusedInstructions.push(fusionNode);
 
         addStep(
-          47,
+          49,
           `Flush Cluster Before Barrier into '${fusionNode.id}'`,
           `Emitted kLoop fusion node for preceding elements [${fusionNode.instructionsFused.join(", ")}].`,
           { idx, fusion_id: fusionNode.id },
@@ -356,7 +384,7 @@ export const generateXlaHloGraphOptimizerSteps = (
       fusedInstructions.push(inst);
 
       addStep(
-        49,
+        51,
         `Append Barrier Instruction '${inst.id}' (${inst.opcode})`,
         "Appended unfused instruction directly to output module.",
         { idx, inst_id: inst.id },
@@ -377,7 +405,7 @@ export const generateXlaHloGraphOptimizerSteps = (
     fusedInstructions.push(fusionNode);
 
     addStep(
-      59,
+      61,
       `Flush Trailing Cluster into '${fusionNode.id}'`,
       `Emitted trailing kLoop fusion node for [${fusionNode.instructionsFused.join(", ")}].`,
       { fusion_id: fusionNode.id },
@@ -387,7 +415,7 @@ export const generateXlaHloGraphOptimizerSteps = (
   }
 
   addStep(
-    66,
+    63,
     "Google XLA HLO Cluster Fusion Complete",
     `Successfully optimized HLO module from ${n} original instructions to ${fusedInstructions.length} fused GPU/TPU nodes.`,
     { complete: true, origCount: n, fusedCount: fusedInstructions.length },
