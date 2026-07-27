@@ -182,9 +182,25 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
     { stage, N, modelParamsMB: P, baselineTotalMB: baselineTotal },
   );
 
+  addStep(
+    11,
+    `Compute Baseline FP16 Memory per GPU: p_mem=${baseP}MB, g_mem=${baseG}MB, opt_mem=${baseOpt}MB`,
+    `p_mem = 2×${P} = ${baseP}MB (FP16 params), g_mem = 2×${P} = ${baseG}MB (FP16 grads), opt_mem = 12×${P} = ${baseOpt}MB (Adam FP32 states).`,
+    -1,
+    { p_mem: baseP, g_mem: baseG, opt_mem: baseOpt, baseline_total: baselineTotal },
+  );
+
+  addStep(
+    15,
+    `Apply ZeRO-Stage ${stage} Sharding Rules`,
+    `Stage ${stage}: ${ stage === 1 ? 'Partition optimizer states (12x) by N' : stage === 2 ? 'Partition optimizer states + gradients by N' : 'Partition optimizer states + gradients + parameters by N' }.`,
+    -1,
+    { stage, N, shard_opt: shardOpt.toFixed(1), shard_g: shardG.toFixed(1), shard_p: shardP.toFixed(1) },
+  );
+
   for (let r = 0; r < N; r++) {
     addStep(
-      10,
+      17,
       `Allocated Sharded State for GPU Rank #${r}`,
       `GPU #${r} holds ${shardP.toFixed(1)}MB FP16 Params, ${shardG.toFixed(1)}MB Gradients, and ${shardOpt.toFixed(1)}MB Adam Optimizer States.`,
       r,
@@ -197,8 +213,8 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
   });
 
   addStep(
-    25,
-    `ZeRO-Stage ${stage} Sharding Complete`,
+    41,
+    `ZeRO-Stage ${stage} Sharding Complete: total_mem_per_gpu = ${totalPerGpu.toFixed(1)} MB`,
     `Memory per GPU reduced from ${baselineTotal} MB to ${totalPerGpu.toFixed(1)} MB (${memoryReductionFactor}x memory efficiency).`,
     N,
     { stage, numRanks: N, reductionFactor: `${memoryReductionFactor}x` },
