@@ -10,6 +10,7 @@ import {
   BookOpen,
   Layers,
   List,
+  ListChecks,
   Network,
   RotateCcw,
   Activity,
@@ -53,6 +54,12 @@ const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: stri
     label: "Solution",
     icon: <Lightbulb className="w-3.5 h-3.5" />,
     hint: "solution panel",
+  },
+  {
+    key: "examples",
+    label: "Examples",
+    icon: <ListChecks className="w-3.5 h-3.5" />,
+    hint: "examples panel",
   },
   {
     key: "visualizer",

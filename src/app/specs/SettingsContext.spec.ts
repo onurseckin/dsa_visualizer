@@ -100,6 +100,7 @@ describe("SettingsContext panel visibility, algorithm persistence, and error bou
     expect(result.current.panels).toEqual({
       problem: true,
       solution: true,
+      examples: true,
       visualizer: true,
       code: false,
       tutorial: false,

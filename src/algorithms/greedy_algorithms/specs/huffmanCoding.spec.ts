@@ -91,4 +91,19 @@ describe("huffmanCoding spec logic", () => {
     const mergeSteps = steps.filter((s) => s.explanation.what.includes("Pop"));
     expect(mergeSteps.length).toBeGreaterThan(0);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(huffmanCoding.examples).toHaveLength(3);
+    expect(huffmanCoding.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(huffmanCoding.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of huffmanCoding.examples!) {
+      const steps = huffmanCoding.generateSteps(example.input as { text: string });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

@@ -102,11 +102,51 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
-      input:
-        "array = [3, 2, -1, 6, 5, 4, -3, 37], operations = [Range Query [1..5], Update index 3 by +5, Range Query [1..5]]",
+      kind: "basic",
+      inputDisplay: "arr = [3, 2, -1, 6, 5, 4, -3, 37], queries = [sum(1..5), update(3, +5), sum(1..5)]",
+      outputDisplay: "Query 1: 15, Query 2: 20",
+      title: "Basic Example",
+      input: {
+        array: [3, 2, -1, 6, 5, 4, -3, 37],
+        operations: [
+          { type: "query", left: 1, right: 5 },
+          { type: "update", index: 3, delta: 5 },
+          { type: "query", left: 1, right: 5 },
+        ],
+      },
       output: "Query 1: 15, Query 2: 20",
       explanation:
         "Initial prefix sum up to index 5 is 3+2+(-1)+6+5 = 15. Adding 5 to index 3 updates tree elements responsibility ranges, increasing range sum to 20.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "arr = [1, 2, ..., 16], queries = [sum(1..16), update(8, +10), sum(1..16)]",
+      outputDisplay: "Query 1: 136, Query 2: 146",
+      title: "Complex Edge Case",
+      input: {
+        array: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        operations: [
+          { type: "query", left: 1, right: 16 },
+          { type: "update", index: 8, delta: 10 },
+          { type: "query", left: 1, right: 16 },
+        ],
+      },
+      output: "Query 1: 136, Query 2: 146",
+      explanation:
+        "BIT over 16 elements (power of 2); updating index 8 (lowbit 8) propagates delta across high power-of-2 responsibility nodes.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "arr = [42], queries = [sum(1..1)]",
+      outputDisplay: "Query: 42",
+      title: "Failing / Boundary Case",
+      input: {
+        array: [42],
+        operations: [{ type: "query", left: 1, right: 1 }],
+      },
+      output: "Query: 42",
+      explanation:
+        "Single-element array N=1 (1-indexed BIT slot 1); prefix sum directly matches single value 42.",
     },
   ],
   code: FENWICK_TREE_CODE,

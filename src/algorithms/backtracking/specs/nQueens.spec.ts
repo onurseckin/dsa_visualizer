@@ -60,4 +60,19 @@ describe("nQueens algorithm spec", () => {
       expect(step.explanation.why.length).toBeGreaterThan(0);
     });
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(nQueens.examples).toHaveLength(3);
+    expect(nQueens.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(nQueens.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of nQueens.examples!) {
+      const steps = nQueens.generateSteps(example.input as { n: number });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

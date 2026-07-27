@@ -1,5 +1,5 @@
 import React from "react";
-import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, PanelVisibility, ProblemExample } from "../../types/dsa";
 import { ControlPanelProps } from "../organisms/ControlPanel";
 import { useMainLayoutState } from "../../components/main-layout/hooks/useMainLayoutState";
 import { ProblemSection } from "../../components/main-layout/components/ProblemSection";
@@ -11,6 +11,8 @@ export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
   panels: PanelVisibility;
+  selectedExampleId?: string;
+  onSelectExample?: (example: ProblemExample, index: number) => void;
   onToggleTutorial?: () => void;
   onToggleAuxiliary?: () => void;
   controlProps?: ControlPanelProps;
@@ -33,6 +35,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   algorithm,
   currentStep,
   panels,
+  selectedExampleId,
+  onSelectExample,
 
   controlProps,
   isPlaying,
@@ -89,9 +93,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
       </div>
 
-      {panels.problem && (
+      {(panels.problem || panels.examples) && (
         <ProblemSection
           algorithm={algorithm}
+          selectedExampleId={selectedExampleId}
+          onSelectExample={onSelectExample}
+          showProblem={panels.problem}
+          showExamples={panels.examples}
           problemExpanded={layoutState.problemExpanded}
           problemPinned={layoutState.problemPinned}
           problemDragging={layoutState.problemDragging}

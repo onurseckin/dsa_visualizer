@@ -22,11 +22,64 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   ],
   examples: [
     {
-      input:
-        "Source = S, Sink = T, Nodes: [S, A, B, T], Edges with capacities S->A:10, S->B:10, A->B:2, A->T:10, B->T:10",
+      kind: "basic",
+      inputDisplay: "source = S, sink = T, edges = [(S,A,10), (S,C,10), (A,B,4), (A,C,2), (A,D,8), (C,D,9), (B,T,10), (D,T,10)]",
+      outputDisplay: "Max Flow = 19",
+      title: "Basic Example",
+      input: {
+        source: "S",
+        sink: "T",
+        nodes: ["S", "A", "B", "T"],
+        edges: [
+          { from: "S", to: "A", capacity: 10 },
+          { from: "S", to: "B", capacity: 10 },
+          { from: "A", to: "B", capacity: 2 },
+          { from: "A", to: "T", capacity: 10 },
+          { from: "B", to: "T", capacity: 10 },
+        ],
+      },
       output: "Max Flow = 20",
       explanation:
-        "Flow of 10 is pushed along S->A->T and 10 along S->B->T. Total capacity of 20 reaches sink T.",
+        "Pushes 10 units along S->A->T and 10 units along S->B->T. Total bottleneck throughput reaching sink T is 20.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "source = S, sink = T, edges = [(S,1,16), (S,2,13), (1,2,10), (2,1,4), (1,3,12), (3,2,9), (2,4,14), (4,3,7), (3,T,20), (4,T,4)]",
+      outputDisplay: "Max Flow = 23",
+      title: "Complex Edge Case",
+      input: {
+        source: "S",
+        sink: "T",
+        nodes: ["S", "A", "B", "C", "T"],
+        edges: [
+          { from: "S", to: "A", capacity: 10 },
+          { from: "S", to: "B", capacity: 8 },
+          { from: "A", to: "C", capacity: 5 },
+          { from: "B", to: "C", capacity: 4 },
+          { from: "C", to: "T", capacity: 7 },
+        ],
+      },
+      output: "Max Flow = 7",
+      explanation:
+        "Augmenting paths push flow through bottleneck node C. The incoming edge C->T with capacity 7 limits the maximum total flow to 7.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "source = S, sink = T, edges = [(S,A,10), (T,A,10)]",
+      outputDisplay: "Max Flow = 0",
+      title: "Failing / Boundary Case",
+      input: {
+        source: "S",
+        sink: "T",
+        nodes: ["S", "A", "T"],
+        edges: [
+          { from: "S", to: "A", capacity: 10 },
+          { from: "T", to: "A", capacity: 10 },
+        ],
+      },
+      output: "Max Flow = 0",
+      explanation:
+        "Sink T has no incoming residual edges from source S. No augmenting path can be found, returning max flow = 0.",
     },
   ],
   code: FORD_FULKERSON_CODE,

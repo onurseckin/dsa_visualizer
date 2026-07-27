@@ -10,9 +10,7 @@ import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
 
-const HEADER_STRIP_H = "var(--control-h-sm) + var(--space-2) * 2 + 2px";
-const STAGE_CHROME = `var(--navbar-h) + (${HEADER_STRIP_H}) + var(--space-3) * 3`;
-const STAGE_HEIGHT = `max(var(--stage-min-h), calc(100dvh - (${STAGE_CHROME})))`;
+const DEFAULT_STAGE_HEIGHT = "50vh";
 
 export interface MainStageProps {
   algorithm: AlgorithmDefinition;
@@ -34,6 +32,16 @@ export const MainStage: React.FC<MainStageProps> = ({
   const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
   const showAuxiliary =
     panels.auxiliary && hasAuxiliaryContent(currentStep?.auxiliaryState, currentStep?.variables);
+
+  const stagePinned = layoutState.stagePinned;
+  const visualizerPinned = layoutState.layout.panelHeights.visualizer;
+
+  const stageHeight =
+    stagePinned !== null
+      ? `${stagePinned}px`
+      : visualizerPinned !== null
+      ? `${visualizerPinned}px`
+      : DEFAULT_STAGE_HEIGHT;
 
   const leftRows: ResizableRow[] = [
     {
@@ -148,9 +156,9 @@ export const MainStage: React.FC<MainStageProps> = ({
       <div
         ref={layoutState.stageRef}
         data-stage="workspace"
-        className="shrink-0"
+        className="flex flex-col overflow-hidden h-full shrink-0"
         style={{
-          height: layoutState.stagePinned !== null ? `${layoutState.stagePinned}px` : STAGE_HEIGHT,
+          height: stageHeight,
         }}
       >
         {stageEmpty ? (

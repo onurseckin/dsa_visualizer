@@ -16,7 +16,6 @@ const PROSE: React.CSSProperties = {
   fontSize: "var(--text-md)",
   lineHeight: 1.6,
   color: "var(--text-secondary)",
-  minHeight: "calc(var(--text-md) * 1.6 * 2)",
 };
 
 export const hasTutorialContent = (
@@ -48,9 +47,9 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   return (
     <Card
       data-testid="tutorial-card"
-      className="h-full overflow-auto border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)]"
+      className="h-auto min-h-fit overflow-visible border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)]"
     >
-      <Card.Body className="p-3 md:p-4 flex flex-col gap-2 min-w-0">
+      <Card.Body className="py-2 px-4 flex flex-col gap-1.5 min-w-0">
         <div
           style={{
             display: "flex",
@@ -83,7 +82,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
           <div style={{ flex: 1, minWidth: 0 }} />
         </div>
 
-        <p style={PROSE}>
+        <p style={PROSE} className="whitespace-normal break-words leading-relaxed">
           {lead && (
             <strong style={{ color: "var(--text-primary)", fontWeight: 600 }}>{lead}</strong>
           )}

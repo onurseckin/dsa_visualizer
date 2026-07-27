@@ -41,4 +41,19 @@ describe("euclidGcd spec logic", () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.gcd).toBe(1);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(euclidGcd.examples).toHaveLength(3);
+    expect(euclidGcd.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(euclidGcd.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of euclidGcd.examples!) {
+      const steps = euclidGcd.generateSteps(example.input as { a: number; b: number });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

@@ -141,15 +141,34 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   constraints: ["1 <= coins.length <= 12", "1 <= coins[i] <= 10^4", "0 <= amount <= 10^4"],
   examples: [
     {
-      input: "coins = [1, 3, 4], amount = 6",
+      kind: "basic",
+      inputDisplay: "coins = [1, 3, 4], amount = 6",
+      outputDisplay: "2",
+      title: "Basic Example",
+      input: { coins: [1, 3, 4], amount: 6 },
       output: "2",
       explanation:
-        "Optimal combination is 3 + 3 = 6 (2 coins total). Greedy choice (4 + 1 + 1) would yield 3 coins, showing why DP optimal substructure is necessary.",
+        "Optimal combination is 3 + 3 = 6 (2 coins). Greedy choice (4 + 1 + 1) would yield 3 coins, showing why DP optimal substructure is necessary.",
     },
     {
-      input: "coins = [2], amount = 3",
+      kind: "complex",
+      inputDisplay: "coins = [2, 5, 10, 12], amount = 15",
+      outputDisplay: "2",
+      title: "Complex Edge Case",
+      input: { coins: [2, 5, 10, 12], amount: 15 },
+      output: "2",
+      explanation:
+        "Combination of 10 + 5 = 15 uses 2 coins. Picking the largest coin 12 requires 12 + 2 + ... which fails to make 15.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "coins = [2, 4], amount = 7",
+      outputDisplay: "-1",
+      title: "Failing / Boundary Case",
+      input: { coins: [2, 4], amount: 7 },
       output: "-1",
-      explanation: "Target amount 3 cannot be formed using only coin denomination 2.",
+      explanation:
+        "Target amount 7 cannot be formed using only even coin denominations (2, 4), so dp[7] remains infinity and returns -1.",
     },
   ],
   code: PYTHON_COIN_CHANGE_CODE,

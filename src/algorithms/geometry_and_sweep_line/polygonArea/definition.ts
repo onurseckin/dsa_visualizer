@@ -102,10 +102,55 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   ],
   examples: [
     {
-      input: "points = [(100,100), (400,100), (350,300), (150,300)]",
+      kind: "basic",
+      inputDisplay: "points = [(100,100), (400,100), (350,300), (150,300)]",
+      outputDisplay: "45000",
+      title: "Basic Example",
+      input: {
+        points: [
+          { x: 100, y: 100, id: "P0", label: "P0 (100, 100)" },
+          { x: 400, y: 100, id: "P1", label: "P1 (400, 100)" },
+          { x: 350, y: 300, id: "P2", label: "P2 (350, 300)" },
+          { x: 150, y: 300, id: "P3", label: "P3 (150, 300)" },
+        ],
+      },
       output: "45000",
       explanation:
-        "Trapezoid area calculated via 0.5 * |(100*100 - 400*100) + (400*300 - 350*100) + (350*300 - 150*300) + (150*100 - 100*300)| = 45000.",
+        "Trapezoid area calculated via Shoelace cross-products 0.5 * |sum| = 45000.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "points = [(100,100), (300,100), (300,300), (200,200), (100,300)]",
+      outputDisplay: "30000",
+      title: "Complex Edge Case",
+      input: {
+        points: [
+          { x: 100, y: 100, id: "P0", label: "P0" },
+          { x: 300, y: 100, id: "P1", label: "P1" },
+          { x: 300, y: 300, id: "P2", label: "P2" },
+          { x: 200, y: 200, id: "P3", label: "P3" },
+          { x: 100, y: 300, id: "P4", label: "P4" },
+        ],
+      },
+      output: "30000",
+      explanation:
+        "Non-convex 5-vertex polygon (L-shaped with reflex vertex at P3) computed accurately.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "points = [(100,100), (200,200), (300,300)]",
+      outputDisplay: "0",
+      title: "Failing / Boundary Case",
+      input: {
+        points: [
+          { x: 100, y: 100, id: "P0", label: "P0" },
+          { x: 200, y: 200, id: "P1", label: "P1" },
+          { x: 300, y: 300, id: "P2", label: "P2" },
+        ],
+      },
+      output: "0",
+      explanation:
+        "Collinear points enclosing zero 2D surface area result in Shoelace area sum of 0.",
     },
   ],
   code: PYTHON_POLYGON_AREA_CODE,

@@ -43,14 +43,54 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   ],
   examples: [
     {
-      input: "intervals = [[1,3],[2,6],[8,10],[15,18]]",
-      output: "[[1,6],[8,10],[15,18]]",
-      explanation: "Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].",
+      kind: "basic",
+      inputDisplay: "intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]",
+      outputDisplay: "[[1, 6], [8, 10], [15, 18]]",
+      title: "Basic Example",
+      input: {
+        intervals: [
+          { start: 1, end: 3 },
+          { start: 2, end: 6 },
+          { start: 8, end: 10 },
+          { start: 15, end: 18 },
+        ],
+      },
+      output: "[[1,6], [8,10], [15,18]]",
+      explanation:
+        "Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].",
     },
     {
-      input: "intervals = [[1,4],[4,5]]",
-      output: "[[1,5]]",
-      explanation: "Intervals [1,4] and [4,5] touch at boundary 4 and are merged into [1,5].",
+      kind: "complex",
+      inputDisplay: "intervals = [[1, 10], [2, 3], [4, 8], [9, 12]]",
+      outputDisplay: "[[1, 12]]",
+      title: "Complex Edge Case",
+      input: {
+        intervals: [
+          { start: 1, end: 10 },
+          { start: 2, end: 3 },
+          { start: 4, end: 8 },
+          { start: 9, end: 12 },
+        ],
+      },
+      output: "[[1,12]]",
+      explanation:
+        "Enclosing interval [1,10] completely contains sub-intervals [2,3] and [4,8] and merges with overlapping [9,12] into one single span [1,12].",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "intervals = [[1, 2], [3, 4], [5, 6]]",
+      outputDisplay: "[[1, 2], [3, 4], [5, 6]]",
+      title: "Failing / Boundary Case",
+      input: {
+        intervals: [
+          { start: 1, end: 2 },
+          { start: 3, end: 4 },
+          { start: 5, end: 6 },
+        ],
+      },
+      output: "[[1,2], [3,4], [5,6]]",
+      explanation:
+        "Disjoint intervals with non-zero gaps between each pair; no merges occur and all intervals remain unchanged.",
     },
   ],
   code: MERGE_INTERVALS_CODE,

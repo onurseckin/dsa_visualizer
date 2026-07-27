@@ -102,15 +102,34 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   constraints: ["1 <= piles.length <= 10^4", "0 <= piles[i] <= 10^9"],
   examples: [
     {
-      input: "piles = [3, 4, 5]",
-      output: "First Player Wins, reduce pile 0 from 3 to 1 (remove 2)",
+      kind: "basic",
+      inputDisplay: "piles = [3, 4, 5]",
+      outputDisplay: "First Player Wins (reduce pile 0 from 3 to 1)",
+      title: "Basic Example",
+      input: { piles: [3, 4, 5] },
+      output: "First Player Wins, reduce pile 0 from 3 to 1",
       explanation:
-        "Initial XOR sum: 3 ^ 4 ^ 5 = 2 != 0 (First Player wins). Target size for pile 0 is 3 ^ 2 = 1.",
+        "Initial XOR sum: 3 ^ 4 ^ 5 = 2 != 0 (First Player wins). Reducing pile 0 to 1 forces Nim-sum of 0 for opponent.",
     },
     {
-      input: "piles = [1, 2, 3]",
-      output: "Second Player Wins",
-      explanation: "Initial XOR sum: 1 ^ 2 ^ 3 = 0 (P-position, Second Player wins).",
+      kind: "complex",
+      inputDisplay: "piles = [1, 3, 5, 7]",
+      outputDisplay: "Second Player Wins (Nim-sum = 0)",
+      title: "Complex Edge Case",
+      input: { piles: [1, 3, 5, 7] },
+      output: "Second Player Wins (Nim-sum = 0)",
+      explanation:
+        "Initial XOR sum: 1 ^ 3 ^ 5 ^ 7 = 0 (P-position, Second Player wins). Any move leaves a non-zero Nim-sum.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "piles = [0, 0, 0]",
+      outputDisplay: "Second Player Wins (Nim-sum = 0)",
+      title: "Failing / Boundary Case",
+      input: { piles: [0, 0, 0] },
+      output: "Second Player Wins (Nim-sum = 0)",
+      explanation:
+        "All piles empty (0 objects remaining); terminal P-position with zero legal moves remaining.",
     },
   ],
   code: NIM_GAME_CODE,

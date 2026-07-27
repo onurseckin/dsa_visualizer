@@ -61,4 +61,19 @@ describe("kthLargestElement logic spec", () => {
     const lastStep = steps2[steps2.length - 1];
     expect(lastStep.variables.result).toBe(10);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(kthLargestElement.examples).toHaveLength(3);
+    expect(kthLargestElement.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(kthLargestElement.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of kthLargestElement.examples!) {
+      const steps = kthLargestElement.generateSteps(example.input as { nums: number[]; k: number });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

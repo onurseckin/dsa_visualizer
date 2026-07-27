@@ -88,6 +88,7 @@ const dummyControlProps: ControlPanelProps = {
 const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
   problem: true,
   solution: true,
+  examples: true,
   visualizer: true,
   code: true,
   tutorial: true,
@@ -172,7 +173,7 @@ describe("MainLayoutPanelsCanvas Component Spec", () => {
     expect(canvas.style.justifyContent).toBe("");
     expect(canvas.style.padding).toBe("0px");
     expect(canvas.style.overflowY).toBe("hidden");
-    expect(canvas.style.overflowX).toBe("auto");
+    expect(canvas.style.overflowX).toBe("hidden");
   });
 
   it("embeds playback controls at the bottom edge of the visualizer panel", () => {

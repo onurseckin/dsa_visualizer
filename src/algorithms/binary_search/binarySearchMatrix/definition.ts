@@ -133,14 +133,53 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   ],
   examples: [
     {
-      input: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 3",
+      kind: "basic",
+      inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 3",
+      outputDisplay: "true",
+      title: "Basic Example",
+      input: {
+        matrix: [
+          [1, 3, 5, 7],
+          [10, 11, 16, 20],
+          [23, 30, 34, 60],
+        ],
+        target: 3,
+      },
       output: "true",
       explanation: "Target 3 exists at row 0, column 1.",
     },
     {
-      input: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",
+      kind: "complex",
+      inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 16",
+      outputDisplay: "true",
+      title: "Complex Edge Case",
+      input: {
+        matrix: [
+          [1, 2, 4, 8],
+          [12, 16, 20, 24],
+          [28, 32, 40, 50],
+          [60, 70, 80, 90],
+        ],
+        target: 50,
+      },
+      output: "true",
+      explanation: "4x4 matrix search; flat index 11 maps to row 2, col 3 where 50 is located.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",
+      outputDisplay: "false",
+      title: "Failing / Boundary Case",
+      input: {
+        matrix: [
+          [1, 3, 5, 7],
+          [10, 11, 16, 20],
+          [23, 30, 34, 60],
+        ],
+        target: 13,
+      },
       output: "false",
-      explanation: "Target 13 is not present in the matrix.",
+      explanation: "Target 13 falls between 11 and 16, but is not present in the matrix.",
     },
   ],
   code: BINARY_SEARCH_MATRIX_CODE,

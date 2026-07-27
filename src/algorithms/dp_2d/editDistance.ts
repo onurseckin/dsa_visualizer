@@ -203,15 +203,34 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   ],
   examples: [
     {
-      input: 'word1 = "horse", word2 = "ros"',
+      kind: "basic",
+      inputDisplay: "word1 = \"horse\", word2 = \"ros\"",
+      outputDisplay: "3",
+      title: "Basic Example",
+      input: { word1: "horse", word2: "ros" },
       output: "3",
-      explanation: "horse -> rorse (replace h with r) -> rose (remove r) -> ros (remove e)",
+      explanation:
+        "Transforms horse -> rorse (replace 'h') -> rose (delete 'r') -> ros (delete 'e') in 3 edit operations.",
     },
     {
-      input: 'word1 = "intention", word2 = "execution"',
+      kind: "complex",
+      inputDisplay: "word1 = \"intention\", word2 = \"execution\"",
+      outputDisplay: "5",
+      title: "Complex Edge Case",
+      input: { word1: "intention", word2: "execution" },
       output: "5",
       explanation:
-        "intention -> inention (remove t) -> enention (replace i with e) -> exention (replace n with x) -> exection (replace n with c) -> execution (insert u)",
+        "Requires 5 edit operations (deletions, substitutions, and insertion) across 9x9 dynamic programming table.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "word1 = \"\", word2 = \"abc\"",
+      outputDisplay: "3",
+      title: "Failing / Boundary Case",
+      input: { word1: "", word2: "abc" },
+      output: "3",
+      explanation:
+        "Transforming empty string into 'abc' requires 3 insertions, matching base case along table boundary dp[0][3].",
     },
   ],
   code: EDIT_DISTANCE_CODE,

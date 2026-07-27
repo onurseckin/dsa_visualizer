@@ -94,16 +94,33 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4", "1 <= k <= nums.length"],
   examples: [
     {
-      input: "nums = [4, 2, 12, 11, 5, 8, 3, 9], k = 3",
+      kind: "basic",
+      inputDisplay: "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
+      outputDisplay: "[-1, -3, -3, -3, 3, 3]",
+      title: "Basic Example",
+      input: { nums: [4, 2, 12, 11, 5, 8, 3, 9], k: 3 },
       output: "[2, 2, 5, 5, 3, 3]",
       explanation:
         "The sliding windows of size 3 are [4,2,12]->2, [2,12,11]->2, [12,11,5]->5, [11,5,8]->5, [5,8,3]->3, [8,3,9]->3.",
     },
     {
-      input: "nums = [1, -1], k = 1",
-      output: "[1, -1]",
+      kind: "complex",
+      inputDisplay: "nums = [4, 2, 12, 11, -5, 3, 9], k = 4",
+      outputDisplay: "[-5, -5, -5, -5]",
+      title: "Complex Edge Case",
+      input: { nums: [9, 7, 5, 3, 1, 2, 4, 6, 8], k: 4 },
+      output: "[3, 1, 1, 1, 1, 2]",
       explanation:
-        "Sliding window of size 1 yields each array element itself as the window minimum.",
+        "Strictly decreasing then increasing sequence; monotonic deque evicts expired and dominated indices across 6 windows.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "nums = [1], k = 1",
+      outputDisplay: "[1]",
+      title: "Failing / Boundary Case",
+      input: { nums: [10, 20, 30, 40], k: 4 },
+      output: "[10]",
+      explanation: "Window size k equals total length; produces a single window minimum [10].",
     },
   ],
   code: SLIDING_WINDOW_MIN_CODE,

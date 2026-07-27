@@ -68,4 +68,19 @@ describe("nimGame algorithm logic spec", () => {
     const steps2 = generateNimGameSteps({} as { piles: number[] });
     expect(steps2.length).toBeGreaterThan(0);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(nimGame.examples).toHaveLength(3);
+    expect(nimGame.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(nimGame.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of nimGame.examples!) {
+      const steps = nimGame.generateSteps(example.input as { piles: number[] });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

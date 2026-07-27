@@ -131,6 +131,7 @@ export interface PanelVisibility {
   tutorial: boolean;
   auxiliary: boolean;
   complexity?: boolean;
+  examples?: boolean;
 }
 
 export type PanelKey = keyof PanelVisibility;
@@ -211,10 +212,16 @@ export interface TopicGuide {
   keyTerms?: TopicGuideTerm[];
 }
 
-export interface ProblemExample {
-  input: string;
-  output: string;
+export interface ProblemExample<TInput = unknown> {
+  id?: string;
+  kind?: "basic" | "complex" | "negative";
+  title?: string;
+  input: TInput | string;
+  output?: string;
   explanation?: string;
+  inputValue?: unknown;
+  inputDisplay?: string;
+  outputDisplay?: string;
 }
 
 export interface LeetCodeMeta {
@@ -284,7 +291,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   difficulty?: DifficultyLevel;
   description: string;
   constraints?: string[];
-  examples?: ProblemExample[];
+  examples?: ProblemExample<TInput>[];
   code: string;
   timeComplexity: TimeComplexity;
   spaceComplexity: string;

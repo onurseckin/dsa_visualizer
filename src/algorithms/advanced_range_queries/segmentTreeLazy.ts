@@ -20,11 +20,54 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= val <= 10^9"],
   examples: [
     {
-      input:
-        "array = [1, 2, 3, 4, 5], operations = [Range Query [1..3], Range Update [1..3] += 5, Range Query [1..3]]",
+      kind: "basic",
+      inputDisplay: "arr = [1, 2, 3, 4, 5], queries = [sum(1..3), rangeUpdate(1..3, +5), sum(1..3)]",
+      outputDisplay: "Query 1: 9, Query 2: 24",
+      title: "Basic Example",
+      input: {
+        array: [1, 2, 3, 4, 5],
+        operations: [
+          { type: "rangeQuery", left: 1, right: 3 },
+          { type: "rangeUpdate", left: 1, right: 3, value: 5 },
+          { type: "rangeQuery", left: 1, right: 3 },
+        ],
+      },
       output: "Query 1: 9, Query 2: 24",
       explanation:
         "Initial sum arr[1..3] = 2+3+4 = 9. Adding 5 to range [1..3] updates 3 elements by 5 (+15 total), giving new sum 24.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "arr = [10, 20, 30, 40, 50, 60, 70, 80], queries = [rangeUpdate(0..7, +10), rangeUpdate(2..5, +5), sum(0..7)]",
+      outputDisplay: "Query: 460",
+      title: "Complex Edge Case",
+      input: {
+        array: [10, 20, 30, 40, 50, 60, 70, 80],
+        operations: [
+          { type: "rangeUpdate", left: 0, right: 7, value: 10 },
+          { type: "rangeUpdate", left: 2, right: 5, value: 5 },
+          { type: "rangeQuery", left: 0, right: 7 },
+        ],
+      },
+      output: "Query: 460",
+      explanation:
+        "Layered range updates propagate lazy tags down tree levels upon broad range queries.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "arr = [7], queries = [rangeUpdate(0..0, +3), sum(0..0)]",
+      outputDisplay: "Query: 10",
+      title: "Failing / Boundary Case",
+      input: {
+        array: [7],
+        operations: [
+          { type: "rangeUpdate", left: 0, right: 0, value: 3 },
+          { type: "rangeQuery", left: 0, right: 0 },
+        ],
+      },
+      output: "Query: 10",
+      explanation:
+        "N=1 single-element array; lazy tags apply directly to leaf node [0..0] without child pushdown.",
     },
   ],
   code: SEGMENT_TREE_LAZY_CODE,

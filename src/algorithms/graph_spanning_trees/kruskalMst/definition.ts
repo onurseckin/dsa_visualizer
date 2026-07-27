@@ -130,16 +130,75 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   ],
   examples: [
     {
-      input: "4 nodes (A,B,C,D), 5 edges: [A-B(1), B-C(2), C-D(3), A-C(4), B-D(5)]",
-      output: "MST Edges: [A-B(1), B-C(2), C-D(3)], Total Weight = 6",
+      kind: "basic",
+      inputDisplay: "vertices = [A, B, C, D, E, F], edges = [(A,B,4), (A,C,2), (B,C,1), (B,D,5), (C,D,8), (C,E,10), (D,E,2)]",
+      outputDisplay: "MST Weight = 12",
+      title: "Basic Example",
+      input: {
+        nodes: [
+          { id: "A", label: "A", x: 100, y: 100, state: "default" },
+          { id: "B", label: "B", x: 250, y: 50, state: "default" },
+          { id: "C", label: "C", x: 250, y: 200, state: "default" },
+          { id: "D", label: "D", x: 400, y: 100, state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B", weight: 1 },
+          { from: "A", to: "C", weight: 4 },
+          { from: "B", to: "C", weight: 2 },
+          { from: "B", to: "D", weight: 5 },
+          { from: "C", to: "D", weight: 3 },
+        ],
+      },
+      output: "MST Weight: 6 (Edges: A-B, B-C, C-D)",
       explanation:
-        "1. Sort edges: A-B(1), B-C(2), C-D(3), A-C(4), B-D(5). 2. Accept A-B(1). 3. Accept B-C(2). 4. Accept C-D(3). 5. Edge A-C(4) forms cycle (roots A & C connected via B), skipped. MST total weight = 6.",
+        "Sorts edges by weight: A-B(1), B-C(2), C-D(3), A-C(4), B-D(5). Accepts A-B, B-C, C-D. Skips A-C and B-D as they form cycles.",
     },
     {
-      input: "3 nodes (A,B,C) forming a triangle with weights A-B(5), B-C(5), A-C(10)",
-      output: "MST Edges: [A-B(5), B-C(5)], Total Weight = 10",
+      kind: "complex",
+      inputDisplay: "vertices = [A, B, C, D, E, F], edges = [(A,B,1), (B,C,2), (C,A,3), (C,D,4), (D,E,5), (E,F,6), (F,D,7)]",
+      outputDisplay: "MST Weight = 18",
+      title: "Complex Edge Case",
+      input: {
+        nodes: [
+          { id: "A", label: "A", state: "default" },
+          { id: "B", label: "B", state: "default" },
+          { id: "C", label: "C", state: "default" },
+          { id: "D", label: "D", state: "default" },
+          { id: "E", label: "E", state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B", weight: 2 },
+          { from: "B", to: "C", weight: 3 },
+          { from: "A", to: "C", weight: 10 },
+          { from: "C", to: "D", weight: 1 },
+          { from: "D", to: "E", weight: 4 },
+          { from: "C", to: "E", weight: 8 },
+        ],
+      },
+      output: "MST Weight: 10 (Edges: C-D, A-B, B-C, D-E)",
       explanation:
-        "Selecting the two lightest edges connects all 3 vertices into an MST without forming the triangle cycle.",
+        "Edges C-D(1), A-B(2), B-C(3), D-E(4) are accepted in order (4 edges for 5 nodes). Heavy edges A-C(10) and C-E(8) are rejected as cycles.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "vertices = [A, B, C], edges = [(A,B,3)]",
+      outputDisplay: "Disconnected Graph",
+      title: "Failing / Boundary Case",
+      input: {
+        nodes: [
+          { id: "A", label: "A", state: "default" },
+          { id: "B", label: "B", state: "default" },
+          { id: "C", label: "C", state: "default" },
+          { id: "D", label: "D", state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B", weight: 1 },
+          { from: "C", to: "D", weight: 2 },
+        ],
+      },
+      output: "Spanning Forest Weight: 3 (2 Edges)",
+      explanation:
+        "Graph has 2 disconnected components {A,B} and {C,D}. Kruskal builds a Minimum Spanning Forest of 2 edges, unable to form a single V-1 spanning tree.",
     },
   ],
   code: KRUSKAL_CODE,

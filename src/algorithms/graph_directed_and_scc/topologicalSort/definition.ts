@@ -126,10 +126,77 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   ],
   examples: [
     {
-      input: "Nodes [5, 4, 2, 0, 1, 3], Edges: 5->2, 5->0, 4->0, 4->1, 2->3, 3->1",
+      kind: "basic",
+      inputDisplay: "vertices = [5, 4, 2, 3, 1, 0], edges = [(5,2), (5,0), (4,0), (4,1), (2,3), (3,1)]",
+      outputDisplay: "[5, 4, 2, 3, 1, 0]",
+      title: "Basic Example",
+      input: {
+        nodes: [
+          { id: "5", label: "5", x: 100, y: 100, state: "default" },
+          { id: "4", label: "4", x: 100, y: 200, state: "default" },
+          { id: "2", label: "2", x: 250, y: 100, state: "default" },
+          { id: "0", label: "0", x: 400, y: 100, state: "default" },
+          { id: "1", label: "1", x: 400, y: 200, state: "default" },
+          { id: "3", label: "3", x: 250, y: 200, state: "default" },
+        ],
+        edges: [
+          { from: "5", to: "2" },
+          { from: "5", to: "0" },
+          { from: "4", to: "0" },
+          { from: "4", to: "1" },
+          { from: "2", to: "3" },
+          { from: "3", to: "1" },
+        ],
+      },
       output: "[5, 4, 2, 0, 3, 1]",
       explanation:
-        "Nodes 5 and 4 have in-degree 0 and are processed first. Removing their edges reduces in-degrees of downstream nodes, resolving dependencies sequentially.",
+        "Nodes 5 and 4 start with in-degree 0. Processing them unblocks nodes 2 and 0, leading to a complete valid topological order.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "vertices = [A, B, C, D, E], edges = [(A,B), (B,C), (A,C), (C,D), (D,E)]",
+      outputDisplay: "[A, B, C, D, E]",
+      title: "Complex Edge Case",
+      input: {
+        nodes: [
+          { id: "A", label: "A", x: 100, y: 100, state: "default" },
+          { id: "B", label: "B", x: 200, y: 100, state: "default" },
+          { id: "C", label: "C", x: 200, y: 200, state: "default" },
+          { id: "D", label: "D", x: 300, y: 150, state: "default" },
+          { id: "E", label: "E", x: 400, y: 150, state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "A", to: "C" },
+          { from: "B", to: "D" },
+          { from: "C", to: "D" },
+          { from: "D", to: "E" },
+        ],
+      },
+      output: "[A, B, C, D, E]",
+      explanation:
+        "Node A has multiple outgoing paths (B and C) that merge into D before reaching E. Kahn's algorithm processes A first, then B and C, then D and E.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "vertices = [A, B, C], edges = [(A,B), (B,C), (C,A)]",
+      outputDisplay: "Cycle Detected (Not a DAG)",
+      title: "Failing / Boundary Case",
+      input: {
+        nodes: [
+          { id: "A", label: "A", state: "default" },
+          { id: "B", label: "B", state: "default" },
+          { id: "C", label: "C", state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "B", to: "C" },
+          { from: "C", to: "A" },
+        ],
+      },
+      output: "[]",
+      explanation:
+        "The graph contains a directed cycle (A -> B -> C -> A). All in-degrees remain positive (> 0), so no node can be enqueued and cycle detection reports failure.",
     },
   ],
   code: TOPOLOGICAL_SORT_CODE,

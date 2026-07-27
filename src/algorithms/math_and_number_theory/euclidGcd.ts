@@ -282,15 +282,34 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   constraints: ["0 <= a, b <= 10^9"],
   examples: [
     {
-      input: "a = 48, b = 18",
+      kind: "basic",
+      inputDisplay: "a = 48, b = 18",
+      outputDisplay: "6",
+      title: "Basic Example",
+      input: { a: 48, b: 18 },
       output: "6",
       explanation:
         "48 = 2*18 + 12 -> gcd(18, 12). 18 = 1*12 + 6 -> gcd(12, 6). 12 = 2*6 + 0 -> GCD is 6.",
     },
     {
-      input: "a = 101, b = 10",
-      output: "1",
-      explanation: "101 % 10 = 1, 10 % 1 = 0 -> GCD is 1 (coprime integers).",
+      kind: "complex",
+      inputDisplay: "a = 252, b = 105",
+      outputDisplay: "21",
+      title: "Complex Edge Case",
+      input: { a: 252, b: 105 },
+      output: "21",
+      explanation:
+        "Multiple modular reductions (252 % 105 = 42, 105 % 42 = 21, 42 % 21 = 0) yield GCD 21.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "a = 17, b = 0",
+      outputDisplay: "17",
+      title: "Failing / Boundary Case",
+      input: { a: 17, b: 0 },
+      output: "17",
+      explanation:
+        "Boundary input b=0 terminates instantly with GCD(a, 0) = a.",
     },
   ],
   code: PYTHON_EUCLID_GCD_CODE,

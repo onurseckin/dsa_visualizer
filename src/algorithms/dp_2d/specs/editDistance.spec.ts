@@ -52,4 +52,19 @@ describe("editDistance algorithm logic spec", () => {
     const steps = generateEditDistanceSteps({} as EditDistanceInput);
     expect(steps[steps.length - 1].variables.minDistance).toBe(3);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(editDistance.examples).toHaveLength(3);
+    expect(editDistance.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(editDistance.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of editDistance.examples!) {
+      const steps = editDistance.generateSteps(example.input as EditDistanceInput);
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

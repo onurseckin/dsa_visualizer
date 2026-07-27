@@ -285,17 +285,59 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   ],
   examples: [
     {
-      input:
-        "StartNode = A, Nodes = [A, B, C, D, E], Edges = [A->B(4), A->C(2), B->C(1), B->D(5), C->D(8), C->E(10), D->E(2)]",
+      kind: "basic",
+      inputDisplay: "graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = \"A\"",
+      outputDisplay: "{A: 0, B: 3, C: 2, D: 8, E: 10}",
+      title: "Basic Example",
+      input: {
+        startNode: "A",
+        nodes: ["A", "B", "C", "D", "E"],
+        edges: [
+          { from: "A", to: "B", weight: 4 },
+          { from: "A", to: "C", weight: 2 },
+          { from: "B", to: "C", weight: 1 },
+          { from: "B", to: "D", weight: 5 },
+          { from: "C", to: "D", weight: 8 },
+          { from: "C", to: "E", weight: 10 },
+          { from: "D", to: "E", weight: 2 },
+        ],
+      },
       output: "Distances: A:0, B:4, C:2, D:9, E:11",
       explanation:
-        "1. Start A at dist 0. 2. Pop C (dist 2), relax C->E (12) and C->D (10). 3. Pop B (dist 4), relax B->D (9). 4. Pop D (dist 9), relax D->E (11). Final shortest path distances computed.",
+        "Dijkstra pops C (dist 2) and B (dist 4) first, then relaxes edges to find optimal distances: D (9) and E (11).",
     },
     {
-      input: "StartNode = A, disconnected graph with nodes [A, B, C] and edge A->B(5)",
+      kind: "complex",
+      inputDisplay: "graph = {S-A:7, S-C:9, S-F:14, A-B:10, A-C:15, B-D:15, C-D:11, C-F:2, D-E:6, F-E:9}, start = \"S\"",
+      outputDisplay: "{S: 0, A: 7, B: 17, C: 9, D: 20, E: 20, F: 11}",
+      title: "Complex Edge Case",
+      input: {
+        startNode: "A",
+        nodes: ["A", "B", "C", "D"],
+        edges: [
+          { from: "A", to: "B", weight: 2 },
+          { from: "B", to: "C", weight: 3 },
+          { from: "A", to: "C", weight: 10 },
+          { from: "C", to: "D", weight: 1 },
+        ],
+      },
+      output: "Distances: A:0, B:2, C:5, D:6",
+      explanation:
+        "Direct edge A->C has weight 10, but multi-hop path A->B->C has total weight 5 (2+3). Dijkstra correctly picks the cheaper path.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "graph = {A: [], B: []}, start = \"A\"",
+      outputDisplay: "{A: 0, B: ∞}",
+      title: "Failing / Boundary Case",
+      input: {
+        startNode: "A",
+        nodes: ["A", "B", "C"],
+        edges: [{ from: "A", to: "B", weight: 5 }],
+      },
       output: "Distances: A:0, B:5, C:∞",
       explanation:
-        "Node C is unreachable from source node A, maintaining an infinite distance value.",
+        "Node C is in an isolated component with no incoming edges. Its distance remains infinity (∞).",
     },
   ],
   code: DIJKSTRA_CODE,

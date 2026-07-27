@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ALGORITHM_REGISTRY } from "../algorithms/registry";
 import { useStepEngine } from "../engine/stepEngine";
@@ -38,6 +38,18 @@ function WorkspacePage(): React.ReactElement {
   // beforeLoad redirected unknown ids, so the registry lookup always hits.
   const algorithm = ALGORITHM_REGISTRY[algorithmId];
 
+  const [selectedInput, setSelectedInput] = useState<unknown>(
+    () => algorithm.examples?.[0]?.input ?? algorithm.defaultInput,
+  );
+  const [selectedExampleId, setSelectedExampleId] = useState<string>(
+    () => algorithm.examples?.[0]?.id ?? "example-0",
+  );
+
+  useEffect(() => {
+    setSelectedInput(algorithm.examples?.[0]?.input ?? algorithm.defaultInput);
+    setSelectedExampleId(algorithm.examples?.[0]?.id ?? "example-0");
+  }, [algorithmId, algorithm]);
+
   // Keep the persisted "last visited" id in sync for navbar/drawer navigation.
   useEffect(() => {
     setLastAlgorithmId(algorithmId);
@@ -47,22 +59,6 @@ function WorkspacePage(): React.ReactElement {
   // object-shaped inputs (e.g. Two Sum's {nums, target}) keep their curated default.
   const supportsRandomArray =
     algorithm.category === "arrays_and_hashing" && Array.isArray(algorithm.defaultInput);
-
-  const currentInput = useMemo(() => {
-    if (supportsRandomArray) {
-      const arr: number[] = [];
-      for (let i = 0; i < dataSize; i++) {
-        const val = Math.floor(Math.abs(Math.sin(inputSeed * 997 + i * 13)) * 85) + 15;
-        arr.push(val);
-      }
-      return arr;
-    }
-    return algorithm.defaultInput;
-  }, [algorithm, supportsRandomArray, dataSize, inputSeed]);
-
-  const steps = useMemo(() => {
-    return algorithm.generateSteps(currentInput);
-  }, [algorithm, currentInput]);
 
   const {
     currentStepIndex,
@@ -77,7 +73,8 @@ function WorkspacePage(): React.ReactElement {
     reset,
     setSpeed,
   } = useStepEngine({
-    steps,
+    algorithm,
+    input: selectedInput,
     // The step engine only reads this once on mount; the persisted value is
     // the user's last-set playback speed, carried across reloads (R6.5-style
     // preference, but app-wide rather than page-scoped — see SettingsContext).
@@ -87,6 +84,12 @@ function WorkspacePage(): React.ReactElement {
   const handleSpeedChange = (nextSpeed: number) => {
     setSpeed(nextSpeed);
     setPersistedSpeed(nextSpeed);
+  };
+
+  const handleSelectExample = (example: { id?: string; input: unknown; inputValue?: unknown }, index: number) => {
+    const exId = example.id ?? `example-${index}`;
+    setSelectedExampleId(exId);
+    setSelectedInput(example.inputValue ?? example.input);
   };
 
   /* The engine hands back fresh callbacks as the index and play state move, so the
@@ -137,7 +140,30 @@ function WorkspacePage(): React.ReactElement {
   }, []);
 
   const handleGenerateRandom = () => {
-    setInputSeed((prev) => prev + 1);
+    if (supportsRandomArray) {
+      const nextSeed = inputSeed + 1;
+      setInputSeed(nextSeed);
+      const arr: number[] = [];
+      for (let i = 0; i < dataSize; i++) {
+        const val = Math.floor(Math.abs(Math.sin(nextSeed * 997 + i * 13)) * 85) + 15;
+        arr.push(val);
+      }
+      setSelectedExampleId("");
+      setSelectedInput(arr);
+    }
+  };
+
+  const handleDataSizeChange = (newSize: number) => {
+    setDataSize(newSize);
+    if (supportsRandomArray) {
+      const arr: number[] = [];
+      for (let i = 0; i < newSize; i++) {
+        const val = Math.floor(Math.abs(Math.sin(inputSeed * 997 + i * 13)) * 85) + 15;
+        arr.push(val);
+      }
+      setSelectedExampleId("");
+      setSelectedInput(arr);
+    }
   };
 
   return (
@@ -145,6 +171,8 @@ function WorkspacePage(): React.ReactElement {
       algorithm={algorithm}
       currentStep={currentStep}
       panels={panels}
+      selectedExampleId={selectedExampleId}
+      onSelectExample={handleSelectExample}
       onToggleTutorial={() => setPanel("tutorial", false)}
       onToggleAuxiliary={() => setPanel("auxiliary", false)}
       controlProps={{
@@ -158,7 +186,7 @@ function WorkspacePage(): React.ReactElement {
         speed,
         onSpeedChange: handleSpeedChange,
         dataSize,
-        onDataSizeChange: setDataSize,
+        onDataSizeChange: handleDataSizeChange,
         onGenerateRandom: handleGenerateRandom,
         supportsCustomSize: supportsRandomArray,
       }}
