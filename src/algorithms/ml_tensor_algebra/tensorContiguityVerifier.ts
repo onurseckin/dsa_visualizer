@@ -122,6 +122,27 @@ export const generateTensorContiguityVerifierSteps = (
     { dims, is_contiguous: true, expected_stride: 1 },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Verifies C-style row-major tensor contiguity and calculates expected strides.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: Read dims
   addStep(
     5,

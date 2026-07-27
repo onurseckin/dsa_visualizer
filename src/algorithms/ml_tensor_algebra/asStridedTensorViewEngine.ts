@@ -131,6 +131,27 @@ export const generateAsStridedTensorViewEngineSteps = (
     { storage_offset: storageOffset },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Calculates zero-copy strided tensor element access and checks contiguity.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Unpack shape
   addStep(
     5,

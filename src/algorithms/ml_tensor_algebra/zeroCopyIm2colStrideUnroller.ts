@@ -147,6 +147,27 @@ export const generateZeroCopyIm2colStrideUnrollerSteps = (
     { in_rows: inRows, in_cols: inCols, kernel_size: kernelSize, stride },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Unrolls 2D receptive fields into column matrix vectors without copying memory.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: in_rows = len(input_matrix)
   addStep(
     5,

@@ -92,6 +92,27 @@ export const generateCircularDependencyDetectionSteps = (
   );
 
   addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Detects cycles in autograd computation graph using 3-color DFS traversal.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+  addStep(
     5,
     "Build Graph Adjacency List `adj`",
     "Allocating neighbor lists for each computation graph node to prepare for depth-first traversal.",

@@ -94,6 +94,27 @@ export const generateMicrogradReverseGradientsSteps = (
     { topo_order: "[]", visited_count: "0" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Topologically sorts computation DAG and triggers reverse-mode gradient propagati",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init topo list and visited set
   addStep(
     5,

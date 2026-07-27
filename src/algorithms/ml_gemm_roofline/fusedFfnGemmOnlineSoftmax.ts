@@ -151,6 +151,27 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     { rows, cols, kDim },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Fuses linear matrix multiply GEMM with row-wise online max/sum softmax normaliza",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 5: Import math
   addStep(
     5,

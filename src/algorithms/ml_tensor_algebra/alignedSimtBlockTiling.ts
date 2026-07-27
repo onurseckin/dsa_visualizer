@@ -129,6 +129,27 @@ export const generateAlignedSimtBlockTilingSteps = (
     { n, block_size: blockSize, alignment },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Computes SIMD/SIMT 128-bit aligned memory block tiling and padding.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Compute n
   addStep(
     5,

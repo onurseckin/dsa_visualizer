@@ -137,6 +137,27 @@ export const generateDynamic2dBlockPrefixSumSteps = (
     { rows, cols, block_size: blockSize },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Computes 2D prefix sum using block-level reductions and intra-block scans.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Line 5: Read dimensions
   addStep(
     5,

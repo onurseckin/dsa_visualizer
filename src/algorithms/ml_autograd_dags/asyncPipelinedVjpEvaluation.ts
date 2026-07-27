@@ -80,6 +80,27 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     { pipeline_schedule: "1F1B_ASYNC", total_gpus: "5" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Simulates async pipelined Vector-Jacobian Product (VJP) backward evaluation.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Init stage_grads and initial loss VJP gradient
   addStep(
     5,

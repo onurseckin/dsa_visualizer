@@ -76,6 +76,27 @@ export const generateFindZeroIndegreeNodesSteps = (
     { status: "INITIALIZING", root_nodes: "[]" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Identifies source root nodes with in-degree 0 in computation graph.",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Allocate In-Degree Array
   addStep(
     5,

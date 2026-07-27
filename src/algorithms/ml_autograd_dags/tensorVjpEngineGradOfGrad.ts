@@ -80,6 +80,27 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     { status: "INITIALIZING", mode: "DOUBLE_BACKWARD" },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Evaluates Vector-Jacobian Product v^T @ J for higher-order double-backward gradi",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Dimensions M and N
   const m = arrayData.length;
   const n = arrayData.length;
