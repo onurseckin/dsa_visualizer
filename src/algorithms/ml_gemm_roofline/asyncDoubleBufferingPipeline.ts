@@ -145,6 +145,30 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
     getMatrixSnapshot(bufA, bufB, emptyCompute, emptyHbm, 0, "init"),
   );
 
+  addStep(
+    2,
+    "Function docstring \u2014 describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+    getMatrixSnapshot(bufA, bufB, emptyCompute, emptyHbm, 0, "init"),
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Simulates async double-buffering DMA transfers overlapping HBM loads with SRAM computation across pipeline stages.",
+    {},
+    getMatrixSnapshot(bufA, bufB, emptyCompute, emptyHbm, 0, "init"),
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+    getMatrixSnapshot(bufA, bufB, emptyCompute, emptyHbm, 0, "init"),
+  );
+
   // Step 5: Initialize pipeline states
   addStep(
     5,
