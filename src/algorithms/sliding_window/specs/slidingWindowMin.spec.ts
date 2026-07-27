@@ -19,7 +19,7 @@ describe("slidingWindowMin algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(22);
+    expect(lastStep.codeLine).toBe(19);
     expect(lastStep.variables.result).toBe("2, 2, 5, 5, 3, 3");
     expect(lastStep.auxiliaryState.visited).toEqual([2, 2, 5, 5, 3, 3]);
   });

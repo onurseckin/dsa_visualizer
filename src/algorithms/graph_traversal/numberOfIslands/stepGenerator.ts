@@ -79,7 +79,7 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 14,
+          codeLine: 25,
           explanation: {
             what: `Found island #${count} at (${r}, ${c})`,
             why: `This land cell isn't part of any island we've flooded yet, so we count a new island and launch a BFS to claim every cell connected to it — that way none of them can be counted again.`,
@@ -100,7 +100,7 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 19,
+            codeLine: 29,
             explanation: {
               what: `Explore cell (${cr}, ${cc})`,
               why: `We take the next cell of island #${count} off the queue and look at its four orthogonal neighbors, pushing the island's known boundary outward.`,
@@ -139,7 +139,7 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
               steps.push({
                 stepIndex: stepIndex++,
-                codeLine: 24,
+                codeLine: 31,
                 explanation: {
                   what: `Add neighbor (${nr}, ${nc})`,
                   why: `It's unvisited land touching the current cell, so it belongs to island #${count} — we mark it visited right away and queue it so the flood keeps spreading.`,
@@ -161,7 +161,7 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 27,
+    codeLine: 34,
     explanation: {
       what: `Scan complete — ${count} island(s) found`,
       why: `Every cell has now been checked, either by the sweep or by a flood. Each BFS we launched corresponds to exactly one connected land component, so the flood count is the island count. Touching each cell a constant number of times is what keeps this O(M * N).`,

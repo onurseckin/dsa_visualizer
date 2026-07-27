@@ -1,28 +1,38 @@
-export const KRUSKAL_CODE = `class DSU:
-    def __init__(self, nodes):
-        self.parent = {n['id']: n['id'] for n in nodes}
+export const KRUSKAL_CODE = `class UnionFind:
+    def __init__(self, size):
+        self.root = [i for i in range(size)]
+        self.rank = [1] * size
 
-    def find(self, i):
-        if self.parent[i] == i:
-            return i
-        self.parent[i] = self.find(self.parent[i])
-        return self.parent[i]
+    def find(self, x):
+        while x != self.root[x]:
+            x = self.root[x]
+        return x
 
-    def union(self, i, j):
-        root_i = self.find(i)
-        root_j = self.find(j)
-        if root_i != root_j:
-            self.parent[root_i] = root_j
-            return True
-        return False
+    def union(self, x, y):
+        rootX = self.find(x)
+        rootY = self.find(y)
+        if rootX != rootY:
+            if self.rank[rootX] > self.rank[rootY]:
+                self.root[rootY] = rootX
+            elif self.rank[rootX] < self.rank[rootY]:
+                self.root[rootX] = rootY
+            else:
+                self.root[rootY] = rootX
+                self.rank[rootX] += 1
+
+    def connected(self, x, y):
+        return self.find(x) == self.find(y)
 
 def kruskal_mst(nodes, edges):
-    dsu = DSU(nodes)
+    node_map = {n['id']: i for i, n in enumerate(nodes)}
+    uf = UnionFind(len(nodes))
     sorted_edges = sorted(edges, key=lambda e: e.get('weight', 1))
     mst = []
 
     for edge in sorted_edges:
-        if dsu.union(edge['from'], edge['to']):
+        u, v = node_map[edge['from']], node_map[edge['to']]
+        if not uf.connected(u, v):
+            uf.union(u, v)
             mst.append(edge)
 
     return mst`;

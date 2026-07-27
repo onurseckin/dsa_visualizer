@@ -106,7 +106,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      6,
+      5,
       `Visit node '${u}'`,
       `We mark '${u}' as visited and explore its unvisited out-neighbors first — in Pass 1 a vertex only finishes once everything reachable from it is done.`,
       u,
@@ -138,7 +138,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      10,
+      9,
       `Finish '${u}' and push it`,
       `Everything reachable from '${u}' has been explored, so '${u}' is done and goes on the finish stack. The later a vertex finishes, the higher it sits.`,
       u,
@@ -154,7 +154,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }
 
   addStep(
-    14,
+    13,
     "Complete Pass 1",
     `The finish order came out as [${[...finishStack].reverse().join(", ")}], top first. The vertex on top finished last, which means its component can reach everything below it — a fact Pass 2 will exploit.`,
     undefined,
@@ -170,7 +170,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }));
 
   addStep(
-    16,
+    15,
     "Reverse every edge to build G^T",
     "We flip all the edges. Each SCC survives intact — a cycle reversed is still a cycle — but reachability between components inverts, and that is what will keep the next DFS trapped inside a single component.",
     undefined,
@@ -179,7 +179,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   );
 
   addStep(
-    26,
+    24,
     "Begin Pass 2 on G^T",
     "Now we pop vertices in reverse finish order and DFS on the reversed graph. Starting from the latest finisher, each DFS can only reach vertices in its own component — the reversed edges block every escape route.",
     undefined,
@@ -195,7 +195,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      20,
+      19,
       `Add '${u}' to SCC #${sccs.length + 1}`,
       `We reached '${u}' along reversed edges, which means '${u}' can reach this component's root in the original graph — and the finish order guarantees the reverse direction too, so they belong together.`,
       u,
@@ -218,7 +218,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     const u = finishStack.pop()!;
 
     addStep(
-      27,
+      25,
       `Pop '${u}' from the stack`,
       `We take '${u}' off the top of the finish stack. If it hasn't been claimed by a component yet, it anchors a brand-new SCC; if it has, we simply move on.`,
       u,
@@ -240,7 +240,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
       });
 
       addStep(
-        31,
+        29,
         `Complete SCC #${sccs.length}`,
         `The DFS ran out of reversed edges, so this component is sealed: {${component.join(", ")}}. Every vertex inside it can reach every other one in both directions.`,
         undefined,
@@ -251,7 +251,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }
 
   addStep(
-    32,
+    30,
     `Finish with ${sccs.length} component(s)`,
     `Every vertex now belongs to exactly one strongly connected component. Two linear DFS sweeps plus one edge reversal did all the work, which is why the whole algorithm runs in O(V + E).`,
     undefined,

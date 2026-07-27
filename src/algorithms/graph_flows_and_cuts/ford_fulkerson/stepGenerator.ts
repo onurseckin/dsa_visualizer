@@ -175,7 +175,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     if (!pathResult || pathResult.bottleneck === 0) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 30,
+        codeLine: 26,
         explanation: {
           what: `Stop — no augmenting path remains`,
           why: `We searched the residual graph and found no route from '${source}' to '${sink}' with spare capacity left. The max-flow min-cut theorem tells us that means our total of ${currentMaxFlow} cannot be improved — the saturated edges form a minimum cut sealing off the sink.`,
@@ -205,7 +205,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 25,
+      codeLine: 24,
       explanation: {
         what: `Find augmenting path ${pathNodes.join(" → ")}`,
         why: `Every edge along this route still has spare capacity, and the tightest one allows only ${bottleneck} more units — that bottleneck is exactly how much we can push in one go.`,
@@ -250,7 +250,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 28,
+      codeLine: 27,
       explanation: {
         what: `Push ${bottleneck} units along the path`,
         why: `We add ${bottleneck} to the flow on each forward edge and record the same amount as reverse capacity, so a later path can undo part of this routing if a better one exists. Total flow is now ${currentMaxFlow}.`,
