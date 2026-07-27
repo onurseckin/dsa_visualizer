@@ -1,559 +1,25 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCanvasBox, boxViewBox, viewBoxAttr } from "../primitives/vizGeometry";
+import {
+  ML_INFRA_FAMILIES,
+  ML_INFRA_NODES,
+  ML_INFRA_NODE_MAP,
+  MLInfraNode,
+  mlInfraFamilyColor,
+  mlInfraFamilyFill,
+  mlInfraFamilyFillHover,
+} from "./data/mlInfraGraphData";
 
-export interface QuestionItem {
-  id: string;
-  title: string;
-  algorithmId: string;
-  difficulty: "Easy" | "Medium" | "Hard";
-  type: "Foundational Math & DSA" | "ML Systems Implementation";
-  description: string;
-}
-
-export interface TopicClusterNode {
-  id: string;
-  title: string;
-  shortLabel: string;
-  description: string;
-  tier: string;
-  tierNum: number;
-  prerequisites: string[];
-  x: number;
-  y: number;
-  questions: QuestionItem[];
-}
-
-export function getTopicDifficulty(topic: TopicClusterNode): "Easy" | "Medium" | "Hard" {
-  const diffs = new Set(topic.questions.map((q) => q.difficulty));
-  if (diffs.has("Hard")) return "Hard";
-  if (diffs.has("Medium")) return "Medium";
-  return "Easy";
-}
-
-export const TOPIC_CLUSTERS: TopicClusterNode[] = [
-  {
-    id: "ml_tensor_algebra",
-    title: "Tensor Algebra & Memory Layout",
-    shortLabel: "Tensor Algebra & Layout",
-    description:
-      "Multi-dimensional tensor indexing, strided memory layouts, NCHW/NHWC offsets, and contiguity validation.",
-    tier: "Tier 1: Foundations",
-    tierNum: 1,
-    prerequisites: [],
-    x: 550,
-    y: 1200,
-    questions: [
-      {
-        id: "2d-array-matrix-traversal",
-        title: "2D Matrix Memory Traversal",
-        algorithmId: "2d-array-matrix-traversal",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Sequential row-major vs column-major memory access patterns and cache line locality.",
-      },
-      {
-        id: "strided-index-arithmetic",
-        title: "Strided Index Arithmetic",
-        algorithmId: "strided-index-arithmetic",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Mapping N-dimensional tensor coordinates to 1D flat buffer offsets using stride dot products.",
-      },
-      {
-        id: "tensor-stride-offset",
-        title: "Tensor Stride & Offset Layout",
-        algorithmId: "tensor-stride-offset",
-        difficulty: "Easy",
-        type: "ML Systems Implementation",
-        description:
-          "Multi-dimensional tensor memory stride calculation, 1D flat buffer layout, and NCHW/NHWC offsets.",
-      },
-      {
-        id: "tensor-contiguity-reshape",
-        title: "Tensor Contiguity & Zero-Copy Reshape",
-        algorithmId: "tensor-contiguity-reshape",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Non-contiguous view stride validation, zero-copy transpose vs eager contiguous memory clone.",
-      },
-    ],
-  },
-  {
-    id: "ml_tokenization",
-    title: "Tokenization & Subword Tries",
-    shortLabel: "Tokenization & Tries",
-    description:
-      "Subword text tokenization, Byte-Pair Encoding (BPE), and Viterbi dynamic programming lattice decoding.",
-    tier: "Tier 1: Foundations",
-    tierNum: 1,
-    prerequisites: [],
-    x: 1050,
-    y: 1200,
-    questions: [
-      {
-        id: "trie-prefix-tree-search",
-        title: "Trie Prefix Tree Insert & Search",
-        algorithmId: "trie-prefix-tree-search",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Prefix trie structure for fast dictionary lookup and character transition routing.",
-      },
-      {
-        id: "bpe-tokenizer",
-        title: "Byte-Pair Encoding (BPE)",
-        algorithmId: "bpe-tokenizer",
-        difficulty: "Easy",
-        type: "ML Systems Implementation",
-        description:
-          "Greedy subword tokenization, adjacent symbol frequency table counting, and iterative pair merging.",
-      },
-      {
-        id: "viterbi-subword-segmenter",
-        title: "Viterbi Subword Segmenter",
-        algorithmId: "viterbi-subword-segmenter",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Unigram language model tokenization via Viterbi dynamic programming shortest-path lattice decoding.",
-      },
-    ],
-  },
-  {
-    id: "ml_gemm_roofline",
-    title: "GEMM & Roofline Model",
-    shortLabel: "GEMM & Roofline",
-    description:
-      "High-performance matrix multiplication tiling, SRAM shared memory access, and arithmetic intensity classification.",
-    tier: "Tier 2: Core Math",
-    tierNum: 2,
-    prerequisites: ["ml_tensor_algebra"],
-    x: 400,
-    y: 990,
-    questions: [
-      {
-        id: "matrix-multiplication-naive",
-        title: "Naive Matrix Multiplication O(N^3)",
-        algorithmId: "matrix-multiplication-naive",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Standard triple-loop matrix multiplication baseline and memory access bottlenecks.",
-      },
-      {
-        id: "sram-gemm-tiling",
-        title: "SRAM GEMM Tiling",
-        algorithmId: "sram-gemm-tiling",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Block matrix multiplication loading sub-tiles into high-speed GPU SRAM / shared memory.",
-      },
-      {
-        id: "roofline-intensity-classifier",
-        title: "Roofline Arithmetic Intensity",
-        algorithmId: "roofline-intensity-classifier",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Classification of kernels as memory-bound or compute-bound based on FLOPs per byte transferred.",
-      },
-    ],
-  },
-  {
-    id: "ml_autograd_dags",
-    title: "Autograd & Computational DAGs",
-    shortLabel: "Autograd & DAGs",
-    description:
-      "Reverse-mode automatic differentiation, Vector-Jacobian Products (VJP), and memory activation checkpointing.",
-    tier: "Tier 2: Core Math",
-    tierNum: 2,
-    prerequisites: ["ml_tensor_algebra"],
-    x: 800,
-    y: 990,
-    questions: [
-      {
-        id: "topological-sort-dag",
-        title: "Topological Sort for DAG Execution",
-        algorithmId: "topological-sort-dag",
-        difficulty: "Medium",
-        type: "Foundational Math & DSA",
-        description: "Ordering computational graph nodes based on dependency edge constraints.",
-      },
-      {
-        id: "autograd-vjp-dag",
-        title: "Autograd VJP DAG",
-        algorithmId: "autograd-vjp-dag",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Reverse-mode automatic differentiation computing Vector-Jacobian Products via topological DAG traversal.",
-      },
-      {
-        id: "activation-checkpointing",
-        title: "Activation Checkpointing",
-        algorithmId: "activation-checkpointing",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Trading compute for memory by saving a subset of activations and recomputing during backward pass.",
-      },
-    ],
-  },
-  {
-    id: "ml_convolutions",
-    title: "Convolutional Tiling & im2col",
-    shortLabel: "Convolutions & im2col",
-    description:
-      "Spatial 2D filter convolutions lowered into matrix multiplication via im2col memory unrolling.",
-    tier: "Tier 2: Core Math",
-    tierNum: 2,
-    prerequisites: ["ml_tensor_algebra"],
-    x: 1200,
-    y: 990,
-    questions: [
-      {
-        id: "conv2d-sliding-window",
-        title: "2D Sliding Window Stride Convolution",
-        algorithmId: "conv2d-sliding-window",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "Direct sliding window cross-correlation computation over 2D input grids.",
-      },
-      {
-        id: "im2col-conv-tiling",
-        title: "im2col Conv Tiling",
-        algorithmId: "im2col-conv-tiling",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Unrolling 2D image receptive fields into matrix columns for high-throughput GEMM execution.",
-      },
-    ],
-  },
-  {
-    id: "ml_precision_quantization",
-    title: "Precision & Quantization",
-    shortLabel: "Precision & Quantization",
-    description:
-      "Numeric representation bounds, uniform scale/zero-point INT8 quantization, and SmoothQuant outlier scaling.",
-    tier: "Tier 3: Intermediate Systems",
-    tierNum: 3,
-    prerequisites: ["ml_tensor_algebra"],
-    x: 320,
-    y: 780,
-    questions: [
-      {
-        id: "floating-point-overflow",
-        title: "FP16 / FP32 Numeric Underflow & Overflow",
-        algorithmId: "floating-point-overflow",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description:
-          "IEEE-754 exponent ranges, denormal numbers, and precision loss in low-bit representations.",
-      },
-      {
-        id: "affine-quantization-sq8",
-        title: "Affine INT8 Quantization",
-        algorithmId: "affine-quantization-sq8",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Uniform scale and zero-point mapping between FP32 continuous values and INT8 quantized integers.",
-      },
-      {
-        id: "smoothquant-scaling",
-        title: "SmoothQuant Outlier Scaling",
-        algorithmId: "smoothquant-scaling",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Mathematical migration of activation channel magnitude outliers into static weight matrices.",
-      },
-    ],
-  },
-  {
-    id: "ml_recurrent_gates",
-    title: "Recurrent Gates & Sequences",
-    shortLabel: "Recurrent Gates",
-    description:
-      "Recurrent sequence unrolling, Backpropagation Through Time (BPTT), and LSTM Constant Error Carousels.",
-    tier: "Tier 3: Intermediate Systems",
-    tierNum: 3,
-    prerequisites: ["ml_autograd_dags"],
-    x: 640,
-    y: 780,
-    questions: [
-      {
-        id: "recurrent-unrolling-bptt",
-        title: "Recurrent Sequence Unrolling & BPTT",
-        algorithmId: "recurrent-unrolling-bptt",
-        difficulty: "Medium",
-        type: "Foundational Math & DSA",
-        description:
-          "Unrolling recurrent network transitions over time steps for gradient propagation.",
-      },
-      {
-        id: "lstm-constant-error-carousel",
-        title: "LSTM Error Carousel",
-        algorithmId: "lstm-constant-error-carousel",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Gated cell state updates maintaining constant error carousel to prevent vanishing gradients.",
-      },
-    ],
-  },
-  {
-    id: "ml_vector_search",
-    title: "Vector Search & Spatial Geometry",
-    shortLabel: "Vector Search",
-    description:
-      "Approximate Nearest Neighbor (ANN) search via Locality-Sensitive Hashing, IVF-PQ, and HNSW skip-graphs.",
-    tier: "Tier 3: Intermediate Systems",
-    tierNum: 3,
-    prerequisites: ["ml_tensor_algebra"],
-    x: 960,
-    y: 780,
-    questions: [
-      {
-        id: "distance-metrics-knn",
-        title: "Euclidean & Cosine Distance Metrics",
-        algorithmId: "distance-metrics-knn",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description: "Exact pairwise vector norm distances and cosine similarity metrics.",
-      },
-      {
-        id: "lsh-vector-hashing",
-        title: "LSH Vector Hashing",
-        algorithmId: "lsh-vector-hashing",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Random hyperplane projection hashing for sub-linear approximate cosine similarity search.",
-      },
-      {
-        id: "ivf-pq-adc-search",
-        title: "IVF-PQ ADC Search",
-        algorithmId: "ivf-pq-adc-search",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Inverted File Product Quantization with Asymmetric Distance Computation lookup tables.",
-      },
-      {
-        id: "hnsw-vector-search",
-        title: "HNSW Vector Search",
-        algorithmId: "hnsw-vector-search",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Multi-layer skip-list graph traversal for fast high-dimensional k-NN vector search.",
-      },
-    ],
-  },
-  {
-    id: "ml_tree_ensembles",
-    title: "Tree Ensembles & Gradient Boosting",
-    shortLabel: "Tree Ensembles",
-    description:
-      "Decision tree impurity splits, Gini index computation, and XGBoost 1st/2nd order gradient histogram splitting.",
-    tier: "Tier 3: Intermediate Systems",
-    tierNum: 3,
-    prerequisites: ["ml_autograd_dags"],
-    x: 1280,
-    y: 780,
-    questions: [
-      {
-        id: "decision-tree-gini-split",
-        title: "Decision Tree Impurity & Split",
-        algorithmId: "decision-tree-gini-split",
-        difficulty: "Easy",
-        type: "Foundational Math & DSA",
-        description: "Gini impurity reduction calculation for optimal feature threshold partitioning.",
-      },
-      {
-        id: "xgboost-gradient-split",
-        title: "XGBoost Gradient Split",
-        algorithmId: "xgboost-gradient-split",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Exact greedy and histogram-based split finding utilizing 1st and 2nd order gradient statistics.",
-      },
-    ],
-  },
-  {
-    id: "ml_attention_geometry",
-    title: "Attention Geometry & RoPE",
-    shortLabel: "Attention & RoPE",
-    description:
-      "Scaled Dot-Product Attention, Rotary Position Embeddings (RoPE), and Grouped-Query Attention (GQA).",
-    tier: "Tier 4: Advanced Kernels",
-    tierNum: 4,
-    prerequisites: ["ml_gemm_roofline"],
-    x: 550,
-    y: 570,
-    questions: [
-      {
-        id: "scaled-dot-attention-mask",
-        title: "Scaled Dot-Product Attention",
-        algorithmId: "scaled-dot-attention-mask",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Query-Key-Value matrix attention with scale factor and causal lower-triangular masking.",
-      },
-      {
-        id: "rope-rotary-position",
-        title: "RoPE Rotary Position Embedding",
-        algorithmId: "rope-rotary-position",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Rotational 2D complex plane matrix transformation encoding relative positional distance.",
-      },
-      {
-        id: "grouped-query-attention",
-        title: "Grouped-Query Attention (GQA)",
-        algorithmId: "grouped-query-attention",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Partitioning Q heads into G groups sharing KV heads to compress KV-cache memory bandwidth.",
-      },
-    ],
-  },
-  {
-    id: "ml_hardware_kernels",
-    title: "Hardware Kernels & Fusion",
-    shortLabel: "Hardware Kernels",
-    description:
-      "Fused softmax with Log-Sum-Exp tracking, Triton JIT block-wise compilation, and FlashAttention IO tiling.",
-    tier: "Tier 4: Advanced Kernels",
-    tierNum: 4,
-    prerequisites: ["ml_gemm_roofline"],
-    x: 1050,
-    y: 570,
-    questions: [
-      {
-        id: "fused-softmax-lse",
-        title: "Fused Softmax & LSE",
-        algorithmId: "fused-softmax-lse",
-        difficulty: "Medium",
-        type: "ML Systems Implementation",
-        description:
-          "Online single-pass softmax with Log-Sum-Exp tracking to eliminate HBM intermediate writes.",
-      },
-      {
-        id: "triton-kernel-fusion",
-        title: "Triton JIT Kernel Fusion",
-        algorithmId: "triton-kernel-fusion",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Block-wise Python JIT compiler emitting fused GPU CUDA/PTX kernels without manual C++.",
-      },
-      {
-        id: "flash-attention-tiling",
-        title: "FlashAttention IO Tiling",
-        algorithmId: "flash-attention-tiling",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Memory IO-aware exact attention loading Q, K, V blocks into SRAM with online softmax rescaling.",
-      },
-    ],
-  },
-  {
-    id: "ml_distributed_systems",
-    title: "Distributed Systems & Parallelism",
-    shortLabel: "Distributed Systems",
-    description:
-      "Ring-AllReduce topology, Megatron Tensor/Sequence Parallelism, and DeepSpeed ZeRO 1-3 memory sharding.",
-    tier: "Tier 5: Frontier Parallelism",
-    tierNum: 5,
-    prerequisites: ["ml_autograd_dags", "ml_hardware_kernels"],
-    x: 800,
-    y: 360,
-    questions: [
-      {
-        id: "ring-allreduce-partition",
-        title: "Ring-AllReduce Partition",
-        algorithmId: "ring-allreduce-partition",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Bandwidth-optimal ring topology Scatter-Reduce and All-Gather distributed gradient synchronization.",
-      },
-      {
-        id: "megatron-tp-sp-split",
-        title: "Megatron TP/SP Parallelism",
-        algorithmId: "megatron-tp-sp-split",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Column/Row parallel GEMM splitting with Sequence Parallel All-Gather and Reduce-Scatter.",
-      },
-      {
-        id: "deepspeed-zero-sharding",
-        title: "ZeRO Memory Sharding",
-        algorithmId: "deepspeed-zero-sharding",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "ZeRO Stage 1-3 memory sharding of optimizer states, gradients, and model parameters across GPUs.",
-      },
-    ],
-  },
-  {
-    id: "ml_llm_serving",
-    title: "LLM Serving & Continuous Batching",
-    shortLabel: "LLM Serving",
-    description:
-      "PagedAttention block table virtual memory allocation, iteration-level continuous batching, and speculative decoding.",
-    tier: "Tier 6: Frontier LLM Serving",
-    tierNum: 6,
-    prerequisites: ["ml_attention_geometry", "ml_hardware_kernels"],
-    x: 800,
-    y: 140,
-    questions: [
-      {
-        id: "paged-attention-block-table",
-        title: "PagedAttention Block Table",
-        algorithmId: "paged-attention-block-table",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Virtual memory block allocation mapping logical sequence KV-tokens to non-contiguous physical GPU pages.",
-      },
-      {
-        id: "continuous-batching-scheduler",
-        title: "Continuous Batching Scheduler",
-        algorithmId: "continuous-batching-scheduler",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Iteration-level prefill & decode scheduling dynamically inserting new requests without waiting for sequence completion.",
-      },
-      {
-        id: "speculative-decoding-verifier",
-        title: "Speculative Decoding Verifier",
-        algorithmId: "speculative-decoding-verifier",
-        difficulty: "Hard",
-        type: "ML Systems Implementation",
-        description:
-          "Draft model speculative token generation verified in a single parallel target model forward pass.",
-      },
-    ],
-  },
-];
+export {
+  ML_INFRA_FAMILIES,
+  ML_INFRA_NODES,
+  ML_INFRA_NODE_MAP,
+  mlInfraFamilyColor,
+  mlInfraFamilyFill,
+  mlInfraFamilyFillHover,
+  mlInfraFamilyLabel,
+} from "./data/mlInfraGraphData";
+export type { MLInfraNode, MLInfraFamily, MLInfraFamilyId, MLInfraQuestionItem } from "./data/mlInfraGraphData";
 
 export interface MLInfraKnowledgeGraphProps {
   onSelectCategoryFolder?: (folder: string) => void;
@@ -573,24 +39,17 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   }
 
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
 
-  const { ref, box } = useCanvasBox({ width: 1600, height: 1400 });
-  const viewBox = boxViewBox(box);
-  const viewBoxString = viewBoxAttr(viewBox);
+  const activeDrawerTopic = useMemo(() => {
+    return drawerTopicId ? ML_INFRA_NODE_MAP.get(drawerTopicId) || null : null;
+  }, [drawerTopicId]);
 
-  const topicMap = useMemo(() => {
-    const map = new Map<string, TopicClusterNode>();
-    TOPIC_CLUSTERS.forEach((tc) => map.set(tc.id, tc));
-    return map;
-  }, []);
-
-  const activeDrawerTopic = drawerTopicId ? topicMap.get(drawerTopicId) || null : null;
-
-  const handleSelectTopicNode = (topic: TopicClusterNode) => {
-    setDrawerTopicId(topic.id);
+  const handleSelectNode = (node: MLInfraNode) => {
+    setDrawerTopicId(node.id);
     if (onSelectCategoryFolder) {
-      onSelectCategoryFolder(topic.id);
+      onSelectCategoryFolder(node.id);
     }
   };
 
@@ -604,23 +63,43 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
     }
   };
 
-  const nodeWidth = 250;
-  const nodeHeight = 64;
-  const halfW = nodeWidth / 2;
-  const halfH = nodeHeight / 2;
+  const hoveredNode = hoveredNodeId ? ML_INFRA_NODE_MAP.get(hoveredNodeId) : undefined;
 
   return (
     <div
       role="region"
       aria-label="ML Infrastructure Knowledge Tree"
-      className="h-[calc(100vh-3.5rem)] w-full overflow-hidden flex flex-col relative bg-[var(--bg-page)]"
+      className="w-full flex flex-col items-center justify-center mx-auto gap-4 relative"
     >
+      {/* Legend Header */}
+      <ul
+        aria-label="Topic family colors"
+        className="bg-[#141418]/90 backdrop-blur-xl border border-white/15 px-6 py-3 rounded-full shadow-xl mb-6 flex flex-wrap items-center justify-center gap-5 list-none mx-auto relative z-10"
+      >
+        {ML_INFRA_FAMILIES.map((family) => (
+          <li
+            key={family.id}
+            className="text-xs font-semibold text-neutral-200 tracking-wide inline-flex items-center gap-2"
+          >
+            <span
+              aria-hidden="true"
+              className="w-3.5 h-3.5 rounded-full shadow-[0_0_8px_currentColor] opacity-90"
+              style={{
+                background: mlInfraFamilyColor(family.id),
+                color: mlInfraFamilyColor(family.id),
+              }}
+            />
+            {family.label}
+          </li>
+        ))}
+      </ul>
+
       {/* Slide-Over Topic Sidebar Drawer */}
       {activeDrawerTopic && (
         <div
           role="dialog"
           aria-label={`${activeDrawerTopic.title} Drawer`}
-          className="absolute right-0 top-0 bottom-0 z-30 w-full max-w-md bg-[var(--bg-surface)] border-l border-[var(--border-default)] p-6 shadow-2xl overflow-y-auto flex flex-col gap-5"
+          className="absolute right-0 top-0 bottom-0 z-30 w-full max-w-md bg-[var(--bg-surface)] border-l border-[var(--border-default)] p-6 shadow-2xl overflow-y-auto flex flex-col gap-5 rounded-r-3xl"
         >
           {/* Drawer Header */}
           <div className="flex items-start justify-between gap-3 border-b border-[var(--border-default)] pb-4">
@@ -647,13 +126,13 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
             <div className="text-xs text-[var(--text-muted)] flex flex-wrap items-center gap-1.5">
               <span className="font-semibold text-[var(--text-secondary)]">Prerequisites:</span>
               {activeDrawerTopic.prerequisites.map((pId) => {
-                const pTopic = topicMap.get(pId);
+                const pTopic = ML_INFRA_NODE_MAP.get(pId);
                 return (
                   <span
                     key={pId}
                     className="px-2 py-0.5 rounded text-[11px] font-mono bg-[var(--bg-inset)] text-[var(--accent)] border border-[var(--border-default)]"
                   >
-                    {pTopic?.shortLabel || pId}
+                    {pTopic?.title || pId}
                   </span>
                 );
               })}
@@ -718,136 +197,183 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
         </div>
       )}
 
-      {/* SVG Canvas following Canvas Law */}
-      <div ref={ref} className="w-full h-full flex-1 relative overflow-hidden select-none">
+      {/* Main Card Container */}
+      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl relative overflow-hidden mx-auto">
         <svg
           width="100%"
           height="100%"
-          viewBox={viewBoxString}
+          viewBox="-20 -60 1380 1060"
           preserveAspectRatio="xMidYMid meet"
-          className="w-full h-full block relative z-0"
+          className="w-full h-auto max-w-full mx-auto block relative z-0 drop-shadow-sm"
         >
           <defs>
+            {ML_INFRA_FAMILIES.map((family) => (
+              <marker
+                key={family.id}
+                id={`ml-arrow-${family.id}`}
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path
+                  d="M 0 1.5 L 8 5 L 0 8.5 z"
+                  fill={mlInfraFamilyColor(family.id)}
+                  opacity="0.85"
+                />
+              </marker>
+            ))}
             <marker
-              id="topic-arrow-dim"
+              id="ml-arrow-active"
               viewBox="0 0 10 10"
-              refX="8"
+              refX="6"
               refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-default)" />
-            </marker>
-            <marker
-              id="topic-arrow-active"
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto"
-            >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--accent)" />
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
             </marker>
           </defs>
 
-          {/* Orthogonal 4-Directional Connector Lines */}
+          {/* Connectors Group */}
           <g className="connectors">
-            {TOPIC_CLUSTERS.map((topic) => {
-              return topic.prerequisites.map((pId) => {
-                const parent = topicMap.get(pId);
+            {ML_INFRA_NODES.map((node) =>
+              node.prerequisites.map((prereqId) => {
+                const parent = ML_INFRA_NODE_MAP.get(prereqId);
                 if (!parent) return null;
 
                 const isConnectedToDrawer =
-                  drawerTopicId === topic.id || drawerTopicId === parent.id;
-                const isHovered = hoveredNodeId === topic.id || hoveredNodeId === parent.id;
-                const isHighlight = isConnectedToDrawer || isHovered;
+                  drawerTopicId === node.id || drawerTopicId === parent.id;
+                const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
+                const isHighlighted = isConnectedToDrawer || isHovered;
+
+                const strokeColor = isHighlighted
+                  ? "var(--accent)"
+                  : mlInfraFamilyColor(node.family);
+                const strokeWidth = isHighlighted ? 2.5 : 1.75;
+                const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
                 const startX = parent.x;
-                const startY = parent.y - halfH;
-                const endX = topic.x;
-                const endY = topic.y + halfH;
+                const startY = parent.y + 32;
+                const endX = node.x;
+                const endY = node.y - 32;
                 const midY = (startY + endY) / 2;
 
                 const pathD = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
 
                 return (
                   <path
-                    key={`${pId}->${topic.id}`}
+                    key={`${prereqId}->${node.id}`}
                     d={pathD}
                     fill="none"
-                    stroke={isHighlight ? "var(--accent)" : "var(--border-default)"}
-                    strokeWidth={isHighlight ? 2.5 : 1.5}
-                    markerEnd={isHighlight ? "url(#topic-arrow-active)" : "url(#topic-arrow-dim)"}
-                    className="transition-all duration-300"
-                    opacity={isHighlight ? 1 : 0.6}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={isHighlighted ? "none" : "5 5"}
+                    markerEnd={
+                      isHighlighted
+                        ? "url(#ml-arrow-active)"
+                        : `url(#ml-arrow-${node.family})`
+                    }
+                    style={{
+                      opacity: strokeOpacity,
+                      transition: "all var(--transition-normal)",
+                    }}
                   />
                 );
-              });
-            })}
+              }),
+            )}
           </g>
 
-          {/* 13 Topic Cluster Nodes */}
+          {/* Nodes Group */}
           <g className="nodes">
-            {TOPIC_CLUSTERS.map((topic) => {
-              const isHovered = hoveredNodeId === topic.id;
-              const isSelectedNode = drawerTopicId === topic.id;
+            {ML_INFRA_NODES.map((node) => {
+              const isHovered = hoveredNodeId === node.id;
+              const isFocused = focusedNodeId === node.id;
+              const activeFocusOrHover = isHovered || isFocused;
+              const isRelated =
+                hoveredNodeId !== null &&
+                (node.prerequisites.includes(hoveredNodeId) ||
+                  (hoveredNode?.prerequisites.includes(node.id) ?? false));
+
+              const handleKeyDown = (e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSelectNode(node);
+                }
+              };
 
               return (
                 <g
-                  key={topic.id}
+                  key={node.id}
                   role="button"
                   tabIndex={0}
-                  aria-label={`${topic.title}. ${topic.questions.length} problems. Click to view questions drawer.`}
-                  transform={`translate(${topic.x - halfW}, ${topic.y - halfH})`}
-                  onClick={() => handleSelectTopicNode(topic)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSelectTopicNode(topic);
-                    }
-                  }}
-                  onMouseEnter={() => setHoveredNodeId(topic.id)}
+                  aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                  transform={`translate(${node.x - 95}, ${node.y - 32})`}
+                  onClick={() => handleSelectNode(node)}
+                  onKeyDown={handleKeyDown}
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
-                  onFocus={() => setHoveredNodeId(topic.id)}
-                  onBlur={() => setHoveredNodeId(null)}
+                  onFocus={() => {
+                    setFocusedNodeId(node.id);
+                    setHoveredNodeId(node.id);
+                  }}
+                  onBlur={() => {
+                    setFocusedNodeId(null);
+                    setHoveredNodeId(null);
+                  }}
                   style={{
                     cursor: "pointer",
                     outline: "none",
+                    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
+                  className={isHovered ? "scale-[1.02]" : ""}
                 >
-                  {/* Clean Outer Node Rect */}
                   <rect
-                    width={nodeWidth}
-                    height={nodeHeight}
-                    rx={12}
-                    fill={isSelectedNode || isHovered ? "var(--bg-inset)" : "var(--bg-surface)"}
-                    stroke={isSelectedNode || isHovered ? "var(--accent)" : "var(--border-default)"}
-                    strokeWidth={isSelectedNode || isHovered ? 2 : 1.5}
-                    className="transition-all duration-200"
+                    width="190"
+                    height="64"
+                    rx="12"
+                    fill={
+                      activeFocusOrHover
+                        ? mlInfraFamilyFillHover(node.family)
+                        : mlInfraFamilyFill(node.family)
+                    }
+                    stroke={
+                      activeFocusOrHover
+                        ? "var(--border-accent)"
+                        : isRelated
+                          ? mlInfraFamilyColor(node.family)
+                          : "var(--border-default)"
+                    }
+                    strokeWidth={activeFocusOrHover ? 2.5 : 1.5}
+                    style={{
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      filter: activeFocusOrHover
+                        ? "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
+                        : "drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
+                    }}
                   />
 
-                  {/* Clean Title Text */}
                   <text
-                    x={halfW}
-                    y={26}
+                    x="95"
+                    y="28"
                     textAnchor="middle"
-                    fill="var(--text-primary)"
-                    className="font-bold text-[13px] select-none"
+                    fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
+                    className="font-bold text-[13px] transition-all duration-300"
                   >
-                    {topic.title}
+                    {node.title}
                   </text>
 
-                  {/* Clean Subtitle Text */}
                   <text
-                    x={halfW}
-                    y={46}
+                    x="95"
+                    y="48"
                     textAnchor="middle"
-                    fill="var(--accent)"
-                    className="font-mono text-[11px] font-semibold select-none"
+                    fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
+                    className="font-mono text-[11px] transition-all duration-300"
                   >
-                    {topic.questions.length} Problems • {getTopicDifficulty(topic)}
+                    {node.algorithmCount} Problems • {node.difficulty}
                   </text>
                 </g>
               );

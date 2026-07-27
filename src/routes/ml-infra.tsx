@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { PageHeader } from "../ui/templates/PageHeader";
 import { CategoryType } from "../types/dsa";
 
 const MLInfraKnowledgeGraph = React.lazy(
@@ -16,11 +17,17 @@ function MLInfraPage(): React.ReactElement {
   return (
     <main
       aria-label="ML Infrastructure Knowledge Tree"
-      className="w-full h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden bg-[var(--bg-page)]"
+      className="relative w-[90%] py-8 mx-auto flex flex-col items-center gap-8 text-center box-border flex-1"
     >
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-[var(--accent)]/5 rounded-full blur-[100px] pointer-events-none -z-10" />
+      <PageHeader
+        title="ML Infrastructure Knowledge Tree"
+        description="Interactive Machine Learning Systems & Infrastructure Prerequisite Roadmap"
+        className="text-center flex flex-col items-center justify-center max-w-3xl mx-auto mt-6 md:mt-8 mb-6"
+      />
       <Suspense
         fallback={
-          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] bg-[var(--bg-page)]">
+          <div className="w-full h-64 flex items-center justify-center text-[var(--text-muted)] bg-[var(--bg-page)]">
             Loading ML Infrastructure Knowledge Tree...
           </div>
         }
