@@ -201,13 +201,12 @@ describe("MainLayoutHeaderRender Component Spec", () => {
     expect(mainChildren[mainChildren.length - 1].contains(solutionCard)).toBe(true);
   });
 
-  it("sizes the stage from the viewport with a floor so short screens scroll instead of squeezing", () => {
+  it("sizes the stage from 50vh with a floor so short screens scroll instead of squeezing", () => {
     const { container } = renderLayout();
 
     const stage = container.querySelector('[data-stage="workspace"]') as HTMLElement;
     expect(stage.style.height).toContain("max(var(--stage-min-h)");
-    expect(stage.style.height).toContain("100dvh");
-    expect(stage.style.height).toContain("var(--navbar-h)");
+    expect(stage.style.height).toContain("50vh");
   });
 
   it("resolves individual playback props into resolvedControlProps with fallbacks when optional handlers are omitted", () => {

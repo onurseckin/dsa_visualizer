@@ -10,7 +10,7 @@ import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
 
-const DEFAULT_STAGE_HEIGHT = "max(var(--stage-min-h), calc(100dvh - var(--navbar-h) - 40px))";
+const DEFAULT_STAGE_HEIGHT = "max(var(--stage-min-h), 50vh)";
 
 export interface MainStageProps {
   algorithm: AlgorithmDefinition;
