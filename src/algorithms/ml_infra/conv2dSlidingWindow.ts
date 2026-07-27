@@ -240,7 +240,7 @@ export const generateConv2dSlidingWindowSteps = (
     null,
     null,
     output.map((row) => [...row]),
-    { outH, outW, totalElements: outH * outW },
+    { outH, outW, totalElements: outH * outW, complete: true },
   );
 
   return steps;
