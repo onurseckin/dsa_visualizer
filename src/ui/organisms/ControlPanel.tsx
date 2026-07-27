@@ -47,16 +47,14 @@ export function ControlPanel({
       data-customsize={String(supportsCustomSize)}
       data-currentstep={currentStep}
       data-totalsteps={totalSteps}
-      className={`px-6 py-4 gap-6 flex items-center flex-wrap w-full box-border ${
-        isEmbedded
-          ? "border-t border-[#1e1e24] bg-[#0a0a0c]"
-          : "bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-md)] shadow-2xl ring-1 ring-white/5 relative top-2 z-10"
+      className={`bg-[#141418] border border-white/10 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 w-full box-border ${
+        isEmbedded ? "border-t" : "relative top-2 z-10"
       }`}
     >
       <div className="flex items-center gap-3">
         <IconButton
           size="md"
-          className="min-h-[48px] min-w-[48px] text-[var(--text-primary)] hover:bg-white/10"
+          className="bg-[#1e1e28] hover:bg-[#282834] text-white border border-white/10 p-3 rounded-xl min-h-[44px] min-w-[44px]"
           icon={<RotateCcw size={24} strokeWidth={2.5} />}
           aria-label="Reset visualization to step 0"
           aria-keyshortcuts="KeyR"
@@ -66,7 +64,7 @@ export function ControlPanel({
         />
         <IconButton
           size="md"
-          className="min-h-[48px] min-w-[48px] text-[var(--text-primary)] hover:bg-white/10"
+          className="bg-[#1e1e28] hover:bg-[#282834] text-white border border-white/10 p-3 rounded-xl min-h-[44px] min-w-[44px]"
           icon={<SkipBack size={24} strokeWidth={2.5} />}
           aria-label="Step backward"
           aria-keyshortcuts="ArrowLeft"
@@ -76,7 +74,7 @@ export function ControlPanel({
         />
         <Button
           variant={isPlaying ? "secondary" : "primary"}
-          className="px-6 py-2.5 min-h-[48px] font-semibold bg-black border border-[var(--accent)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(var(--accent-rgb),0.2)] hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-shadow"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-[0_0_20px_rgba(99,102,241,0.35)] flex items-center gap-2 transition-shadow"
           aria-label={isPlaying ? "Pause playback" : "Play all steps"}
           aria-keyshortcuts="Space"
           title={`${isPlaying ? "Pause" : "Play"} (Space)`}
@@ -94,7 +92,7 @@ export function ControlPanel({
         </Button>
         <IconButton
           size="md"
-          className="min-h-[48px] min-w-[48px] text-[var(--text-primary)] hover:bg-white/10"
+          className="bg-[#1e1e28] hover:bg-[#282834] text-white border border-white/10 p-3 rounded-xl min-h-[44px] min-w-[44px]"
           icon={<SkipForward size={24} strokeWidth={2.5} />}
           aria-label="Step forward"
           aria-keyshortcuts="ArrowRight"

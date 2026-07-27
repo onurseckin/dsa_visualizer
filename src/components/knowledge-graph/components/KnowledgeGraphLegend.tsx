@@ -5,12 +5,12 @@ export const KnowledgeGraphLegend: React.FC = () => {
   return (
     <ul
       aria-label="Topic family colors"
-      className="flex flex-wrap items-center justify-center gap-5 px-8 py-3 mb-6 bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-md rounded-full list-none mx-auto max-w-fit relative z-10"
+      className="bg-[#141418]/90 backdrop-blur-xl border border-white/15 px-6 py-3 rounded-full shadow-xl mb-6 flex flex-wrap items-center justify-center gap-5 list-none mx-auto relative z-10"
     >
       {TOPIC_FAMILIES.map((family) => (
         <li
           key={family.id}
-          className="inline-flex items-center gap-2.5 text-sm text-[var(--text-primary)] font-medium text-center tracking-wide"
+          className="text-xs font-semibold text-neutral-200 tracking-wide inline-flex items-center gap-2"
         >
           <span
             aria-hidden="true"

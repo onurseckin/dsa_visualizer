@@ -36,8 +36,8 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   return (
     <Card
       data-testid="problem-description-card"
-      className={cx("p-6 md:p-8 border-[var(--border-default)] bg-[var(--bg-surface)]", className)}
-      style={{ borderColor: "var(--border-default)", ...style }}
+      className={cx("bg-[#141418] border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl", className)}
+      style={style}
     >
       <div className="flex items-center flex-wrap gap-4 px-6 py-4 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl">
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis m-0">
@@ -69,7 +69,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
           >
             <section>
               <FieldLabel label="Problem" />
-              <Well className="p-4 md:p-6 border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm rounded-xl">
+              <Well className="bg-[#0a0a0c] border border-white/10 rounded-xl p-5 shadow-inner text-neutral-300">
                 <p className="m-0 text-base leading-relaxed text-[var(--text-secondary)]">
                   {description}
                 </p>
@@ -79,7 +79,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
             {constraints && constraints.length > 0 && (
               <section>
                 <FieldLabel label="Constraints" />
-                <Well className="p-4 md:p-6 border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm rounded-xl">
+                <Well className="bg-[#0a0a0c] border border-white/10 rounded-xl p-5 shadow-inner text-neutral-300">
                   <ul className="m-0 pl-4 font-mono text-sm leading-relaxed text-[var(--text-secondary)]">
                     {constraints.map((constraint, idx) => (
                       <li key={`constraint-${idx}`}>{constraint}</li>
@@ -103,7 +103,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
                   {examples.map((example, idx) => (
                     <Well
                       key={`example-${idx}`}
-                      className="p-4 md:p-6 font-mono text-sm leading-relaxed border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-xl"
+                      className="bg-[#0a0a0c] border border-white/10 rounded-xl p-5 shadow-inner text-neutral-300 font-mono text-sm leading-relaxed"
                     >
                       <div>
                         <span className="text-[var(--text-muted)]">Input: </span>

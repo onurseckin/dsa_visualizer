@@ -18,7 +18,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({
   const keyTerms = topicGuide.keyTerms ?? [];
 
   return (
-    <Card data-testid="solution-approach-card" data-topic-sections="2">
+    <Card data-testid="solution-approach-card" data-topic-sections="2" className="bg-[#141418] border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl">
       <div className="flex items-center flex-wrap gap-4 px-6 py-4 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
         <h2 className="m-0 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
           Solution approach

@@ -27,11 +27,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
     <div
       role="region"
       aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-      className="w-full p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center justify-center mx-auto gap-4"
+      className="w-full flex flex-col items-center justify-center mx-auto gap-4 relative"
     >
       <KnowledgeGraphLegend />
 
-      <div className="w-full p-6 md:p-8 bg-gradient-to-b from-[var(--bg-inset)]/80 to-[var(--bg-inset)]/30 backdrop-blur-xl border border-[var(--border-default)] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden mx-auto relative before:absolute before:inset-0 before:pointer-events-none before:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiIvPjwvc3ZnPg==')] before:opacity-50">
+      <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden mx-auto">
         <svg
           viewBox="-20 -60 1380 1060"
           preserveAspectRatio="xMidYMid meet"

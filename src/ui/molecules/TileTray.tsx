@@ -44,7 +44,7 @@ export function TileTray({
     <Card
       title="Tiles"
       actions={<span className="text-xs text-[var(--text-muted)]">{remaining} left</span>}
-      className="border border-[var(--border-default)] rounded-2xl p-8 bg-[var(--bg-surface)] shadow-lg hover:border-[var(--accent)] transition-all min-w-0"
+      className="bg-[#141418] border border-white/10 rounded-2xl p-6 shadow-xl min-w-0"
     >
       <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)]">
         Click a tile to fill the next empty line — or drag it to a specific one.
@@ -67,11 +67,11 @@ export function TileTray({
               onClick={() => onActivate(tile.id)}
               onDragStart={handleDragStart(tile.id)}
               onDragEnd={handleDragEnd}
-              className={`px-4 py-2.5 min-h-[40px] font-mono tracking-wide text-xs md:text-sm border border-[var(--border-default)] rounded-[var(--radius-md)] cursor-pointer shadow-sm transition-transform active:scale-95 overflow-hidden text-ellipsis ${
+              className={`px-4 py-2.5 rounded-xl font-mono text-sm shadow-sm cursor-pointer transition-transform active:scale-95 overflow-hidden text-ellipsis ${
                 isUsed
                   ? "cursor-not-allowed line-through opacity-40 bg-[var(--bg-subtle)] border-transparent shadow-none"
-                  : "bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] hover:border-[var(--accent)] hover:shadow-md"
-              } ${isDragging ? "opacity-50 scale-[0.98] border-dashed border-[var(--accent)] shadow-none z-10" : ""}`}
+                  : "bg-[#1e1e28] hover:bg-indigo-600 hover:text-white border border-white/10"
+              } ${isDragging ? "opacity-50 scale-[0.98] border-dashed border-indigo-500 shadow-none z-10" : ""}`}
               style={{
                 fontFamily: "var(--font-code)",
                 fontSize: "var(--text-sm)",

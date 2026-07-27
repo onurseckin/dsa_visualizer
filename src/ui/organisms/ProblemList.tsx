@@ -3,7 +3,6 @@ import { CategoryType } from "../../types/dsa";
 import { useProblemListState } from "../../components/problem-list/hooks/useProblemListState";
 import { ProblemListFilterToolbar } from "./ProblemListFilterToolbar";
 import { ProblemTable } from "./ProblemTable";
-import { PageHeader } from "../templates/PageHeader";
 
 interface ProblemListProps {
   onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
@@ -32,14 +31,18 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      className="flex flex-col items-stretch justify-start px-4 md:px-8 py-6 w-full max-w-7xl mx-auto box-border flex-1 gap-8 overflow-y-auto"
+      className="max-w-7xl px-6 md:px-8 py-8 mx-auto flex flex-col gap-8 w-full box-border flex-1 overflow-y-auto"
     >
-      <PageHeader
-        title="Algorithm Directory"
-        description="Explore algorithms, data structures, and interactive visualizations"
-      />
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+          Algorithm Directory
+        </h1>
+        <p className="text-base text-neutral-400 max-w-2xl">
+          Explore algorithms, data structures, and interactive visualizations
+        </p>
+      </div>
 
-      <div className="w-full flex flex-col gap-6 mb-6">
+      <div className="w-full flex flex-col gap-6">
         <ProblemListFilterToolbar
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}

@@ -27,7 +27,7 @@ export const CodeLine: React.FC<CodeLineProps> = ({
       ref={isActive ? activeLineRef : undefined}
       className={
         isActive
-          ? "ui-code-line ui-code-line--active px-4 py-2 font-mono text-sm leading-relaxed bg-[var(--accent-soft)] border-l-4 border-[var(--accent)] text-[var(--text-primary)] font-[500] shadow-[inset_4px_0_0_var(--accent)]"
+          ? "ui-code-line ui-code-line--active px-4 py-2 font-mono text-sm leading-relaxed bg-indigo-500/10 border-l-4 border-indigo-500 text-white font-medium"
           : "ui-code-line px-4 py-2 font-mono text-sm leading-relaxed border-l-4 border-transparent text-[var(--text-secondary)]"
       }
       data-testid={`code-row-${lineNumber}`}
