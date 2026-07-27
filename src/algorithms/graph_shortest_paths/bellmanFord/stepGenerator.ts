@@ -87,6 +87,13 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   }
 
   addStep(
+    2,
+    `Initialize all distances to infinity`,
+    `We create a distance table where every node starts at ∞ (unreachable). This is our starting state before any relaxation — only the source will break out of infinity.`,
+    { nodeCount: rawNodes.length },
+  );
+
+  addStep(
     3,
     `Set dist['${startNode}'] to 0`,
     `We know exactly one distance so far: '${startNode}' is 0 away from itself. Every other node starts at ∞, which is our way of saying "no path found yet."`,
@@ -109,6 +116,15 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       const u = edge.from;
       const v = edge.to;
       const weight = edge.weight;
+
+      addStep(
+        6,
+        `Examine edge ${u} → ${v} (weight ${weight})`,
+        `In pass ${pass + 1} we check every edge. If going through '${u}' gives '${v}' a shorter path, we update it — this is the Bellman-Ford relaxation step.`,
+        { pass: pass + 1, u, v, weight },
+        u,
+        { from: u, to: v },
+      );
 
       if (dist[u] !== Infinity && dist[u] + weight < dist[v]) {
         const oldDist = dist[v];
@@ -150,6 +166,12 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
 
   let hasNegativeCycle = false;
   addStep(
+    10,
+    `Initialize negative-cycle flag to False`,
+    `We set up a flag before the extra validation sweep. If any edge can still improve a distance after V-1 passes, this flag will be set to True.`,
+    { hasNegativeCycle: false },
+  );
+  addStep(
     11,
     "Check for negative-weight cycles",
     "After V - 1 passes every true shortest path is settled, so we do one more sweep as a test. If any edge can still improve a distance, the only possible explanation is a cycle with negative total weight.",
@@ -164,12 +186,26 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     if (dist[u] !== Infinity && dist[u] + weight < dist[v]) {
       hasNegativeCycle = true;
       addStep(
-        13,
-        `Find a negative cycle at ${u} → ${v}`,
-        `Even after all passes, '${v}' can still get cheaper (${dist[u]} + ${weight} < ${dist[v]}). Distances that keep shrinking mean a negative-weight cycle is reachable from '${startNode}'.`,
+        12,
+        `Negative cycle condition: dist[${u}] + ${weight} < dist[${v}]`,
+        `${dist[u]} + ${weight} = ${dist[u] + weight} is still less than ${dist[v]}. Distances should be stable after V-1 passes — further improvement means a negative cycle exists.`,
         { u, v, weight, hasNegativeCycle: true },
         v,
         { from: u, to: v },
+      );
+      addStep(
+        13,
+        `Mark negative cycle found`,
+        `Setting has_negative_cycle = True to signal that shortest paths are undefined — the graph has a reachable negative-weight cycle.`,
+        { u, v, weight, hasNegativeCycle: true },
+        v,
+        { from: u, to: v },
+      );
+      addStep(
+        14,
+        `Break out of validation loop`,
+        `One confirmed negative cycle is enough evidence. We stop scanning further edges and report the result immediately.`,
+        { hasNegativeCycle: true },
       );
       break;
     }
