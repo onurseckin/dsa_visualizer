@@ -32,7 +32,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      className="flex flex-col items-center justify-start px-4 md:px-8 py-6 w-full max-w-7xl mx-auto box-border flex-1 gap-8 overflow-y-auto"
+      className="flex flex-col items-stretch justify-start px-4 md:px-8 py-6 w-full max-w-7xl mx-auto box-border flex-1 gap-8 overflow-y-auto"
     >
       <PageHeader
         title="Algorithm Directory"
