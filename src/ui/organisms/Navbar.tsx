@@ -12,6 +12,7 @@ import {
   List,
   Network,
   RotateCcw,
+  Activity,
 } from "lucide-react";
 import { CategoryType, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
 import { Button, ButtonGroup, ConfirmDialog, Segmented } from "../index";
@@ -58,6 +59,12 @@ const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: stri
     hint: "visualizer panel",
   },
   { key: "code", label: "Code", icon: <Code2 className="w-3.5 h-3.5" />, hint: "code panel" },
+  {
+    key: "complexity",
+    label: "Complexity",
+    icon: <Activity className="w-3.5 h-3.5" />,
+    hint: "complexity panel",
+  },
   {
     key: "tutorial",
     label: "Tutorial",

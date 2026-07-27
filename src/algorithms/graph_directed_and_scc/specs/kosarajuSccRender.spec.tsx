@@ -55,7 +55,7 @@ describe("KosarajuScc React Component Spec", () => {
 
     // Phase chip in the "State" row reports the current DFS pass.
     expect(screen.getAllByText(/Pass 1/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getByText("Visited (1)")).toBeInTheDocument();
   });
 });

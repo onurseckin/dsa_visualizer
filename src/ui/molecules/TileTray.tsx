@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { DragEvent } from "react";
-import { Button, Card } from "../../ui";
+import { Button, Card } from "../index";
 import type { TriviaTile } from "../../types/trivia";
 
 export const TILE_MIME = "text/plain";

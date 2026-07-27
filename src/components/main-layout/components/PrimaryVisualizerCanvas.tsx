@@ -38,6 +38,7 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
   return (
     <Card
       data-panel="visualizer"
+      padding="none"
       style={{
         height: "100%",
         width: "100%",
@@ -66,7 +67,7 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
             flexDirection: "column",
             overflowX: "auto",
             overflowY: "hidden",
-            padding: "var(--space-6)",
+            padding: 0,
             background: "var(--bg-inset)",
           }}
         >
@@ -80,7 +81,7 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
                 gap: "var(--space-2)",
                 color: "var(--text-muted)",
                 textAlign: "center",
-                padding: "var(--space-6)",
+                padding: 0,
               }}
             >
               <p

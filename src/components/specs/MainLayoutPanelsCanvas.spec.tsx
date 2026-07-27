@@ -5,45 +5,32 @@ import { MainLayout } from "../../ui";
 import type { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../types/dsa";
 import type { ControlPanelProps } from "../../ui";
 
-vi.mock("../primitives/ProblemDescriptionCard", () => ({
-  ProblemDescriptionCard: () => <div data-testid="problem-description-card" />,
-}));
-vi.mock("../primitives/SolutionApproachCard", () => ({
-  SolutionApproachCard: () => <div data-testid="solution-approach-card" />,
-}));
-vi.mock("../ControlPanel", () => ({
-  ControlPanel: ({
-    variant,
-    currentStep,
-    totalSteps,
-  }: {
-    variant?: string;
-    currentStep: number;
-    totalSteps: number;
-  }) => (
-    <div data-testid="control-panel" data-variant={variant}>
-      <span>{`${currentStep} / ${totalSteps}`}</span>
-    </div>
-  ),
-}));
-vi.mock("../primitives/TutorialCard", () => ({
-  TutorialCard: () => <div data-testid="tutorial-card" />,
-  hasTutorialContent: () => true,
-}));
-vi.mock("../primitives/AuxiliaryPanel", () => ({
-  AuxiliaryPanel: () => (
-    <div data-testid="auxiliary-panel">
-      <span>Working Data & Variables</span>
-    </div>
-  ),
-  hasAuxiliaryContent: () => true,
-}));
-vi.mock("../primitives/CodeBlockViewer", () => ({
-  CodeBlockViewer: () => <pre data-testid="code-viewer" />,
-}));
-vi.mock("../ComplexityCard", () => ({
-  ComplexityCard: () => <div data-testid="complexity-card" />,
-}));
+vi.mock("../../ui", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../ui")>();
+  return {
+    ...actual,
+    ProblemDescriptionCard: () => <div data-testid="problem-description-card" />,
+    SolutionApproachCard: () => <div data-testid="solution-approach-card" />,
+    ControlPanel: ({
+      variant,
+      currentStep,
+      totalSteps,
+    }: {
+      variant?: string;
+      currentStep: number;
+      totalSteps: number;
+    }) => (
+      <div data-testid="control-panel" data-variant={variant}>
+        <span>{`${currentStep} / ${totalSteps}`}</span>
+      </div>
+    ),
+    TutorialCard: () => <div data-testid="tutorial-card" />,
+    AuxiliaryPanel: () => <div data-testid="auxiliary-panel" />,
+    hasAuxiliaryContent: () => true,
+    CodeBlockViewer: () => <pre data-testid="code-viewer" />,
+    ComplexityCard: () => <div data-testid="complexity-card" />,
+  };
+});
 vi.mock("../primitives/ArrayVisualizer", () => ({
   ArrayVisualizer: ({ elements }: { elements: { value: number }[] }) => (
     <div data-testid="array-visualizer">{elements.map((el) => el.value).join(",")}</div>
@@ -105,6 +92,7 @@ const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility =>
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
   ...overrides,
 });
 
@@ -137,7 +125,7 @@ describe("MainLayoutPanelsCanvas Component Spec", () => {
   it("renders tutorial, working data & variables, and visualizer canvas as separate rows", () => {
     const { container } = renderLayout({ controlProps: dummyControlProps });
 
-    expect(screen.getByText("Working Data & Variables")).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getByTestId("array-visualizer")).toBeInTheDocument();
     expect(screen.getByTestId("tutorial-card")).toBeInTheDocument();
     expect(screen.getByTestId("control-panel")).toBeInTheDocument();
@@ -182,7 +170,7 @@ describe("MainLayoutPanelsCanvas Component Spec", () => {
     expect(canvas.style.minHeight).toBe("0");
     expect(canvas.style.alignItems).toBe("");
     expect(canvas.style.justifyContent).toBe("");
-    expect(canvas.style.padding).toBe("var(--space-6)");
+    expect(canvas.style.padding).toBe("0px");
     expect(canvas.style.overflowY).toBe("hidden");
     expect(canvas.style.overflowX).toBe("auto");
   });

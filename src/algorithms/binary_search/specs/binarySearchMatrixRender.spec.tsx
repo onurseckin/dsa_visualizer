@@ -63,7 +63,7 @@ describe("BinarySearchMatrix React Component Spec", () => {
     );
 
     expect(screen.getByText(/Probe the middle at index/i)).toBeInTheDocument();
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     // low/high/mid/target pointers surface in the customState "State" row.
     expect(screen.getAllByText("State")[0]).toBeInTheDocument();
   });

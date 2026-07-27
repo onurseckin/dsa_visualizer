@@ -1,15 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Card } from "..";
-import {
-  CodeExplainToggle,
-  LineExplainPopover,
-  useHoveredCodeLine,
-} from "../../components/primitives/LineExplainPopover";
 import type { CodeBlockViewerProps } from "../../components/primitives/code_block/codeBlockTypes";
-import {
-  readExplainEnabled,
-  writeExplainEnabled,
-} from "../../components/primitives/code_block/codeBlockTypes";
 import { CodeLine } from "../../components/primitives/code_block/CodeLine";
 import { highlightPythonLine } from "../../components/primitives/code_block/pythonHighlighter";
 
@@ -23,65 +14,43 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
 }) => {
   const lines = code.trim().split("\n");
   const activeLineRef = useRef<HTMLDivElement | null>(null);
-  const [explainEnabled, setExplainEnabledState] = useState(() => readExplainEnabled());
-  const { hovered, rowHoverHandlers } = useHoveredCodeLine(explainEnabled);
-
-  const setExplainEnabled = (updater: (current: boolean) => boolean) => {
-    setExplainEnabledState((current) => {
-      const next = updater(current);
-      writeExplainEnabled(next);
-      return next;
-    });
-  };
 
   useEffect(() => {
     activeLineRef.current?.scrollIntoView?.({ block: "nearest" });
   }, [activeLine]);
 
-  const hoveredExplanation = hovered !== null ? lineExplanations?.[hovered.line] : undefined;
-
   return (
     <Card
       data-testid="code-viewer"
-      actions={
-        <>
-          <CodeExplainToggle
-            enabled={explainEnabled}
-            onToggle={() => setExplainEnabled((current) => !current)}
-          />
-          <span className="font-mono text-xs text-[var(--text-muted)]">line {activeLine}</span>
-        </>
-      }
-      className="border-[var(--border-default)] bg-[var(--bg-surface)] h-full flex flex-col"
+      padding="none"
+      className="border border-[var(--border-default)] bg-[var(--bg-surface)] h-full flex flex-col p-0"
     >
-      <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] py-2">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] p-0">
         {lines.map((lineText, idx) => {
           const lineNumber = idx + 1;
           const isActive = lineNumber === activeLine;
           const explanation = lineExplanations?.[lineNumber];
-          const hoverHandlers =
-            explanation !== undefined ? rowHoverHandlers(lineNumber) : undefined;
 
           return (
-            <CodeLine
-              key={idx}
-              lineText={lineText}
-              lineNumber={lineNumber}
-              isActive={isActive}
-              activeLineRef={activeLineRef}
-              hoverHandlers={hoverHandlers}
-            />
+            <React.Fragment key={idx}>
+              <CodeLine
+                lineText={lineText}
+                lineNumber={lineNumber}
+                isActive={isActive}
+                activeLineRef={activeLineRef}
+              />
+              {explanation ? (
+                <div
+                  data-testid={`line-explanation-${lineNumber}`}
+                  className="px-4 py-1 text-xs text-[var(--text-muted)] bg-[var(--bg-surface)] border-l-4 border-transparent pl-12 font-sans"
+                >
+                  {explanation}
+                </div>
+              ) : null}
+            </React.Fragment>
           );
         })}
       </div>
-      {explainEnabled && hovered !== null && hoveredExplanation !== undefined ? (
-        <LineExplainPopover
-          line={hovered.line}
-          explanation={hoveredExplanation}
-          anchorRect={hovered.rect}
-          side="left"
-        />
-      ) : null}
     </Card>
   );
 };

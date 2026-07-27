@@ -45,7 +45,7 @@ describe("AuxiliaryPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Working Data & Variables")).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getByText("Stack")).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
     expect(screen.getByText("Visited (2)")).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("AuxiliaryPanel", () => {
   it("renders without close button when onClose prop is omitted and state is undefined", () => {
     render(<AuxiliaryPanel variables={{ active: true }} />);
 
-    expect(screen.getByText("Working Data & Variables")).toBeInTheDocument();
+    expect(screen.getByText("Variables")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Hide auxiliary panel" })).toBeNull();
   });
 

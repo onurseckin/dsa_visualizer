@@ -57,7 +57,7 @@ describe("bellmanFord React component spec", () => {
       />,
     );
 
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getAllByText("Distances")[0]).toBeInTheDocument();
     expect(screen.getByText("Visited (5)")).toBeInTheDocument();
   });

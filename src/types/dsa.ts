@@ -130,6 +130,7 @@ export interface PanelVisibility {
   code: boolean;
   tutorial: boolean;
   auxiliary: boolean;
+  complexity?: boolean;
 }
 
 export type PanelKey = keyof PanelVisibility;

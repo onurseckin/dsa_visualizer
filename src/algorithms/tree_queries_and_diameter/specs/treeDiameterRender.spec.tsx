@@ -55,6 +55,6 @@ describe("TreeDiameter React Component Spec", () => {
     );
 
     expect(screen.getAllByText(/DFS 1/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
   });
 });

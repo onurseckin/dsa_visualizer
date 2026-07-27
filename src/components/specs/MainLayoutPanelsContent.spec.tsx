@@ -138,6 +138,7 @@ const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility =>
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
   ...overrides,
 });
 

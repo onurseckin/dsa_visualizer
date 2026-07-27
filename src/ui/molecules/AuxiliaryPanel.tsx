@@ -1,6 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
-import { Chip, Card, IconButton } from "../../ui";
+import { Card, Chip, IconButton } from "../index";
 import { AuxiliaryState } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
@@ -141,7 +141,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
   return (
     <Card
       data-testid="auxiliary-panel"
-      className="min-w-0 border-[var(--border-default)] bg-[var(--bg-surface)]"
+      className="min-w-0 border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-xl overflow-hidden"
     >
       <Card.Header
         title="Working Data & Variables"
@@ -158,11 +158,11 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
         }
         className="px-4 py-3 border-b border-[var(--border-default)]"
       />
-      <Card.Body className="flex flex-col gap-4 px-2 py-4">
+      <Card.Body className="flex flex-col gap-4 p-4 md:p-5">
         {groups.map((group) => (
           <div
             key={group.key}
-            className="grid grid-cols-[minmax(6rem,max-content)_1fr] items-center gap-x-4 gap-y-2 min-w-0 px-4 py-2"
+            className="grid grid-cols-[minmax(6rem,max-content)_1fr] items-center gap-x-4 gap-y-2 min-w-0 py-1"
           >
             <span className="text-sm text-[var(--text-muted)] whitespace-nowrap font-medium">
               {group.label}

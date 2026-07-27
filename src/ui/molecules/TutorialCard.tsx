@@ -1,6 +1,6 @@
 import React from "react";
 import { GraduationCap, X } from "lucide-react";
-import { Card, IconButton } from "../../ui";
+import { Card, IconButton } from "../index";
 import { StepExplanation } from "../../types/dsa";
 
 export interface TutorialCardProps {
@@ -27,13 +27,6 @@ export const hasTutorialContent = (
 ): boolean =>
   Boolean((what || explanation?.what || "").trim() || (why || explanation?.why || "").trim());
 
-const STRIP: React.CSSProperties = {
-  background: "transparent",
-  borderWidth: 0,
-  borderRadius: 0,
-  boxShadow: "none",
-};
-
 export const TutorialCard: React.FC<TutorialCardProps> = ({
   explanation,
   what,
@@ -57,8 +50,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   return (
     <Card
       data-testid="tutorial-card"
-      style={STRIP}
-      className="h-full overflow-auto bg-[var(--bg-surface)]"
+      className="h-full overflow-auto border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)]"
     >
       <Card.Body className="p-6 md:p-8 flex flex-col gap-2 min-w-0">
         <div
@@ -113,3 +105,5 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
     </Card>
   );
 };
+
+export default TutorialCard;

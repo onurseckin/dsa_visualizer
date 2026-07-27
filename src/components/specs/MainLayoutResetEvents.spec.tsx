@@ -80,6 +80,7 @@ const allPanels = (): PanelVisibility => ({
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
 });
 
 const columnHandle = (): HTMLElement =>

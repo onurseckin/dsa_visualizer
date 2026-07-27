@@ -12,7 +12,7 @@ describe("ComplexityCard render spec", () => {
         variableState={{ i: 5, target: 10 }}
       />,
     );
-    expect(screen.getByText("Complexity")).toBeInTheDocument();
+    expect(screen.getByTestId("complexity-card")).toBeInTheDocument();
     expect(screen.getAllByText("O(1)").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("O(N^2)")).toBeInTheDocument();
     expect(screen.getByText("Iterates once per item")).toBeInTheDocument();

@@ -15,6 +15,7 @@ const ALL_VISIBLE: PanelVisibility = {
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
 };
 
 describe("NavbarReset Component Spec", () => {

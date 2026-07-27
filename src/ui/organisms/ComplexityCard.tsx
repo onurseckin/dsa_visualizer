@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Chip, Collapsible, Well } from "../index";
+import { Chip, Well } from "../index";
 import type { ComplexityAnalysis, TimeComplexity } from "../../types/dsa";
 
 export interface ComplexityCardProps {
@@ -70,19 +70,15 @@ export function ComplexityCard({
   ];
 
   return (
-    <Collapsible
+    <div
       data-testid="complexity-card"
-      title="Complexity"
-      defaultOpen
-      className="border-[var(--border-default)]"
+      className="border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)] p-4 md:p-5 flex flex-col gap-3 h-full overflow-auto"
     >
-      <div className="flex flex-col gap-3 p-5 md:p-6">
-        <BigOChipRow chips={chips} />
-        <ProseBlock label="Time" body={complexityAnalysis.time} />
-        <ProseBlock label="Space" body={complexityAnalysis.space} />
-        <ComplexityVariables variableState={variableState} />
-      </div>
-    </Collapsible>
+      <BigOChipRow chips={chips} />
+      <ProseBlock label="Time" body={complexityAnalysis.time} />
+      <ProseBlock label="Space" body={complexityAnalysis.space} />
+      <ComplexityVariables variableState={variableState} />
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import {
 
 export { DEFAULT_PLAYBACK_SPEED_MS, MAX_PLAYBACK_SPEED_MS, MIN_PLAYBACK_SPEED_MS };
 export type { SettingsState as SettingsContextValue };
+export type { PanelVisibility } from "../types/dsa";
 
 const SettingsContext = createContext<SettingsState | null>(null);
 
