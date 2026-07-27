@@ -101,6 +101,7 @@ describe("Panel visibility settings spec", () => {
   it.each([
     ["Visualizer", "dsa_visualizer_panel_visualizer"],
     ["Code", "dsa_visualizer_panel_code"],
+    ["Complexity", "dsa_visualizer_panel_complexity"],
     ["Tutorial", "dsa_visualizer_panel_tutorial"],
     ["Aux data", "dsa_visualizer_panel_auxiliary"],
   ] as const)("toggling %s flips aria-pressed and persists the boolean", (label, storageKey) => {

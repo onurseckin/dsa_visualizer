@@ -104,6 +104,7 @@ describe("SettingsContext panel visibility, algorithm persistence, and error bou
       code: false,
       tutorial: false,
       auxiliary: true,
+      complexity: true,
     });
   });
 

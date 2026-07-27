@@ -57,6 +57,6 @@ describe("BinaryTreeLca React Component Spec", () => {
     );
 
     expect(screen.getByText(/Evaluate Node/i)).toBeInTheDocument();
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
   });
 });

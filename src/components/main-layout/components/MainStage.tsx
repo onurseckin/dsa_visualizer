@@ -96,6 +96,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       id: "code",
       label: "code",
       visible: panels.code,
+      greedy: !panels.complexity,
       height: layoutState.layout.panelHeights.code,
       content: (
         <CodeBlockViewer
@@ -109,7 +110,8 @@ export const MainStage: React.FC<MainStageProps> = ({
     {
       id: "complexity",
       label: "complexity",
-      visible: panels.code,
+      visible: panels.complexity,
+      greedy: !panels.code,
       height: layoutState.layout.panelHeights.complexity,
       content: (
         <ComplexityCard

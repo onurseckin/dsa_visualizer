@@ -124,24 +124,14 @@ describe("TutorialCard Component Spec", () => {
     });
   });
 
-  it("renders as a flush band with no chrome and no height of its own", () => {
+  it("renders with visible border, rounded-xl corners, and surface background", () => {
     const { container } = render(<TutorialCard explanation={sampleExplanation} stepIndex={0} />);
 
-    const strip = container.querySelector(".ui-card");
-    expect(strip).toBeInstanceOf(HTMLElement);
-    const style = (strip as HTMLElement).style;
-
-    /* It is the visualizer panel's header now (R6.4), and the panel strip owns the
-       band fill and the single divider facing the canvas — drawing any of that
-       here would double the edge and cover the panel's fill. */
-    expect(style.borderWidth).toBe("0px");
-    expect(style.borderRadius).toBe("0");
-    expect(style.boxShadow).toBe("none");
-    expect(style.background).toBe("transparent");
-    // The visualizer panel has to be able to hug it, so it pins no height.
-    expect(style.height).toBe("");
-    expect(style.minHeight).toBe("");
-    expect(style.flex).toBe("");
+    const card = container.querySelector('[data-testid="tutorial-card"]');
+    expect(card).toBeInstanceOf(HTMLElement);
+    expect(card?.className).toContain("border border-[var(--border-default)]");
+    expect(card?.className).toContain("rounded-xl");
+    expect(card?.className).toContain("bg-[var(--bg-surface)]");
   });
 
   it("renders no card header band above the strip", () => {

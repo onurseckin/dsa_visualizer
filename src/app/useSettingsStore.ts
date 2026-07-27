@@ -10,6 +10,7 @@ const PANEL_STORAGE_KEYS: Record<PanelKey, string> = {
   code: "panel_code",
   tutorial: "panel_tutorial",
   auxiliary: "panel_auxiliary",
+  complexity: "panel_complexity",
 };
 
 function readStored<T>(key: string, fallback: T, isValid: (value: unknown) => value is T): T {
@@ -74,6 +75,7 @@ export function readPanelVisibility(): PanelVisibility {
       readStored("show_auxiliary", true, isBoolean),
       isBoolean,
     ),
+    complexity: readStored(PANEL_STORAGE_KEYS.complexity, true, isBoolean),
   };
 }
 

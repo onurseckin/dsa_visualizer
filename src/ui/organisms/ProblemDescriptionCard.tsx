@@ -35,12 +35,12 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
     <Card
       data-testid="problem-description-card"
       className={cx(
-        "bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-5 md:p-6 shadow-xl",
+        "bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl",
         className,
       )}
       style={style}
     >
-      <Card.Body className="p-5 md:p-6">
+      <Card.Body className="p-4 md:p-5">
         <div
           id="problem-description-details"
           data-testid="problem-description-details"

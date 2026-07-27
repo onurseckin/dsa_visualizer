@@ -61,7 +61,7 @@ describe("ValidParentheses React Component Spec", () => {
     );
 
     // Pushed brackets land in the AuxiliaryPanel's "Stack" row of the "Working data" card.
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getAllByText("Stack")[0]).toBeInTheDocument();
   });
 });

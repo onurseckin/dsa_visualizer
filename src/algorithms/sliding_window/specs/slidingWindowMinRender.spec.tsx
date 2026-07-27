@@ -60,7 +60,7 @@ describe("SlidingWindowMin React Component Spec", () => {
     );
 
     // The monotonic deque lands in the AuxiliaryPanel's "Queue" row of the "Working data" card.
-    expect(screen.getByText(/Working Data/i)).toBeInTheDocument();
+    expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     expect(screen.getAllByText("Queue")[0]).toBeInTheDocument();
   });
 });

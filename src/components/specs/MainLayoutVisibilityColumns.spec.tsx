@@ -114,6 +114,7 @@ const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility =>
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
   ...overrides,
 });
 
@@ -143,7 +144,7 @@ afterEach(() => {
 
 describe("MainLayoutVisibilityColumns Component Spec", () => {
   it("drops the whole code column, complexity card and column handle when code is off", () => {
-    const { container } = renderLayout({ panels: allPanels({ code: false }) });
+    const { container } = renderLayout({ panels: allPanels({ code: false, complexity: false }) });
 
     expect(screen.queryByTestId("code-viewer")).not.toBeInTheDocument();
     expect(screen.queryByTestId("complexity-card")).not.toBeInTheDocument();
@@ -181,6 +182,7 @@ describe("MainLayoutVisibilityColumns Component Spec", () => {
         code: false,
         tutorial: false,
         auxiliary: false,
+        complexity: false,
       },
       controlProps: dummyControlProps,
     });

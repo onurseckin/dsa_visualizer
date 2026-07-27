@@ -10,6 +10,7 @@ const ALL_VISIBLE: PanelVisibility = {
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
 };
 
 const PANEL_LABELS: Record<PanelKey, string> = {
@@ -19,6 +20,7 @@ const PANEL_LABELS: Record<PanelKey, string> = {
   code: "Code",
   tutorial: "Tutorial",
   auxiliary: "Aux data",
+  complexity: "Complexity",
 };
 
 const accentTintedText = (root: ParentNode): Element[] =>
@@ -95,6 +97,7 @@ describe("NavbarControls Component Spec", () => {
             code: false,
             tutorial: true,
             auxiliary: false,
+            complexity: true,
           },
         })}
       />,
@@ -107,6 +110,7 @@ describe("NavbarControls Component Spec", () => {
       ["Code", "false"],
       ["Tutorial", "true"],
       ["Aux data", "false"],
+      ["Complexity", "true"],
     ];
 
     for (const [label, pressed] of expected) {

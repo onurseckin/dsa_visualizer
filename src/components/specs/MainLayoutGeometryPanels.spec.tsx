@@ -54,6 +54,7 @@ const allPanels = (): PanelVisibility => ({
   code: true,
   tutorial: true,
   auxiliary: true,
+  complexity: true,
 });
 
 const panelRow = (container: HTMLElement, id: string): HTMLElement | null =>

@@ -7,9 +7,7 @@ import { DEFAULT_TRIE_INPUT, generateTriePrefixTreeSteps } from "../triePrefixTr
 /* The AuxiliaryPanel card is the only reliable scope for short row labels
    like "State" that also appear in badges and segmented controls. */
 const getWorkingDataCard = (): HTMLElement => {
-  const card =
-    screen.getByText(/Working Data/i).closest(".ui-card") ||
-    screen.getByText(/Working Data/i).closest(".flex-col");
+  const card = screen.getByTestId("auxiliary-panel");
   if (!(card instanceof HTMLElement)) {
     throw new Error("Working data card not found");
   }
