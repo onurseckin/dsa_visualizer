@@ -27,14 +27,14 @@ export const CodeLine: React.FC<CodeLineProps> = ({
       ref={isActive ? activeLineRef : undefined}
       className={
         isActive
-          ? "ui-code-line ui-code-line--active px-4 py-1.5 font-mono text-sm leading-relaxed bg-[var(--accent-soft)] border-l-2 border-[var(--accent)] text-[var(--text-primary)] font-[400]"
-          : "ui-code-line px-4 py-1.5 font-mono text-sm leading-relaxed border-l-2 border-transparent text-[var(--text-secondary)]"
+          ? "ui-code-line ui-code-line--active px-4 py-2 font-mono text-sm leading-relaxed bg-[var(--accent-soft)] border-l-4 border-[var(--accent)] text-[var(--text-primary)] font-[500] shadow-[inset_4px_0_0_var(--accent)]"
+          : "ui-code-line px-4 py-2 font-mono text-sm leading-relaxed border-l-4 border-transparent text-[var(--text-secondary)]"
       }
       data-testid={`code-row-${lineNumber}`}
       onMouseEnter={hoverHandlers?.onMouseEnter}
       onMouseLeave={hoverHandlers?.onMouseLeave}
     >
-      <span className="inline-block w-[2.5em] text-right mr-3 text-[var(--text-muted)] select-none">
+      <span className="inline-block w-[2.5em] text-right mr-4 font-mono text-[var(--text-muted)] opacity-60 select-none">
         {lineNumber}
       </span>
       <span data-testid={`indent-${lineNumber}`} className="whitespace-pre">
