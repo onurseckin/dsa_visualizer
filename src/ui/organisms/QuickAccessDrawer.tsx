@@ -50,6 +50,7 @@ export function QuickAccessDrawer({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | SourceKind>("all");
+
   const [openMap, setOpenMap] = useState<Partial<Record<CategoryType, boolean>>>(() =>
     activeCategoryId !== undefined ? { [activeCategoryId]: true } : {},
   );

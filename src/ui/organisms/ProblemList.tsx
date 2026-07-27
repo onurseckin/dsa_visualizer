@@ -28,6 +28,11 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     toggleSort,
     stats,
     filteredAlgorithms,
+    paginatedAlgorithms,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    ITEMS_PER_PAGE,
   } = useProblemListState({ category: category ?? "All", onCategoryChange });
 
   return (
@@ -58,6 +63,11 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       <div className="w-full">
         <ProblemTable
           filteredAlgorithms={filteredAlgorithms}
+          paginatedAlgorithms={paginatedAlgorithms}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
           sortBy={sortBy}
           onToggleSort={toggleSort}
           onSelectAlgorithm={onSelectAlgorithm}

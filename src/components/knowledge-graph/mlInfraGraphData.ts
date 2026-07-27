@@ -11,8 +11,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "foundations",
     difficulty: "Easy",
     prerequisites: [],
-    x: 450,
-    y: 80,
+    x: 840,
+    y: 70,
     algorithmCount: 15,
     questions: [
       {
@@ -160,8 +160,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "foundations",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 200,
-    y: 220,
+    x: 320,
+    y: 240,
     algorithmCount: 17,
     questions: [
       {
@@ -315,8 +315,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 700,
-    y: 220,
+    x: 840,
+    y: 240,
     algorithmCount: 16,
     questions: [
       {
@@ -471,8 +471,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_gemm_roofline"],
-    x: 120,
-    y: 380,
+    x: 1360,
+    y: 240,
     algorithmCount: 15,
     questions: [
       {
@@ -610,8 +610,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Hard",
     prerequisites: ["ml_precision_quantization"],
-    x: 450,
-    y: 380,
+    x: 1440,
+    y: 440,
     algorithmCount: 16,
     questions: [
       {
@@ -769,8 +769,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Medium",
     prerequisites: ["ml_autograd_dags"],
-    x: 780,
-    y: 380,
+    x: 1040,
+    y: 440,
     algorithmCount: 16,
     questions: [
       {
@@ -912,8 +912,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline", "ml_autograd_dags"],
-    x: 250,
-    y: 540,
+    x: 640,
+    y: 440,
     algorithmCount: 0,
     questions: [],
   },
@@ -926,8 +926,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline"],
-    x: 650,
-    y: 540,
+    x: 240,
+    y: 440,
     algorithmCount: 16,
     questions: [
       {
@@ -1076,8 +1076,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Medium",
     prerequisites: ["ml_precision_quantization"],
-    x: 150,
-    y: 700,
+    x: 440,
+    y: 650,
     algorithmCount: 15,
     questions: [
       {
@@ -1216,8 +1216,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_attention_geometry"],
-    x: 450,
-    y: 700,
+    x: 1240,
+    y: 650,
     algorithmCount: 16,
     questions: [
       {
@@ -1367,8 +1367,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "distributed-systems",
     difficulty: "Hard",
     prerequisites: ["ml_hardware_kernels"],
-    x: 750,
-    y: 700,
+    x: 400,
+    y: 880,
     algorithmCount: 16,
     questions: [
       {
@@ -1662,6 +1662,53 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
         type: "ML Systems Implementation",
         description:
           "Verifies gamma draft tokens in a single parallel forward pass on target model M_target.",
+      },
+    ],
+  },
+  {
+    id: "ml_graph_compilers",
+    categoryFolder: "ml_graph_compilers",
+    title: "Graph Compilers & IR Lowering",
+    description:
+      "ONNX operator fusion, TensorRT engine optimization, Apache TVM Relay graph lowering, and XLA HLO cluster fusion.",
+    family: "distributed-systems",
+    difficulty: "Hard",
+    prerequisites: ["ml_hardware_kernels"],
+    x: 220,
+    y: 650,
+    algorithmCount: 4,
+    questions: [
+      {
+        id: "onnxOperatorFusion",
+        title: "ONNX Operator Fusion & Pattern Matching Pass",
+        algorithmId: "onnxOperatorFusion",
+        difficulty: "Medium",
+        type: "ML Systems Implementation",
+        description: "Fuses Conv2D, Add, and ReLU nodes into single compound graph kernels.",
+      },
+      {
+        id: "tensorrtEngineOptimizer",
+        title: "TensorRT Execution Engine & Precision Quantization Optimizer",
+        algorithmId: "tensorrtEngineOptimizer",
+        difficulty: "Hard",
+        type: "ML Systems Implementation",
+        description: "Performs vertical CBR fusion and FP16/INT8 precision scaling.",
+      },
+      {
+        id: "tvmRelayGraphLowering",
+        title: "Apache TVM Relay Graph Lowering & TIR Compiler",
+        algorithmId: "tvmRelayGraphLowering",
+        difficulty: "Hard",
+        type: "ML Systems Implementation",
+        description: "Lowers Relay IR to TIR tensor programs with NCHW8c layout alteration.",
+      },
+      {
+        id: "xlaHloGraphOptimizer",
+        title: "Google XLA HLO Graph Optimizer & Cluster Fusion Engine",
+        algorithmId: "xlaHloGraphOptimizer",
+        difficulty: "Hard",
+        type: "ML Systems Implementation",
+        description: "Clusters HLO ops into kLoop and kInput reduction fusion passes.",
       },
     ],
   },
