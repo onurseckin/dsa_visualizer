@@ -93,8 +93,8 @@ export const generateSramGemmTilingSteps = (input: SramGemmTilingInput): Algorit
 
   addStep(
     2,
-    `Calculate Tile Grid Dimensions: M_tiles=${numTilesM}, N_tiles=${numTilesN}, K_tiles=${numTilesK}`,
-    `Partitioning matrix M x N into 2D grid of [${numTilesM} x ${numTilesN}] GPU Threadblocks, iterating K in ${numTilesK} steps.`,
+    `Compute Tile Grid: num_tiles_m=${numTilesM}, num_tiles_n=${numTilesN}, num_tiles_k=${numTilesK}`,
+    `num_tiles_m = ceil(${M} / ${tileM}) = ${numTilesM}. num_tiles_n = ceil(${N} / ${tileN}) = ${numTilesN}. num_tiles_k = ceil(${K} / ${tileK}) = ${numTilesK}. Grid: [${numTilesM} × ${numTilesN}] Threadblocks.`,
     { numTilesM, numTilesN, numTilesK },
     elements.map((el) => ({ ...el, state: "active" })),
     { gridDim: `[${numTilesM}, ${numTilesN}]`, k_iterations: numTilesK },
@@ -106,32 +106,39 @@ export const generateSramGemmTilingSteps = (input: SramGemmTilingInput): Algorit
   const intensity = flopCount / Math.max(1, hbmReadBytes);
 
   addStep(
-    7,
-    `Compute Total Tile Iterations & Memory Reuse`,
-    `Total SRAM tile load iterations = ${totalTileSteps}. Total FP16 HBM read volume = ${(
-      hbmReadBytes / 1024
-    ).toFixed(1)} KB.`,
-    { totalTileSteps, flopCount, hbmReadBytes },
+    6,
+    `Compute total_tile_steps = ${totalTileSteps}, flop_count = ${flopCount}`,
+    `total_tile_steps = ${numTilesM} × ${numTilesN} × ${numTilesK} = ${totalTileSteps} SRAM tile load iterations. flop_count = 2 × ${M} × ${N} × ${K} = ${flopCount} FLOPs.`,
+    { totalTileSteps, flopCount },
     elements.map((el) => ({ ...el, state: "sorted" })),
-    {
-      totalTileSteps,
-      flopCount: `${(flopCount / 1e6).toFixed(2)} MFLOPs`,
-      hbmReadKb: (hbmReadBytes / 1024).toFixed(1),
-    },
+    { totalTileSteps, flopCount: `${(flopCount / 1e6).toFixed(2)} MFLOPs` },
   );
 
   addStep(
-    10,
-    `Calculate Tile Arithmetic Intensity: ${intensity.toFixed(2)} FLOP/byte`,
-    `Tile SRAM buffering yields arithmetic intensity of ${intensity.toFixed(
-      2,
-    )} FLOPs per byte transferred from HBM.`,
+    8,
+    `Compute hbm_read_bytes = ${hbmReadBytes} (${(hbmReadBytes / 1024).toFixed(1)} KB)`,
+    `hbm_read_bytes = ${totalTileSteps} iterations × (${tileM}×${tileK} + ${tileK}×${tileN}) × 2 bytes (FP16) = ${hbmReadBytes} bytes. This is memory loaded from HBM (off-chip) to SRAM per tile.`,
+    { totalTileSteps, hbmReadBytes },
+    elements.map((el) => ({ ...el, state: "sorted" })),
+    { hbmReadKb: (hbmReadBytes / 1024).toFixed(1) },
+  );
+
+  addStep(
+    11,
+    `Compute arithmetic_intensity = ${intensity.toFixed(4)} FLOP/byte`,
+    `arithmetic_intensity = ${flopCount} FLOPs / ${hbmReadBytes} bytes = ${intensity.toFixed(4)} FLOP/byte. Higher intensity = better GPU utilization (roofline model).`,
     { arithmetic_intensity: Number(intensity.toFixed(4)), total_tiles: totalTileSteps },
     elements.map((el) => ({ ...el, state: "sorted", pointers: ["TILED GEMM DONE"] })),
-    {
-      arithmetic_intensity: intensity.toFixed(4),
-      total_tiles: totalTileSteps,
-    },
+    { arithmetic_intensity: intensity.toFixed(4), total_tiles: totalTileSteps },
+  );
+
+  addStep(
+    13,
+    `return {grid_dim, k_iterations, total_tiles, flop_count, arithmetic_intensity}`,
+    `Returning complete GEMM tiling configuration: ${numTilesM}×${numTilesN} grid, ${numTilesK} K-iterations, ${intensity.toFixed(2)} FLOP/byte intensity.`,
+    { arithmetic_intensity: Number(intensity.toFixed(4)), total_tiles: totalTileSteps, numTilesM, numTilesN, numTilesK },
+    elements.map((el) => ({ ...el, state: "sorted", pointers: ["TILED GEMM DONE"] })),
+    { result: "complete" },
   );
 
   return steps;
