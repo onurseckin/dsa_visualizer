@@ -94,8 +94,8 @@ export const generateDecisionTreeGiniSplitSteps = (
 
   if (n < 2 || n !== labels.length) {
     addStep(
-      3,
-      "Invalid input arrays",
+      2,
+      "Invalid input arrays — early return",
       "Feature values and labels must contain at least 2 matching length elements to perform split.",
       [],
       null,
@@ -111,14 +111,47 @@ export const generateDecisionTreeGiniSplitSteps = (
     .sort((a, b) => a.val - b.val);
 
   addStep(
+    1,
+    `Initialize Gini Best-Split Search (n=${n} samples)`,
+    `Scanning all threshold midpoints between adjacent feature values to find the split minimizing weighted Gini impurity.`,
+    pairs,
+    null,
+    null,
+    1.0,
+    { n, numFeatures: featureValues.length },
+  );
+
+  addStep(
     13,
     "Sort feature values and pair with labels",
-    `Sorted data points: ${pairs.map((p) => `(${p.val}, y=${p.label})`).join(", ")}.`,
+    `sorted_pairs = sorted(zip(feature_values, labels), key=lambda x: x[0]). Sorted: ${pairs.map((p) => `(${p.val}, y=${p.label})`).join(", ")}.`,
     pairs,
     null,
     null,
     1.0,
     { n },
+  );
+
+  addStep(
+    14,
+    `Initialize best_thresh = -1.0, best_gini = 1.0`,
+    `Starting with worst possible Gini impurity (1.0). Will update when a better split threshold is found.`,
+    pairs,
+    null,
+    null,
+    1.0,
+    { best_thresh: -1.0, best_gini: 1.0 },
+  );
+
+  addStep(
+    17,
+    `Begin split scan: for i in range(${n - 1}) (${n - 1} threshold candidates)`,
+    `Evaluating midpoint threshold between each adjacent pair of sorted feature values.`,
+    pairs,
+    null,
+    null,
+    1.0,
+    { n, candidates: n - 1 },
   );
 
   const calcGini = (subLabels: number[]): number => {
@@ -148,11 +181,9 @@ export const generateDecisionTreeGiniSplitSteps = (
     }
 
     addStep(
-      21,
+      22,
       `Evaluate threshold ${thresh}: Weighted Gini = ${weightedGini.toFixed(4)}`,
-      `Left split (${left.length} items, Gini=${giniL.toFixed(3)}), Right split (${
-        right.length
-      } items, Gini=${giniR.toFixed(3)}). ${isNewBest ? "NEW BEST SPLIT!" : ""}`,
+      `w_gini = (${left.length}/${n})*${giniL.toFixed(3)} + (${right.length}/${n})*${giniR.toFixed(3)} = ${weightedGini.toFixed(4)}. ${isNewBest ? "NEW BEST SPLIT!" : ""}`,
       pairs,
       thresh,
       bestThresh,
@@ -169,13 +200,24 @@ export const generateDecisionTreeGiniSplitSteps = (
 
   addStep(
     25,
-    `Optimal Decision Tree Split Found: Threshold = ${bestThresh}, Gini = ${bestGini.toFixed(4)}`,
+    `best_thresh = ${bestThresh} — Optimal Decision Tree Split Found (Gini = ${bestGini.toFixed(4)})`,
     `Optimal feature threshold ${bestThresh} minimizes impurity across dataset splits.`,
     pairs,
     bestThresh,
     bestThresh,
     bestGini,
     { bestThresh, bestGini, complete: true },
+  );
+
+  addStep(
+    27,
+    `return (${bestThresh}, ${bestGini.toFixed(4)})`,
+    `Returning the best split threshold and its corresponding weighted Gini impurity.`,
+    pairs,
+    bestThresh,
+    bestThresh,
+    bestGini,
+    { bestThresh, bestGini: bestGini.toFixed(4) },
   );
 
   return steps;
