@@ -32,7 +32,7 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
 
   return (
     <Collapsible
-      className="w-full min-w-0 border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden shadow-sm"
+      className="w-full min-w-0 border border-[var(--border-subtle)] rounded-[var(--radius-lg)] overflow-hidden shadow-sm"
       title={group.label}
       meta={
         <div className="flex items-center gap-2">
