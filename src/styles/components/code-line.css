@@ -1,0 +1,19 @@
+/* Code viewer rows. Transparent left border keeps text from shifting
+   when a row becomes active. */
+.ui-code-line {
+  display: block;
+  padding: var(--space-1) var(--space-3);
+  border-left: 2px solid transparent;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre;
+}
+
+.ui-code-line--active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 400;
+}
