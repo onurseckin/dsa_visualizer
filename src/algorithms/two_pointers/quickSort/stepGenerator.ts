@@ -102,6 +102,13 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     workingElements[high].pointers = ["pivot"];
 
     addStep(
+      7,
+      `Enter partition([${low}..${high}])`,
+      `The partition helper takes over: it picks a pivot and rearranges the slice so everything ≤ pivot is on the left and everything > pivot is on the right.`,
+      { low, high },
+    );
+
+    addStep(
       8,
       `Pick the pivot ${pivotVal}`,
       `We take the rightmost element, ${pivotVal}, as our yardstick — every other value in this slice will be judged as either "at most ${pivotVal}" or "bigger".`,
@@ -122,6 +129,14 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       workingElements[j].pointers = ["j"];
 
       const currentVal = workingElements[j].value;
+
+      addStep(
+        10,
+        `for j = ${j}: scan element ${workingElements[j].value}`,
+        `The for loop scans each position from ${low} to ${high - 1}, comparing every element against the pivot to decide which side it belongs on.`,
+        { low, high, i, j, pivot: pivotVal },
+      );
+
       addStep(
         11,
         `Compare ${currentVal} with pivot ${pivotVal}`,

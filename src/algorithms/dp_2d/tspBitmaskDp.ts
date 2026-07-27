@@ -125,6 +125,18 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: `Define INF = float('inf') as sentinel for unreachable states`,
+      why: "Using infinity as the DP table's initial value cleanly represents \"not yet computed\" and lets us take min() without special-casing.",
+    },
+    primarySnapshot: createSnapshot(0),
+    auxiliaryState: { customState: { INF: "inf" } },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
       what: `Calculate number of bitmask subsets num_masks = 2^${n} = ${numMasks}`,
@@ -199,7 +211,32 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         variables: { u, mask, reachable: dp[mask][u] !== INF },
       });
 
-      if (dp[mask][u] === INF) continue;
+      if (dp[mask][u] === INF) {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 11,
+          explanation: {
+            what: `Skip: dp[${mask.toString(2)}][${u}] is unreachable`,
+            why: `No path visits subset ${mask.toString(2)} and ends at city ${u}, so there's nothing to extend from. We continue to the next state.`,
+          },
+          primarySnapshot: createSnapshot(u),
+          auxiliaryState: { customState: { u, mask: mask.toString(2), unreachable: true } },
+          variables: { u, mask, reachable: false },
+        });
+        continue;
+      }
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 12,
+        explanation: {
+          what: `Inner loop: try extending to each city v from city ${u}`,
+          why: `City ${u} is reachable in subset ${mask.toString(2)}. We now try every unvisited city as the next destination.`,
+        },
+        primarySnapshot: createSnapshot(u),
+        auxiliaryState: { customState: { u, mask: mask.toString(2), reachable: true } },
+        variables: { u, mask, n },
+      });
 
       for (let v = 0; v < n; v++) {
         const unvisited = !(mask & (1 << v));
@@ -287,6 +324,18 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: "Initialize ans = INF to track minimum complete tour cost",
+      why: "We search for the best Hamiltonian cycle cost among all last-city choices. Starting at infinity ensures the first valid candidate wins.",
+    },
+    primarySnapshot: createSnapshot(0),
+    auxiliaryState: { customState: { ans: "INF", fullMask: fullMask.toString(2) } },
+    variables: { ans: "INF", fullMask },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 19,
     explanation: {
       what: "Sweep last visited cities u to calculate complete return tour back to City 0",
@@ -298,6 +347,20 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
   });
 
   for (let u = 1; u < n; u++) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 20,
+      explanation: {
+        what: `Check return edge from city ${u} to city 0`,
+        why: dist[u][0] !== INF && dp[fullMask][u] !== INF
+          ? `Both the return edge (dist[${u}][0] = ${dist[u][0]}) and the path dp[full][${u}] = ${dp[fullMask][u]} are finite — this is a valid complete tour.`
+          : `Either the return edge or the path to city ${u} is infinite — skip this ending city.`,
+      },
+      primarySnapshot: createSnapshot(u, 0),
+      auxiliaryState: { customState: { u, returnEdge: dist[u][0], pathCost: dp[fullMask][u] } },
+      variables: { u, validReturn: dist[u][0] !== INF && dp[fullMask][u] !== INF },
+    });
+
     if (dist[u][0] !== INF && dp[fullMask][u] !== INF) {
       const totalCost = dp[fullMask][u] + dist[u][0];
       steps.push({

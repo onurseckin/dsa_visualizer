@@ -115,6 +115,18 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 5,
+    explanation: {
+      what: `Loop over rows 0..${m} to set base column  dp[i][0] = i`,
+      why: "Transforming word1 prefix of length i into an empty string always costs exactly i deletions, so the first column fills with 0, 1, 2, … m.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { customState: { baseCol: "dp[i][0] = i for i in 0..m" } },
+    variables: { m },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 6,
     explanation: {
       what: `Initialize base column dp[i][0] = i for i = 0..${m}`,
@@ -123,6 +135,18 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
     primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
     auxiliaryState: { customState: { baseColInitialized: true } },
     variables: { m },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Loop over columns 0..${n} to set base row  dp[0][j] = j`,
+      why: "Transforming an empty string into word2 prefix of length j costs exactly j insertions.",
+    },
+    primarySnapshot: createGridSnapshot(undefined, [], [0, 0]),
+    auxiliaryState: { customState: { baseRow: "dp[0][j] = j for j in 0..n" } },
+    variables: { n },
   });
 
   steps.push({
@@ -207,6 +231,18 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
         let bestOpName = "Replace";
         if (minPrev === deleteOp) bestOpName = "Delete";
         else if (minPrev === insertOp) bestOpName = "Insert";
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 14,
+          explanation: {
+            what: `Characters mismatch: '${char1}' ≠ '${char2}'`,
+            why: "The characters differ, so we must pay a cost of 1 and take the best of the three edit operations: delete, insert, or replace.",
+          },
+          primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
+          auxiliaryState: { customState: { i, j, char1, char2, match: false } },
+          variables: { i, j, char1, char2, match: false },
+        });
 
         steps.push({
           stepIndex: stepIndex++,
