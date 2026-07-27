@@ -21,14 +21,14 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   onSelectAlgorithm,
 }) => {
   const sortableHeader = (label: string, field: ProblemListSortField) => (
-    <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)]">
+    <th className="px-6 py-5 bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--border-default)]">
       <Button
         size="sm"
         selected={sortBy === field}
         icon={<ArrowUpDown />}
         onClick={() => onToggleSort(field)}
         aria-label={`Sort by ${label.toLowerCase()}`}
-        className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)]"
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)]"
       >
         {label}
       </Button>
@@ -44,19 +44,19 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
         <table className="w-full border-collapse text-left">
           <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
             <tr className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
-              <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)] w-[60px]">
+              <th className="px-6 py-5 bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--border-default)] w-[60px]">
                 #
               </th>
               {sortableHeader("Problem title", "title")}
               {sortableHeader("Topic / category", "category")}
               {sortableHeader("Difficulty", "difficulty")}
-              <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)]">
+              <th className="px-6 py-5 bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--border-default)]">
                 Time complexity
               </th>
-              <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)]">
+              <th className="px-6 py-5 bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--border-default)]">
                 Space complexity
               </th>
-              <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)] text-center">
+              <th className="px-6 py-5 bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--border-default)] text-center">
                 Action
               </th>
             </tr>
@@ -88,7 +88,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                         onSelectAlgorithm(alg.id, alg.category);
                       }
                     }}
-                    className="hover:bg-[var(--bg-hover)] transition-colors cursor-pointer outline-none focus:bg-[var(--bg-hover)] focus:outline-2 focus:-outline-offset-2 focus:outline-[var(--border-accent)]"
+                    className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer outline-none focus:bg-[var(--bg-hover)] focus:outline-2 focus:-outline-offset-2 focus:outline-[var(--border-accent)]"
                   >
                     <td className="px-6 py-4 w-[60px] font-mono text-sm text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                       {index + 1}
@@ -115,12 +115,17 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                     </td>
                     <td className="px-6 py-4 text-sm text-[var(--text-primary)] border-b border-[var(--border-subtle)]">
                       {alg.difficulty && (
-                        <Badge
-                          variant={difficultyBadgeVariant(alg.difficulty)}
-                          className="px-3 py-1 text-xs rounded-full border border-[var(--border-subtle)]"
+                        <span
+                          className={`px-3 py-1 text-xs rounded-full border font-medium ${
+                            alg.difficulty === "Easy"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : alg.difficulty === "Medium"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                          }`}
                         >
                           {alg.difficulty}
-                        </Badge>
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-[var(--text-primary)] border-b border-[var(--border-subtle)] font-mono text-[var(--text-secondary)]">

@@ -82,10 +82,10 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
 
   return (
     <div
-      className={`py-2 px-3 my-1 border border-dashed rounded-[var(--radius-sm)] flex items-center justify-between transition-all duration-200 ${
+      className={`py-2 px-3 my-1 border border-[var(--border-default)] rounded-[var(--radius-sm)] flex items-center justify-between transition-all duration-200 hover:border-[var(--accent)] hover:shadow-sm ${
         isDragOver
-          ? "bg-[var(--bg-hover)] border-[var(--accent)] scale-[1.01] shadow-sm z-10 relative"
-          : "border-transparent"
+          ? "bg-[var(--bg-hover)] !border-[var(--accent)] scale-[1.01] shadow-md z-10 relative"
+          : ""
       }`}
       data-testid={`blank-row-${number}`}
       ref={(el) => {

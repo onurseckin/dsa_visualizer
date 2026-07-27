@@ -120,7 +120,7 @@ export function CodePuzzle({
         </>
       }
       style={{ borderColor: "var(--border-default)", minWidth: 0 }}
-      className="p-6 md:p-8 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm font-mono text-sm leading-relaxed"
+      className="border border-[var(--border-default)] rounded-2xl p-8 bg-[var(--bg-inset)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed"
     >
       <div
         data-testid="code-puzzle-well"

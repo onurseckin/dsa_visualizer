@@ -29,7 +29,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   stats,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mb-6">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl mb-8">
       <div className="flex-1 min-w-[240px]">
         <Input
           value={searchTerm}

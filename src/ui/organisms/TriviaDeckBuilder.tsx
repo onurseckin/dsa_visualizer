@@ -78,7 +78,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
   };
 
   return (
-    <Card className="p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm flex flex-col w-full">
+    <Card className="border border-[var(--border-default)] rounded-2xl p-8 bg-[var(--bg-surface)] shadow-lg hover:border-[var(--accent)] transition-all flex flex-col w-full">
       <PageHeader
         title={
           <div className="flex items-center gap-2">
