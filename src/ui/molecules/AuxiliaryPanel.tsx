@@ -1,6 +1,5 @@
 import React from "react";
-import { X } from "lucide-react";
-import { Chip, IconButton, Card } from "../../ui";
+import { Chip, Card } from "../../ui";
 import { AuxiliaryState } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
@@ -33,7 +32,7 @@ export function hasAuxiliaryContent(
   );
 }
 
-export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables, onClose }) => {
+export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables }) => {
   const { stack, queue, visited, hashMap, distanceTable, customState } = state || {};
 
   const stackItems = stack || [];
@@ -139,21 +138,6 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
 
   return (
     <Card data-testid="auxiliary-panel" className="min-w-0 border-[#1e1e24] bg-[#0a0a0c]">
-      <Card.Header
-        title="Working Data & Variables"
-        actions={
-          onClose ? (
-            <IconButton
-              icon={<X />}
-              size="sm"
-              aria-label="Hide auxiliary panel"
-              title="Hide auxiliary panel"
-              onClick={onClose}
-            />
-          ) : undefined
-        }
-        className="px-4 py-3 border-b border-[#1e1e24]"
-      />
       <Card.Body className="flex flex-col gap-4 px-2 py-4">
         {groups.map((group) => (
           <div

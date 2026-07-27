@@ -21,11 +21,11 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — page is carbon, cards are darker than the page, wells deepest. */
-  --bg-inset: #08080a;
-  --bg-surface: #141418;
-  --bg-page: #0c0c0e;
-  --bg-chrome: #1c1c21;
+  /* Surfaces — page is carbon (#17171b), cards are near-black (#0a0a0c), wells deepest (#050506). */
+  --bg-page: #17171b;
+  --bg-surface: #0a0a0c;
+  --bg-inset: #050506;
+  --bg-chrome: #141418;
   --bg-elevated: #1e1e24;
   --bg-hover: #282830;
   --bg-pressed: #32323b;
@@ -33,18 +33,18 @@
 
   /* Borders carry the edge definition on near-black cards. */
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.08);
+  --border-default: #1e1e24;
   --border-strong: #75757f;
   --border-accent: #d8d8e0;
 
   /* Accent — light smoke for selection, emphasis text and active borders.
      Primary buttons stay BLACK-backed (see .ui-btn--primary in ui.css); this
      token is the ink and edge on them, not their fill. */
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-soft: rgba(216, 216, 224, 0.1);
-  --accent-softer: rgba(216, 216, 224, 0.05);
-  --text-on-accent: #f5f5f7;
+  --accent: #e2e2e8;
+  --accent-hover: #ffffff;
+  --accent-soft: rgba(255, 255, 255, 0.1);
+  --accent-softer: rgba(255, 255, 255, 0.05);
+  --text-on-accent: #050506;
   --accent-secondary: #b9b9c2;
 
   /* Text */

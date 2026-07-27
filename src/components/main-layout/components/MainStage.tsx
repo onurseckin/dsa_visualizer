@@ -29,8 +29,8 @@ export const MainStage: React.FC<MainStageProps> = ({
   algorithm,
   currentStep,
   panels,
-  onToggleTutorial,
-  onToggleAuxiliary,
+  onToggleTutorial: _onToggleTutorial,
+  onToggleAuxiliary: _onToggleAuxiliary,
   resolvedControlProps,
   layoutState,
   totalSteps,
@@ -55,7 +55,6 @@ export const MainStage: React.FC<MainStageProps> = ({
               why={currentStep.explanation.why}
               stepIndex={currentStep.stepIndex}
               totalSteps={totalSteps}
-              onClose={onToggleTutorial}
             />
           </div>
         ) : null,
@@ -71,7 +70,6 @@ export const MainStage: React.FC<MainStageProps> = ({
           <AuxiliaryPanel
             state={currentStep?.auxiliaryState}
             variables={currentStep?.variables}
-            onClose={onToggleAuxiliary}
           />
         </div>
       ),

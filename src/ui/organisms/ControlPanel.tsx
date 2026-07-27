@@ -74,7 +74,7 @@ export function ControlPanel({
         />
         <Button
           variant={isPlaying ? "secondary" : "primary"}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-[0_0_20px_rgba(99,102,241,0.35)] flex items-center gap-2 transition-shadow"
+          className="bg-[#050506] hover:bg-[#181820] text-white border border-[#444] px-6 py-3 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 transition-all"
           aria-label={isPlaying ? "Pause playback" : "Play all steps"}
           aria-keyshortcuts="Space"
           title={`${isPlaying ? "Pause" : "Play"} (Space)`}

@@ -126,7 +126,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                     </td>
                     <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 text-center">
                       <button
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 mx-auto cursor-pointer border-none"
+                        className="bg-[#050506] hover:bg-[#181820] text-white border border-[#444] px-4 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 mx-auto cursor-pointer transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectAlgorithm(alg.id, alg.category);
