@@ -22,7 +22,7 @@ const seed = (value: TestPayload): void => {
 };
 
 const customLayout: TriviaLayout = {
-  version: 3,
+  version: 5,
   puzzleSplitPercent: 55,
   panelHeights: {
     sessionList: null,
@@ -30,6 +30,7 @@ const customLayout: TriviaLayout = {
     settings: null,
     problem: 140,
     puzzle: null,
+    tiles: null,
   },
   problemExpanded: true,
   problemSplitPercent: 45,
@@ -37,6 +38,7 @@ const customLayout: TriviaLayout = {
     problem: true,
     puzzle: true,
     tiles: true,
+    lineInfo: true,
   },
 };
 

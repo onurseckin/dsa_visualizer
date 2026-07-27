@@ -138,7 +138,12 @@ describe("pickRound algorithm & line selection, tile generation", () => {
 
   it("returns tiles only in choice mode", () => {
     const sources = sourcesOf({ alpha: LONG_CODE });
-    const choice = configOf({ minBlanks: 2, maxBlanks: 2, mode: "choice", includeDistractors: true });
+    const choice = configOf({
+      minBlanks: 2,
+      maxBlanks: 2,
+      mode: "choice",
+      includeDistractors: true,
+    });
     const type = configOf({ minBlanks: 2, maxBlanks: 2, mode: "type" });
 
     const choiceRound = requireRound(

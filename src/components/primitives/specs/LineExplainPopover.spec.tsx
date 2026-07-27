@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { LineExplainPopover, useHoveredCodeLine } from "../LineExplainPopover";
 
 const ZERO_RECT: DOMRect = {
@@ -14,7 +13,6 @@ const ZERO_RECT: DOMRect = {
   height: 20,
   toJSON: () => ({}),
 };
-
 
 describe("LineExplainPopover Component Spec", () => {
   it("renders the explanation with a line-number header and a side-appropriate connector", () => {
@@ -134,7 +132,6 @@ describe("useHoveredCodeLine hook Spec", () => {
     fireEvent.mouseLeave(screen.getByTestId("row-1"));
     expect(screen.getByTestId("hovered")).toHaveTextContent("line-2");
   });
-
 
   it("tears the hover down on scroll instead of repositioning it", () => {
     render(<HoverHarness />);

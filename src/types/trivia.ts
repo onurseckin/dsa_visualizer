@@ -111,4 +111,6 @@ export interface TriviaSessionRecord {
   progress: TriviaProgress;
   /** Which screen Resume returns to. Set on every exit, not just on entry. */
   lastScreen: TriviaScreen;
+  /** The active in-progress round so refresh or navigation preserves exact hidden line state. */
+  activeRound?: TriviaRound | null;
 }

@@ -85,9 +85,7 @@ export const pickRound = ({
 
   /* Algorithms with at least one blankable line are eligible. If level exceeds
      the algorithm's blankable count, all lines will be hidden at that level. */
-  const eligible = [...sources.entries()].filter(
-    ([, lines]) => blankableLines(lines).length > 0,
-  );
+  const eligible = [...sources.entries()].filter(([, lines]) => blankableLines(lines).length > 0);
   if (eligible.length === 0) return null;
 
   const uncovered = eligible.filter(
@@ -121,13 +119,7 @@ export const pickRound = ({
     blanks,
     tiles:
       normalized.mode === "choice"
-        ? buildTiles(
-            lines,
-            blanks,
-            meta?.get(algorithmId),
-            normalized.includeDistractors,
-            rng,
-          )
+        ? buildTiles(lines, blanks, meta?.get(algorithmId), normalized.includeDistractors, rng)
         : [],
   };
 };

@@ -57,14 +57,19 @@ export function readTriviaSessions(): TriviaSessionRecord[] {
   }
 }
 
+import { syncKeyToSqlite } from "../app/sqliteSync";
+
 export function writeTriviaSessions(sessions: TriviaSessionRecord[]): void {
   const storage = getStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(TRIVIA_SESSIONS_KEY, JSON.stringify(sessions));
-  } catch {
-    // Best effort write
+  const value = JSON.stringify(sessions);
+  if (storage) {
+    try {
+      storage.setItem(TRIVIA_SESSIONS_KEY, value);
+    } catch {
+      // Best effort write
+    }
   }
+  void syncKeyToSqlite(TRIVIA_SESSIONS_KEY, value);
 }
 
 export function readActiveSessionId(): string | null {
@@ -79,16 +84,18 @@ export function readActiveSessionId(): string | null {
 
 export function writeActiveSessionId(id: string | null): void {
   const storage = getStorage();
-  if (!storage) return;
-  try {
-    if (id === null) {
-      storage.removeItem(TRIVIA_ACTIVE_SESSION_KEY);
-    } else {
-      storage.setItem(TRIVIA_ACTIVE_SESSION_KEY, id);
+  if (storage) {
+    try {
+      if (id === null) {
+        storage.removeItem(TRIVIA_ACTIVE_SESSION_KEY);
+      } else {
+        storage.setItem(TRIVIA_ACTIVE_SESSION_KEY, id);
+      }
+    } catch {
+      // Best effort write
     }
-  } catch {
-    // Best effort write
   }
+  void syncKeyToSqlite(TRIVIA_ACTIVE_SESSION_KEY, id);
 }
 
 export function createSession(

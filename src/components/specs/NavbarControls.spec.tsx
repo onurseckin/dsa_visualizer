@@ -201,10 +201,10 @@ describe("NavbarControls Component Spec", () => {
       expect(onSetAppView).not.toHaveBeenCalled();
     });
 
-    it("hides the workspace-only reset action in trivia view but keeps search", () => {
+    it("shows the reset action and search in trivia view", () => {
       render(<Navbar {...makeProps({ appView: "trivia" })} />);
 
-      expect(screen.queryByRole("button", { name: "Reset layout" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reset layout" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Search algorithms/i })).toBeInTheDocument();
     });
   });

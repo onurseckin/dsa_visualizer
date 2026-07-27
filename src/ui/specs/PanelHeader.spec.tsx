@@ -31,4 +31,16 @@ describe("PanelHeader render spec", () => {
     const header = screen.getByTestId("header-container");
     expect(header).toHaveClass("ui-panel-header", "my-header");
   });
+
+  it("renders asChild when specified", () => {
+    render(
+      <PanelHeader asChild data-testid="as-child-header">
+        <header className="custom-wrapper">Wrapped Content</header>
+      </PanelHeader>,
+    );
+    const header = screen.getByTestId("as-child-header");
+    expect(header.tagName).toBe("HEADER");
+    expect(header).toHaveClass("ui-panel-header", "custom-wrapper");
+    expect(header).toHaveTextContent("Wrapped Content");
+  });
 });

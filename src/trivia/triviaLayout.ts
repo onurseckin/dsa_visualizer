@@ -254,6 +254,8 @@ export function readTriviaLayout(): TriviaLayout {
 }
 
 /** Merges the patch onto whatever is stored, clamps it, writes best-effort, returns the result. */
+import { syncKeyToSqlite } from "../app/sqliteSync";
+
 export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
   const current = readTriviaLayout();
 
@@ -284,13 +286,15 @@ export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
   };
 
   const storage = getStorage();
+  const value = JSON.stringify(merged);
   if (storage) {
     try {
-      storage.setItem(TRIVIA_LAYOUT_KEY, JSON.stringify(merged));
+      storage.setItem(TRIVIA_LAYOUT_KEY, value);
     } catch {
       // Storage full or blocked: the in-memory layout still applies this session.
     }
   }
+  void syncKeyToSqlite(TRIVIA_LAYOUT_KEY, value);
 
   return merged;
 }
@@ -298,12 +302,14 @@ export function writeTriviaLayout(patch: TriviaLayoutPatch): TriviaLayout {
 /** Only ever called from a confirmed "reset layout" action. */
 export function clearTriviaLayout(): void {
   const storage = getStorage();
-  if (!storage) return;
-  try {
-    storage.removeItem(TRIVIA_LAYOUT_KEY);
-  } catch {
-    // Nothing to recover from — the caller restores defaults in memory anyway.
+  if (storage) {
+    try {
+      storage.removeItem(TRIVIA_LAYOUT_KEY);
+    } catch {
+      // Nothing to recover from — the caller restores defaults in memory anyway.
+    }
   }
+  void syncKeyToSqlite(TRIVIA_LAYOUT_KEY, null);
 }
 
 /**

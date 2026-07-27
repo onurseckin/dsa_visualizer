@@ -123,7 +123,6 @@ export function TriviaSession({
 
       <TriviaSessionFooter
         grade={session.grade}
-        filledCount={Object.keys(session.filledAnswers).length}
         totalBlanks={round.blanks.length}
         correctCount={session.correctCount}
         allFilled={session.allFilled}

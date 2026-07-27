@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TriviaSessionStage } from "../components/TriviaSessionStage";
 import type { TriviaRound } from "../../../types/trivia";
@@ -96,5 +96,4 @@ describe("TriviaSessionStage component", () => {
       screen.queryByRole("separator", { name: "Resize puzzle and tiles columns" }),
     ).not.toBeInTheDocument();
   });
-
 });

@@ -17,6 +17,8 @@ import {
 import { CategoryType, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
 import { Button, ButtonGroup, ConfirmDialog, Segmented } from "../index";
 import { resetWorkspaceLayout } from "../../app/workspaceLayout";
+import { resetTriviaLayout } from "../../trivia/triviaLayout";
+import { resetSqliteLayouts } from "../../app/sqliteSync";
 import { isDialogOpen, isTypingTarget } from "../../app/keyboardGuards";
 import { useSearchStore } from "../../app/useSearchStore";
 import { SearchTrigger } from "../molecules/SearchTrigger";
@@ -107,6 +109,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleConfirmReset = () => {
     resetWorkspaceLayout();
+    resetTriviaLayout();
+    void resetSqliteLayouts();
     setIsResetDialogOpen(false);
   };
 
@@ -153,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
         </ButtonGroup>
 
-        {appView === "workspace" && (
+        {(appView === "workspace" || appView === "trivia") && (
           <>
             <span aria-hidden="true" className="w-px h-4 bg-[var(--border-subtle)] shrink-0" />
             <Button

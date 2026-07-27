@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { Lightbulb } from "lucide-react";
-import { IconButton } from "../../ui";
-
 
 export interface HoveredLine {
   line: number;
