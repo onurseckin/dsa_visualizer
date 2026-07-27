@@ -281,12 +281,12 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
 export const smoothquantScaling: AlgorithmDefinition<SmoothquantInput> = {
   id: "smoothquant-scaling",
   title: "SmoothQuant Activation Scaling Matrix",
-  category: "ml_graph_compilers",
+  category: "ml_precision_quantization",
   difficulty: "Hard",
   description:
     "Mathematically shifts quantization difficulty from activation outliers to weight matrices via a per-channel diagonal scale factor s, enabling 8-bit integer (INT8) quantization for large language models.",
   isMlInfra: true,
-  mlInfraLevel: 8,
+  mlInfraLevel: 3,
   constraints: [
     "Migration hyperparameter alpha in [0.0, 1.0]",
     "Activations non-empty [numTokens x channels]",
@@ -333,7 +333,7 @@ export const smoothquantScaling: AlgorithmDefinition<SmoothquantInput> = {
       },
     ],
   },
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_SMOOTHQUANT_INPUT,
   generateSteps: generateSmoothquantSteps,
 };

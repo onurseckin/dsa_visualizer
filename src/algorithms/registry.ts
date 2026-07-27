@@ -89,15 +89,26 @@ import { hamiltonianPathDp } from "./backtracking/hamiltonianPathDp";
 import { generatingSubsets } from "./backtracking/generatingSubsets";
 
 import { tensorStrideOffset } from "./ml_infra/tensorStrideOffset";
+import { tensorContiguityReshape } from "./ml_infra/tensorContiguityReshape";
+import { sramGemmTiling } from "./ml_infra/sramGemmTiling";
+import { rooflineIntensityClassifier } from "./ml_infra/rooflineIntensityClassifier";
 import { autogradVjpDag } from "./ml_infra/autogradVjpDag";
+import { activationCheckpointing } from "./ml_infra/activationCheckpointing";
 import { fusedSoftmaxLse } from "./ml_infra/fusedSoftmaxLse";
+import { affineQuantizationSq8 } from "./ml_infra/affineQuantizationSq8";
 import { hnswVectorSearch } from "./ml_infra/hnswVectorSearch";
 import { bpeTokenizer } from "./ml_infra/bpeTokenizer";
 import { im2colConvTiling } from "./ml_infra/im2colConvTiling";
+import { ropeRotaryPosition } from "./ml_infra/ropeRotaryPosition";
+import { groupedQueryAttention } from "./ml_infra/groupedQueryAttention";
 import { flashAttentionTiling } from "./ml_infra/flashAttentionTiling";
-import { smoothquantScaling } from "./ml_infra/smoothquantScaling";
+import { tritonKernelFusion } from "./ml_infra/tritonKernelFusion";
 import { ringAllreducePartition } from "./ml_infra/ringAllreducePartition";
+import { megatronTpSpSplit } from "./ml_infra/megatronTpSpSplit";
+import { deepspeedZeroSharding } from "./ml_infra/deepspeedZeroSharding";
+import { pagedAttentionBlockTable } from "./ml_infra/pagedAttentionBlockTable";
 import { continuousBatchingScheduler } from "./ml_infra/continuousBatchingScheduler";
+import { speculativeDecodingVerifier } from "./ml_infra/speculativeDecodingVerifier";
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "prefix-sum": prefixSum as AlgorithmDefinition,
@@ -190,15 +201,26 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "generating-subsets": generatingSubsets as AlgorithmDefinition,
   // ML Infra Algorithms
   "tensor-stride-offset": tensorStrideOffset as AlgorithmDefinition,
+  "tensor-contiguity-reshape": tensorContiguityReshape as AlgorithmDefinition,
+  "sram-gemm-tiling": sramGemmTiling as AlgorithmDefinition,
+  "roofline-intensity-classifier": rooflineIntensityClassifier as AlgorithmDefinition,
   "autograd-vjp-dag": autogradVjpDag as AlgorithmDefinition,
+  "activation-checkpointing": activationCheckpointing as AlgorithmDefinition,
   "fused-softmax-lse": fusedSoftmaxLse as AlgorithmDefinition,
+  "affine-quantization-sq8": affineQuantizationSq8 as AlgorithmDefinition,
   "hnsw-vector-search": hnswVectorSearch as AlgorithmDefinition,
   "bpe-tokenizer": bpeTokenizer as AlgorithmDefinition,
   "im2col-conv-tiling": im2colConvTiling as AlgorithmDefinition,
+  "rope-rotary-position": ropeRotaryPosition as AlgorithmDefinition,
+  "grouped-query-attention": groupedQueryAttention as AlgorithmDefinition,
   "flash-attention-tiling": flashAttentionTiling as AlgorithmDefinition,
-  "smoothquant-scaling": smoothquantScaling as AlgorithmDefinition,
+  "triton-kernel-fusion": tritonKernelFusion as AlgorithmDefinition,
   "ring-allreduce-partition": ringAllreducePartition as AlgorithmDefinition,
+  "megatron-tp-sp-split": megatronTpSpSplit as AlgorithmDefinition,
+  "deepspeed-zero-sharding": deepspeedZeroSharding as AlgorithmDefinition,
+  "paged-attention-block-table": pagedAttentionBlockTable as AlgorithmDefinition,
   "continuous-batching-scheduler": continuousBatchingScheduler as AlgorithmDefinition,
+  "speculative-decoding-verifier": speculativeDecodingVerifier as AlgorithmDefinition,
 };
 
 export const getAlgorithm = (id: string): AlgorithmDefinition | undefined => {

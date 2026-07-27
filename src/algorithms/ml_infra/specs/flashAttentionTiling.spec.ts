@@ -12,7 +12,7 @@ describe("flashAttentionTiling (Level 7 ML Infra)", () => {
     expect(flashAttentionTiling.id).toBe("flash-attention-tiling");
     expect(flashAttentionTiling.isMlInfra).toBe(true);
     expect(flashAttentionTiling.mlInfraLevel).toBe(7);
-    expect(flashAttentionTiling.category).toBe("ml_attention_geometry");
+    expect(flashAttentionTiling.category).toBe("ml_hardware_kernels");
     expect(flashAttentionTiling.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" },
     ]);
