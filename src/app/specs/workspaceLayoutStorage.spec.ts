@@ -280,8 +280,7 @@ describe("workspaceLayout read, write, patch and clamping operations", () => {
   it("handles window being undefined in SSR environment", () => {
     const originalWindow = globalThis.window;
     try {
-      // @ts-expect-error overriding globalThis.window for SSR simulation
-      delete globalThis.window;
+      delete (globalThis as { window?: unknown }).window;
       expect(readWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
       expect(resetWorkspaceLayout()).toEqual(DEFAULT_WORKSPACE_LAYOUT);
     } finally {
