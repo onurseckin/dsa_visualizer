@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Search } from "lucide-react";
-import { Button } from "../Button";
+import { Button } from "../index";
 
 describe("Button", () => {
   it('renders a secondary md button by default with type="button"', () => {

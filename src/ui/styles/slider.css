@@ -1,0 +1,90 @@
+.ui-slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ui-slider__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ui-slider__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ui-slider__value {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.ui-slider.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-slider__root {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  margin: var(--space-1) 0;
+}
+
+.ui-slider__control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.ui-slider__track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-pressed);
+  border-radius: var(--radius-full);
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-slider__indicator {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+}
+
+.ui-slider__thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+/* Touch target area */
+.ui-slider__thumb::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.ui-slider__thumb:hover {
+  background: var(--accent-hover);
+}
+
+.ui-slider__root[data-disabled] .ui-slider__thumb {
+  cursor: not-allowed;
+}

@@ -1,8 +1,8 @@
 import React, { KeyboardEvent, MutableRefObject } from "react";
 import { Check, X } from "lucide-react";
-import { Button, Input } from "../../../ui";
+import { Input } from "../../../ui";
 import { TriviaGrade, TriviaMode } from "../../../types/trivia";
-import { highlightPythonLine } from "../../primitives/CodeBlockViewer";
+import { highlightPythonLine } from "../../../ui";
 import { MONO_INPUT, SLOT_SKIN, SlotState } from "../codePuzzleTypes";
 
 interface CodePuzzleSlotProps {
@@ -103,9 +103,9 @@ export const CodePuzzleSlot: React.FC<CodePuzzleSlotProps> = ({
   const edge = state === "empty" && hasSelection ? "var(--border-accent)" : skin.border;
 
   return (
-    <Button
-      size="sm"
-      className="code-slot-btn transition-all"
+    <button
+      type="button"
+      className="ui-btn ui-btn--secondary ui-btn--sm code-slot-btn transition-all"
       data-state={state}
       aria-label={slotLabel()}
       aria-pressed={filledText.length > 0}
@@ -152,6 +152,6 @@ export const CodePuzzleSlot: React.FC<CodePuzzleSlotProps> = ({
           {state === "correct" ? <Check size={14} /> : <X size={14} />}
         </span>
       ) : null}
-    </Button>
+    </button>
   );
 };

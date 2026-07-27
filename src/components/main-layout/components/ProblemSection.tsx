@@ -1,14 +1,14 @@
 import React from "react";
 import { AlgorithmDefinition } from "../../../types/dsa";
-import { ProblemDescriptionCard } from "../../primitives/ProblemDescriptionCard";
-import { DragHandle } from "../../ResizableLayout";
+import { ProblemDescriptionCard } from "../../../ui";
+import { DragHandle } from "../../../ui";
 
 interface ProblemSectionProps {
   algorithm: AlgorithmDefinition;
   problemExpanded: boolean;
   problemPinned: number | null;
   problemDragging: boolean;
-  problemRef: React.RefObject<HTMLDivElement>;
+  problemRef: React.RefObject<HTMLDivElement | null>;
   onToggleProblemExpanded: () => void;
   onSetProblemDragging: (dragging: boolean) => void;
   onNudgeProblem: (delta: number) => void;

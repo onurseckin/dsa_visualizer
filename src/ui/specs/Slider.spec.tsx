@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Slider } from "../Slider";
+import { Slider } from "../index";
 
 describe("Slider", () => {
   it("renders a range input wired to the label", () => {
@@ -61,8 +61,8 @@ describe("Slider", () => {
     const wrapper = container.querySelector(".ui-slider");
     expect(wrapper).toHaveClass("ui-slider", "my-slider");
     expect(wrapper).toHaveStyle({ margin: "10px" });
-    const input = screen.getByRole("slider");
-    expect(input).toHaveAttribute("id", "custom-slider-id");
+    const root = container.querySelector(".ui-slider__root");
+    expect(root).toHaveAttribute("id", "custom-slider-id");
     expect(container.querySelector(".ui-slider__header span")).toBeInTheDocument();
   });
 });

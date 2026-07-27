@@ -1,12 +1,14 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import {
-  KnowledgeGraph,
+  TopicFamily,
+  TopicRoadmapNode,
   TOPIC_FAMILIES,
   TOPIC_ROADMAP_NODES,
   topicFamilyColor,
   topicFamilyLabel,
-} from "../KnowledgeGraph";
+} from "../../components/knowledge-graph/knowledgeGraphData";
+import { KnowledgeGraph } from "../../ui";
 import { VIZ_SLOT_COUNT, vizSlotBg } from "../primitives/vizPalette";
 
 describe("KnowledgeGraph Component Spec", () => {
@@ -65,8 +67,8 @@ describe("KnowledgeGraph Component Spec", () => {
 
   it("contains all 21 topic roadmap nodes with valid properties and prerequisite structure", () => {
     expect(TOPIC_ROADMAP_NODES.length).toBe(21);
-    const familyIds = TOPIC_FAMILIES.map((family) => family.id);
-    TOPIC_ROADMAP_NODES.forEach((node) => {
+    const familyIds = TOPIC_FAMILIES.map((family: TopicFamily) => family.id);
+    TOPIC_ROADMAP_NODES.forEach((node: TopicRoadmapNode) => {
       expect(node.id).toBeDefined();
       expect(node.title).toBeDefined();
       expect(node.categoryFolder).toBeDefined();
@@ -81,11 +83,11 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("assigns every topic family a distinct viz slot in fixed order", () => {
-    expect(TOPIC_FAMILIES.map((family) => family.slot)).toEqual(
+    expect(TOPIC_FAMILIES.map((family: TopicFamily) => family.slot)).toEqual(
       Array.from({ length: VIZ_SLOT_COUNT }, (_, index) => index),
     );
 
-    const colors = TOPIC_FAMILIES.map((family) => topicFamilyColor(family.id));
+    const colors = TOPIC_FAMILIES.map((family: TopicFamily) => topicFamilyColor(family.id));
     expect(colors).toEqual([
       "var(--viz-1)",
       "var(--viz-2)",
@@ -101,8 +103,8 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("every family is actually used by at least one topic", () => {
-    const usedFamilies = new Set(TOPIC_ROADMAP_NODES.map((node) => node.family));
-    TOPIC_FAMILIES.forEach((family) => {
+    const usedFamilies = new Set(TOPIC_ROADMAP_NODES.map((node: TopicRoadmapNode) => node.family));
+    TOPIC_FAMILIES.forEach((family: TopicFamily) => {
       expect(usedFamilies.has(family.id)).toBe(true);
     });
   });
@@ -112,7 +114,7 @@ describe("KnowledgeGraph Component Spec", () => {
 
     const legend = screen.getByRole("list", { name: /Topic family colors/i });
     expect(legend).toBeInTheDocument();
-    TOPIC_FAMILIES.forEach((family) => {
+    TOPIC_FAMILIES.forEach((family: TopicFamily) => {
       expect(screen.getAllByText(family.label).length).toBeGreaterThan(0);
     });
 
@@ -128,7 +130,7 @@ describe("KnowledgeGraph Component Spec", () => {
       .getByRole("list", { name: /Topic family colors/i })
       .querySelectorAll<HTMLElement>('span[aria-hidden="true"]');
     expect(Array.from(swatches).map((swatch) => swatch.style.background)).toEqual(
-      TOPIC_FAMILIES.map((family) => topicFamilyColor(family.id)),
+      TOPIC_FAMILIES.map((family: TopicFamily) => topicFamilyColor(family.id)),
     );
   });
 

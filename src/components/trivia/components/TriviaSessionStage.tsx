@@ -1,5 +1,5 @@
 import React from "react";
-import { DragHandle, ResizableLayout } from "../../ResizableLayout";
+import { DragHandle, ResizableLayout } from "../../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../../types/trivia";
 import {
   MAX_PANEL_HEIGHT_PX,
@@ -7,8 +7,8 @@ import {
   MIN_PANEL_HEIGHT_PX,
   MIN_SPLIT_PERCENT,
 } from "../../../trivia/triviaLayout";
-import { CodePuzzle } from "../CodePuzzle";
-import { TileTray } from "../TileTray";
+import { CodePuzzle } from "../../../ui";
+import { TileTray } from "../../../ui";
 import { useTriviaSessionState } from "../hooks/useTriviaSessionState";
 
 export interface TriviaSessionStageProps {

@@ -1,7 +1,7 @@
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { MainLayout } from "../MainLayout";
+import { MainLayout } from "../../ui";
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
@@ -144,7 +144,7 @@ describe("MainLayoutHeaderExpanded Component Spec", () => {
     expect(main).toHaveAttribute("data-problem-expanded", "true");
     expect(main).toHaveAttribute("data-solution-expanded", "true");
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
 
     expect(main).toHaveAttribute("data-problem-expanded", "false");
     expect(main).toHaveAttribute("data-solution-expanded", "true");
@@ -157,10 +157,10 @@ describe("MainLayoutHeaderExpanded Component Spec", () => {
 
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
     expect(screen.queryByText(dummyAlgorithm.description)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
   });
 
@@ -169,19 +169,19 @@ describe("MainLayoutHeaderExpanded Component Spec", () => {
 
     expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Solution Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
     expect(screen.queryByText(dummyTopicGuide.overview)).not.toBeInTheDocument();
     expect(screen.getByText(dummyAlgorithm.description)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Solution Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
     expect(screen.getByText(dummyTopicGuide.overview)).toBeInTheDocument();
   });
 
   it("keeps each details panel collapsed across an algorithm change once the user collapsed it", () => {
     const { rerender } = renderLayout();
 
-    fireEvent.click(screen.getByRole("button", { name: "Problem Details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Solution Details" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Details" })[1]);
     expect(screen.getByRole("main")).toHaveAttribute("data-problem-expanded", "false");
     expect(screen.getByRole("main")).toHaveAttribute("data-solution-expanded", "false");
 

@@ -1,7 +1,7 @@
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PanelVisibility } from "../../types/dsa";
-import { Navbar, NavbarProps } from "../Navbar";
+import { Navbar, NavbarProps } from "../../ui";
 
 const ALL_VISIBLE: PanelVisibility = {
   visualizer: true,

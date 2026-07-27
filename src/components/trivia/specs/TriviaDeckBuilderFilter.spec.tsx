@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TriviaDeckBuilder } from "../TriviaDeckBuilder";
+import { TriviaDeckBuilder } from "../../../ui";
 
 const groupRow = (container: HTMLElement, label: string): HTMLElement => {
   const title = Array.from(container.querySelectorAll<HTMLElement>(".ui-collapsible__title")).find(

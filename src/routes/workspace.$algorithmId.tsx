@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ALGORITHM_REGISTRY } from "../algorithms/registry";
 import { useStepEngine } from "../engine/stepEngine";
-import { MainLayout } from "../components/MainLayout";
+import { MainLayout } from "../ui/templates/MainLayout";
 import { useSettings } from "../app/SettingsContext";
 import { isDialogOpen, isTypingTarget } from "../app/keyboardGuards";
 

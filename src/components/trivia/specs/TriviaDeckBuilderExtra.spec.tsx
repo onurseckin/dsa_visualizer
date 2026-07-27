@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TriviaDeckBuilder } from "../TriviaDeckBuilder";
+import { TriviaDeckBuilder } from "../../../ui";
 import type { AlgorithmDefinition, CategoryType } from "../../../types/dsa";
 import * as registry from "../../../algorithms/registry";
 

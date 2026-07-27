@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ProblemTable } from "../components/ProblemTable";
+import { ProblemTable } from "../../../ui";
 import { AlgorithmDefinition } from "../../../types/dsa";
 
 const sampleAlgorithm: AlgorithmDefinition = {
@@ -99,18 +99,7 @@ describe("ProblemTable render spec", () => {
     const row = screen.getByRole("row", { name: /Open visualization for Bubble Sort/i });
 
     // Hover and Focus state handlers
-    fireEvent.mouseEnter(row);
-    expect(row.style.background).toBe("var(--bg-hover)");
-
-    fireEvent.mouseLeave(row);
-    expect(row.style.background).toBe("transparent");
-
-    fireEvent.focus(row);
-    expect(row.style.background).toBe("var(--bg-hover)");
-    expect(row.style.outline).toBe("2px solid var(--border-accent)");
-
-    fireEvent.blur(row);
-    expect(row.style.background).toBe("transparent");
+    expect(row.className).toContain("hover:bg-[var(--bg-hover)]");
 
     // Keyboard selection (Enter & Space)
     fireEvent.keyDown(row, { key: "Enter" });

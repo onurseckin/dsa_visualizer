@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { FieldLabel } from "../FieldLabel";
+import { FieldLabel } from "../index";
 
 describe("FieldLabel render spec", () => {
   it("renders label and optional hint", () => {

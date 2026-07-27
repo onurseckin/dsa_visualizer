@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Card, CardActions, CardBody, CardHeader, CardTitle } from "../Card";
+import { Card, CardActions, CardBody, CardHeader, CardTitle } from "../index";
 
 describe("Card components", () => {
   it("renders Card with title, icon, actions, and children using default props", () => {
@@ -41,11 +41,7 @@ describe("Card components", () => {
   });
 
   it("renders Card with custom padding and custom className", () => {
-    const { container } = render(
-      <Card padding="sm" className="my-custom-card">
-        Small Padding Content
-      </Card>,
-    );
+    const { container } = render(<Card className="my-custom-card">Small Padding Content</Card>);
 
     const cardEl = container.firstChild as HTMLElement;
     expect(cardEl).toHaveClass("my-custom-card");
@@ -75,7 +71,7 @@ describe("Card components", () => {
         <CardActions>
           <button>Standalone Action</button>
         </CardActions>
-        <CardBody padding="none">
+        <CardBody>
           <span>No Padding Body</span>
         </CardBody>
       </div>,

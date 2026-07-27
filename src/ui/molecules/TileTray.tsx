@@ -1,0 +1,90 @@
+import { useState } from "react";
+import type { DragEvent } from "react";
+import { Button, Card } from "../../ui";
+import type { TriviaTile } from "../../types/trivia";
+
+export const TILE_MIME = "text/plain";
+
+export interface TileTrayProps {
+  tiles: readonly TriviaTile[];
+  usedTileIds?: readonly string[];
+  selectedTileId?: string | null;
+  onSelect: (tileId: string) => void;
+  onActivate: (tileId: string) => void;
+  disabled?: boolean;
+}
+
+export function TileTray({
+  tiles,
+  usedTileIds = [],
+  selectedTileId = null,
+  onSelect,
+  onActivate,
+  disabled = false,
+}: TileTrayProps) {
+  const [draggingTileId, setDraggingTileId] = useState<string | null>(null);
+  const used = new Set(usedTileIds);
+  const remaining = tiles.filter((tile) => !used.has(tile.id)).length;
+
+  const handleDragStart =
+    (tileId: string) =>
+    (event: DragEvent<HTMLButtonElement>): void => {
+      const transfer = event.dataTransfer;
+      if (transfer) {
+        transfer.setData(TILE_MIME, tileId);
+        transfer.effectAllowed = "move";
+      }
+      setDraggingTileId(tileId);
+      if (tileId !== selectedTileId) onSelect(tileId);
+    };
+
+  const handleDragEnd = (): void => setDraggingTileId(null);
+
+  return (
+    <Card
+      title="Tiles"
+      actions={<span className="text-xs text-[var(--text-muted)]">{remaining} left</span>}
+      className="p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm min-w-0"
+    >
+      <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)]">
+        Click a tile to fill the next empty line — or drag it to a specific one.
+      </p>
+      <div className="flex flex-wrap gap-3 items-center justify-start">
+        {tiles.map((tile) => {
+          const isUsed = used.has(tile.id);
+          const isSelected = tile.id === selectedTileId && !isUsed;
+          const isDragging = tile.id === draggingTileId;
+          return (
+            <Button
+              key={tile.id}
+              size="sm"
+              data-state={isUsed ? "used" : isSelected ? "selected" : "available"}
+              selected={isSelected}
+              aria-pressed={isSelected}
+              aria-label={`Tile ${tile.text}${isUsed ? " (placed)" : ""}`}
+              disabled={isUsed || disabled}
+              draggable={!isUsed && !disabled}
+              onClick={() => onActivate(tile.id)}
+              onDragStart={handleDragStart(tile.id)}
+              onDragEnd={handleDragEnd}
+              className={`px-4 py-2.5 font-mono text-xs md:text-sm border rounded-[var(--radius-md)] cursor-pointer shadow-xs transition-transform active:scale-95 overflow-hidden text-ellipsis ${
+                isUsed
+                  ? "cursor-not-allowed line-through opacity-40 bg-[var(--bg-subtle)] border-transparent shadow-none"
+                  : "bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] hover:border-[var(--accent)] hover:shadow-md border-[var(--border-default)]"
+              } ${isDragging ? "opacity-50 scale-[0.98] border-dashed border-[var(--accent)] shadow-none z-10" : ""}`}
+              style={{
+                fontFamily: "var(--font-code)",
+                fontSize: "var(--text-sm)",
+                padding: "var(--space-2) var(--space-3)",
+                textDecoration: isUsed ? "line-through" : "none",
+                cursor: isUsed ? "not-allowed" : isDragging ? "grabbing" : "grab",
+              }}
+            >
+              {tile.text}
+            </Button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}

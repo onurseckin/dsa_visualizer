@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TutorialCard, hasTutorialContent } from "../primitives/TutorialCard";
+import { TutorialCard, hasTutorialContent } from "../../ui";
 import type { StepExplanation } from "../../types/dsa";
 
 describe("TutorialCard Component Spec", () => {
@@ -110,9 +110,11 @@ describe("TutorialCard Component Spec", () => {
         />,
       );
 
-      const body = container.querySelector(".ui-card__body > div") as HTMLElement;
-      expect(body.style.padding).toBe("var(--space-4)");
-      expect(body.style.flexDirection).toBe("column");
+      const body =
+        (container.querySelector(".ui-card > div") as HTMLElement) ||
+        (container.querySelector('[data-testid="tutorial-card"] > div') as HTMLElement);
+      expect(body.className).toContain("p-6");
+      expect(body.className).toContain("flex-col");
 
       // The counter row is above the prose, so the sentence is not squeezed into
       // a leftover column next to the label and the dismiss button.

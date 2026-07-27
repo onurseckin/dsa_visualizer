@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Play } from "lucide-react";
-import { IconButton } from "../IconButton";
+import { IconButton } from "../index";
 
 describe("IconButton", () => {
   it("renders a square button named by its required aria-label", () => {

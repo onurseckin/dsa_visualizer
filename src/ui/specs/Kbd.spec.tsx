@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Kbd } from "../Kbd";
+import { Kbd } from "../index";
 
 describe("Kbd", () => {
   it("renders a kbd element with the chip class", () => {

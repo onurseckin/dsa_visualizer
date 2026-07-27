@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ButtonGroup } from "../ButtonGroup";
-import { Button } from "../Button";
+import { ButtonGroup } from "../index";
+import { Button } from "../index";
 
 describe("ButtonGroup render spec", () => {
   it("renders buttons in a group container", () => {

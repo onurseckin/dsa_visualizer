@@ -1,6 +1,6 @@
 import React from "react";
 import { PuzzleLine } from "../../../types/trivia";
-import { highlightPythonLine } from "../../primitives/CodeBlockViewer";
+import { highlightPythonLine } from "../../../ui";
 import { CODE_GROUP, GUTTER, INDENT } from "../codePuzzleTypes";
 
 interface CodePuzzleCodeRowProps {

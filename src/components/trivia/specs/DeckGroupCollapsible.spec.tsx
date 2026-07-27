@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { DeckGroupCollapsible } from "../components/DeckGroupCollapsible";
-import type { DeckGroup } from "../components/DeckGroupCollapsible";
+import { DeckGroupCollapsible } from "../../../ui";
+import type { DeckGroup } from "../../../ui";
 
 describe("DeckGroupCollapsible component", () => {
   const sampleGroup: DeckGroup = {

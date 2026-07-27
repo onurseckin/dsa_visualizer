@@ -2,7 +2,7 @@ import React, { DragEvent, MouseEvent, MutableRefObject, useState } from "react"
 import { Eye, Lightbulb } from "lucide-react";
 import { IconButton, Kbd } from "../../../ui";
 import { PuzzleLine, TriviaGrade, TriviaMode } from "../../../types/trivia";
-import { highlightPythonLine } from "../../primitives/CodeBlockViewer";
+import { highlightPythonLine } from "../../../ui";
 import { CodePuzzleSlot } from "./CodePuzzleSlot";
 import { CODE_GROUP, GUTTER, ICON_GROUP, INDENT } from "../codePuzzleTypes";
 
@@ -82,10 +82,10 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
 
   return (
     <div
-      className={`ui-code-line transition-all ${
+      className={`py-2 px-3 my-1 border border-dashed rounded-[var(--radius-sm)] flex items-center justify-between transition-all duration-200 ${
         isDragOver
-          ? "bg-[var(--bg-hover)] rounded-[var(--radius-sm)] outline outline-1 outline-[var(--accent)]"
-          : ""
+          ? "bg-[var(--bg-hover)] border-[var(--accent)] scale-[1.01] shadow-sm z-10 relative"
+          : "border-transparent"
       }`}
       data-testid={`blank-row-${number}`}
       ref={(el) => {

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TriviaSession } from "../TriviaSession";
-import { TILE_MIME } from "../CodePuzzle";
+import { TILE_MIME } from "../../../ui";
 import { parsePuzzleLines } from "../../../trivia/triviaEngine";
 import type { TriviaMode, TriviaRound } from "../../../types/trivia";
 

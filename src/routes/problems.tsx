@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CategoryType } from "../types/dsa";
-import { ProblemList } from "../components/ProblemList";
+import { ProblemList } from "../ui";
 import { isCategoryType } from "../app/categories";
 import { useSettings } from "../app/SettingsContext";
 

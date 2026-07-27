@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Navbar } from "../../components/Navbar";
+import { Navbar } from "../../ui";
 import { SettingsProvider, useSettings } from "../SettingsContext";
 
 function SettingsNavbarHarness(): React.ReactElement {

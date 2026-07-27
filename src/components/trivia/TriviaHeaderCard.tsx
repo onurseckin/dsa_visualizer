@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Brain, Check as CheckIcon, Edit2, X as CancelIcon } from "lucide-react";
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../types/trivia";
 import { Badge, Button, ButtonGroup, Card, IconButton, Input } from "../../ui";
-import { TriviaSettings } from "./TriviaSettings";
+import { TriviaSettings } from "../../ui";
 
 export interface TriviaHeaderCardProps {
   activeSession: TriviaSessionRecord;

@@ -1,11 +1,11 @@
 import React from "react";
 import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../../types/dsa";
-import { AuxiliaryPanel, hasAuxiliaryContent } from "../../primitives/AuxiliaryPanel";
-import { TutorialCard, hasTutorialContent } from "../../primitives/TutorialCard";
-import { CodeBlockViewer } from "../../primitives/CodeBlockViewer";
-import { ComplexityCard } from "../../ComplexityCard";
-import { ControlPanel, ControlPanelProps } from "../../ControlPanel";
-import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../ResizableLayout";
+import { AuxiliaryPanel, hasAuxiliaryContent } from "../../../ui";
+import { TutorialCard, hasTutorialContent } from "../../../ui";
+import { CodeBlockViewer } from "../../../ui";
+import { ComplexityCard } from "../../../ui";
+import { ControlPanel, ControlPanelProps } from "../../../ui";
+import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../../ui";
 import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";

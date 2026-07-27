@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Drawer } from "../Drawer";
+import { Drawer } from "../index";
 
 describe("Drawer UI component", () => {
   it("returns null when isOpen is false", () => {

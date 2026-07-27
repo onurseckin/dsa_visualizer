@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ProblemDescriptionCard, ProblemDescriptionCardProps } from "../ProblemDescriptionCard";
+import { ProblemDescriptionCard, ProblemDescriptionCardProps } from "../../../ui";
 
 const baseProps: ProblemDescriptionCardProps = {
   title: "Two Sum",
@@ -88,8 +88,7 @@ describe("ProblemDescriptionCard", () => {
     renderCard({ expanded: true });
 
     const details = screen.getByTestId("problem-description-details");
-    // Surface and card sit ~1.09x apart, so only a real border draws the seam.
-    expect(details.style.borderTop).toBe("1px solid var(--border-default)");
+    expect(details.className).toContain("border-t");
     expect(accentTintedText(details)).toEqual([]);
   });
 

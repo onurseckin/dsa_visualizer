@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ComponentProps } from "react";
-import { ResizableLayout } from "../ResizableLayout";
+import { ResizableLayout } from "../../ui";
 
 const stubRects = (rects: Record<string, DOMRect>): void => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(

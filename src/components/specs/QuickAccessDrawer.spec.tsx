@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { QuickAccessDrawer } from "../QuickAccessDrawer";
+import { QuickAccessDrawer } from "../../ui";
 import * as registryModule from "../../algorithms/registry";
 
 describe("QuickAccessDrawer Component Spec", () => {

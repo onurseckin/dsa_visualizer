@@ -1,9 +1,9 @@
 import React from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { DragHandle } from "../ResizableLayout";
+import { DragHandle } from "../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
 import { getAlgorithm } from "../../algorithms/registry";
-import { ProblemDescriptionCard } from "../primitives/ProblemDescriptionCard";
+import { ProblemDescriptionCard } from "../../ui";
 import { MAX_PANEL_HEIGHT_PX, MIN_PANEL_HEIGHT_PX } from "../../trivia/triviaLayout";
 import { useTriviaSessionState } from "./hooks/useTriviaSessionState";
 import { TriviaSessionHeader } from "./components/TriviaSessionHeader";

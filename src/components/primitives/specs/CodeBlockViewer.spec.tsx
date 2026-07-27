@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { CodeBlockViewer } from "../CodeBlockViewer";
+import { CodeBlockViewer } from "../../../ui";
 import { N_QUEENS_CODE } from "../../../algorithms/backtracking/nQueens";
 
 const EXPLAIN_LINES_STORAGE_KEY = "dsa_visualizer_explain_lines_enabled";

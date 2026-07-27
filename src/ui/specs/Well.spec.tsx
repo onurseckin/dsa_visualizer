@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Well } from "../Well";
+import { Well } from "../index";
 
 describe("Well render spec", () => {
   it("renders children with default classes", () => {

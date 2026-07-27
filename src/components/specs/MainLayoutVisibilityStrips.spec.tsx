@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { MainLayout } from "../MainLayout";
+import { MainLayout } from "../../ui";
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
@@ -186,7 +186,7 @@ describe("MainLayoutVisibilityStrips Component Spec", () => {
     const handleToggleAuxiliary = vi.fn();
     renderLayout({ onToggleAuxiliary: handleToggleAuxiliary });
 
-    fireEvent.click(screen.getByText("Hide auxiliary panel"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide auxiliary panel" }));
 
     expect(handleToggleAuxiliary).toHaveBeenCalledTimes(1);
   });
