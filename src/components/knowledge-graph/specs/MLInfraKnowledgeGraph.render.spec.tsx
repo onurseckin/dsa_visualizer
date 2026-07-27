@@ -1,23 +1,21 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { MLInfraKnowledgeGraph, TOPIC_CLUSTERS } from "../MLInfraKnowledgeGraph";
+import { MLInfraKnowledgeGraph, ML_INFRA_NODES } from "../MLInfraKnowledgeGraph";
 
 describe("MLInfraKnowledgeGraph Component Render Spec", () => {
-  it("renders full-screen edge-to-edge container without top title banner", () => {
+  it("renders knowledge graph container with topic family legend", () => {
     render(<MLInfraKnowledgeGraph />);
 
     const rootRegion = screen.getByRole("region", {
       name: /ML Infrastructure Knowledge Tree/i,
     });
     expect(rootRegion).toBeInTheDocument();
-    expect(rootRegion.className).toContain("h-[calc(100vh-3.5rem)]");
 
-    // Top title header, search bar, and topic pills are removed
-    expect(
-      screen.queryByText(/ML Infrastructure & AI Systems Knowledge Tree/i),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/Search 13 topics/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "All Topics" })).not.toBeInTheDocument();
+    const legend = screen.getByRole("list", { name: /Topic family colors/i });
+    expect(legend).toBeInTheDocument();
+    expect(screen.getByText("Foundations")).toBeInTheDocument();
+    expect(screen.getByText("Core Math & DAGs")).toBeInTheDocument();
+    expect(screen.getByText("Advanced Kernels")).toBeInTheDocument();
   });
 
   it("adheres strictly to Canvas Law with width 100%, height 100%, and viewBox", () => {
@@ -27,13 +25,13 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     const canvasSvg = Array.from(svgs).find((s) => s.getAttribute("width") === "100%");
     expect(canvasSvg).toBeInTheDocument();
     expect(canvasSvg?.getAttribute("height")).toBe("100%");
-    expect(canvasSvg?.getAttribute("viewBox")).toBeTruthy();
+    expect(canvasSvg?.getAttribute("viewBox")).toBe("-20 -60 1380 1060");
   });
 
-  it("renders centered nodes for all 13 topic clusters with clean title and subtitle without lightning icon or tier labels", () => {
+  it("renders nodes for all 13 topic clusters with clean title and subtitle", () => {
     render(<MLInfraKnowledgeGraph />);
 
-    expect(TOPIC_CLUSTERS.length).toBe(13);
+    expect(ML_INFRA_NODES.length).toBe(13);
 
     // Verify presence of nodes by title
     expect(
@@ -51,13 +49,6 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
     // Verify subtitle pattern: {count} Problems • {difficulty}
     expect(screen.getByText(/4 Problems • Medium/i)).toBeInTheDocument();
-
-    // Verify removal of lightning icons ⚡ and Tier 1 / Tier 2 labels from canvas nodes
-    const nodeTexts = screen.getAllByRole("button").map((btn) => btn.textContent || "");
-    nodeTexts.forEach((text) => {
-      expect(text).not.toContain("⚡");
-      expect(text).not.toMatch(/Tier \d/i);
-    });
   });
 
   it("renders 90-degree orthogonal connectors between prerequisite topics", () => {
@@ -72,7 +63,9 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     // Verify orthogonal line command pattern M startX startY L startX midY L endX midY L endX endY
     paths?.forEach((path) => {
       const d = path.getAttribute("d") || "";
-      expect(d).toMatch(/^M\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+$/);
+      expect(d).toMatch(
+        /^M\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+$/,
+      );
     });
   });
 
@@ -85,7 +78,9 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
     expect(onSelectCategoryFolder).toHaveBeenCalledWith("ml_tensor_algebra");
 
-    const drawer = screen.getByRole("dialog", { name: /Tensor Algebra & Memory Layout Drawer/i });
+    const drawer = screen.getByRole("dialog", {
+      name: /Tensor Algebra & Memory Layout Drawer/i,
+    });
     expect(drawer).toBeInTheDocument();
 
     expect(screen.getByText(/2D Matrix Memory Traversal/i)).toBeInTheDocument();
