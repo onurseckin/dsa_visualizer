@@ -18,7 +18,7 @@ function KnowledgeTreePage(): React.ReactElement {
       <PageHeader
         title="Knowledge Tree"
         description="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        className="mb-2 text-center flex flex-col items-center justify-center max-w-3xl mx-auto"
+        className="pt-6 pb-4 mb-6 text-center flex flex-col items-center justify-center max-w-3xl mx-auto"
       />
       <KnowledgeGraph
         onSelectCategoryFolder={(folder) => {

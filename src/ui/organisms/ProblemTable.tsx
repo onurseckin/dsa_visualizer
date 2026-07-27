@@ -133,6 +133,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       <Button
                         size="sm"
                         icon={<Play />}
+                        className="min-h-[36px] px-3.5 py-1.5"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectAlgorithm(alg.id, alg.category);

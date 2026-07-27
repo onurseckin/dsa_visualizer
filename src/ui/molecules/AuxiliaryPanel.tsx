@@ -158,7 +158,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
         {groups.map((group) => (
           <div
             key={group.key}
-            className="grid grid-cols-[minmax(6rem,max-content)_1fr] items-center gap-x-4 gap-y-2 min-w-0 px-2 py-2"
+            className="grid grid-cols-[minmax(6rem,max-content)_1fr] items-center gap-x-4 gap-y-2 min-w-0 px-4 py-2"
           >
             <span className="text-sm text-[var(--text-muted)] whitespace-nowrap font-medium">
               {group.label}
