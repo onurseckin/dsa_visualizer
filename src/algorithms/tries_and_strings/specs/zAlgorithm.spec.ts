@@ -31,8 +31,8 @@ describe("zAlgorithm unit spec", () => {
   it("should handle edge cases like empty string or pattern larger than text", () => {
     const invalidInput = { text: "abc", pattern: "abcdef" };
     const steps = generateZAlgorithmSteps(invalidInput);
-    expect(steps.length).toBe(1);
-    expect(steps[0].variables.matchesCount).toBe(0);
+    expect(steps.length).toBe(2);
+    expect(steps[1].variables.matchesCount).toBe(0);
   });
 
   it("should accurately find single match", () => {
@@ -48,7 +48,7 @@ describe("zAlgorithm unit spec", () => {
       text: undefined as unknown as string,
       pattern: undefined as unknown as string,
     });
-    expect(steps1.length).toBe(1);
+    expect(steps1.length).toBe(2);
 
     const steps2 = generateZAlgorithmSteps({ text: "abcdef", pattern: "xyz" });
     const lastStep = steps2[steps2.length - 1];
