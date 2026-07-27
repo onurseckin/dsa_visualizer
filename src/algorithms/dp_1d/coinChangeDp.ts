@@ -218,6 +218,25 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
     ],
   },
   trivia: COIN_CHANGE_DP_TRIVIA,
+  leetcode: {
+    id: 322,
+    url: "https://leetcode.com/problems/coin-change/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #322",
+      leetcodeId: 322,
+      url: "https://leetcode.com/problems/coin-change/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 7",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 7,
+      section: "7.1 Coin problem",
+    },
+  ],
   defaultInput: DEFAULT_COIN_CHANGE_INPUT,
   generateSteps: generateCoinChangeSteps,
 };

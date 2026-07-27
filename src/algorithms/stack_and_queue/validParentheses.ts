@@ -287,6 +287,25 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   },
   topicGuide: VALID_PARENTHESES_TOPIC_GUIDE,
   trivia: VALID_PARENTHESES_TRIVIA,
+  leetcode: {
+    id: 20,
+    url: "https://leetcode.com/problems/valid-parentheses/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #20",
+      leetcodeId: 20,
+      url: "https://leetcode.com/problems/valid-parentheses/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 4",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 4,
+      section: "4.5 Stack",
+    },
+  ],
   defaultInput: DEFAULT_VALID_PARENTHESES_INPUT,
   generateSteps: generateValidParenthesesSteps,
 };

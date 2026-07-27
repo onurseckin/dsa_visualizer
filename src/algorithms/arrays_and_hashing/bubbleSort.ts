@@ -279,6 +279,19 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
     ],
   },
   trivia: BUBBLE_SORT_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 3",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 3,
+      section: "3.1 Sorting theory",
+    },
+  ],
   defaultInput: [5, 2, 8, 1, 4],
   generateSteps: generateBubbleSortSteps,
 };

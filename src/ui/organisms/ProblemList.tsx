@@ -22,6 +22,8 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     handleCategorySelect,
     selectedDifficulty,
     setSelectedDifficulty,
+    selectedSource,
+    setSelectedSource,
     sortBy,
     toggleSort,
     stats,
@@ -47,6 +49,8 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         onCategorySelect={handleCategorySelect}
         selectedDifficulty={selectedDifficulty}
         onDifficultySelect={setSelectedDifficulty}
+        selectedSource={selectedSource}
+        onSourceSelect={setSelectedSource}
         filteredCount={filteredAlgorithms.length}
         stats={stats}
       />

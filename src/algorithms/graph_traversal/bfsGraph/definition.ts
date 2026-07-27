@@ -162,6 +162,19 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
     ],
   },
   trivia: BFS_GRAPH_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 12",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 12,
+      section: "12.2 Breadth-first search",
+    },
+  ],
   defaultInput: DEFAULT_BFS_INPUT,
   generateSteps: generateBFSGraphSteps,
 };

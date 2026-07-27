@@ -286,6 +286,25 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
     ],
   },
   trivia: TWO_SUM_TRIVIA,
+  leetcode: {
+    id: 1,
+    url: "https://leetcode.com/problems/two-sum/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #1",
+      leetcodeId: 1,
+      url: "https://leetcode.com/problems/two-sum/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 4",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 4,
+      section: "4.3 Map structures",
+    },
+  ],
   defaultInput: DEFAULT_TWO_SUM_INPUT,
   generateSteps: generateTwoSumSteps,
 };

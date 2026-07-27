@@ -11,7 +11,7 @@ describe("twoSumSorted algorithm spec", () => {
     expect(twoSumSorted.id).toBe("two-sum-sorted");
     expect(twoSumSorted.title).toBe("Two Sum II (Sorted)");
     expect(twoSumSorted.category).toBe("two_pointers");
-    expect(twoSumSorted.difficulty).toBe("Easy");
+    expect(twoSumSorted.difficulty).toBe("Medium");
     expect(twoSumSorted.defaultInput).toEqual(DEFAULT_TWO_SUM_SORTED_INPUT);
   });
 

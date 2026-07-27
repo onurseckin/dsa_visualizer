@@ -55,11 +55,15 @@ export function writeStoredProblemListValue(key: string, value: string): void {
 }
 
 export type ProblemListDifficulty = "All" | "Easy" | "Medium" | "Hard";
+export type ProblemListSource = "All" | "leetcode" | "book" | "standard";
 export type ProblemListSortField = "title" | "difficulty" | "category";
 export type ProblemListSortOrder = "asc" | "desc";
 
 export const isProblemListDifficulty = (value: unknown): value is ProblemListDifficulty =>
   value === "All" || value === "Easy" || value === "Medium" || value === "Hard";
+
+export const isProblemListSource = (value: unknown): value is ProblemListSource =>
+  value === "All" || value === "leetcode" || value === "book" || value === "standard";
 
 export const isProblemListSortField = (value: unknown): value is ProblemListSortField =>
   value === "title" || value === "difficulty" || value === "category";

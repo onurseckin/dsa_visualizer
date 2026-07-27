@@ -129,6 +129,25 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   },
   topicGuide: CONVEX_HULL_TOPIC_GUIDE,
   trivia: CONVEX_HULL_TRIVIA,
+  leetcode: {
+    id: 587,
+    url: "https://leetcode.com/problems/erect-the-fence/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #587",
+      leetcodeId: 587,
+      url: "https://leetcode.com/problems/erect-the-fence/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 30",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 30,
+      section: "30.3 Convex hull problem",
+    },
+  ],
   defaultInput: DEFAULT_CONVEX_HULL_INPUT,
   generateSteps: generateConvexHullSteps,
 };

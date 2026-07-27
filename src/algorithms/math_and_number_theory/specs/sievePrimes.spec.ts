@@ -12,7 +12,7 @@ describe("sievePrimes spec logic", () => {
     expect(sievePrimes.id).toBe("sieve-primes");
     expect(sievePrimes.title).toBe("Sieve of Eratosthenes");
     expect(sievePrimes.category).toBe("math_and_number_theory");
-    expect(sievePrimes.difficulty).toBe("Easy");
+    expect(sievePrimes.difficulty).toBe("Medium");
     expect(sievePrimes.defaultInput).toEqual(DEFAULT_SIEVE_INPUT);
     expect(sievePrimes.code).toBe(PYTHON_SIEVE_CODE);
   });

@@ -41,6 +41,25 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   },
   topicGuide: TRIE_PREFIX_TREE_TOPIC_GUIDE,
   trivia: TRIE_PREFIX_TREE_TRIVIA,
+  leetcode: {
+    id: 208,
+    url: "https://leetcode.com/problems/implement-trie-prefix-tree/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #208",
+      leetcodeId: 208,
+      url: "https://leetcode.com/problems/implement-trie-prefix-tree/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 26",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 26,
+      section: "26.2 Trie structure",
+    },
+  ],
   defaultInput: DEFAULT_TRIE_INPUT,
   generateSteps: generateTriePrefixTreeSteps,
 };

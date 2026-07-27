@@ -211,6 +211,25 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
     ],
   },
   trivia: PREFIX_SUM_TRIVIA,
+  leetcode: {
+    id: 303,
+    url: "https://leetcode.com/problems/range-sum-query-immutable/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #303",
+      leetcodeId: 303,
+      url: "https://leetcode.com/problems/range-sum-query-immutable/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 9",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 9,
+      section: "9.1 Static array queries",
+    },
+  ],
   defaultInput: DEFAULT_PREFIX_SUM_INPUT,
   generateSteps: generatePrefixSumSteps,
 };

@@ -281,6 +281,25 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
     ],
   },
   trivia: KADANE_MAX_SUBARRAY_TRIVIA,
+  leetcode: {
+    id: 53,
+    url: "https://leetcode.com/problems/maximum-subarray/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #53",
+      leetcodeId: 53,
+      url: "https://leetcode.com/problems/maximum-subarray/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 2",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 2,
+      section: "2.4 Maximum subarray sum",
+    },
+  ],
   defaultInput: [-2, 1, -3, 4, -1, 2, 1, -5, 4],
   generateSteps: generateKadaneMaxSubarraySteps,
 };

@@ -146,6 +146,25 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   },
   topicGuide: TOPOLOGICAL_SORT_TOPIC_GUIDE,
   trivia: TOPOLOGICAL_SORT_TRIVIA,
+  leetcode: {
+    id: 207,
+    url: "https://leetcode.com/problems/course-schedule/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #207",
+      leetcodeId: 207,
+      url: "https://leetcode.com/problems/course-schedule/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 16",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 16,
+      section: "16.1 Topological sorting",
+    },
+  ],
   defaultInput: DEFAULT_TOPO_SORT_INPUT,
   generateSteps: generateTopologicalSortSteps,
 };

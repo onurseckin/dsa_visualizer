@@ -307,6 +307,19 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   },
   topicGuide: EUCLID_GCD_TOPIC_GUIDE,
   trivia: EUCLID_GCD_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 21",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 21,
+      section: "21.2 Euclid's algorithm",
+    },
+  ],
   defaultInput: DEFAULT_EUCLID_GCD_INPUT,
   generateSteps: generateEuclidGcdSteps,
 };

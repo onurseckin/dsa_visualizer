@@ -142,6 +142,19 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   },
   topicGuide: BELLMAN_FORD_TOPIC_GUIDE,
   trivia: BELLMAN_FORD_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 13",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 13,
+      section: "13.1 Bellman–Ford algorithm",
+    },
+  ],
   defaultInput: DEFAULT_BELLMAN_FORD_INPUT,
   generateSteps: generateBellmanFordSteps,
 };

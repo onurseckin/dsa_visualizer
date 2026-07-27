@@ -37,6 +37,19 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   },
   topicGuide: HUFFMAN_CODING_TOPIC_GUIDE,
   trivia: HUFFMAN_CODING_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 6",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 6,
+      section: "6.5 Huffman coding",
+    },
+  ],
   defaultInput: DEFAULT_HUFFMAN_CODING_INPUT,
   generateSteps: generateHuffmanCodingSteps,
 };

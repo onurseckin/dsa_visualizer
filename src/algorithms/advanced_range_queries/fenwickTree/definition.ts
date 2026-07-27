@@ -96,7 +96,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   id: "fenwick-tree",
   title: "Binary Indexed Tree (Fenwick Tree)",
   category: "advanced_range_queries",
-  difficulty: "Medium",
+  difficulty: "Hard",
   description:
     "A Binary Indexed Tree (Fenwick Tree) is a compact array-based structure that answers prefix-sum queries and applies point updates in O(log N) time. Each index i is responsible for a block of elements whose length equals its lowest set bit (i & -i), so updates and queries move through the array in short bit-arithmetic hops.",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
@@ -123,6 +123,19 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   },
   topicGuide: FENWICK_TREE_TOPIC_GUIDE,
   trivia: FENWICK_TREE_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 9",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 9,
+      section: "9.2 Binary indexed tree",
+    },
+  ],
   defaultInput: DEFAULT_FENWICK_INPUT,
   generateSteps: generateFenwickTreeSteps,
 };

@@ -134,10 +134,12 @@ describe("QuickAccessDrawer Component Spec", () => {
     const row = screen.getByRole("button", { name: /Two Sum/i });
     expect(row).toHaveClass("ui-btn");
 
-    // Difficulty is status, the one thing R5.1 still lets carry color in a list.
+    // Difficulty and LeetCode badges carry status / metadata.
     const badges = row.querySelectorAll(".ui-badge");
-    expect(badges).toHaveLength(1);
-    expect(badges[0]).toHaveClass("ui-badge--success", "ui-badge--sm");
+    expect(badges.length).toBeGreaterThanOrEqual(1);
+    const difficultyBadge = Array.from(badges).find((b) => b.textContent === "Easy");
+    expect(difficultyBadge).toBeDefined();
+    expect(difficultyBadge).toHaveClass("ui-badge--success", "ui-badge--sm");
   });
 
   it("closes via the close button, backdrop click, and Escape key", () => {
@@ -215,5 +217,19 @@ describe("QuickAccessDrawer Component Spec", () => {
     );
 
     expect(screen.getByText("No Diff Alg")).toBeInTheDocument();
+  });
+
+  it("renders LeetCodeBadge in algorithm row when leetcode property is present", () => {
+    render(
+      <QuickAccessDrawer
+        isOpen={true}
+        onClose={vi.fn()}
+        onSelectAlgorithm={vi.fn()}
+        activeAlgorithmId="two-sum"
+      />,
+    );
+
+    const leetCodeBadge = screen.getByText("LC #1");
+    expect(leetCodeBadge).toBeInTheDocument();
   });
 });

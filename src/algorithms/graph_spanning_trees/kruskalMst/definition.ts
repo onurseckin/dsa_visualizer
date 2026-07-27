@@ -156,6 +156,25 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   },
   topicGuide: KRUSKAL_TOPIC_GUIDE,
   trivia: KRUSKAL_TRIVIA,
+  leetcode: {
+    id: 1584,
+    url: "https://leetcode.com/problems/min-cost-to-connect-all-points/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #1584",
+      leetcodeId: 1584,
+      url: "https://leetcode.com/problems/min-cost-to-connect-all-points/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 15",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 15,
+      section: "15.1 Kruskal's algorithm",
+    },
+  ],
   defaultInput: DEFAULT_KRUSKAL_INPUT,
   generateSteps: generateKruskalSteps,
 };

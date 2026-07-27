@@ -96,7 +96,7 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   id: "nim-game",
   title: "Nim Game Sprague-Grundy",
   category: "game_theory",
-  difficulty: "Medium",
+  difficulty: "Easy",
   description:
     "Nim is the classic impartial game solved by the Sprague-Grundy theorem. Computing the Nim-sum — the bitwise XOR of all pile sizes — instantly reveals whether the position is a forced win for the First Player (non-zero) or the Second Player (zero), and pinpoints the optimal opening move.",
   constraints: ["1 <= piles.length <= 10^4", "0 <= piles[i] <= 10^9"],
@@ -127,6 +127,25 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   },
   topicGuide: NIM_GAME_TOPIC_GUIDE,
   trivia: NIM_GAME_TRIVIA,
+  leetcode: {
+    id: 292,
+    url: "https://leetcode.com/problems/nim-game/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #292",
+      leetcodeId: 292,
+      url: "https://leetcode.com/problems/nim-game/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 25",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 25,
+      section: "25.2 Nim game",
+    },
+  ],
   defaultInput: DEFAULT_NIM_INPUT,
   generateSteps: generateNimGameSteps,
 };

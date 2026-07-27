@@ -25,7 +25,9 @@ import {
   updateSession,
   writeActiveSessionId,
 } from "../../../trivia/triviaSessions";
-import { getAlgorithm } from "../../../algorithms/registry";
+import type { SourceKind } from "../../../types/dsa";
+import { getAlgorithmSources, getSourceKind } from "../../../types/dsa";
+import { getAlgorithm, getAllAlgorithms } from "../../../algorithms/registry";
 import { DeckSources, reviveProgressForConfig } from "../-triviaPageUtils";
 import { useTriviaPageLayout } from "./useTriviaPageLayout";
 
@@ -179,6 +181,18 @@ export function useTriviaPage() {
     navigate({ to: "/workspace/$algorithmId", params: { algorithmId: targetId } });
   };
 
+  const handleFilterDeckBySource = (sourceFilter: "ALL" | SourceKind) => {
+    if (!config || !progress) return;
+    const allAlgs = getAllAlgorithms();
+    const filtered =
+      sourceFilter === "ALL"
+        ? allAlgs
+        : allAlgs.filter((alg) =>
+            getAlgorithmSources(alg).some((s) => getSourceKind(s) === sourceFilter),
+          );
+    applyConfig({ deck: filtered.map((a) => a.id) });
+  };
+
   const activeTitle =
     round === null ? "" : (getAlgorithm(round.algorithmId)?.title ?? round.algorithmId);
 
@@ -213,5 +227,6 @@ export function useTriviaPage() {
     handleRenameSession,
     handleDeleteSession,
     handleStudyInWorkspace,
+    handleFilterDeckBySource,
   };
 }

@@ -139,6 +139,19 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   },
   topicGuide: FLOYD_WARSHALL_TOPIC_GUIDE,
   trivia: FLOYD_WARSHALL_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 13",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 13,
+      section: "13.3 Floyd–Warshall algorithm",
+    },
+  ],
   defaultInput: DEFAULT_FLOYD_WARSHALL_INPUT,
   generateSteps: generateFloydWarshallSteps,
 };

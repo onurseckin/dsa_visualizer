@@ -113,6 +113,19 @@ export const quickSort: AlgorithmDefinition<number[]> = {
     ],
   },
   trivia: QUICK_SORT_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 3",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 3,
+      section: "3.1 Sorting theory",
+    },
+  ],
   defaultInput: [6, 2, 9, 3, 7, 1, 5],
   generateSteps: generateQuickSortSteps,
 };

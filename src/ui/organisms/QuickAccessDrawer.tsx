@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
-import type { CategoryType } from "../../types/dsa";
+import type { CategoryType, SourceKind, LeetCodeSource, BookSource, StandardSource } from "../../types/dsa";
+import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
 import { getAllAlgorithms } from "../../algorithms/registry";
-import { Badge, Button, Collapsible, Input, difficultyBadgeVariant, IconButton } from "../index";
+import { Badge, Button, Collapsible, Input, difficultyBadgeVariant, IconButton, SourceBadgeList } from "../index";
 import { Dialog } from "@base-ui-components/react/dialog";
 
 export const ALL_CATEGORIES: { id: CategoryType; label: string }[] = [
@@ -57,6 +58,7 @@ export function QuickAccessDrawer({
   );
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | SourceKind>("all");
   const [openMap, setOpenMap] = useState<Partial<Record<CategoryType, boolean>>>(() =>
     activeCategoryId !== undefined ? { [activeCategoryId]: true } : {},
   );
@@ -64,11 +66,12 @@ export function QuickAccessDrawer({
   useEffect(() => {
     if (!isOpen) return;
     setSearchQuery("");
+    setSourceFilter("all");
     setOpenMap(activeCategoryId !== undefined ? { [activeCategoryId]: true } : {});
   }, [isOpen, activeCategoryId]);
 
   const query = searchQuery.trim().toLowerCase();
-  const isSearching = query.length > 0;
+  const isFiltering = query.length > 0 || sourceFilter !== "all";
 
   const categoryIdSet = useMemo(() => new Set(categories.map((cat) => cat.id)), [categories]);
   const totalAlgorithms = useMemo(
@@ -80,19 +83,57 @@ export function QuickAccessDrawer({
     return categories
       .map((cat) => {
         const catAlgorithms = allAlgorithms.filter((alg) => alg.category === cat.id);
-        const matches = !isSearching
-          ? catAlgorithms
-          : catAlgorithms.filter(
-              (alg) =>
-                alg.title.toLowerCase().includes(query) ||
-                alg.description.toLowerCase().includes(query) ||
-                cat.label.toLowerCase().includes(query) ||
-                (alg.difficulty?.toLowerCase().includes(query) ?? false),
-            );
+        const matches = catAlgorithms.filter((alg) => {
+          if (sourceFilter !== "all") {
+            const sources = getAlgorithmSources(alg);
+            if (!sources.some((s) => getSourceKind(s) === sourceFilter)) {
+              return false;
+            }
+          }
+
+          if (query.length === 0) return true;
+
+          if (
+            alg.title.toLowerCase().includes(query) ||
+            alg.description.toLowerCase().includes(query) ||
+            cat.label.toLowerCase().includes(query) ||
+            (alg.difficulty?.toLowerCase().includes(query) ?? false)
+          ) {
+            return true;
+          }
+
+          const sources = getAlgorithmSources(alg);
+          return sources.some((s) => {
+            const kind = getSourceKind(s);
+            if (kind === "leetcode") {
+              const lc = s as LeetCodeSource;
+              const id = (lc.id ?? lc.leetcodeId)?.toString() || "";
+              return id.includes(query) || "leetcode".includes(query) || `lc #${id}`.includes(query);
+            }
+            if (kind === "book") {
+              const bk = s as BookSource;
+              const bookTitle = (bk.bookTitle || "").toLowerCase();
+              const ch = (bk.chapter ?? "").toString().toLowerCase();
+              const label = (bk.label || "").toLowerCase();
+              return (
+                bookTitle.includes(query) ||
+                ch.includes(query) ||
+                label.includes(query) ||
+                "cph".includes(query) ||
+                `chapter ${ch}`.includes(query)
+              );
+            }
+            if (kind === "standard") {
+              const std = s as StandardSource;
+              return (std.label || "standard").toLowerCase().includes(query);
+            }
+            return false;
+          });
+        });
         return { category: cat, algorithms: matches, totalCount: catAlgorithms.length };
       })
-      .filter((group) => !isSearching || group.algorithms.length > 0);
-  }, [categories, allAlgorithms, isSearching, query]);
+      .filter((group) => !isFiltering || group.algorithms.length > 0);
+  }, [categories, allAlgorithms, isFiltering, query, sourceFilter]);
 
   const handleSelect = (algorithmId: string, categoryFolder: CategoryType) => {
     onSelectAlgorithm(algorithmId, categoryFolder);
@@ -126,9 +167,40 @@ export function QuickAccessDrawer({
                 aria-label="Search algorithms"
               />
 
+              <div className="flex items-center gap-1.5 flex-wrap my-1">
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "all" ? "primary" : "ghost"}
+                  onClick={() => setSourceFilter("all")}
+                >
+                  All Sources
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "leetcode" ? "primary" : "ghost"}
+                  onClick={() => setSourceFilter("leetcode")}
+                >
+                  LeetCode
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "book" ? "primary" : "ghost"}
+                  onClick={() => setSourceFilter("book")}
+                >
+                  Book
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "standard" ? "primary" : "ghost"}
+                  onClick={() => setSourceFilter("standard")}
+                >
+                  Standard
+                </Button>
+              </div>
+
               {groups.length === 0 ? (
                 <p className="m-0 py-6 px-2 text-center text-sm text-[var(--text-muted)]">
-                  No algorithms match “{searchQuery.trim()}”
+                  No algorithms match {searchQuery.trim() ? `“${searchQuery.trim()}”` : "the selected source filter"}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -139,12 +211,12 @@ export function QuickAccessDrawer({
                       title={group.category.label}
                       meta={
                         <Badge size="sm" variant="neutral">
-                          {isSearching ? group.algorithms.length : group.totalCount}
+                          {isFiltering ? group.algorithms.length : group.totalCount}
                         </Badge>
                       }
-                      open={isSearching ? true : openMap[group.category.id] === true}
+                      open={isFiltering ? true : openMap[group.category.id] === true}
                       onOpenChange={(open) => {
-                        if (isSearching) return;
+                        if (isFiltering) return;
                         setOpenMap((prev) => ({ ...prev, [group.category.id]: open }));
                       }}
                       contentClassName="!p-0"
@@ -168,6 +240,7 @@ export function QuickAccessDrawer({
                               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
                                 {alg.title}
                               </span>
+                              <SourceBadgeList sources={getAlgorithmSources(alg)} size="sm" />
                               {alg.difficulty !== undefined ? (
                                 <Badge size="sm" variant={difficultyBadgeVariant(alg.difficulty)}>
                                   {alg.difficulty}

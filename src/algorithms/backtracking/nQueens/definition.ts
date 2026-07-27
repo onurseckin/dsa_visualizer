@@ -125,6 +125,25 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
     ],
   },
   trivia: N_QUEENS_TRIVIA,
+  leetcode: {
+    id: 51,
+    url: "https://leetcode.com/problems/n-queens/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #51",
+      leetcodeId: 51,
+      url: "https://leetcode.com/problems/n-queens/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 5",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 5,
+      section: "5.3 Backtracking",
+    },
+  ],
   defaultInput: DEFAULT_NQUEENS_INPUT,
   generateSteps: generateNQueensSteps,
 };

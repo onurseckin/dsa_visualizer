@@ -120,6 +120,19 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     ],
   },
   trivia: Z_ALGORITHM_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 26",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 26,
+      section: "26.4 Z-algorithm",
+    },
+  ],
   defaultInput: DEFAULT_Z_ALGORITHM_INPUT,
   generateSteps: generateZAlgorithmSteps,
 };

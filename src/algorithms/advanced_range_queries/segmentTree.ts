@@ -38,6 +38,25 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   },
   topicGuide: SEGMENT_TREE_TOPIC_GUIDE,
   trivia: SEGMENT_TREE_TRIVIA,
+  leetcode: {
+    id: 307,
+    url: "https://leetcode.com/problems/range-sum-query-mutable/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #307",
+      leetcodeId: 307,
+      url: "https://leetcode.com/problems/range-sum-query-mutable/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 9",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 9,
+      section: "9.3 Segment tree",
+    },
+  ],
   defaultInput: DEFAULT_SEGMENT_TREE_INPUT,
   generateSteps: generateSegmentTreeSteps,
 };

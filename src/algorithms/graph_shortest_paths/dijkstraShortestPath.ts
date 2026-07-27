@@ -312,6 +312,25 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   },
   topicGuide: DIJKSTRA_TOPIC_GUIDE,
   trivia: DIJKSTRA_TRIVIA,
+  leetcode: {
+    id: 743,
+    url: "https://leetcode.com/problems/network-delay-time/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #743",
+      leetcodeId: 743,
+      url: "https://leetcode.com/problems/network-delay-time/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 13",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 13,
+      section: "13.2 Dijkstra's algorithm",
+    },
+  ],
   defaultInput: DEFAULT_DIJKSTRA_INPUT,
   generateSteps: generateDijkstraSteps,
 };

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Layers, Search } from "lucide-react";
 import type { CategoryType, DifficultyLevel } from "../../types/dsa";
+import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
 import { CATEGORIES } from "../../app/categories";
 import { getAllAlgorithms } from "../../algorithms/registry";
 import { Badge, Button, ButtonGroup, Card, Input, Select } from "..";
@@ -26,6 +27,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("ALL");
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
   const algorithms = useMemo(() => getAllAlgorithms(), []);
   const selected = useMemo(() => new Set(deck), [deck]);
@@ -37,6 +39,10 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     algorithms.forEach((algorithm) => {
       if (categoryFilter !== "ALL" && algorithm.category !== categoryFilter) return;
       if (difficultyFilter !== "ALL" && algorithm.difficulty !== difficultyFilter) return;
+      if (sourceFilter !== "ALL") {
+        const sources = getAlgorithmSources(algorithm);
+        if (!sources.some((s) => getSourceKind(s) === sourceFilter)) return;
+      }
 
       const label = CATEGORY_LABELS[algorithm.category] ?? algorithm.category;
       const matches =
@@ -55,7 +61,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       label: CATEGORY_LABELS[category.id] ?? category.id,
       entries: byCategory.get(category.id) ?? [],
     }));
-  }, [algorithms, search, categoryFilter, difficultyFilter]);
+  }, [algorithms, search, categoryFilter, difficultyFilter, sourceFilter]);
 
   const visibleIds = useMemo(
     () => groups.flatMap((group) => group.entries.map((entry) => entry.id)),
@@ -132,13 +138,23 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
               <option value="Medium">Medium</option>
               <option value="Hard">Hard</option>
             </Select>
+            <Select
+              value={sourceFilter}
+              onChange={(event) => setSourceFilter(event.target.value)}
+              aria-label="Filter by source"
+            >
+              <option value="ALL">All sources</option>
+              <option value="leetcode">LeetCode</option>
+              <option value="book">Competitive Programmer's Handbook</option>
+              <option value="standard">Standard</option>
+            </Select>
             <Badge variant="neutral" size="md">
               {deck.length} in deck
             </Badge>
             <Badge variant="neutral" size="md">
               {deck.length} of {algorithms.length} algorithms selected
             </Badge>
-            {search.trim().length > 0 || categoryFilter !== "ALL" || difficultyFilter !== "ALL" ? (
+            {search.trim().length > 0 || categoryFilter !== "ALL" || difficultyFilter !== "ALL" || sourceFilter !== "ALL" ? (
               <>
                 <Badge variant="neutral" size="md">
                   {visibleIds.length} shown
@@ -150,6 +166,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
                     setSearch("");
                     setCategoryFilter("ALL");
                     setDifficultyFilter("ALL");
+                    setSourceFilter("ALL");
                   }}
                 >
                   Reset filters

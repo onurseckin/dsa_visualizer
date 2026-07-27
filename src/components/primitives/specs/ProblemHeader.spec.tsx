@@ -36,4 +36,20 @@ describe("ProblemHeader", () => {
 
     expect(screen.queryByRole("button")).toBeNull();
   });
+
+  it("renders LeetCode badge when leetcode prop is provided", () => {
+    render(
+      <ProblemHeader
+        title="Two Sum"
+        category="arrays_and_hashing"
+        difficulty="Easy"
+        leetcode={{ id: 1, url: "https://leetcode.com/problems/two-sum/" }}
+      />,
+    );
+
+    const leetcodeBadge = screen.getByText("LC #1");
+    expect(leetcodeBadge).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "LeetCode #1" });
+    expect(link).toHaveAttribute("href", "https://leetcode.com/problems/two-sum/");
+  });
 });
