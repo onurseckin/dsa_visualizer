@@ -37,12 +37,12 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6 pt-4 border-t border-[var(--border-subtle)]">
       <span className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)]">
         Drill settings
       </span>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
         <FieldLabel label="Answer mode" id="trivia-mode-label" />
         <Segmented
           options={MODE_OPTIONS}
@@ -55,7 +55,7 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
         <Slider
           label="Starting blanks"
           value={minBlanks}
@@ -68,7 +68,7 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
         <Slider
           label="Hardest level"
           value={maxBlanks}
@@ -87,7 +87,7 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
         <FieldLabel label="Distractor tiles" />
         <Button
           icon={<Shuffle aria-hidden="true" />}

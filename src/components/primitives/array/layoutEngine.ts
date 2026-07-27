@@ -58,8 +58,8 @@ export const computeArrayLayout = (
   const pointerFont = clamp(barWidth * 0.24, 9, 15);
   const pointerRowH = pointerFont * 1.55;
 
-  const topPad = Math.min(pointerRows > 0 ? pointerRows * pointerRowH + 4 : 4, box.height * 0.32);
-  const bottomPad = Math.min(indexFont * 1.6, box.height * 0.18);
+  const topPad = Math.min(pointerRows > 0 ? pointerRows * pointerRowH + 16 : 4, box.height * 0.32);
+  const bottomPad = Math.max(indexFont * 2.2 + 16, 32);
   const bandHeight = Math.max(box.height - topPad - bottomPad, 1);
   const baselineY = topPad + bandHeight;
 

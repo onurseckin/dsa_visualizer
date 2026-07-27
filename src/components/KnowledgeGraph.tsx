@@ -38,13 +38,13 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       <div
         role="region"
         aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        className="w-full relative p-8 md:p-10 lg:p-12 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-lg flex flex-col items-center justify-center mx-auto overflow-hidden"
+        className="w-full relative pt-12 pb-10 px-8 md:px-12 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] shadow-lg flex flex-col items-center justify-center mx-auto overflow-hidden"
       >
         <KnowledgeGraphLegend />
 
         <div className="w-full p-8 md:p-10 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] flex items-center justify-center overflow-auto py-8 px-8 mx-auto">
           <svg
-            viewBox="-40 -40 1430 1000"
+            viewBox="-40 0 1430 1100"
             preserveAspectRatio="xMidYMid meet"
             className="w-full h-auto max-w-full mx-auto block"
           >

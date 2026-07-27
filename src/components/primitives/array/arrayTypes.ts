@@ -12,7 +12,7 @@ export const stateBg = (state: ElementState): string => `var(--state-${state}-bg
 
 export const GAP = 8;
 export const MAX_GAP_RATIO = 0.25;
-export const PAD_X = 6;
+export const PAD_X = 32;
 export const MIN_BAR_W = 10;
 export const MAX_BAR_W = 160;
 export const FALLBACK_BAR_W = 60;
