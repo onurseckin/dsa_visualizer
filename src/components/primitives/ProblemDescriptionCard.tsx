@@ -30,7 +30,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
 }) => {
   return (
     <Card padding="md" className="p-6 md:p-8 border-[var(--border-default)]">
-      <div className="flex items-center flex-wrap gap-3 py-4 px-6 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
+      <div className="flex items-center flex-wrap gap-4 py-4 px-6 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
         <h1 className="m-0 text-xl font-bold text-[var(--text-primary)] nowrap overflow-hidden text-ellipsis">
           {title}
         </h1>
@@ -60,7 +60,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
         >
           <section>
             <FieldLabel label="Problem" />
-            <Well padding="md" className="mt-2">
+            <Well className="mt-2 p-4 md:p-5 border border-[var(--border-subtle)] shadow-sm">
               <p className="m-0 text-sm leading-relaxed text-[var(--text-secondary)]">
                 {description}
               </p>
@@ -70,7 +70,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
           {constraints && constraints.length > 0 && (
             <section>
               <FieldLabel label="Constraints" />
-              <Well padding="md" className="mt-2">
+              <Well className="mt-2 p-4 md:p-5 border border-[var(--border-subtle)] shadow-sm">
                 <ul className="m-0 pl-4 font-mono text-xs leading-relaxed text-[var(--text-secondary)]">
                   {constraints.map((constraint, idx) => (
                     <li key={`constraint-${idx}`}>{constraint}</li>

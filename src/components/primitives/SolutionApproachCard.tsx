@@ -19,7 +19,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({
 
   return (
     <Card padding="md" className="p-6 md:p-8 border-[var(--border-default)]">
-      <div className="flex items-center flex-wrap gap-3 py-4 px-6 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
+      <div className="flex items-center flex-wrap gap-4 py-4 px-6 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
         <h2 className="m-0 text-xl font-bold text-[var(--text-primary)]">Solution approach</h2>
 
         <div className="flex-1" />
@@ -44,7 +44,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({
         >
           <p
             data-testid="details-overview"
-            className="m-0 text-base leading-relaxed text-[var(--text-secondary)]"
+            className="m-0 text-base leading-relaxed text-[var(--text-secondary)] pb-6 border-b border-[var(--border-default)]"
           >
             {topicGuide.overview}
           </p>

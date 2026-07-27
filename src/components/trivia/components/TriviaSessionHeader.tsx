@@ -25,30 +25,12 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
   onBackToHome,
 }) => {
   return (
-    <header style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-3)",
-          flexWrap: "wrap",
-        }}
-      >
-        <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--text-primary)" }}>
-          {algorithmTitle}
-        </h2>
+    <header className="flex flex-col gap-4 p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] shadow-sm">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{algorithmTitle}</h2>
         <Badge size="md">{hiddenLabel}</Badge>
-        <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-          {modeDescription}
-        </span>
-        <div
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-2)",
-          }}
-        >
+        <span className="text-sm text-[var(--text-muted)]">{modeDescription}</span>
+        <div className="ml-auto flex items-center gap-2">
           {onStudyInWorkspace ? (
             <Button size="sm" variant="secondary" onClick={() => onStudyInWorkspace(algorithmId)}>
               Study in workspace
@@ -66,7 +48,7 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
           ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-3 mt-3 p-4 md:p-5 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap shadow-sm">
+      <div className="flex items-center gap-3 p-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap shadow-sm">
         {`Level ${level} · ${coverage}% covered`}
       </div>
     </header>

@@ -99,16 +99,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           </select>
         </div>
 
-        <Badge
-          variant="neutral"
-          style={{
-            height: "var(--control-h-md)",
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "0 var(--space-3)",
-            ...PANEL_BORDER,
-          }}
-        >
+        <Badge variant="neutral" size="md">
           {filteredCount} / {stats.total} Problems
         </Badge>
       </div>

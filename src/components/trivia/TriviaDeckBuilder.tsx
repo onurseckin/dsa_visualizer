@@ -80,7 +80,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     <Card
       title="Build your deck"
       icon={<Layers aria-hidden="true" />}
-      className="p-6 md:p-8 border-[var(--border-default)]"
+      className="p-6 md:p-8 border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm"
       actions={
         <ButtonGroup gap="sm" className="flex-wrap">
           <Button size="sm" onClick={addEverything}>

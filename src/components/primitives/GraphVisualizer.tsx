@@ -57,7 +57,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "var(--space-4)",
+          padding: "32px",
         }}
       >
         <svg

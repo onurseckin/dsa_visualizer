@@ -18,7 +18,6 @@ export function SearchTrigger({ onOpenDrawer }: SearchTriggerProps): ReactElemen
       onMouseLeave={() => setHovered(false)}
       aria-label="Search algorithms"
       style={{
-        height: "var(--control-h-lg)",
         fontSize: "var(--text-sm)",
         background: "var(--bg-inset)",
         color: hovered ? "var(--text-primary)" : "var(--text-muted)",
