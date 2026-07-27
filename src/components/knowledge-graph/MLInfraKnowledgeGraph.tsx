@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Button } from "../../ui";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_NODES,
@@ -51,7 +52,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   const handleSelectNode = (node: MLInfraNode) => {
     setDrawerTopicId(node.id);
     if (onSelectCategoryFolder) {
-      onSelectCategoryFolder(node.id);
+      onSelectCategoryFolder(node.categoryFolder || node.id);
     }
   };
 
@@ -122,6 +123,14 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
               ✕
             </button>
           </div>
+
+          <Button
+            onClick={() =>
+              onSelectCategoryFolder?.(activeDrawerTopic.categoryFolder || activeDrawerTopic.id)
+            }
+          >
+            View {activeDrawerTopic.title} Problems in Problem List →
+          </Button>
 
           {/* Prerequisite Topics if any */}
           {activeDrawerTopic.prerequisites.length > 0 && (

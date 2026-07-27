@@ -143,4 +143,34 @@ describe("ProblemList Component Spec", () => {
     );
     expect(screen.getAllByRole("row")[1]?.textContent ?? "").toBe(cleanFirstRowTitle);
   });
+
+  it("renders ML Infra problems when category='ml_tensor_algebra'", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_tensor_algebra" />);
+
+    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
+    expect(screen.getByText("2D Array Matrix Traversal")).toBeInTheDocument();
+  });
+
+  it("renders ML Infra problems when category='ml_infra'", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_infra" />);
+
+    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
+    expect(screen.getByText("FlashAttention Tiling & Online Softmax")).toBeInTheDocument();
+  });
+
+  it("renders ML Infra problems when selectedSource='ml_infra'", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} />);
+
+    const sourceSelect = screen.getByRole("combobox", { name: /Filter by Source/i });
+    fireEvent.change(sourceSelect, { target: { value: "ml_infra" } });
+
+    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
+    expect(screen.getByText("FlashAttention Tiling & Online Softmax")).toBeInTheDocument();
+  });
+
+  it("verifies all 38 ML Infra algorithms are present in the list and filterable", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_infra" />);
+
+    expect(screen.getByText(/38 \/ \d+ Problems/i)).toBeInTheDocument();
+  });
 });
