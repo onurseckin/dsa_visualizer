@@ -164,14 +164,30 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
     { Q, G, groupSize, memoryReduction: `${memoryReduction}x` },
   );
 
+  addStep(
+    7,
+    `Compute group_size = ${Q} // ${G} = ${groupSize}`,
+    `Each KV head is shared by ${groupSize} query heads. With GQA group_size=${groupSize}, KV-cache memory shrinks by ${memoryReduction}x vs MHA.`,
+    -1,
+    { num_query_heads: Q, num_kv_heads: G, group_size: groupSize },
+  );
+
+  addStep(
+    10,
+    `Initialize head_mapping = {}`,
+    `Empty dict to store the query-head → shared-KV-head index mapping for all ${Q} query heads.`,
+    -1,
+    { num_query_heads: Q },
+  );
+
   for (let q = 0; q < Q; q++) {
     const kvIdx = Math.floor(q / groupSize);
     headMapping[q] = kvIdx;
 
     addStep(
-      8,
+      12,
       `Mapped Query Head #${q} to Shared KV Head #${kvIdx}`,
-      `Query head Q${q} belongs to group #${kvIdx} (heads Q${kvIdx * groupSize}..Q${(kvIdx + 1) * groupSize - 1}). Shares Key/Value tensors in fast SRAM.`,
+      `kv_idx = ${q} // ${groupSize} = ${kvIdx}. Query head Q${q} belongs to group #${kvIdx} (heads Q${kvIdx * groupSize}..Q${(kvIdx + 1) * groupSize - 1}). Shares Key/Value tensors in fast SRAM.`,
       q,
       { qHead: q, sharedKvHead: kvIdx, groupSize },
     );
@@ -183,7 +199,15 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
 
   addStep(
     15,
-    "GQA Head Mapping Complete",
+    `Compute memory_compression = ${Q} / ${G} = ${memoryReduction}x`,
+    `GQA reduces KV-cache memory bandwidth by ${memoryReduction}x compared to Multi-Head Attention.`,
+    Q,
+    { num_query_heads: Q, num_kv_heads: G, kv_memory_reduction_factor: memoryReduction },
+  );
+
+  addStep(
+    17,
+    "Return GQA Head Mapping",
     `Successfully constructed GQA mapping. Reduced memory bandwidth for KV-cache by ${memoryReduction}x compared to MHA.`,
     Q,
     { totalQueryHeads: Q, totalKvHeads: G, memoryCompressionRatio: `${memoryReduction}x` },
