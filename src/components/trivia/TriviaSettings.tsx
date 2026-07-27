@@ -37,8 +37,8 @@ export const TriviaSettings: React.FC<TriviaSettingsProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-6 pt-4 border-t border-[var(--border-subtle)]">
-      <span className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)]">
+    <div className="flex flex-col gap-4 p-5 md:p-6 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mt-6">
+      <span className="text-xs font-bold tracking-wider uppercase text-[var(--text-muted)] mb-2">
         Drill settings
       </span>
 

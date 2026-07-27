@@ -25,7 +25,7 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
   onBackToHome,
 }) => {
   return (
-    <header className="flex flex-col gap-4 p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] shadow-sm">
+    <header className="flex flex-col gap-4 p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm">
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">{algorithmTitle}</h2>
         <Badge size="md">{hiddenLabel}</Badge>

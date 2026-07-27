@@ -26,7 +26,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   stats,
 }) => {
   return (
-    <Card padding="sm" style={PANEL_BORDER}>
+    <Card padding="sm" style={PANEL_BORDER} className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-4 w-full">
         <div className="flex-1 min-w-[240px]">
           <Input
