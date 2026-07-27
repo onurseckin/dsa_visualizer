@@ -264,7 +264,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 const endY = node.y - 32;
                 const midY = (startY + endY) / 2;
 
-                const pathD = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+                const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
 
                 return (
                   <path
@@ -300,6 +300,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 (node.prerequisites.includes(hoveredNodeId) ||
                   (hoveredNode?.prerequisites.includes(node.id) ?? false));
 
+              const width = Math.max(190, node.title.length * 8.5 + 40);
+
               const handleKeyDown = (e: React.KeyboardEvent) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -313,7 +315,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   role="button"
                   tabIndex={0}
                   aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                  transform={`translate(${node.x - 95}, ${node.y - 32})`}
+                  transform={`translate(${node.x - width / 2}, ${node.y - 32})`}
                   onClick={() => handleSelectNode(node)}
                   onKeyDown={handleKeyDown}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
@@ -334,7 +336,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   className={isHovered ? "scale-[1.02]" : ""}
                 >
                   <rect
-                    width="190"
+                    width={width}
                     height="64"
                     rx="12"
                     fill={
@@ -359,7 +361,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   />
 
                   <text
-                    x="95"
+                    x={width / 2}
                     y="28"
                     textAnchor="middle"
                     fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
@@ -369,7 +371,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   </text>
 
                   <text
-                    x="95"
+                    x={width / 2}
                     y="48"
                     textAnchor="middle"
                     fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}

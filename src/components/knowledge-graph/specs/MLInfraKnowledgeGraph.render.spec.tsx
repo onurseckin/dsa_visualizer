@@ -51,7 +51,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     expect(screen.getByText(/4 Problems • Medium/i)).toBeInTheDocument();
   });
 
-  it("renders 90-degree orthogonal connectors between prerequisite topics", () => {
+  it("renders smooth cubic bezier curve connectors between prerequisite topics", () => {
     const { container } = render(<MLInfraKnowledgeGraph />);
 
     const connectorGroup = container.querySelector(".connectors");
@@ -60,12 +60,38 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     const paths = connectorGroup?.querySelectorAll("path");
     expect(paths && paths.length).toBeGreaterThan(0);
 
-    // Verify orthogonal line command pattern M startX startY L startX midY L endX midY L endX endY
+    // Verify cubic bezier command pattern M startX startY C startX midY, endX midY, endX endY
     paths?.forEach((path) => {
       const d = path.getAttribute("d") || "";
       expect(d).toMatch(
-        /^M\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+\s+L\s+[\d.]+\s+[\d.]+$/,
+        /^M\s+[\d.]+\s+[\d.]+\s+C\s+[\d.]+\s+[\d.]+,\s+[\d.]+\s+[\d.]+,\s+[\d.]+\s+[\d.]+$/,
       );
+    });
+  });
+
+  it("calculates dynamic node widths based on title length and centers text elements", () => {
+    const { container } = render(<MLInfraKnowledgeGraph />);
+
+    const nodesGroup = container.querySelector(".nodes");
+    expect(nodesGroup).toBeInTheDocument();
+
+    ML_INFRA_NODES.forEach((node) => {
+      const expectedWidth = Math.max(190, node.title.length * 8.5 + 40);
+      const expectedTransform = `translate(${node.x - expectedWidth / 2}, ${node.y - 32})`;
+
+      // Find the g element for this node title
+      const titleElement = screen.getByText(node.title);
+      const gElement = titleElement.closest("g");
+      expect(gElement).not.toBeNull();
+      expect(gElement?.getAttribute("transform")).toBe(expectedTransform);
+
+      const rectElement = gElement?.querySelector("rect");
+      expect(rectElement?.getAttribute("width")).toBe(String(expectedWidth));
+
+      const textElements = gElement?.querySelectorAll("text");
+      textElements?.forEach((textEl) => {
+        expect(textEl.getAttribute("x")).toBe(String(expectedWidth / 2));
+      });
     });
   });
 
