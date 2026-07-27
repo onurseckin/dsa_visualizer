@@ -88,6 +88,17 @@ import { knightsTourWarnsdorff } from "./backtracking/knightsTourWarnsdorff";
 import { hamiltonianPathDp } from "./backtracking/hamiltonianPathDp";
 import { generatingSubsets } from "./backtracking/generatingSubsets";
 
+import { tensorStrideOffset } from "./ml_infra/tensorStrideOffset";
+import { autogradVjpDag } from "./ml_infra/autogradVjpDag";
+import { fusedSoftmaxLse } from "./ml_infra/fusedSoftmaxLse";
+import { hnswVectorSearch } from "./ml_infra/hnswVectorSearch";
+import { bpeTokenizer } from "./ml_infra/bpeTokenizer";
+import { im2colConvTiling } from "./ml_infra/im2colConvTiling";
+import { flashAttentionTiling } from "./ml_infra/flashAttentionTiling";
+import { smoothquantScaling } from "./ml_infra/smoothquantScaling";
+import { ringAllreducePartition } from "./ml_infra/ringAllreducePartition";
+import { continuousBatchingScheduler } from "./ml_infra/continuousBatchingScheduler";
+
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "prefix-sum": prefixSum as AlgorithmDefinition,
   "two-sum": twoSum as AlgorithmDefinition,
@@ -177,6 +188,17 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "knights-tour-warnsdorff": knightsTourWarnsdorff as AlgorithmDefinition,
   "hamiltonian-path-dp": hamiltonianPathDp as AlgorithmDefinition,
   "generating-subsets": generatingSubsets as AlgorithmDefinition,
+  // ML Infra Algorithms
+  "tensor-stride-offset": tensorStrideOffset as AlgorithmDefinition,
+  "autograd-vjp-dag": autogradVjpDag as AlgorithmDefinition,
+  "fused-softmax-lse": fusedSoftmaxLse as AlgorithmDefinition,
+  "hnsw-vector-search": hnswVectorSearch as AlgorithmDefinition,
+  "bpe-tokenizer": bpeTokenizer as AlgorithmDefinition,
+  "im2col-conv-tiling": im2colConvTiling as AlgorithmDefinition,
+  "flash-attention-tiling": flashAttentionTiling as AlgorithmDefinition,
+  "smoothquant-scaling": smoothquantScaling as AlgorithmDefinition,
+  "ring-allreduce-partition": ringAllreducePartition as AlgorithmDefinition,
+  "continuous-batching-scheduler": continuousBatchingScheduler as AlgorithmDefinition,
 };
 
 export const getAlgorithm = (id: string): AlgorithmDefinition | undefined => {
