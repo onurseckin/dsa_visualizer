@@ -38,6 +38,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           leadingIcon={<Search />}
           placeholder="Search problems by title, category, description..."
           aria-label="Filter problems"
+          className="min-h-[40px]"
         />
       </div>
 
@@ -76,7 +77,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <Badge variant="neutral" size="md">
+        <Badge variant="neutral" size="md" className="px-3 py-1">
           {filteredCount} / {stats.total} Problems
         </Badge>
       </div>

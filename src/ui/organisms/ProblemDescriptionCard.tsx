@@ -39,7 +39,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
       className={cx("p-6 md:p-8 border-[var(--border-default)] bg-[var(--bg-surface)]", className)}
       style={{ borderColor: "var(--border-default)", ...style }}
     >
-      <div className="flex items-center flex-wrap gap-4 py-6 px-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl">
+      <div className="flex items-center flex-wrap gap-4 px-6 py-4 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl">
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis m-0">
           {title}
         </h1>

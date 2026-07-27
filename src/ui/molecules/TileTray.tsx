@@ -67,7 +67,7 @@ export function TileTray({
               onClick={() => onActivate(tile.id)}
               onDragStart={handleDragStart(tile.id)}
               onDragEnd={handleDragEnd}
-              className={`px-4 py-2.5 font-mono text-xs md:text-sm border rounded-[var(--radius-md)] cursor-pointer shadow-xs transition-transform active:scale-95 overflow-hidden text-ellipsis ${
+              className={`px-4 py-2.5 min-h-[40px] font-mono text-xs md:text-sm border rounded-[var(--radius-md)] cursor-pointer shadow-xs transition-transform active:scale-95 overflow-hidden text-ellipsis ${
                 isUsed
                   ? "cursor-not-allowed line-through opacity-40 bg-[var(--bg-subtle)] border-transparent shadow-none"
                   : "bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] hover:border-[var(--accent)] hover:shadow-md border-[var(--border-default)]"

@@ -50,7 +50,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
   const badge = badgeForSession(session);
 
   return (
-    <Card className="border-[var(--border-default)] shadow-sm">
+    <Card className="p-6 md:p-8 border-[var(--border-default)] shadow-sm">
       <Card.Header
         title={
           isEditing ? (
@@ -96,6 +96,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           <Button
             size="sm"
             variant="primary"
+            className="min-h-[44px]"
             onClick={() => onResumeSession(session)}
             title={stats ? `Resumes at Level ${stats.level} with a new round` : undefined}
           >
@@ -104,6 +105,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           <IconButton
             size="sm"
             variant="secondary"
+            className="min-h-[44px]"
             icon={<Edit2 size={14} />}
             onClick={() => onStartRename(session)}
             aria-label={`Rename ${session.name}`}
@@ -111,6 +113,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           <IconButton
             size="sm"
             variant="secondary"
+            className="min-h-[44px]"
             icon={<Trash2 size={14} />}
             onClick={() => onPendingDelete(session.id)}
             aria-label={`Delete ${session.name}`}
