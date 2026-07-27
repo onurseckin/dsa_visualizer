@@ -79,7 +79,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
+        <span className="bg-[#1e1e24] text-neutral-200 border border-white/10 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
           {filteredCount} / {stats.total} Problems
         </span>
       </div>

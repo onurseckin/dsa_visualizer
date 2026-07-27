@@ -13,7 +13,7 @@ function KnowledgeTreePage(): React.ReactElement {
   return (
     <main
       aria-label="Algorithm Roadmap"
-      className="relative max-w-7xl px-6 md:px-8 py-8 mx-auto flex flex-col items-center gap-8 text-center w-full box-border flex-1 overflow-y-auto"
+      className="relative w-[90%] max-w-[1600px] py-8 mx-auto flex flex-col items-center gap-8 text-center box-border flex-1 overflow-y-auto"
     >
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-[var(--accent)]/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       <PageHeader

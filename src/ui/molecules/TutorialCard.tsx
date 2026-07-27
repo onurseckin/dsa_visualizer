@@ -1,6 +1,6 @@
 import React from "react";
-import { GraduationCap, X } from "lucide-react";
-import { Card, IconButton } from "../../ui";
+import { GraduationCap } from "lucide-react";
+import { Card } from "../../ui";
 import { StepExplanation } from "../../types/dsa";
 
 export interface TutorialCardProps {
@@ -40,7 +40,6 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
   why,
   stepIndex,
   totalSteps,
-  onClose,
 }) => {
   const whatText = (what || explanation?.what || "").trim();
   const whyText = (why || explanation?.why || "").trim();
@@ -91,17 +90,6 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
           )}
 
           <div style={{ flex: 1, minWidth: 0 }} />
-
-          {onClose && (
-            <IconButton
-              icon={<X />}
-              aria-label="Hide tutorial"
-              title="Dismiss explanation"
-              onClick={onClose}
-            >
-              <span className="sr-only">Dismiss explanation</span>
-            </IconButton>
-          )}
         </div>
 
         <p style={PROSE}>
