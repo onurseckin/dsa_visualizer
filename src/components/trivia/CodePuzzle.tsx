@@ -6,6 +6,7 @@ import { useCodePuzzleDragDrop } from "./hooks/useCodePuzzleDragDrop";
 import { useCodePuzzleState } from "./hooks/useCodePuzzleState";
 import { CodePuzzleBlankRow } from "./components/CodePuzzleBlankRow";
 import { CodePuzzleCodeRow } from "./components/CodePuzzleCodeRow";
+import "./CodePuzzle.css";
 
 export { TILE_MIME };
 

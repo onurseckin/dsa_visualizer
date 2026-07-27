@@ -1,0 +1,17 @@
+/* Interactive/data affordances take the darkest fill like every other control
+   (DESIGN.md R7.1); the border is what makes them legible. */
+.ui-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  min-width: calc(var(--space-4) + var(--space-1));
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
