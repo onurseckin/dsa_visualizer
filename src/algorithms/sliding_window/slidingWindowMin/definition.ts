@@ -120,6 +120,25 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   },
   topicGuide: SLIDING_WINDOW_MIN_TOPIC_GUIDE,
   trivia: SLIDING_WINDOW_MIN_TRIVIA,
+  leetcode: {
+    id: 239,
+    url: "https://leetcode.com/problems/sliding-window-maximum/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #239",
+      leetcodeId: 239,
+      url: "https://leetcode.com/problems/sliding-window-maximum/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 8",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 8,
+      section: "8.3 Sliding window minimum",
+    },
+  ],
   defaultInput: DEFAULT_SLIDING_WINDOW_MIN_INPUT,
   generateSteps: generateSlidingWindowMinSteps,
 };

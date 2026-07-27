@@ -1,11 +1,13 @@
 import React from "react";
-import { CategoryType, DifficultyLevel } from "../../types/dsa";
-import { Badge, difficultyBadgeVariant } from "../../ui";
+import { CategoryType, DifficultyLevel, LeetCodeMeta, ProblemSource } from "../../types/dsa";
+import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../../ui";
 
 export interface ProblemHeaderProps {
   title: string;
   category: CategoryType;
   difficulty?: DifficultyLevel;
+  leetcode?: LeetCodeMeta | { id: number; url: string };
+  sources?: ProblemSource[];
   className?: string;
   style?: React.CSSProperties;
 }
@@ -19,6 +21,8 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   title,
   category,
   difficulty = "Easy",
+  leetcode,
+  sources,
   className = "",
   style,
 }) => {
@@ -38,6 +42,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         <Badge variant="neutral" size="sm">
           {humanizeCategory(category)}
         </Badge>
+        <SourceBadgeList sources={sources} leetcode={leetcode} size="md" />
       </div>
     </div>
   );

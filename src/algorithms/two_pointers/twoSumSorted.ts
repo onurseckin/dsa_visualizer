@@ -250,7 +250,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   id: "two-sum-sorted",
   title: "Two Sum II (Sorted)",
   category: "two_pointers",
-  difficulty: "Easy",
+  difficulty: "Medium",
   description:
     "Find two numbers in a sorted array that add up to a target by walking a left and a right pointer toward each other from opposite ends.",
   constraints: [
@@ -285,6 +285,25 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   },
   topicGuide: TWO_SUM_SORTED_TOPIC_GUIDE,
   trivia: TWO_SUM_SORTED_TRIVIA,
+  leetcode: {
+    id: 167,
+    url: "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #167",
+      leetcodeId: 167,
+      url: "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 8",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 8,
+      section: "8.1 Two pointers method",
+    },
+  ],
   defaultInput: DEFAULT_TWO_SUM_SORTED_INPUT,
   generateSteps: generateTwoSumSortedSteps,
 };

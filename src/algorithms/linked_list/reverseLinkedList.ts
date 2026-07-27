@@ -294,6 +294,25 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     ],
   },
   trivia: REVERSE_LINKED_LIST_TRIVIA,
+  leetcode: {
+    id: 206,
+    url: "https://leetcode.com/problems/reverse-linked-list/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #206",
+      leetcodeId: 206,
+      url: "https://leetcode.com/problems/reverse-linked-list/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 4",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 4,
+      section: "4.1 Data structures",
+    },
+  ],
   defaultInput: DEFAULT_REVERSE_LINKED_LIST_INPUT,
   generateSteps: generateReverseLinkedListSteps,
 };

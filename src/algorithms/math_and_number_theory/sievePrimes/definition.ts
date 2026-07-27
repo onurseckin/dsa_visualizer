@@ -90,7 +90,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   id: "sieve-primes",
   title: "Sieve of Eratosthenes",
   category: "math_and_number_theory",
-  difficulty: "Easy",
+  difficulty: "Medium",
   description:
     "The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit. Instead of testing numbers individually, it crosses out the multiples of each discovered prime (starting from p²), leaving only primes standing — in nearly linear O(n log log n) time.",
   constraints: ["0 <= limit <= 10^5"],
@@ -120,6 +120,25 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   },
   topicGuide: SIEVE_PRIMES_TOPIC_GUIDE,
   trivia: SIEVE_PRIMES_TRIVIA,
+  leetcode: {
+    id: 204,
+    url: "https://leetcode.com/problems/count-primes/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #204",
+      leetcodeId: 204,
+      url: "https://leetcode.com/problems/count-primes/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 21",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 21,
+      section: "21.1 Primes and factors",
+    },
+  ],
   defaultInput: DEFAULT_SIEVE_INPUT,
   generateSteps: generateSieveSteps,
 };

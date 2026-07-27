@@ -1,12 +1,12 @@
 import React from "react";
 import { ArrowUpDown, Code2, Play } from "lucide-react";
-import { AlgorithmDefinition, CategoryType } from "../../types/dsa";
+import { AlgorithmDefinition, CategoryType, getAlgorithmSources } from "../../types/dsa";
 
 import {
   CATEGORY_LABELS,
   ProblemListSortField,
 } from "../../components/problem-list/problemListUtils";
-import { Badge, difficultyBadgeVariant } from "../index";
+import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../index";
 
 interface ProblemTableProps {
   filteredAlgorithms: AlgorithmDefinition[];
@@ -98,6 +98,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                           className="text-[var(--text-muted)] shrink-0"
                         />
                         <span>{alg.title}</span>
+                        <SourceBadgeList sources={getAlgorithmSources(alg)} size="sm" />
                       </span>
                     </td>
                     <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">

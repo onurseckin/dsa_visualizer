@@ -157,6 +157,25 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   },
   topicGuide: BINARY_SEARCH_MATRIX_TOPIC_GUIDE,
   trivia: BINARY_SEARCH_MATRIX_TRIVIA,
+  leetcode: {
+    id: 74,
+    url: "https://leetcode.com/problems/search-a-2d-matrix/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #74",
+      leetcodeId: 74,
+      url: "https://leetcode.com/problems/search-a-2d-matrix/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 3",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 3,
+      section: "3.3 Binary search",
+    },
+  ],
   defaultInput: DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
   generateSteps: generateBinarySearchMatrixSteps,
 };

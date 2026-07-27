@@ -41,6 +41,19 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   },
   topicGuide: SEGMENT_TREE_LAZY_TOPIC_GUIDE,
   trivia: SEGMENT_TREE_LAZY_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 28",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 28,
+      section: "28.1 Lazy propagation",
+    },
+  ],
   defaultInput: DEFAULT_SEGMENT_TREE_LAZY_INPUT,
   generateSteps: generateSegmentTreeLazySteps,
 };

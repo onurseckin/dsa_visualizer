@@ -137,6 +137,25 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
     ],
   },
   trivia: BINARY_TREE_LCA_TRIVIA,
+  leetcode: {
+    id: 236,
+    url: "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #236",
+      leetcodeId: 236,
+      url: "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 18",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 18,
+      section: "18.3 Lowest common ancestor",
+    },
+  ],
   defaultInput: DEFAULT_BINARY_TREE_LCA_INPUT,
   generateSteps: generateBinaryTreeLcaSteps,
 };

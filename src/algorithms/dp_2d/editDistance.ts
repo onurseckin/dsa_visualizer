@@ -284,6 +284,25 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     ],
   },
   trivia: EDIT_DISTANCE_TRIVIA,
+  leetcode: {
+    id: 72,
+    url: "https://leetcode.com/problems/edit-distance/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #72",
+      leetcodeId: 72,
+      url: "https://leetcode.com/problems/edit-distance/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 7",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 7,
+      section: "7.5 Edit distance",
+    },
+  ],
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };

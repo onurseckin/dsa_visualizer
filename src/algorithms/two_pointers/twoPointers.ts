@@ -270,6 +270,19 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   },
   topicGuide: TWO_POINTERS_TOPIC_GUIDE,
   trivia: TWO_POINTERS_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 8",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 8,
+      section: "8.1 Subarray sum",
+    },
+  ],
   defaultInput: DEFAULT_TWO_POINTERS_INPUT,
   generateSteps: generateTwoPointersSteps,
 };

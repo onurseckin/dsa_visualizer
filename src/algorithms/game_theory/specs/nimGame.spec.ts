@@ -7,7 +7,7 @@ describe("nimGame algorithm logic spec", () => {
     expect(nimGame.id).toBe("nim-game");
     expect(nimGame.title).toBe("Nim Game Sprague-Grundy");
     expect(nimGame.category).toBe("game_theory");
-    expect(nimGame.difficulty).toBe("Medium");
+    expect(nimGame.difficulty).toBe("Easy");
     expect(nimGame.defaultInput).toEqual(DEFAULT_NIM_INPUT);
   });
 

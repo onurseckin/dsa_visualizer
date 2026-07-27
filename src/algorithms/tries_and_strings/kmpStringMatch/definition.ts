@@ -135,6 +135,25 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     ],
   },
   trivia: KMP_TRIVIA,
+  leetcode: {
+    id: 28,
+    url: "https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #28",
+      leetcodeId: 28,
+      url: "https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 26",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 26,
+      section: "26.1 String pattern matching",
+    },
+  ],
   defaultInput: DEFAULT_KMP_INPUT,
   generateSteps: generateKmpSteps,
 };

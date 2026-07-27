@@ -131,6 +131,25 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
     ],
   },
   trivia: TREE_DIAMETER_TRIVIA,
+  leetcode: {
+    id: 543,
+    url: "https://leetcode.com/problems/diameter-of-binary-tree/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #543",
+      leetcodeId: 543,
+      url: "https://leetcode.com/problems/diameter-of-binary-tree/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 14",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 14,
+      section: "14.2 Diameter",
+    },
+  ],
   defaultInput: DEFAULT_TREE_DIAMETER_INPUT,
   generateSteps: generateTreeDiameterSteps,
 };

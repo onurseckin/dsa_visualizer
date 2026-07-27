@@ -122,6 +122,25 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
     ],
   },
   trivia: KTH_LARGEST_ELEMENT_TRIVIA,
+  leetcode: {
+    id: 215,
+    url: "https://leetcode.com/problems/kth-largest-element-in-an-array/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #215",
+      leetcodeId: 215,
+      url: "https://leetcode.com/problems/kth-largest-element-in-an-array/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 4",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 4,
+      section: "4.5 Priority queue",
+    },
+  ],
   generateSteps: generateKthLargestSteps,
   defaultInput: DEFAULT_KTH_LARGEST_INPUT,
 };

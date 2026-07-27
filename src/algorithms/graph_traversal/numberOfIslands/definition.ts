@@ -148,6 +148,25 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   },
   topicGuide: NUMBER_OF_ISLANDS_TOPIC_GUIDE,
   trivia: NUMBER_OF_ISLANDS_TRIVIA,
+  leetcode: {
+    id: 200,
+    url: "https://leetcode.com/problems/number-of-islands/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #200",
+      leetcodeId: 200,
+      url: "https://leetcode.com/problems/number-of-islands/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 12",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 12,
+      section: "12.3 Graph traversal",
+    },
+  ],
   defaultInput: DEFAULT_NUMBER_OF_ISLANDS_INPUT,
   generateSteps: generateNumberOfIslandsSteps,
 };

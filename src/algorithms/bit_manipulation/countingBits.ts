@@ -243,6 +243,25 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   },
   topicGuide: COUNTING_BITS_TOPIC_GUIDE,
   trivia: COUNTING_BITS_TRIVIA,
+  leetcode: {
+    id: 338,
+    url: "https://leetcode.com/problems/counting-bits/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #338",
+      leetcodeId: 338,
+      url: "https://leetcode.com/problems/counting-bits/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 10",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 10,
+      section: "10.2 Bit operations",
+    },
+  ],
   generateSteps: generateCountingBitsSteps,
   defaultInput: DEFAULT_COUNTING_BITS_INPUT,
 };

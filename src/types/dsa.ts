@@ -217,6 +217,66 @@ export interface ProblemExample {
   explanation?: string;
 }
 
+export interface LeetCodeMeta {
+  id: number;
+  url: string;
+}
+
+export type SourceKind = "leetcode" | "book" | "standard" | "hackerrank" | "other";
+
+export interface BaseSource {
+  type?: SourceKind;
+  kind?: SourceKind;
+  label?: string;
+  url?: string;
+}
+
+export interface LeetCodeSource extends BaseSource {
+  type?: "leetcode";
+  kind?: "leetcode";
+  id?: number;
+  leetcodeId?: number;
+  url?: string;
+  title?: string;
+}
+
+export interface BookSource extends BaseSource {
+  type?: "book";
+  kind?: "book";
+  bookTitle?: string;
+  chapter?: string | number;
+  chapterTitle?: string;
+  section?: string | number;
+  shortTitle?: string;
+  page?: number;
+  url?: string;
+}
+
+export interface StandardSource extends BaseSource {
+  type?: "standard";
+  kind?: "standard";
+  label?: string;
+}
+
+export type ProblemSource = LeetCodeSource | BookSource | StandardSource;
+
+export function getSourceKind(source: ProblemSource): SourceKind {
+  return source.kind || source.type || "standard";
+}
+
+export function getAlgorithmSources(alg: {
+  sources?: ProblemSource[];
+  leetcode?: LeetCodeMeta | { id: number; url: string };
+}): ProblemSource[] {
+  if (alg.sources && alg.sources.length > 0) {
+    return alg.sources;
+  }
+  if (alg.leetcode) {
+    return [{ type: "leetcode", kind: "leetcode", id: alg.leetcode.id, leetcodeId: alg.leetcode.id, url: alg.leetcode.url }];
+  }
+  return [{ type: "standard", kind: "standard", label: "Standard" }];
+}
+
 export interface AlgorithmDefinition<TInput = unknown> {
   id: string;
   title: string;
@@ -233,6 +293,8 @@ export interface AlgorithmDefinition<TInput = unknown> {
   /* Optional trivia sharpening (skip lines, decoys, hints). A solution with no
      metadata still drills correctly straight from `code` — see types/trivia.ts. */
   trivia?: TriviaMeta;
+  leetcode?: LeetCodeMeta;
+  sources?: ProblemSource[];
   generateSteps: (input: TInput) => AlgorithmStep[];
   defaultInput: TInput;
 }

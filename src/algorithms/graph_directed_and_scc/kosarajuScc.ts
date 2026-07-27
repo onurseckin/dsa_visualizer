@@ -41,6 +41,19 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   },
   topicGuide: KOSARAJU_SCC_TOPIC_GUIDE,
   trivia: KOSARAJU_SCC_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 17",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 17,
+      section: "17.1 Kosaraju's algorithm",
+    },
+  ],
   defaultInput: DEFAULT_KOSARAJU_INPUT,
   generateSteps: generateKosarajuSccSteps,
 };

@@ -122,6 +122,19 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   },
   topicGuide: POLYGON_AREA_TOPIC_GUIDE,
   trivia: POLYGON_AREA_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 29",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 29,
+      section: "29.3 Polygon area",
+    },
+  ],
   defaultInput: DEFAULT_POLYGON_AREA_INPUT,
   generateSteps: generatePolygonAreaSteps,
 };

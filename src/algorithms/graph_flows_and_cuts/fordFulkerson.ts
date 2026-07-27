@@ -43,6 +43,19 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   },
   topicGuide: FORD_FULKERSON_TOPIC_GUIDE,
   trivia: FORD_FULKERSON_TRIVIA,
+  sources: [
+    {
+      kind: "standard",
+      label: "Standard Algorithm",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 20",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 20,
+      section: "20.1 Ford–Fulkerson algorithm",
+    },
+  ],
   defaultInput: DEFAULT_FORD_FULKERSON_INPUT,
   generateSteps: generateFordFulkersonSteps,
 };

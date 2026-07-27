@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { CategoryType } from "../../../types/dsa";
+import { CategoryType, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
 import { getAllAlgorithms } from "../../../algorithms/registry";
 import {
   CATEGORY_LABELS,
   ProblemListDifficulty,
+  ProblemListSource,
   ProblemListSortField,
   ProblemListSortOrder,
   isProblemListDifficulty,
+  isProblemListSource,
   isProblemListSortField,
   isProblemListSortOrder,
   readStoredProblemListValue,
@@ -23,11 +25,19 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
   const [selectedDifficulty, setSelectedDifficultyState] = useState<ProblemListDifficulty>(() =>
     readStoredProblemListValue("difficulty", "All", isProblemListDifficulty),
   );
+  const [selectedSource, setSelectedSourceState] = useState<ProblemListSource>(() =>
+    readStoredProblemListValue("source", "All", isProblemListSource),
+  );
   const [internalCategory, setInternalCategory] = useState<CategoryType | "All">("All");
 
   const setSelectedDifficulty = (next: ProblemListDifficulty) => {
     setSelectedDifficultyState(next);
     writeStoredProblemListValue("difficulty", next);
+  };
+
+  const setSelectedSource = (next: ProblemListSource) => {
+    setSelectedSourceState(next);
+    writeStoredProblemListValue("source", next);
   };
 
   const selectedCategory = category ?? internalCategory;
@@ -77,6 +87,13 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
     const filtered = algorithms.filter((alg) => {
       if (selectedDifficulty !== "All" && alg.difficulty !== selectedDifficulty) return false;
       if (selectedCategory !== "All" && alg.category !== selectedCategory) return false;
+
+      if (selectedSource !== "All") {
+        const sources = getAlgorithmSources(alg);
+        const matchesSource = sources.some((s) => getSourceKind(s) === selectedSource);
+        if (!matchesSource) return false;
+      }
+
       if (!q) return true;
       if (alg.title.toLowerCase().includes(q)) return true;
       const catLabel = (CATEGORY_LABELS[alg.category] || alg.category).toLowerCase();
@@ -98,7 +115,7 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
       }
       return sortOrder === "asc" ? comp : -comp;
     });
-  }, [algorithms, searchTerm, selectedDifficulty, selectedCategory, sortBy, sortOrder]);
+  }, [algorithms, searchTerm, selectedDifficulty, selectedCategory, selectedSource, sortBy, sortOrder]);
 
   const toggleSort = (field: ProblemListSortField) => {
     if (sortBy === field) {
@@ -116,6 +133,8 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
     handleCategorySelect,
     selectedDifficulty,
     setSelectedDifficulty,
+    selectedSource,
+    setSelectedSource,
     sortBy,
     sortOrder,
     toggleSort,

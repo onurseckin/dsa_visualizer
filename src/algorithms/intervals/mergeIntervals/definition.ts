@@ -123,6 +123,25 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
     ],
   },
   trivia: MERGE_INTERVALS_TRIVIA,
+  leetcode: {
+    id: 56,
+    url: "https://leetcode.com/problems/merge-intervals/",
+  },
+  sources: [
+    {
+      kind: "leetcode",
+      label: "LeetCode #56",
+      leetcodeId: 56,
+      url: "https://leetcode.com/problems/merge-intervals/",
+    },
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 6",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 6,
+      section: "6.2 Scheduling",
+    },
+  ],
   generateSteps: generateMergeIntervalsSteps,
   defaultInput: DEFAULT_MERGE_INTERVALS_INPUT,
 };
