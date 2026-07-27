@@ -74,8 +74,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "foundations",
     difficulty: "Medium",
     prerequisites: [],
-    x: 415,
-    y: 60,
+    x: 450,
+    y: 80,
     algorithmCount: 4,
     questions: [
       {
@@ -124,8 +124,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "foundations",
     difficulty: "Medium",
     prerequisites: [],
-    x: 935,
-    y: 60,
+    x: 1150,
+    y: 80,
     algorithmCount: 3,
     questions: [
       {
@@ -165,8 +165,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 275,
-    y: 200,
+    x: 280,
+    y: 240,
     algorithmCount: 3,
     questions: [
       {
@@ -206,8 +206,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 675,
-    y: 200,
+    x: 800,
+    y: 240,
     algorithmCount: 3,
     questions: [
       {
@@ -246,8 +246,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 1075,
-    y: 200,
+    x: 1320,
+    y: 240,
     algorithmCount: 2,
     questions: [
       {
@@ -278,8 +278,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Hard",
     prerequisites: ["ml_tensor_algebra"],
-    x: 200,
-    y: 380,
+    x: 170,
+    y: 430,
     algorithmCount: 3,
     questions: [
       {
@@ -319,8 +319,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Medium",
     prerequisites: ["ml_autograd_dags"],
-    x: 520,
-    y: 380,
+    x: 560,
+    y: 430,
     algorithmCount: 2,
     questions: [
       {
@@ -351,8 +351,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Hard",
     prerequisites: ["ml_tensor_algebra"],
-    x: 840,
-    y: 380,
+    x: 990,
+    y: 430,
     algorithmCount: 4,
     questions: [
       {
@@ -400,8 +400,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Medium",
     prerequisites: ["ml_autograd_dags"],
-    x: 1150,
-    y: 380,
+    x: 1445,
+    y: 430,
     algorithmCount: 2,
     questions: [
       {
@@ -431,8 +431,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline"],
-    x: 415,
-    y: 560,
+    x: 450,
+    y: 620,
     algorithmCount: 3,
     questions: [
       {
@@ -472,8 +472,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline"],
-    x: 935,
-    y: 560,
+    x: 1150,
+    y: 620,
     algorithmCount: 3,
     questions: [
       {
@@ -513,8 +513,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "distributed-systems",
     difficulty: "Hard",
     prerequisites: ["ml_autograd_dags", "ml_hardware_kernels"],
-    x: 675,
-    y: 740,
+    x: 800,
+    y: 810,
     algorithmCount: 3,
     questions: [
       {
@@ -554,8 +554,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "llm-serving",
     difficulty: "Hard",
     prerequisites: ["ml_attention_geometry", "ml_hardware_kernels"],
-    x: 675,
-    y: 920,
+    x: 800,
+    y: 1000,
     algorithmCount: 3,
     questions: [
       {

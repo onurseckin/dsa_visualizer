@@ -153,6 +153,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
               <option value="leetcode">LeetCode</option>
               <option value="book">Competitive Programmer's Handbook</option>
               <option value="standard">Standard</option>
+              <option value="ml_infra">ML Infra</option>
             </Select>
             <Badge variant="neutral" size="md">
               {deck.length} in deck

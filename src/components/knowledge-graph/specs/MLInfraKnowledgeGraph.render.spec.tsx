@@ -25,7 +25,42 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     const canvasSvg = Array.from(svgs).find((s) => s.getAttribute("width") === "100%");
     expect(canvasSvg).toBeInTheDocument();
     expect(canvasSvg?.getAttribute("height")).toBe("100%");
-    expect(canvasSvg?.getAttribute("viewBox")).toBe("-20 -60 1380 1060");
+    expect(canvasSvg?.getAttribute("viewBox")).toBe("-40 -60 1680 1150");
+  });
+
+  it("ensures horizontal gap >= 130px between adjacent nodes and vertical gap >= 115px between rows", () => {
+    const nodes = ML_INFRA_NODES;
+
+    const rowsMap = new Map<number, typeof nodes>();
+    nodes.forEach((node) => {
+      const list = rowsMap.get(node.y) || [];
+      list.push(node);
+      rowsMap.set(node.y, list);
+    });
+
+    const sortedYs = Array.from(rowsMap.keys()).sort((a, b) => a - b);
+
+    for (let i = 0; i < sortedYs.length - 1; i++) {
+      const verticalGap = sortedYs[i + 1] - sortedYs[i];
+      expect(verticalGap).toBeGreaterThanOrEqual(115);
+    }
+
+    rowsMap.forEach((rowNodes) => {
+      const sortedNodes = [...rowNodes].sort((a, b) => a.x - b.x);
+      for (let i = 0; i < sortedNodes.length - 1; i++) {
+        const leftNode = sortedNodes[i];
+        const rightNode = sortedNodes[i + 1];
+
+        const leftWidth = Math.max(190, leftNode.title.length * 8.5 + 40);
+        const rightWidth = Math.max(190, rightNode.title.length * 8.5 + 40);
+
+        const leftRightEdge = leftNode.x + leftWidth / 2;
+        const rightLeftEdge = rightNode.x - rightWidth / 2;
+
+        const horizontalGap = rightLeftEdge - leftRightEdge;
+        expect(horizontalGap).toBeGreaterThanOrEqual(130);
+      }
+    });
   });
 
   it("renders nodes for all 13 topic clusters with clean title and subtitle", () => {
