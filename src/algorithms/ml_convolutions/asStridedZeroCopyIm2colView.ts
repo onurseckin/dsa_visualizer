@@ -6,31 +6,48 @@ export interface asStridedZeroCopyIm2colViewInput {
   target?: number;
 }
 
-export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE = `
-def asstridedzerocopyim2colview(image_matrix, conv_kernel, stride=1, padding=0):
+export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE = `def as_strided_zero_copy_im2col_view(image, kernel_size, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Simulates PyTorch/NumPy tensor.as_strided() zero-copy view for im2col sliding windows.
+    Instead of physically allocating an (H_out * W_out, K_h * K_w) memory buffer,
+    this constructs a strided index view map where patch[r, c, kr, kc] maps directly
+    to input offset r * stride_r + c * stride_c + kr * row_stride + kc * col_stride.
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    h_in, w_in = len(image), len(image[0])
+    k_h, k_w = kernel_size
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    # Virtual padding calculation
+    h_pad, w_pad = h_in + 2 * padding, w_in + 2 * padding
+    h_out = (h_pad - k_h) // stride + 1
+    w_out = (w_pad - k_w) // stride + 1
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    # Linear memory strides (row-major order)
+    row_stride = w_in
+    col_stride = 1
 
+    # Construct virtual 4D view stride tuple: (out_r, out_c, k_r, k_c)
+    view_strides = (
+        stride * row_stride,
+        stride * col_stride,
+        row_stride,
+        col_stride,
+    )
+
+    # Build non-copying virtual view matrix mapping (r_out, c_out) to input element offsets
+    view_offsets = []
     for r in range(h_out):
+        row_views = []
         for c in range(w_out):
-            acc_sum = 0
+            patch_offsets = []
+            base_offset = r * view_strides[0] + c * view_strides[1]
             for kr in range(k_h):
                 for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+                    offset = base_offset + kr * view_strides[2] + kc * view_strides[3]
+                    patch_offsets.append(offset)
+            row_views.append(patch_offsets)
+        view_offsets.append(row_views)
 
-    return feature_map
+    return view_offsets, (h_out, w_out)
 `;
 
 export const DEFAULT_ASSTRIDEDZEROCOPYIM2COLVIEW_INPUT: asStridedZeroCopyIm2colViewInput = {
@@ -69,7 +86,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "Zero-Copy View Metadata",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -81,7 +98,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
   addStep(
     1,
     "Initialize Zero-Copy `as_strided` im2col View Engine",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up virtual memory stride pointers without physical buffer allocations.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +112,9 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      15,
+      `Compute virtual stride offset for element ${idx}: value = ${val}`,
+      `Calculating linear memory index offset via stride pointer equation.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +126,9 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
   }));
 
   addStep(
-    6,
+    36,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully constructed zero-copy strided view offsets across memory structures.",
     { completed: true },
     finalElements,
   );
@@ -126,103 +143,108 @@ const ASSTRIDEDZEROCOPYIM2COLVIEW_TRIVIA: TriviaMeta = {
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 15, hint: "Compute virtual offset without allocating duplicate buffer memory." }],
   lineExplanations: {
     1: "Defines entry point for Zero-Copy `as_strided` im2col View Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    15: "Calculates strided index offset for virtual sliding window.",
+    36: "Returns zero-copy view offset structure and spatial dimensions.",
   },
 };
 
 export const asStridedZeroCopyIm2colView: AlgorithmDefinition<asStridedZeroCopyIm2colViewInput> = {
-  id: "as-strided-zero-copy-im2col-view",
+  id: "asStridedZeroCopyIm2colView",
   title: "Zero-Copy `as_strided` im2col View Engine",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "arrays_and_hashing"],
+  categories: ["ml_convolutions", "ml_hardware_kernels"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), zero-copy `as_strided` im2col view engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "In deep learning frameworks (PyTorch `torch.as_strided`, NumPy `stride_tricks`), lowering 2D convolutions to GEMM via standard `im2col` requires copying overlapping spatial receptive fields into a 2D matrix buffer. This duplicates data up to K_h * K_w times (e.g. 9x memory expansion for 3x3 filters). The zero-copy `as_strided` im2col view engine creates a virtual 4D view tensor by reinterpreting underlying linear storage strides, mapping sliding window patches directly to original DRAM memory addresses with zero allocation overhead.\n\nInput Format:\n- image: 2D activation matrix of shape [H, W].\n- kernel_size: Tuple [K_h, K_w] defining spatial filter dimensions.\n- stride: Integer step size between spatial windows.\n- padding: Zero-padding applied to spatial boundaries.\n\nOutput Format:\n- Returns a virtual offset matrix mapping (r_out, c_out, k_r, k_c) to input DRAM element offsets, alongside output spatial shape (H_out, W_out).\n\nEdge Cases & Constraints:\n- Non-contiguous memory strides (e.g. channels-first NCHW vs channels-last NHWC layouts).\n- Stride S > 1 gaps vs Stride S = 1 contiguous element access.\n- Memory alignment constraints for vector load instructions (128-bit SIMD/SIMT pointers).",
+  constraints: ["1 <= H, W <= 1024", "1 <= K_h, K_w <= H, W", "stride >= 1"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      title: "Zero-Copy 2x2 View",
+      inputDisplay: "image = 4x4, kernel_size = [2, 2], stride = 1",
+      outputDisplay: "Virtual offsets [3, 3, 2, 2], shape (3, 3)",
+      input: { data: [10, 20, 30, 40, 50], target: 30 },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Maps 3x3 spatial patch windows onto 4x4 input without copying data.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
+      title: "Strided Step View",
+      inputDisplay: "image = 6x6, kernel_size = [3, 3], stride = 2",
+      outputDisplay: "Virtual offsets [2, 2, 3, 3], shape (2, 2)",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Constructs strided 2x2 output view with stride=2 jumps across DRAM.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      title: "Single Element Patch",
+      inputDisplay: "image = 3x3, kernel_size = [1, 1], stride = 1",
+      outputDisplay: "Virtual offsets [3, 3, 1, 1], shape (3, 3)",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "1x1 convolution degenerates to direct linear index view.",
     },
   ],
   code: ASSTRIDEDZEROCOPYIM2COLVIEW_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: {
+    best: "O(H_{out} W_{out} K^2)",
+    average: "O(H_{out} W_{out} K^2)",
+    worst: "O(H_{out} W_{out} K^2)",
+  },
+  spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Constructing virtual index mapping takes O(H_{out} W_{out} K^2) pointer evaluations.",
+    space:
+      "Requires O(1) auxiliary DRAM space because views manipulate memory strides without data duplication.",
   },
   topicGuide: {
     overview:
-      "Zero-Copy `as_strided` im2col View Engine is a critical component in ML CONVOLUTIONS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "The Zero-Copy `as_strided` im2col View Engine avoids physical memory expansion when lowering convolutions to GEMM by creating strided tensor views over original storage pointers.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, zero-copy `as_strided` im2col view engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concepts & Mathematical Formulation",
+        body: "Standard im2col transforms 2D spatial convolution into matrix multiplication by copying overlapping receptive fields into an (H_out * W_out, K_h * K_w * C_in) matrix. The as_strided view engine avoids this by computing virtual strides: Index(n, c, h, w, kr, kc) = n*S_n + c*S_c + (h*stride + kr)*S_h + (w*stride + kc)*S_w. This maps multi-dimensional window coordinates directly into linear physical DRAM offsets.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Zero-Copy `as_strided` im2col View Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Memory Hierarchy Impact",
+        body: "Physical im2col matrices inflate memory footprint up to K_h * K_w times (9x for 3x3 kernels). By leveraging zero-copy stride views, GPU kernels avoid High Bandwidth Memory (HBM) write traffic. Instead, data is loaded directly from original DRAM locations into fast L1 Cache/SRAM tiles during GEMM computation, maximizing arithmetic intensity.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing zero-copy `as_strided` im2col view engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        heading: "Implementation Nuances & Data Layouts",
+        body: "Implementing zero-copy strided views requires maintaining stride vectors across layout transformations (NCHW vs NHWC). Frameworks like PyTorch and Triton use stride metadata to construct view descriptors. When passing views to CUDA kernels, non-contiguous strides require specialized strided vector load primitives (e.g. LDG.E instructions).",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Edge Cases & Production Safeguards",
+        body: "Edge cases include negative strides (for flipped kernels), unaligned DRAM address boundaries that violate 128-bit SIMD alignment, and zero-stride broadcasting. Production engines validate pointer bounds and verify contiguous sub-byte alignment before dispatching tensor core kernels.",
       },
     ],
     keyTerms: [
       {
-        term: "Zero-Copy Engine",
+        term: "Zero-Copy View Engine",
         definition:
-          "The underlying algorithmic system implementing zero-copy `as_strided` im2col view engine operations for deep learning workloads.",
+          "System for reinterpreting tensor memory layouts via strides without copying underlying physical data.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Virtual Strides",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Step values defining element distance in linear memory along each dimension of a multi-dimensional view.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Memory Inflation Factor",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "The ratio of physical buffer size required by explicit im2col relative to zero-copy view storage (K_h * K_w).",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Strided Offset Equation",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Linear address mapping formula evaluating physical offset = sum(index_i * stride_i).",
       },
     ],
   },

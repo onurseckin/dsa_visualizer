@@ -5,9 +5,9 @@ import {
   generateCol2imGradAccumulatorSteps,
 } from "./col2imGradAccumulator";
 
-describe("col2im-grad-accumulator (col2im Gradient Accumulator)", () => {
+describe("col2imGradAccumulator (col2im Gradient Accumulator)", () => {
   it("should have correct metadata", () => {
-    expect(col2imGradAccumulator.id).toBe("col2im-grad-accumulator");
+    expect(col2imGradAccumulator.id).toBe("col2imGradAccumulator");
     expect(col2imGradAccumulator.isMlInfra).toBe(true);
     expect(col2imGradAccumulator.mlInfraLevel).toBe(8);
     expect(col2imGradAccumulator.mlInfraCategory).toBe("ml_convolutions");

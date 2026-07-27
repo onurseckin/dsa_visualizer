@@ -7,28 +7,33 @@ export interface iterationLevelContinuousBatchSchedulerInput {
 }
 
 export const ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_CODE = `
-def iterationlevelcontinuousbatchscheduler(ring_ranks, parameter_shards):
+def iteration_level_continuous_batch_scheduler(incoming_requests, max_batch_size=2):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Simulates iteration-level continuous batching (Orca / vLLM).
+    At every token generation step (iteration), completed requests are evicted immediately,
+    and waiting requests from the queue are admitted into open batch slots.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    queue = list(incoming_requests)
+    active_batch = []
+    iterations = 0
+    batch_snapshots = []
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    while queue or active_batch:
+        # Admit waiting requests from queue until max_batch_size capacity is reached
+        while len(active_batch) < max_batch_size and queue:
+            active_batch.append(queue.pop(0))
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+        if not active_batch:
+            break
 
-    return shard_buffers
+        # Log active batch state at iteration start
+        batch_snapshots.append(list(active_batch))
+
+        # Perform 1 token generation step (decrement remaining length for all active requests)
+        iterations += 1
+        active_batch = [req - 1 for req in active_batch if req - 1 > 0]
+
+    return iterations, batch_snapshots
 `;
 
 export const DEFAULT_ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_INPUT: iterationLevelContinuousBatchSchedulerInput =
@@ -70,7 +75,7 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
     });
   };
 
-  let requestQueue = [...input.incoming_requests];
+  const requestQueue = [...input.incoming_requests];
   let activeBatch: number[] = [];
   let totalIterations = 0;
 
@@ -99,7 +104,7 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
 
   while (requestQueue.length > 0 || activeBatch.length > 0) {
     addStep(
-      9,
+      11,
       "Check active requests and queue",
       "If there's work left, start a new iteration.",
       { total_iterations: totalIterations },
@@ -114,7 +119,7 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
 
     if (admitted) {
       addStep(
-        11,
+        14,
         "Admit requests to batch",
         "Continuous batching doesn't wait for the batch to empty. We fill empty slots immediately.",
         { total_iterations: totalIterations },
@@ -126,7 +131,7 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
     activeBatch = activeBatch.map((req) => req - 1).filter((req) => req > 0);
 
     addStep(
-      15,
+      23,
       "Simulate forward pass",
       "Generated one token for all active requests.",
       { total_iterations: totalIterations },
@@ -135,7 +140,7 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
   }
 
   addStep(
-    18,
+    26,
     "Batching Complete",
     "All requests finished generating tokens.",
     { total_iterations: totalIterations },
@@ -151,12 +156,12 @@ const ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_TRIVIA: TriviaMeta = {
     "while request_queue: active_batch.append(request_queue.pop(0))",
     "active_batch = []",
   ],
-  hints: [{ line: 11, hint: "Continuous batching admits new requests at the iteration level." }],
+  hints: [{ line: 14, hint: "Continuous batching admits new requests at the iteration level." }],
   lineExplanations: {
     6: "Initialize the state variables.",
-    11: "Greedily admit waiting requests until the batch size is hit.",
-    15: "Process one token for all requests simultaneously.",
-    18: "Return total steps taken.",
+    14: "Greedily admit waiting requests until max_batch_size capacity is hit.",
+    23: "Process one token for all active requests simultaneously.",
+    26: "Return total steps taken.",
   },
 };
 
@@ -165,71 +170,93 @@ export const iterationLevelContinuousBatchScheduler: AlgorithmDefinition<iterati
     id: "iteration-level-continuous-batch-scheduler",
     title: "Iteration-Level Continuous Batching",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Hard",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), iteration-level continuous batching provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= max_batch_size <= 100", "0 <= requests.length <= 100"],
+      "Continuous Batching (iteration-level scheduling, as introduced in Orca and vLLM) evaluates request admission and eviction at the granularity of a single forward pass token generation step. In traditional static batching, an inference engine groups N requests into a static batch and waits for the longest sequence to complete before discharging the batch. Short requests finish early but sit idle while wasting GPU memory bandwidth and SM execution cycles.\n\nIteration-Level Continuous Batching resolves this by inspecting batch state at every iteration: whenever a sequence reaches its end-of-sequence (EOS) token or length limit, it is evicted immediately, releasing its slot and KV-cache blocks. New waiting requests from the scheduler queue are admitted into the batch right away, keeping Tensor Core matrix shapes saturated across all steps.\n\nInput Format:\n- incoming_requests: Array of integer generation lengths (tokens remaining) for queued requests.\n- max_batch_size: Maximum allowed parallel requests in active batch.\n\nOutput Format:\n- Returns total iterations executed and batch state history snapshots.\n\nEdge Cases & Constraints:\n- Empty initial queue: Returns 0 iterations immediately.\n- Uniform generation lengths: Degenerates into static batch behavior when all sequences have identical lengths.",
+    constraints: ["1 <= max_batch_size <= 100", "0 <= incoming_requests.length <= 100"],
     examples: [
       {
         kind: "basic",
-        title: "Batch Size 2",
-        inputDisplay: "requests = [2, 5, 3], max_batch_size = 2",
-        outputDisplay: "6",
+        title: "Batch Size 2 Continuous Injection",
+        inputDisplay: "incoming_requests = [2, 5, 3], max_batch_size = 2",
+        outputDisplay: "6 iterations",
         input: { incoming_requests: [2, 5, 3], max_batch_size: 2 },
         output: "6 iterations",
         explanation:
-          "Iteration 1-2: [2, 5]. Iteration 3: [5, 3]. Iteration 4-5: [5, 3]. Iteration 6: [5]. Total 6 steps.",
+          "Iterations 1-2: [2, 5]. At iteration 3, req-1 (len 2) finishes; req-3 (len 3) is admitted immediately into slot. Runs to completion in 6 iterations.",
       },
       {
         kind: "complex",
-        title: "Large Batch Capacity",
-        inputDisplay: "requests = [10, 10, 10], max_batch_size = 4",
-        outputDisplay: "10",
+        title: "High Concurrency Batch Capacity",
+        inputDisplay: "incoming_requests = [10, 10, 10], max_batch_size = 4",
+        outputDisplay: "10 iterations",
         input: { incoming_requests: [10, 10, 10], max_batch_size: 4 },
         output: "10 iterations",
         explanation:
-          "All are admitted immediately. They run in parallel and finish in 10 iterations.",
+          "All 3 requests admitted simultaneously in step 1 and complete in parallel after 10 iterations.",
       },
       {
         kind: "negative",
-        title: "Empty Queue",
-        inputDisplay: "requests = [], max_batch_size = 2",
-        outputDisplay: "0",
+        title: "Empty Queue Input",
+        inputDisplay: "incoming_requests = [], max_batch_size = 2",
+        outputDisplay: "0 iterations",
         input: { incoming_requests: [], max_batch_size: 2 },
         output: "0 iterations",
-        explanation: "No requests, completes in 0 iterations.",
+        explanation: "No incoming requests, completes in 0 iterations.",
       },
     ],
     code: ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_CODE,
     timeComplexity: { best: "O(T)", average: "O(T)", worst: "O(T)" },
     spaceComplexity: "O(B)",
     complexityAnalysis: {
-      time: "O(T) where T is the maximum number of iterations. We process a max of B requests per step.",
-      space: "O(B) auxiliary space for the active batch array.",
+      time: "O(T) where T is the total iteration steps executed. Processes up to B active requests per step.",
+      space: "O(B) auxiliary space for the active batch request queue.",
     },
     topicGuide: {
       overview:
-        "Continuous Batching (or iteration-level scheduling) evaluates requests at the granularity of a single token generation step, rather than waiting for an entire batch to finish.",
+        "Continuous Batching (iteration-level scheduling) evaluates request admission and eviction at every token step, maximizing GPU utilization.",
       sections: [
         {
-          heading: "Static vs Continuous",
-          body: "In static batching, if requests are of length 2, 5, and 3, a batch of size 2 will process [2, 5] taking 5 steps, leaving one GPU idle for 3 steps. Continuous batching evicts the finished request and injects the request of length 3 at step 3.",
+          heading: "Overview",
+          body: "Static batching in LLM serving suffers from Severe Waste due to sequence length variance. In a static batch of requests with lengths [2, 5, 3], a batch size of 2 will process [2, 5], finishing the first request in 2 steps, but leaving GPU slots idle for 3 steps while waiting for length 5 to finish. Continuous batching evicts finished requests and injects new requests at every iteration step.",
         },
         {
-          heading: "Throughput Gains",
-          body: "This dramatically increases GPU utilization and throughput in LLM serving, at the cost of slightly more complex scheduler state.",
+          heading: "Core Concepts",
+          body: "The continuous batch scheduler maintains two primary structures: a Waiting Queue and an Active Batch array of capacity max_batch_size. At step t, the scheduler (1) evicts requests with 0 remaining tokens; (2) admits queue requests into freed slots; (3) executes 1 token forward pass across all active sequences.",
+        },
+        {
+          heading: "Systems & Memory Bandwidth Impact",
+          body: "By keeping the active batch saturated at max_batch_size capacity, continuous batching increases system throughput by 10x-23x over static batching. DRAM memory reads for model parameters are amortized over larger batch matrix shapes in every iteration.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Key implementation challenges include dynamic KV-cache block allocation via PagedAttention, managing prefill-decode disaggregation within the same batch, avoiding queue starvation, and handling variable length prompt prefill chunks.",
         },
       ],
       keyTerms: [
         {
           term: "Continuous Batching",
-          definition: "Dynamically injecting and evicting requests at the iteration level.",
+          definition:
+            "Dynamically admitting and evicting requests at single-token iteration granularity.",
         },
-        { term: "Iteration", definition: "A single forward pass yielding one token." },
+        {
+          term: "Iteration-Level Scheduling",
+          definition: "Evaluating scheduling decisions before every individual GPU forward pass.",
+        },
+        {
+          term: "Static Batching Waste",
+          definition:
+            "Idle GPU capacity caused by holding open slots for completed requests until all batch requests finish.",
+        },
+        {
+          term: "Slot Eviction",
+          definition:
+            "Immediately releasing GPU slot and KV-cache resources upon receiving an EOS token.",
+        },
       ],
     },
     trivia: ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_TRIVIA,

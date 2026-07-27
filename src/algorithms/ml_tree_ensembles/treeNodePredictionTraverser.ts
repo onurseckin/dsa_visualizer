@@ -261,7 +261,7 @@ export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePrediction
       "Decision tree inference routes test sample feature vectors through nested `if-else` conditionals. High-performance inference runtimes (Treelite, ONNX Runtime, XGBoost C++ Predictor) flatten decision trees into inline if-else C++ code or GPU block threads.",
     sections: [
       {
-        heading: "Core Concept & Branch Routing",
+        heading: "Overview & Branch Routing",
         body: "Starting at root node r, if X[f_r] <= v_r control passes to left child, else to right child. The process repeats until a leaf node holding prediction output w is reached.",
       },
       {
@@ -271,6 +271,10 @@ export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePrediction
       {
         heading: "Native Machine Code Compilation (Treelite)",
         body: "Treelite compiles ensemble models directly into native assembly or C code, replacing node pointer dereferences with hardcoded branch instructions.",
+      },
+      {
+        heading: "Implementation Nuances & Out-Of-Bounds Feature Index",
+        body: "In production runtimes, invalid feature indices or missing tree node keys trigger default error handlers or fallback to baseline leaf predictions.",
       },
     ],
     keyTerms: [
@@ -286,6 +290,11 @@ export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePrediction
         term: "Treelite",
         definition:
           "C++ framework compiling tree ensemble models into native machine code for fast inference.",
+      },
+      {
+        term: "Branch Misprediction",
+        definition:
+          "CPU hardware penalty incurred when conditional tree branching fails CPU branch prediction heuristics.",
       },
     ],
   },

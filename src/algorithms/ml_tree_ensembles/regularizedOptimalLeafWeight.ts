@@ -190,7 +190,7 @@ export const regularizedOptimalLeafWeight: AlgorithmDefinition<RegularizedOptima
         "In XGBoost (Chen & Guestrin 2016), once a leaf node's sample set S_j is fixed, the optimal scalar output weight w_j* assigned to that leaf is determined analytically by setting the derivative of the regularized 2nd order Taylor objective to zero.",
       sections: [
         {
-          heading: "Core Concept & Closed-Form Derivation",
+          heading: "Overview & Closed-Form Derivation",
           body: "Objective d/dw [ G_j w_j + 0.5 (H_j + lambda) w_j^2 ] = G_j + (H_j + lambda) w_j = 0 -> w_j* = - G_j / (H_j + lambda).",
         },
         {
@@ -200,6 +200,10 @@ export const regularizedOptimalLeafWeight: AlgorithmDefinition<RegularizedOptima
         {
           heading: "Optimal Node Quality Score",
           body: "Substituting w_j* back into the objective yields optimal leaf score Obj* = -0.5 * G_j^2 / (H_j + lambda), which forms the basis of XGBoost split gain evaluation.",
+        },
+        {
+          heading: "Implementation Nuances & Max Delta Step",
+          body: "XGBoost applies hyperparameter `max_delta_step` to bound leaf weights |w_j*| <= max_delta_step in extreme class imbalance logistic regression tasks.",
         },
       ],
       keyTerms: [
@@ -214,6 +218,11 @@ export const regularizedOptimalLeafWeight: AlgorithmDefinition<RegularizedOptima
         {
           term: "Newton-Raphson Step",
           definition: "Optimization step taking ratio of 1st derivative to 2nd derivative.",
+        },
+        {
+          term: "Max Delta Step",
+          definition:
+            "Upper bound constraint on maximum step size for leaf weights to stabilize imbalanced classification.",
         },
       ],
     },

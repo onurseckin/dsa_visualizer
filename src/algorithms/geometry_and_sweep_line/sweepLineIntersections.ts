@@ -19,7 +19,29 @@ export interface SweepLineIntersectionsInput {
 }
 
 export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `
-def sweep_line_intersections(segments: list[dict]) -> list[tuple[float, float]]:
+def cross_product(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> float:
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+def on_segment(p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]) -> bool:
+    return (q[0] >= min(p[0], r[0]) and q[0] <= max(p[0], r[0]) and
+            q[1] >= min(p[1], r[1]) and q[1] <= max(p[1], r[1]))
+
+def do_intersect(p1: tuple[float, float], q1: tuple[float, float],
+                 p2: tuple[float, float], q2: tuple[float, float]) -> bool:
+    d1 = cross_product(p2, q2, p1)
+    d2 = cross_product(p2, q2, q1)
+    d3 = cross_product(p1, q1, p2)
+    d4 = cross_product(p1, q1, q2)
+
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+        return True
+    if d1 == 0 and on_segment(p2, p1, q2): return True
+    if d2 == 0 and on_segment(p2, q1, q2): return True
+    if d3 == 0 and on_segment(p1, p2, q1): return True
+    if d4 == 0 and on_segment(p1, q2, q1): return True
+    return False
+
+def sweep_line_intersections(segments: list[dict]) -> list[tuple[str, str]]:
     """
     Finds 2D segment intersections using a vertical sweep line algorithm.
     """
@@ -38,6 +60,9 @@ def sweep_line_intersections(segments: list[dict]) -> list[tuple[float, float]]:
 
     for x, ev_type, seg_id, p1, p2 in events:
         if ev_type == "LEFT":
+            for other_id, op1, op2 in active:
+                if do_intersect(p1, p2, op1, op2):
+                    intersections.append((seg_id, other_id))
             active.append((seg_id, p1, p2))
         else:
             active = [item for item in active if item[0] != seg_id]
@@ -290,15 +315,27 @@ export const generateSweepLineIntersectionsSteps = (
 
 const SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Sweep Line algorithm (Shamos-Hoey / Bentley-Ottmann) processes 2D geometric events sorted along one axis (usually X) to reduce spatial queries from O(N^2) to O((N + K) log N).",
+    "The Sweep Line algorithm (Shamos-Hoey / Bentley-Ottmann) processes 2D geometric events sorted along one axis (usually X) to reduce spatial queries from quadratic O(N^2) brute-force to optimal O((N + K) log N) runtime.",
   sections: [
     {
       heading: "Event Queue and Status Structure",
-      body: "The event queue orders segment start points, end points, and intersection events. The sweep line status structure maintains Y-ordered active segments crossing the current X position.",
+      body: "Plane sweep algorithms order geometric primitives along a primary axis (X-axis) using an Event Queue. A Status Structure (balanced BST) dynamically tracks active segments intersecting the vertical sweep line, sorted by their Y-coordinates at sweep position X.",
+    },
+    {
+      heading: "Cross Product Orientation & Intersection Test",
+      body: "Segment intersections are detected strictly using exact integer cross product orientation primitives: (B.x - A.x)*(C.y - A.y) - (B.y - A.y)*(C.x - A.x). Two active segments AB and CD intersect if and only if C and D straddle line AB while A and B straddle line CD.",
     },
     {
       heading: "Neighboring Intersection Invariant",
-      body: "Two segments can only intersect if they become adjacent in the sweep line status structure at some point before or at their intersection.",
+      body: "Crucially, two non-adjacent segments cannot intersect without becoming adjacent in the status structure at some sweep X coordinate prior to or at their intersection. This limits pairwise tests from O(N^2) to checking only newly adjacent neighbors when segments insert, remove, or swap rank.",
+    },
+    {
+      heading: "Bentley-Ottmann & Shamos-Hoey Complexity",
+      body: "Shamos-Hoey answers the decision problem (does any intersection exist?) in O(N log N) time. Bentley-Ottmann enumerates all K intersections in O((N + K) log N) time by inserting dynamic event points into the queue whenever adjacent active segments cross.",
+    },
+    {
+      heading: "Implementation Nuances & Degeneracies",
+      body: "Vertical segments (x1 == x2), overlapping collinear segments, multi-segment endpoint junctions, and floating-point precision issues require strict tie-breaking in event sorting (sorting by X, then event type LEFT < RIGHT, then Y) or exact rational arithmetic.",
     },
   ],
   keyTerms: [
@@ -308,8 +345,23 @@ const SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE: TopicGuide = {
         "An imaginary 1D line sweeping across a 2D space, pausing at discrete event points.",
     },
     {
-      term: "Active Set",
+      term: "Active Set (Status Structure)",
       definition: "The set of geometric objects currently intersected by the sweep line.",
+    },
+    {
+      term: "Cross Product Primitive",
+      definition:
+        "Determinant evaluation testing left/right orientation without trigonometric or square root calculations.",
+    },
+    {
+      term: "Straddle Test",
+      definition:
+        "Condition where segment endpoints lie on opposite half-planes of another segment's infinite supporting line.",
+    },
+    {
+      term: "Bentley-Ottmann Algorithm",
+      definition:
+        "Generalization of sweep line plane search running in O((N + K) log N) to report all K intersections.",
     },
   ],
 };

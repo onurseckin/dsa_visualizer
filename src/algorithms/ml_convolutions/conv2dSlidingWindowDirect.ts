@@ -7,31 +7,34 @@ export interface Conv2dInput {
   stride: number;
 }
 
-export const CONV2DSLIDINGWINDOWDIRECT_CODE = `
-def conv2dslidingwindowdirect(image_matrix, conv_kernel, stride=1, padding=0):
+export const CONV2DSLIDINGWINDOWDIRECT_CODE = `def conv2d_sliding_window_direct(image, kernel, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Executes 2D direct sliding window convolution (cross-correlation)
+    on a 2D image matrix using a 2D filter kernel.
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    h_in, w_in = len(image), len(image[0])
+    k_h, k_w = len(kernel), len(kernel[0])
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    # Apply zero padding to spatial boundaries
+    padded = [[0] * (w_in + 2 * padding) for _ in range(h_in + 2 * padding)]
+    for r in range(h_in):
+        for c in range(w_in):
+            padded[r + padding][c + padding] = image[r][c]
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    h_out = (len(padded) - k_h) // stride + 1
+    w_out = (len(padded[0]) - k_w) // stride + 1
+
+    output = [[0.0] * w_out for _ in range(h_out)]
 
     for r in range(h_out):
         for c in range(w_out):
-            acc_sum = 0
+            acc_sum = 0.0
             for kr in range(k_h):
                 for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+                    acc_sum += padded[r * stride + kr][c * stride + kc] * kernel[kr][kc]
+            output[r][c] = acc_sum
 
-    return feature_map
+    return output
 `;
 
 export const DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT: Conv2dInput = {
@@ -82,7 +85,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "Sliding Window Active State",
           out_h,
           out_w,
         },
@@ -183,16 +186,16 @@ const CONV2DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
 };
 
 export const conv2dSlidingWindowDirect: AlgorithmDefinition<Conv2dInput> = {
-  id: "conv2d-sliding-window-direct",
+  id: "conv2dSlidingWindowDirect",
   title: "2D Direct Sliding Window Convolution",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "arrays_and_hashing"],
+  categories: ["ml_convolutions", "ml_gemm_roofline"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 2d direct sliding window convolution provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Direct 2D sliding window convolution computes spatial output feature maps by systematically sliding a 2D kernel filter across an input activation matrix, computing local element-wise products, and summing them for each spatial coordinate. While conceptually straightforward and memory-efficient for small inputs, nested loops suffer from high instruction overhead and poor hardware arithmetic intensity compared to GEMM lowering (im2col).\n\nInput Format:\n- image: 2D array of shape [H, W] representing input activations or pixel values.\n- kernel: 2D matrix of shape [K_h, K_w] containing filter weights.\n- stride: Integer spatial step size between window positions.\n- padding: Zero-padding added to spatial boundaries.\n\nOutput Format:\n- Returns a 2D feature map matrix of shape [H_out, W_out].\n\nEdge Cases & Constraints:\n- Non-square activations (H != W) and non-square filters (K_h != K_w).\n- Boundary zero-padding preserving spatial dimensions when K=3, P=1, S=1.\n- Stride S > 1 downsampling reducing spatial dimensions.",
   constraints: ["1 <= K <= H, W <= 100", "stride >= 1"],
   examples: [
     {
@@ -269,45 +272,44 @@ export const conv2dSlidingWindowDirect: AlgorithmDefinition<Conv2dInput> = {
   },
   topicGuide: {
     overview:
-      "2D Direct Sliding Window Convolution is a critical component in ML CONVOLUTIONS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Direct 2D Sliding Window Convolution provides the baseline reference mechanics for spatial feature map generation in convolutional neural networks.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, 2d direct sliding window convolution operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concepts & 4-Loop Convolution Math",
+        body: "Discrete 2D cross-correlation evaluates Y[r, c] = sum_{kr=0}^{K_h-1} sum_{kc=0}^{K_w-1} X[r*S + kr, c*S + kc] * W[kr, kc]. The nested 4-loop structure iterates over spatial output dimensions (r, c) and internal kernel coordinates (kr, kc).",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 2D Direct Sliding Window Convolution optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Performance Roofline Impact",
+        body: "Direct 2D convolution suffers from low arithmetic intensity and non-coalesced memory access patterns on modern GPUs. Threads in a warp encounter unaligned memory loads at window boundaries, causing DRAM bandwidth saturation.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing 2d direct sliding window convolution efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        heading: "Implementation Nuances & Data Layouts",
+        body: "Memory layout formats such as NCHW (channels-first) and NHWC (channels-last) dictate index strides. NHWC allows SIMD vector loads across channels at each spatial pixel location.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Edge Cases & Production Safeguards",
+        body: "Edge cases include asymmetric zero-padding, kernel size matching image dimensions (K=H, W), and avoiding out-of-bounds array reads near image borders.",
       },
     ],
     keyTerms: [
       {
-        term: "2D Engine",
+        term: "Direct Convolution",
         definition:
-          "The underlying algorithmic system implementing 2d direct sliding window convolution operations for deep learning workloads.",
+          "Evaluating convolution sliding windows directly in nested loops without matrix lowering.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Sliding Window Filter",
+        definition: "2D weight matrix shifted step-by-step across input spatial coordinates.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Feature Map Activation",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Output spatial matrix representing response intensity of filter kernel across input domain.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Spatial Stride",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Pixel step distance S shifting the window position horizontally and vertically.",
       },
     ],
   },

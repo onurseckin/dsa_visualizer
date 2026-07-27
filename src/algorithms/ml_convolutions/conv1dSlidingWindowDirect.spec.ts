@@ -5,9 +5,9 @@ import {
   generateConv1dSlidingWindowDirectSteps,
 } from "./conv1dSlidingWindowDirect";
 
-describe("conv1d-sliding-window-direct (1D Cross-Correlation Basics)", () => {
+describe("conv1dSlidingWindowDirect (1D Cross-Correlation Basics)", () => {
   it("should have correct metadata", () => {
-    expect(conv1dSlidingWindowDirect.id).toBe("conv1d-sliding-window-direct");
+    expect(conv1dSlidingWindowDirect.id).toBe("conv1dSlidingWindowDirect");
     expect(conv1dSlidingWindowDirect.isMlInfra).toBe(true);
     expect(conv1dSlidingWindowDirect.mlInfraLevel).toBe(8);
     expect(conv1dSlidingWindowDirect.mlInfraCategory).toBe("ml_convolutions");

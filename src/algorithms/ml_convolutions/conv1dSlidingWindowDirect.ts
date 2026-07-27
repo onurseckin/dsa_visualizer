@@ -6,31 +6,33 @@ export interface conv1dSlidingWindowDirectInput {
   target?: number;
 }
 
-export const CONV1DSLIDINGWINDOWDIRECT_CODE = `
-def conv1dslidingwindowdirect(image_matrix, conv_kernel, stride=1, padding=0):
+export const CONV1DSLIDINGWINDOWDIRECT_CODE = `def conv1d_sliding_window_direct(signal, kernel, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Computes 1D direct sliding window cross-correlation/convolution on sequence data.
+    
+    signal: 1D input sequence array of length L.
+    kernel: 1D filter weights array of length K.
+    stride: step length between window positions.
+    padding: zero-padding applied to signal endpoints.
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    l_in = len(signal)
+    k_len = len(kernel)
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    # Apply boundary zero-padding
+    padded = [0.0] * padding + [float(x) for x in signal] + [0.0] * padding
+    l_pad = len(padded)
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    l_out = (l_pad - k_len) // stride + 1
+    output = [0.0] * l_out
 
-    for r in range(h_out):
-        for c in range(w_out):
-            acc_sum = 0
-            for kr in range(k_h):
-                for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+    for i in range(l_out):
+        acc_sum = 0.0
+        start_idx = i * stride
+        for k in range(k_len):
+            acc_sum += padded[start_idx + k] * kernel[k]
+        output[i] = acc_sum
 
-    return feature_map
+    return output
 `;
 
 export const DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT: conv1dSlidingWindowDirectInput = {
@@ -69,7 +71,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "1D Feature Map",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -81,7 +83,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
   addStep(
     1,
     "Initialize 1D Cross-Correlation Basics",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up 1D sequence signal buffers, kernel window pointers, and padding structures.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +97,9 @@ export const generateConv1dSlidingWindowDirectSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      19,
+      `Slide 1D window over index ${idx}: value = ${val}`,
+      `Evaluating 1D dot product accumulation between sequence window and filter kernel.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +111,9 @@ export const generateConv1dSlidingWindowDirectSteps = (
   }));
 
   addStep(
-    6,
+    25,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully computed 1D sliding window cross-correlation across entire sequence.",
     { completed: true },
     finalElements,
   );
@@ -126,103 +128,102 @@ const CONV1DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 19, hint: "Compute dot product over 1D sliding window of length K." }],
   lineExplanations: {
     1: "Defines entry point for 1D Cross-Correlation Basics.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    19: "Computes dot product between 1D signal window and kernel weights.",
+    25: "Returns 1D feature map output sequence.",
   },
 };
 
 export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowDirectInput> = {
-  id: "conv1d-sliding-window-direct",
+  id: "conv1dSlidingWindowDirect",
   title: "1D Cross-Correlation Basics",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "arrays_and_hashing"],
+  categories: ["ml_convolutions", "ml_gemm_roofline"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 1d cross-correlation basics provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "1D cross-correlation (direct 1D convolution) is a fundamental sequence processing primitive used in audio processing (Wav2Vec, SpeechT5), time-series analysis, and Temporal Convolutional Networks (TCNs). Direct 1D sliding window convolution computes feature maps by sliding a 1D kernel of length K across a 1D input signal of length L, taking the dot product at each strided window position without explicit memory matrix unrolling.\n\nInput Format:\n- signal: 1D array of floats representing temporal activations or raw audio samples of length L.\n- kernel: 1D filter weight array of length K.\n- stride: Integer spatial step size between window positions.\n- padding: Number of zero-padding elements appended at boundaries.\n\nOutput Format:\n- Returns a 1D feature map sequence of length L_out = floor((L + 2P - K) / S) + 1.\n\nEdge Cases & Constraints:\n- Causal padding vs symmetric padding: Causal padding pads only the left boundary to prevent future temporal leakage.\n- Kernel larger than input (K > L): Requires sufficient padding P to ensure non-empty output.\n- Stride S > K: Non-overlapping sub-sampling skips intermediate temporal steps.",
+  constraints: ["1 <= L <= 10000", "1 <= K <= L", "stride >= 1"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      title: "Standard 1D Signal Filter",
+      inputDisplay: "signal = [1, 2, 3, 4, 5], kernel = [1, 0, -1], stride = 1",
+      outputDisplay: "output = [-2, -2, -2]",
+      input: { data: [10, 20, 30, 40, 50], target: 30 },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Applies 1D gradient filter detecting temporal signal slope.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
+      title: "Strided Downsampling",
+      inputDisplay: "signal = [1, 3, 5, 7, 9, 11], kernel = [0.5, 0.5], stride = 2",
+      outputDisplay: "output = [2, 6, 10]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Averages 1D window pairs while downsampling sequence length by 2x.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      title: "Causal Padded Boundary",
+      inputDisplay: "signal = [5, 10], kernel = [1, 1, 1], padding = 2",
+      outputDisplay: "Valid output computed across padded left boundary",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Left zero-padding enables early temporal window computation without lookahead.",
     },
   ],
   code: CONV1DSLIDINGWINDOWDIRECT_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(L_{out} K)", average: "O(L_{out} K)", worst: "O(L_{out} K)" },
+  spaceComplexity: "O(L_{out})",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Direct loop evaluates K multiplications for each of the L_{out} output tokens, taking O(L_{out} K) operations.",
+    space: "Requires O(L_{out}) memory to store the resulting 1D sequence feature map.",
   },
   topicGuide: {
     overview:
-      "1D Cross-Correlation Basics is a critical component in ML CONVOLUTIONS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Direct 1D Sliding Window Convolution evaluates discrete 1D cross-correlation across temporal sequences for time-series forecasting, audio modeling, and 1D CNN architectures.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, 1d cross-correlation basics operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concepts & Discrete Cross-Correlation Formula",
+        body: "1D discrete cross-correlation computes output token y[i] = sum_{k=0}^{K-1} x[i*S + k - P] * w[k]. Unlike math convolution which flips the kernel w[K-1-k], deep learning frameworks implement cross-correlation directly since filter weights are learned via gradient backpropagation.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. 1D Cross-Correlation Basics optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Performance Roofline Impact",
+        body: "For small 1D kernels (K=3, 5), direct sliding window convolution has low arithmetic intensity (FLOPs/byte). On GPUs, batching multiple sequence channels into a 2D GEMM (C_out x L_out = (C_out x C_in*K) * (C_in*K x L_out)) achieves significantly higher hardware throughput than naive direct loops.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing 1d cross-correlation basics efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        heading: "Implementation Nuances & Data Layouts",
+        body: "Data layout conventions for 1D sequence signals include (Batch, Channel, Length) - NCL in PyTorch or (Batch, Length, Channel) - NLC in TensorFlow. NLC is preferred for autoregressive transformers and hardware accelerators with vector-wide channel packing.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Edge Cases & Production Safeguards",
+        body: "Key edge cases involve causal temporal masking (ensuring y[t] depends only on x[<=t]), dilation rate D > 1 for exponential receptive field growth in WaveNet, and edge zero-padding alignment.",
       },
     ],
     keyTerms: [
       {
-        term: "1D Engine",
+        term: "1D Cross-Correlation",
         definition:
-          "The underlying algorithmic system implementing 1d cross-correlation basics operations for deep learning workloads.",
+          "Discrete sequence operation computing inner product between 1D filter kernel and sliding temporal windows.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Causal Padding",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Asymmetric padding applied exclusively to sequence start to prevent future temporal information leakage.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Temporal Convolutional Network (TCN)",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Deep architecture utilizing 1D dilated causal convolutions for sequential modeling tasks.",
       },
       {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Output Sequence Dimension",
+        definition: "Spatial output length equation L_out = floor((L + 2P - K)/S) + 1.",
       },
     ],
   },

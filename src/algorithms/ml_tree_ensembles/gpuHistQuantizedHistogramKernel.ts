@@ -217,7 +217,7 @@ export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<GpuHistQuantiz
         "Histogram-based decision tree algorithms (LightGBM Ke et al. 2017, XGBoost `tree_method='hist'`) bin continuous feature values into 256 discrete integer bins (uint8). This converts O(N log N) exact greedy sorting into O(N) GPU atomic histogram accumulation, enabling 10x-50x faster GBDT training.",
       sections: [
         {
-          heading: "Core Concept & Feature Quantization",
+          heading: "Overview & Feature Quantization",
           body: "Continuous features are binned using quantile sketches into B discrete bins (B = 256). During tree training, raw float32 features are never accessed; only 1-byte uint8 bin codes are read into L1 cache.",
         },
         {
@@ -227,6 +227,10 @@ export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<GpuHistQuantiz
         {
           heading: "Histogram Subtraction Trick",
           body: "Once the parent histogram Hist(Parent) and left child histogram Hist(Left) are built, the right child histogram is computed instantly via vector subtraction Hist(Right) = Hist(Parent) - Hist(Left), cutting histogram construction time in half.",
+        },
+        {
+          heading: "Implementation Nuances & Memory Alignment",
+          body: "To maximize CUDA memory throughput, bin indices are stored in contiguous 128-bit aligned vector loads, avoiding unaligned memory access overhead across GPU warps.",
         },
       ],
       keyTerms: [
@@ -244,6 +248,11 @@ export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<GpuHistQuantiz
           term: "Histogram Subtraction Trick",
           definition:
             "Deriving a sibling node histogram by subtracting left child histogram from parent histogram.",
+        },
+        {
+          term: "Shared Memory SRAM",
+          definition:
+            "On-chip GPU scratchpad memory providing high-bandwidth, low-latency storage for per-block histogram buckets.",
         },
       ],
     },

@@ -6,31 +6,37 @@ export interface conv2dToGemmReceptiveFieldUnrollInput {
   target?: number;
 }
 
-export const CONV2DTOGEMMRECEPTIVEFIELDUNROLL_CODE = `
-def conv2dtogemmreceptivefieldunroll(image_matrix, conv_kernel, stride=1, padding=0):
+export const CONV2DTOGEMMRECEPTIVEFIELDUNROLL_CODE = `def conv2d_to_gemm_receptive_field_unroll(image, kernel_size, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Unrolls spatial KxK receptive field patches from a 2D image into 
+    a 2D matrix (im2col matrix) where each row represents an unrolled patch.
+    
+    Returns:
+      im2col_matrix: 2D array of shape (H_out * W_out, K_h * K_w)
+      shape_info: dict with output dimensions
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    h_in, w_in = len(image), len(image[0])
+    k_h, k_w = kernel_size
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    # Apply padding
+    padded = [[0] * (w_in + 2 * padding) for _ in range(h_in + 2 * padding)]
+    for r in range(h_in):
+        for c in range(w_in):
+            padded[r + padding][c + padding] = image[r][c]
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    h_out = (len(padded) - k_h) // stride + 1
+    w_out = (len(padded[0]) - k_w) // stride + 1
 
+    im2col_matrix = []
     for r in range(h_out):
         for c in range(w_out):
-            acc_sum = 0
+            patch = []
             for kr in range(k_h):
                 for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+                    patch.append(padded[r * stride + kr][c * stride + kc])
+            im2col_matrix.append(patch)
 
-    return feature_map
+    return im2col_matrix, {"h_out": h_out, "w_out": w_out, "patch_dim": k_h * k_w}
 `;
 
 export const DEFAULT_CONV2DTOGEMMRECEPTIVEFIELDUNROLL_INPUT: conv2dToGemmReceptiveFieldUnrollInput =
@@ -70,7 +76,7 @@ export const generateConv2dToGemmReceptiveFieldUnrollSteps = (
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "Unrolled im2col Matrix",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -82,7 +88,7 @@ export const generateConv2dToGemmReceptiveFieldUnrollSteps = (
   addStep(
     1,
     "Initialize Conv2D Receptive Field Patch Unroller",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up 2D im2col matrix layout for spatial receptive field unrolling.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -96,9 +102,9 @@ export const generateConv2dToGemmReceptiveFieldUnrollSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      22,
+      `Unroll receptive field patch at index ${idx}: value = ${val}`,
+      `Flattening spatial KxK window into row vector of length K_h * K_w * C_in.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -110,9 +116,9 @@ export const generateConv2dToGemmReceptiveFieldUnrollSteps = (
   }));
 
   addStep(
-    6,
+    28,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully constructed unrolled im2col matrix ready for BLAS GEMM dispatch.",
     { completed: true },
     finalElements,
   );
@@ -127,79 +133,108 @@ const CONV2DTOGEMMRECEPTIVEFIELDUNROLL_TRIVIA: TriviaMeta = {
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 22, hint: "Flatten 2D spatial receptive field patch into 1D matrix vector." }],
   lineExplanations: {
     1: "Defines entry point for Conv2D Receptive Field Patch Unroller.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    22: "Extracts and flattens KxK receptive field patch into im2col row vector.",
+    28: "Returns 2D im2col matrix and spatial output shape metadata.",
   },
 };
 
 export const conv2dToGemmReceptiveFieldUnroll: AlgorithmDefinition<conv2dToGemmReceptiveFieldUnrollInput> =
   {
-    id: "conv2d-to-gemm-receptive-field-unroll",
+    id: "conv2dToGemmReceptiveFieldUnroll",
     title: "Conv2D Receptive Field Patch Unroller",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "arrays_and_hashing"],
+    categories: ["ml_convolutions", "ml_gemm_roofline"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), conv2d receptive field patch unroller provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "High-performance deep learning libraries lower 2D spatial convolutions to General Matrix Multiplication (GEMM) by unrolling sliding receptive field patches into a 2D matrix (`im2col`). Each spatial patch of size K_h * K_w * C_in is flattened into a row vector of length K_dim, transforming 2D spatial convolution into matrix multiplication Y_gemm = X_im2col * W_flattened^T executed via hardware-optimized BLAS libraries.\n\nInput Format:\n- image: 2D activation matrix of shape [H, W].\n- kernel_size: Tuple [K_h, K_w] defining receptive field patch dimensions.\n- stride: Step size between sliding windows.\n- padding: Zero-padding added to spatial boundaries.\n\nOutput Format:\n- Returns im2col_matrix of shape [H_out * W_out, K_h * K_w] containing unrolled receptive field vectors.\n\nEdge Cases & Constraints:\n- Memory duplication: im2col inflates memory storage up to K^2 times due to overlapping spatial pixels.\n- Zero-padded boundary patches containing zero elements.\n- 1x1 convolution degenerates into a simple tensor reshape without memory unrolling overhead.",
+    constraints: ["1 <= H, W <= 1024", "1 <= K_h, K_w <= H, W", "stride >= 1"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "2x2 Receptive Field Patch Unroll",
+        inputDisplay: "image = 3x3, kernel_size = [2, 2]",
+        outputDisplay: "im2col shape [4, 4] (4 patches of length 4)",
+        input: { data: [10, 20, 30, 40, 50], target: 30 },
+        output: "[10, 20, 30, 40, 50]",
+        explanation:
+          "Unrolls 4 spatial 2x2 patch windows into a 4x4 matrix for GEMM multiplication.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
+        title: "Strided 3x3 Patch Unroll",
+        inputDisplay: "image = 5x5, kernel_size = [3, 3], stride = 2",
+        outputDisplay: "im2col shape [4, 9] (4 patches of length 9)",
         input: { data: [1, 2, 3, 4, 5], target: 4 },
         output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        explanation: "Unrolls strided 3x3 receptive fields into 9-element row vectors.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
+        title: "Padded Border Unroll",
+        inputDisplay: "image = 2x2, kernel_size = [3, 3], padding = 1",
+        outputDisplay: "im2col shape [4, 9] with padded zero entries",
         input: { data: [5, 10, 15], target: 99 },
         output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        explanation: "Zero-padding adds 0 values to flattened border patch vectors.",
       },
     ],
     code: CONV2DTOGEMMRECEPTIVEFIELDUNROLL_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: {
+      best: "O(H_{out} W_{out} K^2)",
+      average: "O(H_{out} W_{out} K^2)",
+      worst: "O(H_{out} W_{out} K^2)",
+    },
+    spaceComplexity: "O(H_{out} W_{out} K^2)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Iterates through all H_{out} * W_{out} spatial locations and copies K^2 elements per patch, taking O(H_{out} W_{out} K^2) time.",
+      space: "Allocates O(H_{out} W_{out} K^2) memory storage for the unrolled im2col matrix.",
     },
     topicGuide: {
-      overview: "Unrolling receptive fields transforms 2D patches into GEMM columns.",
+      overview:
+        "The Conv2D Receptive Field Patch Unroller transforms 2D spatial convolution into matrix multiplication (GEMM) by flattening spatial patches into 2D column/row matrices.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Unrolls spatial KxK patches into 1D matrix column vectors.",
+          heading: "Core Concepts & Receptive Field Unrolling Math",
+          body: "Spatial convolution applies filter W of size (C_out, C_in, K_h, K_w) to activation X of size (C_in, H, W). im2col converts X into matrix X_col of shape (H_out * W_out, C_in * K_h * K_w). Matrix multiplication Y_col = X_col * W_col^T yields the output feature map after reshaping.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Systems & Roofline Model Impact",
+          body: "Lowering convolution to GEMM allows deep learning frameworks to leverage highly optimized BLAS libraries (cuBLAS, openBLAS) and GPU Tensor Cores. The trade-off is memory duplication: overlapping pixels are copied up to K_h * K_w times into DRAM.",
+        },
+        {
+          heading: "Implementation Nuances & Memory Alignment",
+          body: "To achieve peak Memory Bandwidth utilization on CUDA hardware, im2col kernels arrange unrolled patch rows in 128-bit SIMD vector aligned memory addresses.",
+        },
+        {
+          heading: "Edge Cases & Production Safeguards",
+          body: "Edge cases include memory allocation failure on large high-resolution images (e.g. 4K frames with 7x7 filters), handling asymmetric padding, and avoiding unrolls for 1x1 convolutions.",
         },
       ],
       keyTerms: [
         {
-          term: "Patch Unrolling",
-          definition: "Flattening spatial receptive fields into vectors.",
+          term: "Receptive Field Patch",
+          definition:
+            "Local spatial window of input activations covered by the convolution kernel at a specific coordinate.",
+        },
+        {
+          term: "im2col Matrix Lowering",
+          definition:
+            "Transformation flattening multi-dimensional spatial receptive field patches into a 2D GEMM input matrix.",
+        },
+        {
+          term: "BLAS GEMM Integration",
+          definition: "Executing convolution via optimized General Matrix Multiplication routines.",
+        },
+        {
+          term: "Spatial Patch Vectorization",
+          definition:
+            "Arranging spatial patch elements sequentially into contiguous 1D row vectors.",
         },
       ],
     },

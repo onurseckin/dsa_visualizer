@@ -6,35 +6,51 @@ export interface ringAllgatherVectorReconstructorInput {
   target?: number;
 }
 
-export const RINGALLGATHERVECTORRECONSTRUCTOR_CODE = `
-def ringallgathervectorreconstructor(ring_ranks, parameter_shards):
+export const RINGALLGATHERVECTORRECONSTRUCTOR_CODE = `def ring_allgather_vector_reconstructor(local_shards: list[list[float]]) -> list[list[float]]:
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Reconstructs a full contiguous parameter vector from distributed per-rank shards via Ring All-Gather collective communication.
+    Simulates N-1 ring shift steps broadcasting local shards across all GPU ranks so every GPU holds the complete reconstructed tensor.
+
+    Input:
+        local_shards: List of tensor parameter shard arrays for each GPU rank.
+
+    Output:
+        List of fully reconstructed global parameter tensor arrays for each GPU rank.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    num_ranks = len(local_shards)
+    if num_ranks == 0:
+        return []
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    # Initialize each rank's memory buffer with its own local shard
+    rank_buffers = []
+    for rank in range(num_ranks):
+        buf = [None] * num_ranks
+        buf[rank] = list(local_shards[rank])
+        rank_buffers.append(buf)
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+    # Execute N-1 Ring All-Gather steps
+    for step in range(num_ranks - 1):
+        for rank in range(num_ranks):
+            send_chunk_idx = (rank - step) % num_ranks
+            recv_rank = (rank + 1) % num_ranks
+            rank_buffers[recv_rank][send_chunk_idx] = list(rank_buffers[rank][send_chunk_idx])
 
-    return shard_buffers
+    # Flatten reconstructed vector for each rank
+    reconstructed = []
+    for rank in range(num_ranks):
+        full_vector = []
+        for chunk in rank_buffers[rank]:
+            if chunk:
+                full_vector.extend(chunk)
+        reconstructed.append(full_vector)
+
+    return reconstructed
 `;
 
 export const DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT: ringAllgatherVectorReconstructorInput =
   {
-    data: [10, 20, 30, 40, 50],
-    target: 30,
+    data: [10, 20, 30, 40],
+    target: 4,
   };
 
 export const generateRingAllgatherVectorReconstructorSteps = (
@@ -42,6 +58,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+  const numRanks = Math.max(2, input.target ?? input.data.length);
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
@@ -68,8 +85,8 @@ export const generateRingAllgatherVectorReconstructorSteps = (
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          localShards: `[${input.data.join(", ")}]`,
+          numRanks: String(numRanks),
         },
       },
       variables,
@@ -79,38 +96,40 @@ export const generateRingAllgatherVectorReconstructorSteps = (
   addStep(
     1,
     "Initialize Ring All-Gather Phase Vector Reconstructor",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    `Setting up distributed per-rank shards across ${numRanks} GPU ranks for Ring All-Gather vector reconstruction.`,
+    { num_ranks: numRanks, shard_count: input.data.length },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  for (let step = 0; step < numRanks - 1; step++) {
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
+      const activeRank = (i + step) % numRanks;
+      return {
+        ...el,
+        state: "active",
+        pointers: [`Step-${step + 1}`, `Rank-${activeRank}`],
+      };
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      21,
+      `Ring Shift Step ${step + 1}/${numRanks - 1}: Rotating Shard (${step}) to Rank (rank+1)%${numRanks}`,
+      `Each GPU rank transmits its locally held shard chunk to its downstream neighbor rank around the circular ring topology.`,
+      { step: step + 1, total_steps: numRanks - 1 },
       currentElements,
     );
-  });
+  }
 
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     state: "sorted",
+    pointers: ["Reconstructed"],
   }));
 
   addStep(
-    6,
+    28,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
+    `Successfully completed ${numRanks - 1} Ring All-Gather steps. Full vector of ${input.data.length} elements is fully reconstructed on all ${numRanks} GPU ranks.`,
+    { completed: true, total_steps: numRanks - 1, reconstructed_size: input.data.length },
     finalElements,
   );
 
@@ -118,17 +137,25 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 };
 
 const RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "torch.distributed.all_reduce(shard, op=torch.distributed.ReduceOp.SUM)",
+    "rank_buffers.clear()",
+    "return local_shards[::-1]",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 21,
+      hint: "All-Gather takes N-1 ring shift steps to copy each GPU's shard to all other N-1 ranks.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Ring All-Gather Phase Vector Reconstructor.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines entry point for Ring All-Gather vector reconstructor.",
+    13: "Validates non-empty rank shard list.",
+    16: "Initializes per-rank memory buffers with local shard data.",
+    20: "Loops through N-1 Ring All-Gather shift steps.",
+    22: "Transfers shard chunk to downstream neighbor rank (rank + 1) % N.",
+    28: "Flattens and returns reconstructed global parameter vector for all ranks.",
   },
 };
 
@@ -137,67 +164,93 @@ export const ringAllgatherVectorReconstructor: AlgorithmDefinition<ringAllgather
     id: "ring-allgather-vector-reconstructor",
     title: "Ring All-Gather Phase Vector Reconstructor",
     category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "graph_traversal"],
+    categories: ["ml_distributed_systems", "ml_tensor_algebra"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), ring all-gather phase vector reconstructor provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "Ring All-Gather is a core collective communication primitive used in distributed Deep Learning frameworks (e.g. PyTorch FSDP, DeepSpeed ZeRO-3, and Megatron-LM Tensor Parallelism) to reconstruct a full global tensor from sharded per-rank slices.\n\nIn ZeRO-3 parameter sharding, model weights are split across $N$ GPUs to save VRAM. Before executing forward or backward passes on a layer, each GPU invokes Ring All-Gather across $N-1$ communication steps to dynamically reconstruct the full weight tensor in local VRAM.\n\nInput Format:\n- data: Array of numerical tensor shard values distributed across GPU ranks.\n- target: Number of GPU ranks participating in the ring ($N$).\n\nOutput Format:\n- Returns per-rank reconstructed full global parameter vectors containing concatenated shards in sequential order.\n\nEdge Cases & Constraints:\n- Bandwidth Consumption: Each GPU transfers $\\frac{N-1}{N} S$ bytes during All-Gather, where $S$ is full tensor byte size.\n- Dynamic Memory Release: ZeRO-3 immediately frees un-sharded parameter memory after layer GEMM computation to keep VRAM usage low.\n- Tensor Alignment: Shard lengths must be consistent across ranks or padded to prevent memory stride mismatches.",
+    constraints: ["2 <= target (num_ranks) <= 128", "1 <= data.length <= 1000"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "4-GPU Ring All-Gather Reconstruction",
+        inputDisplay: "data = [10, 20, 30, 40], target = 4",
+        outputDisplay: "Reconstructed Full Tensor: [10, 20, 30, 40] on all 4 Ranks",
+        input: { data: [10, 20, 30, 40], target: 4 },
+        output: "Reconstructed Full Tensor: [10, 20, 30, 40] on all 4 Ranks",
+        explanation:
+          "Executes 3 Ring All-Gather shift steps to gather all 4 shards onto every GPU rank.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        title: "2-GPU Vector Reconstruction",
+        inputDisplay: "data = [100, 200], target = 2",
+        outputDisplay: "Reconstructed Full Tensor: [100, 200] on both Ranks",
+        input: { data: [100, 200], target: 2 },
+        output: "Reconstructed Full Tensor: [100, 200] on both Ranks",
+        explanation: "Executes 1 ring shift step to swap shards between 2 GPUs.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "Single Element Shard",
+        inputDisplay: "data = [7], target = 2",
+        outputDisplay: "Reconstructed Tensor: [7] on all Ranks",
+        input: { data: [7], target: 2 },
+        output: "Reconstructed Tensor: [7] on all Ranks",
+        explanation: "Reconstructs single element tensor cleanly across ring ranks.",
       },
     ],
     code: RINGALLGATHERVECTORRECONSTRUCTOR_CODE,
     timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(N * S) time complexity where N is rank count (N-1 steps) and S is tensor shard size.",
+      space:
+        "O(N * S) memory buffer to maintain reconstructed tensor allocations across GPU ranks.",
     },
     topicGuide: {
       overview:
-        "All-Gather phase broadcasts fully reduced chunks so every GPU holds the final tensor.",
+        "Ring All-Gather collects distributed tensor shards from all N GPU ranks across N-1 ring shift steps, reconstructing the full global parameter vector on every rank.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.",
+          heading: "Core Concepts",
+          body: "In ZeRO-3 (Fully Sharded Data Parallel), model parameters are sharded across $N$ GPUs during optimizer updates. When executing a forward pass on layer $l$, each GPU rank broadcasts its sharded slice to its downstream neighbor rank. Over $N-1$ ring shift steps, all $N$ parameter shards circulate through all GPUs, enabling each rank to assemble the full weight matrix $W_l$.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Systems & Bandwidth Impact",
+          body: "Ring All-Gather transmits $\\frac{N-1}{N} S$ bytes per GPU. Overlapping All-Gather communications with matrix multiplication execution (using dual CUDA streams) hides up to 90% of collective communication latency behind GPU computation time.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Immediately after the GEMM forward/backward pass finishes, ZeRO-3 executes `tensor.storage().resize_(0)` to discard the reconstructed full weight matrix, keeping peak VRAM memory footprint bounded to $1/N$ of static model parameters.",
+        },
+        {
+          heading: "Architecture & Topology Trade-offs",
+          body: "When operating within an NVLink node (900 GB/s), All-Gather completes in microseconds. Across inter-node InfiniBand links (50 GB/s), All-Gather can become a communication bottleneck, requiring hierarchical (intra-node NVLink + inter-node IB) All-Gather algorithms.",
         },
       ],
       keyTerms: [
         {
-          term: "All-Gather",
-          definition: "Second phase of Ring-AllReduce broadcasting reduced chunks.",
+          term: "Ring All-Gather",
+          definition:
+            "Collective algorithm gathering tensor shards from all N ranks into a full reconstructed tensor on every rank.",
+        },
+        {
+          term: "ZeRO-3 Parameter Fetching",
+          definition:
+            "Dynamically executing All-Gather to reconstruct layer weights right before forward/backward pass execution.",
+        },
+        {
+          term: "Ring Shift Step",
+          definition:
+            "Cyclic transfer of tensor chunks between adjacent GPU ranks in circular ring order.",
+        },
+        {
+          term: "Dynamic Memory Release",
+          definition:
+            "Freeing reconstructed full parameters immediately after GEMM computation to conserve GPU VRAM.",
         },
       ],
     },

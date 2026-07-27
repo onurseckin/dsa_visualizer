@@ -5,29 +5,28 @@ export interface ringScatterReduceArrayAccumulatorInput {
   chunks: number[];
 }
 
-export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `
-def ringscatterreducearrayaccumulator(ring_ranks, parameter_shards):
+export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `def ring_scatter_reduce(chunks):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Simulates the Scatter-Reduce phase of a Ring-AllReduce collective operation across N ranks.
+    
+    Each rank starts with a partial tensor chunk. Over N-1 ring iterations,
+    chunks are passed clockwise and element-wise accumulated.
+
+    Args:
+        chunks: List of numeric gradient/parameter values from participating ranks
+
+    Returns:
+        Total sum accumulated after N-1 ring transfer steps.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    num_ranks = len(chunks)
+    if num_ranks == 0:
+        return 0
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    accumulator = chunks[0]
+    for i in range(1, num_ranks):
+        accumulator += chunks[i]
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    return accumulator
 `;
 
 export const DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT: ringScatterReduceArrayAccumulatorInput =
@@ -90,7 +89,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
   );
 
   addStep(
-    7,
+    18,
     "Initialize reduced_value",
     "Start with the chunk value from the first GPU.",
     { N, reduced_value: reducedValue },
@@ -105,7 +104,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     });
 
     addStep(
-      9,
+      19,
       `Enter loop for GPU ${i}`,
       `Passing the chunk to GPU ${i} to accumulate its partial value.`,
       { N, i, reduced_value: reducedValue },
@@ -121,7 +120,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     });
 
     addStep(
-      11,
+      20,
       `Accumulate chunk from GPU ${i}`,
       "The received partial chunk is added to the local chunk value.",
       { N, i, reduced_value: reducedValue },
@@ -131,7 +130,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
 
   currentElements = elements.map((el) => ({ ...el, state: "sorted" as const }));
   addStep(
-    13,
+    22,
     "Scatter-Reduce Complete",
     "The chunk has traversed N-1 GPUs and is now fully reduced.",
     { N, reduced_value: reducedValue },
@@ -144,13 +143,13 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
 const RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA: TriviaMeta = {
   skipLines: [1, 2, 3],
   distractors: ["reduced_value = 0.0", "for i in range(0, N):", "reduced_value *= chunks[i]"],
-  hints: [{ line: 11, hint: "Scatter-Reduce accumulates values additively across GPUs." }],
+  hints: [{ line: 20, hint: "Scatter-Reduce accumulates values additively across GPUs." }],
   lineExplanations: {
-    4: "Get the number of participating GPUs.",
-    7: "Initialize the running sum with the first GPU's chunk.",
-    9: "Iterate N-1 times, representing communication steps in the ring.",
-    11: "Accumulate the received chunk with the local chunk.",
-    13: "Return the fully reduced chunk.",
+    1: "Get the number of participating GPUs.",
+    18: "Initialize the running sum with the first GPU's chunk.",
+    19: "Iterate N-1 times, representing communication steps in the ring.",
+    20: "Accumulate the received chunk with the local chunk.",
+    22: "Return the fully reduced chunk.",
   },
 };
 
@@ -159,77 +158,93 @@ export const ringScatterReduceArrayAccumulator: AlgorithmDefinition<ringScatterR
     id: "ring-scatter-reduce-array-accumulator",
     title: "Ring-AllReduce Scatter-Reduce Phase",
     category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "graph_traversal"],
+    categories: ["ml_distributed_systems", "ml_tensor_algebra"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), ring-allreduce scatter-reduce phase provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "Simulates the Scatter-Reduce phase of a Ring-AllReduce collective operation across $N$ distributed ranks.\n\nIn distributed data-parallel ML training, gradients or activation tensors are divided into $N$ equal chunks across $N$ GPUs. During Scatter-Reduce:\n1. The payload is partitioned into $N$ blocks ($C_0, C_1, \\dots, C_{N-1}$).\n2. Over $N-1$ synchronous ring transfer steps, each rank $r$ sends chunk block $C_k$ to rank $(r+1) \\pmod N$ while receiving chunk block $C_k$ from rank $(r-1+N) \\pmod N$.\n3. Received partial values are added element-wise to local buffers.\n\nAt the end of $N-1$ ring steps, each GPU rank holds exactly one fully reduced chunk representing the global sum of that specific tensor partition across all GPUs.\n\nMathematical Properties:\n- Steps required: $N - 1$\n- Total bytes sent per GPU: $\\frac{N-1}{N} S$\n- Compute cost per GPU: $(N-1) \\times \\text{FLOPs}_{\\text{chunk}}$\n\nInput Format:\n- chunks: Array of numeric partial values or gradient tensor chunk magnitudes from each GPU rank.\n\nOutput Format:\n- Returns the final scalar sum / reduced array representation of the accumulated chunk.\n\nEdge Cases & Constraints:\n- Empty input ($N=0$): Returns 0 immediately.\n- Single rank ($N=1$): Zero transfers required; chunk value is already fully reduced.\n- Floating-point overflow: Large accumulated gradients may require FP32 precision during reduction.",
     constraints: ["1 <= chunks.length <= 100", "-10^5 <= chunks[i] <= 10^5"],
     examples: [
       {
         kind: "basic",
-        title: "4 GPUs",
+        title: "4 GPUs Ring Accumulation",
         inputDisplay: "chunks = [10, 20, 30, 40]",
-        outputDisplay: "100",
+        outputDisplay: "Reduced Sum = 100",
         input: { chunks: [10, 20, 30, 40] },
         output: "100",
-        explanation: "Each GPU contributes its partial chunk, totaling 100.",
+        explanation:
+          "Each GPU contributes its partial chunk value, accumulating to 100 over 3 ring steps.",
       },
       {
         kind: "complex",
         title: "8 GPUs with Negative Gradients",
         inputDisplay: "chunks = [1, -2, 3, -4, 5, -6, 7, -8]",
-        outputDisplay: "-4",
+        outputDisplay: "Reduced Sum = -4",
         input: { chunks: [1, -2, 3, -4, 5, -6, 7, -8] },
         output: "-4",
-        explanation: "Gradient accumulations can result in cancellations.",
+        explanation:
+          "Gradient accumulations can include negative components resulting in cancellation.",
       },
       {
         kind: "negative",
-        title: "Single GPU",
+        title: "Single GPU Standalone",
         inputDisplay: "chunks = [50]",
-        outputDisplay: "50",
+        outputDisplay: "Reduced Sum = 50",
         input: { chunks: [50] },
         output: "50",
-        explanation: "With 1 GPU, no communication or accumulation is needed.",
+        explanation: "With 1 GPU, no inter-GPU communication or reduction steps are needed.",
       },
     ],
     code: RINGSCATTERREDUCEARRAYACCUMULATOR_CODE,
     timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
     spaceComplexity: "O(1)",
     complexityAnalysis: {
-      time: "Each chunk undergoes N-1 additions across the ring, resulting in O(N) time.",
-      space: "The accumulator requires O(1) auxiliary space beyond the input chunks.",
+      time: "Each chunk undergoes N-1 additions across the ring, resulting in O(N) step execution time.",
+      space: "The accumulator requires O(1) auxiliary space beyond input chunk buffers.",
     },
     topicGuide: {
       overview:
-        "Scatter-Reduce is the first half of the Ring-AllReduce collective operation used heavily in distributed data parallel training.",
+        "Scatter-Reduce is the first phase of the Ring-AllReduce collective operation used heavily in distributed data-parallel training (PyTorch DDP, Horovod, NCCL).",
       sections: [
         {
-          heading: "Core Concept",
-          body: "In Scatter-Reduce, the tensor is split into N chunks. Each GPU passes one chunk to its neighbor and receives another, accumulating the results. After N-1 steps, each GPU holds exactly one fully reduced chunk.",
+          heading: "Overview & Problem Context",
+          body: "When training deep neural networks across multiple GPUs, each GPU processes a different mini-batch and computes local gradients. To maintain synchronized weights, all local gradients must be summed element-wise across GPUs. Scatter-Reduce efficiently computes this global sum for tensor partitions without requiring any master node.",
         },
         {
-          heading: "Systems Impact",
-          body: "By splitting the payload and distributing the accumulation, Ring-AllReduce ensures network bandwidth is fully utilized uniformly across all links, avoiding bottlenecks.",
+          heading: "Core Concepts & Chunk Rotation",
+          body: "The global gradient tensor of size $S$ is divided into $N$ equal chunks. At step $s=0$, GPU $r$ sends chunk $(r - s) \\pmod N$ to GPU $(r+1) \\pmod N$ and receives chunk $(r - s - 1 + N) \\pmod N$. As chunks rotate around the ring over $N-1$ steps, each rank accumulates the received partial gradients into its target partition buffer.",
+        },
+        {
+          heading: "Systems & Memory Bandwidth Efficiency",
+          body: "Scatter-Reduce maximizes ring network utilization because every link in the ring transfers $(1/N)$th of the total tensor payload simultaneously during each of the $N-1$ steps. Total data sent per GPU is $\\frac{N-1}{N} S$. Contrast this with naive parameter server reduction, which transfers $S \\cdot (N-1)$ through a single network bottleneck.",
+        },
+        {
+          heading: "Implementation Nuances & CUDA Stream Overlap",
+          body: "Production NCCL implementations overlap communication with computation by double-buffering ring chunks. While CUDA kernel warp threads reduce chunk $k$ in SRAM, PCIe/NVLink copy engines stream chunk $k+1$ into GPU memory.",
         },
       ],
       keyTerms: [
         {
           term: "Scatter-Reduce",
           definition:
-            "Phase where partial sums are accumulated. Leaves each GPU with one fully reduced chunk.",
+            "Phase of Ring-AllReduce where partial gradient chunks are accumulated, leaving each rank with one fully reduced chunk.",
+        },
+        {
+          term: "Chunk Partition",
+          definition:
+            "A slice of the full model gradient tensor created by splitting the tensor into $N$ equal contiguously aligned segments.",
         },
         {
           term: "All-Gather",
-          definition: "Second phase where the fully reduced chunks are shared with all GPUs.",
+          definition:
+            "The secondary ring phase that follows Scatter-Reduce, broadcasting the fully reduced chunks back to all GPUs.",
         },
         {
-          term: "Chunk",
+          term: "Double Buffering",
           definition:
-            "A partition of the full tensor. For N GPUs, the tensor is split into N chunks.",
+            "Using alternate memory buffers to overlap GPU computation (element-wise addition) with DMA network transfers.",
         },
       ],
     },

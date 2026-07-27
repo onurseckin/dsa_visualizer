@@ -6,31 +6,36 @@ export interface col2imGradAccumulatorInput {
   target?: number;
 }
 
-export const COL2IMGRADACCUMULATOR_CODE = `
-def col2imgradaccumulator(image_matrix, conv_kernel, stride=1, padding=0):
+export const COL2IMGRADACCUMULATOR_CODE = `def col2im_grad_accumulator(d_cols, image_shape, kernel_size, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Accumulates gradients from unrolled column matrix (d_cols) back into 
+    original 2D spatial image gradient tensor (d_image).
+    
+    d_cols: shape (K_h * K_w, H_out * W_out) representing gradients w.r.t. unrolled patches.
+    image_shape: tuple (H_in, W_in) spatial dimensions of original input activation map.
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
-
+    h_in, w_in = image_shape
+    k_h, k_w = kernel_size
     h_out = (h_in + 2 * padding - k_h) // stride + 1
     w_out = (w_in + 2 * padding - k_w) // stride + 1
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    d_image = [[0.0] * w_in for _ in range(h_in)]
 
+    col_idx = 0
     for r in range(h_out):
         for c in range(w_out):
-            acc_sum = 0
+            k_idx = 0
             for kr in range(k_h):
                 for kc in range(k_w):
                     ir = r * stride + kr - padding
                     ic = c * stride + kc - padding
                     if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+                        # Accumulate gradient because overlapping receptive fields share input pixels
+                        d_image[ir][ic] += d_cols[k_idx][col_idx]
+                    k_idx += 1
+            col_idx += 1
 
-    return feature_map
+    return d_image
 `;
 
 export const DEFAULT_COL2IMGRADACCUMULATOR_INPUT: col2imGradAccumulatorInput = {
@@ -69,7 +74,7 @@ export const generateCol2imGradAccumulatorSteps = (
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "Gradient Accumulation Map",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -81,7 +86,7 @@ export const generateCol2imGradAccumulatorSteps = (
   addStep(
     1,
     "Initialize col2im Gradient Accumulator",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up execution data structures and spatial gradient accumulation buffers.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +100,9 @@ export const generateCol2imGradAccumulatorSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      21,
+      `Accumulate patch gradient at index ${idx}: value = ${val}`,
+      `Scattering and summing unrolled patch gradients into spatial image coordinates.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +114,9 @@ export const generateCol2imGradAccumulatorSteps = (
   }));
 
   addStep(
-    6,
+    25,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully accumulated all column gradients into original image tensor layout.",
     { completed: true },
     finalElements,
   );
@@ -126,103 +131,112 @@ const COL2IMGRADACCUMULATOR_TRIVIA: TriviaMeta = {
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 21,
+      hint: "Accumulate gradient values using atomic addition for overlapping receptive fields.",
+    },
+  ],
   lineExplanations: {
     1: "Defines entry point for col2im Gradient Accumulator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    21: "Accumulates unrolled column patch gradients back to spatial coordinates.",
+    25: "Returns spatial activation gradient matrix.",
   },
 };
 
 export const col2imGradAccumulator: AlgorithmDefinition<col2imGradAccumulatorInput> = {
-  id: "col2im-grad-accumulator",
+  id: "col2imGradAccumulator",
   title: "col2im Gradient Accumulator",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "arrays_and_hashing"],
+  categories: ["ml_convolutions", "ml_hardware_kernels"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), col2im gradient accumulator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "During the backward pass of a 2D convolution layer in automatic differentiation frameworks (PyTorch, cuDNN, Caffe), the gradient with respect to input activations is computed by taking the output gradient matrix d_out and multiplying by transposed filter weights W^T. This produces an unrolled patch gradient matrix d_cols. The `col2im` accumulator performs the adjoint (transpose) operation of `im2col` by scattering and accumulating overlapping patch gradients back into the original 2D feature map shape.\n\nInput Format:\n- d_cols: Unrolled gradient matrix of shape [K_h * K_w, H_out * W_out].\n- image_shape: Tuple (H_in, W_in) of target activation map.\n- kernel_size: Convolution kernel dimensions (K_h, K_w).\n- stride: Spatial stride step.\n- padding: Zero-padding applied at edges.\n\nOutput Format:\n- d_image: Accumulated spatial activation gradient matrix of shape [H_in, W_in].\n\nEdge Cases & Constraints:\n- Overlapping pixel gradients: Multiple patch entries map to identical input coordinates, requiring atomic addition (`atomicAdd` on GPU).\n- Strided gaps: Pixels skipped by stride > 1 receive zero gradient updates from skipped locations.\n- Padded boundary elements: Gradients falling inside zero-padding regions are discarded.",
+  constraints: ["1 <= H_in, W_in <= 1024", "1 <= K_h, K_w <= H_in, W_in", "stride >= 1"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      title: "2x2 Receptive Field Accumulation",
+      inputDisplay: "d_cols = [4, 9], image_shape = (3, 3), kernel = 2x2",
+      outputDisplay: "d_image = 3x3 matrix with accumulated patch sums",
+      input: { data: [10, 20, 30, 40, 50], target: 30 },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Scatters 4 column gradients into overlapping 3x3 input activation pixels.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
+      title: "Strided Gradient Accumulation",
+      inputDisplay: "d_cols = [9, 4], image_shape = (5, 5), stride = 2",
+      outputDisplay: "d_image = 5x5 matrix with sparse non-zero updates",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Accumulates gradients at strided steps, leaving skipped pixels untouched.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      title: "Boundary Padding Truncation",
+      inputDisplay: "d_cols = [4, 4], image_shape = (2, 2), padding = 1",
+      outputDisplay: "Padding gradients dropped, valid 2x2 accumulated",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Gradients corresponding to padded zero boundary elements are safely discarded.",
     },
   ],
   code: COL2IMGRADACCUMULATOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: {
+    best: "O(H_{out} W_{out} K^2)",
+    average: "O(H_{out} W_{out} K^2)",
+    worst: "O(H_{out} W_{out} K^2)",
+  },
+  spaceComplexity: "O(H_{in} W_{in})",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Iterates through all unrolled patch gradient entries, taking O(H_{out} W_{out} K^2) additions.",
+    space: "Requires O(H_{in} W_{in}) DRAM memory to hold the accumulated input gradient buffer.",
   },
   topicGuide: {
     overview:
-      "col2im Gradient Accumulator is a critical component in ML CONVOLUTIONS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "The col2im Gradient Accumulator implements the transpose/adjoint transformation of im2col, accumulating unrolled patch gradients back into 2D spatial feature map shapes during backpropagation.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, col2im gradient accumulator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concepts & Transpose Adjoint Math",
+        body: "Because im2col is a linear operator y = A*x, its adjoint during automatic differentiation requires evaluating dx = A^T * dy. This means each element dy[kr, kc, r_out, c_out] adds to dx[r_out*stride + kr, c_out*stride + kc]. Because sliding windows overlap, multiple gradient components contribute to a single spatial coordinate.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. col2im Gradient Accumulator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & Hardware Kernel Performance",
+        body: "On GPUs, col2im requires atomic additions (`atomicAdd`) when threads processing different spatial patches attempt to write to shared spatial memory locations concurrently. To maximize throughput, high-performance C++/CUDA kernels (e.g. cuDNN) use shared memory reduction buffers or tiled warp-level accumulation to reduce DRAM atomic contention.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing col2im gradient accumulator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Strided convolutions leave unvisited gaps in activation space during backpropagation. Padding requires masking out boundary updates so gradients do not leak out of bounds. Multi-channel tensors (NCHW / NHWC) process channels independently in parallel, requiring proper stride offset indexing.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Edge Cases & Production Safeguards",
+        body: "Edge cases include atomic race conditions, float16 rounding degradation during multi-term addition, and zero-stride broadcasting. Production kernels use float32 accumulation registers even when inputs are stored in float16/bfloat16 precision.",
       },
     ],
     keyTerms: [
       {
-        term: "col2im Engine",
+        term: "col2im Operator",
         definition:
-          "The underlying algorithmic system implementing col2im gradient accumulator operations for deep learning workloads.",
+          "Algorithmic reverse of im2col that maps 2D unrolled column gradients back into 2D/3D spatial tensor shapes.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Adjoint Transformation",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The mathematical transpose of a linear operator used to compute input gradients during autograd backward pass.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Atomic Accumulation",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Thread-safe addition instruction (`atomicAdd`) ensuring correct accumulation when parallel threads update overlapping pixels.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Overlapping Gradient Scatter",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The process of scattering gradient terms from overlapping receptive field patches to shared spatial indices.",
       },
     ],
   },

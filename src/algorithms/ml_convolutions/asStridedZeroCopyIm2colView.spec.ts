@@ -5,9 +5,9 @@ import {
   generateAsStridedZeroCopyIm2colViewSteps,
 } from "./asStridedZeroCopyIm2colView";
 
-describe("as-strided-zero-copy-im2col-view (Zero-Copy `as_strided` im2col View Engine)", () => {
+describe("asStridedZeroCopyIm2colView (Zero-Copy `as_strided` im2col View Engine)", () => {
   it("should have correct metadata", () => {
-    expect(asStridedZeroCopyIm2colView.id).toBe("as-strided-zero-copy-im2col-view");
+    expect(asStridedZeroCopyIm2colView.id).toBe("asStridedZeroCopyIm2colView");
     expect(asStridedZeroCopyIm2colView.isMlInfra).toBe(true);
     expect(asStridedZeroCopyIm2colView.mlInfraLevel).toBe(8);
     expect(asStridedZeroCopyIm2colView.mlInfraCategory).toBe("ml_convolutions");

@@ -5,9 +5,9 @@ import {
   generateFftFrequencyDomainConvolution2dSteps,
 } from "./fftFrequencyDomainConvolution2d";
 
-describe("fft-frequency-domain-convolution-2d (2D Fast Fourier Transform (FFT) Convolution Engine)", () => {
+describe("fftFrequencyDomainConvolution2d (2D Fast Fourier Transform (FFT) Convolution Engine)", () => {
   it("should have correct metadata", () => {
-    expect(fftFrequencyDomainConvolution2d.id).toBe("fft-frequency-domain-convolution-2d");
+    expect(fftFrequencyDomainConvolution2d.id).toBe("fftFrequencyDomainConvolution2d");
     expect(fftFrequencyDomainConvolution2d.isMlInfra).toBe(true);
     expect(fftFrequencyDomainConvolution2d.mlInfraLevel).toBe(8);
     expect(fftFrequencyDomainConvolution2d.mlInfraCategory).toBe("ml_convolutions");

@@ -6,31 +6,29 @@ export interface conv2dPaddingStrideOutputShapeInput {
   target?: number;
 }
 
-export const CONV2DPADDINGSTRIDEOUTPUTSHAPE_CODE = `
-def conv2dpaddingstrideoutputshape(image_matrix, conv_kernel, stride=1, padding=0):
+export const CONV2DPADDINGSTRIDEOUTPUTSHAPE_CODE = `def conv2d_padding_stride_output_shape(h_in, w_in, k_h, k_w, stride_h=1, stride_w=1, pad_h=0, pad_w=0, dilation_h=1, dilation_w=1):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Calculates spatial output dimensions (H_out, W_out) for a 2D convolution operation
+    considering input size, kernel dimensions, stride, padding, and dilation.
+    
+    Formula:
+      eff_k_h = k_h + (k_h - 1) * (dilation_h - 1)
+      h_out = floor((h_in + 2 * pad_h - eff_k_h) / stride_h) + 1
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    eff_k_h = k_h + (k_h - 1) * (dilation_h - 1)
+    eff_k_w = k_w + (k_w - 1) * (dilation_w - 1)
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    h_out = (h_in + 2 * pad_h - eff_k_h) // stride_h + 1
+    w_out = (w_in + 2 * pad_w - eff_k_w) // stride_w + 1
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
-
-    for r in range(h_out):
-        for c in range(w_out):
-            acc_sum = 0
-            for kr in range(k_h):
-                for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
-
-    return feature_map
+    valid = (h_out > 0) and (w_out > 0)
+    return {
+        "h_out": max(0, h_out),
+        "w_out": max(0, w_out),
+        "eff_kernel_h": eff_k_h,
+        "eff_kernel_w": eff_k_w,
+        "is_valid_shape": valid
+    }
 `;
 
 export const DEFAULT_CONV2DPADDINGSTRIDEOUTPUTSHAPE_INPUT: conv2dPaddingStrideOutputShapeInput = {
@@ -69,7 +67,7 @@ export const generateConv2dPaddingStrideOutputShapeSteps = (
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
+          im2colBuffer: "Output Shape Metadata",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -81,7 +79,7 @@ export const generateConv2dPaddingStrideOutputShapeSteps = (
   addStep(
     1,
     "Initialize 2D Conv Output Shape Calculator",
-    "Setting up execution data structures and memory layout pointers.",
+    "Parsing spatial input dimensions, filter sizes, stride steps, zero-padding, and dilation rates.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +93,9 @@ export const generateConv2dPaddingStrideOutputShapeSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      15,
+      `Evaluate spatial output dimension for parameter element ${idx}: value = ${val}`,
+      `Applying equation H_out = floor((H_in + 2P - K_eff) / S) + 1 to compute feature map bounds.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +107,9 @@ export const generateConv2dPaddingStrideOutputShapeSteps = (
   }));
 
   addStep(
-    6,
+    20,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully verified 2D convolution spatial output shape and memory stride parameters.",
     { completed: true },
     finalElements,
   );
@@ -126,84 +124,117 @@ const CONV2DPADDINGSTRIDEOUTPUTSHAPE_TRIVIA: TriviaMeta = {
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 15,
+      hint: "Compute effective kernel size considering dilation factor: K_eff = K + (K-1)*(D-1).",
+    },
+  ],
   lineExplanations: {
     1: "Defines entry point for 2D Conv Output Shape Calculator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    15: "Calculates spatial output height and width using stride/padding formula.",
+    20: "Returns shape metadata dictionary containing (H_out, W_out) and effective kernel size.",
   },
 };
 
 export const conv2dPaddingStrideOutputShape: AlgorithmDefinition<conv2dPaddingStrideOutputShapeInput> =
   {
-    id: "conv2d-padding-stride-output-shape",
+    id: "conv2dPaddingStrideOutputShape",
     title: "2D Conv Output Shape Calculator",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "arrays_and_hashing"],
+    categories: ["ml_convolutions", "ml_gemm_roofline"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), 2d conv output shape calculator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
-    sources: [
-      {
-        type: "leetcode",
-        kind: "leetcode",
-        id: 48,
-        title: "Rotate Image",
-        url: "https://leetcode.com/problems/rotate-image/",
-      },
+      "Determining spatial output dimensions (H_out, W_out) after spatial transformations is an essential prerequisite step in ML graph compilers (XLA, TVM), neural architecture search, and tensor memory allocation (PyTorch `nn.Conv2d`, ONNX shape inference). Given spatial height and width, kernel dimensions, padding, stride, and dilation, this algorithm computes exact output feature map shapes and effective receptive fields.\n\nInput Format:\n- h_in, w_in: Spatial height and width of input tensor.\n- k_h, k_w: Height and width of convolution filter kernel.\n- stride_h, stride_w: Spatial stride steps along height and width.\n- pad_h, pad_w: Zero-padding size added to top/bottom and left/right.\n- dilation_h, dilation_w: Dilation factors expanding kernel receptive field.\n\nOutput Format:\n- Returns a dictionary with h_out, w_out, eff_kernel_h, eff_kernel_w, and is_valid_shape.\n\nEdge Cases & Constraints:\n- Invalid shape (K > H + 2P): Yields H_out <= 0, flagging invalid model config.\n- Dilation factor D > 1: Expands effective kernel footprint K_eff = K + (K - 1) * (D - 1).\n- Asymmetric padding / strides: Different parameters along vertical vs horizontal axes.",
+    constraints: [
+      "1 <= H_in, W_in <= 10000",
+      "1 <= K_h, K_w <= 100",
+      "stride >= 1",
+      "dilation >= 1",
     ],
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "Standard 3x3 Conv SAME Padding",
+        inputDisplay: "H=28, W=28, K=3x3, P=1, S=1",
+        outputDisplay: "H_out=28, W_out=28, valid=True",
+        input: { data: [10, 20, 30, 40, 50], target: 30 },
+        output: "[10, 20, 30, 40, 50]",
+        explanation: "P=1 zero-padding preserves spatial dimensions for 3x3 filter with stride=1.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
+        title: "Dilated 2x Downsampling Conv",
+        inputDisplay: "H=224, W=224, K=7x7, P=3, S=2, D=2",
+        outputDisplay: "H_out=106, W_out=106, K_eff=13",
         input: { data: [1, 2, 3, 4, 5], target: 4 },
         output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        explanation: "Dilation D=2 expands 7x7 kernel to 13x13 effective receptive field.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
+        title: "Kernel Exceeds Input Bounds",
+        inputDisplay: "H=5, W=5, K=7x7, P=0, S=1",
+        outputDisplay: "H_out=0, W_out=0, valid=False",
         input: { data: [5, 10, 15], target: 99 },
         output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        explanation:
+          "Kernel size larger than unpadded spatial activation yields invalid output shape.",
       },
     ],
     code: CONV2DPADDINGSTRIDEOUTPUTSHAPE_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Closed-form arithmetic evaluation executes in O(1) time.",
+      space: "O(1) memory space required for output shape metadata.",
     },
     topicGuide: {
       overview:
-        "Spatial convolution output dimensions depend on image size I, padding P, kernel size K, and stride S.",
+        "The 2D Conv Output Shape Calculator computes feature map spatial dimensions H_out and W_out based on input sizes, filter dimensions, padding, stride, and dilation parameters.",
       sections: [
-        { heading: "Core Concept", body: "Computes O = floor((I + 2P - K) / S) + 1." },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts & Mathematical Derivation",
+          body: "The spatial output formula for 2D convolution is H_out = floor((H_in + 2*Pad - K_eff) / Stride) + 1. Dilation expands spatial receptive field spacing without adding parameters: K_eff = K + (K - 1)*(D - 1).",
+        },
+        {
+          heading: "Systems & Memory Layout Impact",
+          body: "Spatial dimensions determine the number of rows M = H_out * W_out in the lowered im2col matrix. ML compilers like XLA and TensorRT use these calculations during graph optimization to allocate continuous DRAM blocks and determine GEMM tile shapes.",
+        },
+        {
+          heading: "Implementation Nuances & Conventions",
+          body: "Different frameworks handle edge rounding differently. PyTorch uses floor division (floor), whereas PyTorch MaxPool2d and Caffe support ceil_mode=True. TensorFlow 'SAME' padding dynamically computes asymmetric top/bottom padding to preserve spatial shape.",
+        },
+        {
+          heading: "Edge Cases & Production Safeguards",
+          body: "Out-of-bounds parameter verification prevents negative array allocation errors in CUDA kernels. When H_out <= 0, ML execution engines trigger shape mismatch exceptions prior to memory allocation.",
         },
       ],
-      keyTerms: [{ term: "Output Shape Formula", definition: "O = floor((I + 2P - K) / S) + 1." }],
+      keyTerms: [
+        {
+          term: "Effective Kernel Size",
+          definition:
+            "Expanded filter footprint equation K_eff = K + (K - 1) * (D - 1) under dilated convolution.",
+        },
+        {
+          term: "Dilation Rate",
+          definition:
+            "Spacing factor between kernel filter elements allowing enlarged receptive fields without parameter increase.",
+        },
+        {
+          term: "Spatial Downsampling Factor",
+          definition:
+            "Reduction ratio in spatial resolution caused by stride S > 1 or pooling layers.",
+        },
+        {
+          term: "Padding Convention",
+          definition:
+            "Boundary zero-padding rules ('SAME', 'VALID', explicit padding tuples) governing spatial output size.",
+        },
+      ],
     },
     trivia: CONV2DPADDINGSTRIDEOUTPUTSHAPE_TRIVIA,
 

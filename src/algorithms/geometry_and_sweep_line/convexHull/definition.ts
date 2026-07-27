@@ -102,6 +102,7 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   id: "convex-hull",
   title: "Convex Hull (Monotone Chain)",
   category: "geometry_and_sweep_line",
+  categories: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Finds the smallest convex polygon enclosing a set of 2D points using Andrew's Monotone Chain algorithm. After sorting the points by x (then y), it sweeps once left-to-right to build the lower boundary and once right-to-left for the upper, using cross-product turn tests to discard any point that would bend the boundary inward.",

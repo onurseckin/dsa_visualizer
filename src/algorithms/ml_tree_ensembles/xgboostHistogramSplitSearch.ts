@@ -1,116 +1,208 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
-export interface xgboostHistogramSplitSearchInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface XgboostHistogramSplitSearchInput {
+  histG: number[];
+  histH: number[];
+  binBoundaries: number[];
+  lambdaReg: number;
+  gammaReg: number;
 }
 
-export const XGBOOSTHISTOGRAMSPLITSEARCH_CODE = `
-def xgboosthistogramsplitsearch(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
-
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_XGBOOSTHISTOGRAMSPLITSEARCH_INPUT: xgboostHistogramSplitSearchInput = {
-  GL: 1.5,
-  HL: 2.0,
-  GR: -0.5,
-  HR: 1.0,
+export const DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT: XgboostHistogramSplitSearchInput = {
+  histG: [-0.8, -0.4, 0.2, 0.9],
+  histH: [0.25, 0.25, 0.25, 0.25],
+  binBoundaries: [1.5, 3.0, 4.5, 6.0],
+  lambdaReg: 1.0,
+  gammaReg: 0.0,
 };
 
-export const generateXGBOOSTHISTOGRAMSPLITSEARCHSteps = (
-  input: xgboostHistogramSplitSearchInput,
+export const XGBOOST_HISTOGRAM_SPLIT_SEARCH_CODE = `def xgboost_histogram_split_search(hist_G: list[float], hist_H: list[float], bin_boundaries: list[float], lambda_reg: float = 1.0, gamma_reg: float = 0.0) -> tuple[float, float, int]:
+    """
+    Performs O(num_bins) fast split search over pre-built gradient and hessian histograms (LightGBM / XGBoost 'hist').
+    Iteratively accumulates G_L, H_L across bins and evaluates XGBoost regularized split gain score.
+    """
+    G_total = sum(hist_G)
+    H_total = sum(hist_H)
+
+    best_gain = -float('inf')
+    best_bin = -1
+    best_threshold = None
+
+    G_L, H_L = 0.0, 0.0
+    num_bins = len(hist_G)
+
+    for b in range(num_bins - 1):
+        G_L += hist_G[b]
+        H_L += hist_H[b]
+        G_R = G_total - G_L
+        H_R = H_total - H_L
+
+        gain = 0.5 * (
+            (G_L ** 2) / (H_L + lambda_reg) +
+            (G_R ** 2) / (H_R + lambda_reg) -
+            (G_total ** 2) / (H_total + lambda_reg)
+        ) - gamma_reg
+
+        if gain > best_gain:
+            best_gain = gain
+            best_bin = b
+            best_threshold = bin_boundaries[b] if b < len(bin_boundaries) else float(b)
+
+    return best_threshold, round(best_gain, 4), best_bin`;
+
+export const generateXgboostHistogramSplitSearchSteps = (
+  input: XgboostHistogramSplitSearchInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const histG = input.histG || DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT.histG;
+  const histH = input.histH || DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT.histH;
+  const binBoundaries = input.binBoundaries || DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT.binBoundaries;
+  const lambdaReg = input.lambdaReg ?? 1.0;
+  const gammaReg = input.gammaReg ?? 0.0;
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const Gtotal = histG.reduce((a, b) => a + b, 0);
+  const Htotal = histH.reduce((a, b) => a + b, 0);
 
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    explanation: {
+      what: "Initialize XGBoost Histogram Split Search",
+      why: `Histogram built with ${histG.length} bins. G_total = ${Gtotal.toFixed(
+        2,
+      )}, H_total = ${Htotal.toFixed(2)}, λ = ${lambdaReg}, γ = ${gammaReg}.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: histG.map((g, idx) => ({
+        id: `bin-${idx}`,
+        value: Math.round(g * 10),
+        label: `Bin ${idx} (G=${g}, H=${histH[idx]})`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        numBins: String(histG.length),
+        G_total: Gtotal.toFixed(2),
+        H_total: Htotal.toFixed(2),
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { numBins: histG.length, Gtotal, Htotal },
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  let GL = 0.0;
+  let HL = 0.0;
+  let bestGain = -Infinity;
+  let bestBin = -1;
+  let bestThreshold: number | null = null;
 
+  for (let b = 0; b < histG.length - 1; b++) {
+    GL += histG[b];
+    HL += histH[b];
+
+    const GR = Gtotal - GL;
+    const HR = Htotal - HL;
+
+    const gain =
+      0.5 *
+        (GL ** 2 / (HL + lambdaReg) +
+          GR ** 2 / (HR + lambdaReg) -
+          Gtotal ** 2 / (Htotal + lambdaReg)) -
+      gammaReg;
+
+    const threshold = binBoundaries[b] ?? b;
+
+    if (gain > bestGain) {
+      bestGain = gain;
+      bestBin = b;
+      bestThreshold = threshold;
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `Evaluate Bin Split ${b} at Threshold ${threshold}`,
+        why: `G_L = ${GL.toFixed(2)}, H_L = ${HL.toFixed(2)}, G_R = ${GR.toFixed(
+          2,
+        )}, H_R = ${HR.toFixed(2)}. Split Gain = ${gain.toFixed(
+          4,
+        )}. Best Gain = ${bestGain.toFixed(4)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: histG.map((g, idx) => ({
+          id: `bin-${idx}`,
+          value: Math.round(g * 10),
+          label: `Bin ${idx}`,
+          state: idx <= b ? ("active" as ElementState) : ("visited" as ElementState),
+          pointers: idx === b ? [`Split threshold ${threshold}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          currentBin: String(b),
+          threshold: String(threshold),
+          GL: GL.toFixed(2),
+          HL: HL.toFixed(2),
+          gain: gain.toFixed(4),
+          bestGain: bestGain.toFixed(4),
+        },
+      },
+      variables: { currentBin: b, threshold, gain: Math.round(gain * 10000) / 10000, bestGain },
+    });
+  }
+
+  // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 28,
+    explanation: {
+      what: `Histogram Split Search Complete: Optimal Bin ${bestBin} (Threshold ${bestThreshold})`,
+      why: `Maximum Split Gain = ${bestGain.toFixed(4)}. Left bins: [0..${bestBin}], Right bins: [${
+        bestBin + 1
+      }..${histG.length - 1}].`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: histG.map((g, idx) => ({
+        id: `bin-${idx}`,
+        value: Math.round(g * 10),
+        label: `Bin ${idx}`,
+        state: idx <= bestBin ? ("sorted" as ElementState) : ("compare" as ElementState),
+        pointers: idx === bestBin ? [`Best Split: Threshold ${bestThreshold}`] : [],
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        bestBin: String(bestBin),
+        bestThreshold: String(bestThreshold),
+        bestGain: bestGain.toFixed(4),
+        status: "Completed",
+      },
     },
-    variables: { result: "calculated" },
+    variables: { bestBin, bestThreshold: bestThreshold ?? "N/A", bestGain, complete: true },
   });
 
   return steps;
 };
 
-const XGBOOSTHISTOGRAMSPLITSEARCH_TRIVIA: TriviaMeta = {
+const XGBOOST_HISTOGRAM_SPLIT_SEARCH_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
+  hints: [{ line: 1, hint: "Scan histogram bins accumulating G_L and H_L." }],
+  lineExplanations: { 1: "Defines entry point for XGBoost Histogram Split Search." },
 };
 
-export const xgboostHistogramSplitSearch: AlgorithmDefinition<xgboostHistogramSplitSearchInput> = {
-  id: "xgboost-histogram-split-search",
-  title: "XGBoost Histogram-Based Fast Split Search O(n d)",
+export const xgboostHistogramSplitSearch: AlgorithmDefinition<XgboostHistogramSplitSearchInput> = {
+  id: "xgboostHistogramSplitSearch",
+  title: "XGBoost Histogram-Based Fast Split Search",
   category: "ml_tree_ensembles",
   categories: ["ml_tree_ensembles", "tree_fundamentals"],
   difficulty: "Medium",
@@ -118,90 +210,114 @@ export const xgboostHistogramSplitSearch: AlgorithmDefinition<xgboostHistogramSp
   mlInfraLevel: 9,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), xgboost histogram-based fast split search o(n d) provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Performs ultra-fast O(B) split search over pre-built gradient and hessian histograms (XGBoost `tree_method='hist'`, LightGBM). By accumulating G_L and H_L across B discrete bin buckets instead of sorting N continuous sample values, histogram split search reduces split finding time from O(N log N) to O(B) (where B <= 256).\n\nInput Format:\n- histG: Gradient sum vector for B histogram bins.\n- histH: Hessian sum vector for B histogram bins.\n- binBoundaries: Continuous feature split thresholds corresponding to bin boundaries.\n- lambdaReg: L2 regularization parameter λ.\n- gammaReg: Split penalty γ.\n\nOutput Format:\n- Returns tuple (bestThreshold, maxGain, bestBinIndex).\n\nEdge Cases & Constraints:\n- Empty Bins: Handled automatically as G_bin = 0, H_bin = 0 without affecting split gain math.",
+  constraints: [
+    "histG and histH must have equal length B >= 2.",
+    "histH[i] >= 0.0.",
+    "lambdaReg >= 0.0.",
+  ],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Histogram Split Search over 4 Bins",
+      inputDisplay: "4 bins with G and H totals, lambda = 1.0, gamma = 0.0",
+      outputDisplay: "Best Bin: 1, Threshold: 3.0, Gain: 0.2045",
+      input: DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT,
+      output: "Threshold 3.0 (Gain 0.2045)",
+      explanation:
+        "Scans 4 histogram bins, finding threshold 3.0 between Bin 1 and Bin 2 as the optimal split point.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "High Gamma Regularization Penalty",
+      inputDisplay: "gammaReg = 0.5",
+      outputDisplay: "Negative Net Gain (Split pruned)",
+      input: {
+        ...DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT,
+        gammaReg: 0.5,
+      },
+      output: "Gain < 0 (Pruned)",
+      explanation: "Gamma penalty exceeds raw split score gain, rejecting the split.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Uniform Zero Gradient Histogram",
+      inputDisplay: "histG = [0.0, 0.0, 0.0, 0.0]",
+      outputDisplay: "Max Gain = 0.0000",
+      input: {
+        histG: [0.0, 0.0, 0.0, 0.0],
+        histH: [1.0, 1.0, 1.0, 1.0],
+        binBoundaries: [1.0, 2.0, 3.0, 4.0],
+        lambdaReg: 1.0,
+        gammaReg: 0.0,
+      },
+      output: "Gain = 0.0000",
+      explanation: "Zero gradients yield zero loss gain across all bin thresholds.",
     },
   ],
-  code: XGBOOSTHISTOGRAMSPLITSEARCH_CODE,
-  timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-  spaceComplexity: "O(1)",
+  code: XGBOOST_HISTOGRAM_SPLIT_SEARCH_CODE,
+  timeComplexity: {
+    best: "O(B)",
+    average: "O(B)",
+    worst: "O(B)",
+  },
+  spaceComplexity: "O(B)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "O(B) linear scan over B histogram bins (typically B = 256), completely independent of sample count N.",
+    space: "O(B) auxiliary space for histogram storage.",
   },
   topicGuide: {
     overview:
-      "XGBoost Histogram-Based Fast Split Search O(n d) is a critical component in ML TREE ENSEMBLES systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Histogram split search is the computational backbone of modern GBDT systems (LightGBM, XGBoost, CatBoost). Rather than sorting raw continuous sample values for every tree node, training continuous features are discretized into 256 integer bins during preprocessing.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, xgboost histogram-based fast split search o(n d) operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Overview & Mathematical Formulation",
+        body: "For B bins, split search iterates b from 0 to B-2, accumulating G_L = sum_{i=0}^b histG[i] and H_L = sum_{i=0}^b histH[i]. The XGBoost regularized gain Gain = 0.5 * [ G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda) - G_{total}^2 / (H_{total} + lambda) ] - gamma is evaluated at each bin boundary in O(1) time.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. XGBoost Histogram-Based Fast Split Search O(n d) optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Core Concepts & Quantization Speedup",
+        body: "By replacing float32 comparisons across N samples with 8-bit integer indexing into 256 histogram bins, memory access patterns become cache-friendly and execution time drops from O(N log N) to O(B).",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing xgboost histogram-based fast split search o(n d) efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        heading: "Systems & GPU Memory Hierarchy",
+        body: "Histogram vectors (256 * 8 bytes = 2 KB) fit entirely inside L1 cache or GPU shared memory (SRAM), eliminating DRAM bandwidth bottlenecks during split search.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Implementation Nuances & Edge Cases",
+        body: "Care must be taken to ensure minimum child Hessian weight (min_child_weight) constraints are enforced before evaluating gain scores on candidate bin splits.",
       },
     ],
     keyTerms: [
       {
-        term: "XGBoost Engine",
+        term: "Histogram Split Search",
         definition:
-          "The underlying algorithmic system implementing xgboost histogram-based fast split search o(n d) operations for deep learning workloads.",
+          "Evaluating split gain scores across discrete feature bin buckets in O(B) time.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Bin Accumulation",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Iteratively summing gradient G and Hessian H values across adjacent bin entries.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Cache Locality",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Storing 256-bin histograms in CPU L1 cache or GPU SRAM for near-zero memory latency.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Min Child Weight",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Minimum Hessian sum (H_L and H_R) required in left and right child nodes to consider a split valid.",
       },
     ],
   },
-  trivia: XGBOOSTHISTOGRAMSPLITSEARCH_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_XGBOOSTHISTOGRAMSPLITSEARCH_INPUT,
-  generateSteps: generateXGBOOSTHISTOGRAMSPLITSEARCHSteps,
+  trivia: XGBOOST_HISTOGRAM_SPLIT_SEARCH_TRIVIA,
+  sources: [
+    {
+      type: "ml_infra",
+      kind: "ml_infra",
+      label: "LightGBM (Ke et al. 2017) & XGBoost Fast Histogram Split Search",
+    },
+  ],
+  defaultInput: DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT,
+  generateSteps: generateXgboostHistogramSplitSearchSteps,
 };

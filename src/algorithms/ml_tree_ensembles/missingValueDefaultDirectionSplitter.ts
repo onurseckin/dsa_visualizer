@@ -281,7 +281,7 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
         "A key innovation in XGBoost (Chen & Guestrin KDD 2016) is sparsity-aware split finding. Rather than imputing missing values (with mean or median) prior to training, XGBoost automatically learns a default split direction for missing values at every tree node.",
       sections: [
         {
-          heading: "Core Concept & Dual Gain Evaluation",
+          heading: "Overview & Dual Gain Evaluation",
           body: "The algorithm runs two split evaluation passes: Pass 1 assigns all missing values to the Left child; Pass 2 assigns all missing values to the Right child. The direction yielding the higher regularized gain is saved in the node.",
         },
         {
@@ -291,6 +291,10 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
         {
           heading: "Sparsity Memory Speedups",
           body: "Only non-missing valid entries are sorted and scanned, reducing computation time in sparse datasets (one-hot categorical features or sparse TF-IDF matrices).",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "When all values for a feature are missing (N_valid = 0), the node automatically assigns a zero gain score and selects the default left direction without splitting.",
         },
       ],
       keyTerms: [
@@ -308,6 +312,11 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
           term: "Sparse Data Handling",
           definition:
             "Processing datasets containing high proportions of zeros or missing values without dense memory expansion.",
+        },
+        {
+          term: "Zero-Inertia Imputation",
+          definition:
+            "Technique avoiding manual feature imputation by directly modeling missing value loss gradients in split search.",
         },
       ],
     },

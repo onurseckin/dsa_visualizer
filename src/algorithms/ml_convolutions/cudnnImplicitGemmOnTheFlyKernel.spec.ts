@@ -5,9 +5,9 @@ import {
   generateCudnnImplicitGemmOnTheFlyKernelSteps,
 } from "./cudnnImplicitGemmOnTheFlyKernel";
 
-describe("cudnn-implicit-gemm-on-the-fly-kernel (cuDNN Implicit GEMM On-The-Fly Kernel)", () => {
+describe("cudnnImplicitGemmOnTheFlyKernel (cuDNN Implicit GEMM On-The-Fly Kernel)", () => {
   it("should have correct metadata", () => {
-    expect(cudnnImplicitGemmOnTheFlyKernel.id).toBe("cudnn-implicit-gemm-on-the-fly-kernel");
+    expect(cudnnImplicitGemmOnTheFlyKernel.id).toBe("cudnnImplicitGemmOnTheFlyKernel");
     expect(cudnnImplicitGemmOnTheFlyKernel.isMlInfra).toBe(true);
     expect(cudnnImplicitGemmOnTheFlyKernel.mlInfraLevel).toBe(8);
     expect(cudnnImplicitGemmOnTheFlyKernel.mlInfraCategory).toBe("ml_convolutions");

@@ -285,16 +285,20 @@ export const greedyDecisionTreeBuilder: AlgorithmDefinition<GreedyDecisionTreeBu
       "Greedy decision tree construction (ID3 Quinlan 1986, CART Breiman 1984) builds non-linear decision boundaries by recursively partitioning feature space into axis-aligned hyperplanes. It forms the base weak learner component in Random Forest and GBDT ensembles.",
     sections: [
       {
-        heading: "Core Concept & Top-Down Induction",
+        heading: "Overview & Top-Down Induction",
         body: "At each node, the builder evaluates all feature splits argmax_{j, v} Gain(j, v). Once chosen, dataset is partitioned into left and right child subsets, and recursion proceeds.",
       },
       {
-        heading: "Stopping Criteria & Overfitting",
+        heading: "Stopping Criteria & Regularization",
         body: "Unconstrained decision trees grow until every leaf is 100% pure, causing extreme overfitting. Hyperparameters `maxDepth`, `minSamplesSplit`, and `minSamplesLeaf` restrict tree size.",
       },
       {
         heading: "Axis-Aligned Decision Boundaries",
         body: "Each split node evaluates a single feature scalar comparison X[j] <= v, forming rectangular decision regions in feature space.",
+      },
+      {
+        heading: "Implementation Nuances & Edge Cases",
+        body: "Ties between equal gain split candidates are broken deterministically by selecting the lower feature index. Nodes with identical feature values across all instances become leaf nodes regardless of purity.",
       },
     ],
     keyTerms: [
@@ -310,6 +314,11 @@ export const greedyDecisionTreeBuilder: AlgorithmDefinition<GreedyDecisionTreeBu
         term: "Weak Learner",
         definition:
           "A shallow decision tree with low variance used as a building block in boosting ensembles.",
+      },
+      {
+        term: "Leaf Majority Voting",
+        definition:
+          "Assigning the most frequent class label in a leaf node as its final classification prediction.",
       },
     ],
   },

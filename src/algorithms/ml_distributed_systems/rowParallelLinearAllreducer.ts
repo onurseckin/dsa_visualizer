@@ -6,29 +6,26 @@ export interface rowParallelLinearAllreducerInput {
   target?: number;
 }
 
-export const ROWPARALLELLINEARALLREDUCER_CODE = `
-def rowparallellinearallreducer(ring_ranks, parameter_shards):
+export const ROWPARALLELLINEARALLREDUCER_CODE = `def row_parallel_linear_allreduce(partial_activations, tp_size):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Simulates Tensor Parallel (TP) Row-Parallel Linear layer forward execution.
+    
+    In Megatron-LM row-parallel linear layers, the weight matrix W is split along its rows:
+    Y_i = X_i @ W_i on GPU i.
+    The final layer output requires an All-Reduce sum across all TP ranks: Y = sum(Y_i).
+
+    Args:
+        partial_activations: List of partial output sums computed on each TP rank
+        tp_size: Tensor Parallelism world size
+
+    Returns:
+        Array of reduced output values synchronized across all TP ranks.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    if tp_size <= 1 or not partial_activations:
+        return list(partial_activations)
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
-
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    total_reduced = sum(partial_activations)
+    return [total_reduced] * len(partial_activations)
 `;
 
 export const DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT: rowParallelLinearAllreducerInput = {
@@ -42,7 +39,7 @@ export const generateRowParallelLinearAllreducerSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+    id: `tp-rank-${idx}`,
     value: val,
     state: "default",
   }));
@@ -75,41 +72,49 @@ export const generateRowParallelLinearAllreducerSteps = (
     });
   };
 
+  const tpSize = input.data.length;
   addStep(
     1,
     "Initialize Megatron-LM Row Parallel Linear All-Reduce Engine",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Setting up TP ranks, partial activation vectors Y_i, and All-Reduce sum barriers.",
+    { tp_size: tpSize, target: input.target ?? 0 },
   );
 
+  let accumulatedSum = 0;
   input.data.forEach((val, idx) => {
+    accumulatedSum += val;
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
+        return {
+          ...el,
+          state: isTarget ? ("active" as const) : ("compare" as const),
+          pointers: [`TP_${idx}`],
+        };
+      if (i < idx) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      18,
+      `Process TP Rank ${idx} Partial Result: Y_${idx} = ${val}`,
+      `Accumulating partial activation Y_${idx} into row-parallel linear output sum buffer.`,
+      { idx, val, accumulated_sum: accumulatedSum, isTarget },
       currentElements,
     );
   });
 
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
-    state: "sorted",
+    value: accumulatedSum,
+    state: "sorted" as const,
   }));
 
   addStep(
-    6,
+    19,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
+    `All-Reduce sum complete. Final output activation across all TP ranks = ${accumulatedSum}.`,
+    { completed: true, total_reduced: accumulatedSum },
     finalElements,
   );
 
@@ -117,17 +122,20 @@ export const generateRowParallelLinearAllreducerSteps = (
 };
 
 const ROWPARALLELLINEARALLREDUCER_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "total_reduced = partial_activations[0] * tp_size",
+    "return [x / tp_size for x in partial_activations]",
+    "return partial_activations[::-1]",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 18, hint: "Row-parallel linear layers sum partial GEMM results via All-Reduce." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Megatron-LM Row Parallel Linear All-Reduce Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines function entry point for row_parallel_linear_allreduce.",
+    16: "Checks for single rank (TP=1) where no communication is required.",
+    18: "Sums partial activations across all Tensor Parallel ranks.",
+    19: "Broadcasts reduced sum across all TP ranks.",
   },
 };
 
@@ -135,91 +143,91 @@ export const rowParallelLinearAllreducer: AlgorithmDefinition<rowParallelLinearA
   id: "row-parallel-linear-allreducer",
   title: "Megatron-LM Row Parallel Linear All-Reduce Engine",
   category: "ml_distributed_systems",
-  categories: ["ml_distributed_systems", "graph_traversal"],
+  categories: ["ml_distributed_systems", "ml_tensor_algebra"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 11,
   mlInfraCategory: "ml_distributed_systems",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), megatron-lm row parallel linear all-reduce engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Simulates Megatron-LM Tensor Parallelism (TP) Row-Parallel Linear layer forward execution and All-Reduce communication.\n\nIn Large Language Model (LLM) Transformer architectures, Megatron-LM splits linear projection matrices across $N_{\\text{TP}}$ GPUs to fit massive weight tensors into VRAM and parallelize matrix multiplication:\n\n1. Column-Parallel Linear Layer ($h \\to 4h$):\n   The weight matrix $W$ is split along its columns: $W = [W_1 | W_2 | \\dots | W_k]$. Each rank computes $Y_i = X @ W_i$ independently without inter-GPU communication.\n\n2. Row-Parallel Linear Layer ($4h \\to h$):\n   The weight matrix $W$ is split along its rows: $W = [W_1^T, W_2^T, \\dots, W_k^T]^T$. Input $X$ is split along the hidden dimension into $[X_1 | X_2 | \\dots | X_k]$. Each rank computes local matrix product $Y_i = X_i @ W_i$.\n\n3. All-Reduce Sum Reduction:\n   Because $Y = X @ W = \\sum_{i=1}^{k} (X_i @ W_i) = \\sum Y_i$, an All-Reduce sum operation is performed across the $N_{\\text{TP}}$ ranks to synchronize the output activation tensor $Y$.\n\nBy pairing Column-Parallel and Row-Parallel linear layers in Transformer MLPs and Attention projections, Megatron-LM reduces communication overhead from 4 All-Reduces per Transformer block to just 2 All-Reduces (1 in Attention, 1 in MLP).\n\nInput Format:\n- data: Array of partial output scalar values or tensor magnitudes computed by each TP rank.\n- target: Optional target search value.\n\nOutput Format:\n- Returns synchronized reduced array where each TP rank holds the sum of all partial activations.\n\nEdge Cases & Constraints:\n- Single TP Rank ($N_{\\text{TP}}=1$): Communication is completely skipped.\n- Interconnect Saturation: High TP sizes ($N_{\\text{TP}} > 8$) cross intra-node NVLink bounds and incur heavy inter-node InfiniBand latency penalties.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      title: "4-Rank TP Row-Parallel Reduction",
+      inputDisplay: "partial_activations = [10, 20, 30, 40], target = 30",
+      outputDisplay: "All-Reduced Output = [100, 100, 100, 100]",
+      input: { data: [10, 20, 30, 40], target: 30 },
+      output: "[100, 100, 100, 100]",
+      explanation: "Each TP rank computes partial output Y_i; All-Reduce sums 10+20+30+40 = 100.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
+      title: "5-Rank Tensor Parallel MLP Layer",
+      inputDisplay: "partial_activations = [1, 2, 3, 4, 5], target = 4",
+      outputDisplay: "All-Reduced Output = [15, 15, 15, 15, 15]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      output: "[15, 15, 15, 15, 15]",
+      explanation: "Sums 5 partial activation chunks across TP ranks.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      title: "TP=1 (No Communication)",
+      inputDisplay: "partial_activations = [5], target = 5",
+      outputDisplay: "All-Reduced Output = [5]",
+      input: { data: [5], target: 5 },
+      output: "[5]",
+      explanation: "Single rank execution requires zero communication.",
     },
   ],
   code: ROWPARALLELLINEARALLREDUCER_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time pass across TP rank partial activations for sum reduction.",
+    space: "O(N) memory allocation for the output activation vector.",
   },
   topicGuide: {
     overview:
-      "Megatron-LM Row Parallel Linear All-Reduce Engine is a critical component in ML DISTRIBUTED SYSTEMS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Megatron-LM Row Parallel Linear All-Reduce Engine illustrates the key collective communication step in Tensor Parallelism (TP) for scale-out Large Language Model training and inference (GPT-4, LLaMA-3, Megatron-Deepspeed).",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, megatron-lm row parallel linear all-reduce engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Overview & Megatron Tensor Parallelism",
+        body: "Large transformer models contain linear projections (e.g. MLP gate/up/down projections, Attention QKV/Output projections) whose weight matrices exceed single-GPU memory limits. Megatron-LM partitions matrix multiplication across GPUs along column and row dimensions, requiring minimal collective communication barriers.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Megatron-LM Row Parallel Linear All-Reduce Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Core Concept: Column vs Row Parallelism",
+        body: "In a Transformer MLP block:\n- First Layer (Column Parallel): $H = \\text{GeLU}(X @ W_{\\text{gate}})$. Weights are split column-wise; output is concatenated without communication.\n- Second Layer (Row Parallel): $Y = H @ W_{\\text{down}}$. Input $H$ and weight $W_{\\text{down}}$ are split along the hidden dimension. Each GPU computes partial sum $Y_i = H_i @ W_{\\text{down}, i}$. An All-Reduce sum ($Y = \\sum Y_i$) produces the exact output.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing megatron-lm row parallel linear all-reduce engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        heading: "Systems & Interconnect Bandwidth Impact",
+        body: "Because Row-Parallel linear layers execute an All-Reduce on every forward step, Tensor Parallelism is strictly restricted to ultra-high-bandwidth intra-node NVLink interconnects (900 GB/s on NVIDIA H100 NVSwitch). Running TP across PCIe or inter-node InfiniBand networks introduces severe communication latency bottlenecks that degrade GPU compute utilization.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Implementation Nuances & Kernel Fusion",
+        body: "Modern LLM engines (vLLM, TensorRT-LLM) fuse the All-Reduce operation with residual addition and LayerNorm/RMSNorm kernels. Custom CUDA kernels perform NVLink shared memory direct reads (IPC pointers) to reduce activation memory copies and eliminate PyTorch Python overhead.",
       },
     ],
     keyTerms: [
       {
-        term: "Megatron-LM Engine",
+        term: "Tensor Parallelism (TP)",
         definition:
-          "The underlying algorithmic system implementing megatron-lm row parallel linear all-reduce engine operations for deep learning workloads.",
+          "Intra-layer model parallelism technique that partitions matrix multiplications across multiple GPUs within a single transformer layer.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Row-Parallel Linear",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Linear layer decomposition where weight matrix rows are split across GPUs, producing partial output sums that require an All-Reduce.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Column-Parallel Linear",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Linear layer decomposition where weight matrix columns are split across GPUs, producing column-partitioned outputs without communication.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Megatron-LM",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "NVIDIA's framework for training large language models at scale using 3D Parallelism (Tensor, Pipeline, and Data Parallelism).",
       },
     ],
   },

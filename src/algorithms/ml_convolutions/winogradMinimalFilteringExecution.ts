@@ -2,41 +2,86 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface winogradMinimalFilteringExecutionInput {
-  data: number[];
-  target?: number;
+  image: number[][];
+  kernel: number[][];
+  padding?: number;
 }
 
 export const WINOGRADMINIMALFILTERINGEXECUTION_CODE = `
-def winogradminimalfilteringexecution(image_matrix, conv_kernel, stride=1, padding=0):
+def winograd_minimal_filtering_execution(image, kernel_3x3, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    End-to-End Winograd F(2x2, 3x3) Minimal Filtering Execution Engine.
+    Tiles input image into 4x4 overlapping spatial tiles (stride 2), applies Winograd
+    transformations U = G @ g @ G_T, V = B_T @ d @ B, M = U (*) V, Y = A_T @ M @ A,
+    and stitches output 2x2 tiles into the final feature map.
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    h_in, w_in = len(image), len(image[0])
 
-    h_out = (h_in + 2 * padding - k_h) // stride + 1
-    w_out = (w_in + 2 * padding - k_w) // stride + 1
+    if padding > 0:
+        padded = [[0.0] * (w_in + 2 * padding) for _ in range(h_in + 2 * padding)]
+        for r in range(h_in):
+            for c in range(w_in):
+                padded[r + padding][c + padding] = float(image[r][c])
+        image = padded
+        h_in += 2 * padding
+        w_in += 2 * padding
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    h_out = h_in - 2
+    w_out = w_in - 2
+    output = [[0.0] * w_out for _ in range(h_out)]
 
-    for r in range(h_out):
-        for c in range(w_out):
-            acc_sum = 0
-            for kr in range(k_h):
-                for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+    BT = [[1, 0, -1, 0], [0, 1, 1, 0], [0, -1, 1, 0], [0, 1, 0, -1]]
+    B = [list(x) for x in zip(*BT)]
+    G = [[1, 0, 0], [0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0, 0, 1]]
+    GT = [list(x) for x in zip(*G)]
+    AT = [[1, 1, 1, 0], [0, 1, -1, -1]]
+    A = [list(x) for x in zip(*AT)]
 
-    return feature_map
+    def matmul(M1, M2):
+        r1, c1 = len(M1), len(M1[0])
+        c2 = len(M2[0])
+        return [[sum(M1[i][k] * M2[k][j] for k in range(c1)) for j in range(c2)] for i in range(r1)]
+
+    # Pre-transform 3x3 filter to 4x4 Winograd domain
+    U = matmul(matmul(G, kernel_3x3), GT)
+
+    # Process 4x4 tiles with spatial stride 2
+    for r_tile in range(0, h_out, 2):
+        for c_tile in range(0, w_out, 2):
+            tile = [[0.0] * 4 for _ in range(4)]
+            for tr in range(4):
+                for tc in range(4):
+                    ir = r_tile + tr
+                    ic = c_tile + tc
+                    if ir < h_in and ic < w_in:
+                        tile[tr][tc] = image[ir][ic]
+
+            V = matmul(matmul(BT, tile), B)
+            M = [[U[i][j] * V[i][j] for j in range(4)] for i in range(4)]
+            Y = matmul(matmul(AT, M), A)
+
+            for dy in range(2):
+                for dx in range(2):
+                    if r_tile + dy < h_out and c_tile + dx < w_out:
+                        output[r_tile + dy][c_tile + dx] = Y[dy][dx]
+
+    return output
 `;
 
 export const DEFAULT_WINOGRADMINIMALFILTERINGEXECUTION_INPUT: winogradMinimalFilteringExecutionInput =
   {
-    data: [10, 20, 30, 40, 50],
-    target: 30,
+    image: [
+      [1, 2, 1, 0],
+      [0, 1, 2, 1],
+      [2, 1, 0, 1],
+      [1, 0, 1, 2],
+    ],
+    kernel: [
+      [1, 0, 1],
+      [0, 1, 0],
+      [1, 0, 1],
+    ],
+    padding: 0,
   };
 
 export const generateWinogradMinimalFilteringExecutionSteps = (
@@ -44,8 +89,35 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+
+  const rawImage = input.image;
+  const kernel = input.kernel;
+  const padding = input.padding ?? 0;
+
+  let hIn = rawImage.length;
+  let wIn = rawImage[0].length;
+
+  let image = rawImage;
+  if (padding > 0) {
+    const padded: number[][] = Array.from({ length: hIn + 2 * padding }, () =>
+      Array(wIn + 2 * padding).fill(0),
+    );
+    for (let r = 0; r < hIn; r++) {
+      for (let c = 0; c < wIn; c++) {
+        padded[r + padding][c + padding] = rawImage[r][c];
+      }
+    }
+    image = padded;
+    hIn += 2 * padding;
+    wIn += 2 * padding;
+  }
+
+  const hOut = hIn - 2;
+  const wOut = wIn - 2;
+
+  const flatInput = image.flatMap((r) => r);
+  const elements: ArrayElement[] = flatInput.map((val, idx) => ({
+    id: `img-${idx}`,
     value: val,
     state: "default",
   }));
@@ -55,7 +127,7 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    customState?: Record<string, string>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -63,16 +135,15 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: elements.map((el) => ({ ...el })),
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          imageShape: `${hIn}x${wIn}`,
+          outputShape: `${hOut}x${wOut}`,
+          kernelShape: "3x3",
+          padding: String(padding),
+          ...customState,
         },
       },
       variables,
@@ -81,40 +152,104 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 
   addStep(
     1,
-    "Initialize Winograd F(2x2, 3x3) Execution Engine",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Initialize Winograd F(2x2, 3x3) Minimal Filtering Execution Engine",
+    "Pre-calculating domain matrices and tiling image into overlapping 4x4 spatial patches with stride 2.",
+    { hIn, wIn, hOut, wOut, padding },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const matmul = (M1: number[][], M2: number[][]): number[][] => {
+    const r1 = M1.length;
+    const c1 = M1[0].length;
+    const c2 = M2[0].length;
+    const res: number[][] = Array.from({ length: r1 }, () => Array(c2).fill(0));
+    for (let i = 0; i < r1; i++) {
+      for (let j = 0; j < c2; j++) {
+        let sum = 0;
+        for (let k = 0; k < c1; k++) {
+          sum += M1[i][k] * M2[k][j];
+        }
+        res[i][j] = sum;
+      }
+    }
+    return res;
+  };
 
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
+  const BT = [
+    [1, 0, -1, 0],
+    [0, 1, 1, 0],
+    [0, -1, 1, 0],
+    [0, 1, 0, -1],
+  ];
+  const B = BT[0].map((_, colIdx) => BT.map((row) => row[colIdx]));
+  const G = [
+    [1, 0, 0],
+    [0.5, 0.5, 0.5],
+    [0.5, -0.5, 0.5],
+    [0, 0, 1],
+  ];
+  const GT = G[0].map((_, colIdx) => G.map((row) => row[colIdx]));
+  const AT = [
+    [1, 1, 1, 0],
+    [0, 1, -1, -1],
+  ];
+  const A = AT[0].map((_, colIdx) => AT.map((row) => row[colIdx]));
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  const U = matmul(matmul(G, kernel), GT);
 
   addStep(
-    6,
+    32,
+    "Pre-transform 3x3 Filter Kernel U = G @ g @ G_T",
+    "Converted 3x3 filter weights into offline Winograd domain matrix U.",
+    { uRows: 4, uCols: 4 },
+  );
+
+  const output: number[][] = Array.from({ length: hOut }, () => Array(wOut).fill(0));
+
+  for (let rTile = 0; rTile < hOut; rTile += 2) {
+    for (let cTile = 0; cTile < wOut; cTile += 2) {
+      const tile: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
+      for (let tr = 0; tr < 4; tr++) {
+        for (let tc = 0; tc < 4; tc++) {
+          const ir = rTile + tr;
+          const ic = cTile + tc;
+          if (ir < hIn && ic < wIn) {
+            tile[tr][tc] = image[ir][ic];
+          }
+        }
+      }
+
+      const V = matmul(matmul(BT, tile), B);
+      const M: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          M[i][j] = U[i][j] * V[i][j];
+        }
+      }
+      const Y = matmul(matmul(AT, M), A);
+
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) {
+          if (rTile + dy < hOut && cTile + dx < wOut) {
+            output[rTile + dy][cTile + dx] = Y[dy][dx];
+          }
+        }
+      }
+
+      addStep(
+        42,
+        `Process 4x4 Winograd Tile at origin (${rTile}, ${cTile}) -> Write 2x2 Output Tile`,
+        `Computed Winograd transforms V, M, Y and wrote 2x2 output tile to destination positions.`,
+        { rTile, cTile },
+        { currentTile: `Tile origin (${rTile}, ${cTile})` },
+      );
+    }
+  }
+
+  addStep(
+    54,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    `Successfully processed full image feature map using minimal Winograd F(2x2, 3x3) filtering engine.`,
     { completed: true },
-    finalElements,
   );
 
   return steps;
@@ -123,82 +258,108 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 const WINOGRADMINIMALFILTERINGEXECUTION_TRIVIA: TriviaMeta = {
   skipLines: [1],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "output[r_tile][c_tile] = sum(tile)",
+    "r_tile += 1",
+    "if padding != 0: raise Exception()",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 32,
+      hint: "Filter pre-transformation U is computed once offline before scanning image tiles.",
+    },
+    {
+      line: 42,
+      hint: "Winograd tiles advance with stride 2 because each F(2x2, 3x3) evaluation produces a 2x2 spatial patch.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Winograd F(2x2, 3x3) Execution Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Entry point for Winograd F(2x2, 3x3) minimal filtering execution engine.",
+    32: "Offline filter transformation step.",
+    42: "Tile extraction, Winograd domain computation, and 2x2 output stitching loop.",
+    54: "Returns completed output feature map matrix.",
   },
 };
 
 export const winogradMinimalFilteringExecution: AlgorithmDefinition<winogradMinimalFilteringExecutionInput> =
   {
-    id: "winograd-minimal-filtering-execution",
+    id: "winogradMinimalFilteringExecution",
     title: "Winograd F(2x2, 3x3) Execution Engine",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "arrays_and_hashing"],
+    categories: ["ml_convolutions", "ml_gemm_roofline"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), winograd f(2x2, 3x3) execution engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "Winograd Minimal Filtering Execution Engine provides a complete end-to-end execution pipeline for fast 2D convolution over full image feature maps. By segmenting the input image into 4x4 overlapping tiles with spatial stride 2, the engine applies Winograd F(2x2, 3x3) domain transformations (U = G @ g @ G_T, V = B_T @ d @ B, M = U (*) V, Y = A_T @ M @ A) per tile and reconstructs the output feature map. Pre-transforming filters offline and computing tile transforms online yields a 2.25x FLOP reduction for 3x3 convolutions, making it the preferred algorithm for small-kernel CNN inference in production libraries (cuDNN, TensorRT, MNN).\n\nInput Format:\n- image: 2D array of spatial image pixel activations.\n- kernel: 3x3 2D array representing filter weights.\n- padding: Zero-padding width applied to image borders.\n\nOutput Format:\n- Returns a 2D feature map matrix of shape (H_out, W_out).\n\nEdge Cases & Constraints:\n- Boundary tiling: Tiles extending beyond image boundaries are zero-padded.\n- Tile stride: Spatial tile stride is fixed to 2 for F(2x2, 3x3) to match output tile size.\n- Kernel size restriction: Designed specifically for 3x3 convolution kernels.",
+    constraints: ["1 <= H_in, W_in <= 1024", "kernel shape must be 3x3", "padding >= 0"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
-      },
-      {
-        kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
-      },
-      {
-        kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "4x4 Image with 3x3 Kernel",
+        inputDisplay: "image: 4x4, kernel: 3x3, padding: 0",
+        outputDisplay: "Output: 2x2",
+        input: DEFAULT_WINOGRADMINIMALFILTERINGEXECUTION_INPUT,
+        output: "Feature Map 2x2",
+        explanation:
+          "Processes 4x4 image tile with 3x3 filter using Winograd F(2x2, 3x3) engine to yield 2x2 output.",
       },
     ],
     code: WINOGRADMINIMALFILTERINGEXECUTION_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: {
+      best: "O(H_out * W_out)",
+      average: "O(H_out * W_out)",
+      worst: "O(H_out * W_out)",
+    },
+    spaceComplexity: "O(H_out * W_out)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Requires 16 multiplications per 2x2 output tile (4 multiplications per output pixel vs 9 for direct conv).",
+      space: "Allocates output feature map matrix H_out * W_out.",
     },
     topicGuide: {
       overview:
-        "Winograd convolution multiplies transformed tile matrices to achieve 2.25x speedup.",
+        "Winograd Minimal Filtering Execution Engine tiles large images to execute fast F(2x2, 3x3) Winograd convolutions across full feature maps.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Executes Y = A^T [(G g G^T) (B^T d B)] A fast Winograd convolution.",
+          heading: "Overview",
+          body: "Executing fast convolution across large feature maps requires tiling the input into overlapping spatial sub-grids. Winograd F(2x2, 3x3) steps across the image with tile stride 2, processing each 4x4 patch into a 2x2 output tile.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts",
+          body: "1. Image Tiling: Extracts 4x4 overlapping tiles d with stride 2.\n2. Filter Pre-transform: Pre-calculates U = G @ g @ G_T once per layer.\n3. Tile Transform & Multiplication: Calculates V = B_T @ d @ B, M = U (*) V, Y = A_T @ M @ A.\n4. Feature Map Stitching: Writes 2x2 output tile Y into final feature map tensor.",
+        },
+        {
+          heading: "Systems & Performance Impact",
+          body: "Winograd execution transforms spatial convolutions into batched GEMM operations in the transform domain. In GPU implementations, multiple 4x4 tiles across batch and channel dimensions are grouped into unified cuBLAS GEMMs.",
+        },
+        {
+          heading: "Implementation Nuances",
+          body: "Memory layout order for tile extraction must align with GPU SIMD thread warps to maintain coalesced DRAM reads.",
+        },
+        {
+          heading: "Edge Cases",
+          body: "Image spatial dimensions not evenly divisible by 2, padded image boundaries, and high dynamic range precision loss in deep networks.",
         },
       ],
       keyTerms: [
-        { term: "Winograd GEMM", definition: "Transform-domain fast convolution algorithm." },
+        {
+          term: "Winograd Execution Engine",
+          definition:
+            "End-to-end framework executing fast Winograd convolution across tiled image feature maps.",
+        },
+        {
+          term: "Tile Stride",
+          definition:
+            "Spatial step size (stride 2 for F(2x2,3x3)) between adjacent 4x4 input tiles.",
+        },
+        {
+          term: "Filter Pre-transformation",
+          definition: "Offline pre-computation of filter matrix U before processing image tiles.",
+        },
+        {
+          term: "Feature Map Reconstruction",
+          definition: "Assembling individual 2x2 output tiles into a unified output matrix.",
+        },
       ],
     },
     trivia: WINOGRADMINIMALFILTERINGEXECUTION_TRIVIA,

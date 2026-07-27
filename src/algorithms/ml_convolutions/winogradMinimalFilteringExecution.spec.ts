@@ -5,13 +5,14 @@ import {
   generateWinogradMinimalFilteringExecutionSteps,
 } from "./winogradMinimalFilteringExecution";
 
-describe("winograd-minimal-filtering-execution (Winograd F(2x2, 3x3) Execution Engine)", () => {
+describe("winogradMinimalFilteringExecution", () => {
   it("should have correct metadata", () => {
-    expect(winogradMinimalFilteringExecution.id).toBe("winograd-minimal-filtering-execution");
+    expect(winogradMinimalFilteringExecution.id).toBe("winogradMinimalFilteringExecution");
     expect(winogradMinimalFilteringExecution.isMlInfra).toBe(true);
     expect(winogradMinimalFilteringExecution.mlInfraLevel).toBe(8);
     expect(winogradMinimalFilteringExecution.mlInfraCategory).toBe("ml_convolutions");
     expect(winogradMinimalFilteringExecution.categories).toContain("ml_convolutions");
+    expect(winogradMinimalFilteringExecution.categories).toContain("ml_gemm_roofline");
   });
 
   it("should generate valid algorithm steps", () => {
@@ -19,7 +20,9 @@ describe("winograd-minimal-filtering-execution (Winograd F(2x2, 3x3) Execution E
       DEFAULT_WINOGRADMINIMALFILTERINGEXECUTION_INPUT,
     );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Winograd F(2x2, 3x3) Execution Engine");
+    expect(steps[0].explanation.what).toContain(
+      "Winograd F(2x2, 3x3) Minimal Filtering Execution Engine",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

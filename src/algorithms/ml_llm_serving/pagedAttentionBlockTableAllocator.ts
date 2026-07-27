@@ -6,29 +6,23 @@ export interface pagedAttentionBlockTableAllocatorInput {
   block_size?: number;
 }
 
-export const PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE = `
-def pagedattentionblocktableallocator(ring_ranks, parameter_shards):
+export const PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE = `def paged_attention_block_table_allocator(token_chunks: list[int], block_size: int = 4) -> list[int]:
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Dynamically allocates physical GPU memory blocks (pages) for incoming sequence token chunks,
+    mapping logical token block indices to physical block table entries.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    block_table = []
+    current_tokens = 0
+    next_physical_block = 0
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    for chunk_idx, tokens in enumerate(token_chunks):
+        for _ in range(tokens):
+            if current_tokens % block_size == 0:
+                block_table.append(next_physical_block)
+                next_physical_block += 1
+            current_tokens += 1
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    return block_table
 `;
 
 export const DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT: pagedAttentionBlockTableAllocatorInput =
@@ -44,8 +38,6 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
   let stepIndex = 0;
 
   const blockSize = input.block_size ?? 4;
-
-  // We'll visualize the physical blocks array.
   const blocks: ArrayElement[] = [];
 
   const addStep = (
@@ -69,6 +61,7 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
       auxiliaryState: {
         customState: {
           token_chunks: JSON.stringify(input.token_chunks),
+          block_size: String(blockSize),
         },
       },
       variables,
@@ -79,9 +72,9 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
   let nextPhysicalBlock = 0;
 
   addStep(
-    4,
+    6,
     "Initialize PagedAttention Allocator",
-    "Set up empty block table and counters.",
+    "Set up empty physical block table and token counters for dynamic memory mapping.",
     { current_tokens: currentTokens, next_physical_block: nextPhysicalBlock },
     [...blocks],
   );
@@ -90,9 +83,9 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
     const tokensToAdd = input.token_chunks[i];
 
     addStep(
-      8,
-      "Process chunk " + i + " with " + tokensToAdd + " tokens",
-      "Simulate continuous batching token generation phase.",
+      10,
+      `Process chunk ${i} with ${tokensToAdd} tokens`,
+      "Simulate continuous batching token generation iteration.",
       { tokens_to_add: tokensToAdd, current_tokens: currentTokens },
       [...blocks],
     );
@@ -100,15 +93,15 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
     for (let t = 0; t < tokensToAdd; t++) {
       if (currentTokens % blockSize === 0) {
         blocks.push({
-          id: "block-" + nextPhysicalBlock,
-          value: "Block " + nextPhysicalBlock + " (1/" + blockSize + ")",
+          id: `block-${nextPhysicalBlock}`,
+          value: `Block ${nextPhysicalBlock} (1/${blockSize})`,
           state: "active",
         });
 
         addStep(
-          11,
+          12,
           "Allocate new physical block",
-          "Current block is full or uninitialized. Allocating a new non-contiguous physical block.",
+          "Current page boundary crossed. Allocating a new non-contiguous physical memory block from pool.",
           { current_tokens: currentTokens, next_physical_block: nextPhysicalBlock },
           [...blocks],
         );
@@ -118,13 +111,13 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
         const tokensInBlock = (currentTokens % blockSize) + 1;
         blocks[blockIdx] = {
           ...blocks[blockIdx],
-          value: "Block " + blockIdx + " (" + tokensInBlock + "/" + blockSize + ")",
+          value: `Block ${blockIdx} (${tokensInBlock}/${blockSize})`,
           state: "compare",
         };
         addStep(
-          14,
+          15,
           "Write token to existing block",
-          "Plenty of space left in the current block, preventing internal fragmentation.",
+          "Token fits into currently allocated active physical block without triggering allocation.",
           { current_tokens: currentTokens, next_physical_block: nextPhysicalBlock },
           [...blocks],
         );
@@ -135,9 +128,9 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
 
   const finalBlocks = blocks.map((b) => ({ ...b, state: "sorted" as const }));
   addStep(
-    16,
+    17,
     "Sequence Generation Complete",
-    "Returns the block table that maps logical tokens to physical blocks.",
+    "Returns the block table that maps logical sequence token blocks to physical GPU memory blocks.",
     { total_tokens: currentTokens },
     finalBlocks,
   );
@@ -146,15 +139,15 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
 };
 
 const PAGEDATTENTIONBLOCKTABLEALLOCATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
+  skipLines: [1, 2, 3, 4, 5],
   distractors: ["if current_tokens % block_size != 0:", "allocated_blocks.append(current_tokens)"],
-  hints: [{ line: 10, hint: "Check if the current token fills a multiple of the block size." }],
+  hints: [{ line: 12, hint: "Check if the current token fills a multiple of the block size." }],
   lineExplanations: {
-    4: "Initialize block table and token counter.",
-    8: "Iterate over chunks of tokens generated sequentially.",
-    11: "Allocate a new block dynamically when a block boundary is crossed.",
-    14: "Increment the sequence length.",
-    16: "Return the block table.",
+    6: "Initialize block table and token counter.",
+    10: "Iterate over chunks of tokens generated sequentially.",
+    12: "Allocate a new block dynamically when a block boundary is crossed.",
+    15: "Increment the sequence length.",
+    17: "Return the block table mapping.",
   },
 };
 
@@ -163,14 +156,18 @@ export const pagedAttentionBlockTableAllocator: AlgorithmDefinition<pagedAttenti
     id: "paged-attention-block-table-allocator",
     title: "PagedAttention Block Table Allocator",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), pagedattention block table allocator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= token_chunks.length <= 100", "1 <= token_chunks[i] <= 100"],
+      "In modern high-performance LLM serving engines (such as vLLM, TGI, and TensorRT-LLM), Key-Value (KV) cache memory grows dynamically as tokens are generated autoregressively. Traditional static contiguous allocation reserves memory for maximum sequence lengths (`max_seq_len`), incurring up to 60-80% VRAM memory fragmentation. PagedAttention solves this by applying operating system virtual memory concepts: partitioning the KV cache into fixed-size physical blocks (pages) and allocating them dynamically on-demand via a logical-to-physical Block Table.\n\nInput Format:\n- `token_chunks`: Array of positive integers, where each element represents the count of new tokens generated or added to the sequence per batch iteration.\n- `block_size`: Number of tokens stored per physical memory block (default = 4).\n\nOutput Format:\n- Returns an array `block_table` representing physical block IDs allocated to the sequence in logical order.\n\nEdge Cases & Constraints:\n- Empty token chunk lists (`[]`) return an empty block table `[]`.\n- Tokens filling existing partial blocks update page state without triggering new physical allocations.\n- Block size selection balances GPU hardware kernel launch overhead versus internal page fragmentation.",
+    constraints: [
+      "1 <= token_chunks.length <= 100",
+      "1 <= token_chunks[i] <= 100",
+      "1 <= block_size <= 64",
+    ],
     examples: [
       {
         kind: "basic",
@@ -180,7 +177,7 @@ export const pagedAttentionBlockTableAllocator: AlgorithmDefinition<pagedAttenti
         input: { token_chunks: [3, 2, 4], block_size: 4 },
         output: "[0, 1, 2]",
         explanation:
-          "3 tokens fit in Block 0. Next 2 tokens fill Block 0 and start Block 1. Last 4 tokens fill Block 1 and use Block 2.",
+          "First 3 tokens fit into Block 0. The next 2 tokens fill Block 0 and allocate Block 1. The final 4 tokens fill Block 1 and allocate Block 2.",
       },
       {
         kind: "complex",
@@ -189,59 +186,80 @@ export const pagedAttentionBlockTableAllocator: AlgorithmDefinition<pagedAttenti
         outputDisplay: "[0, 1, 2]",
         input: { token_chunks: [5, 1], block_size: 2 },
         output: "[0, 1, 2]",
-        explanation: "A block size of 2 forces more frequent allocations.",
+        explanation:
+          "A block size of 2 forces page allocation every 2 tokens, creating 3 blocks total for 6 tokens.",
       },
       {
         kind: "negative",
-        title: "Zero Added",
+        title: "Empty Input",
         inputDisplay: "chunks = [], block_size = 4",
         outputDisplay: "[]",
         input: { token_chunks: [], block_size: 4 },
         output: "[]",
-        explanation: "No tokens added, no blocks allocated.",
+        explanation: "No tokens processed; zero blocks allocated.",
       },
     ],
     code: PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE,
     timeComplexity: { best: "O(T)", average: "O(T)", worst: "O(T)" },
     spaceComplexity: "O(T/B)",
     complexityAnalysis: {
-      time: "O(T) where T is the total number of tokens added. Each token requires O(1) allocation logic.",
+      time: "O(T) where T is total tokens generated across all iterations. Each token requires O(1) page boundary lookup.",
       space:
-        "O(T/B) where B is the block size. The block table grows relative to the number of blocks.",
+        "O(T/B) memory where B is block size, storing physical block pointers proportional to total required pages.",
     },
     topicGuide: {
       overview:
-        "PagedAttention manages KV cache memory using concepts from OS virtual memory. It allocates fixed-size physical blocks (pages) to sequences dynamically.",
+        "PagedAttention replaces monolithic contiguous KV cache tensors with virtual memory paging. It dynamically allocates fixed-size physical memory pages to sequences as tokens are generated, keeping track of page locations using a per-sequence Block Table.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Traditional KV cache allocation requires contiguous memory for a sequence's maximum length, leading to severe fragmentation. PagedAttention allocates blocks on demand, maintaining a block table to map logical tokens to physical memory.",
+          heading: "1. Overview & Theoretical Foundations",
+          body: "Autoregressive LLM generation requires storing computed Keys and Values for all past tokens to prevent redundant attention computation. Traditional frameworks pre-allocate a contiguous memory tensor sized for `max_seq_len` for every sequence. Because generation lengths are unpredictable, this causes severe external memory fragmentation (unallocated space reserved for sequences that terminate early) and internal fragmentation (unused space inside oversized allocations). PagedAttention eliminates these inefficiencies by introducing virtual memory paging to GPU VRAM.",
         },
         {
-          heading: "Systems Impact",
-          body: "Virtually eliminates internal and external memory fragmentation in LLM serving. Enables memory sharing across beams in beam search, drastically increasing batch sizes and throughput.",
+          heading: "2. Core Concepts & Algorithmic Design",
+          body: "The PagedAttention allocator manages a physical block pool of GPU memory pages (e.g., each block storing KV tensors for 16 tokens). Each active sequence maintains a dynamic Block Table—an array mapping logical token block indices (0, 1, 2...) to non-contiguous physical block IDs (e.g., 42, 7, 108). When a sequence requires a new token, the allocator checks if the current physical block has space available. If full, it requests a new physical block from the global free pool and appends the block ID to the sequence's Block Table.",
+        },
+        {
+          heading: "3. Systems & Memory Bandwidth Impact",
+          body: "By allowing physical KV cache blocks to reside anywhere in non-contiguous VRAM, PagedAttention reduces memory waste from >60% down to under 4% (limited only to internal fragmentation in the very last block of a sequence). This dramatic memory saving allows serving engines to increase batch sizes by 2x-4x on identical GPU hardware, leading to massive throughput improvements in high-concurrency production deployments.",
+        },
+        {
+          heading: "4. Implementation Nuances & Edge Cases",
+          body: "Key implementation considerations include selecting optimal block sizes: smaller blocks (e.g., size 8) minimize internal fragmentation but increase block table overhead and CUDA kernel launch latency; larger blocks (e.g., size 32) improve Tensor Core vectorization (`LDG.128`) but increase memory waste for short sequences. Furthermore, during beam search or parallel decoding, multiple block tables can point to the exact same physical block IDs with reference counting (Copy-on-Write).",
         },
       ],
       keyTerms: [
         {
           term: "Block Table",
           definition:
-            "A mapping from a sequence's logical token blocks to physical GPU memory blocks.",
+            "A dynamic data structure mapping sequence logical token blocks to physical GPU memory blocks.",
         },
         {
           term: "KV Cache",
           definition:
-            "Cached Keys and Values of previously computed tokens in autoregressive models.",
+            "Cached Key and Value tensor representations of past sequence tokens used in multi-head attention.",
         },
         {
-          term: "Fragmentation",
+          term: "Virtual Memory Paging",
           definition:
-            "Wasted memory space. External fragmentation happens when free blocks are scattered; internal fragmentation happens when allocated sizes exceed actual usage.",
+            "An abstraction technique partitioning physical memory into fixed-size pages to prevent fragmentation.",
+        },
+        {
+          term: "Internal Fragmentation",
+          definition:
+            "Unused memory remaining inside an allocated physical block when total tokens are not a multiple of block size.",
         },
       ],
     },
     trivia: PAGEDATTENTIONBLOCKTABLEALLOCATOR_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label:
+          "vLLM: Efficient Memory Management for Large Language Model Serving (Kwon et al., SOSP 2023)",
+      },
+    ],
     defaultInput: DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT,
     generateSteps: generatePagedAttentionBlockTableAllocatorSteps,
   };

@@ -209,7 +209,7 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   categories: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "Finds the minimum number of vertex-disjoint paths required to cover all vertices in a Directed Acyclic Graph (DAG) using Maximum Bipartite Matching.",
+    "Finds the minimum number of vertex-disjoint paths needed to cover all vertices in a Directed Acyclic Graph (DAG) using Maximum Bipartite Matching.\n\nGiven a Directed Acyclic Graph (DAG) with N vertices and M directed edges, a vertex-disjoint path cover is a set of paths such that every vertex in the graph belongs to exactly one path. By Gallai's Identity, finding the minimum number of paths is equivalent to constructing a bipartite graph by splitting each vertex u into u_out and u_in, computing the Maximum Bipartite Matching size M*, and evaluating N - M*.\n\n### Input Parameters\n- numNodes (number): The total count of vertices in the DAG (0 to N-1).\n- edges (list[DagEdge]): Directed edges {from, to} defining the DAG structure.\n\n### Output\n- number: The minimum number of vertex-disjoint paths required to cover all vertices.\n\n### Edge Cases & Constraints\n- Graph must be a DAG (no directed cycles).\n- Isolated vertices (degree 0) each require an independent path of length 0.\n- Entire graph as a single linear chain requires 1 path.\n- Dilworth's theorem relates path covers to maximal antichains in partially ordered sets.",
   constraints: ["1 <= V <= 10", "0 <= E <= 20"],
   examples: [
     {
@@ -262,11 +262,54 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   },
   topicGuide: {
     overview:
-      "By Gallai's Theorem, minimum path cover in a DAG equals V minus maximum bipartite matching in the split vertex graph.",
+      "Minimum Path Cover in a Directed Acyclic Graph (DAG) finds the minimum number of vertex-disjoint paths required to visit every vertex in the graph. By Gallai's Theorem, this combinatorial optimization problem reduces directly to finding the Maximum Bipartite Matching in a split-vertex bipartite graph.",
     sections: [
       {
-        heading: "Bipartite Transformation",
-        body: "Splitting each vertex u into out-node u_out and in-node u_in transforms path cover into maximum bipartite matching.",
+        heading: "Bipartite Graph Reduction & Vertex Splitting",
+        body: "To transform path covering into bipartite matching, each vertex u in the original DAG is split into two vertices in a new bipartite graph: an output vertex u_out on the left side and an input vertex u_in on the right side. Every directed edge u -> v in the original DAG becomes a bipartite edge from u_out to v_in.",
+      },
+      {
+        heading: "Gallai's Identity & Mathematical Proof",
+        body: "In a DAG, each matched edge in the bipartite graph corresponds to joining two path segments at a vertex. Initially, N isolated paths cover the N vertices. Each edge added to a valid path cover reduces the total path count by 1. Since paths must be vertex-disjoint, no vertex can have in-degree > 1 or out-degree > 1 in the path cover, matching the exact structural constraint of bipartite matching. Thus, Minimum Path Cover = N - Maximum Bipartite Matching Size.",
+      },
+      {
+        heading: "Dilworth's Theorem & General Path Covers",
+        body: "Dilworth's theorem establishes a famous duality in order theory: in any finite partially ordered set (POSet represented by a DAG), the size of the minimum general (non-disjoint) path cover equals the size of the maximum antichain (a set of mutually incomparable elements). For vertex-disjoint path covers on transitive DAGs, Dilworth's theorem directly applies.",
+      },
+      {
+        heading: "Practical Systems Applications",
+        body: "Minimum Path Cover algorithms schedule dependent tasks across parallel processors, optimize compiler instruction pipelines, plan robotic movement routes through DAG checkpoints, and analyze workflow concurrency in data engineering pipelines.",
+      },
+      {
+        heading: "Implementation Nuances & Edge Cases",
+        body: "Using DFS-based augmenting paths (Kuhn's algorithm) or Hopcroft-Karp on the split bipartite graph yields O(V * E) or O(sqrt(V) * E) runtime. Graph connectivity edge cases include isolated nodes (each contributing 1 to path count) and complete linear chains (yielding matching size N-1 and path count 1).",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Minimum Path Cover",
+        definition:
+          "The smallest set of vertex-disjoint directed paths needed to visit all vertices of a DAG.",
+      },
+      {
+        term: "Gallai's Identity",
+        definition:
+          "Mathematical identity stating that Minimum Path Cover equals N minus Maximum Bipartite Matching size.",
+      },
+      {
+        term: "Vertex Splitting",
+        definition:
+          "Transformation mapping each DAG node u into dual nodes u_out and u_in to formulate bipartite matching.",
+      },
+      {
+        term: "Dilworth's Theorem",
+        definition:
+          "Theorem relating minimum path cover size to maximum antichain size in partially ordered sets.",
+      },
+      {
+        term: "Augmenting Path Matching",
+        definition:
+          "Algorithmic technique for finding maximum bipartite matching via alternating DFS/BFS path extensions.",
       },
     ],
   },
