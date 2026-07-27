@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="h-16 px-6 bg-[#0c0c0e]/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-6 shrink-0">
+    <header className="h-18 px-8 py-4 bg-[#0c0c0e]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-6 shrink-0">
       <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
         <IconButton
           icon={<Network className="w-[18px] h-[18px]" />}

@@ -46,7 +46,7 @@ function TriviaPage() {
   return (
     <main
       aria-label="Code trivia drill"
-      className="px-4 md:px-8 py-6 w-full max-w-7xl mx-auto flex flex-col flex-1 gap-6 min-h-0"
+      className="max-w-7xl px-6 md:px-8 py-8 mx-auto flex flex-col flex-1 gap-8 min-h-0 w-full overflow-y-auto"
     >
       {screen === "home" ? (
         <TriviaHomeView
@@ -69,7 +69,6 @@ function TriviaPage() {
             coverage={coverage}
             isDeckEmpty={isDeckEmpty}
             deckLineCounts={deckLineCounts}
-            layout={layout}
             settingsPanel={settingsPanel}
             deckBuilderPanel={deckBuilderPanel}
             onStartDrilling={handleStartDrilling}
