@@ -12,7 +12,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     difficulty: "Easy",
     prerequisites: [],
     x: 840,
-    y: 70,
+    y: 80,
     algorithmCount: 15,
     questions: [
       {
@@ -160,8 +160,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "foundations",
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
-    x: 320,
-    y: 240,
+    x: 300,
+    y: 270,
     algorithmCount: 17,
     questions: [
       {
@@ -316,7 +316,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     difficulty: "Medium",
     prerequisites: ["ml_tensor_algebra"],
     x: 840,
-    y: 240,
+    y: 270,
     algorithmCount: 16,
     questions: [
       {
@@ -471,8 +471,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "core-math",
     difficulty: "Medium",
     prerequisites: ["ml_gemm_roofline"],
-    x: 1360,
-    y: 240,
+    x: 1380,
+    y: 270,
     algorithmCount: 15,
     questions: [
       {
@@ -610,8 +610,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "intermediate-systems",
     difficulty: "Hard",
     prerequisites: ["ml_precision_quantization"],
-    x: 1440,
-    y: 440,
+    x: 1460,
+    y: 460,
     algorithmCount: 16,
     questions: [
       {
@@ -770,7 +770,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     difficulty: "Medium",
     prerequisites: ["ml_autograd_dags"],
     x: 1040,
-    y: 440,
+    y: 460,
     algorithmCount: 16,
     questions: [
       {
@@ -913,7 +913,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline", "ml_autograd_dags"],
     x: 640,
-    y: 440,
+    y: 460,
     algorithmCount: 0,
     questions: [],
   },
@@ -926,8 +926,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_gemm_roofline"],
-    x: 240,
-    y: 440,
+    x: 220,
+    y: 460,
     algorithmCount: 16,
     questions: [
       {
@@ -1076,7 +1076,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Medium",
     prerequisites: ["ml_precision_quantization"],
-    x: 440,
+    x: 740,
     y: 650,
     algorithmCount: 15,
     questions: [
@@ -1216,7 +1216,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "advanced-kernels",
     difficulty: "Hard",
     prerequisites: ["ml_attention_geometry"],
-    x: 1240,
+    x: 1260,
     y: 650,
     algorithmCount: 16,
     questions: [
@@ -1367,8 +1367,8 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     family: "distributed-systems",
     difficulty: "Hard",
     prerequisites: ["ml_hardware_kernels"],
-    x: 400,
-    y: 880,
+    x: 440,
+    y: 840,
     algorithmCount: 16,
     questions: [
       {
@@ -1520,9 +1520,9 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
       "vLLM PagedAttention virtual memory block allocation, continuous batching iteration scheduling, and speculative decoding.",
     family: "llm-serving",
     difficulty: "Hard",
-    prerequisites: ["ml_hardware_kernels", "ml_distributed_systems"],
-    x: 450,
-    y: 860,
+    prerequisites: ["ml_hardware_kernels"],
+    x: 1240,
+    y: 840,
     algorithmCount: 16,
     questions: [
       {
@@ -1673,7 +1673,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
       "ONNX operator fusion, TensorRT engine optimization, Apache TVM Relay graph lowering, and XLA HLO cluster fusion.",
     family: "distributed-systems",
     difficulty: "Hard",
-    prerequisites: ["ml_hardware_kernels"],
+    prerequisites: ["ml_convolutions"],
     x: 220,
     y: 650,
     algorithmCount: 4,
