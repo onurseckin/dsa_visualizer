@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { kvCacheStepAppend, DEFAULT_KVCACHESTEPAPPEND_INPUT, generateKvCacheStepAppendSteps } from "./kvCacheStepAppend";
+import {
+  kvCacheStepAppend,
+  DEFAULT_KVCACHESTEPAPPEND_INPUT,
+  generateKvCacheStepAppendSteps,
+} from "./kvCacheStepAppend";
 
 describe("kv-cache-step-append (Autoregressive KV-Cache Step Append)", () => {
   it("should have correct metadata", () => {

@@ -34,7 +34,7 @@ export const DEFAULT_ARRAY_MATRIX_TRAVERSAL_INPUT: ArrayMatrixTraversalInput = {
 };
 
 export const generateArrayMatrixTraversalSteps = (
-  input: ArrayMatrixTraversalInput
+  input: ArrayMatrixTraversalInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -46,7 +46,7 @@ export const generateArrayMatrixTraversalSteps = (
   const buildGridSnapshot = (
     activeR: number | null,
     activeC: number | null,
-    visitedSet: Set<string>
+    visitedSet: Set<string>,
   ): GridCellNode[][] => {
     return matrix.map((rowArr, r) =>
       rowArr.map((val, c) => {
@@ -60,7 +60,7 @@ export const generateArrayMatrixTraversalSteps = (
           isVisited: isVis,
           state: isAct ? "active" : isVis ? "visited" : "default",
         };
-      })
+      }),
     );
   };
 
@@ -72,7 +72,7 @@ export const generateArrayMatrixTraversalSteps = (
     activeC: number | null,
     visitedSet: Set<string>,
     resultAcc: number[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -106,7 +106,7 @@ export const generateArrayMatrixTraversalSteps = (
       null,
       visited,
       result,
-      { rows, cols, valid: false }
+      { rows, cols, valid: false },
     );
     return steps;
   }
@@ -119,7 +119,7 @@ export const generateArrayMatrixTraversalSteps = (
     null,
     visited,
     result,
-    { rows, cols, order, count: 0 }
+    { rows, cols, order, count: 0 },
   );
 
   if (order === "row-major") {
@@ -138,7 +138,7 @@ export const generateArrayMatrixTraversalSteps = (
           c,
           new Set(visited),
           [...result],
-          { r, c, val, offset, count: result.length }
+          { r, c, val, offset, count: result.length },
         );
       }
     }
@@ -158,7 +158,7 @@ export const generateArrayMatrixTraversalSteps = (
           c,
           new Set(visited),
           [...result],
-          { r, c, val, offset, count: result.length }
+          { r, c, val, offset, count: result.length },
         );
       }
     }
@@ -172,7 +172,7 @@ export const generateArrayMatrixTraversalSteps = (
     null,
     new Set(visited),
     [...result],
-    { total: result.length, complete: true }
+    { total: result.length, complete: true },
   );
 
   return steps;
@@ -184,11 +184,7 @@ export const ARRAY_MATRIX_TRAVERSAL_TRIVIA: TriviaMeta = {
     { line: 9, hint: "Check outer row loop for row-major order" },
     { line: 14, hint: "Outer column loop drives column-major order" },
   ],
-  distractors: [
-    "for r in range(cols):",
-    "result.append(matrix[c][r])",
-    "offset = r + c * cols",
-  ],
+  distractors: ["for r in range(cols):", "result.append(matrix[c][r])", "offset = r + c * cols"],
 };
 
 export const arrayMatrixTraversal: AlgorithmDefinition<ArrayMatrixTraversalInput> = {
@@ -266,9 +262,19 @@ export const arrayMatrixTraversal: AlgorithmDefinition<ArrayMatrixTraversalInput
       },
     ],
     keyTerms: [
-      { term: "Row-Major", definition: "Memory layout where rows are stored sequentially in memory." },
-      { term: "Column-Major", definition: "Memory layout where columns are stored sequentially in memory." },
-      { term: "Stride", definition: "The step size in memory elements required to move to the next item along a dimension." },
+      {
+        term: "Row-Major",
+        definition: "Memory layout where rows are stored sequentially in memory.",
+      },
+      {
+        term: "Column-Major",
+        definition: "Memory layout where columns are stored sequentially in memory.",
+      },
+      {
+        term: "Stride",
+        definition:
+          "The step size in memory elements required to move to the next item along a dimension.",
+      },
     ],
   },
   trivia: ARRAY_MATRIX_TRAVERSAL_TRIVIA,

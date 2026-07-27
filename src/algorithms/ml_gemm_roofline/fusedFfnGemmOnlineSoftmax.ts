@@ -6,7 +6,8 @@ export interface fusedFfnGemmOnlineSoftmaxInput {
   target?: number;
 }
 
-export const FUSEDFFNGEMMONLINESOFTMAX_CODE = "def fused_ffn_gemm_online_softmax(input_data: list) -> list:\n    # Fused FFN GEMM & Online Softmax Kernel (Hard)\n    # Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FUSEDFFNGEMMONLINESOFTMAX_CODE =
+  "def fused_ffn_gemm_online_softmax(input_data: list) -> list:\n    # Fused FFN GEMM & Online Softmax Kernel (Hard)\n    # Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT: fusedFfnGemmOnlineSoftmaxInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT: fusedFfnGemmOnlineSoftmaxI
 };
 
 export const generateFusedFfnGemmOnlineSoftmaxSteps = (
-  input: fusedFfnGemmOnlineSoftmaxInput
+  input: fusedFfnGemmOnlineSoftmaxInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     1,
     "Initialize Fused FFN GEMM & Online Softmax Kernel",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
 
 const FUSEDFFNGEMMONLINESOFTMAX_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Fused FFN GEMM & Online Softmax Kernel.",
@@ -106,8 +112,8 @@ const FUSEDFFNGEMMONLINESOFTMAX_TRIVIA: TriviaMeta = {
 export const fusedFfnGemmOnlineSoftmax: AlgorithmDefinition<fusedFfnGemmOnlineSoftmaxInput> = {
   id: "fused-ffn-gemm-online-softmax",
   title: "Fused FFN GEMM & Online Softmax Kernel",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,21 @@ export const fusedFfnGemmOnlineSoftmax: AlgorithmDefinition<fusedFfnGemmOnlineSo
   topicGuide: {
     overview: "Kernel fusion combines MatMul and activation functions inside SRAM.",
     sections: [
-      { heading: "Core Concept", body: "Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Fuses Feed-Forward Network GEMM with online softmax in SRAM without HBM writes.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Kernel Fusion","definition":"Combining multiple tensor ops into a single GPU kernel pass."}],
+    keyTerms: [
+      {
+        term: "Kernel Fusion",
+        definition: "Combining multiple tensor ops into a single GPU kernel pass.",
+      },
+    ],
   },
   trivia: FUSEDFFNGEMMONLINESOFTMAX_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

@@ -30,7 +30,9 @@ describe("HamiltonianPathDp Render Spec", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Hamiltonian Path & Circuit/i);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /Hamiltonian Path & Circuit/i,
+    );
   });
 
   it("renders graph canvas and auxiliary panel", () => {

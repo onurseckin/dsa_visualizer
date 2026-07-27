@@ -22,7 +22,12 @@ export {
   mlInfraFamilyFillHover,
   mlInfraFamilyLabel,
 } from "./mlInfraGraphData";
-export type { MLInfraNode, MLInfraFamily, MLInfraFamilyId, MLInfraQuestionItem } from "./mlInfraGraphData";
+export type {
+  MLInfraNode,
+  MLInfraFamily,
+  MLInfraFamilyId,
+  MLInfraQuestionItem,
+} from "./mlInfraGraphData";
 
 export interface MLInfraKnowledgeGraphProps {
   onSelectCategoryFolder?: (folder: string) => void;
@@ -301,9 +306,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                     strokeWidth={strokeWidth}
                     strokeDasharray={isHighlighted ? "none" : "5 5"}
                     markerEnd={
-                      isHighlighted
-                        ? "url(#ml-arrow-active)"
-                        : `url(#ml-arrow-${node.family})`
+                      isHighlighted ? "url(#ml-arrow-active)" : `url(#ml-arrow-${node.family})`
                     }
                     style={{
                       opacity: strokeOpacity,

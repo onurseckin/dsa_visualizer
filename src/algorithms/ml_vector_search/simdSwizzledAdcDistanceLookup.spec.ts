@@ -11,7 +11,9 @@ describe("simdSwizzledAdcDistanceLookup", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = simdSwizzledAdcDistanceLookup.generateSteps(simdSwizzledAdcDistanceLookup.defaultInput);
+    const steps = simdSwizzledAdcDistanceLookup.generateSteps(
+      simdSwizzledAdcDistanceLookup.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

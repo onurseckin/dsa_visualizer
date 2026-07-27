@@ -6,7 +6,8 @@ export interface prefixToPostfixConversionInput {
   target?: number;
 }
 
-export const PREFIXTOPOSTFIXCONVERSION_CODE = "def prefix_to_postfix_conversion(input_data: list) -> list:\n    # Prefix to Postfix Expression Converter (Easy)\n    # Transforms prefix expression syntax trees to postfix format.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const PREFIXTOPOSTFIXCONVERSION_CODE =
+  "def prefix_to_postfix_conversion(input_data: list) -> list:\n    # Prefix to Postfix Expression Converter (Easy)\n    # Transforms prefix expression syntax trees to postfix format.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_PREFIXTOPOSTFIXCONVERSION_INPUT: prefixToPostfixConversionInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_PREFIXTOPOSTFIXCONVERSION_INPUT: prefixToPostfixConversionI
 };
 
 export const generatePrefixToPostfixConversionSteps = (
-  input: prefixToPostfixConversionInput
+  input: prefixToPostfixConversionInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generatePrefixToPostfixConversionSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generatePrefixToPostfixConversionSteps = (
     1,
     "Initialize Prefix to Postfix Expression Converter",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generatePrefixToPostfixConversionSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generatePrefixToPostfixConversionSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generatePrefixToPostfixConversionSteps = (
 
 const PREFIXTOPOSTFIXCONVERSION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Prefix to Postfix Expression Converter.",
@@ -106,8 +112,8 @@ const PREFIXTOPOSTFIXCONVERSION_TRIVIA: TriviaMeta = {
 export const prefixToPostfixConversion: AlgorithmDefinition<prefixToPostfixConversionInput> = {
   id: "prefix-to-postfix-conversion",
   title: "Prefix to Postfix Expression Converter",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","stack_and_queue"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "stack_and_queue"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,16 @@ export const prefixToPostfixConversion: AlgorithmDefinition<prefixToPostfixConve
   topicGuide: {
     overview: "Expression tree conversions model compiler IR lowering.",
     sections: [
-      { heading: "Core Concept", body: "Transforms prefix expression syntax trees to postfix format." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Transforms prefix expression syntax trees to postfix format.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Postfix","definition":"Operators follow operands."}],
+    keyTerms: [{ term: "Postfix", definition: "Operators follow operands." }],
   },
   trivia: PREFIXTOPOSTFIXCONVERSION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

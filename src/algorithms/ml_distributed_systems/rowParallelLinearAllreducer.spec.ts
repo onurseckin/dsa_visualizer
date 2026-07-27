@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { rowParallelLinearAllreducer, DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT, generateRowParallelLinearAllreducerSteps } from "./rowParallelLinearAllreducer";
+import {
+  rowParallelLinearAllreducer,
+  DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT,
+  generateRowParallelLinearAllreducerSteps,
+} from "./rowParallelLinearAllreducer";
 
 describe("row-parallel-linear-allreducer (Megatron-LM Row Parallel Linear All-Reduce Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,9 +15,13 @@ describe("row-parallel-linear-allreducer (Megatron-LM Row Parallel Linear All-Re
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateRowParallelLinearAllreducerSteps(DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT);
+    const steps = generateRowParallelLinearAllreducerSteps(
+      DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Megatron-LM Row Parallel Linear All-Reduce Engine");
+    expect(steps[0].explanation.what).toContain(
+      "Megatron-LM Row Parallel Linear All-Reduce Engine",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

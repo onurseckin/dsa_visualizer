@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
-import { generateInclusionExclusionSteps, DEFAULT_INCLUSION_EXCLUSION_INPUT } from "../inclusionExclusionPrinciple";
+import {
+  generateInclusionExclusionSteps,
+  DEFAULT_INCLUSION_EXCLUSION_INPUT,
+} from "../inclusionExclusionPrinciple";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("inclusionExclusionPrinciple React component spec", () => {

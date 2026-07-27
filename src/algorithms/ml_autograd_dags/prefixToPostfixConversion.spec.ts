@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { prefixToPostfixConversion, DEFAULT_PREFIXTOPOSTFIXCONVERSION_INPUT, generatePrefixToPostfixConversionSteps } from "./prefixToPostfixConversion";
+import {
+  prefixToPostfixConversion,
+  DEFAULT_PREFIXTOPOSTFIXCONVERSION_INPUT,
+  generatePrefixToPostfixConversionSteps,
+} from "./prefixToPostfixConversion";
 
 describe("prefix-to-postfix-conversion (Prefix to Postfix Expression Converter)", () => {
   it("should have correct metadata", () => {

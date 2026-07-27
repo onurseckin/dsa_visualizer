@@ -1,9 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
-import type { CategoryType, SourceKind, LeetCodeSource, BookSource, StandardSource } from "../../types/dsa";
+import type {
+  CategoryType,
+  SourceKind,
+  LeetCodeSource,
+  BookSource,
+  StandardSource,
+} from "../../types/dsa";
 import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
 import { getAllAlgorithms } from "../../algorithms/registry";
-import { Badge, Button, Collapsible, Input, difficultyBadgeVariant, IconButton, SourceBadgeList } from "../index";
+import {
+  Badge,
+  Button,
+  Collapsible,
+  Input,
+  difficultyBadgeVariant,
+  IconButton,
+  SourceBadgeList,
+} from "../index";
 import { Dialog } from "@base-ui-components/react/dialog";
 
 import { CATEGORIES } from "../../app/categories";
@@ -91,7 +105,9 @@ export function QuickAccessDrawer({
             if (kind === "leetcode") {
               const lc = s as LeetCodeSource;
               const id = (lc.id ?? lc.leetcodeId)?.toString() || "";
-              return id.includes(query) || "leetcode".includes(query) || `lc #${id}`.includes(query);
+              return (
+                id.includes(query) || "leetcode".includes(query) || `lc #${id}`.includes(query)
+              );
             }
             if (kind === "book") {
               const bk = s as BookSource;
@@ -130,7 +146,10 @@ export function QuickAccessDrawer({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="ui-drawer-backdrop" />
-        <Dialog.Popup className="ui-drawer ui-drawer--right w-[35vw] min-w-[320px]" style={{ width: "35vw", minWidth: "320px" }}>
+        <Dialog.Popup
+          className="ui-drawer ui-drawer--right w-[35vw] min-w-[320px]"
+          style={{ width: "35vw", minWidth: "320px" }}
+        >
           <div className="ui-drawer__header">
             <Dialog.Title className="ui-drawer__title">Algorithms</Dialog.Title>
             <Dialog.Close
@@ -193,7 +212,8 @@ export function QuickAccessDrawer({
 
               {groups.length === 0 ? (
                 <p className="m-0 py-6 px-2 text-center text-sm text-[var(--text-muted)]">
-                  No algorithms match {searchQuery.trim() ? `“${searchQuery.trim()}”` : "the selected source filter"}
+                  No algorithms match{" "}
+                  {searchQuery.trim() ? `“${searchQuery.trim()}”` : "the selected source filter"}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">

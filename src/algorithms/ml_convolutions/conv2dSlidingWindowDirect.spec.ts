@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { conv2dSlidingWindowDirect, DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT, generateConv2dSlidingWindowDirectSteps } from "./conv2dSlidingWindowDirect";
+import {
+  conv2dSlidingWindowDirect,
+  DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT,
+  generateConv2dSlidingWindowDirectSteps,
+} from "./conv2dSlidingWindowDirect";
 
 describe("conv2d-sliding-window-direct (2D Direct Sliding Window Convolution)", () => {
   it("should have correct metadata", () => {
@@ -13,7 +17,7 @@ describe("conv2d-sliding-window-direct (2D Direct Sliding Window Convolution)", 
   it("should generate valid algorithm steps", () => {
     const steps = generateConv2dSlidingWindowDirectSteps(DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("2D Direct Sliding Window Convolution");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].explanation.what).toContain("Initialize dimensions");
+    expect(steps[steps.length - 1].explanation.what).toBe("Convolution Complete");
   });
 });

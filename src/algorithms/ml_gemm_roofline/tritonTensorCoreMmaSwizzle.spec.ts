@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { tritonTensorCoreMmaSwizzle, DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT, generateTritonTensorCoreMmaSwizzleSteps } from "./tritonTensorCoreMmaSwizzle";
+import {
+  tritonTensorCoreMmaSwizzle,
+  DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT,
+  generateTritonTensorCoreMmaSwizzleSteps,
+} from "./tritonTensorCoreMmaSwizzle";
 
 describe("triton-tensor-core-mma-swizzle (Triton Tensor Core MMA Layout Swizzler)", () => {
   it("should have correct metadata", () => {

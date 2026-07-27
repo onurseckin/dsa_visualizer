@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { strided1dDotProduct, DEFAULT_STRIDED1DDOTPRODUCT_INPUT, generateStrided1dDotProductSteps } from "./strided1dDotProduct";
+import {
+  strided1dDotProduct,
+  DEFAULT_STRIDED1DDOTPRODUCT_INPUT,
+  generateStrided1dDotProductSteps,
+} from "./strided1dDotProduct";
 
 describe("strided-1d-dot-product (Strided 1D Vector Dot Product)", () => {
   it("should have correct metadata", () => {

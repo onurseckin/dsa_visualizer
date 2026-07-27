@@ -21,7 +21,8 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "arr = [1, 2, 3, 4, 5], queries = [sum(1..3), rangeUpdate(1..3, +5), sum(1..3)]",
+      inputDisplay:
+        "arr = [1, 2, 3, 4, 5], queries = [sum(1..3), rangeUpdate(1..3, +5), sum(1..3)]",
       outputDisplay: "Query 1: 9, Query 2: 24",
       title: "Basic Example",
       input: {
@@ -38,7 +39,8 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "arr = [10, 20, 30, 40, 50, 60, 70, 80], queries = [rangeUpdate(0..7, +10), rangeUpdate(2..5, +5), sum(0..7)]",
+      inputDisplay:
+        "arr = [10, 20, 30, 40, 50, 60, 70, 80], queries = [rangeUpdate(0..7, +10), rangeUpdate(2..5, +5), sum(0..7)]",
       outputDisplay: "Query: 460",
       title: "Complex Edge Case",
       input: {

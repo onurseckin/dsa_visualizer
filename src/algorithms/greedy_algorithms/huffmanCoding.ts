@@ -18,8 +18,8 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "text = \"abracadabra\"",
-      outputDisplay: "Codes: a: \"0\", b: \"110\", r: \"111\", c: \"100\", d: \"101\"",
+      inputDisplay: 'text = "abracadabra"',
+      outputDisplay: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
       title: "Basic Example",
       input: { text: "abracadabra" },
       output: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
@@ -28,8 +28,8 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "text = \"BEEP BOOP BEER\"",
-      outputDisplay: "Codes: E: \"00\", B: \"01\", P: \"100\", O: \"101\", R: \"110\", \" \": \"111\"",
+      inputDisplay: 'text = "BEEP BOOP BEER"',
+      outputDisplay: 'Codes: E: "00", B: "01", P: "100", O: "101", R: "110", " ": "111"',
       title: "Complex Edge Case",
       input: { text: "BEEP BOOP BEER" },
       output: 'Codes: E: "00", B: "01", P: "100", O: "101", R: "110", " ": "111"',
@@ -38,8 +38,8 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "text = \"AAAAA\"",
-      outputDisplay: "Codes: A: \"0\"",
+      inputDisplay: 'text = "AAAAA"',
+      outputDisplay: 'Codes: A: "0"',
       title: "Failing / Boundary Case",
       input: { text: "AAAAA" },
       output: 'Codes: A: "0"',

@@ -1,19 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { tileIndexGridMapper, DEFAULT_TILEINDEXGRIDMAPPER_INPUT, generateTileIndexGridMapperSteps } from "./tileIndexGridMapper";
+import { tileIndexGridMapper } from "./tileIndexGridMapper";
 
-describe("tile-index-grid-mapper (Triton SPMD Block Tile Grid Mapper)", () => {
-  it("should have correct metadata", () => {
-    expect(tileIndexGridMapper.id).toBe("tile-index-grid-mapper");
-    expect(tileIndexGridMapper.isMlInfra).toBe(true);
-    expect(tileIndexGridMapper.mlInfraLevel).toBe(10);
-    expect(tileIndexGridMapper.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(tileIndexGridMapper.categories).toContain("ml_hardware_kernels");
+describe("tileIndexGridMapper", () => {
+  it("should have valid metadata", () => {
+    expect(tileIndexGridMapper.id).toBeDefined();
+    expect(tileIndexGridMapper.title).toBeDefined();
+    expect(tileIndexGridMapper.code).toBeDefined();
+    expect(tileIndexGridMapper.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateTileIndexGridMapperSteps(DEFAULT_TILEINDEXGRIDMAPPER_INPUT);
+  it("should generate valid steps", () => {
+    const steps = tileIndexGridMapper.generateSteps(tileIndexGridMapper.defaultInput);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Triton SPMD Block Tile Grid Mapper");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

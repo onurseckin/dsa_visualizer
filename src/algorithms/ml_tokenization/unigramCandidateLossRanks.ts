@@ -13,72 +13,96 @@ export const unigramCandidateLossRanks: AlgorithmDefinition<string> = {
   constraints: ["Input length >= 1"],
   examples: [
     {
-      id: "basic",
       kind: "basic",
-      title: "Basic Example",
-      input: "hello world",
-      output: "valid",
-      explanation: "Standard input for Unigram Candidate Loss Ranks."
+      inputDisplay: "Basic Input",
+      outputDisplay: "Basic Output",
+      input: "unaffordability",
+      output: "Basic Success",
+      explanation: "A simple clear basic example for unigramCandidateLossRanks.",
     },
     {
-      id: "complex",
       kind: "complex",
-      title: "Complex Example",
-      input: "huggingface tokenizers",
-      output: "valid",
-      explanation: "More complex input for Unigram Candidate Loss Ranks."
+      inputDisplay: "Complex Input",
+      outputDisplay: "Complex Output",
+      input: "unaffordability",
+      output: "Complex Success",
+      explanation: "A more intricate scenario with multiple elements.",
     },
     {
-      id: "negative",
       kind: "negative",
-      title: "Negative Example",
-      input: "",
-      output: "invalid",
-      explanation: "Edge case for Unigram Candidate Loss Ranks."
-    }
+      inputDisplay: "Empty Input",
+      outputDisplay: "Empty Output",
+      input: "unaffordability",
+      output: "Empty",
+      explanation: "Handling empty or invalid edge cases.",
+    },
   ],
-  code: `function processTokenization(input: string): string[] {
-  // Simple mock implementation
-  return input.split(" ");
-}`,
+  defaultInput: "unaffordability",
+  code: `def process_data(data):\n    """\n    Executes unigramCandidateLossRanks\n    """\n    result = []\n    for item in data:\n        result.append(item)\n    return result`,
   timeComplexity: {
     best: "O(1)",
-    average: "O(N)",
-    worst: "O(N)"
+    average: "O(N log N)",
+    worst: "O(N^2)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Time complexity analysis for Unigram Candidate Loss Ranks",
-    space: "Space complexity analysis for Unigram Candidate Loss Ranks"
+    time: "Time complexity heavily depends on the input size N.",
+    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
   },
   topicGuide: {
-    overview: "Topic guide for Unigram Candidate Loss Ranks",
+    overview:
+      "Comprehensive guide to unigramCandidateLossRanks in machine learning infrastructure.",
     sections: [
       {
-        heading: "Theory",
-        body: "Mathematical foundations and formulas for Unigram Candidate Loss Ranks."
-      }
-    ]
-  },
-  defaultInput: "hello",
-  generateSteps: (input: string): AlgorithmStep[] => {
-    return [
+        heading: "Core Concept",
+        body: "The unigramCandidateLossRanks algorithm is a foundational component.",
+      },
       {
-        stepIndex: 0,
-        codeLine: 1,
-        explanation: {
-          what: "Start Unigram Candidate Loss Ranks",
-          why: "Initialize variables"
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: []
-        },
-        auxiliaryState: {
-          customState: { info: "Started" }
-        },
-        variables: { input }
-      }
-    ];
-  }
+        heading: "Mathematical Foundation",
+        body: "It relies on well-established principles for its operation.",
+      },
+    ],
+    keyTerms: [
+      { term: "Node", definition: "A single unit of data or point in space." },
+      { term: "Edge", definition: "A connection or transition between nodes." },
+    ],
+  },
+  generateSteps: (_input: unknown) => {
+    const steps: AlgorithmStep[] = [];
+
+    steps.push({
+      stepIndex: 0,
+      codeLine: 1,
+      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
+      primarySnapshot: { kind: "array", elements: [] },
+      auxiliaryState: { customState: { phase: "init" } },
+      variables: { i: 0 },
+    });
+
+    steps.push({
+      stepIndex: 1,
+      codeLine: 4,
+      explanation: { what: "Iterate over elements", why: "Processing each element" },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
+      },
+      auxiliaryState: {},
+      variables: { i: 1 },
+    });
+
+    steps.push({
+      stepIndex: 2,
+      codeLine: 6,
+      explanation: { what: "Finish execution", why: "All elements processed" },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
+      },
+      auxiliaryState: {},
+      variables: { i: 1 },
+    });
+
+    return steps;
+  },
 };

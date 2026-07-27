@@ -258,7 +258,7 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "s = \"()[]{}\"",
+      inputDisplay: 's = "()[]{}"',
       outputDisplay: "true",
       title: "Basic Example",
       input: { s: "({[]})" },
@@ -267,21 +267,23 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "s = \"{[()]}\"",
+      inputDisplay: 's = "{[()]}"',
       outputDisplay: "true",
       title: "Complex Edge Case",
       input: { s: "()[]{}()({[]})" },
       output: "true",
-      explanation: "Multiple sequential and deeply nested bracket pairs correctly pushing and popping from the stack.",
+      explanation:
+        "Multiple sequential and deeply nested bracket pairs correctly pushing and popping from the stack.",
     },
     {
       kind: "negative",
-      inputDisplay: "s = \"(]\"",
+      inputDisplay: 's = "(]"',
       outputDisplay: "false",
       title: "Failing / Boundary Case",
       input: { s: "(]" },
       output: "false",
-      explanation: "Closing bracket ']' does not match top of stack '('; returns false immediately.",
+      explanation:
+        "Closing bracket ']' does not match top of stack '('; returns false immediately.",
     },
   ],
   code: VALID_PARENTHESES_CODE,

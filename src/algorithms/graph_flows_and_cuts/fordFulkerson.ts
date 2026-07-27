@@ -23,7 +23,8 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "source = S, sink = T, edges = [(S,A,10), (S,C,10), (A,B,4), (A,C,2), (A,D,8), (C,D,9), (B,T,10), (D,T,10)]",
+      inputDisplay:
+        "source = S, sink = T, edges = [(S,A,10), (S,C,10), (A,B,4), (A,C,2), (A,D,8), (C,D,9), (B,T,10), (D,T,10)]",
       outputDisplay: "Max Flow = 19",
       title: "Basic Example",
       input: {
@@ -44,7 +45,8 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "source = S, sink = T, edges = [(S,1,16), (S,2,13), (1,2,10), (2,1,4), (1,3,12), (3,2,9), (2,4,14), (4,3,7), (3,T,20), (4,T,4)]",
+      inputDisplay:
+        "source = S, sink = T, edges = [(S,1,16), (S,2,13), (1,2,10), (2,1,4), (1,3,12), (3,2,9), (2,4,14), (4,3,7), (3,T,20), (4,T,4)]",
       outputDisplay: "Max Flow = 23",
       title: "Complex Edge Case",
       input: {

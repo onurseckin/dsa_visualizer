@@ -6,15 +6,17 @@ export interface referenceCountingCowBeamSearchBrancherInput {
   target?: number;
 }
 
-export const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_CODE = "def reference_counting_cow_beam_search_brancher(input_data: list) -> list:\n    # Copy-On-Write (CoW) Reference-Counted Beam Search Brancher (Medium)\n    # Shares physical KV blocks across beam search branches using reference counts and CoW.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_CODE =
+  "def reference_counting_cow_beam_search_brancher(input_data: list) -> list:\n    # Copy-On-Write (CoW) Reference-Counted Beam Search Brancher (Medium)\n    # Shares physical KV blocks across beam search branches using reference counts and CoW.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_INPUT: referenceCountingCowBeamSearchBrancherInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_INPUT: referenceCountingCowBeamSearchBrancherInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateReferenceCountingCowBeamSearchBrancherSteps = (
-  input: referenceCountingCowBeamSearchBrancherInput
+  input: referenceCountingCowBeamSearchBrancherInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
     1,
     "Initialize Copy-On-Write (CoW) Reference-Counted Beam Search Brancher",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
 
 const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Copy-On-Write (CoW) Reference-Counted Beam Search Brancher.",
@@ -103,63 +110,77 @@ const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA: TriviaMeta = {
   },
 };
 
-export const referenceCountingCowBeamSearchBrancher: AlgorithmDefinition<referenceCountingCowBeamSearchBrancherInput> = {
-  id: "reference-counting-cow-beam-search-brancher",
-  title: "Copy-On-Write (CoW) Reference-Counted Beam Search Brancher",
-  category: "ml_llm_serving" as any,
-  categories: ["ml_llm_serving","arrays_and_hashing"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 12,
-  mlInfraCategory: "ml_llm_serving",
-  description: "Shares physical KV blocks across beam search branches using reference counts and CoW.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Copy-on-write reference counting shares parent KV blocks among parallel beam search candidates.",
-    sections: [
-      { heading: "Core Concept", body: "Shares physical KV blocks across beam search branches using reference counts and CoW." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const referenceCountingCowBeamSearchBrancher: AlgorithmDefinition<referenceCountingCowBeamSearchBrancherInput> =
+  {
+    id: "reference-counting-cow-beam-search-brancher",
+    title: "Copy-On-Write (CoW) Reference-Counted Beam Search Brancher",
+    category: "ml_llm_serving",
+    categories: ["ml_llm_serving", "arrays_and_hashing"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 12,
+    mlInfraCategory: "ml_llm_serving",
+    description:
+      "Shares physical KV blocks across beam search branches using reference counts and CoW.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"CoW Beam Search","definition":"Zero-copy sharing of physical KV blocks across parallel output branches."}],
-  },
-  trivia: REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
-  defaultInput: DEFAULT_REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_INPUT,
-  generateSteps: generateReferenceCountingCowBeamSearchBrancherSteps,
-};
+    code: REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview:
+        "Copy-on-write reference counting shares parent KV blocks among parallel beam search candidates.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Shares physical KV blocks across beam search branches using reference counts and CoW.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "CoW Beam Search",
+          definition: "Zero-copy sharing of physical KV blocks across parallel output branches.",
+        },
+      ],
+    },
+    trivia: REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
+    defaultInput: DEFAULT_REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_INPUT,
+    generateSteps: generateReferenceCountingCowBeamSearchBrancherSteps,
+  };

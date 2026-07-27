@@ -51,8 +51,10 @@ export const MEGATRON_TP_SP_EXAMPLES: ProblemExample<MegatronTpSpInput>[] = [
       seqLen: 8,
       hiddenDim: 16,
     },
-    output: "Column-Parallel & Row-Parallel weight slices with Sequence-Parallel activation partitioning",
-    explanation: "Splits Column-Parallel MLP/Attention weights across 4 GPUs (4 columns each) and Sequence-Parallel LayerNorm activations (2 sequence tokens each).",
+    output:
+      "Column-Parallel & Row-Parallel weight slices with Sequence-Parallel activation partitioning",
+    explanation:
+      "Splits Column-Parallel MLP/Attention weights across 4 GPUs (4 columns each) and Sequence-Parallel LayerNorm activations (2 sequence tokens each).",
   },
   {
     id: "complex",
@@ -64,7 +66,8 @@ export const MEGATRON_TP_SP_EXAMPLES: ProblemExample<MegatronTpSpInput>[] = [
       hiddenDim: 64,
     },
     output: "8-Way TP+SP Sharding; 8 columns per weight slice, 4 tokens per SP rank",
-    explanation: "Replaces standard All-Reduce in Megatron-LM with All-Gather + Reduce-Scatter to eliminate activation duplication.",
+    explanation:
+      "Replaces standard All-Reduce in Megatron-LM with All-Gather + Reduce-Scatter to eliminate activation duplication.",
   },
   {
     id: "negative",
@@ -119,7 +122,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     what: string,
     why: string,
     activeGpu: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -139,7 +142,12 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
           columnParallelWeightShape: `[${H}, ${colCols}] per GPU`,
           rowParallelWeightShape: `[${rowRows}, ${H}] per GPU`,
           spActivationShape: `[${spSeq}, ${H}] per GPU`,
-          communicationPrimitive: activeGpu < 0 ? "Initialization" : activeGpu % 2 === 0 ? "All-Gather (SP -> TP)" : "Reduce-Scatter (TP -> SP)",
+          communicationPrimitive:
+            activeGpu < 0
+              ? "Initialization"
+              : activeGpu % 2 === 0
+                ? "All-Gather (SP -> TP)"
+                : "Reduce-Scatter (TP -> SP)",
         },
       },
       variables: vars,
@@ -151,7 +159,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     "Initialize Megatron-LM Tensor & Sequence Parallel (TP+SP) Partitioning",
     `Splitting model weights and activations across ${TP} GPUs. Column Parallel slices = [${H}, ${colCols}], SP token slices = [${spSeq}, ${H}].`,
     -1,
-    { TP, S, H, colCols, spSeq }
+    { TP, S, H, colCols, spSeq },
   );
 
   for (let r = 0; r < TP; r++) {
@@ -165,7 +173,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
       `GPU Rank #${r} TP/SP Partition Assigned`,
       `GPU #${r} holds Column-Parallel weight cols ${colStart}..${colEnd} and Sequence-Parallel activation tokens ${tokenStart}..${tokenEnd}.`,
       r,
-      { rank: r, weightCols: `${colStart}..${colEnd}`, tokens: `${tokenStart}..${tokenEnd}` }
+      { rank: r, weightCols: `${colStart}..${colEnd}`, tokens: `${tokenStart}..${tokenEnd}` },
     );
   }
 
@@ -178,7 +186,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     "Megatron TP+SP Partitioning Complete",
     `Successfully sharded Transformer layer across ${TP} GPUs with zero activation memory redundancy.`,
     TP,
-    { totalGpus: TP, activationMemoryReduction: `${TP}x` }
+    { totalGpus: TP, activationMemoryReduction: `${TP}x` },
   );
 
   return steps;
@@ -208,7 +216,8 @@ export const megatronTpSpSplit: AlgorithmDefinition<MegatronTpSpInput> = {
   spaceComplexity: "O((S * H + H^2) / TP)",
   complexityAnalysis: {
     time: "Matrix multiplication FLOPS scale down linearly with TP world size, reducing compute time by factor TP.",
-    space: "Weight memory and activation memory scale down by 1/TP, enabling training of multi-hundred-billion parameter LLMs.",
+    space:
+      "Weight memory and activation memory scale down by 1/TP, enabling training of multi-hundred-billion parameter LLMs.",
   },
   topicGuide: {
     overview:

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { stridedMaxPooling, DEFAULT_STRIDEDMAXPOOLING_INPUT, generateStridedMaxPoolingSteps } from "./stridedMaxPooling";
+import {
+  stridedMaxPooling,
+  DEFAULT_STRIDEDMAXPOOLING_INPUT,
+  generateStridedMaxPoolingSteps,
+} from "./stridedMaxPooling";
 
 describe("strided-max-pooling (2D Strided Max Pooling Operator)", () => {
   it("should have correct metadata", () => {

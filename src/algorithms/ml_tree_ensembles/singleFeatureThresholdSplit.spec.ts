@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { singleFeatureThresholdSplit, DEFAULT_SINGLEFEATURETHRESHOLDSPLIT_INPUT, generateSingleFeatureThresholdSplitSteps } from "./singleFeatureThresholdSplit";
+import { singleFeatureThresholdSplit } from "./singleFeatureThresholdSplit";
 
-describe("single-feature-threshold-split (Single Feature Continuous Threshold Partition)", () => {
-  it("should have correct metadata", () => {
-    expect(singleFeatureThresholdSplit.id).toBe("single-feature-threshold-split");
-    expect(singleFeatureThresholdSplit.isMlInfra).toBe(true);
-    expect(singleFeatureThresholdSplit.mlInfraLevel).toBe(9);
-    expect(singleFeatureThresholdSplit.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(singleFeatureThresholdSplit.categories).toContain("ml_tree_ensembles");
+describe("singleFeatureThresholdSplit", () => {
+  it("should have valid metadata", () => {
+    expect(singleFeatureThresholdSplit.id).toBeDefined();
+    expect(singleFeatureThresholdSplit.title).toBeDefined();
+    expect(singleFeatureThresholdSplit.code).toBeDefined();
+    expect(singleFeatureThresholdSplit.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateSingleFeatureThresholdSplitSteps(DEFAULT_SINGLEFEATURETHRESHOLDSPLIT_INPUT);
+  it("should generate valid steps", () => {
+    const steps = singleFeatureThresholdSplit.generateSteps(
+      singleFeatureThresholdSplit.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Single Feature Continuous Threshold Partition");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

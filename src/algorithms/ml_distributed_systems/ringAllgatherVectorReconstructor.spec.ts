@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ringAllgatherVectorReconstructor, DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT, generateRingAllgatherVectorReconstructorSteps } from "./ringAllgatherVectorReconstructor";
+import {
+  ringAllgatherVectorReconstructor,
+  DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT,
+  generateRingAllgatherVectorReconstructorSteps,
+} from "./ringAllgatherVectorReconstructor";
 
 describe("ring-allgather-vector-reconstructor (Ring All-Gather Phase Vector Reconstructor)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("ring-allgather-vector-reconstructor (Ring All-Gather Phase Vector Reco
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateRingAllgatherVectorReconstructorSteps(DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT);
+    const steps = generateRingAllgatherVectorReconstructorSteps(
+      DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Ring All-Gather Phase Vector Reconstructor");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

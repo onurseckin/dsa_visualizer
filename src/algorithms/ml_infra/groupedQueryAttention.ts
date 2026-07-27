@@ -7,7 +7,7 @@ import type {
 
 export interface GqaInput {
   numQueryHeads: number; // Q
-  numKvHeads: number;    // G (Q must be divisible by G)
+  numKvHeads: number; // G (Q must be divisible by G)
   seqLen: number;
   headDim: number;
 }
@@ -53,7 +53,8 @@ export const GQA_EXAMPLES: ProblemExample<GqaInput>[] = [
       headDim: 64,
     },
     output: "4:1 KV-head compression ratio with 4 Query heads mapped per KV head",
-    explanation: "Group size = 8 / 2 = 4. Query heads 0..3 share KV head 0; Query heads 4..7 share KV head 1.",
+    explanation:
+      "Group size = 8 / 2 = 4. Query heads 0..3 share KV head 0; Query heads 4..7 share KV head 1.",
   },
   {
     id: "complex",
@@ -123,7 +124,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
     what: string,
     why: string,
     activeQHead: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -160,7 +161,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
     "Initialize Grouped-Query Attention (GQA) Head Partitioning",
     `Configuring ${Q} Query heads into ${G} KV groups. Group size = ${Q}/${G} = ${groupSize} Query heads per KV head pair.`,
     -1,
-    { Q, G, groupSize, memoryReduction: `${memoryReduction}x` }
+    { Q, G, groupSize, memoryReduction: `${memoryReduction}x` },
   );
 
   for (let q = 0; q < Q; q++) {
@@ -172,7 +173,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
       `Mapped Query Head #${q} to Shared KV Head #${kvIdx}`,
       `Query head Q${q} belongs to group #${kvIdx} (heads Q${kvIdx * groupSize}..Q${(kvIdx + 1) * groupSize - 1}). Shares Key/Value tensors in fast SRAM.`,
       q,
-      { qHead: q, sharedKvHead: kvIdx, groupSize }
+      { qHead: q, sharedKvHead: kvIdx, groupSize },
     );
   }
 
@@ -185,7 +186,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
     "GQA Head Mapping Complete",
     `Successfully constructed GQA mapping. Reduced memory bandwidth for KV-cache by ${memoryReduction}x compared to MHA.`,
     Q,
-    { totalQueryHeads: Q, totalKvHeads: G, memoryCompressionRatio: `${memoryReduction}x` }
+    { totalQueryHeads: Q, totalKvHeads: G, memoryCompressionRatio: `${memoryReduction}x` },
   );
 
   return steps;
@@ -215,7 +216,8 @@ export const groupedQueryAttention: AlgorithmDefinition<GqaInput> = {
   spaceComplexity: "O(N * d * G)",
   complexityAnalysis: {
     time: "Compute flops remain proportional to Q query heads (O(N^2 * d * Q)), maintaining model expressive power.",
-    space: "KV-cache memory consumption scales down from O(N * d * Q) to O(N * d * G), achieving Q/G factor memory savings.",
+    space:
+      "KV-cache memory consumption scales down from O(N * d * Q) to O(N * d * G), achieving Q/G factor memory savings.",
   },
   topicGuide: {
     overview:

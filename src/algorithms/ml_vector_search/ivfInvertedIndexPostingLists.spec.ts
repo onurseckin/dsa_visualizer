@@ -11,7 +11,9 @@ describe("ivfInvertedIndexPostingLists", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = ivfInvertedIndexPostingLists.generateSteps(ivfInvertedIndexPostingLists.defaultInput);
+    const steps = ivfInvertedIndexPostingLists.generateSteps(
+      ivfInvertedIndexPostingLists.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

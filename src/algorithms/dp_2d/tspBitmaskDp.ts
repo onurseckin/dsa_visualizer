@@ -137,7 +137,13 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
                   cost: dp[nextMask][v],
                 },
               },
-              variables: { mask, u, v, "dist[u][v]": dist[u][v], "dp[next_mask][v]": dp[nextMask][v] },
+              variables: {
+                mask,
+                u,
+                v,
+                "dist[u][v]": dist[u][v],
+                "dp[next_mask][v]": dp[nextMask][v],
+              },
             });
           }
         }
@@ -164,9 +170,10 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     codeLine: 21,
     explanation: {
       what: `Complete TSP Tour. Optimal Cost = ${finalCost}`,
-      why: finalCost !== -1
-        ? `Visited all cities and returned to City 0 via City ${bestLastCity}. Total cost: ${finalCost}.`
-        : "Graph is disconnected; no valid TSP tour exists.",
+      why:
+        finalCost !== -1
+          ? `Visited all cities and returned to City 0 via City ${bestLastCity}. Total cost: ${finalCost}.`
+          : "Graph is disconnected; no valid TSP tour exists.",
     },
     primarySnapshot: createSnapshot(bestLastCity !== -1 ? bestLastCity : 0, 0),
     auxiliaryState: { customState: { minTourCost: finalCost } },

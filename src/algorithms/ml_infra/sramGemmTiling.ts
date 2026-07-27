@@ -39,9 +39,7 @@ export const DEFAULT_SRAM_GEMM_TILING_INPUT: SramGemmTilingInput = {
   tileK: 32,
 };
 
-export const generateSramGemmTilingSteps = (
-  input: SramGemmTilingInput
-): AlgorithmStep[] => {
+export const generateSramGemmTilingSteps = (input: SramGemmTilingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -59,7 +57,7 @@ export const generateSramGemmTilingSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
-    customState?: Record<string, string | number>
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -86,7 +84,7 @@ export const generateSramGemmTilingSteps = (
     1,
     "Initialize SRAM GEMM Tiling Calculation",
     `Matrix dimensions M=${M}, N=${N}, K=${K} with SRAM tile size T_M=${tileM}, T_N=${tileN}, T_K=${tileK}.`,
-    { M, N, K, tileM, tileN, tileK }
+    { M, N, K, tileM, tileN, tileK },
   );
 
   const numTilesM = Math.ceil(M / Math.max(1, tileM));
@@ -99,7 +97,7 @@ export const generateSramGemmTilingSteps = (
     `Partitioning matrix M x N into 2D grid of [${numTilesM} x ${numTilesN}] GPU Threadblocks, iterating K in ${numTilesK} steps.`,
     { numTilesM, numTilesN, numTilesK },
     elements.map((el) => ({ ...el, state: "active" })),
-    { gridDim: `[${numTilesM}, ${numTilesN}]`, k_iterations: numTilesK }
+    { gridDim: `[${numTilesM}, ${numTilesN}]`, k_iterations: numTilesK },
   );
 
   const totalTileSteps = numTilesM * numTilesN * numTilesK;
@@ -119,21 +117,21 @@ export const generateSramGemmTilingSteps = (
       totalTileSteps,
       flopCount: `${(flopCount / 1e6).toFixed(2)} MFLOPs`,
       hbmReadKb: (hbmReadBytes / 1024).toFixed(1),
-    }
+    },
   );
 
   addStep(
     10,
     `Calculate Tile Arithmetic Intensity: ${intensity.toFixed(2)} FLOP/byte`,
     `Tile SRAM buffering yields arithmetic intensity of ${intensity.toFixed(
-      2
+      2,
     )} FLOPs per byte transferred from HBM.`,
     { arithmetic_intensity: Number(intensity.toFixed(4)), total_tiles: totalTileSteps },
     elements.map((el) => ({ ...el, state: "sorted", pointers: ["TILED GEMM DONE"] })),
     {
       arithmetic_intensity: intensity.toFixed(4),
       total_tiles: totalTileSteps,
-    }
+    },
   );
 
   return steps;
@@ -178,10 +176,7 @@ export const sramGemmTiling: AlgorithmDefinition<SramGemmTilingInput> = {
   mlInfraLevel: 1,
   description:
     "Simulates matrix multiplication GEMM tiling (Cutlass / Triton style), loading sub-matrix blocks from HBM to high-speed SRAM (Shared Memory) to maximize memory reuse and arithmetic intensity.",
-  constraints: [
-    "M, N, K > 0",
-    "tileM, tileN, tileK > 0",
-  ],
+  constraints: ["M, N, K > 0", "tileM, tileN, tileK > 0"],
   examples: [
     {
       kind: "basic",
@@ -190,7 +185,8 @@ export const sramGemmTiling: AlgorithmDefinition<SramGemmTilingInput> = {
       outputDisplay: "grid = [2, 2], k_iter = 2, total_tiles = 8, intensity ≈ 16.0",
       input: DEFAULT_SRAM_GEMM_TILING_INPUT,
       output: "{grid_dim: [2, 2], k_iterations: 2, total_tiles: 8, arithmetic_intensity: 16.0}",
-      explanation: "Divides 64x64 output into a 2x2 grid of threadblocks with 2 K-reduction steps. Total FLOPs = 2*64^3 = 524,288.",
+      explanation:
+        "Divides 64x64 output into a 2x2 grid of threadblocks with 2 K-reduction steps. Total FLOPs = 2*64^3 = 524,288.",
     },
     {
       kind: "complex",
@@ -256,7 +252,8 @@ export const sramGemmTiling: AlgorithmDefinition<SramGemmTilingInput> = {
       },
       {
         term: "Threadblock Grid",
-        definition: "2D lattice of GPU threadblocks assigned to compute distinct output tiles of matrix C.",
+        definition:
+          "2D lattice of GPU threadblocks assigned to compute distinct output tiles of matrix C.",
       },
     ],
   },

@@ -6,7 +6,8 @@ export interface twoGpuParameterSplitterInput {
   target?: number;
 }
 
-export const TWOGPUPARAMETERSPLITTER_CODE = "def two_gpu_parameter_splitter(input_data: list) -> list:\n    # 2-GPU Model Layer Pipeline Splitter (Easy)\n    # Partitions sequential transformer layers across 2 GPUs to balance memory load.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TWOGPUPARAMETERSPLITTER_CODE =
+  "def two_gpu_parameter_splitter(input_data: list) -> list:\n    # 2-GPU Model Layer Pipeline Splitter (Easy)\n    # Partitions sequential transformer layers across 2 GPUs to balance memory load.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT: twoGpuParameterSplitterInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT: twoGpuParameterSplitterInput
 };
 
 export const generateTwoGpuParameterSplitterSteps = (
-  input: twoGpuParameterSplitterInput
+  input: twoGpuParameterSplitterInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateTwoGpuParameterSplitterSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateTwoGpuParameterSplitterSteps = (
     1,
     "Initialize 2-GPU Model Layer Pipeline Splitter",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateTwoGpuParameterSplitterSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateTwoGpuParameterSplitterSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateTwoGpuParameterSplitterSteps = (
 
 const TWOGPUPARAMETERSPLITTER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for 2-GPU Model Layer Pipeline Splitter.",
@@ -106,8 +112,8 @@ const TWOGPUPARAMETERSPLITTER_TRIVIA: TriviaMeta = {
 export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitterInput> = {
   id: "two-gpu-parameter-splitter",
   title: "2-GPU Model Layer Pipeline Splitter",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","intervals"] as any,
+  category: "ml_distributed_systems",
+  categories: ["ml_distributed_systems", "intervals"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 11,
@@ -153,10 +159,18 @@ export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitte
   topicGuide: {
     overview: "Pipeline parallelism splits transformer layers sequentially across GPU ranks.",
     sections: [
-      { heading: "Core Concept", body: "Partitions sequential transformer layers across 2 GPUs to balance memory load." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Partitions sequential transformer layers across 2 GPUs to balance memory load.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Layer Splitting","definition":"Partitioning model layers across GPU ranks."}],
+    keyTerms: [
+      { term: "Layer Splitting", definition: "Partitioning model layers across GPU ranks." },
+    ],
   },
   trivia: TWOGPUPARAMETERSPLITTER_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],

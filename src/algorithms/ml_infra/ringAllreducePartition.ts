@@ -38,9 +38,9 @@ export const RING_ALLREDUCE_PARTITION_CODE = `def ring_allreduce(tensors: list[l
 export const DEFAULT_RING_ALLREDUCE_INPUT: RingAllreduceInput = {
   numRanks: 4,
   tensors: [
-    [1, 2, 3, 4],    // GPU 0
-    [5, 6, 7, 8],    // GPU 1
-    [9, 10, 11, 12],  // GPU 2
+    [1, 2, 3, 4], // GPU 0
+    [5, 6, 7, 8], // GPU 1
+    [9, 10, 11, 12], // GPU 2
     [13, 14, 15, 16], // GPU 3
   ],
 };
@@ -60,7 +60,8 @@ export const RING_ALLREDUCE_EXAMPLES: ProblemExample<RingAllreduceInput>[] = [
       ],
     },
     output: "All 4 GPUs receive identical reduced tensor [28, 32, 36, 40]",
-    explanation: "3 Scatter-Reduce steps accumulate sums into single chunks per GPU, followed by 3 All-Gather steps broadcasting fully reduced values.",
+    explanation:
+      "3 Scatter-Reduce steps accumulate sums into single chunks per GPU, followed by 3 All-Gather steps broadcasting fully reduced values.",
   },
   {
     id: "complex",
@@ -89,7 +90,8 @@ export const RING_ALLREDUCE_EXAMPLES: ProblemExample<RingAllreduceInput>[] = [
       ],
     },
     output: "Both GPUs hold [6, 14]",
-    explanation: "Minimum viable 2-node ring performing 1 Scatter-Reduce step and 1 All-Gather step.",
+    explanation:
+      "Minimum viable 2-node ring performing 1 Scatter-Reduce step and 1 All-Gather step.",
   },
 ];
 
@@ -126,8 +128,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
     state: "default",
   }));
 
-  const snapshotTensors = () =>
-    chunks.map((c, r) => `GPU#${r}: [${c.join(", ")}]`).join(" | ");
+  const snapshotTensors = () => chunks.map((c, r) => `GPU#${r}: [${c.join(", ")}]`).join(" | ");
 
   const addStep = (
     codeLine: number,
@@ -135,7 +136,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
     why: string,
     phase: string,
     currentStep: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -143,7 +144,10 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
+        elements: elements.map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
       auxiliaryState: {
         customState: {
@@ -163,7 +167,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
     `Configured ${numRanks}-rank logical GPU ring. Data divided into ${numRanks} chunks per rank to achieve bandwith-optimal allreduce.`,
     "Initialization",
     0,
-    { numRanks }
+    { numRanks },
   );
 
   // Phase 1: Scatter-Reduce
@@ -195,7 +199,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
       `Each GPU sent chunk around ring to accumulate partial gradient sums into neighboring GPU memory.`,
       "Phase 1: Scatter-Reduce",
       s + 1,
-      { step: s + 1, totalSteps: numRanks - 1 }
+      { step: s + 1, totalSteps: numRanks - 1 },
     );
   }
 
@@ -211,7 +215,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
     "Each GPU rank now holds the fully accumulated reduced sum for exactly 1 chunk of the tensor.",
     "Phase 1 Complete",
     numRanks - 1,
-    { numRanks }
+    { numRanks },
   );
 
   // Phase 2: All-Gather
@@ -241,7 +245,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
       `Each GPU rank passed fully reduced chunk to next neighbor in logical ring.`,
       "Phase 2: All-Gather",
       s + 1,
-      { step: s + 1, totalSteps: numRanks - 1 }
+      { step: s + 1, totalSteps: numRanks - 1 },
     );
   }
 
@@ -256,7 +260,7 @@ export function generateRingAllreduceSteps(input: RingAllreduceInput): Algorithm
     `All ${numRanks} GPUs now possess identical fully reduced tensors. Total data transferred per GPU is 2 * (N - 1) / N * S, independent of GPU count.`,
     "Complete",
     2 * (numRanks - 1),
-    { totalTensorsReduced: numRanks, ranks: numRanks }
+    { totalTensorsReduced: numRanks, ranks: numRanks },
   );
 
   return steps;
@@ -304,15 +308,18 @@ export const ringAllreducePartition: AlgorithmDefinition<RingAllreduceInput> = {
     keyTerms: [
       {
         term: "Ring-AllReduce",
-        definition: "Bandwidth-optimal communication collective algorithm using a logical ring topology.",
+        definition:
+          "Bandwidth-optimal communication collective algorithm using a logical ring topology.",
       },
       {
         term: "Scatter-Reduce",
-        definition: "First phase of Ring-AllReduce where chunks are passed and summed around the ring.",
+        definition:
+          "First phase of Ring-AllReduce where chunks are passed and summed around the ring.",
       },
       {
         term: "All-Gather",
-        definition: "Second phase of Ring-AllReduce where reduced chunks are replicated to all nodes.",
+        definition:
+          "Second phase of Ring-AllReduce where reduced chunks are replicated to all nodes.",
       },
     ],
   },

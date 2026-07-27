@@ -6,16 +6,15 @@ export interface flatten2dGridInput {
   target?: number;
 }
 
-export const FLATTEN2DGRID_CODE = "def flatten2d_grid(input_data: list) -> list:\n    # Flatten 2D Grid into 1D Contiguous Buffer (Easy)\n    # Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FLATTEN2DGRID_CODE =
+  "def flatten2d_grid(input_data: list) -> list:\n    # Flatten 2D Grid into 1D Contiguous Buffer (Easy)\n    # Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_FLATTEN2DGRID_INPUT: flatten2dGridInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateFlatten2dGridSteps = (
-  input: flatten2dGridInput
-): AlgorithmStep[] => {
+export const generateFlatten2dGridSteps = (input: flatten2dGridInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateFlatten2dGridSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateFlatten2dGridSteps = (
     1,
     "Initialize Flatten 2D Grid into 1D Contiguous Buffer",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateFlatten2dGridSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateFlatten2dGridSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateFlatten2dGridSteps = (
 
 const FLATTEN2DGRID_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Flatten 2D Grid into 1D Contiguous Buffer.",
@@ -106,8 +110,8 @@ const FLATTEN2DGRID_TRIVIA: TriviaMeta = {
 export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   id: "flatten-2d-grid",
   title: "Flatten 2D Grid into 1D Contiguous Buffer",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 1,
@@ -153,10 +157,16 @@ export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   topicGuide: {
     overview: "Row-major order flattens 2D matrices using r * W + c offset math.",
     sections: [
-      { heading: "Core Concept", body: "Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Maps a 2D matrix into a 1D flat array using row-major index offset arithmetic.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Row-Major","definition":"Storing rows sequentially in flat memory."}],
+    keyTerms: [{ term: "Row-Major", definition: "Storing rows sequentially in flat memory." }],
   },
   trivia: FLATTEN2DGRID_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

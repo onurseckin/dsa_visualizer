@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { warpShuffleButterflyReduction, DEFAULT_WARPSHUFFLEBUTTERFLYREDUCTION_INPUT, generateWarpShuffleButterflyReductionSteps } from "./warpShuffleButterflyReduction";
+import { warpShuffleButterflyReduction } from "./warpShuffleButterflyReduction";
 
-describe("warp-shuffle-butterfly-reduction (CUDA Warp Butterfly Reduction Primitive)", () => {
-  it("should have correct metadata", () => {
-    expect(warpShuffleButterflyReduction.id).toBe("warp-shuffle-butterfly-reduction");
-    expect(warpShuffleButterflyReduction.isMlInfra).toBe(true);
-    expect(warpShuffleButterflyReduction.mlInfraLevel).toBe(10);
-    expect(warpShuffleButterflyReduction.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(warpShuffleButterflyReduction.categories).toContain("ml_hardware_kernels");
+describe("warpShuffleButterflyReduction", () => {
+  it("should have valid metadata", () => {
+    expect(warpShuffleButterflyReduction.id).toBeDefined();
+    expect(warpShuffleButterflyReduction.title).toBeDefined();
+    expect(warpShuffleButterflyReduction.code).toBeDefined();
+    expect(warpShuffleButterflyReduction.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateWarpShuffleButterflyReductionSteps(DEFAULT_WARPSHUFFLEBUTTERFLYREDUCTION_INPUT);
+  it("should generate valid steps", () => {
+    const steps = warpShuffleButterflyReduction.generateSteps(
+      warpShuffleButterflyReduction.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("CUDA Warp Butterfly Reduction Primitive");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

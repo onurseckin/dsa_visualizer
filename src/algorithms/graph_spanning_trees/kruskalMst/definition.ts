@@ -79,7 +79,7 @@ const KRUSKAL_TOPIC_GUIDE: TopicGuide = {
 
 const KRUSKAL_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: 'Packages the UnionFind structure with ranking and path compression to track component roots and merge sets efficiently.',
+    1: "Packages the UnionFind structure with ranking and path compression to track component roots and merge sets efficiently.",
     2: "Constructor initializes root and rank arrays for a given size.",
     3: "Root array maps each node to itself initially, forming singleton components.",
     4: "Rank array tracks tree height, initialized to 1 for each component.",
@@ -131,7 +131,8 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "vertices = [A, B, C, D, E, F], edges = [(A,B,4), (A,C,2), (B,C,1), (B,D,5), (C,D,8), (C,E,10), (D,E,2)]",
+      inputDisplay:
+        "vertices = [A, B, C, D, E, F], edges = [(A,B,4), (A,C,2), (B,C,1), (B,D,5), (C,D,8), (C,E,10), (D,E,2)]",
       outputDisplay: "MST Weight = 12",
       title: "Basic Example",
       input: {
@@ -155,7 +156,8 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "vertices = [A, B, C, D, E, F], edges = [(A,B,1), (B,C,2), (C,A,3), (C,D,4), (D,E,5), (E,F,6), (F,D,7)]",
+      inputDisplay:
+        "vertices = [A, B, C, D, E, F], edges = [(A,B,1), (B,C,2), (C,A,3), (C,D,4), (D,E,5), (E,F,6), (F,D,7)]",
       outputDisplay: "MST Weight = 18",
       title: "Complex Edge Case",
       input: {

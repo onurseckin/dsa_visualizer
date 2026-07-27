@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { flatten2dArray, DEFAULT_FLATTEN2DARRAY_INPUT, generateFlatten2dArraySteps } from "./flatten2dArray";
+import {
+  flatten2dArray,
+  DEFAULT_FLATTEN2DARRAY_INPUT,
+  generateFlatten2dArraySteps,
+} from "./flatten2dArray";
 
 describe("flatten-2d-array (1D Buffer Matrix Flattening)", () => {
   it("should have correct metadata", () => {

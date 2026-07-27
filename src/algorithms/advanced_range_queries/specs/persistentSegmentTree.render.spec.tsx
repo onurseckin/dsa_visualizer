@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import { generatePersistentSegmentTreeSteps, persistentSegmentTree } from "../persistentSegmentTree";
+import {
+  generatePersistentSegmentTreeSteps,
+  persistentSegmentTree,
+} from "../persistentSegmentTree";
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
@@ -30,6 +33,8 @@ describe("persistentSegmentTree React component spec", () => {
       />,
     );
 
-    expect(screen.getByText("Persistent Segment Tree (Versioned Range Queries)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Persistent Segment Tree (Versioned Range Queries)"),
+    ).toBeInTheDocument();
   });
 });

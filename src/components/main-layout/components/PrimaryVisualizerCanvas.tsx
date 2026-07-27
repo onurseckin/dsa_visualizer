@@ -106,7 +106,11 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
         </div>
 
         {resolvedControlProps && (
-          <div data-region="controls" className="shrink-0 w-full" style={{ flexShrink: 0, width: "100%" }}>
+          <div
+            data-region="controls"
+            className="shrink-0 w-full"
+            style={{ flexShrink: 0, width: "100%" }}
+          >
             <ControlPanel {...resolvedControlProps} variant="embedded" />
           </div>
         )}

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { fp16ModelMemoryFootprintCalculator, DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT, generateFp16ModelMemoryFootprintCalculatorSteps } from "./fp16ModelMemoryFootprintCalculator";
+import {
+  fp16ModelMemoryFootprintCalculator,
+  DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT,
+  generateFp16ModelMemoryFootprintCalculatorSteps,
+} from "./fp16ModelMemoryFootprintCalculator";
 
 describe("fp16-model-memory-footprint-calculator (Mixed-Precision 16-Psi Model Memory Calculator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("fp16-model-memory-footprint-calculator (Mixed-Precision 16-Psi Model M
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateFp16ModelMemoryFootprintCalculatorSteps(DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT);
+    const steps = generateFp16ModelMemoryFootprintCalculatorSteps(
+      DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Mixed-Precision 16-Psi Model Memory Calculator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

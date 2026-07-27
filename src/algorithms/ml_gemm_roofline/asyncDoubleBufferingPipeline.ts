@@ -6,7 +6,8 @@ export interface asyncDoubleBufferingPipelineInput {
   target?: number;
 }
 
-export const ASYNCDOUBLEBUFFERINGPIPELINE_CODE = "def async_double_buffering_pipeline(input_data: list) -> list:\n    # Async Double-Buffering Copy Pipeline (Hard)\n    # Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASYNCDOUBLEBUFFERINGPIPELINE_CODE =
+  "def async_double_buffering_pipeline(input_data: list) -> list:\n    # Async Double-Buffering Copy Pipeline (Hard)\n    # Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT: asyncDoubleBufferingPipelineInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT: asyncDoubleBufferingPip
 };
 
 export const generateAsyncDoubleBufferingPipelineSteps = (
-  input: asyncDoubleBufferingPipelineInput
+  input: asyncDoubleBufferingPipelineInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
     1,
     "Initialize Async Double-Buffering Copy Pipeline",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAsyncDoubleBufferingPipelineSteps = (
 
 const ASYNCDOUBLEBUFFERINGPIPELINE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Async Double-Buffering Copy Pipeline.",
@@ -103,63 +109,75 @@ const ASYNCDOUBLEBUFFERINGPIPELINE_TRIVIA: TriviaMeta = {
   },
 };
 
-export const asyncDoubleBufferingPipeline: AlgorithmDefinition<asyncDoubleBufferingPipelineInput> = {
-  id: "async-double-buffering-pipeline",
-  title: "Async Double-Buffering Copy Pipeline",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
-  description: "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: ASYNCDOUBLEBUFFERINGPIPELINE_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Double buffering pre-fetches stage k+1 memory while computing stage k.",
-    sections: [
-      { heading: "Core Concept", body: "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const asyncDoubleBufferingPipeline: AlgorithmDefinition<asyncDoubleBufferingPipelineInput> =
+  {
+    id: "async-double-buffering-pipeline",
+    title: "Async Double-Buffering Copy Pipeline",
+    category: "ml_gemm_roofline",
+    categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 2,
+    mlInfraCategory: "ml_gemm_roofline",
+    description: "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"Double Buffering","definition":"Pipelining memory loading with tensor computation."}],
-  },
-  trivia: ASYNCDOUBLEBUFFERINGPIPELINE_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
-  defaultInput: DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT,
-  generateSteps: generateAsyncDoubleBufferingPipelineSteps,
-};
+    code: ASYNCDOUBLEBUFFERINGPIPELINE_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview: "Double buffering pre-fetches stage k+1 memory while computing stage k.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Overlaps HBM-to-SRAM async transfers (cp.async) with Tensor Core compute.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Double Buffering",
+          definition: "Pipelining memory loading with tensor computation.",
+        },
+      ],
+    },
+    trivia: ASYNCDOUBLEBUFFERINGPIPELINE_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+    defaultInput: DEFAULT_ASYNCDOUBLEBUFFERINGPIPELINE_INPUT,
+    generateSteps: generateAsyncDoubleBufferingPipelineSteps,
+  };

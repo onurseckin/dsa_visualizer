@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateEulerTotientSteps,
-  DEFAULT_EULER_TOTIENT_INPUT,
-} from "../eulerTotientFunction";
+import { generateEulerTotientSteps, DEFAULT_EULER_TOTIENT_INPUT } from "../eulerTotientFunction";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("eulerTotientFunction React component spec", () => {

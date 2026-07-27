@@ -11,7 +11,9 @@ describe("subvectorDecompositionCodebook", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = subvectorDecompositionCodebook.generateSteps(subvectorDecompositionCodebook.defaultInput);
+    const steps = subvectorDecompositionCodebook.generateSteps(
+      subvectorDecompositionCodebook.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

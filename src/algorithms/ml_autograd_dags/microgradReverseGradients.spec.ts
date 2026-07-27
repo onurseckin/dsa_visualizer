@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { microgradReverseGradients, DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT, generateMicrogradReverseGradientsSteps } from "./microgradReverseGradients";
+import {
+  microgradReverseGradients,
+  DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT,
+  generateMicrogradReverseGradientsSteps,
+} from "./microgradReverseGradients";
 
 describe("micrograd-reverse-gradients (Micrograd Reverse-Mode Automatic Differentiation)", () => {
   it("should have correct metadata", () => {

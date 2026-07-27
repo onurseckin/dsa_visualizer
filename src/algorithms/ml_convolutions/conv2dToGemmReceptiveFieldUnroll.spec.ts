@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { conv2dToGemmReceptiveFieldUnroll, DEFAULT_CONV2DTOGEMMRECEPTIVEFIELDUNROLL_INPUT, generateConv2dToGemmReceptiveFieldUnrollSteps } from "./conv2dToGemmReceptiveFieldUnroll";
+import {
+  conv2dToGemmReceptiveFieldUnroll,
+  DEFAULT_CONV2DTOGEMMRECEPTIVEFIELDUNROLL_INPUT,
+  generateConv2dToGemmReceptiveFieldUnrollSteps,
+} from "./conv2dToGemmReceptiveFieldUnroll";
 
 describe("conv2d-to-gemm-receptive-field-unroll (Conv2D Receptive Field Patch Unroller)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("conv2d-to-gemm-receptive-field-unroll (Conv2D Receptive Field Patch Un
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateConv2dToGemmReceptiveFieldUnrollSteps(DEFAULT_CONV2DTOGEMMRECEPTIVEFIELDUNROLL_INPUT);
+    const steps = generateConv2dToGemmReceptiveFieldUnrollSteps(
+      DEFAULT_CONV2DTOGEMMRECEPTIVEFIELDUNROLL_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Conv2D Receptive Field Patch Unroller");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

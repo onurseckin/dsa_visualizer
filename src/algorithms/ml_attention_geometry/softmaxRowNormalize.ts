@@ -6,7 +6,8 @@ export interface softmaxRowNormalizeInput {
   target?: number;
 }
 
-export const SOFTMAXROWNORMALIZE_CODE = "def softmax_row_normalize(input_data: list) -> list:\n    # Softmax Row Normalizer (Easy)\n    # Normalizes row vectors into valid probability distributions summing to 1.0.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const SOFTMAXROWNORMALIZE_CODE =
+  "def softmax_row_normalize(input_data: list) -> list:\n    # Softmax Row Normalizer (Easy)\n    # Normalizes row vectors into valid probability distributions summing to 1.0.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_SOFTMAXROWNORMALIZE_INPUT: softmaxRowNormalizeInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_SOFTMAXROWNORMALIZE_INPUT: softmaxRowNormalizeInput = {
 };
 
 export const generateSoftmaxRowNormalizeSteps = (
-  input: softmaxRowNormalizeInput
+  input: softmaxRowNormalizeInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateSoftmaxRowNormalizeSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateSoftmaxRowNormalizeSteps = (
     1,
     "Initialize Softmax Row Normalizer",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateSoftmaxRowNormalizeSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateSoftmaxRowNormalizeSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateSoftmaxRowNormalizeSteps = (
 
 const SOFTMAXROWNORMALIZE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Softmax Row Normalizer.",
@@ -106,8 +112,8 @@ const SOFTMAXROWNORMALIZE_TRIVIA: TriviaMeta = {
 export const softmaxRowNormalize: AlgorithmDefinition<softmaxRowNormalizeInput> = {
   id: "softmax-row-normalize",
   title: "Softmax Row Normalizer",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","math_and_number_theory"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 7,
@@ -153,10 +159,18 @@ export const softmaxRowNormalize: AlgorithmDefinition<softmaxRowNormalizeInput> 
   topicGuide: {
     overview: "Softmax converts raw score logits into probability weights.",
     sections: [
-      { heading: "Core Concept", body: "Normalizes row vectors into valid probability distributions summing to 1.0." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Normalizes row vectors into valid probability distributions summing to 1.0.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Row Softmax","definition":"Normalizing matrix rows into probability vectors."}],
+    keyTerms: [
+      { term: "Row Softmax", definition: "Normalizing matrix rows into probability vectors." },
+    ],
   },
   trivia: SOFTMAXROWNORMALIZE_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { softmaxRowNormalize, DEFAULT_SOFTMAXROWNORMALIZE_INPUT, generateSoftmaxRowNormalizeSteps } from "./softmaxRowNormalize";
+import {
+  softmaxRowNormalize,
+  DEFAULT_SOFTMAXROWNORMALIZE_INPUT,
+  generateSoftmaxRowNormalizeSteps,
+} from "./softmaxRowNormalize";
 
 describe("softmax-row-normalize (Softmax Row Normalizer)", () => {
   it("should have correct metadata", () => {

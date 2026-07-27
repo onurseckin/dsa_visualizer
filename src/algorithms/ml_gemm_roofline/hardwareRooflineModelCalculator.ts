@@ -2,34 +2,54 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface hardwareRooflineModelCalculatorInput {
-  data: number[];
-  target?: number;
+  flops: number;
+  bytes: number;
+  peakGflops: number;
+  peakBandwidthGBs: number;
 }
 
-export const HARDWAREROOFLINEMODELCALCULATOR_CODE = "def hardware_roofline_model_calculator(input_data: list) -> list:\n    # Berkeley Hardware Roofline Model Calculator (Hard)\n    # Calculates kernel Arithmetic Intensity (FLOPs/byte) and bounds peak GFLOPS.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const HARDWAREROOFLINEMODELCALCULATOR_CODE = `def hardware_roofline_model_calculator(flops: float, bytes: float, peak_gflops: float, peak_bw: float) -> str:
+    # Berkeley Hardware Roofline Model Calculator
+    # Returns "Compute-Bound" or "Memory-Bound" based on Arithmetic Intensity
+    
+    if bytes <= 0:
+        return "Compute-Bound"
+        
+    # AI: Arithmetic Intensity (FLOPs / byte)
+    ai = flops / bytes
+    
+    # Machine Balance (Ridge Point)
+    machine_balance = peak_gflops / peak_bw
+    
+    if ai >= machine_balance:
+        return "Compute-Bound"
+    else:
+        return "Memory-Bound"`;
 
 export const DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT: hardwareRooflineModelCalculatorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  flops: 1000,
+  bytes: 500,
+  peakGflops: 100,
+  peakBandwidthGBs: 50,
 };
 
 export const generateHardwareRooflineModelCalculatorSteps = (
-  input: hardwareRooflineModelCalculatorInput
+  input: hardwareRooflineModelCalculatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const elements: ArrayElement[] = [
+    { id: "ai", value: 0, state: "default", pointers: ["AI"] },
+    { id: "balance", value: 0, state: "default", pointers: ["Ridge Point"] },
+  ];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -42,124 +62,141 @@ export const generateHardwareRooflineModelCalculatorSteps = (
           pointers: el.pointers ? [...el.pointers] : undefined,
         })),
       },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
       variables,
+      auxiliaryState: { customState: {} },
     });
   };
 
   addStep(
-    1,
-    "Initialize Berkeley Hardware Roofline Model Calculator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    5,
+    "Initialize Roofline Calculation",
+    "Starting calculation of Arithmetic Intensity vs Machine Balance.",
+    { flops: input.flops, bytes: input.bytes },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
-  });
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  const ai = input.bytes > 0 ? input.flops / input.bytes : Infinity;
+  elements[0] = { ...elements[0], value: ai, state: "active" };
 
   addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
+    9,
+    "Calculate Arithmetic Intensity (AI)",
+    `AI = FLOPs / bytes = ${input.flops} / ${input.bytes} = ${ai}`,
+    { ai },
+    elements,
+  );
+
+  const machineBalance = input.peakGflops / input.peakBandwidthGBs;
+  elements[1] = { ...elements[1], value: machineBalance, state: "compare" };
+
+  addStep(
+    12,
+    "Calculate Machine Balance (Ridge Point)",
+    `Balance = Peak GFLOPS / Peak BW = ${input.peakGflops} / ${input.peakBandwidthGBs} = ${machineBalance}`,
+    { machineBalance },
+    elements,
+  );
+
+  const isComputeBound = ai >= machineBalance;
+  elements[0] = { ...elements[0], state: isComputeBound ? "sorted" : "default" };
+  elements[1] = { ...elements[1], state: isComputeBound ? "default" : "sorted" };
+
+  addStep(
+    14,
+    "Compare AI and Machine Balance",
+    isComputeBound
+      ? `AI (${ai}) >= Balance (${machineBalance}), so kernel is Compute-Bound.`
+      : `AI (${ai}) < Balance (${machineBalance}), so kernel is Memory-Bound.`,
+    { isComputeBound },
+    elements,
   );
 
   return steps;
 };
 
 const HARDWAREROOFLINEMODELCALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  skipLines: [],
+  distractors: ["ai = bytes / flops", "machine_balance = peak_bw / peak_gflops"],
+  hints: [{ line: 9, hint: "Arithmetic Intensity is operations per byte." }],
   lineExplanations: {
-    1: "Defines entry point for Berkeley Hardware Roofline Model Calculator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    9: "Calculates the kernel's operational intensity.",
+    12: "Calculates hardware's inflection point.",
   },
 };
 
-export const hardwareRooflineModelCalculator: AlgorithmDefinition<hardwareRooflineModelCalculatorInput> = {
-  id: "hardware-roofline-model-calculator",
-  title: "Berkeley Hardware Roofline Model Calculator",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","math_and_number_theory"] as any,
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
-  description: "Calculates kernel Arithmetic Intensity (FLOPs/byte) and bounds peak GFLOPS.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: HARDWAREROOFLINEMODELCALCULATOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Roofline models classify kernels as Memory-Bound vs Compute-Bound.",
-    sections: [
-      { heading: "Core Concept", body: "Calculates kernel Arithmetic Intensity (FLOPs/byte) and bounds peak GFLOPS." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const hardwareRooflineModelCalculator: AlgorithmDefinition<hardwareRooflineModelCalculatorInput> =
+  {
+    id: "hardware-roofline-model-calculator",
+    title: "Berkeley Hardware Roofline Model Calculator",
+    category: "ml_gemm_roofline",
+    categories: ["ml_gemm_roofline", "math_and_number_theory"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 2,
+    mlInfraCategory: "ml_gemm_roofline",
+    description: "Calculates kernel Arithmetic Intensity (FLOPs/byte) and bounds peak GFLOPS.",
+    constraints: ["flops >= 0", "bytes >= 1", "peakGflops > 0", "peakBandwidthGBs > 0"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Compute Bound Kernel",
+        inputDisplay: "flops=1000, bytes=100, peakGflops=50, peakBW=10",
+        outputDisplay: "Compute-Bound",
+        input: { flops: 1000, bytes: 100, peakGflops: 50, peakBandwidthGBs: 10 },
+        output: "Compute-Bound",
+        explanation: "AI (10) >= Machine Balance (5), kernel is compute-bound.",
+      },
+      {
+        kind: "complex",
+        title: "Memory Bound Kernel",
+        inputDisplay: "flops=500, bytes=500, peakGflops=100, peakBW=10",
+        outputDisplay: "Memory-Bound",
+        input: { flops: 500, bytes: 500, peakGflops: 100, peakBandwidthGBs: 10 },
+        output: "Memory-Bound",
+        explanation: "AI (1) < Machine Balance (10), kernel is memory-bound.",
+      },
+      {
+        kind: "negative",
+        title: "Zero Bytes Transferred",
+        inputDisplay: "flops=100, bytes=0, peakGflops=100, peakBW=50",
+        outputDisplay: "Compute-Bound",
+        input: { flops: 100, bytes: 0, peakGflops: 100, peakBandwidthGBs: 50 },
+        output: "Compute-Bound",
+        explanation: "Zero bytes means infinite AI, always compute-bound.",
+      },
     ],
-    keyTerms: [{"term":"Arithmetic Intensity","definition":"Ratio of FLOPs executed per byte transferred from DRAM/HBM."}],
-  },
-  trivia: HARDWAREROOFLINEMODELCALCULATOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
-  defaultInput: DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
-  generateSteps: generateHardwareRooflineModelCalculatorSteps,
-};
+    code: HARDWAREROOFLINEMODELCALCULATOR_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Constant time math operations.",
+      space: "Constant memory for variables.",
+    },
+    topicGuide: {
+      overview:
+        "Roofline models classify kernels as Memory-Bound vs Compute-Bound based on theoretical hardware peaks.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Calculates Arithmetic Intensity (FLOPs/byte) and compares against Machine Balance.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Identifies whether optimization should focus on memory access or computation.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Arithmetic Intensity",
+          definition: "Ratio of FLOPs executed per byte transferred from DRAM.",
+        },
+        {
+          term: "Machine Balance",
+          definition: "Ridge point where kernel transitions from memory-bound to compute-bound.",
+        },
+      ],
+    },
+    trivia: HARDWAREROOFLINEMODELCALCULATOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+    defaultInput: DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
+    generateSteps: generateHardwareRooflineModelCalculatorSteps,
+  };

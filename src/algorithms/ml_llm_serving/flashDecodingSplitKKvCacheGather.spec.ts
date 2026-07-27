@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { flashDecodingSplitKKvCacheGather, DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT, generateFlashDecodingSplitKKvCacheGatherSteps } from "./flashDecodingSplitKKvCacheGather";
+import {
+  flashDecodingSplitKKvCacheGather,
+  DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT,
+  generateFlashDecodingSplitKKvCacheGatherSteps,
+} from "./flashDecodingSplitKKvCacheGather";
 
 describe("flash-decoding-split-k-kv-cache-gather (FlashDecoding Split-K KV Cache Gather Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("flash-decoding-split-k-kv-cache-gather (FlashDecoding Split-K KV Cache
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateFlashDecodingSplitKKvCacheGatherSteps(DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT);
+    const steps = generateFlashDecodingSplitKKvCacheGatherSteps(
+      DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("FlashDecoding Split-K KV Cache Gather Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

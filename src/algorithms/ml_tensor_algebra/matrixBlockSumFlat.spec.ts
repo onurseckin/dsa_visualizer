@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { matrixBlockSumFlat, DEFAULT_MATRIXBLOCKSUMFLAT_INPUT, generateMatrixBlockSumFlatSteps } from "./matrixBlockSumFlat";
+import {
+  matrixBlockSumFlat,
+  DEFAULT_MATRIXBLOCKSUMFLAT_INPUT,
+  generateMatrixBlockSumFlatSteps,
+} from "./matrixBlockSumFlat";
 
 describe("matrix-block-sum-flat (Submatrix Block Sum with 2D Prefix Array)", () => {
   it("should have correct metadata", () => {

@@ -6,16 +6,15 @@ export interface naive3LoopMatmulInput {
   target?: number;
 }
 
-export const NAIVE3LOOPMATMUL_CODE = "def naive3_loop_matmul(input_data: list) -> list:\n    # Naive Triply-Nested Loop GEMM O(N^3) (Easy)\n    # Baseline triple-loop matrix multiplication without cache optimization.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const NAIVE3LOOPMATMUL_CODE =
+  "def naive3_loop_matmul(input_data: list) -> list:\n    # Naive Triply-Nested Loop GEMM O(N^3) (Easy)\n    # Baseline triple-loop matrix multiplication without cache optimization.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_NAIVE3LOOPMATMUL_INPUT: naive3LoopMatmulInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateNaive3LoopMatmulSteps = (
-  input: naive3LoopMatmulInput
-): AlgorithmStep[] => {
+export const generateNaive3LoopMatmulSteps = (input: naive3LoopMatmulInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateNaive3LoopMatmulSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateNaive3LoopMatmulSteps = (
     1,
     "Initialize Naive Triply-Nested Loop GEMM O(N^3)",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateNaive3LoopMatmulSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateNaive3LoopMatmulSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateNaive3LoopMatmulSteps = (
 
 const NAIVE3LOOPMATMUL_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Naive Triply-Nested Loop GEMM O(N^3).",
@@ -106,8 +110,8 @@ const NAIVE3LOOPMATMUL_TRIVIA: TriviaMeta = {
 export const naive3LoopMatmul: AlgorithmDefinition<naive3LoopMatmulInput> = {
   id: "naive-3-loop-matmul",
   title: "Naive Triply-Nested Loop GEMM O(N^3)",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +157,16 @@ export const naive3LoopMatmul: AlgorithmDefinition<naive3LoopMatmulInput> = {
   topicGuide: {
     overview: "Naive GEMM uses 3 nested loops (i, j, k) to compute C[i][j] += A[i][k] * B[k][j].",
     sections: [
-      { heading: "Core Concept", body: "Baseline triple-loop matrix multiplication without cache optimization." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Baseline triple-loop matrix multiplication without cache optimization.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"O(N^3) GEMM","definition":"Triple nested loop matrix multiplication."}],
+    keyTerms: [{ term: "O(N^3) GEMM", definition: "Triple nested loop matrix multiplication." }],
   },
   trivia: NAIVE3LOOPMATMUL_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

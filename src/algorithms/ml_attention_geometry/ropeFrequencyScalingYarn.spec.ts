@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ropeFrequencyScalingYarn, DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT, generateRopeFrequencyScalingYarnSteps } from "./ropeFrequencyScalingYarn";
+import {
+  ropeFrequencyScalingYarn,
+  DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT,
+  generateRopeFrequencyScalingYarnSteps,
+} from "./ropeFrequencyScalingYarn";
 
 describe("rope-frequency-scaling-yarn (RoPE NTK-Aware & YaRN Frequency Scaling)", () => {
   it("should have correct metadata", () => {

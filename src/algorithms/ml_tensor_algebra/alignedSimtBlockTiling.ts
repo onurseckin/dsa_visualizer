@@ -6,7 +6,8 @@ export interface alignedSimtBlockTilingInput {
   target?: number;
 }
 
-export const ALIGNEDSIMTBLOCKTILING_CODE = "def aligned_simt_block_tiling(input_data: list) -> list:\n    # SIMD/SIMT Aligned Memory Tiling Engine (Hard)\n    # Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ALIGNEDSIMTBLOCKTILING_CODE =
+  "def aligned_simt_block_tiling(input_data: list) -> list:\n    # SIMD/SIMT Aligned Memory Tiling Engine (Hard)\n    # Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ALIGNEDSIMTBLOCKTILING_INPUT: alignedSimtBlockTilingInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ALIGNEDSIMTBLOCKTILING_INPUT: alignedSimtBlockTilingInput =
 };
 
 export const generateAlignedSimtBlockTilingSteps = (
-  input: alignedSimtBlockTilingInput
+  input: alignedSimtBlockTilingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAlignedSimtBlockTilingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAlignedSimtBlockTilingSteps = (
     1,
     "Initialize SIMD/SIMT Aligned Memory Tiling Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAlignedSimtBlockTilingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAlignedSimtBlockTilingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAlignedSimtBlockTilingSteps = (
 
 const ALIGNEDSIMTBLOCKTILING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for SIMD/SIMT Aligned Memory Tiling Engine.",
@@ -106,13 +112,14 @@ const ALIGNEDSIMTBLOCKTILING_TRIVIA: TriviaMeta = {
 export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingInput> = {
   id: "aligned-simt-block-tiling",
   title: "SIMD/SIMT Aligned Memory Tiling Engine",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
-  description: "Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput.",
+  description:
+    "Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -151,12 +158,24 @@ export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingI
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Vectorized 128-bit memory instructions require addresses aligned to 16-byte boundaries.",
+    overview:
+      "Vectorized 128-bit memory instructions require addresses aligned to 16-byte boundaries.",
     sections: [
-      { heading: "Core Concept", body: "Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Aligns 1D memory tile offsets to GPU 128-bit vector load boundaries to maximize throughput.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Vector Load Alignment","definition":"Aligning memory pointers for 128-bit SIMD/SIMT load instructions."}],
+    keyTerms: [
+      {
+        term: "Vector Load Alignment",
+        definition: "Aligning memory pointers for 128-bit SIMD/SIMT load instructions.",
+      },
+    ],
   },
   trivia: ALIGNEDSIMTBLOCKTILING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

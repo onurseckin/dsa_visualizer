@@ -56,7 +56,8 @@ export const TRITON_FUSION_EXAMPLES: ProblemExample<TritonFusionInput>[] = [
       biasVector: [0.2, 0.1, -0.5, 0.5, 1.0, -0.2],
     },
     output: "6 Fused activation outputs computed in 3 GPU program blocks",
-    explanation: "Eliminates intermediate DRAM memory allocations by executing Bias addition and GELU non-linearity inside GPU SRAM registers.",
+    explanation:
+      "Eliminates intermediate DRAM memory allocations by executing Bias addition and GELU non-linearity inside GPU SRAM registers.",
   },
   {
     id: "complex",
@@ -69,7 +70,8 @@ export const TRITON_FUSION_EXAMPLES: ProblemExample<TritonFusionInput>[] = [
       biasVector: [0.0, -0.2, 0.5, -1.0, 0.1, 0.5, -0.5, 1.0],
     },
     output: "8 Fused outputs across 2 program block launches",
-    explanation: "Higher block size improves thread occupancy per GPU streaming multiprocessor (SM).",
+    explanation:
+      "Higher block size improves thread occupancy per GPU streaming multiprocessor (SM).",
   },
   {
     id: "negative",
@@ -124,7 +126,7 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
     what: string,
     why: string,
     activeBlockId: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -162,7 +164,7 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
     "Initialize Triton Fused Kernel Execution Grid",
     `Spawning ${numBlocks} GPU thread blocks with block size ${blockSize} to execute fused Bias+GELU.`,
     -1,
-    { N, blockSize, numBlocks }
+    { N, blockSize, numBlocks },
   );
 
   for (let pid = 0; pid < numBlocks; pid++) {
@@ -171,7 +173,8 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
 
     for (let i = blockStart; i < blockEnd; i++) {
       const val = (X[i] ?? 0) + (B[i] ?? 0);
-      const cdf = 0.5 * (1.0 + Math.tanh(Math.sqrt(2.0 / Math.PI) * (val + 0.044715 * Math.pow(val, 3))));
+      const cdf =
+        0.5 * (1.0 + Math.tanh(Math.sqrt(2.0 / Math.PI) * (val + 0.044715 * Math.pow(val, 3))));
       output[i] = val * cdf;
     }
 
@@ -180,7 +183,7 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
       `Executed GPU Program Block #${pid} (Indices ${blockStart}..${blockEnd - 1})`,
       `Computed fused Bias addition and GELU activation directly in GPU registers/SRAM, bypassing DRAM intermediate allocation.`,
       pid,
-      { programId: pid, blockStart, blockEnd: blockEnd - 1 }
+      { programId: pid, blockStart, blockEnd: blockEnd - 1 },
     );
   }
 
@@ -193,7 +196,7 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
     "Triton Fused Kernel Execution Complete",
     `Successfully processed all ${N} elements across ${numBlocks} blocks with 1 single DRAM write pass.`,
     numBlocks,
-    { totalElements: N, totalBlocks: numBlocks }
+    { totalElements: N, totalBlocks: numBlocks },
   );
 
   return steps;
@@ -223,7 +226,8 @@ export const tritonKernelFusion: AlgorithmDefinition<TritonFusionInput> = {
   spaceComplexity: "O(N)",
   complexityAnalysis: {
     time: "O(N) arithmetic operations executed in parallel across GPU Streaming Multiprocessors (SMs).",
-    space: "O(N) for final output matrix; zero intermediate DRAM allocations required due to register-level fusion.",
+    space:
+      "O(N) for final output matrix; zero intermediate DRAM allocations required due to register-level fusion.",
   },
   topicGuide: {
     overview:
@@ -245,7 +249,8 @@ export const tritonKernelFusion: AlgorithmDefinition<TritonFusionInput> = {
       },
       {
         term: "Triton",
-        definition: "Python-based domain-specific language for writing high-performance CUDA/GPU hardware kernels.",
+        definition:
+          "Python-based domain-specific language for writing high-performance CUDA/GPU hardware kernels.",
       },
     ],
   },

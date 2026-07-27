@@ -161,7 +161,10 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
             <Badge variant="neutral" size="md">
               {deck.length} of {algorithms.length} algorithms selected
             </Badge>
-            {search.trim().length > 0 || categoryFilter !== "ALL" || difficultyFilter !== "ALL" || sourceFilter !== "ALL" ? (
+            {search.trim().length > 0 ||
+            categoryFilter !== "ALL" ||
+            difficultyFilter !== "ALL" ||
+            sourceFilter !== "ALL" ? (
               <>
                 <Badge variant="neutral" size="md">
                   {visibleIds.length} shown

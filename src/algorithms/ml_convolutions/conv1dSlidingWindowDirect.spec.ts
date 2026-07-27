@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { conv1dSlidingWindowDirect, DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT, generateConv1dSlidingWindowDirectSteps } from "./conv1dSlidingWindowDirect";
+import {
+  conv1dSlidingWindowDirect,
+  DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT,
+  generateConv1dSlidingWindowDirectSteps,
+} from "./conv1dSlidingWindowDirect";
 
 describe("conv1d-sliding-window-direct (1D Cross-Correlation Basics)", () => {
   it("should have correct metadata", () => {

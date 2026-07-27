@@ -1,13 +1,27 @@
 import React from "react";
 import { Book } from "lucide-react";
-import type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind, MlInfraSource } from "../../types/dsa";
+import type {
+  ProblemSource,
+  BookSource,
+  LeetCodeSource,
+  StandardSource,
+  SourceKind,
+  MlInfraSource,
+} from "../../types/dsa";
 import { getSourceKind } from "../../types/dsa";
 import type { BadgeSize } from "./Badge";
 import { Badge } from "./Badge";
 import { LeetCodeBadge } from "./LeetCodeBadge";
 import { cx } from "../cx";
 
-export type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind, MlInfraSource };
+export type {
+  ProblemSource,
+  BookSource,
+  LeetCodeSource,
+  StandardSource,
+  SourceKind,
+  MlInfraSource,
+};
 
 export interface BookBadgeProps {
   book?: BookSource;
@@ -47,7 +61,7 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
         size={size}
         className={cx(
           "inline-flex items-center gap-1.5 font-mono text-cyan-300 border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/40 transition-colors",
-          className
+          className,
         )}
         title={bookTitle}
         aria-label={bookTitle}
@@ -60,9 +74,7 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
 
   const shortName =
     shortTitle ??
-    (bookTitle.toLowerCase().includes("competitive programmer")
-      ? "CP Handbook"
-      : bookTitle);
+    (bookTitle.toLowerCase().includes("competitive programmer") ? "CP Handbook" : bookTitle);
 
   let titleText = `${bookTitle} — Chapter ${chapter}`;
   if (chapterTitle && section) {
@@ -79,13 +91,15 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
       size={size}
       className={cx(
         "inline-flex items-center gap-1.5 font-mono text-cyan-300 border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/40 transition-colors",
-        className
+        className,
       )}
       title={titleText}
       aria-label={titleText}
     >
       <Book className="w-3.5 h-3.5 shrink-0 text-cyan-400" aria-hidden="true" />
-      <span>{shortName} Ch {chapter}</span>
+      <span>
+        {shortName} Ch {chapter}
+      </span>
     </Badge>
   );
 };
@@ -147,11 +161,7 @@ export interface SourceBadgeProps {
   className?: string;
 }
 
-export const SourceBadge: React.FC<SourceBadgeProps> = ({
-  source,
-  size = "sm",
-  className,
-}) => {
+export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", className }) => {
   if (!source) {
     return null;
   }
@@ -163,45 +173,23 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({
     const id = leetcodeSource.id ?? leetcodeSource.leetcodeId;
     const url = leetcodeSource.url ?? (id ? `https://leetcode.com/problems/` : undefined);
     if (id && url) {
-      return (
-        <LeetCodeBadge
-          leetcode={{ id, url }}
-          size={size}
-          className={className}
-        />
-      );
+      return <LeetCodeBadge leetcode={{ id, url }} size={size} className={className} />;
     }
   }
 
   if (kind === "book") {
-    return (
-      <BookBadge
-        book={source as BookSource}
-        size={size}
-        className={className}
-      />
-    );
+    return <BookBadge book={source as BookSource} size={size} className={className} />;
   }
 
   if (kind === "standard") {
     const stdSource = source as StandardSource;
     return (
-      <StandardBadge
-        size={size}
-        className={className}
-        label={stdSource.label ?? "Standard"}
-      />
+      <StandardBadge size={size} className={className} label={stdSource.label ?? "Standard"} />
     );
   }
 
   if (kind === "ml_infra") {
-    return (
-      <MlInfraBadge
-        size={size}
-        className={className}
-        label={source.label ?? "ML Infra"}
-      />
-    );
+    return <MlInfraBadge size={size} className={className} label={source.label ?? "ML Infra"} />;
   }
 
   return null;
@@ -224,8 +212,16 @@ export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
     sources && sources.length > 0
       ? sources
       : leetcode
-      ? [{ kind: "leetcode", type: "leetcode", id: leetcode.id, leetcodeId: leetcode.id, url: leetcode.url }]
-      : [{ kind: "standard", type: "standard", label: "Standard" }];
+        ? [
+            {
+              kind: "leetcode",
+              type: "leetcode",
+              id: leetcode.id,
+              leetcodeId: leetcode.id,
+              url: leetcode.url,
+            },
+          ]
+        : [{ kind: "standard", type: "standard", label: "Standard" }];
 
   return (
     <div className={className}>

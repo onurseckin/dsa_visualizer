@@ -6,7 +6,8 @@ export interface tritonTensorCoreMmaSwizzleInput {
   target?: number;
 }
 
-export const TRITONTENSORCOREMMASWIZZLE_CODE = "def triton_tensor_core_mma_swizzle(input_data: list) -> list:\n    # Triton Tensor Core MMA Layout Swizzler (Hard)\n    # Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TRITONTENSORCOREMMASWIZZLE_CODE =
+  "def triton_tensor_core_mma_swizzle(input_data: list) -> list:\n    # Triton Tensor Core MMA Layout Swizzler (Hard)\n    # Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT: tritonTensorCoreMmaSwizzleInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_TRITONTENSORCOREMMASWIZZLE_INPUT: tritonTensorCoreMmaSwizzl
 };
 
 export const generateTritonTensorCoreMmaSwizzleSteps = (
-  input: tritonTensorCoreMmaSwizzleInput
+  input: tritonTensorCoreMmaSwizzleInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     1,
     "Initialize Triton Tensor Core MMA Layout Swizzler",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
 
 const TRITONTENSORCOREMMASWIZZLE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Triton Tensor Core MMA Layout Swizzler.",
@@ -106,13 +112,14 @@ const TRITONTENSORCOREMMASWIZZLE_TRIVIA: TriviaMeta = {
 export const tritonTensorCoreMmaSwizzle: AlgorithmDefinition<tritonTensorCoreMmaSwizzleInput> = {
   id: "triton-tensor-core-mma-swizzle",
   title: "Triton Tensor Core MMA Layout Swizzler",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
-  description: "Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.",
+  description:
+    "Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -153,10 +160,18 @@ export const tritonTensorCoreMmaSwizzle: AlgorithmDefinition<tritonTensorCoreMma
   topicGuide: {
     overview: "Swizzling rearranges shared memory layouts to avoid GPU bank conflicts.",
     sections: [
-      { heading: "Core Concept", body: "Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Swizzles shared memory address layouts for NVIDIA mma.sync Tensor Core instructions.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Swizzling","definition":"XOR-based address permuting to eliminate bank conflicts."}],
+    keyTerms: [
+      { term: "Swizzling", definition: "XOR-based address permuting to eliminate bank conflicts." },
+    ],
   },
   trivia: TRITONTENSORCOREMMASWIZZLE_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

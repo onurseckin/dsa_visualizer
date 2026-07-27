@@ -286,7 +286,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = \"A\"",
+      inputDisplay: 'graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = "A"',
       outputDisplay: "{A: 0, B: 3, C: 2, D: 8, E: 10}",
       title: "Basic Example",
       input: {
@@ -308,7 +308,8 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "graph = {S-A:7, S-C:9, S-F:14, A-B:10, A-C:15, B-D:15, C-D:11, C-F:2, D-E:6, F-E:9}, start = \"S\"",
+      inputDisplay:
+        'graph = {S-A:7, S-C:9, S-F:14, A-B:10, A-C:15, B-D:15, C-D:11, C-F:2, D-E:6, F-E:9}, start = "S"',
       outputDisplay: "{S: 0, A: 7, B: 17, C: 9, D: 20, E: 20, F: 11}",
       title: "Complex Edge Case",
       input: {
@@ -327,7 +328,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "graph = {A: [], B: []}, start = \"A\"",
+      inputDisplay: 'graph = {A: [], B: []}, start = "A"',
       outputDisplay: "{A: 0, B: ∞}",
       title: "Failing / Boundary Case",
       input: {

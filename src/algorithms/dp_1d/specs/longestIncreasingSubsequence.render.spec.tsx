@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateLisSteps,
-  DEFAULT_LIS_INPUT,
-} from "../longestIncreasingSubsequence";
+import { generateLisSteps, DEFAULT_LIS_INPUT } from "../longestIncreasingSubsequence";
 
 describe("longestIncreasingSubsequence React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {

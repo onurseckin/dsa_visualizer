@@ -25,8 +25,12 @@ export const PYTHON_KNAPSACK_01_CODE = `def knapsack_01(weights: list[int], valu
     return dp[capacity]`;
 
 export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[] => {
-  const weights = input?.weights && input.weights.length > 0 ? [...input.weights] : DEFAULT_KNAPSACK_01_INPUT.weights;
-  const values = input?.values && input.values.length > 0 ? [...input.values] : DEFAULT_KNAPSACK_01_INPUT.values;
+  const weights =
+    input?.weights && input.weights.length > 0
+      ? [...input.weights]
+      : DEFAULT_KNAPSACK_01_INPUT.weights;
+  const values =
+    input?.values && input.values.length > 0 ? [...input.values] : DEFAULT_KNAPSACK_01_INPUT.values;
   const capacity = Math.max(0, input?.capacity ?? DEFAULT_KNAPSACK_01_INPUT.capacity);
   const n = weights.length;
   const steps: AlgorithmStep[] = [];
@@ -82,8 +86,7 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
             id: `dp-${idx}`,
             value: val,
             state: idx === c ? "active" : idx === c - w ? "compare" : "default",
-            pointers:
-              idx === c ? [`cap ${c}`] : idx === c - w ? [`cap ${c - w}`] : undefined,
+            pointers: idx === c ? [`cap ${c}`] : idx === c - w ? [`cap ${c - w}`] : undefined,
           })),
         },
         auxiliaryState: {
@@ -154,7 +157,8 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
       title: "Basic Case",
       input: { weights: [2, 1, 3, 2], values: [12, 10, 20, 15], capacity: 5 },
       output: "37",
-      explanation: "Items with weight 1 (val 10), weight 2 (val 15), weight 2 (val 12) sum to weight 5 and total value 37.",
+      explanation:
+        "Items with weight 1 (val 10), weight 2 (val 15), weight 2 (val 12) sum to weight 5 and total value 37.",
     },
     {
       kind: "complex",
@@ -163,7 +167,8 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
       title: "Complex Case",
       input: { weights: [3, 4, 5], values: [30, 50, 60], capacity: 8 },
       output: "90",
-      explanation: "Items with weight 3 (val 30) and weight 5 (val 60) give capacity 8 and total value 90.",
+      explanation:
+        "Items with weight 3 (val 30) and weight 5 (val 60) give capacity 8 and total value 90.",
     },
     {
       kind: "negative",
@@ -193,7 +198,7 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
     ],
   },
   trivia: KNAPSACK_01_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

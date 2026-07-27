@@ -38,7 +38,8 @@ export const quickSort: AlgorithmDefinition<number[]> = {
       title: "Basic Example",
       input: [6, 2, 9, 3, 7, 1, 5],
       output: "[1, 2, 3, 5, 6, 7, 9]",
-      explanation: "Partitions around pivot 5, recursively sorting sub-arrays [1, 2, 3] and [6, 9, 7].",
+      explanation:
+        "Partitions around pivot 5, recursively sorting sub-arrays [1, 2, 3] and [6, 9, 7].",
     },
     {
       kind: "complex",

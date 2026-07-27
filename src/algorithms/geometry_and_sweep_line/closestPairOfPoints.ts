@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphNodeItem, GraphEdgeItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphNodeItem,
+  GraphEdgeItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 import type { Point2D } from "./lineSegmentIntersection";
 
@@ -39,7 +45,10 @@ export const generateClosestPairOfPointsSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawPoints = input.points && input.points.length >= 2 ? input.points : DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points;
+  const rawPoints =
+    input.points && input.points.length >= 2
+      ? input.points
+      : DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points;
 
   const points = rawPoints
     .map((p, idx) => ({
@@ -61,10 +70,10 @@ export const generateClosestPairOfPointsSteps = (
     activePts: Array<Point2D & { id: string }> = [],
     comparingP?: Point2D & { id: string },
   ) => {
-    const nodes: GraphNodeItem[] = points.map(pt => {
+    const nodes: GraphNodeItem[] = points.map((pt) => {
       const isCurrent = currentP && currentP.id === pt.id;
       const isComparing = comparingP && comparingP.id === pt.id;
-      const isActive = activePts.some(ap => ap.id === pt.id);
+      const isActive = activePts.some((ap) => ap.id === pt.id);
       const isClosest = closestPair && (closestPair[0].id === pt.id || closestPair[1].id === pt.id);
 
       return {
@@ -75,12 +84,12 @@ export const generateClosestPairOfPointsSteps = (
         state: isComparing
           ? "swap"
           : isCurrent
-          ? "active"
-          : isClosest
-          ? "sorted"
-          : isActive
-          ? "visited"
-          : "default",
+            ? "active"
+            : isClosest
+              ? "sorted"
+              : isActive
+                ? "visited"
+                : "default",
       };
     });
 
@@ -179,7 +188,7 @@ export const generateClosestPairOfPointsSteps = (
             auxiliaryState: {
               hashMap: {
                 "Checked Pair": `${p.id} - ${activePt.id}`,
-                "Distance": d.toFixed(2),
+                Distance: d.toFixed(2),
                 "Current Min Distance": minDist.toFixed(2),
               },
             },
@@ -209,7 +218,10 @@ export const generateClosestPairOfPointsSteps = (
         "Final Minimum Distance": minDist.toFixed(2),
       },
     },
-    variables: { minDist, closestPair: closestPair ? `${closestPair[0].id}-${closestPair[1].id}` : "" },
+    variables: {
+      minDist,
+      closestPair: closestPair ? `${closestPair[0].id}-${closestPair[1].id}` : "",
+    },
   });
 
   return steps;
@@ -231,11 +243,13 @@ const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Euclidean Distance",
-      definition: "The straight-line distance sqrt((x2-x1)^2 + (y2-y1)^2) between two points in 2D space.",
+      definition:
+        "The straight-line distance sqrt((x2-x1)^2 + (y2-y1)^2) between two points in 2D space.",
     },
     {
       term: "Active Window Strip",
-      definition: "A sliding subset of points lying within delta X-distance from the current sweep point.",
+      definition:
+        "A sliding subset of points lying within delta X-distance from the current sweep point.",
     },
   ],
 };
@@ -265,10 +279,7 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   difficulty: "Hard",
   description:
     "Find the minimum distance between any pair of 2D points in O(N log N) using a vertical sweep line and active Y-interval candidate set.",
-  constraints: [
-    "2 <= points.length <= 50",
-    "0 <= x, y <= 500",
-  ],
+  constraints: ["2 <= points.length <= 50", "0 <= x, y <= 500"],
   examples: [
     {
       kind: "basic",
@@ -284,7 +295,8 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
         ],
       },
       output: "Distance: 22.36 (P2-P3)",
-      explanation: "Points P2(120,280) and P3(140,290) have minimal distance sqrt(20^2 + 10^2) = 22.36.",
+      explanation:
+        "Points P2(120,280) and P3(140,290) have minimal distance sqrt(20^2 + 10^2) = 22.36.",
     },
     {
       kind: "complex",
@@ -328,7 +340,7 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   },
   topicGuide: CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE,
   trivia: CLOSEST_PAIR_OF_POINTS_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

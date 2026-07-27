@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { recipeIndegreeKahnBfs, DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT, generateRecipeIndegreeKahnBfsSteps } from "./recipeIndegreeKahnBfs";
+import {
+  recipeIndegreeKahnBfs,
+  DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT,
+  generateRecipeIndegreeKahnBfsSteps,
+} from "./recipeIndegreeKahnBfs";
 
 describe("recipe-indegree-kahn-bfs (Kahn's BFS Topological Sort)", () => {
   it("should have correct metadata", () => {

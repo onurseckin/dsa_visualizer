@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphNodeItem, GraphEdgeItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphNodeItem,
+  GraphEdgeItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MarkovChainsInput {
@@ -42,12 +48,12 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     input.initialDistribution && input.initialDistribution[i] !== undefined
       ? Math.max(0, input.initialDistribution[i])
       : i === 0
-      ? 1
-      : 0,
+        ? 1
+        : 0,
   );
   const sumInitial = currentDist.reduce((a, b) => a + b, 0);
   if (sumInitial > 0) {
-    currentDist = currentDist.map(val => val / sumInitial);
+    currentDist = currentDist.map((val) => val / sumInitial);
   } else {
     currentDist[0] = 1.0;
   }
@@ -64,12 +70,13 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
         input.transitionMatrix[i][j] !== undefined
           ? Math.max(0, input.transitionMatrix[i][j])
           : i === j
-          ? 0.6
-          : 0.4 / (n - 1);
+            ? 0.6
+            : 0.4 / (n - 1);
       row.push(cell);
       rowSum += cell;
     }
-    const normalizedRow = rowSum > 0 ? row.map(v => v / rowSum) : row.map((_, idx) => (idx === i ? 1.0 : 0.0));
+    const normalizedRow =
+      rowSum > 0 ? row.map((v) => v / rowSum) : row.map((_, idx) => (idx === i ? 1.0 : 0.0));
     matrix.push(normalizedRow);
   }
 
@@ -119,7 +126,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Initializing Markov Chain with ${n} states. Initial distribution: [${currentDist.map(v => v.toFixed(2)).join(", ")}].`,
+      what: `Initializing Markov Chain with ${n} states. Initial distribution: [${currentDist.map((v) => v.toFixed(2)).join(", ")}].`,
       why: "A discrete-time Markov chain updates state probabilities at each step based purely on the current state distribution and transition matrix.",
     },
     primarySnapshot: {
@@ -128,8 +135,8 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     },
     auxiliaryState: {
       hashMap: {
-        "Step": 0,
-        "Distribution": currentDist.map(v => v.toFixed(3)).join(", "),
+        Step: 0,
+        Distribution: currentDist.map((v) => v.toFixed(3)).join(", "),
       },
     },
     variables: { step: 0 },
@@ -160,7 +167,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
       auxiliaryState: {
         hashMap: {
           "Current Step": s,
-          "Distribution": currentDist.map(v => v.toFixed(3)).join(", "),
+          Distribution: currentDist.map((v) => v.toFixed(3)).join(", "),
           "Most Likely State": `S${maxProbIdx}`,
         },
       },
@@ -173,7 +180,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 10,
     explanation: {
-      what: `Markov Chain simulation completed after ${rawSteps} steps. Final distribution: [${currentDist.map(v => v.toFixed(3)).join(", ")}].`,
+      what: `Markov Chain simulation completed after ${rawSteps} steps. Final distribution: [${currentDist.map((v) => v.toFixed(3)).join(", ")}].`,
       why: "Stationary/steady-state distribution describes the long-term proportion of time spent in each state.",
     },
     primarySnapshot: {
@@ -182,7 +189,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     },
     auxiliaryState: {
       hashMap: {
-        "Final Distribution": currentDist.map(v => v.toFixed(3)).join(", "),
+        "Final Distribution": currentDist.map((v) => v.toFixed(3)).join(", "),
         "Dominant State": `S${finalMaxIdx}`,
       },
     },
@@ -208,11 +215,13 @@ const MARKOV_CHAINS_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Transition Matrix",
-      definition: "A square stochastic matrix containing single-step transition probabilities between states.",
+      definition:
+        "A square stochastic matrix containing single-step transition probabilities between states.",
     },
     {
       term: "Stationary Distribution",
-      definition: "A state probability distribution that remains invariant under state transitions.",
+      definition:
+        "A state probability distribution that remains invariant under state transitions.",
     },
   ],
 };
@@ -236,11 +245,7 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   difficulty: "Medium",
   description:
     "Simulate state transitions and compute stationary distributions or probability distributions after k steps on a discrete-time Markov chain.",
-  constraints: [
-    "1 <= numStates <= 10",
-    "1 <= steps <= 100",
-    "0.0 <= matrix[i][j] <= 1.0",
-  ],
+  constraints: ["1 <= numStates <= 10", "1 <= steps <= 100", "0.0 <= matrix[i][j] <= 1.0"],
   examples: [
     {
       kind: "basic",
@@ -300,11 +305,12 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   spaceComplexity: "O(N^2)",
   complexityAnalysis: {
     time: "Each of the k steps multiplies an N-dimensional vector by an N x N transition matrix in O(N^2) time.",
-    space: "Requires storing N x N transition matrix and N-element probability distribution vectors.",
+    space:
+      "Requires storing N x N transition matrix and N-element probability distribution vectors.",
   },
   topicGuide: MARKOV_CHAINS_TOPIC_GUIDE,
   trivia: MARKOV_CHAINS_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

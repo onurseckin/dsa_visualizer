@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { rejectionSamplingAcceptanceThreshold, DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT, generateRejectionSamplingAcceptanceThresholdSteps } from "./rejectionSamplingAcceptanceThreshold";
+import {
+  rejectionSamplingAcceptanceThreshold,
+  DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT,
+  generateRejectionSamplingAcceptanceThresholdSteps,
+} from "./rejectionSamplingAcceptanceThreshold";
 
 describe("rejection-sampling-acceptance-threshold (Modified Rejection Sampling Acceptance Verifier)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("rejection-sampling-acceptance-threshold (Modified Rejection Sampling A
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateRejectionSamplingAcceptanceThresholdSteps(DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT);
+    const steps = generateRejectionSamplingAcceptanceThresholdSteps(
+      DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Modified Rejection Sampling Acceptance Verifier");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

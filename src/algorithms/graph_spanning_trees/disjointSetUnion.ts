@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DsuOperation {
@@ -32,11 +37,12 @@ const DSU_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateDisjointSetUnionSteps = (
-  input: DisjointSetUnionInput,
-): AlgorithmStep[] => {
+export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): AlgorithmStep[] => {
   const n = Math.max(2, Math.min(10, input.numNodes));
-  const ops = input.operations && input.operations.length > 0 ? input.operations : DEFAULT_DISJOINT_SET_UNION_INPUT.operations;
+  const ops =
+    input.operations && input.operations.length > 0
+      ? input.operations
+      : DEFAULT_DISJOINT_SET_UNION_INPUT.operations;
 
   const parent = Array.from({ length: n }, (_, i) => i);
   const rank = Array(n).fill(0);
@@ -354,11 +360,13 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
     keyTerms: [
       {
         term: "Disjoint Set Union (DSU)",
-        definition: "A data structure maintaining non-overlapping subsets with find and union operations.",
+        definition:
+          "A data structure maintaining non-overlapping subsets with find and union operations.",
       },
       {
         term: "Path Compression",
-        definition: "Optimization where visited nodes are reparented directly to the set's root during find.",
+        definition:
+          "Optimization where visited nodes are reparented directly to the set's root during find.",
       },
       {
         term: "Inverse Ackermann Function α(N)",
@@ -368,7 +376,7 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   },
   trivia: DSU_TRIVIA,
   generateSteps: generateDisjointSetUnionSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

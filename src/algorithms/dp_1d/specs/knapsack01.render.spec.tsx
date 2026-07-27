@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateKnapsack01Steps,
-  DEFAULT_KNAPSACK_01_INPUT,
-} from "../knapsack01";
+import { generateKnapsack01Steps, DEFAULT_KNAPSACK_01_INPUT } from "../knapsack01";
 
 describe("knapsack01 React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {

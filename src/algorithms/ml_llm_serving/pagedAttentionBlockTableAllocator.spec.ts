@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { pagedAttentionBlockTableAllocator, DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT, generatePagedAttentionBlockTableAllocatorSteps } from "./pagedAttentionBlockTableAllocator";
+import {
+  pagedAttentionBlockTableAllocator,
+  DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT,
+  generatePagedAttentionBlockTableAllocatorSteps,
+} from "./pagedAttentionBlockTableAllocator";
 
-describe("paged-attention-block-table-allocator (vLLM-Style PagedAttention Block Table Allocator)", () => {
+describe("paged-attention-block-table-allocator", () => {
   it("should have correct metadata", () => {
     expect(pagedAttentionBlockTableAllocator.id).toBe("paged-attention-block-table-allocator");
     expect(pagedAttentionBlockTableAllocator.isMlInfra).toBe(true);
@@ -11,9 +15,11 @@ describe("paged-attention-block-table-allocator (vLLM-Style PagedAttention Block
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generatePagedAttentionBlockTableAllocatorSteps(DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT);
+    const steps = generatePagedAttentionBlockTableAllocatorSteps(
+      DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("vLLM-Style PagedAttention Block Table Allocator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].explanation.what).toContain("Initialize PagedAttention Allocator");
+    expect(steps[steps.length - 1].explanation.what).toBe("Sequence Generation Complete");
   });
 });

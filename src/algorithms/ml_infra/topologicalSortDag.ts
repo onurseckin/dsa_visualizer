@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface TopologicalSortDagInput {
@@ -41,7 +46,7 @@ export const DEFAULT_TOPOLOGICAL_SORT_DAG_INPUT: TopologicalSortDagInput = {
 };
 
 export const generateTopologicalSortDagSteps = (
-  input: TopologicalSortDagInput
+  input: TopologicalSortDagInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -61,7 +66,7 @@ export const generateTopologicalSortDagSteps = (
   const buildGraphSnapshot = (
     activeNode: number | null,
     inQueue: Set<number>,
-    processed: Set<number>
+    processed: Set<number>,
   ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
     const nodes: GraphNodeItem[] = Array.from({ length: numNodes }, (_, i) => {
       let state: GraphNodeItem["state"] = "default";
@@ -96,13 +101,9 @@ export const generateTopologicalSortDagSteps = (
     processedSet: Set<number>,
     topoOrder: number[],
     currentInDegrees: number[],
-    queueArr: number[]
+    queueArr: number[],
   ) => {
-    const { nodes, edges: graphEdges } = buildGraphSnapshot(
-      activeNode,
-      inQueueSet,
-      processedSet
-    );
+    const { nodes, edges: graphEdges } = buildGraphSnapshot(activeNode, inQueueSet, processedSet);
 
     steps.push({
       stepIndex: stepIndex++,
@@ -153,7 +154,7 @@ export const generateTopologicalSortDagSteps = (
     processedSet,
     topoOrder,
     [...currentInDegree],
-    [...queue]
+    [...queue],
   );
 
   while (queue.length > 0) {
@@ -171,7 +172,7 @@ export const generateTopologicalSortDagSteps = (
       processedSet,
       [...topoOrder],
       [...currentInDegree],
-      [...queue]
+      [...queue],
     );
 
     for (const v of adj[u]) {
@@ -186,7 +187,7 @@ export const generateTopologicalSortDagSteps = (
         processedSet,
         [...topoOrder],
         [...currentInDegree],
-        [...queue]
+        [...queue],
       );
 
       if (currentInDegree[v] === 0) {
@@ -202,7 +203,7 @@ export const generateTopologicalSortDagSteps = (
           processedSet,
           [...topoOrder],
           [...currentInDegree],
-          [...queue]
+          [...queue],
         );
       }
     }
@@ -218,7 +219,7 @@ export const generateTopologicalSortDagSteps = (
       processedSet,
       [...topoOrder],
       [...currentInDegree],
-      [...queue]
+      [...queue],
     );
   } else {
     addStep(
@@ -230,7 +231,7 @@ export const generateTopologicalSortDagSteps = (
       processedSet,
       [...topoOrder],
       [...currentInDegree],
-      [...queue]
+      [...queue],
     );
   }
 
@@ -244,11 +245,7 @@ export const TOPOLOGICAL_SORT_DAG_TRIVIA: TriviaMeta = {
     { line: 10, hint: "Pop front node u and append to topological order" },
     { line: 13, hint: "Decrement in-degree of children and enqueue when 0" },
   ],
-  distractors: [
-    "in_degree[u] += 1",
-    "queue.append(u)",
-    "if len(topo_order) == 0: return []",
-  ],
+  distractors: ["in_degree[u] += 1", "queue.append(u)", "if len(topo_order) == 0: return []"],
 };
 
 export const topologicalSortDag: AlgorithmDefinition<TopologicalSortDagInput> = {
@@ -321,7 +318,10 @@ export const topologicalSortDag: AlgorithmDefinition<TopologicalSortDagInput> = 
     ],
     keyTerms: [
       { term: "DAG", definition: "Directed Acyclic Graph containing no directed cycles." },
-      { term: "In-Degree", definition: "The number of incoming directed edges pointing to a graph node." },
+      {
+        term: "In-Degree",
+        definition: "The number of incoming directed edges pointing to a graph node.",
+      },
     ],
   },
   trivia: TOPOLOGICAL_SORT_DAG_TRIVIA,

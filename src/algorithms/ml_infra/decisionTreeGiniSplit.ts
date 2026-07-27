@@ -40,7 +40,7 @@ export const DEFAULT_DECISION_TREE_GINI_SPLIT_INPUT: DecisionTreeGiniSplitInput 
 };
 
 export const generateDecisionTreeGiniSplitSteps = (
-  input: DecisionTreeGiniSplitInput
+  input: DecisionTreeGiniSplitInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -56,7 +56,7 @@ export const generateDecisionTreeGiniSplitSteps = (
     activeThresh: number | null,
     bestThresh: number | null,
     bestGini: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     const elements: ArrayElement[] = pairs.map((p, idx) => {
       const isLeft = activeThresh !== null && p.val <= activeThresh;
@@ -101,7 +101,7 @@ export const generateDecisionTreeGiniSplitSteps = (
       null,
       null,
       1.0,
-      { valid: false }
+      { valid: false },
     );
     return steps;
   }
@@ -118,7 +118,7 @@ export const generateDecisionTreeGiniSplitSteps = (
     null,
     null,
     1.0,
-    { n }
+    { n },
   );
 
   const calcGini = (subLabels: number[]): number => {
@@ -163,7 +163,7 @@ export const generateDecisionTreeGiniSplitSteps = (
         leftSize: left.length,
         rightSize: right.length,
         isNewBest,
-      }
+      },
     );
   }
 
@@ -175,7 +175,7 @@ export const generateDecisionTreeGiniSplitSteps = (
     bestThresh,
     bestThresh,
     bestGini,
-    { bestThresh, bestGini, complete: true }
+    { bestThresh, bestGini, complete: true },
   );
 
   return steps;
@@ -213,7 +213,8 @@ export const decisionTreeGiniSplit: AlgorithmDefinition<DecisionTreeGiniSplitInp
       title: "Clean Feature Split",
       input: DEFAULT_DECISION_TREE_GINI_SPLIT_INPUT,
       output: "(3.0, 0.0)",
-      explanation: "Threshold 3.0 perfectly separates class 0 (<=2.5) from class 1 (>=3.5) with 0.0 Gini impurity.",
+      explanation:
+        "Threshold 3.0 perfectly separates class 0 (<=2.5) from class 1 (>=3.5) with 0.0 Gini impurity.",
     },
     {
       kind: "complex",
@@ -257,7 +258,11 @@ export const decisionTreeGiniSplit: AlgorithmDefinition<DecisionTreeGiniSplitInp
     ],
     keyTerms: [
       { term: "Gini Impurity", definition: "1 - sum(p_k^2), measuring node class heterogeneity." },
-      { term: "Split Threshold", definition: "Midpoint between adjacent sorted feature values tested as a node decision boundary." },
+      {
+        term: "Split Threshold",
+        definition:
+          "Midpoint between adjacent sorted feature values tested as a node decision boundary.",
+      },
     ],
   },
   trivia: DECISION_TREE_GINI_SPLIT_TRIVIA,

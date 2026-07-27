@@ -11,7 +11,9 @@ describe("singleSkipListLayerTraversal", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = singleSkipListLayerTraversal.generateSteps(singleSkipListLayerTraversal.defaultInput);
+    const steps = singleSkipListLayerTraversal.generateSteps(
+      singleSkipListLayerTraversal.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

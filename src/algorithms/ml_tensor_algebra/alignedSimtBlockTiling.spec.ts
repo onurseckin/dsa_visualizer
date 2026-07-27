@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { alignedSimtBlockTiling, DEFAULT_ALIGNEDSIMTBLOCKTILING_INPUT, generateAlignedSimtBlockTilingSteps } from "./alignedSimtBlockTiling";
+import {
+  alignedSimtBlockTiling,
+  DEFAULT_ALIGNEDSIMTBLOCKTILING_INPUT,
+  generateAlignedSimtBlockTilingSteps,
+} from "./alignedSimtBlockTiling";
 
 describe("aligned-simt-block-tiling (SIMD/SIMT Aligned Memory Tiling Engine)", () => {
   it("should have correct metadata", () => {

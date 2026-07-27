@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { flashDecodingSplitKSequenceParallel, DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT, generateFlashDecodingSplitKSequenceParallelSteps } from "./flashDecodingSplitKSequenceParallel";
+import {
+  flashDecodingSplitKSequenceParallel,
+  DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT,
+  generateFlashDecodingSplitKSequenceParallelSteps,
+} from "./flashDecodingSplitKSequenceParallel";
 
 describe("flash-decoding-split-k-sequence-parallel (Flash-Decoding Split-K Sequence Parallel Attention)", () => {
   it("should have correct metadata", () => {
@@ -11,9 +15,13 @@ describe("flash-decoding-split-k-sequence-parallel (Flash-Decoding Split-K Seque
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateFlashDecodingSplitKSequenceParallelSteps(DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT);
+    const steps = generateFlashDecodingSplitKSequenceParallelSteps(
+      DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Flash-Decoding Split-K Sequence Parallel Attention");
+    expect(steps[0].explanation.what).toContain(
+      "Flash-Decoding Split-K Sequence Parallel Attention",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

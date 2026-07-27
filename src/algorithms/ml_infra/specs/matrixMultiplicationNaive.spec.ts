@@ -14,7 +14,7 @@ describe("matrixMultiplicationNaive algorithm spec", () => {
     expect(matrixMultiplicationNaive.mlInfraLevel).toBe(1);
     expect(matrixMultiplicationNaive.category).toBe("ml_gemm_roofline");
     expect(matrixMultiplicationNaive.defaultInput).toEqual(
-      DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT
+      DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT,
     );
     expect(matrixMultiplicationNaive.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },
@@ -22,9 +22,7 @@ describe("matrixMultiplicationNaive algorithm spec", () => {
   });
 
   it("should compute correct GEMM matrix output C", () => {
-    const steps = generateMatrixMultiplicationNaiveSteps(
-      DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT
-    );
+    const steps = generateMatrixMultiplicationNaiveSteps(DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT);
     expect(steps.length).toBeGreaterThan(0);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.complete).toBe(true);

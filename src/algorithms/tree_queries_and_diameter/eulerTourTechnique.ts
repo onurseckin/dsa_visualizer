@@ -30,12 +30,13 @@ const EULER_TOUR_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateEulerTourTechniqueSteps = (
-  input: EulerTourInput,
-): AlgorithmStep[] => {
+export const generateEulerTourTechniqueSteps = (input: EulerTourInput): AlgorithmStep[] => {
   const n = Math.max(2, Math.min(10, input.numNodes));
   const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
-  const nodeValues = input.values && input.values.length === n ? input.values : Array.from({ length: n }, (_, i) => (i + 1) * 10);
+  const nodeValues =
+    input.values && input.values.length === n
+      ? input.values
+      : Array.from({ length: n }, (_, i) => (i + 1) * 10);
 
   const adj: number[][] = Array.from({ length: n }, () => []);
   for (const [u, v] of edgeList) {
@@ -102,7 +103,7 @@ export const generateEulerTourTechniqueSteps = (
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
       customState: {
-        "Timer": 0,
+        Timer: 0,
         "Euler Order": "[]",
       },
     },
@@ -128,7 +129,7 @@ export const generateEulerTourTechniqueSteps = (
         customState: {
           "Current Node": u,
           "Entry Time (tin)": tin[u],
-          "Timer": timer,
+          Timer: timer,
           "Euler Order": `[${eulerOrder.join(", ")}]`,
         },
         visited: eulerOrder.map((node) => `Node ${node}`),
@@ -305,7 +306,7 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   },
   trivia: EULER_TOUR_TRIVIA,
   generateSteps: generateEulerTourTechniqueSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

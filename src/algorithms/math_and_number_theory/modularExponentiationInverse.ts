@@ -240,7 +240,8 @@ export const MODULAR_EXPONENTIATION_INVERSE_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Binary Exponentiation",
-      definition: "Algorithm that computes powers in logarithmic time by squaring base and halving exponent.",
+      definition:
+        "Algorithm that computes powers in logarithmic time by squaring base and halving exponent.",
     },
     {
       term: "Modular Multiplicative Inverse",

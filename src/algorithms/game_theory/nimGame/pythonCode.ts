@@ -18,4 +18,3 @@ export const NIM_GAME_CODE = `def nim_game(piles: list[int]) -> dict[str, str | 
             }
 
     return {"winner": "Second Player", "winning_pile": -1, "target_size": 0}`;
-

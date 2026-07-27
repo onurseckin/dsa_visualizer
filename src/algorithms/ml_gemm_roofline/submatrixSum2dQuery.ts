@@ -6,7 +6,8 @@ export interface submatrixSum2dQueryInput {
   target?: number;
 }
 
-export const SUBMATRIXSUM2DQUERY_CODE = "def submatrix_sum2d_query(input_data: list) -> list:\n    # 2D Submatrix Region Sum Query (Medium)\n    # Computes submatrix sum in constant time via 2D prefix sums.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const SUBMATRIXSUM2DQUERY_CODE =
+  "def submatrix_sum2d_query(input_data: list) -> list:\n    # 2D Submatrix Region Sum Query (Medium)\n    # Computes submatrix sum in constant time via 2D prefix sums.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_SUBMATRIXSUM2DQUERY_INPUT: submatrixSum2dQueryInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_SUBMATRIXSUM2DQUERY_INPUT: submatrixSum2dQueryInput = {
 };
 
 export const generateSubmatrixSum2dQuerySteps = (
-  input: submatrixSum2dQueryInput
+  input: submatrixSum2dQueryInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateSubmatrixSum2dQuerySteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateSubmatrixSum2dQuerySteps = (
     1,
     "Initialize 2D Submatrix Region Sum Query",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateSubmatrixSum2dQuerySteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateSubmatrixSum2dQuerySteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateSubmatrixSum2dQuerySteps = (
 
 const SUBMATRIXSUM2DQUERY_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for 2D Submatrix Region Sum Query.",
@@ -106,8 +112,8 @@ const SUBMATRIXSUM2DQUERY_TRIVIA: TriviaMeta = {
 export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> = {
   id: "submatrix-sum-2d-query",
   title: "2D Submatrix Region Sum Query",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,18 @@ export const submatrixSum2dQuery: AlgorithmDefinition<submatrixSum2dQueryInput> 
   topicGuide: {
     overview: "2D prefix sums enable O(1) rectangle query evaluations.",
     sections: [
-      { heading: "Core Concept", body: "Computes submatrix sum in constant time via 2D prefix sums." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Computes submatrix sum in constant time via 2D prefix sums.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Submatrix Query","definition":"Summing values inside a rectangular bounding box."}],
+    keyTerms: [
+      { term: "Submatrix Query", definition: "Summing values inside a rectangular bounding box." },
+    ],
   },
   trivia: SUBMATRIXSUM2DQUERY_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

@@ -22,7 +22,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "words = [\"apple\"], search(\"apple\"), search(\"app\"), startsWith(\"app\")",
+      inputDisplay: 'words = ["apple"], search("apple"), search("app"), startsWith("app")',
       outputDisplay: "[true, false, true]",
       title: "Basic Example",
       input: { wordsToInsert: ["cat", "car", "dog"], searchWord: "car", prefixToSearch: "ca" },
@@ -31,16 +31,21 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "words = [\"cat\", \"cap\", \"can\"], search(\"cap\"), startsWith(\"ca\")",
+      inputDisplay: 'words = ["cat", "cap", "can"], search("cap"), startsWith("ca")',
       outputDisplay: "[true, true]",
       title: "Complex Edge Case",
-      input: { wordsToInsert: ["apple", "app", "apricot", "banana"], searchWord: "app", prefixToSearch: "apr" },
+      input: {
+        wordsToInsert: ["apple", "app", "apricot", "banana"],
+        searchWord: "app",
+        prefixToSearch: "apr",
+      },
       output: 'search("app") -> true, startsWith("apr") -> true',
-      explanation: '"app" is a prefix of "apple" as well as a standalone word; "apr" matches prefix of "apricot".',
+      explanation:
+        '"app" is a prefix of "apple" as well as a standalone word; "apr" matches prefix of "apricot".',
     },
     {
       kind: "negative",
-      inputDisplay: "words = [\"banana\"], search(\"band\"), startsWith(\"bar\")",
+      inputDisplay: 'words = ["banana"], search("band"), startsWith("bar")',
       outputDisplay: "[false, false]",
       title: "Failing / Boundary Case",
       input: { wordsToInsert: ["tree", "trie"], searchWord: "trip", prefixToSearch: "tra" },

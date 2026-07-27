@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { pagedKvCacheBlockMapping, DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT, generatePagedKvCacheBlockMappingSteps } from "./pagedKvCacheBlockMapping";
+import {
+  pagedKvCacheBlockMapping,
+  DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT,
+  generatePagedKvCacheBlockMappingSteps,
+} from "./pagedKvCacheBlockMapping";
 
 describe("paged-kv-cache-block-mapping (Paged KV-Cache Block Table Mapper)", () => {
   it("should have correct metadata", () => {

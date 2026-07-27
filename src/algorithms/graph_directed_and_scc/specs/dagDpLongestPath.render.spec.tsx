@@ -23,11 +23,13 @@ describe("dagDpLongestPath Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/Longest Path in a DAG/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Finds the longest simple path in a Directed Acyclic Graph/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Finds the longest simple path in a Directed Acyclic Graph/i),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with longest path result", () => {
@@ -49,7 +51,7 @@ describe("dagDpLongestPath Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

@@ -65,7 +65,8 @@ export const ZERO_SHARDING_EXAMPLES: ProblemExample<ZeroShardingInput>[] = [
       modelParamsMB: 1000,
     },
     output: "Optimizer states & Gradients sharded across 4 GPUs; parameters replicated",
-    explanation: "Shards 12GB optimizer states and 2GB gradients down to 3GB + 0.5GB per GPU, saving 10.5GB per node.",
+    explanation:
+      "Shards 12GB optimizer states and 2GB gradients down to 3GB + 0.5GB per GPU, saving 10.5GB per node.",
   },
   {
     id: "complex",
@@ -77,7 +78,8 @@ export const ZERO_SHARDING_EXAMPLES: ProblemExample<ZeroShardingInput>[] = [
       modelParamsMB: 10000,
     },
     output: "Parameters, Gradients, and Optimizer states sharded by 8x",
-    explanation: "Achieves 8x memory reduction across all model states, enabling 100B+ model training on 8 GPUs.",
+    explanation:
+      "Achieves 8x memory reduction across all model states, enabling 100B+ model training on 8 GPUs.",
   },
   {
     id: "negative",
@@ -144,7 +146,7 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
     what: string,
     why: string,
     activeRank: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -177,7 +179,7 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
     `Initialize DeepSpeed ZeRO-Stage ${stage} Memory Sharding`,
     `Baseline FP16 model memory requirement per GPU is ${baselineTotal} MB. Applying ZeRO-${stage} sharding across ${N} GPUs.`,
     -1,
-    { stage, N, modelParamsMB: P, baselineTotalMB: baselineTotal }
+    { stage, N, modelParamsMB: P, baselineTotalMB: baselineTotal },
   );
 
   for (let r = 0; r < N; r++) {
@@ -186,7 +188,7 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
       `Allocated Sharded State for GPU Rank #${r}`,
       `GPU #${r} holds ${shardP.toFixed(1)}MB FP16 Params, ${shardG.toFixed(1)}MB Gradients, and ${shardOpt.toFixed(1)}MB Adam Optimizer States.`,
       r,
-      { rank: r, stage, memPerGpuMB: totalPerGpu.toFixed(1) }
+      { rank: r, stage, memPerGpuMB: totalPerGpu.toFixed(1) },
     );
   }
 
@@ -199,7 +201,7 @@ export function generateZeroShardingSteps(input: ZeroShardingInput): AlgorithmSt
     `ZeRO-Stage ${stage} Sharding Complete`,
     `Memory per GPU reduced from ${baselineTotal} MB to ${totalPerGpu.toFixed(1)} MB (${memoryReductionFactor}x memory efficiency).`,
     N,
-    { stage, numRanks: N, reductionFactor: `${memoryReductionFactor}x` }
+    { stage, numRanks: N, reductionFactor: `${memoryReductionFactor}x` },
   );
 
   return steps;
@@ -229,7 +231,8 @@ export const deepspeedZeroSharding: AlgorithmDefinition<ZeroShardingInput> = {
   spaceComplexity: "O(P / N)",
   complexityAnalysis: {
     time: "Communication overhead is 1.5x (ZeRO-3 All-Gather) to 2x (standard DDP All-Reduce) compared to baseline data parallelism.",
-    space: "Memory footprint scales down linearly from O(P) to O(P / N) at Stage 3, enabling training of models far exceeding single GPU VRAM.",
+    space:
+      "Memory footprint scales down linearly from O(P) to O(P / N) at Stage 3, enabling training of models far exceeding single GPU VRAM.",
   },
   topicGuide: {
     overview:
@@ -251,7 +254,8 @@ export const deepspeedZeroSharding: AlgorithmDefinition<ZeroShardingInput> = {
       },
       {
         term: "Optimizer State Partitioning",
-        definition: "Splitting Adam momentum/variance buffers across GPUs to save 12x model memory.",
+        definition:
+          "Splitting Adam momentum/variance buffers across GPUs to save 12x model memory.",
       },
     ],
   },

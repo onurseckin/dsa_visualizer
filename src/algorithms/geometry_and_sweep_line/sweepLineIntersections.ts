@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphNodeItem, GraphEdgeItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphNodeItem,
+  GraphEdgeItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 import type { Point2D } from "./lineSegmentIntersection";
 
@@ -44,7 +50,10 @@ export const generateSweepLineIntersectionsSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawSegments = input.segments && input.segments.length > 0 ? input.segments : DEFAULT_SWEEP_LINE_INTERSECTIONS_INPUT.segments;
+  const rawSegments =
+    input.segments && input.segments.length > 0
+      ? input.segments
+      : DEFAULT_SWEEP_LINE_INTERSECTIONS_INPUT.segments;
 
   const segments = rawSegments.map((s, idx) => {
     let p1 = s.p1 || { x: 50, y: 50 };
@@ -70,7 +79,10 @@ export const generateSweepLineIntersectionsSteps = (
     );
   };
 
-  const doIntersect = (s1: SegmentItem, s2: SegmentItem): { intersects: boolean; point: Point2D | null } => {
+  const doIntersect = (
+    s1: SegmentItem,
+    s2: SegmentItem,
+  ): { intersects: boolean; point: Point2D | null } => {
     const p1 = s1.p1;
     const q1 = s1.p2;
     const p2 = s2.p1;
@@ -117,7 +129,11 @@ export const generateSweepLineIntersectionsSteps = (
 
   events.sort((a, b) => a.x - b.x || (a.type === "LEFT" ? -1 : 1));
 
-  const makeGraphSnapshot = (sweepX: number, activeSegIds: string[], foundIntersections: Point2D[]) => {
+  const makeGraphSnapshot = (
+    sweepX: number,
+    activeSegIds: string[],
+    foundIntersections: Point2D[],
+  ) => {
     const nodes: GraphNodeItem[] = [];
     const edges: GraphEdgeItem[] = [];
 
@@ -210,13 +226,13 @@ export const generateSweepLineIntersectionsSteps = (
         }
       }
     } else {
-      const idx = activeSegments.findIndex(s => s.id === ev.seg.id);
+      const idx = activeSegments.findIndex((s) => s.id === ev.seg.id);
       if (idx !== -1) {
         activeSegments.splice(idx, 1);
       }
     }
 
-    const activeIds = activeSegments.map(s => s.id);
+    const activeIds = activeSegments.map((s) => s.id);
 
     steps.push({
       stepIndex: stepIndex++,
@@ -232,9 +248,9 @@ export const generateSweepLineIntersectionsSteps = (
       auxiliaryState: {
         hashMap: {
           "Sweep X": sweepX,
-          "Event": `${ev.type} ${ev.seg.id}`,
+          Event: `${ev.type} ${ev.seg.id}`,
           "Active Segments": activeIds.join(", ") || "None",
-          "Intersections": intersectionsFound.length,
+          Intersections: intersectionsFound.length,
         },
       },
       variables: { sweepX, activeCount: activeSegments.length },
@@ -279,7 +295,8 @@ const SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Sweep Line",
-      definition: "An imaginary 1D line sweeping across a 2D space, pausing at discrete event points.",
+      definition:
+        "An imaginary 1D line sweeping across a 2D space, pausing at discrete event points.",
     },
     {
       term: "Active Set",
@@ -308,10 +325,7 @@ export const sweepLineIntersections: AlgorithmDefinition<SweepLineIntersectionsI
   difficulty: "Hard",
   description:
     "Find segment intersections using a vertical sweep line algorithm (Shamos-Hoey / Bentley-Ottmann) processing start, end, and event points sorted by X.",
-  constraints: [
-    "1 <= segments.length <= 20",
-    "0 <= x, y <= 500",
-  ],
+  constraints: ["1 <= segments.length <= 20", "0 <= x, y <= 500"],
   examples: [
     {
       kind: "basic",
@@ -366,7 +380,7 @@ export const sweepLineIntersections: AlgorithmDefinition<SweepLineIntersectionsI
   },
   topicGuide: SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE,
   trivia: SWEEP_LINE_INTERSECTIONS_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

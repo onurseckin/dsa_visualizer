@@ -58,7 +58,7 @@ export const DEFAULT_CONV2D_SLIDING_WINDOW_INPUT: Conv2dSlidingWindowInput = {
 };
 
 export const generateConv2dSlidingWindowSteps = (
-  input: Conv2dSlidingWindowInput
+  input: Conv2dSlidingWindowInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -72,9 +72,7 @@ export const generateConv2dSlidingWindowSteps = (
   // Apply padding
   let padded: number[][] = [];
   if (padding > 0 && H > 0 && W > 0) {
-    padded = Array.from({ length: H + 2 * padding }, () =>
-      Array(W + 2 * padding).fill(0)
-    );
+    padded = Array.from({ length: H + 2 * padding }, () => Array(W + 2 * padding).fill(0));
     for (let r = 0; r < H; r++) {
       for (let c = 0; c < W; c++) {
         padded[r + padding][c + padding] = inputMatrix[r][c];
@@ -93,7 +91,7 @@ export const generateConv2dSlidingWindowSteps = (
   const buildGridSnapshot = (
     activePaddedR: number | null,
     activePaddedC: number | null,
-    outputGrid: number[][]
+    outputGrid: number[][],
   ): GridCellNode[][] => {
     return outputGrid.map((rowArr, r) =>
       rowArr.map((val, c) => ({
@@ -106,9 +104,9 @@ export const generateConv2dSlidingWindowSteps = (
           c === Math.floor(activePaddedC! / stride)
             ? "active"
             : val !== 0
-            ? "visited"
-            : "default",
-      }))
+              ? "visited"
+              : "default",
+      })),
     );
   };
 
@@ -119,7 +117,7 @@ export const generateConv2dSlidingWindowSteps = (
     activeR: number | null,
     activeC: number | null,
     outputGrid: number[][],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -150,7 +148,7 @@ export const generateConv2dSlidingWindowSteps = (
       null,
       null,
       [[0]],
-      { valid: false }
+      { valid: false },
     );
     return steps;
   }
@@ -164,7 +162,7 @@ export const generateConv2dSlidingWindowSteps = (
     null,
     null,
     output.map((r) => [...r]),
-    { outH, outW, stride, padding }
+    { outH, outW, stride, padding },
   );
 
   for (let r = 0; r <= pH - kH; r += stride) {
@@ -190,7 +188,7 @@ export const generateConv2dSlidingWindowSteps = (
         r,
         c,
         output.map((row) => [...row]),
-        { r, c, outR, outC, dotProd }
+        { r, c, outR, outC, dotProd },
       );
     }
   }
@@ -202,7 +200,7 @@ export const generateConv2dSlidingWindowSteps = (
     null,
     null,
     output.map((row) => [...row]),
-    { complete: true }
+    { complete: true },
   );
 
   return steps;
@@ -296,8 +294,15 @@ export const conv2dSlidingWindow: AlgorithmDefinition<Conv2dSlidingWindowInput> 
       },
     ],
     keyTerms: [
-      { term: "Receptive Field", definition: "The region in the input image that directly affects a feature map neuron." },
-      { term: "Feature Map", definition: "The 2D output matrix resulting from applying a kernel filter across the input." },
+      {
+        term: "Receptive Field",
+        definition: "The region in the input image that directly affects a feature map neuron.",
+      },
+      {
+        term: "Feature Map",
+        definition:
+          "The 2D output matrix resulting from applying a kernel filter across the input.",
+      },
     ],
   },
   trivia: CONV2D_SLIDING_WINDOW_TRIVIA,

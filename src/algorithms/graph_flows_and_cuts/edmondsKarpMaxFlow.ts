@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface EdmondsKarpMaxFlowInput {
@@ -293,7 +298,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
             .flatMap(([u, row]) =>
               Object.entries(row)
                 .filter(([_, val]) => val > 0)
-                .map(([v, val]) => `${u}->${v}:${val}/${capacity[u][v]}`)
+                .map(([v, val]) => `${u}->${v}:${val}/${capacity[u][v]}`),
             )
             .join(", "),
         },
@@ -312,11 +317,7 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   difficulty: "Hard",
   description:
     "Edmonds-Karp computes the Maximum Flow in a flow network in O(V * E^2) time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.",
-  constraints: [
-    "2 <= V <= 200",
-    "1 <= E <= 1000",
-    "Capacities must be non-negative numbers",
-  ],
+  constraints: ["2 <= V <= 200", "1 <= E <= 1000", "Capacities must be non-negative numbers"],
   examples: [
     {
       kind: "basic",
@@ -408,8 +409,15 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
     ],
     keyTerms: [
       { term: "Edmonds-Karp", definition: "Ford-Fulkerson variant using BFS augmenting paths." },
-      { term: "Residual Capacity", definition: "Remaining capacity on an edge capacity[u][v] - flow[u][v]." },
-      { term: "Augmenting Path", definition: "A directed path from source to sink in the residual network with positive bottleneck capacity." },
+      {
+        term: "Residual Capacity",
+        definition: "Remaining capacity on an edge capacity[u][v] - flow[u][v].",
+      },
+      {
+        term: "Augmenting Path",
+        definition:
+          "A directed path from source to sink in the residual network with positive bottleneck capacity.",
+      },
     ],
   },
   trivia: EDMONDS_KARP_TRIVIA,

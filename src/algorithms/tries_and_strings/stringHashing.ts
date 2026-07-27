@@ -56,7 +56,7 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
   }
 
   const queryHash = (l: number, r: number): number => {
-    const val = (hashVals[r + 1] - (hashVals[l] * powP[r - l + 1]) % mod + mod) % mod;
+    const val = (hashVals[r + 1] - ((hashVals[l] * powP[r - l + 1]) % mod) + mod) % mod;
     return val;
   };
 
@@ -66,7 +66,7 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
   ): ArrayElement[] => {
     return text.split("").map((ch, idx) => {
       const isInWindow = activeWindow && idx >= activeWindow.l && idx <= activeWindow.r;
-      const isMatched = matchIndices.some(mIdx => idx >= mIdx && idx < mIdx + m);
+      const isMatched = matchIndices.some((mIdx) => idx >= mIdx && idx < mIdx + m);
 
       return {
         id: `char-${idx}`,
@@ -90,8 +90,8 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     },
     auxiliaryState: {
       hashMap: {
-        "Text": text,
-        "Pattern": pattern,
+        Text: text,
+        Pattern: pattern,
         "Pattern Hash": patternHash,
         "Prime Base (p)": p,
       },
@@ -123,7 +123,7 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
         },
         auxiliaryState: {
           hashMap: {
-            "Window": `[${i}..${i + m - 1}] "${text.substring(i, i + m)}"`,
+            Window: `[${i}..${i + m - 1}] "${text.substring(i, i + m)}"`,
             "Substring Hash": subHash,
             "Pattern Hash": patternHash,
             "Match Status": isMatch ? `MATCH AT INDEX ${i}` : "No match",
@@ -178,7 +178,8 @@ const STRING_HASHING_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Rolling Property",
-      definition: "Updating hash value when sliding a fixed-size window over text in constant time.",
+      definition:
+        "Updating hash value when sliding a fixed-size window over text in constant time.",
     },
   ],
 };
@@ -199,10 +200,7 @@ export const stringHashing: AlgorithmDefinition<StringHashingInput> = {
   difficulty: "Medium",
   description:
     "Compute prefix hash values in O(N) to query substring hashes in O(1) time using polynomial rolling hash and modular arithmetic.",
-  constraints: [
-    "1 <= text.length <= 1000",
-    "1 <= pattern.length <= text.length",
-  ],
+  constraints: ["1 <= text.length <= 1000", "1 <= pattern.length <= text.length"],
   examples: [
     {
       kind: "basic",
@@ -239,7 +237,7 @@ export const stringHashing: AlgorithmDefinition<StringHashingInput> = {
   },
   topicGuide: STRING_HASHING_TOPIC_GUIDE,
   trivia: STRING_HASHING_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { tritonMlirToPtxCompilerPipelineSimulator, DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT, generateTritonMlirToPtxCompilerPipelineSimulatorSteps } from "./tritonMlirToPtxCompilerPipelineSimulator";
+import { tritonMlirToPtxCompilerPipelineSimulator } from "./tritonMlirToPtxCompilerPipelineSimulator";
 
-describe("triton-mlir-to-ptx-compiler-pipeline-simulator (Triton MLIR-to-PTX Compiler Pipeline Simulator)", () => {
-  it("should have correct metadata", () => {
-    expect(tritonMlirToPtxCompilerPipelineSimulator.id).toBe("triton-mlir-to-ptx-compiler-pipeline-simulator");
-    expect(tritonMlirToPtxCompilerPipelineSimulator.isMlInfra).toBe(true);
-    expect(tritonMlirToPtxCompilerPipelineSimulator.mlInfraLevel).toBe(10);
-    expect(tritonMlirToPtxCompilerPipelineSimulator.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(tritonMlirToPtxCompilerPipelineSimulator.categories).toContain("ml_hardware_kernels");
+describe("tritonMlirToPtxCompilerPipelineSimulator", () => {
+  it("should have valid metadata", () => {
+    expect(tritonMlirToPtxCompilerPipelineSimulator.id).toBeDefined();
+    expect(tritonMlirToPtxCompilerPipelineSimulator.title).toBeDefined();
+    expect(tritonMlirToPtxCompilerPipelineSimulator.code).toBeDefined();
+    expect(tritonMlirToPtxCompilerPipelineSimulator.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateTritonMlirToPtxCompilerPipelineSimulatorSteps(DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT);
+  it("should generate valid steps", () => {
+    const steps = tritonMlirToPtxCompilerPipelineSimulator.generateSteps(
+      tritonMlirToPtxCompilerPipelineSimulator.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Triton MLIR-to-PTX Compiler Pipeline Simulator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

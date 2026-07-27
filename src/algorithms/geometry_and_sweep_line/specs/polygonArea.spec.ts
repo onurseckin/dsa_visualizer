@@ -85,7 +85,9 @@ describe("polygonArea spec logic", () => {
     ]);
 
     for (const example of polygonArea.examples!) {
-      const steps = polygonArea.generateSteps(example.input as { points: Array<{ x: number; y: number }> });
+      const steps = polygonArea.generateSteps(
+        example.input as { points: Array<{ x: number; y: number }> },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

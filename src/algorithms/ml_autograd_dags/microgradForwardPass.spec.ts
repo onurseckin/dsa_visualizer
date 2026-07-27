@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { microgradForwardPass, DEFAULT_MICROGRADFORWARDPASS_INPUT, generateMicrogradForwardPassSteps } from "./microgradForwardPass";
+import {
+  microgradForwardPass,
+  DEFAULT_MICROGRADFORWARDPASS_INPUT,
+  generateMicrogradForwardPassSteps,
+} from "./microgradForwardPass";
 
 describe("micrograd-forward-pass (Micrograd Computational Graph Forward Pass)", () => {
   it("should have correct metadata", () => {

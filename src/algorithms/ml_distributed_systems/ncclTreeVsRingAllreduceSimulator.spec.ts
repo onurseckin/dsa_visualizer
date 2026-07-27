@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ncclTreeVsRingAllreduceSimulator, DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT, generateNcclTreeVsRingAllreduceSimulatorSteps } from "./ncclTreeVsRingAllreduceSimulator";
+import {
+  ncclTreeVsRingAllreduceSimulator,
+  DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT,
+  generateNcclTreeVsRingAllreduceSimulatorSteps,
+} from "./ncclTreeVsRingAllreduceSimulator";
 
 describe("nccl-tree-vs-ring-allreduce-simulator (NCCL Tree vs Ring-AllReduce Topology Simulator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("nccl-tree-vs-ring-allreduce-simulator (NCCL Tree vs Ring-AllReduce Top
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateNcclTreeVsRingAllreduceSimulatorSteps(DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT);
+    const steps = generateNcclTreeVsRingAllreduceSimulatorSteps(
+      DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("NCCL Tree vs Ring-AllReduce Topology Simulator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

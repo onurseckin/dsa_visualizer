@@ -58,9 +58,7 @@ export const DEFAULT_AUTOGRAD_VJP_INPUT: AutogradVjpInput = {
   seedGrad: 1.0,
 };
 
-export const generateAutogradVjpDagSteps = (
-  input: AutogradVjpInput
-): AlgorithmStep[] => {
+export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -81,10 +79,7 @@ export const generateAutogradVjpDagSteps = (
     out: { x: 500, y: 250 },
   };
 
-  const getGraphSnapshot = (
-    activeNodeId?: string,
-    visitedNodes: Set<string> = new Set()
-  ) => {
+  const getGraphSnapshot = (activeNodeId?: string, visitedNodes: Set<string> = new Set()) => {
     const graphNodes: GraphNodeItem[] = input.nodes.map((n) => {
       const pos = positions[n.id] || { x: 250, y: 250 };
       let state: GraphNodeItem["state"] = "default";
@@ -130,7 +125,7 @@ export const generateAutogradVjpDagSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     activeNodeId?: string,
-    visitedNodes: Set<string> = new Set()
+    visitedNodes: Set<string> = new Set(),
   ) => {
     const auxGrads: Record<string, number> = { ...grads };
     steps.push({
@@ -153,7 +148,7 @@ export const generateAutogradVjpDagSteps = (
     1,
     "Initialize Autograd VJP Backward Pass",
     `Setting initial loss seed gradient dL/d(${input.outputId}) = ${input.seedGrad}. All other node gradients zeroed.`,
-    { outputId: input.outputId, seedGrad: input.seedGrad }
+    { outputId: input.outputId, seedGrad: input.seedGrad },
   );
 
   grads[input.outputId] = input.seedGrad;
@@ -165,7 +160,7 @@ export const generateAutogradVjpDagSteps = (
     `Output node '${input.outputId}' receives upstream loss gradient dL/dout = ${input.seedGrad}.`,
     { outputId: input.outputId, grad: input.seedGrad },
     input.outputId,
-    visited
+    visited,
   );
 
   // Reverse order (topological backpropagation)
@@ -180,11 +175,11 @@ export const generateAutogradVjpDagSteps = (
       6,
       `Backpropagate through node '${nid}' (op: ${node.op})`,
       `Node '${nid}' has value=${node.val} and accumulated gradient dL/d(${nid}) = ${g.toFixed(
-        2
+        2,
       )}.`,
       { nid, op: node.op, val: node.val, grad: g },
       nid,
-      visited
+      visited,
     );
 
     if (node.op === "add" && node.parents.length >= 2) {
@@ -199,7 +194,7 @@ export const generateAutogradVjpDagSteps = (
         `Addition gate passes incoming gradient equally to both inputs: dL/d(${p0}) += ${g}, dL/d(${p1}) += ${g}.`,
         { p0, p1, gradPassed: g },
         nid,
-        visited
+        visited,
       );
     } else if (node.op === "mul" && node.parents.length >= 2) {
       const p0 = node.parents[0];
@@ -220,7 +215,7 @@ export const generateAutogradVjpDagSteps = (
         `Multiplication gate VJP: dL/d(${p0}) += dL * val(${p1}) = ${g} * ${p1Val} = ${g0}; dL/d(${p1}) += dL * val(${p0}) = ${g} * ${p0Val} = ${g1}.`,
         { p0, p1, gradP0: g0, gradP1: g1 },
         nid,
-        visited
+        visited,
       );
     } else if (node.op === "relu" && node.parents.length >= 1) {
       const p0 = node.parents[0];
@@ -236,7 +231,7 @@ export const generateAutogradVjpDagSteps = (
         `ReLU subgradient: dL/d(${p0}) += dL * (val(${p0}) > 0 ? 1 : 0) = ${g} * ${pass} = ${g0}.`,
         { p0, p0Val, pass, gradP0: g0 },
         nid,
-        visited
+        visited,
       );
     }
   }
@@ -247,7 +242,7 @@ export const generateAutogradVjpDagSteps = (
     `Gradients successfully accumulated for all nodes in computational DAG. Leaf input gradients ready for optimizer.`,
     { ...grads },
     undefined,
-    visited
+    visited,
   );
 
   return steps;
@@ -310,7 +305,8 @@ export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
       outputDisplay: "{x: 3.0, y: 2.0, z: 1.0, xy: 1.0, out: 1.0}",
       input: DEFAULT_AUTOGRAD_VJP_INPUT,
       output: "{x: 3.0, y: 2.0, z: 1.0, xy: 1.0, out: 1.0}",
-      explanation: "dL/dout = 1. dL/d(xy) = 1, dL/dz = 1. dL/dx = dL/d(xy) * y = 1*3 = 3. dL/dy = dL/d(xy) * x = 1*2 = 2.",
+      explanation:
+        "dL/dout = 1. dL/d(xy) = 1, dL/dz = 1. dL/dx = dL/d(xy) * y = 1*3 = 3. dL/dy = dL/d(xy) * x = 1*2 = 2.",
     },
     {
       kind: "complex",
@@ -330,7 +326,8 @@ export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
         seedGrad: 1.0,
       },
       output: "{a: 0.0, b: 0.0, c: 0.0, ab: 0.0, rc: 3.0, out: 1.0}",
-      explanation: "Because relu(c) = 0, the multiplicative derivative for (a+b) is 1.0 * relu(c) = 0, blocking gradient flow to a and b.",
+      explanation:
+        "Because relu(c) = 0, the multiplicative derivative for (a+b) is 1.0 * relu(c) = 0, blocking gradient flow to a and b.",
     },
     {
       kind: "negative",
@@ -347,7 +344,8 @@ export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
         seedGrad: 0.0,
       },
       output: "{x: 0.0, y: 0.0, xy: 0.0}",
-      explanation: "Seeding loss gradient with 0.0 results in 0.0 gradient propagation to all upstream nodes.",
+      explanation:
+        "Seeding loss gradient with 0.0 results in 0.0 gradient propagation to all upstream nodes.",
     },
   ],
   code: AUTOGRAD_VJP_DAG_CODE,
@@ -359,7 +357,8 @@ export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
   spaceComplexity: "O(V)",
   complexityAnalysis: {
     time: "Traverses each node and edge in the computational DAG exactly once in reverse topological order, yielding optimal linear time complexity O(V + E).",
-    space: "Stores accumulated gradients for each node V in auxiliary hash map and topological stack.",
+    space:
+      "Stores accumulated gradients for each node V in auxiliary hash map and topological stack.",
   },
   topicGuide: {
     overview:
@@ -377,11 +376,13 @@ export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
     keyTerms: [
       {
         term: "Reverse-Mode AD",
-        definition: "Algorithmic differentiation technique that evaluates derivatives from output loss backward to inputs.",
+        definition:
+          "Algorithmic differentiation technique that evaluates derivatives from output loss backward to inputs.",
       },
       {
         term: "Topological Sort",
-        definition: "Ordering of DAG nodes such that for every directed edge u -> v, node u comes before v.",
+        definition:
+          "Ordering of DAG nodes such that for every directed edge u -> v, node u comes before v.",
       },
     ],
   },

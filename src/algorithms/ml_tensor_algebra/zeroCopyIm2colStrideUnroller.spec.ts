@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { zeroCopyIm2colStrideUnroller, DEFAULT_ZEROCOPYIM2COLSTRIDEUNROLLER_INPUT, generateZeroCopyIm2colStrideUnrollerSteps } from "./zeroCopyIm2colStrideUnroller";
+import {
+  zeroCopyIm2colStrideUnroller,
+  DEFAULT_ZEROCOPYIM2COLSTRIDEUNROLLER_INPUT,
+  generateZeroCopyIm2colStrideUnrollerSteps,
+} from "./zeroCopyIm2colStrideUnroller";
 
 describe("zero-copy-im2col-stride-unroller (Zero-Copy im2col Stride Receptive Field Unroller)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("zero-copy-im2col-stride-unroller (Zero-Copy im2col Stride Receptive Fi
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateZeroCopyIm2colStrideUnrollerSteps(DEFAULT_ZEROCOPYIM2COLSTRIDEUNROLLER_INPUT);
+    const steps = generateZeroCopyIm2colStrideUnrollerSteps(
+      DEFAULT_ZEROCOPYIM2COLSTRIDEUNROLLER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Zero-Copy im2col Stride Receptive Field Unroller");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

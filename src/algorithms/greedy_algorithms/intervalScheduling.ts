@@ -36,7 +36,9 @@ export const DEFAULT_INTERVAL_SCHEDULING_INPUT: IntervalSchedulingInput = {
   ],
 };
 
-export const generateIntervalSchedulingSteps = (input: IntervalSchedulingInput): AlgorithmStep[] => {
+export const generateIntervalSchedulingSteps = (
+  input: IntervalSchedulingInput,
+): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -298,7 +300,8 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
         ],
       },
       output: "Selected 3 non-overlapping intervals",
-      explanation: "Greedily picking intervals by earliest finish time yields 3 non-overlapping intervals.",
+      explanation:
+        "Greedily picking intervals by earliest finish time yields 3 non-overlapping intervals.",
     },
     {
       kind: "complex",

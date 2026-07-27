@@ -35,12 +35,7 @@ describe("ProblemExamplesCard component", () => {
   ];
 
   it("renders algorithm example cards with title, input, output, and explanation", () => {
-    render(
-      <ProblemExamplesCard
-        examples={sampleExamples}
-        selectedExampleId="example-1"
-      />,
-    );
+    render(<ProblemExamplesCard examples={sampleExamples} selectedExampleId="example-1" />);
 
     expect(screen.getByTestId("problem-examples-card")).toBeInTheDocument();
     expect(screen.getByText("Basic Example")).toBeInTheDocument();
@@ -54,12 +49,7 @@ describe("ProblemExamplesCard component", () => {
   });
 
   it("applies selected card highlight styling on selected card", () => {
-    render(
-      <ProblemExamplesCard
-        examples={sampleExamples}
-        selectedExampleId="example-2"
-      />,
-    );
+    render(<ProblemExamplesCard examples={sampleExamples} selectedExampleId="example-2" />);
 
     const cards = screen.getAllByTestId("problem-example-card");
     const selectedCard = cards[1];

@@ -27,9 +27,7 @@ export const DEFAULT_FUSED_SOFTMAX_LSE_INPUT: FusedSoftmaxLseInput = {
   logits: [2.0, 1.0, 0.1, 3.0],
 };
 
-export const generateFusedSoftmaxLseSteps = (
-  input: FusedSoftmaxLseInput
-): AlgorithmStep[] => {
+export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -42,7 +40,7 @@ export const generateFusedSoftmaxLseSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     elements: ArrayElement[],
-    auxState?: Record<string, string | number>
+    auxState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -76,7 +74,7 @@ export const generateFusedSoftmaxLseSteps = (
     "Initialize Fused Log-Sum-Exp & Softmax",
     `Input logits vector: [${logits.map((v) => v.toFixed(2)).join(", ")}].`,
     { n },
-    initialElements
+    initialElements,
   );
 
   if (n === 0) {
@@ -85,7 +83,7 @@ export const generateFusedSoftmaxLseSteps = (
       "Empty logits vector provided",
       "Returning empty probability array [] and LSE 0.0.",
       { n: 0, lse: 0.0 },
-      []
+      [],
     );
     return steps;
   }
@@ -102,7 +100,7 @@ export const generateFusedSoftmaxLseSteps = (
   }
 
   const maxElements: ArrayElement[] = initialElements.map((el, i) =>
-    i === maxIdx ? { ...el, state: "pivot", pointers: ["MAX (m)"] } : el
+    i === maxIdx ? { ...el, state: "pivot", pointers: ["MAX (m)"] } : el,
   );
 
   addStep(
@@ -111,7 +109,7 @@ export const generateFusedSoftmaxLseSteps = (
     `Subtracting max logit prevents floating point overflow in exp(x). All exp inputs will be <= 0.`,
     { m: maxLogit, maxIdx },
     maxElements,
-    { maxLogit }
+    { maxLogit },
   );
 
   // Step 2: Exp summation
@@ -128,7 +126,7 @@ export const generateFusedSoftmaxLseSteps = (
             state: "active",
             pointers: [`exp(${shift.toFixed(2)}) = ${expVal.toFixed(4)}`],
           }
-        : el
+        : el,
     );
 
     addStep(
@@ -137,7 +135,7 @@ export const generateFusedSoftmaxLseSteps = (
       `Running exp sum: ${expSum.toFixed(4)}.`,
       { i, logit: logits[i], shift, expVal, expSum },
       accumElements,
-      { maxLogit, expSum }
+      { maxLogit, expSum },
     );
   }
 
@@ -149,7 +147,7 @@ export const generateFusedSoftmaxLseSteps = (
     `Fused LSE scalar denominator computed safely in log-space.`,
     { m: maxLogit, expSum, lse },
     maxElements,
-    { maxLogit, expSum, lse }
+    { maxLogit, expSum, lse },
   );
 
   // Step 3: Probabilities
@@ -175,7 +173,7 @@ export const generateFusedSoftmaxLseSteps = (
       .toFixed(4)}.`,
     { lse, sumProbs: 1.0 },
     probElements,
-    { lse, probabilities: probs.map((p) => p.toFixed(4)).join(", ") }
+    { lse, probabilities: probs.map((p) => p.toFixed(4)).join(", ") },
   );
 
   return steps;
@@ -234,7 +232,8 @@ export const fusedSoftmaxLse: AlgorithmDefinition<FusedSoftmaxLseInput> = {
       outputDisplay: "probs ≈ [0.237, 0.087, 0.035, 0.641], LSE ≈ 3.444",
       input: DEFAULT_FUSED_SOFTMAX_LSE_INPUT,
       output: "[0.2369, 0.0872, 0.0355, 0.6404]",
-      explanation: "Max m=3.0. exp_sum = exp(-1) + exp(-2) + exp(-2.9) + exp(0) = 0.3679 + 0.1353 + 0.0550 + 1.0 = 1.5582. LSE = 3.0 + ln(1.5582) = 3.4436.",
+      explanation:
+        "Max m=3.0. exp_sum = exp(-1) + exp(-2) + exp(-2.9) + exp(0) = 0.3679 + 0.1353 + 0.0550 + 1.0 = 1.5582. LSE = 3.0 + ln(1.5582) = 3.4436.",
     },
     {
       kind: "complex",
@@ -245,7 +244,8 @@ export const fusedSoftmaxLse: AlgorithmDefinition<FusedSoftmaxLseInput> = {
         logits: [1000.0, 1002.0, 999.0],
       },
       output: "[0.1192, 0.8808, 0.0438]",
-      explanation: "Standard exp(1000) causes float overflow Inf -> NaN. Subtraction of m=1002 shifts exponents to [-2, 0, -3], yielding exact stable probabilities.",
+      explanation:
+        "Standard exp(1000) causes float overflow Inf -> NaN. Subtraction of m=1002 shifts exponents to [-2, 0, -3], yielding exact stable probabilities.",
     },
     {
       kind: "negative",
@@ -284,11 +284,13 @@ export const fusedSoftmaxLse: AlgorithmDefinition<FusedSoftmaxLseInput> = {
     keyTerms: [
       {
         term: "Log-Sum-Exp (LSE)",
-        definition: "A smooth, convex approximation of the maximum function: LSE(x) = log(sum(exp(x_i))).",
+        definition:
+          "A smooth, convex approximation of the maximum function: LSE(x) = log(sum(exp(x_i))).",
       },
       {
         term: "Numerical Overflow",
-        definition: "A condition in computer hardware floating point arithmetic where a calculation yields a magnitude greater than the maximum representable limit.",
+        definition:
+          "A condition in computer hardware floating point arithmetic where a calculation yields a magnitude greater than the maximum representable limit.",
       },
     ],
   },

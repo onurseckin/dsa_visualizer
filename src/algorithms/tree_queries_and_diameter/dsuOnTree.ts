@@ -33,12 +33,13 @@ const DSU_ON_TREE_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateDsuOnTreeSteps = (
-  input: DsuOnTreeInput,
-): AlgorithmStep[] => {
+export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] => {
   const n = Math.max(2, Math.min(10, input.numNodes));
   const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
-  const colors = input.colors && input.colors.length === n ? input.colors : Array.from({ length: n }, (_, i) => (i % 3) + 1);
+  const colors =
+    input.colors && input.colors.length === n
+      ? input.colors
+      : Array.from({ length: n }, (_, i) => (i % 3) + 1);
 
   const adj: number[][] = Array.from({ length: n }, () => []);
   for (const [u, v] of edgeList) {
@@ -113,7 +114,8 @@ export const generateDsuOnTreeSteps = (
     primarySnapshot: buildTreeSnapshot(0, bigChild[0]),
     auxiliaryState: {
       customState: {
-        "Heavy Child of Root": bigChild[0] !== -1 ? `Node ${bigChild[0]} (sz=${sz[bigChild[0]]})` : "None",
+        "Heavy Child of Root":
+          bigChild[0] !== -1 ? `Node ${bigChild[0]} (sz=${sz[bigChild[0]]})` : "None",
         "Subtree Sizes": sz.map((s, i) => `V${i}:${s}`).join(", "),
       },
     },
@@ -347,13 +349,14 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
       },
       {
         term: "Small-to-Large Merging",
-        definition: "Merging smaller data structures into larger ones to achieve O(N log N) complexity.",
+        definition:
+          "Merging smaller data structures into larger ones to achieve O(N log N) complexity.",
       },
     ],
   },
   trivia: DSU_ON_TREE_TRIVIA,
   generateSteps: generateDsuOnTreeSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

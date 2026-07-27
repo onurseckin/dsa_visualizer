@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { diagonalCacheThrashing, DEFAULT_DIAGONALCACHETHRASHING_INPUT, generateDiagonalCacheThrashingSteps } from "./diagonalCacheThrashing";
+import {
+  diagonalCacheThrashing,
+  DEFAULT_DIAGONALCACHETHRASHING_INPUT,
+  generateDiagonalCacheThrashingSteps,
+} from "./diagonalCacheThrashing";
 
 describe("diagonal-cache-thrashing (Diagonal Matrix Access Cache Thrashing)", () => {
   it("should have correct metadata", () => {

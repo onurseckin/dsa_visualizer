@@ -110,7 +110,8 @@ export const IM2COL_EXAMPLES: ProblemExample<Im2colInput>[] = [
       ],
     },
     output: "9 GEMM columns of size 8",
-    explanation: "2 channels x 2x2 kernel = 8 flattened patch elements per receptive field location.",
+    explanation:
+      "2 channels x 2x2 kernel = 8 flattened patch elements per receptive field location.",
   },
   {
     id: "negative",
@@ -139,7 +140,15 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const { inputHeight: H, inputWidth: W, channels: C, kernelSize: K, stride: S, padding: P, image } = input;
+  const {
+    inputHeight: H,
+    inputWidth: W,
+    channels: C,
+    kernelSize: K,
+    stride: S,
+    padding: P,
+    image,
+  } = input;
 
   if (H <= 0 || W <= 0 || C <= 0 || K <= 0 || S <= 0 || !image || image.length === 0) {
     steps.push({
@@ -187,7 +196,7 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
     why: string,
     colMatrix: number[][],
     currentPatch: number[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -195,7 +204,10 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
+        elements: elements.map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
       auxiliaryState: {
         customState: {
@@ -215,7 +227,7 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
     `Extracting overlapping ${K}x${K} kernel windows from input tensor of shape (${C}, ${H}, ${W}) into dense GEMM columns.`,
     [],
     [],
-    { C, H, W, K, S, P, outH, outW, totalPatches }
+    { C, H, W, K, S, P, outH, outW, totalPatches },
   );
 
   const colMatrix: number[][] = [];
@@ -257,7 +269,7 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
         `Extracted ${patch.length} elements from channel windows into GEMM column vector [${patch.join(", ")}].`,
         colMatrix,
         patch,
-        { patchIndex, r, c, patchSize: patch.length }
+        { patchIndex, r, c, patchSize: patch.length },
       );
     }
   }
@@ -273,7 +285,7 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
     `Transformed spatial convolution patches into a 2D GEMM matrix of shape (${colMatrix.length}, ${patchDim}) ready for BLAS matrix multiplication.`,
     colMatrix,
     [],
-    { totalColumns: colMatrix.length, columnWidth: patchDim }
+    { totalColumns: colMatrix.length, columnWidth: patchDim },
   );
 
   return steps;
@@ -304,7 +316,8 @@ export const im2colConvTiling: AlgorithmDefinition<Im2colInput> = {
   spaceComplexity: "O(C * K^2 * H_out * W_out)",
   complexityAnalysis: {
     time: "Requires visiting each receptive field pixel once per output position. Flattening cost is linear in total output volume times kernel volume.",
-    space: "Requires duplicating overlapping image pixels into the unrolled GEMM column matrix, increasing memory footprint by up to K^2.",
+    space:
+      "Requires duplicating overlapping image pixels into the unrolled GEMM column matrix, increasing memory footprint by up to K^2.",
   },
   topicGuide: {
     overview:
@@ -326,11 +339,13 @@ export const im2colConvTiling: AlgorithmDefinition<Im2colInput> = {
       },
       {
         term: "Receptive Field",
-        definition: "The spatial region of input pixels that contribute to a single output feature value.",
+        definition:
+          "The spatial region of input pixels that contribute to a single output feature value.",
       },
       {
         term: "GEMM",
-        definition: "General Matrix Multiply (C = A * B + C), the primary compute primitive in Deep Learning hardware.",
+        definition:
+          "General Matrix Multiply (C = A * B + C), the primary compute primitive in Deep Learning hardware.",
       },
     ],
   },

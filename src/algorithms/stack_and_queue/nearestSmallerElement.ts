@@ -26,7 +26,8 @@ export const PYTHON_NEAREST_SMALLER_CODE = `def nearest_smaller_element(nums: li
 export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
 ): AlgorithmStep[] => {
-  const nums = input?.nums && input.nums.length > 0 ? [...input.nums] : DEFAULT_NEAREST_SMALLER_INPUT.nums;
+  const nums =
+    input?.nums && input.nums.length > 0 ? [...input.nums] : DEFAULT_NEAREST_SMALLER_INPUT.nums;
   const n = nums.length;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -97,9 +98,10 @@ export const generateNearestSmallerElementSteps = (
       codeLine: 11,
       explanation: {
         what: `Set result[${i}] = ${result[i]} and push ${current} to stack`,
-        why: result[i] !== -1
-          ? `Top of stack ${result[i]} is nearest smaller element to the left of ${current}.`
-          : `No smaller element found to the left of ${current}, so result remains -1.`,
+        why:
+          result[i] !== -1
+            ? `Top of stack ${result[i]} is nearest smaller element to the left of ${current}.`
+            : `No smaller element found to the left of ${current}, so result remains -1.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -219,7 +221,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
     ],
   },
   trivia: NEAREST_SMALLER_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

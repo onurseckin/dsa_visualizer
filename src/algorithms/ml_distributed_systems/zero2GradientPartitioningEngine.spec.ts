@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { zero2GradientPartitioningEngine, DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT, generateZero2GradientPartitioningEngineSteps } from "./zero2GradientPartitioningEngine";
+import {
+  zero2GradientPartitioningEngine,
+  DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT,
+  generateZero2GradientPartitioningEngineSteps,
+} from "./zero2GradientPartitioningEngine";
 
 describe("zero2-gradient-partitioning-engine (DeepSpeed ZeRO-2 Gradient Partitioning Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("zero2-gradient-partitioning-engine (DeepSpeed ZeRO-2 Gradient Partitio
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateZero2GradientPartitioningEngineSteps(DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT);
+    const steps = generateZero2GradientPartitioningEngineSteps(
+      DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("DeepSpeed ZeRO-2 Gradient Partitioning Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

@@ -35,17 +35,25 @@ export const DEFAULT_ROOFLINE_INPUT: RooflineInput = {
   memoryBandwidthGbs: 2000,
 };
 
-export const generateRooflineIntensityClassifierSteps = (
-  input: RooflineInput
-): AlgorithmStep[] => {
+export const generateRooflineIntensityClassifierSteps = (input: RooflineInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
   const { flops, bytesTransferred, peakTflops, memoryBandwidthGbs } = input;
 
   const elements: ArrayElement[] = [
-    { id: "el-flops", value: Number((flops / 1e6).toFixed(0)), state: "default", pointers: ["MFLOPs"] },
-    { id: "el-bytes", value: Number((bytesTransferred / 1e6).toFixed(0)), state: "default", pointers: ["MBytes"] },
+    {
+      id: "el-flops",
+      value: Number((flops / 1e6).toFixed(0)),
+      state: "default",
+      pointers: ["MFLOPs"],
+    },
+    {
+      id: "el-bytes",
+      value: Number((bytesTransferred / 1e6).toFixed(0)),
+      state: "default",
+      pointers: ["MBytes"],
+    },
     { id: "el-peak", value: peakTflops, state: "default", pointers: ["Peak TFLOPs"] },
     { id: "el-bw", value: memoryBandwidthGbs, state: "default", pointers: ["BW GB/s"] },
   ];
@@ -56,7 +64,7 @@ export const generateRooflineIntensityClassifierSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
-    customState?: Record<string, string | number>
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -83,10 +91,10 @@ export const generateRooflineIntensityClassifierSteps = (
   addStep(
     1,
     "Initialize Roofline Performance Classification",
-    `Evaluating kernel (${(flops / 1e9).toFixed(2)} GFLOPs, ${(
-      bytesTransferred / 1e6
-    ).toFixed(2)} MB memory traffic) on hardware (${peakTflops} TFLOPS, ${memoryBandwidthGbs} GB/s bandwidth).`,
-    { flops, bytesTransferred, peakTflops, memoryBandwidthGbs }
+    `Evaluating kernel (${(flops / 1e9).toFixed(2)} GFLOPs, ${(bytesTransferred / 1e6).toFixed(
+      2,
+    )} MB memory traffic) on hardware (${peakTflops} TFLOPS, ${memoryBandwidthGbs} GB/s bandwidth).`,
+    { flops, bytesTransferred, peakTflops, memoryBandwidthGbs },
   );
 
   if (bytesTransferred <= 0) {
@@ -96,7 +104,7 @@ export const generateRooflineIntensityClassifierSteps = (
       "Kernel memory traffic is zero or invalid. Classifying as Memory-Bound with 0 attainable throughput.",
       { intensity: 0, bound: "Memory-Bound", attainable_tflops: 0 },
       elements.map((el) => ({ ...el, state: "compare" })),
-      { bound: "Memory-Bound", attainable_tflops: 0 }
+      { bound: "Memory-Bound", attainable_tflops: 0 },
     );
     return steps;
   }
@@ -108,11 +116,11 @@ export const generateRooflineIntensityClassifierSteps = (
     5,
     `Compute Operational Intensity & Hardware Knee Point`,
     `Kernel intensity = ${intensity.toFixed(2)} FLOP/byte. Target GPU knee point I_knee = ${kneePoint.toFixed(
-      2
+      2,
     )} FLOP/byte.`,
     { intensity: Number(intensity.toFixed(2)), kneePoint: Number(kneePoint.toFixed(2)) },
     elements.map((el) => ({ ...el, state: "active" })),
-    { intensity: intensity.toFixed(2), kneePoint: kneePoint.toFixed(2) }
+    { intensity: intensity.toFixed(2), kneePoint: kneePoint.toFixed(2) },
   );
 
   const memoryBoundLimitTflops = (intensity * memoryBandwidthGbs * 1e9) / 1e12;
@@ -143,7 +151,7 @@ export const generateRooflineIntensityClassifierSteps = (
       bound,
       attainableTflops: `${attainableTflops.toFixed(2)} TFLOPs`,
       attainablePct: `${attainablePct.toFixed(1)}%`,
-    }
+    },
   );
 
   return steps;
@@ -189,12 +197,7 @@ export const rooflineIntensityClassifier: AlgorithmDefinition<RooflineInput> = {
   mlInfraLevel: 1,
   description:
     "Evaluates an ML kernel workload against the Roofline Model, computing operational intensity (FLOP/byte) and hardware knee point to determine if execution is Memory-Bound or Compute-Bound.",
-  constraints: [
-    "flops >= 0",
-    "bytesTransferred >= 0",
-    "peakTflops > 0",
-    "memoryBandwidthGbs > 0",
-  ],
+  constraints: ["flops >= 0", "bytesTransferred >= 0", "peakTflops > 0", "memoryBandwidthGbs > 0"],
   examples: [
     {
       kind: "basic",
@@ -202,8 +205,10 @@ export const rooflineIntensityClassifier: AlgorithmDefinition<RooflineInput> = {
       inputDisplay: "flops = 2e9, bytes = 400MB, peak = 312 TFLOPS, bw = 2000 GB/s",
       outputDisplay: "intensity = 5.0 FLOP/B, knee = 156.0 FLOP/B -> Memory-Bound",
       input: DEFAULT_ROOFLINE_INPUT,
-      output: "{operational_intensity: 5.0, knee_point: 156.0, bound: 'Memory-Bound', attainable_tflops: 10.0}",
-      explanation: "Intensity 5 FLOP/byte is far below the H100 knee point of 156 FLOP/byte. Attainable throughput is limited by 2000 GB/s bandwidth to 10 TFLOPs (3.2% of peak).",
+      output:
+        "{operational_intensity: 5.0, knee_point: 156.0, bound: 'Memory-Bound', attainable_tflops: 10.0}",
+      explanation:
+        "Intensity 5 FLOP/byte is far below the H100 knee point of 156 FLOP/byte. Attainable throughput is limited by 2000 GB/s bandwidth to 10 TFLOPs (3.2% of peak).",
     },
     {
       kind: "complex",
@@ -216,8 +221,10 @@ export const rooflineIntensityClassifier: AlgorithmDefinition<RooflineInput> = {
         peakTflops: 312,
         memoryBandwidthGbs: 2000,
       },
-      output: "{operational_intensity: 500.0, knee_point: 156.0, bound: 'Compute-Bound', attainable_tflops: 312.0}",
-      explanation: "Intensity 500 FLOP/byte exceeds the hardware knee point 156 FLOP/byte. Kernel saturates peak compute engine (312 TFLOPs).",
+      output:
+        "{operational_intensity: 500.0, knee_point: 156.0, bound: 'Compute-Bound', attainable_tflops: 312.0}",
+      explanation:
+        "Intensity 500 FLOP/byte exceeds the hardware knee point 156 FLOP/byte. Kernel saturates peak compute engine (312 TFLOPs).",
     },
     {
       kind: "negative",
@@ -261,11 +268,13 @@ export const rooflineIntensityClassifier: AlgorithmDefinition<RooflineInput> = {
     keyTerms: [
       {
         term: "Roofline Model",
-        definition: "A visual performance model that bounds kernel speed based on peak compute ceiling and memory bandwidth slope.",
+        definition:
+          "A visual performance model that bounds kernel speed based on peak compute ceiling and memory bandwidth slope.",
       },
       {
         term: "Knee Point",
-        definition: "The operational intensity threshold where performance transitions from memory-bound to compute-bound.",
+        definition:
+          "The operational intensity threshold where performance transitions from memory-bound to compute-bound.",
       },
     ],
   },

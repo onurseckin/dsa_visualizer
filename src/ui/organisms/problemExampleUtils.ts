@@ -34,7 +34,10 @@ export function formatVal(val: unknown, isObjectPropertyValue = false): string {
   }
   if (typeof val === "string") {
     if (isObjectPropertyValue) {
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         return val;
       }
       return JSON.stringify(val);
@@ -52,7 +55,7 @@ export function formatVal(val: unknown, isObjectPropertyValue = false): string {
 
 function buildTreeArrayFromNodes(
   nodes: Record<string, unknown>[],
-  rootId?: string
+  rootId?: string,
 ): (unknown | null)[] {
   const nodeMap = new Map<string, Record<string, unknown>>();
   const childIds = new Set<string>();
@@ -114,14 +117,14 @@ function buildTreeArrayFromNodes(
       (typeof node.left !== "object"
         ? node.left
         : isRecord(node.left)
-          ? node.left.id ?? node.left.val
+          ? (node.left.id ?? node.left.val)
           : null);
     const right =
       node.rightId ??
       (typeof node.right !== "object"
         ? node.right
         : isRecord(node.right)
-          ? node.right.id ?? node.right.val
+          ? (node.right.id ?? node.right.val)
           : null);
 
     queue.push(left !== undefined && left !== null ? String(left) : null);
@@ -135,7 +138,9 @@ function buildTreeArrayFromNodes(
   return result;
 }
 
-function tryFormatTree(obj: Record<string, unknown>): { formatted: string; extraKeys: string[] } | null {
+function tryFormatTree(
+  obj: Record<string, unknown>,
+): { formatted: string; extraKeys: string[] } | null {
   if ("root" in obj) {
     const root = obj.root;
     let treeArrayStr = "";
@@ -168,10 +173,16 @@ function tryFormatTree(obj: Record<string, unknown>): { formatted: string; extra
     const firstNode = obj.nodes[0];
     if (
       isRecord(firstNode) &&
-      ("leftId" in firstNode || "rightId" in firstNode || "left" in firstNode || "right" in firstNode)
+      ("leftId" in firstNode ||
+        "rightId" in firstNode ||
+        "left" in firstNode ||
+        "right" in firstNode)
     ) {
       const nodeRecords: Record<string, unknown>[] = obj.nodes.filter(isRecord);
-      const rootId = typeof obj.rootId === "string" || typeof obj.rootId === "number" ? String(obj.rootId) : undefined;
+      const rootId =
+        typeof obj.rootId === "string" || typeof obj.rootId === "number"
+          ? String(obj.rootId)
+          : undefined;
       const arr = buildTreeArrayFromNodes(nodeRecords, rootId);
       return { formatted: `root = ${formatVal(arr)}`, extraKeys: ["root", "rootId", "nodes"] };
     }
@@ -180,7 +191,9 @@ function tryFormatTree(obj: Record<string, unknown>): { formatted: string; extra
   return null;
 }
 
-function tryFormatLinkedList(obj: Record<string, unknown>): { formatted: string; extraKeys: string[] } | null {
+function tryFormatLinkedList(
+  obj: Record<string, unknown>,
+): { formatted: string; extraKeys: string[] } | null {
   if ("head" in obj) {
     const head = obj.head;
     let listArrayStr = "";
@@ -202,7 +215,10 @@ function tryFormatLinkedList(obj: Record<string, unknown>): { formatted: string;
 
   if (Array.isArray(obj.nodes) && obj.nodes.length > 0) {
     const firstNode = obj.nodes[0];
-    if (isRecord(firstNode) && ("nextId" in firstNode || ("next" in firstNode && !("left" in firstNode)))) {
+    if (
+      isRecord(firstNode) &&
+      ("nextId" in firstNode || ("next" in firstNode && !("left" in firstNode)))
+    ) {
       const nodeRecords: Record<string, unknown>[] = obj.nodes.filter(isRecord);
       const nodeMap = new Map<string, Record<string, unknown>>();
       const pointedTo = new Set<string>();
@@ -210,13 +226,18 @@ function tryFormatLinkedList(obj: Record<string, unknown>): { formatted: string;
       for (const n of nodeRecords) {
         const id = String(n.id ?? n.val ?? "");
         nodeMap.set(id, n);
-        const nextTarget = n.nextId ?? (typeof n.next !== "object" ? n.next : (n.next as Record<string, unknown>)?.id);
+        const nextTarget =
+          n.nextId ??
+          (typeof n.next !== "object" ? n.next : (n.next as Record<string, unknown>)?.id);
         if (nextTarget !== undefined && nextTarget !== null) {
           pointedTo.add(String(nextTarget));
         }
       }
 
-      let startId = typeof obj.headId === "string" || typeof obj.headId === "number" ? String(obj.headId) : undefined;
+      let startId =
+        typeof obj.headId === "string" || typeof obj.headId === "number"
+          ? String(obj.headId)
+          : undefined;
       if (!startId || !nodeMap.has(startId)) {
         for (const n of nodeRecords) {
           const id = String(n.id ?? n.val ?? "");
@@ -238,7 +259,9 @@ function tryFormatLinkedList(obj: Record<string, unknown>): { formatted: string;
         visited.add(currId);
         const node = nodeMap.get(currId)!;
         arr.push(node.val ?? node.value ?? node.id);
-        const nextTarget = node.nextId ?? (typeof node.next !== "object" ? node.next : (node.next as Record<string, unknown>)?.id);
+        const nextTarget =
+          node.nextId ??
+          (typeof node.next !== "object" ? node.next : (node.next as Record<string, unknown>)?.id);
         currId = nextTarget !== undefined && nextTarget !== null ? String(nextTarget) : undefined;
       }
 
@@ -249,7 +272,9 @@ function tryFormatLinkedList(obj: Record<string, unknown>): { formatted: string;
   return null;
 }
 
-function tryFormatGraph(obj: Record<string, unknown>): { formatted: string; extraKeys: string[] } | null {
+function tryFormatGraph(
+  obj: Record<string, unknown>,
+): { formatted: string; extraKeys: string[] } | null {
   const gridKey = ["grid", "matrix", "board"].find((k) => k in obj && Array.isArray(obj[k]));
   if (gridKey) {
     const formatted = `${gridKey} = ${formatVal(obj[gridKey])}`;
@@ -359,7 +384,10 @@ export function formatExampleOutput(exampleOrOutput: ProblemExample | unknown): 
     return "";
   }
 
-  if (isRecord(exampleOrOutput) && ("output" in exampleOrOutput || "outputDisplay" in exampleOrOutput)) {
+  if (
+    isRecord(exampleOrOutput) &&
+    ("output" in exampleOrOutput || "outputDisplay" in exampleOrOutput)
+  ) {
     const example = exampleOrOutput as unknown as ProblemExample;
     if (example.outputDisplay && example.outputDisplay.trim() !== "") {
       return example.outputDisplay;

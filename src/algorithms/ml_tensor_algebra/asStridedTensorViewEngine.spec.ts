@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { asStridedTensorViewEngine, DEFAULT_ASSTRIDEDTENSORVIEWENGINE_INPUT, generateAsStridedTensorViewEngineSteps } from "./asStridedTensorViewEngine";
+import {
+  asStridedTensorViewEngine,
+  DEFAULT_ASSTRIDEDTENSORVIEWENGINE_INPUT,
+  generateAsStridedTensorViewEngineSteps,
+} from "./asStridedTensorViewEngine";
 
 describe("as-strided-tensor-view-engine (PyTorch ATen `as_strided` Zero-Copy View Engine)", () => {
   it("should have correct metadata", () => {

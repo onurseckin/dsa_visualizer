@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { variancePreservationProofSim, DEFAULT_VARIANCEPRESERVATIONPROOFSIM_INPUT, generateVariancePreservationProofSimSteps } from "./variancePreservationProofSim";
+import {
+  variancePreservationProofSim,
+  DEFAULT_VARIANCEPRESERVATIONPROOFSIM_INPUT,
+  generateVariancePreservationProofSimSteps,
+} from "./variancePreservationProofSim";
 
 describe("variance-preservation-proof-sim (Attention Variance Preservation Simulator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("variance-preservation-proof-sim (Attention Variance Preservation Simul
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateVariancePreservationProofSimSteps(DEFAULT_VARIANCEPRESERVATIONPROOFSIM_INPUT);
+    const steps = generateVariancePreservationProofSimSteps(
+      DEFAULT_VARIANCEPRESERVATIONPROOFSIM_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Attention Variance Preservation Simulator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

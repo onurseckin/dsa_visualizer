@@ -26,7 +26,7 @@ export const DEFAULT_STRIDED_INDEX_ARITHMETIC_INPUT: StridedIndexArithmeticInput
 };
 
 export const generateStridedIndexArithmeticSteps = (
-  input: StridedIndexArithmeticInput
+  input: StridedIndexArithmeticInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -45,7 +45,7 @@ export const generateStridedIndexArithmeticSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -75,7 +75,7 @@ export const generateStridedIndexArithmeticSteps = (
       3,
       "Dimension mismatch or empty input",
       "Shape, strides, and indices arrays must have non-zero matching length.",
-      { ndim, valid: false, offset: -1 }
+      { ndim, valid: false, offset: -1 },
     );
     return steps;
   }
@@ -84,9 +84,9 @@ export const generateStridedIndexArithmeticSteps = (
     5,
     "Initialize strided index calculation",
     `Calculating 1D linear memory address for multi-index [${indices.join(
-      ", "
+      ", ",
     )}] in ${ndim}D tensor.`,
-    { ndim, offset: 0 }
+    { ndim, offset: 0 },
   );
 
   let totalOffset = 0;
@@ -107,19 +107,19 @@ export const generateStridedIndexArithmeticSteps = (
       `Check dimension ${d}: index ${idx} in bounds [0, ${dimBound})`,
       `Evaluating index ${idx} against dimension ${d} size ${dimBound}.`,
       { d, idx, shape_d: dimBound, stride_d: stride, offset: totalOffset },
-      currentEls
+      currentEls,
     );
 
     if (idx < 0 || idx >= dimBound) {
       const errEls: ArrayElement[] = currentEls.map((el, i) =>
-        i === d ? { ...el, state: "compare", pointers: ["OOB"] } : el
+        i === d ? { ...el, state: "compare", pointers: ["OOB"] } : el,
       );
       addStep(
         10,
         `Out of bounds at dimension ${d}`,
         `Index ${idx} is out of bounds for dimension size ${dimBound}. Returning -1.`,
         { d, idx, shape_d: dimBound, offset: -1 },
-        errEls
+        errEls,
       );
       return steps;
     }
@@ -128,7 +128,7 @@ export const generateStridedIndexArithmeticSteps = (
     totalOffset += term;
 
     const termEls: ArrayElement[] = currentEls.map((el, i) =>
-      i === d ? { ...el, state: "sorted", pointers: [`+${term}`] } : el
+      i === d ? { ...el, state: "sorted", pointers: [`+${term}`] } : el,
     );
 
     addStep(
@@ -136,7 +136,7 @@ export const generateStridedIndexArithmeticSteps = (
       `Accumulate dimension ${d} contribution: +${term}`,
       `Added ${idx} * ${stride} = ${term} to offset. Current total = ${totalOffset}.`,
       { d, idx, stride_d: stride, term, offset: totalOffset },
-      termEls
+      termEls,
     );
   }
 
@@ -151,7 +151,7 @@ export const generateStridedIndexArithmeticSteps = (
     `Final 1D offset computed: ${totalOffset}`,
     `Successfully mapped multi-index [${indices.join(", ")}] to linear memory location ${totalOffset}.`,
     { offset: totalOffset, complete: true },
-    finalEls
+    finalEls,
   );
 
   return steps;
@@ -238,7 +238,10 @@ export const stridedIndexArithmetic: AlgorithmDefinition<StridedIndexArithmeticI
     ],
     keyTerms: [
       { term: "Rank / ndim", definition: "The number of dimensions of the tensor." },
-      { term: "Stride", definition: "Memory step required to advance by 1 element along a given axis." },
+      {
+        term: "Stride",
+        definition: "Memory step required to advance by 1 element along a given axis.",
+      },
     ],
   },
   trivia: STRIDED_INDEX_ARITHMETIC_TRIVIA,

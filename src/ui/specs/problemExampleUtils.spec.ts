@@ -28,7 +28,7 @@ describe("problemExampleUtils", () => {
         },
       };
       expect(formatExampleInput(example)).toBe(
-        "root = [3, 9, 20, null, null, 15, 7], p = 5, q = 1"
+        "root = [3, 9, 20, null, null, 15, 7], p = 5, q = 1",
       );
     });
 
@@ -72,7 +72,7 @@ describe("problemExampleUtils", () => {
         },
       };
       expect(formatExampleInput(example)).toBe(
-        'grid = [["1", "1", "0"], ["1", "1", "0"], ["0", "0", "1"]]'
+        'grid = [["1", "1", "0"], ["1", "1", "0"], ["0", "0", "1"]]',
       );
     });
 

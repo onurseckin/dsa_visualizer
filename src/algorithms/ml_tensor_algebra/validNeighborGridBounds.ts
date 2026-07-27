@@ -6,7 +6,8 @@ export interface validNeighborGridBoundsInput {
   target?: number;
 }
 
-export const VALIDNEIGHBORGRIDBOUNDS_CODE = "def valid_neighbor_grid_bounds(input_data: list) -> list:\n    # Valid 2D Grid Neighbor Bounds Check (Easy)\n    # Validates row and column indices against 2D tensor height and width boundaries.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const VALIDNEIGHBORGRIDBOUNDS_CODE =
+  "def valid_neighbor_grid_bounds(input_data: list) -> list:\n    # Valid 2D Grid Neighbor Bounds Check (Easy)\n    # Validates row and column indices against 2D tensor height and width boundaries.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_VALIDNEIGHBORGRIDBOUNDS_INPUT: validNeighborGridBoundsInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_VALIDNEIGHBORGRIDBOUNDS_INPUT: validNeighborGridBoundsInput
 };
 
 export const generateValidNeighborGridBoundsSteps = (
-  input: validNeighborGridBoundsInput
+  input: validNeighborGridBoundsInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateValidNeighborGridBoundsSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateValidNeighborGridBoundsSteps = (
     1,
     "Initialize Valid 2D Grid Neighbor Bounds Check",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateValidNeighborGridBoundsSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateValidNeighborGridBoundsSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateValidNeighborGridBoundsSteps = (
 
 const VALIDNEIGHBORGRIDBOUNDS_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Valid 2D Grid Neighbor Bounds Check.",
@@ -106,8 +112,8 @@ const VALIDNEIGHBORGRIDBOUNDS_TRIVIA: TriviaMeta = {
 export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBoundsInput> = {
   id: "valid-neighbor-grid-bounds",
   title: "Valid 2D Grid Neighbor Bounds Check",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 1,
@@ -151,12 +157,19 @@ export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBound
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "2D spatial bounds checks ensure memory safety before reading neighboring tensor offsets.",
+    overview:
+      "2D spatial bounds checks ensure memory safety before reading neighboring tensor offsets.",
     sections: [
-      { heading: "Core Concept", body: "Validates row and column indices against 2D tensor height and width boundaries." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Validates row and column indices against 2D tensor height and width boundaries.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Boundary Validation","definition":"Checking 0 <= r < H and 0 <= c < W."}],
+    keyTerms: [{ term: "Boundary Validation", definition: "Checking 0 <= r < H and 0 <= c < W." }],
   },
   trivia: VALIDNEIGHBORGRIDBOUNDS_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

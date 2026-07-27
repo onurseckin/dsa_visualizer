@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { matrixVectorMultiplication, DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT, generateMatrixVectorMultiplicationSteps } from "./matrixVectorMultiplication";
+import {
+  matrixVectorMultiplication,
+  DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT,
+  generateMatrixVectorMultiplicationSteps,
+} from "./matrixVectorMultiplication";
 
 describe("matrix-vector-multiplication (Matrix-Vector Multiplication (GEMV))", () => {
   it("should have correct metadata", () => {

@@ -6,7 +6,8 @@ export interface matrixBlockSumFlatInput {
   target?: number;
 }
 
-export const MATRIXBLOCKSUMFLAT_CODE = "def matrix_block_sum_flat(input_data: list) -> list:\n    # Submatrix Block Sum with 2D Prefix Array (Medium)\n    # Computes 2D region sum queries in O(1) time using an integral image prefix table.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const MATRIXBLOCKSUMFLAT_CODE =
+  "def matrix_block_sum_flat(input_data: list) -> list:\n    # Submatrix Block Sum with 2D Prefix Array (Medium)\n    # Computes 2D region sum queries in O(1) time using an integral image prefix table.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_MATRIXBLOCKSUMFLAT_INPUT: matrixBlockSumFlatInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_MATRIXBLOCKSUMFLAT_INPUT: matrixBlockSumFlatInput = {
 };
 
 export const generateMatrixBlockSumFlatSteps = (
-  input: matrixBlockSumFlatInput
+  input: matrixBlockSumFlatInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateMatrixBlockSumFlatSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateMatrixBlockSumFlatSteps = (
     1,
     "Initialize Submatrix Block Sum with 2D Prefix Array",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateMatrixBlockSumFlatSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateMatrixBlockSumFlatSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateMatrixBlockSumFlatSteps = (
 
 const MATRIXBLOCKSUMFLAT_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Submatrix Block Sum with 2D Prefix Array.",
@@ -106,8 +112,8 @@ const MATRIXBLOCKSUMFLAT_TRIVIA: TriviaMeta = {
 export const matrixBlockSumFlat: AlgorithmDefinition<matrixBlockSumFlatInput> = {
   id: "matrix-block-sum-flat",
   title: "Submatrix Block Sum with 2D Prefix Array",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 1,
@@ -151,12 +157,21 @@ export const matrixBlockSumFlat: AlgorithmDefinition<matrixBlockSumFlatInput> = 
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Integral images compute rectangular submatrix sums in O(1) time using inclusion-exclusion arithmetic.",
+    overview:
+      "Integral images compute rectangular submatrix sums in O(1) time using inclusion-exclusion arithmetic.",
     sections: [
-      { heading: "Core Concept", body: "Computes 2D region sum queries in O(1) time using an integral image prefix table." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Computes 2D region sum queries in O(1) time using an integral image prefix table.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"2D Prefix Sum","definition":"Precomputed cumulative sum table over 2D grids."}],
+    keyTerms: [
+      { term: "2D Prefix Sum", definition: "Precomputed cumulative sum table over 2D grids." },
+    ],
   },
   trivia: MATRIXBLOCKSUMFLAT_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

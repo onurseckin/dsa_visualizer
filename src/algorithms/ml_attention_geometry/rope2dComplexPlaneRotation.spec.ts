@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { rope2dComplexPlaneRotation, DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT, generateRope2dComplexPlaneRotationSteps } from "./rope2dComplexPlaneRotation";
+import {
+  rope2dComplexPlaneRotation,
+  DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT,
+  generateRope2dComplexPlaneRotationSteps,
+} from "./rope2dComplexPlaneRotation";
 
 describe("rope-2d-complex-plane-rotation (RoPE 2D Complex Plane Rotation Matrix)", () => {
   it("should have correct metadata", () => {

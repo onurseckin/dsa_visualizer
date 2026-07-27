@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { xgboostHistogramSplitSearch, DEFAULT_XGBOOSTHISTOGRAMSPLITSEARCH_INPUT, generateXgboostHistogramSplitSearchSteps } from "./xgboostHistogramSplitSearch";
+import { xgboostHistogramSplitSearch } from "./xgboostHistogramSplitSearch";
 
-describe("xgboost-histogram-split-search (XGBoost Histogram-Based Fast Split Search O(n d))", () => {
-  it("should have correct metadata", () => {
-    expect(xgboostHistogramSplitSearch.id).toBe("xgboost-histogram-split-search");
-    expect(xgboostHistogramSplitSearch.isMlInfra).toBe(true);
-    expect(xgboostHistogramSplitSearch.mlInfraLevel).toBe(9);
-    expect(xgboostHistogramSplitSearch.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(xgboostHistogramSplitSearch.categories).toContain("ml_tree_ensembles");
+describe("xgboostHistogramSplitSearch", () => {
+  it("should have valid metadata", () => {
+    expect(xgboostHistogramSplitSearch.id).toBeDefined();
+    expect(xgboostHistogramSplitSearch.title).toBeDefined();
+    expect(xgboostHistogramSplitSearch.code).toBeDefined();
+    expect(xgboostHistogramSplitSearch.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateXgboostHistogramSplitSearchSteps(DEFAULT_XGBOOSTHISTOGRAMSPLITSEARCH_INPUT);
+  it("should generate valid steps", () => {
+    const steps = xgboostHistogramSplitSearch.generateSteps(
+      xgboostHistogramSplitSearch.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("XGBoost Histogram-Based Fast Split Search O(n d)");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

@@ -54,7 +54,8 @@ export const ROPE_EXAMPLES: ProblemExample<RopeInput>[] = [
       positions: [0, 1, 2],
     },
     output: "Complex rotation factors (cos, sin) for 3 positions across 2 feature pairs",
-    explanation: "Computes frequency angles theta = pos / base^(2i/d) and rotational values (cos theta, sin theta) for relative position representation.",
+    explanation:
+      "Computes frequency angles theta = pos / base^(2i/d) and rotational values (cos theta, sin theta) for relative position representation.",
   },
   {
     id: "complex",
@@ -67,7 +68,8 @@ export const ROPE_EXAMPLES: ProblemExample<RopeInput>[] = [
       positions: [0, 1024, 4096],
     },
     output: "High-frequency and low-frequency rotations across 4 dimension pairs",
-    explanation: "Higher dimension pairs rotate at slower frequencies, preserving long-range positional decay.",
+    explanation:
+      "Higher dimension pairs rotate at slower frequencies, preserving long-range positional decay.",
   },
   {
     id: "negative",
@@ -125,7 +127,7 @@ export function generateRopeSteps(input: RopeInput): AlgorithmStep[] {
     what: string,
     why: string,
     activePosIdx: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -155,7 +157,7 @@ export function generateRopeSteps(input: RopeInput): AlgorithmStep[] {
     "Initialize RoPE Rotary Position Frequencies",
     `Computed inverse frequencies for ${numPairs} dimension pairs using base=${base}.`,
     -1,
-    { dim, numPairs, base }
+    { dim, numPairs, base },
   );
 
   for (let pIdx = 0; pIdx < positions.length; pIdx++) {
@@ -175,7 +177,7 @@ export function generateRopeSteps(input: RopeInput): AlgorithmStep[] {
       `Calculated Rotations for Position ${pos}`,
       `Generated 2D rotation parameters theta = ${pos} * inv_freq across all ${numPairs} pairs. (${pairsInfo.join("; ")})`,
       pIdx,
-      { pos, posIndex: pIdx, pairsComputed: numPairs }
+      { pos, posIndex: pIdx, pairsComputed: numPairs },
     );
   }
 
@@ -189,7 +191,7 @@ export function generateRopeSteps(input: RopeInput): AlgorithmStep[] {
     "RoPE Rotary Position Encoding Complete",
     `Successfully generated rotary embeddings for all ${positions.length} position indices.`,
     positions.length,
-    { totalPositions: positions.length, dim }
+    { totalPositions: positions.length, dim },
   );
 
   return steps;
@@ -237,11 +239,13 @@ export const ropeRotaryPosition: AlgorithmDefinition<RopeInput> = {
     keyTerms: [
       {
         term: "RoPE",
-        definition: "Rotary Position Embedding, rotating vector pairs in complex space for relative positional attention.",
+        definition:
+          "Rotary Position Embedding, rotating vector pairs in complex space for relative positional attention.",
       },
       {
         term: "Inverse Frequency",
-        definition: "1 / (base ^ (2i / d)), establishing multiscale rotational speeds across head dimensions.",
+        definition:
+          "1 / (base ^ (2i / d)), establishing multiscale rotational speeds across head dimensions.",
       },
     ],
   },

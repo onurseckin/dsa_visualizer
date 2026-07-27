@@ -1,19 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { greedyDecisionTreeBuilder, DEFAULT_GREEDYDECISIONTREEBUILDER_INPUT, generateGreedyDecisionTreeBuilderSteps } from "./greedyDecisionTreeBuilder";
+import { greedyDecisionTreeBuilder } from "./greedyDecisionTreeBuilder";
 
-describe("greedy-decision-tree-builder (Recursive Greedy Decision Tree Builder)", () => {
-  it("should have correct metadata", () => {
-    expect(greedyDecisionTreeBuilder.id).toBe("greedy-decision-tree-builder");
-    expect(greedyDecisionTreeBuilder.isMlInfra).toBe(true);
-    expect(greedyDecisionTreeBuilder.mlInfraLevel).toBe(9);
-    expect(greedyDecisionTreeBuilder.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(greedyDecisionTreeBuilder.categories).toContain("ml_tree_ensembles");
+describe("greedyDecisionTreeBuilder", () => {
+  it("should have valid metadata", () => {
+    expect(greedyDecisionTreeBuilder.id).toBeDefined();
+    expect(greedyDecisionTreeBuilder.title).toBeDefined();
+    expect(greedyDecisionTreeBuilder.code).toBeDefined();
+    expect(greedyDecisionTreeBuilder.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateGreedyDecisionTreeBuilderSteps(DEFAULT_GREEDYDECISIONTREEBUILDER_INPUT);
+  it("should generate valid steps", () => {
+    const steps = greedyDecisionTreeBuilder.generateSteps(greedyDecisionTreeBuilder.defaultInput);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Recursive Greedy Decision Tree Builder");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { hashBasedPrefixCacheTrieAllocator, DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT, generateHashBasedPrefixCacheTrieAllocatorSteps } from "./hashBasedPrefixCacheTrieAllocator";
+import {
+  hashBasedPrefixCacheTrieAllocator,
+  DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT,
+  generateHashBasedPrefixCacheTrieAllocatorSteps,
+} from "./hashBasedPrefixCacheTrieAllocator";
 
 describe("hash-based-prefix-cache-trie-allocator (Hash-Based Prefix Caching Radix Trie Allocator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("hash-based-prefix-cache-trie-allocator (Hash-Based Prefix Caching Radi
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateHashBasedPrefixCacheTrieAllocatorSteps(DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT);
+    const steps = generateHashBasedPrefixCacheTrieAllocatorSteps(
+      DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Hash-Based Prefix Caching Radix Trie Allocator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

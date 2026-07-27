@@ -10,7 +10,9 @@ describe("viterbiLatticeSubwordSegmenter", () => {
   });
 
   it("generateSteps should return at least one step for defaultInput", () => {
-    const steps = viterbiLatticeSubwordSegmenter.generateSteps(viterbiLatticeSubwordSegmenter.defaultInput);
+    const steps = viterbiLatticeSubwordSegmenter.generateSteps(
+      viterbiLatticeSubwordSegmenter.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

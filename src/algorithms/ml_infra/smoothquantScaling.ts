@@ -8,7 +8,7 @@ import type {
 export interface SmoothquantInput {
   alpha: number; // migration strength, e.g. 0.5
   activations: number[][]; // [numTokens][numChannels]
-  weights: number[][];     // [numChannels][outFeatures]
+  weights: number[][]; // [numChannels][outFeatures]
 }
 
 export const SMOOTHQUANT_SCALING_CODE = `def smoothquant_scaling(
@@ -87,7 +87,8 @@ export const SMOOTHQUANT_EXAMPLES: ProblemExample<SmoothquantInput>[] = [
       ],
     },
     output: "Per-channel scales s = [7.746, 0.775, 0.739]",
-    explanation: "Migrates activation outlier variance in channel 0 to weights so both X and W fit INT8 quantization ranges smoothly.",
+    explanation:
+      "Migrates activation outlier variance in channel 0 to weights so both X and W fit INT8 quantization ranges smoothly.",
   },
   {
     id: "complex",
@@ -106,7 +107,8 @@ export const SMOOTHQUANT_EXAMPLES: ProblemExample<SmoothquantInput>[] = [
       ],
     },
     output: "Stronger migration scale for channel 0",
-    explanation: "Higher migration alpha (0.75) places more scaling burden onto weight rows to tame massive activation spikes.",
+    explanation:
+      "Higher migration alpha (0.75) places more scaling burden onto weight rows to tame massive activation spikes.",
   },
   {
     id: "negative",
@@ -169,7 +171,7 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     maxAct: number[],
     maxWeight: number[],
     scales: number[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -177,7 +179,10 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
+        elements: elements.map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
       auxiliaryState: {
         customState: {
@@ -198,7 +203,7 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     [],
     [],
     [],
-    { numTokens, channels, outFeatures, alpha }
+    { numTokens, channels, outFeatures, alpha },
   );
 
   // 1. Compute per-channel max activations and weights
@@ -226,7 +231,7 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     maxAct,
     maxWeight,
     [],
-    { channels }
+    { channels },
   );
 
   // 2. Compute scaling vector s
@@ -248,7 +253,7 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     maxAct,
     maxWeight,
     scales,
-    { alpha, totalScales: scales.length }
+    { alpha, totalScales: scales.length },
   );
 
   // 3. Transform X and W
@@ -272,7 +277,7 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
       channels,
       maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(2),
       maxScaledWeight: Math.max(...WHat.flat().map(Math.abs)).toFixed(2),
-    }
+    },
   );
 
   return steps;
@@ -321,15 +326,18 @@ export const smoothquantScaling: AlgorithmDefinition<SmoothquantInput> = {
     keyTerms: [
       {
         term: "SmoothQuant",
-        definition: "Post-training W8A8 quantization technique using channel-wise outlier smoothing.",
+        definition:
+          "Post-training W8A8 quantization technique using channel-wise outlier smoothing.",
       },
       {
         term: "Activation Outliers",
-        definition: "Extreme magnitude values concentrated in specific channels of LLM hidden representations.",
+        definition:
+          "Extreme magnitude values concentrated in specific channels of LLM hidden representations.",
       },
       {
         term: "W8A8 Quantization",
-        definition: "Quantizing both weights (W) and activations (A) to 8-bit integers for hardware GEMM acceleration.",
+        definition:
+          "Quantizing both weights (W) and activations (A) to 8-bit integers for hardware GEMM acceleration.",
       },
     ],
   },

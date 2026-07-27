@@ -6,7 +6,8 @@ export interface causalLowerTriangularMaskInput {
   target?: number;
 }
 
-export const CAUSALLOWERTRIANGULARMASK_CODE = "def causal_lower_triangular_mask(input_data: list) -> list:\n    # Causal Lower-Triangular Mask Generator (Easy)\n    # Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CAUSALLOWERTRIANGULARMASK_CODE =
+  "def causal_lower_triangular_mask(input_data: list) -> list:\n    # Causal Lower-Triangular Mask Generator (Easy)\n    # Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT: causalLowerTriangularMaskInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT: causalLowerTriangularMaskI
 };
 
 export const generateCausalLowerTriangularMaskSteps = (
-  input: causalLowerTriangularMaskInput
+  input: causalLowerTriangularMaskInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateCausalLowerTriangularMaskSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateCausalLowerTriangularMaskSteps = (
     1,
     "Initialize Causal Lower-Triangular Mask Generator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateCausalLowerTriangularMaskSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateCausalLowerTriangularMaskSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateCausalLowerTriangularMaskSteps = (
 
 const CAUSALLOWERTRIANGULARMASK_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Causal Lower-Triangular Mask Generator.",
@@ -106,13 +112,14 @@ const CAUSALLOWERTRIANGULARMASK_TRIVIA: TriviaMeta = {
 export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangularMaskInput> = {
   id: "causal-lower-triangular-mask",
   title: "Causal Lower-Triangular Mask Generator",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","arrays_and_hashing"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
-  description: "Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.",
+  description:
+    "Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -153,10 +160,21 @@ export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangula
   topicGuide: {
     overview: "Causal masks enforce autoregressive prediction constraints.",
     sections: [
-      { heading: "Core Concept", body: "Fills upper-triangular matrix entries with -inf to prevent attending to future tokens." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Causal Mask","definition":"Lower-triangular boolean mask preventing future token visibility."}],
+    keyTerms: [
+      {
+        term: "Causal Mask",
+        definition: "Lower-triangular boolean mask preventing future token visibility.",
+      },
+    ],
   },
   trivia: CAUSALLOWERTRIANGULARMASK_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

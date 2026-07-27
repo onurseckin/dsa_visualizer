@@ -56,8 +56,7 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
         ],
       },
       output: "[[1,6], [8,10], [15,18]]",
-      explanation:
-        "Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].",
+      explanation: "Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].",
     },
     {
       kind: "complex",

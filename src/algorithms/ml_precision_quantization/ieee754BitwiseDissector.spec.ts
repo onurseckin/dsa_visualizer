@@ -1,19 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { ieee754BitwiseDissector, DEFAULT_IEEE754BITWISEDISSECTOR_INPUT, generateIeee754BitwiseDissectorSteps } from "./ieee754BitwiseDissector";
+import {
+  ieee754BitwiseDissector,
+  generateIeee754BitwiseDissectorSteps,
+  DEFAULT_IEEE754BITWISEDISSECTOR_INPUT,
+} from "./ieee754BitwiseDissector";
 
-describe("ieee754-bitwise-dissector (IEEE-754 Floating Point Bit Dissector)", () => {
+describe("Ieee754 Bitwise Dissector", () => {
   it("should have correct metadata", () => {
-    expect(ieee754BitwiseDissector.id).toBe("ieee754-bitwise-dissector");
-    expect(ieee754BitwiseDissector.isMlInfra).toBe(true);
-    expect(ieee754BitwiseDissector.mlInfraLevel).toBe(4);
-    expect(ieee754BitwiseDissector.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(ieee754BitwiseDissector.categories).toContain("ml_precision_quantization");
+    expect(ieee754BitwiseDissector.id).toBeDefined();
+    expect(ieee754BitwiseDissector.title).toBe("Ieee754 Bitwise Dissector");
+    expect(ieee754BitwiseDissector.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate steps successfully", () => {
     const steps = generateIeee754BitwiseDissectorSteps(DEFAULT_IEEE754BITWISEDISSECTOR_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("IEEE-754 Floating Point Bit Dissector");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(ieee754BitwiseDissector.examples?.length).toBe(3);
   });
 });

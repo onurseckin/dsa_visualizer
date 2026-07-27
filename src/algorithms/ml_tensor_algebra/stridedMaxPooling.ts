@@ -6,16 +6,15 @@ export interface stridedMaxPoolingInput {
   target?: number;
 }
 
-export const STRIDEDMAXPOOLING_CODE = "def strided_max_pooling(input_data: list) -> list:\n    # 2D Strided Max Pooling Operator (Medium)\n    # Applies sliding window max pooling with spatial stride steps over 2D activation tensors.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const STRIDEDMAXPOOLING_CODE =
+  "def strided_max_pooling(input_data: list) -> list:\n    # 2D Strided Max Pooling Operator (Medium)\n    # Applies sliding window max pooling with spatial stride steps over 2D activation tensors.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_STRIDEDMAXPOOLING_INPUT: stridedMaxPoolingInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateStridedMaxPoolingSteps = (
-  input: stridedMaxPoolingInput
-): AlgorithmStep[] => {
+export const generateStridedMaxPoolingSteps = (input: stridedMaxPoolingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateStridedMaxPoolingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateStridedMaxPoolingSteps = (
     1,
     "Initialize 2D Strided Max Pooling Operator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateStridedMaxPoolingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateStridedMaxPoolingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateStridedMaxPoolingSteps = (
 
 const STRIDEDMAXPOOLING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for 2D Strided Max Pooling Operator.",
@@ -106,13 +110,14 @@ const STRIDEDMAXPOOLING_TRIVIA: TriviaMeta = {
 export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
   id: "strided-max-pooling",
   title: "2D Strided Max Pooling Operator",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","sliding_window"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "sliding_window"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
-  description: "Applies sliding window max pooling with spatial stride steps over 2D activation tensors.",
+  description:
+    "Applies sliding window max pooling with spatial stride steps over 2D activation tensors.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -151,12 +156,21 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Max pooling downsamples activation maps by selecting peak values inside strided windows.",
+    overview:
+      "Max pooling downsamples activation maps by selecting peak values inside strided windows.",
     sections: [
-      { heading: "Core Concept", body: "Applies sliding window max pooling with spatial stride steps over 2D activation tensors." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Applies sliding window max pooling with spatial stride steps over 2D activation tensors.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Max Pooling","definition":"Selecting the maximum value within a spatial window."}],
+    keyTerms: [
+      { term: "Max Pooling", definition: "Selecting the maximum value within a spatial window." },
+    ],
   },
   trivia: STRIDEDMAXPOOLING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

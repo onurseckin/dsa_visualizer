@@ -6,7 +6,8 @@ export interface asStridedZeroCopyIm2colViewInput {
   target?: number;
 }
 
-export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE = "def as_strided_zero_copy_im2col_view(input_data: list) -> list:\n    # Zero-Copy `as_strided` im2col View Engine (Medium)\n    # Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE =
+  "def as_strided_zero_copy_im2col_view(input_data: list) -> list:\n    # Zero-Copy `as_strided` im2col View Engine (Medium)\n    # Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ASSTRIDEDZEROCOPYIM2COLVIEW_INPUT: asStridedZeroCopyIm2colViewInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ASSTRIDEDZEROCOPYIM2COLVIEW_INPUT: asStridedZeroCopyIm2colV
 };
 
 export const generateAsStridedZeroCopyIm2colViewSteps = (
-  input: asStridedZeroCopyIm2colViewInput
+  input: asStridedZeroCopyIm2colViewInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
     1,
     "Initialize Zero-Copy `as_strided` im2col View Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
 
 const ASSTRIDEDZEROCOPYIM2COLVIEW_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Zero-Copy `as_strided` im2col View Engine.",
@@ -106,13 +112,14 @@ const ASSTRIDEDZEROCOPYIM2COLVIEW_TRIVIA: TriviaMeta = {
 export const asStridedZeroCopyIm2colView: AlgorithmDefinition<asStridedZeroCopyIm2colViewInput> = {
   id: "as-strided-zero-copy-im2col-view",
   title: "Zero-Copy `as_strided` im2col View Engine",
-  category: "ml_convolutions" as any,
-  categories: ["ml_convolutions","arrays_and_hashing"] as any,
+  category: "ml_convolutions",
+  categories: ["ml_convolutions", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
-  description: "Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.",
+  description:
+    "Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -151,12 +158,21 @@ export const asStridedZeroCopyIm2colView: AlgorithmDefinition<asStridedZeroCopyI
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Strided im2col eliminates K^2 memory duplication by creating virtual views over input tensors.",
+    overview:
+      "Strided im2col eliminates K^2 memory duplication by creating virtual views over input tensors.",
     sections: [
-      { heading: "Core Concept", body: "Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Zero-Copy im2col","definition":"Virtual strided view avoiding memory duplication."}],
+    keyTerms: [
+      { term: "Zero-Copy im2col", definition: "Virtual strided view avoiding memory duplication." },
+    ],
   },
   trivia: ASSTRIDEDZEROCOPYIM2COLVIEW_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],

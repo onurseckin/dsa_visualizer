@@ -6,7 +6,8 @@ export interface astConstantFoldingInput {
   target?: number;
 }
 
-export const ASTCONSTANTFOLDING_CODE = "def ast_constant_folding(input_data: list) -> list:\n    # AST Constant Folding Compiler Pass (Medium)\n    # Pre-calculates constant expression subtrees in compiler graphs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASTCONSTANTFOLDING_CODE =
+  "def ast_constant_folding(input_data: list) -> list:\n    # AST Constant Folding Compiler Pass (Medium)\n    # Pre-calculates constant expression subtrees in compiler graphs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ASTCONSTANTFOLDING_INPUT: astConstantFoldingInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ASTCONSTANTFOLDING_INPUT: astConstantFoldingInput = {
 };
 
 export const generateAstConstantFoldingSteps = (
-  input: astConstantFoldingInput
+  input: astConstantFoldingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAstConstantFoldingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAstConstantFoldingSteps = (
     1,
     "Initialize AST Constant Folding Compiler Pass",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAstConstantFoldingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAstConstantFoldingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAstConstantFoldingSteps = (
 
 const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for AST Constant Folding Compiler Pass.",
@@ -106,8 +112,8 @@ const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
 export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = {
   id: "ast-constant-folding",
   title: "AST Constant Folding Compiler Pass",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","tree_fundamentals"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "tree_fundamentals"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,18 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
   topicGuide: {
     overview: "Constant folding eliminates redundant runtime compute.",
     sections: [
-      { heading: "Core Concept", body: "Pre-calculates constant expression subtrees in compiler graphs." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Pre-calculates constant expression subtrees in compiler graphs.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Constant Folding","definition":"Pre-evaluating static operations at compile time."}],
+    keyTerms: [
+      { term: "Constant Folding", definition: "Pre-evaluating static operations at compile time." },
+    ],
   },
   trivia: ASTCONSTANTFOLDING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

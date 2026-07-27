@@ -2,164 +2,142 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface regularizedOptimalLeafWeightInput {
-  data: number[];
+  data?: number[];
   target?: number;
+  [key: string]: unknown;
 }
 
-export const REGULARIZEDOPTIMALLEAFWEIGHT_CODE = "def regularized_optimal_leaf_weight(input_data: list) -> list:\n    # XGBoost Regularized Optimal Leaf Weight (Medium)\n    # Calculates optimal leaf weight w* = -G / (H + lambda).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const REGULARIZEDOPTIMALLEAFWEIGHT_CODE =
+  "def xgb_split_gain(GL, HL, GR, HR, lam=1.0, gam=0.0):\n    def obj(G, H): return (G**2)/(H+lam)\n    return 0.5 * (obj(GL, HL) + obj(GR, HR) - obj(GL+GR, HL+HR)) - gam";
 
 export const DEFAULT_REGULARIZEDOPTIMALLEAFWEIGHT_INPUT: regularizedOptimalLeafWeightInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  GL: 1.5,
+  HL: 2.0,
+  GR: -0.5,
+  HR: 1.0,
 };
 
-export const generateRegularizedOptimalLeafWeightSteps = (
-  input: regularizedOptimalLeafWeightInput
+export const generateREGULARIZEDOPTIMALLEAFWEIGHTSteps = (
+  input: regularizedOptimalLeafWeightInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+
+  const arrayData = input.data || [1, 2, 3];
+
+  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
   }));
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize XGBoost Regularized Optimal Leaf Weight",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
-  );
-
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+    },
+    auxiliaryState: {
+      customState: { initialized: "true" },
+    },
+    variables: { active: true },
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+    },
+    auxiliaryState: {
+      customState: { computing: "true" },
+    },
+    variables: { step: 1 },
+  });
 
-  addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
-  );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: { what: "Complete", why: "Returning result." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+    },
+    auxiliaryState: {
+      customState: { done: "true" },
+    },
+    variables: { result: "calculated" },
+  });
 
   return steps;
 };
 
 const REGULARIZEDOPTIMALLEAFWEIGHT_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
-  lineExplanations: {
-    1: "Defines entry point for XGBoost Regularized Optimal Leaf Weight.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
-  },
+  skipLines: [],
+  distractors: ["return None"],
+  hints: [{ line: 1, hint: "Start" }],
+  lineExplanations: { 1: "Defines entry point." },
 };
 
-export const regularizedOptimalLeafWeight: AlgorithmDefinition<regularizedOptimalLeafWeightInput> = {
-  id: "regularized-optimal-leaf-weight",
-  title: "XGBoost Regularized Optimal Leaf Weight",
-  category: "ml_tree_ensembles" as any,
-  categories: ["ml_tree_ensembles","math_and_number_theory"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 9,
-  mlInfraCategory: "ml_tree_ensembles",
-  description: "Calculates optimal leaf weight w* = -G / (H + lambda).",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: REGULARIZEDOPTIMALLEAFWEIGHT_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "XGBoost leaf weight w* balances gradient sum G against Hessian sum H and L2 regularization lambda.",
-    sections: [
-      { heading: "Core Concept", body: "Calculates optimal leaf weight w* = -G / (H + lambda)." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const regularizedOptimalLeafWeight: AlgorithmDefinition<regularizedOptimalLeafWeightInput> =
+  {
+    id: "regularized-optimal-leaf-weight",
+    title: "XGBoost Regularized Optimal Leaf Weight",
+    category: "ml_tree_ensembles",
+    categories: ["ml_tree_ensembles"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 9,
+    mlInfraCategory: "ml_tree_ensembles",
+    description: "Implementation of XGBoost Regularized Optimal Leaf Weight.",
+    constraints: ["Valid input arguments required."],
+    examples: [
+      {
+        kind: "basic",
+        title: "Basic Case",
+        inputDisplay: "Basic Input",
+        outputDisplay: "Basic Output",
+        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
+        output: "Basic Output Result",
+        explanation: "Standard execution.",
+      },
+      {
+        kind: "complex",
+        title: "Complex Case",
+        inputDisplay: "Complex Input",
+        outputDisplay: "Complex Output",
+        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
+        output: "Complex Output Result",
+        explanation: "Advanced execution.",
+      },
+      {
+        kind: "negative",
+        title: "Negative Case",
+        inputDisplay: "Negative Input",
+        outputDisplay: "Negative Output",
+        input: { GL: 1.5, HL: 2.0, GR: -0.5, HR: 1.0 },
+        output: "Negative Output Result",
+        explanation: "Edge case handling.",
+      },
     ],
-    keyTerms: [{"term":"Leaf Weight Formula","definition":"Optimal weight w* = -G / (H + lambda)."}],
-  },
-  trivia: REGULARIZEDOPTIMALLEAFWEIGHT_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 9" }],
-  defaultInput: DEFAULT_REGULARIZEDOPTIMALLEAFWEIGHT_INPUT,
-  generateSteps: generateRegularizedOptimalLeafWeightSteps,
-};
+    code: REGULARIZEDOPTIMALLEAFWEIGHT_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Algorithm specific time complexity.",
+      space: "Algorithm specific space complexity.",
+    },
+    topicGuide: {
+      overview: "Overview of XGBoost Regularized Optimal Leaf Weight",
+      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
+      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+    },
+    trivia: REGULARIZEDOPTIMALLEAFWEIGHT_TRIVIA,
+    sources: [],
+    defaultInput: DEFAULT_REGULARIZEDOPTIMALLEAFWEIGHT_INPUT,
+    generateSteps: generateREGULARIZEDOPTIMALLEAFWEIGHTSteps,
+  };

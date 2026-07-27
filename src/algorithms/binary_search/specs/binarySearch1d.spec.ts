@@ -48,7 +48,13 @@ describe("binarySearch1d algorithm spec", () => {
     expect(binarySearch1d.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
 
     for (const example of binarySearch1d.examples!) {
-      const steps = binarySearch1d.generateSteps(example.input as { array: number[]; target: number; mode?: "exact" | "lower_bound" | "upper_bound" });
+      const steps = binarySearch1d.generateSteps(
+        example.input as {
+          array: number[];
+          target: number;
+          mode?: "exact" | "lower_bound" | "upper_bound";
+        },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

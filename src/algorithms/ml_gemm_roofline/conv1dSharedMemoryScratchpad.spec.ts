@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { conv1dSharedMemoryScratchpad, DEFAULT_CONV1DSHAREDMEMORYSCRATCHPAD_INPUT, generateConv1dSharedMemoryScratchpadSteps } from "./conv1dSharedMemoryScratchpad";
+import {
+  conv1dSharedMemoryScratchpad,
+  DEFAULT_CONV1DSHAREDMEMORYSCRATCHPAD_INPUT,
+  generateConv1dSharedMemoryScratchpadSteps,
+} from "./conv1dSharedMemoryScratchpad";
 
 describe("conv1d-shared-memory-scratchpad (1D Conv GPU SRAM Scratchpad Simulator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("conv1d-shared-memory-scratchpad (1D Conv GPU SRAM Scratchpad Simulator
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateConv1dSharedMemoryScratchpadSteps(DEFAULT_CONV1DSHAREDMEMORYSCRATCHPAD_INPUT);
+    const steps = generateConv1dSharedMemoryScratchpadSteps(
+      DEFAULT_CONV1DSHAREDMEMORYSCRATCHPAD_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("1D Conv GPU SRAM Scratchpad Simulator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

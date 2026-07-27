@@ -103,7 +103,8 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "arr = [3, 2, -1, 6, 5, 4, -3, 37], queries = [sum(1..5), update(3, +5), sum(1..5)]",
+      inputDisplay:
+        "arr = [3, 2, -1, 6, 5, 4, -3, 37], queries = [sum(1..5), update(3, +5), sum(1..5)]",
       outputDisplay: "Query 1: 15, Query 2: 20",
       title: "Basic Example",
       input: {

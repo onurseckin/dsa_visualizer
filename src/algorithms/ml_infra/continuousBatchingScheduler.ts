@@ -99,8 +99,10 @@ export const CONTINUOUS_BATCHING_EXAMPLES: ProblemExample<ContinuousBatchingInpu
         { id: "req-4", promptLen: 1, maxTokens: 3, arrivalStep: 2 },
       ],
     },
-    output: "Evicts finished requests step-by-step and immediately admits waiting items into freed batch slots",
-    explanation: "Req-2 finishes at step 2, instantly freeing a batch slot for Req-3/4 without waiting for long Req-1 or Req-3 sequences.",
+    output:
+      "Evicts finished requests step-by-step and immediately admits waiting items into freed batch slots",
+    explanation:
+      "Req-2 finishes at step 2, instantly freeing a batch slot for Req-3/4 without waiting for long Req-1 or Req-3 sequences.",
   },
   {
     id: "complex",
@@ -117,7 +119,8 @@ export const CONTINUOUS_BATCHING_EXAMPLES: ProblemExample<ContinuousBatchingInpu
       ],
     },
     output: "Schedules requests subject to GPU KV-cache memory block limits",
-    explanation: "Requests are deferred in queue if total KV-cache blocks exceed maxMemoryBlocks capacity.",
+    explanation:
+      "Requests are deferred in queue if total KV-cache blocks exceed maxMemoryBlocks capacity.",
   },
   {
     id: "negative",
@@ -185,7 +188,9 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
   let usedBlocks = 0;
 
   const snapshotState = () => ({
-    activeBatch: activeBatch.map((r) => `${r.id}(${r.state}:${r.generatedTokens}/${r.maxTokens})`).join(", "),
+    activeBatch: activeBatch
+      .map((r) => `${r.id}(${r.state}:${r.generatedTokens}/${r.maxTokens})`)
+      .join(", "),
     waitingQueue: waitingQueue.map((r) => r.id).join(", "),
     completed: completed.map((r) => r.id).join(", "),
     usedBlocks: `${usedBlocks}/${maxMemoryBlocks}`,
@@ -195,7 +200,7 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
     codeLine: number,
     what: string,
     why: string,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -228,12 +233,15 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
     1,
     "Initialize Continuous Batching LLM Scheduler",
     `Configured vLLM/Orca iteration scheduler with max batch size ${maxBatchSize} and ${maxMemoryBlocks} KV-cache memory blocks.`,
-    { maxBatchSize, maxMemoryBlocks, totalRequests: requests.length }
+    { maxBatchSize, maxMemoryBlocks, totalRequests: requests.length },
   );
 
   let unprocessed = [...allReqs].sort((a, b) => a.arrivalStep - b.arrivalStep);
 
-  while ((unprocessed.length > 0 || waitingQueue.length > 0 || activeBatch.length > 0) && currentStep < 50) {
+  while (
+    (unprocessed.length > 0 || waitingQueue.length > 0 || activeBatch.length > 0) &&
+    currentStep < 50
+  ) {
     // 1. Admit new arrivals
     const arrivals = unprocessed.filter((r) => r.arrivalStep <= currentStep);
     unprocessed = unprocessed.filter((r) => r.arrivalStep > currentStep);
@@ -263,7 +271,12 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
       15,
       `Step Iteration #${currentStep}: Scheduling & Admission`,
       `Active batch running ${activeBatch.length}/${maxBatchSize} requests; ${waitingQueue.length} waiting in queue. Memory KV-blocks used: ${usedBlocks}/${maxMemoryBlocks}.`,
-      { currentStep, activeCount: activeBatch.length, waitingCount: waitingQueue.length, usedBlocks }
+      {
+        currentStep,
+        activeCount: activeBatch.length,
+        waitingCount: waitingQueue.length,
+        usedBlocks,
+      },
     );
 
     // 3. Forward pass generation (1 token per active request)
@@ -296,7 +309,7 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
     30,
     "Continuous Batching Simulation Complete",
     `All ${completed.length} requests served with zero GPU batch padding bubble cycles.`,
-    { totalCompleted: completed.length, totalIterations: currentStep }
+    { totalCompleted: completed.length, totalIterations: currentStep },
   );
 
   return steps;
@@ -344,15 +357,18 @@ export const continuousBatchingScheduler: AlgorithmDefinition<ContinuousBatching
     keyTerms: [
       {
         term: "Continuous Batching",
-        definition: "Iteration-level scheduling that admits and evicts LLM serving requests at every token generation step.",
+        definition:
+          "Iteration-level scheduling that admits and evicts LLM serving requests at every token generation step.",
       },
       {
         term: "Batch Bubble",
-        definition: "Idle GPU compute capacity wasted when static batching waits for uneven sequence lengths to finish.",
+        definition:
+          "Idle GPU compute capacity wasted when static batching waits for uneven sequence lengths to finish.",
       },
       {
         term: "Prefill vs Decode",
-        definition: "Initial parallel processing of prompt tokens vs step-by-step autoregressive single-token generation.",
+        definition:
+          "Initial parallel processing of prompt tokens vs step-by-step autoregressive single-token generation.",
       },
     ],
   },

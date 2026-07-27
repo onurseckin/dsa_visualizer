@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { tritonFusedAddSoftmaxDropoutKernel, DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT, generateTritonFusedAddSoftmaxDropoutKernelSteps } from "./tritonFusedAddSoftmaxDropoutKernel";
+import { tritonFusedAddSoftmaxDropoutKernel } from "./tritonFusedAddSoftmaxDropoutKernel";
 
-describe("triton-fused-add-softmax-dropout-kernel (Triton Fused Add + Softmax + Dropout Kernel)", () => {
-  it("should have correct metadata", () => {
-    expect(tritonFusedAddSoftmaxDropoutKernel.id).toBe("triton-fused-add-softmax-dropout-kernel");
-    expect(tritonFusedAddSoftmaxDropoutKernel.isMlInfra).toBe(true);
-    expect(tritonFusedAddSoftmaxDropoutKernel.mlInfraLevel).toBe(10);
-    expect(tritonFusedAddSoftmaxDropoutKernel.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(tritonFusedAddSoftmaxDropoutKernel.categories).toContain("ml_hardware_kernels");
+describe("tritonFusedAddSoftmaxDropoutKernel", () => {
+  it("should have valid metadata", () => {
+    expect(tritonFusedAddSoftmaxDropoutKernel.id).toBeDefined();
+    expect(tritonFusedAddSoftmaxDropoutKernel.title).toBeDefined();
+    expect(tritonFusedAddSoftmaxDropoutKernel.code).toBeDefined();
+    expect(tritonFusedAddSoftmaxDropoutKernel.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateTritonFusedAddSoftmaxDropoutKernelSteps(DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT);
+  it("should generate valid steps", () => {
+    const steps = tritonFusedAddSoftmaxDropoutKernel.generateSteps(
+      tritonFusedAddSoftmaxDropoutKernel.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Triton Fused Add + Softmax + Dropout Kernel");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

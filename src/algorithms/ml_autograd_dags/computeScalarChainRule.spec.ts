@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { computeScalarChainRule, DEFAULT_COMPUTESCALARCHAINRULE_INPUT, generateComputeScalarChainRuleSteps } from "./computeScalarChainRule";
+import {
+  computeScalarChainRule,
+  DEFAULT_COMPUTESCALARCHAINRULE_INPUT,
+  generateComputeScalarChainRuleSteps,
+} from "./computeScalarChainRule";
 
 describe("compute-scalar-chain-rule (Scalar Chain Rule Gradient Accumulator)", () => {
   it("should have correct metadata", () => {

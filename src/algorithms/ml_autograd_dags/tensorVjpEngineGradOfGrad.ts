@@ -6,7 +6,8 @@ export interface tensorVjpEngineGradOfGradInput {
   target?: number;
 }
 
-export const TENSORVJPENGINEGRADOFGRAD_CODE = "def tensor_vjp_engine_grad_of_grad(input_data: list) -> list:\n    # Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients (Hard)\n    # Computes Vector-Jacobian Products and constructs differentiable backward graphs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TENSORVJPENGINEGRADOFGRAD_CODE =
+  "def tensor_vjp_engine_grad_of_grad(input_data: list) -> list:\n    # Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients (Hard)\n    # Computes Vector-Jacobian Products and constructs differentiable backward graphs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT: tensorVjpEngineGradOfGradInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT: tensorVjpEngineGradOfGradI
 };
 
 export const generateTensorVjpEngineGradOfGradSteps = (
-  input: tensorVjpEngineGradOfGradInput
+  input: tensorVjpEngineGradOfGradInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     1,
     "Initialize Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateTensorVjpEngineGradOfGradSteps = (
 
 const TENSORVJPENGINEGRADOFGRAD_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients.",
@@ -106,8 +112,8 @@ const TENSORVJPENGINEGRADOFGRAD_TRIVIA: TriviaMeta = {
 export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradOfGradInput> = {
   id: "tensor-vjp-engine-grad-of-grad",
   title: "Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "graph_directed_and_scc"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,18 @@ export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradO
   topicGuide: {
     overview: "VJPs enable high-dimensional tensor backpropagation and higher-order derivatives.",
     sections: [
-      { heading: "Core Concept", body: "Computes Vector-Jacobian Products and constructs differentiable backward graphs." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Computes Vector-Jacobian Products and constructs differentiable backward graphs.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"VJP","definition":"Vector-Jacobian Product for matrix automatic differentiation."}],
+    keyTerms: [
+      { term: "VJP", definition: "Vector-Jacobian Product for matrix automatic differentiation." },
+    ],
   },
   trivia: TENSORVJPENGINEGRADOFGRAD_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

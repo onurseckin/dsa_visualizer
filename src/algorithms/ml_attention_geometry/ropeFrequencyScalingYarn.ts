@@ -6,7 +6,8 @@ export interface ropeFrequencyScalingYarnInput {
   target?: number;
 }
 
-export const ROPEFREQUENCYSCALINGYARN_CODE = "def rope_frequency_scaling_yarn(input_data: list) -> list:\n    # RoPE NTK-Aware & YaRN Frequency Scaling (Medium)\n    # Scales theta frequencies theta_k = 10000^(-2k/d) for context window extension.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ROPEFREQUENCYSCALINGYARN_CODE =
+  "def rope_frequency_scaling_yarn(input_data: list) -> list:\n    # RoPE NTK-Aware & YaRN Frequency Scaling (Medium)\n    # Scales theta frequencies theta_k = 10000^(-2k/d) for context window extension.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT: ropeFrequencyScalingYarnInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT: ropeFrequencyScalingYarnInp
 };
 
 export const generateRopeFrequencyScalingYarnSteps = (
-  input: ropeFrequencyScalingYarnInput
+  input: ropeFrequencyScalingYarnInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateRopeFrequencyScalingYarnSteps = (
     1,
     "Initialize RoPE NTK-Aware & YaRN Frequency Scaling",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateRopeFrequencyScalingYarnSteps = (
 
 const ROPEFREQUENCYSCALINGYARN_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for RoPE NTK-Aware & YaRN Frequency Scaling.",
@@ -106,8 +112,8 @@ const ROPEFREQUENCYSCALINGYARN_TRIVIA: TriviaMeta = {
 export const ropeFrequencyScalingYarn: AlgorithmDefinition<ropeFrequencyScalingYarnInput> = {
   id: "rope-frequency-scaling-yarn",
   title: "RoPE NTK-Aware & YaRN Frequency Scaling",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","math_and_number_theory"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 7,
@@ -151,12 +157,24 @@ export const ropeFrequencyScalingYarn: AlgorithmDefinition<ropeFrequencyScalingY
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "YaRN frequency scaling interpolates RoPE rotational frequencies to extend LLM context length.",
+    overview:
+      "YaRN frequency scaling interpolates RoPE rotational frequencies to extend LLM context length.",
     sections: [
-      { heading: "Core Concept", body: "Scales theta frequencies theta_k = 10000^(-2k/d) for context window extension." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Scales theta frequencies theta_k = 10000^(-2k/d) for context window extension.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"YaRN Frequency Scaling","definition":"Extending context length by scaling RoPE rotation theta frequencies."}],
+    keyTerms: [
+      {
+        term: "YaRN Frequency Scaling",
+        definition: "Extending context length by scaling RoPE rotation theta frequencies.",
+      },
+    ],
   },
   trivia: ROPEFREQUENCYSCALINGYARN_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

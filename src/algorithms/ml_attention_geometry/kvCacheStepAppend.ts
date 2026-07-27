@@ -6,16 +6,15 @@ export interface kvCacheStepAppendInput {
   target?: number;
 }
 
-export const KVCACHESTEPAPPEND_CODE = "def kv_cache_step_append(input_data: list) -> list:\n    # Autoregressive KV-Cache Step Append (Medium)\n    # Appends new token Key and Value tensors to dynamic KV-cache buffers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const KVCACHESTEPAPPEND_CODE =
+  "def kv_cache_step_append(input_data: list) -> list:\n    # Autoregressive KV-Cache Step Append (Medium)\n    # Appends new token Key and Value tensors to dynamic KV-cache buffers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_KVCACHESTEPAPPEND_INPUT: kvCacheStepAppendInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateKvCacheStepAppendSteps = (
-  input: kvCacheStepAppendInput
-): AlgorithmStep[] => {
+export const generateKvCacheStepAppendSteps = (input: kvCacheStepAppendInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateKvCacheStepAppendSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateKvCacheStepAppendSteps = (
     1,
     "Initialize Autoregressive KV-Cache Step Append",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateKvCacheStepAppendSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateKvCacheStepAppendSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateKvCacheStepAppendSteps = (
 
 const KVCACHESTEPAPPEND_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Autoregressive KV-Cache Step Append.",
@@ -106,8 +110,8 @@ const KVCACHESTEPAPPEND_TRIVIA: TriviaMeta = {
 export const kvCacheStepAppend: AlgorithmDefinition<kvCacheStepAppendInput> = {
   id: "kv-cache-step-append",
   title: "Autoregressive KV-Cache Step Append",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","arrays_and_hashing"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 7,
@@ -153,10 +157,18 @@ export const kvCacheStepAppend: AlgorithmDefinition<kvCacheStepAppendInput> = {
   topicGuide: {
     overview: "KV-caching avoids recomputing past key and value vectors during generation.",
     sections: [
-      { heading: "Core Concept", body: "Appends new token Key and Value tensors to dynamic KV-cache buffers." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Appends new token Key and Value tensors to dynamic KV-cache buffers.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"KV Cache","definition":"Memory buffer storing past Key and Value tensors."}],
+    keyTerms: [
+      { term: "KV Cache", definition: "Memory buffer storing past Key and Value tensors." },
+    ],
   },
   trivia: KVCACHESTEPAPPEND_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

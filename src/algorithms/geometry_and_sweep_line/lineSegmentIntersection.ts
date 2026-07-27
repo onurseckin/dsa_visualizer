@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphNodeItem, GraphEdgeItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphNodeItem,
+  GraphEdgeItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface Point2D {
@@ -161,7 +167,7 @@ export const generateLineSegmentIntersectionSteps = (
         "d2 = (Q2-P2) x (Q1-P2)": d2,
         "d3 = (Q1-P1) x (P2-P1)": d3,
         "d4 = (Q1-P1) x (Q2-P1)": d4,
-        "Straddle Condition": (d1 * d2 < 0 && d3 * d4 < 0) ? "SATISFIED" : "NOT SATISFIED",
+        "Straddle Condition": d1 * d2 < 0 && d3 * d4 < 0 ? "SATISFIED" : "NOT SATISFIED",
       },
     },
     variables: { d1, d2, d3, d4 },
@@ -184,7 +190,7 @@ export const generateLineSegmentIntersectionSteps = (
     },
     auxiliaryState: {
       hashMap: {
-        "Intersects": intersects ? "YES" : "NO",
+        Intersects: intersects ? "YES" : "NO",
         "Intersection Point": intPoint ? `(${intPoint.x}, ${intPoint.y})` : "N/A",
       },
     },
@@ -210,11 +216,13 @@ const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Cross Product",
-      definition: "Signed scalar indicating orientation and relative direction of turning between two 2D vectors.",
+      definition:
+        "Signed scalar indicating orientation and relative direction of turning between two 2D vectors.",
     },
     {
       term: "Collinear Overlap",
-      definition: "Special case where cross products equal zero, requiring bounding box interval check.",
+      definition:
+        "Special case where cross products equal zero, requiring bounding box interval check.",
     },
   ],
 };
@@ -238,9 +246,7 @@ export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectio
   difficulty: "Easy",
   description:
     "Determine whether two 2D line segments intersect using cross products and bounding box orientation tests.",
-  constraints: [
-    "0 <= x, y <= 1000",
-  ],
+  constraints: ["0 <= x, y <= 1000"],
   examples: [
     {
       kind: "basic",
@@ -286,7 +292,7 @@ export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectio
   },
   topicGuide: LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE,
   trivia: LINE_SEGMENT_INTERSECTION_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

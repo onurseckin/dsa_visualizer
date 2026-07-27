@@ -42,8 +42,18 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
   ): ArrayElement[] => {
     return [
       { id: "n", value: nVal, state: "default", pointers: ["n"] },
-      { id: "result", value: rVal, state: activeSlot === "res" ? "active" : "sorted", pointers: ["phi(n)"] },
-      { id: "temp", value: tVal, state: activeSlot === "temp" ? "active" : "compare", pointers: ["temp"] },
+      {
+        id: "result",
+        value: rVal,
+        state: activeSlot === "res" ? "active" : "sorted",
+        pointers: ["phi(n)"],
+      },
+      {
+        id: "temp",
+        value: tVal,
+        state: activeSlot === "temp" ? "active" : "compare",
+        pointers: ["temp"],
+      },
       { id: "p", value: pVal, state: activeSlot === "p" ? "active" : "pivot", pointers: ["p"] },
     ];
   };

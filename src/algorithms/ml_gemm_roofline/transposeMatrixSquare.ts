@@ -6,7 +6,8 @@ export interface transposeMatrixSquareInput {
   target?: number;
 }
 
-export const TRANSPOSEMATRIXSQUARE_CODE = "def transpose_matrix_square(input_data: list) -> list:\n    # Square Matrix Transpose Operator (Easy)\n    # Swaps rows and columns of a square matrix in-place.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TRANSPOSEMATRIXSQUARE_CODE =
+  "def transpose_matrix_square(input_data: list) -> list:\n    # Square Matrix Transpose Operator (Easy)\n    # Swaps rows and columns of a square matrix in-place.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT: transposeMatrixSquareInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT: transposeMatrixSquareInput = {
 };
 
 export const generateTransposeMatrixSquareSteps = (
-  input: transposeMatrixSquareInput
+  input: transposeMatrixSquareInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateTransposeMatrixSquareSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateTransposeMatrixSquareSteps = (
     1,
     "Initialize Square Matrix Transpose Operator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateTransposeMatrixSquareSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateTransposeMatrixSquareSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateTransposeMatrixSquareSteps = (
 
 const TRANSPOSEMATRIXSQUARE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Square Matrix Transpose Operator.",
@@ -106,8 +112,8 @@ const TRANSPOSEMATRIXSQUARE_TRIVIA: TriviaMeta = {
 export const transposeMatrixSquare: AlgorithmDefinition<transposeMatrixSquareInput> = {
   id: "transpose-matrix-square",
   title: "Square Matrix Transpose Operator",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -154,9 +160,12 @@ export const transposeMatrixSquare: AlgorithmDefinition<transposeMatrixSquareInp
     overview: "Transposing a matrix swaps rows for columns.",
     sections: [
       { heading: "Core Concept", body: "Swaps rows and columns of a square matrix in-place." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Transpose","definition":"Swapping axes i and j."}],
+    keyTerms: [{ term: "Transpose", definition: "Swapping axes i and j." }],
   },
   trivia: TRANSPOSEMATRIXSQUARE_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

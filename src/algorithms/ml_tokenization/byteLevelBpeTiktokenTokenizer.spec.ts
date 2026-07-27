@@ -10,7 +10,9 @@ describe("byteLevelBpeTiktokenTokenizer", () => {
   });
 
   it("generateSteps should return at least one step for defaultInput", () => {
-    const steps = byteLevelBpeTiktokenTokenizer.generateSteps(byteLevelBpeTiktokenTokenizer.defaultInput);
+    const steps = byteLevelBpeTiktokenTokenizer.generateSteps(
+      byteLevelBpeTiktokenTokenizer.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

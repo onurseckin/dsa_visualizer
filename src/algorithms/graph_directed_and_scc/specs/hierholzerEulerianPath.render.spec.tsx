@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import { DEFAULT_HIERHOLZER_INPUT, generateHierholzerSteps, hierholzerEulerianPath } from "../hierholzerEulerianPath";
+import {
+  DEFAULT_HIERHOLZER_INPUT,
+  generateHierholzerSteps,
+  hierholzerEulerianPath,
+} from "../hierholzerEulerianPath";
 
 describe("hierholzerEulerianPath Render Spec", () => {
   it("renders algorithm title and description in MainLayout", () => {
@@ -24,7 +28,7 @@ describe("hierholzerEulerianPath Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/Hierholzer's Algorithm/i)[0]).toBeInTheDocument();
@@ -38,7 +42,10 @@ describe("hierholzerEulerianPath Render Spec", () => {
 
     render(
       <MainLayout
-        algorithm={ALGORITHM_REGISTRY["hierholzer-eulerian-path"] || (hierholzerEulerianPath as AlgorithmDefinition)}
+        algorithm={
+          ALGORITHM_REGISTRY["hierholzer-eulerian-path"] ||
+          (hierholzerEulerianPath as AlgorithmDefinition)
+        }
         currentStep={midStep}
         panels={{
           problem: true,
@@ -50,7 +57,7 @@ describe("hierholzerEulerianPath Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

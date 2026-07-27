@@ -3,7 +3,10 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import { generateTasksAndDeadlinesSteps, DEFAULT_TASKS_AND_DEADLINES_INPUT } from "../tasksAndDeadlines";
+import {
+  generateTasksAndDeadlinesSteps,
+  DEFAULT_TASKS_AND_DEADLINES_INPUT,
+} from "../tasksAndDeadlines";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("tasksAndDeadlines React component spec", () => {

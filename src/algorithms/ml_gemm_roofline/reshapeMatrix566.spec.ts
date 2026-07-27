@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { reshapeMatrix566, DEFAULT_RESHAPEMATRIX566_INPUT, generateReshapeMatrix566Steps } from "./reshapeMatrix566";
+import {
+  reshapeMatrix566,
+  DEFAULT_RESHAPEMATRIX566_INPUT,
+  generateReshapeMatrix566Steps,
+} from "./reshapeMatrix566";
 
 describe("reshape-matrix-566 (Reshape Matrix Coordinates)", () => {
   it("should have correct metadata", () => {

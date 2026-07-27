@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ScaledDotAttentionInput {
@@ -75,7 +71,7 @@ export const DEFAULT_SCALED_DOT_ATTENTION_INPUT: ScaledDotAttentionInput = {
 };
 
 export const generateScaledDotAttentionMaskSteps = (
-  input: ScaledDotAttentionInput
+  input: ScaledDotAttentionInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -110,14 +106,14 @@ export const generateScaledDotAttentionMaskSteps = (
           id: `score-${i}-${j}`,
           value: Number((score * 10).toFixed(0)),
           state: "active" as ElementState,
-        }))
+        })),
       ),
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
         rawScores.flatMap((row, i) =>
-          row.map((score, j) => [`Raw_S_q${i}_k${j}`, Number(score.toFixed(2))])
-        )
+          row.map((score, j) => [`Raw_S_q${i}_k${j}`, Number(score.toFixed(2))]),
+        ),
       ),
     },
     variables: {
@@ -152,15 +148,21 @@ export const generateScaledDotAttentionMaskSteps = (
         row.map((score, j) => ({
           id: `score-${i}-${j}`,
           value: score === -1e9 ? -99 : Number((score * 10).toFixed(0)),
-          state: j > i && input.maskType === "causal" ? ("visited" as ElementState) : ("active" as ElementState),
-        }))
+          state:
+            j > i && input.maskType === "causal"
+              ? ("visited" as ElementState)
+              : ("active" as ElementState),
+        })),
       ),
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
         maskedScores.flatMap((row, i) =>
-          row.map((score, j) => [`Masked_S_q${i}_k${j}`, score === -1e9 ? -999 : Number(score.toFixed(2))])
-        )
+          row.map((score, j) => [
+            `Masked_S_q${i}_k${j}`,
+            score === -1e9 ? -999 : Number(score.toFixed(2)),
+          ]),
+        ),
       ),
     },
     variables: {
@@ -191,14 +193,14 @@ export const generateScaledDotAttentionMaskSteps = (
           id: `w-${i}-${j}`,
           value: Number((w * 100).toFixed(0)),
           state: w > 0.001 ? ("sorted" as ElementState) : ("default" as ElementState),
-        }))
+        })),
       ),
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
         attentionWeights.flatMap((row, i) =>
-          row.map((w, j) => [`A_q${i}_k${j}`, Number(w.toFixed(3))])
-        )
+          row.map((w, j) => [`A_q${i}_k${j}`, Number(w.toFixed(3))]),
+        ),
       ),
     },
     variables: {
@@ -232,14 +234,12 @@ export const generateScaledDotAttentionMaskSteps = (
           id: `out-${i}-${d}`,
           value: Number((val * 10).toFixed(0)),
           state: "sorted" as ElementState,
-        }))
+        })),
       ),
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
-        output.flatMap((row, i) =>
-          row.map((val, d) => [`O_q${i}_d${d}`, Number(val.toFixed(2))])
-        )
+        output.flatMap((row, i) => row.map((val, d) => [`O_q${i}_d${d}`, Number(val.toFixed(2))])),
       ),
     },
     variables: {
@@ -290,11 +290,7 @@ export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput
   mlInfraLevel: 7,
   description:
     "Computes Transformer scaled dot-product self-attention Softmax(Q K^T / sqrt(d_k) + M) V with causal lower-triangular masking for autoregressive sequence modeling.",
-  constraints: [
-    "len(Q) >= 1",
-    "len(Q[0]) == len(K[0])",
-    "len(K) == len(V)",
-  ],
+  constraints: ["len(Q) >= 1", "len(Q[0]) == len(K[0])", "len(K) == len(V)"],
   examples: [
     {
       kind: "basic",
@@ -303,7 +299,8 @@ export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput
       outputDisplay: "O[q=0] attends to V[0] 100%, O[q=1] attends to V[0], V[1]",
       input: DEFAULT_SCALED_DOT_ATTENTION_INPUT,
       output: "O[q=0] = [10.0, 0.0], O[q=1] = [3.33, 13.33]",
-      explanation: "Token 0 (q=0) cannot attend to tokens 1 or 2 due to causal mask -inf, forcing A[0,0] = 1.0. Token 1 attends to tokens 0 and 1.",
+      explanation:
+        "Token 0 (q=0) cannot attend to tokens 1 or 2 due to causal mask -inf, forcing A[0,0] = 1.0. Token 1 attends to tokens 0 and 1.",
     },
     {
       kind: "complex",
@@ -315,7 +312,8 @@ export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput
         maskType: "none",
       },
       output: "Bidirectional attention weights A over full sequence",
-      explanation: "Without causal masking (like BERT encoder attention), all tokens attend to all previous and future sequence positions.",
+      explanation:
+        "Without causal masking (like BERT encoder attention), all tokens attend to all previous and future sequence positions.",
     },
     {
       kind: "negative",
@@ -329,7 +327,8 @@ export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput
         maskType: "causal",
       },
       output: "O = [[5.0]]",
-      explanation: "Single token sequence trivially yields 100% self-attention probability weight A = [[1.0]].",
+      explanation:
+        "Single token sequence trivially yields 100% self-attention probability weight A = [[1.0]].",
     },
   ],
   code: SCALED_DOT_ATTENTION_MASK_CODE,
@@ -363,7 +362,8 @@ export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput
       },
       {
         term: "Causal Mask",
-        definition: "Additive mask matrix setting future token position logits to -infinity to enforce autoregressive causality.",
+        definition:
+          "Additive mask matrix setting future token position logits to -infinity to enforce autoregressive causality.",
       },
     ],
   },

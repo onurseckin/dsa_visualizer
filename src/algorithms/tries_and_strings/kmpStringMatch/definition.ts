@@ -60,16 +60,17 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "text = \"ABABDABACDABABCABAB\", pattern = \"ABABCABAB\"",
+      inputDisplay: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
       outputDisplay: "10",
       title: "Basic Example",
       input: { text: "ABABDABACDABABCABAB", pattern: "ABABCABAB" },
       output: "[10]",
-      explanation: "Precomputed LPS table allows skipping backward text comparisons during partial mismatches.",
+      explanation:
+        "Precomputed LPS table allows skipping backward text comparisons during partial mismatches.",
     },
     {
       kind: "complex",
-      inputDisplay: "text = \"AAAAABAAABA\", pattern = \"AAAA\"",
+      inputDisplay: 'text = "AAAAABAAABA", pattern = "AAAA"',
       outputDisplay: "0",
       title: "Complex Edge Case",
       input: { text: "AABAACAADAABAABA", pattern: "AABA" },
@@ -79,7 +80,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "text = \"ABCDEFG\", pattern = \"XYZ\"",
+      inputDisplay: 'text = "ABCDEFG", pattern = "XYZ"',
       outputDisplay: "-1",
       title: "Failing / Boundary Case",
       input: { text: "AAAAABAAAAA", pattern: "AAAAAC" },

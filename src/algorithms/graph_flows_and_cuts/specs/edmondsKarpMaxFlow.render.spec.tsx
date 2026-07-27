@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
-import { DEFAULT_EDMONDS_KARP_INPUT, edmondsKarpMaxFlow, generateEdmondsKarpSteps } from "../edmondsKarpMaxFlow";
+import {
+  DEFAULT_EDMONDS_KARP_INPUT,
+  edmondsKarpMaxFlow,
+  generateEdmondsKarpSteps,
+} from "../edmondsKarpMaxFlow";
 
 describe("edmondsKarpMaxFlow Render Spec", () => {
   it("renders algorithm title and description", () => {
@@ -23,11 +27,13 @@ describe("edmondsKarpMaxFlow Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/Edmonds-Karp Max Flow/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Edmonds-Karp computes the Maximum Flow in a flow network/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Edmonds-Karp computes the Maximum Flow in a flow network/i),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with max flow result", () => {
@@ -49,7 +55,7 @@ describe("edmondsKarpMaxFlow Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

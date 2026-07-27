@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { transposeMatrixSquare, DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT, generateTransposeMatrixSquareSteps } from "./transposeMatrixSquare";
+import {
+  transposeMatrixSquare,
+  DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT,
+  generateTransposeMatrixSquareSteps,
+} from "./transposeMatrixSquare";
 
 describe("transpose-matrix-square (Square Matrix Transpose Operator)", () => {
   it("should have correct metadata", () => {

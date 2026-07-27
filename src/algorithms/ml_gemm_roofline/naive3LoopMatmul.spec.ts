@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { naive3LoopMatmul, DEFAULT_NAIVE3LOOPMATMUL_INPUT, generateNaive3LoopMatmulSteps } from "./naive3LoopMatmul";
+import {
+  naive3LoopMatmul,
+  DEFAULT_NAIVE3LOOPMATMUL_INPUT,
+  generateNaive3LoopMatmulSteps,
+} from "./naive3LoopMatmul";
 
 describe("naive-3-loop-matmul (Naive Triply-Nested Loop GEMM O(N^3))", () => {
   it("should have correct metadata", () => {

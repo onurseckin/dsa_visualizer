@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { im2col4dTo2dUnroller, DEFAULT_IM2COL4DTO2DUNROLLER_INPUT, generateIm2col4dTo2dUnrollerSteps } from "./im2col4dTo2dUnroller";
+import {
+  im2col4dTo2dUnroller,
+  DEFAULT_IM2COL4DTO2DUNROLLER_INPUT,
+  generateIm2col4dTo2dUnrollerSteps,
+} from "./im2col4dTo2dUnroller";
 
 describe("im2col-4d-to-2d-unroller (Strided im2col 4D-to-2D Matrix Unroller)", () => {
   it("should have correct metadata", () => {

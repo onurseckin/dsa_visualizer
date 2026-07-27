@@ -50,7 +50,7 @@ export const DEFAULT_AFFINE_QUANTIZATION_INPUT: AffineQuantizationInput = {
 };
 
 export const generateAffineQuantizationSq8Steps = (
-  input: AffineQuantizationInput
+  input: AffineQuantizationInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -71,7 +71,7 @@ export const generateAffineQuantizationSq8Steps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
-    customState?: Record<string, string | number>
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -98,7 +98,7 @@ export const generateAffineQuantizationSq8Steps = (
     1,
     "Initialize Asymmetric Affine INT8 Quantization",
     `Input FP32 values vector of length ${n} targeting integer grid bounds [${qmin}, ${qmax}].`,
-    { n, qmin, qmax }
+    { n, qmin, qmax },
   );
 
   if (n === 0) {
@@ -108,7 +108,7 @@ export const generateAffineQuantizationSq8Steps = (
       "Returning default scale 1.0 and zero_point 0 for empty vector.",
       { scale: 1.0, zero_point: 0, max_error: 0 },
       [],
-      { scale: 1.0, zero_point: 0 }
+      { scale: 1.0, zero_point: 0 },
     );
     return steps;
   }
@@ -132,11 +132,11 @@ export const generateAffineQuantizationSq8Steps = (
     10,
     `Compute Scale S=${scale.toFixed(6)} & Zero-Point Z=${zeroPoint}`,
     `Extracted min=${minVal.toFixed(2)}, max=${maxVal.toFixed(2)}. Derived scale S=(max-min)/(qmax-qmin)=${scale.toFixed(
-      6
+      6,
     )} and zero-point Z=${zeroPoint}.`,
     { minVal, maxVal, scale: Number(scale.toFixed(6)), zeroPoint },
     initialElements.map((el) => ({ ...el, state: "active" })),
-    { minVal, maxVal, scale: scale.toFixed(6), zeroPoint }
+    { minVal, maxVal, scale: scale.toFixed(6), zeroPoint },
   );
 
   const quantized: number[] = [];
@@ -168,7 +168,7 @@ export const generateAffineQuantizationSq8Steps = (
     20,
     `Quantize & Dequantize All Elements (Max Reconstruction Error = ${maxError.toFixed(4)})`,
     `Successfully mapped continuous floats to INT8 integers. Max quantization error = ${maxError.toFixed(
-      4
+      4,
     )}.`,
     {
       scale: Number(scale.toFixed(6)),
@@ -181,7 +181,7 @@ export const generateAffineQuantizationSq8Steps = (
       zero_point: zeroPoint,
       quantized: `[${quantized.join(", ")}]`,
       max_error: maxError.toFixed(4),
-    }
+    },
   );
 
   return steps;
@@ -226,10 +226,7 @@ export const affineQuantizationSq8: AlgorithmDefinition<AffineQuantizationInput>
   mlInfraLevel: 3,
   description:
     "Quantizes continuous FP32 tensor values into asymmetric 8-bit integers (INT8/UINT8) using scale S and zero-point Z parameters, evaluating reconstruction error during dequantization.",
-  constraints: [
-    "qmin < qmax",
-    "values contains valid non-infinite numbers",
-  ],
+  constraints: ["qmin < qmax", "values contains valid non-infinite numbers"],
   examples: [
     {
       kind: "basic",
@@ -237,8 +234,10 @@ export const affineQuantizationSq8: AlgorithmDefinition<AffineQuantizationInput>
       inputDisplay: "values = [-2.5, 0.0, 1.2, 3.8, 5.0], qmin = -128, qmax = 127",
       outputDisplay: "scale ≈ 0.0294, zero_point = -43, max_error ≈ 0.0147",
       input: DEFAULT_AFFINE_QUANTIZATION_INPUT,
-      output: "{scale: 0.029412, zero_point: -43, quantized: [-128, -43, -2, 86, 127], max_error: 0.0147}",
-      explanation: "Maps range [-2.5, 5.0] to [-128, 127]. Scale S = 7.5 / 255 = 0.029412. Zero-point Z = round(-128 - (-2.5/0.029412)) = -43.",
+      output:
+        "{scale: 0.029412, zero_point: -43, quantized: [-128, -43, -2, 86, 127], max_error: 0.0147}",
+      explanation:
+        "Maps range [-2.5, 5.0] to [-128, 127]. Scale S = 7.5 / 255 = 0.029412. Zero-point Z = round(-128 - (-2.5/0.029412)) = -43.",
     },
     {
       kind: "complex",
@@ -251,7 +250,8 @@ export const affineQuantizationSq8: AlgorithmDefinition<AffineQuantizationInput>
         qmax: 255,
       },
       output: "{scale: 0.156863, zero_point: 64, quantized: [0, 64, 160, 255]}",
-      explanation: "UINT8 mapping maps -10.0 to 0 and 30.0 to 255. Zero-point 64 represents real value 0.0.",
+      explanation:
+        "UINT8 mapping maps -10.0 to 0 and 30.0 to 255. Zero-point 64 represents real value 0.0.",
     },
     {
       kind: "negative",
@@ -294,7 +294,8 @@ export const affineQuantizationSq8: AlgorithmDefinition<AffineQuantizationInput>
     keyTerms: [
       {
         term: "Affine Quantization",
-        definition: "Quantization scheme incorporating both a scale factor S and integer shift zero-point Z.",
+        definition:
+          "Quantization scheme incorporating both a scale factor S and integer shift zero-point Z.",
       },
       {
         term: "Zero-Point (Z)",

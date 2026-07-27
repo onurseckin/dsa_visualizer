@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface HierholzerEulerianPathInput {
@@ -169,7 +174,10 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
       const nxt = adj[curr].pop()!;
 
       // Mark edge used
-      const edgeObj = edges.find((e) => e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}-${edges.indexOf(e)}`]);
+      const edgeObj = edges.find(
+        (e) =>
+          e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}-${edges.indexOf(e)}`],
+      );
       if (edgeObj) {
         edgeUsed[`${edgeObj.from}->${edgeObj.to}-${edges.indexOf(edgeObj)}`] = true;
       }
@@ -216,7 +224,11 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
           kind: "graph",
           nodes: nodes.map((n) => ({
             ...n,
-            state: circuit.includes(n.id) ? "visited" : stack.includes(n.id) ? "in-stack" : "default",
+            state: circuit.includes(n.id)
+              ? "visited"
+              : stack.includes(n.id)
+                ? "in-stack"
+                : "default",
           })),
           edges: edges.map((e, idx) => ({
             ...e,
@@ -297,7 +309,8 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
         ],
       },
       output: "0 -> 1 -> 2 -> 0 -> 3",
-      explanation: "Node 0 has out-degree 2 and in-degree 1; node 3 has in-degree 1 and out-degree 0.",
+      explanation:
+        "Node 0 has out-degree 2 and in-degree 1; node 3 has in-degree 1 and out-degree 0.",
     },
     {
       kind: "negative",
@@ -328,7 +341,8 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
     time: "Each edge is pushed to stack and popped into the circuit exactly once, yielding O(E) total operations. Degree calculations and initialization take O(V + E).",
-    space: "The stack and adjacency list store up to E edges and V vertices, taking O(V + E) memory.",
+    space:
+      "The stack and adjacency list store up to E edges and V vertices, taking O(V + E) memory.",
   },
   topicGuide: {
     overview:
@@ -344,9 +358,19 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
       },
     ],
     keyTerms: [
-      { term: "Eulerian Path", definition: "A trail in a finite graph that visits every edge exactly once." },
-      { term: "Eulerian Circuit", definition: "An Eulerian path that starts and ends on the same vertex." },
-      { term: "Hierholzer's Algorithm", definition: "An O(V + E) algorithm for finding Eulerian paths via post-order cycle joining." },
+      {
+        term: "Eulerian Path",
+        definition: "A trail in a finite graph that visits every edge exactly once.",
+      },
+      {
+        term: "Eulerian Circuit",
+        definition: "An Eulerian path that starts and ends on the same vertex.",
+      },
+      {
+        term: "Hierholzer's Algorithm",
+        definition:
+          "An O(V + E) algorithm for finding Eulerian paths via post-order cycle joining.",
+      },
     ],
   },
   trivia: HIERHOLZER_TRIVIA,

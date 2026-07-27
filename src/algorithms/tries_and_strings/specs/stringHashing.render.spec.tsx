@@ -9,7 +9,9 @@ describe("stringHashing React component spec", () => {
     const steps = generateStringHashingSteps(DEFAULT_STRING_HASHING_INPUT);
     const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
 
-    render(<ArrayVisualizer elements={snapshot.elements} title="Polynomial Rolling String Hashing" />);
+    render(
+      <ArrayVisualizer elements={snapshot.elements} title="Polynomial Rolling String Hashing" />,
+    );
 
     expect(screen.getByText("Polynomial Rolling String Hashing")).toBeInTheDocument();
   });

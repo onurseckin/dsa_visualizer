@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface TwoSatClause {
@@ -291,8 +296,8 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
               ? "default"
               : "sorted"
             : n.id.startsWith("~")
-            ? "sorted"
-            : "default",
+              ? "sorted"
+              : "default",
         })),
         edges: [...edges],
       },
@@ -331,7 +336,8 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "variables = [x1, x2, x3], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (x2 v x3)",
+      inputDisplay:
+        "variables = [x1, x2, x3], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (x2 v x3)",
       outputDisplay: "SATISFIABLE {x1: true, x2: true, x3: true}",
       title: "Satisfiable 2-SAT Formula",
       input: DEFAULT_TWO_SAT_INPUT,
@@ -340,7 +346,8 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "variables = [x1, x2], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (~x1 v ~x2)",
+      inputDisplay:
+        "variables = [x1, x2], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (~x1 v ~x2)",
       outputDisplay: "UNSATISFIABLE",
       title: "Unsatisfiable 4-Clause Contradiction",
       input: {
@@ -353,7 +360,8 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
         ],
       },
       output: "UNSATISFIABLE",
-      explanation: "x1 and ~x1 fall into the same SCC because all combinations of truth values force contradictions.",
+      explanation:
+        "x1 and ~x1 fall into the same SCC because all combinations of truth values force contradictions.",
     },
     {
       kind: "negative",
@@ -396,8 +404,14 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
       },
     ],
     keyTerms: [
-      { term: "2-SAT", definition: "Boolean satisfiability problem where each clause contains 2 literals." },
-      { term: "Implication Graph", definition: "A directed graph representing logical implications between literals." },
+      {
+        term: "2-SAT",
+        definition: "Boolean satisfiability problem where each clause contains 2 literals.",
+      },
+      {
+        term: "Implication Graph",
+        definition: "A directed graph representing logical implications between literals.",
+      },
     ],
   },
   trivia: TWO_SAT_TRIVIA,

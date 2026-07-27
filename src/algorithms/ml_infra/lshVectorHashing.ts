@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface LshVectorItem {
@@ -49,15 +45,13 @@ export const DEFAULT_LSH_VECTOR_HASHING_INPUT: LshVectorHashingInput = {
     { id: "V3", values: [1.5, -2.5] },
   ],
   hyperplanes: [
-    [1.0, 0.0],  // x = 0 plane
-    [0.0, 1.0],  // y = 0 plane
+    [1.0, 0.0], // x = 0 plane
+    [0.0, 1.0], // y = 0 plane
   ],
   query: [2.5, 1.5],
 };
 
-export const generateLshVectorHashingSteps = (
-  input: LshVectorHashingInput
-): AlgorithmStep[] => {
+export const generateLshVectorHashingSteps = (input: LshVectorHashingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -135,9 +129,7 @@ export const generateLshVectorHashingSteps = (
         }),
       },
       auxiliaryState: {
-        distanceTable: Object.fromEntries(
-          vectorResults.map((r) => [r.id, r.hamming])
-        ),
+        distanceTable: Object.fromEntries(vectorResults.map((r) => [r.id, r.hamming])),
       },
       variables: {
         vectorId: vec.id,
@@ -228,7 +220,8 @@ export const lshVectorHashing: AlgorithmDefinition<LshVectorHashingInput> = {
       outputDisplay: "V0: code 11 (d=0), V1: 01 (d=1), V3: 10 (d=1), V2: 00 (d=2)",
       input: DEFAULT_LSH_VECTOR_HASHING_INPUT,
       output: "V0: code 11 (d=0), V1: 01 (d=1), V3: 10 (d=1), V2: 00 (d=2)",
-      explanation: "Hyperplanes along coordinate axes partition 2D space into 4 quadrants. Query [2.5, 1.5] lands in quadrant '11'. Vector V0 [2.0, 3.0] matches '11' with Hamming distance 0.",
+      explanation:
+        "Hyperplanes along coordinate axes partition 2D space into 4 quadrants. Query [2.5, 1.5] lands in quadrant '11'. Vector V0 [2.0, 3.0] matches '11' with Hamming distance 0.",
     },
     {
       kind: "complex",
@@ -249,7 +242,8 @@ export const lshVectorHashing: AlgorithmDefinition<LshVectorHashingInput> = {
         query: [1.0, 1.0, 1.0],
       },
       output: "V0: code 111 (d=0), V1: 101 (d=1), V2: 000 (d=3)",
-      explanation: "3 orthogonal hyperplanes generate 3-bit hash codes. V0 shares exact code '111', V1 differs by 1 bit, and V2 differs by 3 bits.",
+      explanation:
+        "3 orthogonal hyperplanes generate 3-bit hash codes. V0 shares exact code '111', V1 differs by 1 bit, and V2 differs by 3 bits.",
     },
     {
       kind: "negative",
@@ -265,7 +259,8 @@ export const lshVectorHashing: AlgorithmDefinition<LshVectorHashingInput> = {
         query: [5.0, 5.0],
       },
       output: "V0: code 00 (d=2)",
-      explanation: "Query in quadrant '11' and vector in quadrant '00' yield maximum possible Hamming distance equal to the number of hyperplanes.",
+      explanation:
+        "Query in quadrant '11' and vector in quadrant '00' yield maximum possible Hamming distance equal to the number of hyperplanes.",
     },
   ],
   code: LSH_VECTOR_HASHING_CODE,
@@ -295,7 +290,8 @@ export const lshVectorHashing: AlgorithmDefinition<LshVectorHashingInput> = {
     keyTerms: [
       {
         term: "Random Projection",
-        definition: "Dimension reduction technique multiplying vectors by random normal projection matrices.",
+        definition:
+          "Dimension reduction technique multiplying vectors by random normal projection matrices.",
       },
       {
         term: "Hamming Distance",

@@ -113,8 +113,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
         ],
       },
       output: "45000",
-      explanation:
-        "Trapezoid area calculated via Shoelace cross-products 0.5 * |sum| = 45000.",
+      explanation: "Trapezoid area calculated via Shoelace cross-products 0.5 * |sum| = 45000.",
     },
     {
       kind: "complex",

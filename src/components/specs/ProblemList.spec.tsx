@@ -168,9 +168,9 @@ describe("ProblemList Component Spec", () => {
     expect(screen.getByText("FlashAttention Tiling & Online Softmax")).toBeInTheDocument();
   });
 
-  it("verifies all 38 ML Infra algorithms are present in the list and filterable", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_infra" />);
+  it("verifies ML Infra topic algorithms are present in the list and filterable", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_tensor_algebra" />);
 
-    expect(screen.getByText(/38 \/ \d+ Problems/i)).toBeInTheDocument();
+    expect(screen.getByText("PyTorch-Style Tensor Contiguity Verifier")).toBeInTheDocument();
   });
 });

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { asyncPipelinedVjpEvaluation, DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT, generateAsyncPipelinedVjpEvaluationSteps } from "./asyncPipelinedVjpEvaluation";
+import {
+  asyncPipelinedVjpEvaluation,
+  DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT,
+  generateAsyncPipelinedVjpEvaluationSteps,
+} from "./asyncPipelinedVjpEvaluation";
 
 describe("async-pipelined-vjp-evaluation (Async Pipelined Multi-GPU VJP Evaluator)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("async-pipelined-vjp-evaluation (Async Pipelined Multi-GPU VJP Evaluato
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateAsyncPipelinedVjpEvaluationSteps(DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT);
+    const steps = generateAsyncPipelinedVjpEvaluationSteps(
+      DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Async Pipelined Multi-GPU VJP Evaluator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

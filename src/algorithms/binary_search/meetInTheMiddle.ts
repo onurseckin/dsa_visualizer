@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MeetInTheMiddleInput {
@@ -51,10 +46,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   const n = nums.length;
   const target = input.target;
 
-  const makeElements = (
-    activeIndices?: number[],
-    highlightIndices?: number[],
-  ): ArrayElement[] => {
+  const makeElements = (activeIndices?: number[], highlightIndices?: number[]): ArrayElement[] => {
     return nums.map((val, idx) => {
       let state: ArrayElement["state"] = "default";
       if (activeIndices && activeIndices.includes(idx)) {
@@ -234,7 +226,8 @@ export const MEET_IN_THE_MIDDLE_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Meet in the Middle",
-      definition: "Splitting an exponential state space N into two halves of N/2 to reduce time complexity from 2^N to N 2^(N/2).",
+      definition:
+        "Splitting an exponential state space N into two halves of N/2 to reduce time complexity from 2^N to N 2^(N/2).",
     },
   ],
 };
@@ -282,7 +275,8 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
         target: 15,
       },
       output: "Match Found: True",
-      explanation: "N=5 split into left [2,4] and right [5,9,12]. Left sum 0 combines with right sum 15 (or 9+4+2=15).",
+      explanation:
+        "N=5 split into left [2,4] and right [5,9,12]. Left sum 0 combines with right sum 15 (or 9+4+2=15).",
     },
     {
       kind: "complex",
@@ -294,7 +288,8 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
         target: 31,
       },
       output: "Match Found: True",
-      explanation: "Powers of 3 set; left half [1,3] generates sum 4, right half [9,27,81] contains 27.",
+      explanation:
+        "Powers of 3 set; left half [1,3] generates sum 4, right half [9,27,81] contains 27.",
     },
     {
       kind: "negative",

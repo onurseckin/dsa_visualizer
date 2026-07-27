@@ -24,7 +24,7 @@ export const DEFAULT_TENSOR_STRIDE_OFFSET_INPUT: TensorStrideOffsetInput = {
 };
 
 export const generateTensorStrideOffsetSteps = (
-  input: TensorStrideOffsetInput
+  input: TensorStrideOffsetInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -42,7 +42,7 @@ export const generateTensorStrideOffsetSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -71,11 +71,9 @@ export const generateTensorStrideOffsetSteps = (
     1,
     "Initialize tensor offset calculation",
     `Calculating physical 1D memory offset for 4D indices [${input.indices.join(
-      ", "
-    )}] given tensor shape [${input.shape.join(
-      ", "
-    )}] and strides [${input.strides.join(", ")}].`,
-    { ndim: 4, offset: 0 }
+      ", ",
+    )}] given tensor shape [${input.shape.join(", ")}] and strides [${input.strides.join(", ")}].`,
+    { ndim: 4, offset: 0 },
   );
 
   let runningOffset = 0;
@@ -102,20 +100,20 @@ export const generateTensorStrideOffsetSteps = (
       `Inspect dimension ${d}: ${dimName}`,
       `Checking dimension ${d} index=${idx}, size=${size}, stride=${stride}.`,
       { d, dimName, idx, shape_d: size, stride_d: stride, offset: runningOffset },
-      currentElements
+      currentElements,
     );
 
     if (idx < 0 || idx >= size) {
       oob = true;
       const errorElements: ArrayElement[] = currentElements.map((el, i) =>
-        i === d ? { ...el, state: "compare", pointers: ["OUT OF BOUNDS"] } : el
+        i === d ? { ...el, state: "compare", pointers: ["OUT OF BOUNDS"] } : el,
       );
       addStep(
         6,
         `Out of bounds detected at dimension ${d}`,
         `Index ${idx} is invalid for shape bound ${size}. Returning -1 to indicate memory fault.`,
         { d, idx, shape_d: size, offset: -1 },
-        errorElements
+        errorElements,
       );
       return steps;
     }
@@ -124,7 +122,7 @@ export const generateTensorStrideOffsetSteps = (
     runningOffset += term;
 
     const updatedElements: ArrayElement[] = currentElements.map((el, i) =>
-      i === d ? { ...el, state: "sorted", pointers: [`+${term}`] } : el
+      i === d ? { ...el, state: "sorted", pointers: [`+${term}`] } : el,
     );
 
     addStep(
@@ -132,7 +130,7 @@ export const generateTensorStrideOffsetSteps = (
       `Accumulate offset: +${term} (running total = ${runningOffset})`,
       `Dimension ${d} contributes ${idx} * ${stride} = ${term} bytes/elements to the linear memory offset.`,
       { d, idx, stride_d: stride, term, offset: runningOffset },
-      updatedElements
+      updatedElements,
     );
   }
 
@@ -146,10 +144,10 @@ export const generateTensorStrideOffsetSteps = (
     8,
     `Return final memory offset: ${runningOffset}`,
     `Successfully mapped 4D multi-index [${input.indices.join(
-      ", "
+      ", ",
     )}] to flat 1D memory offset ${runningOffset}.`,
     { offset: runningOffset, valid: !oob },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -243,7 +241,8 @@ export const tensorStrideOffset: AlgorithmDefinition<TensorStrideOffsetInput> = 
         indices: [2, 0, 0, 0],
       },
       output: "-1",
-      explanation: "Index 2 at dimension 0 violates shape limit of 2 [valid indices 0..1], returning -1 error.",
+      explanation:
+        "Index 2 at dimension 0 violates shape limit of 2 [valid indices 0..1], returning -1 error.",
     },
   ],
   code: TENSOR_STRIDE_OFFSET_CODE,
@@ -273,11 +272,13 @@ export const tensorStrideOffset: AlgorithmDefinition<TensorStrideOffsetInput> = 
     keyTerms: [
       {
         term: "Stride",
-        definition: "The number of elements/bytes in memory needed to advance by 1 position along a specific dimension.",
+        definition:
+          "The number of elements/bytes in memory needed to advance by 1 position along a specific dimension.",
       },
       {
         term: "Contiguous Tensor",
-        definition: "A tensor whose elements occupy adjacent memory addresses in standard major-to-minor dimension order.",
+        definition:
+          "A tensor whose elements occupy adjacent memory addresses in standard major-to-minor dimension order.",
       },
     ],
   },

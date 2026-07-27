@@ -6,7 +6,8 @@ export interface circularDependencyDetectionInput {
   target?: number;
 }
 
-export const CIRCULARDEPENDENCYDETECTION_CODE = "def circular_dependency_detection(input_data: list) -> list:\n    # Circular Dependency Detection in Graph (Medium)\n    # Detects cycles in graph dependencies using DFS recursion stack states.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CIRCULARDEPENDENCYDETECTION_CODE =
+  "def circular_dependency_detection(input_data: list) -> list:\n    # Circular Dependency Detection in Graph (Medium)\n    # Detects cycles in graph dependencies using DFS recursion stack states.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT: circularDependencyDetectionInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT: circularDependencyDetect
 };
 
 export const generateCircularDependencyDetectionSteps = (
-  input: circularDependencyDetectionInput
+  input: circularDependencyDetectionInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateCircularDependencyDetectionSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateCircularDependencyDetectionSteps = (
     1,
     "Initialize Circular Dependency Detection in Graph",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateCircularDependencyDetectionSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateCircularDependencyDetectionSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateCircularDependencyDetectionSteps = (
 
 const CIRCULARDEPENDENCYDETECTION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Circular Dependency Detection in Graph.",
@@ -106,8 +112,8 @@ const CIRCULARDEPENDENCYDETECTION_TRIVIA: TriviaMeta = {
 export const circularDependencyDetection: AlgorithmDefinition<circularDependencyDetectionInput> = {
   id: "circular-dependency-detection",
   title: "Circular Dependency Detection in Graph",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "graph_directed_and_scc"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,21 @@ export const circularDependencyDetection: AlgorithmDefinition<circularDependency
   topicGuide: {
     overview: "Cycle detection ensures automatic differentiation graphs are valid DAGs.",
     sections: [
-      { heading: "Core Concept", body: "Detects cycles in graph dependencies using DFS recursion stack states." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Detects cycles in graph dependencies using DFS recursion stack states.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Cycle Detection","definition":"Checking if directed graph contains circular feedback loops."}],
+    keyTerms: [
+      {
+        term: "Cycle Detection",
+        definition: "Checking if directed graph contains circular feedback loops.",
+      },
+    ],
   },
   trivia: CIRCULARDEPENDENCYDETECTION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

@@ -11,7 +11,9 @@ describe("hnswHeuristicSpatialPruning", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = hnswHeuristicSpatialPruning.generateSteps(hnswHeuristicSpatialPruning.defaultInput);
+    const steps = hnswHeuristicSpatialPruning.generateSteps(
+      hnswHeuristicSpatialPruning.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

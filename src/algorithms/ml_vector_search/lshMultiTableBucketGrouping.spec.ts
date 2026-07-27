@@ -11,7 +11,9 @@ describe("lshMultiTableBucketGrouping", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = lshMultiTableBucketGrouping.generateSteps(lshMultiTableBucketGrouping.defaultInput);
+    const steps = lshMultiTableBucketGrouping.generateSteps(
+      lshMultiTableBucketGrouping.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { rotateImageFlatBuffer, DEFAULT_ROTATEIMAGEFLATBUFFER_INPUT, generateRotateImageFlatBufferSteps } from "./rotateImageFlatBuffer";
+import {
+  rotateImageFlatBuffer,
+  DEFAULT_ROTATEIMAGEFLATBUFFER_INPUT,
+  generateRotateImageFlatBufferSteps,
+} from "./rotateImageFlatBuffer";
 
 describe("rotate-image-flat-buffer (Rotate 2D Tensor 90 Degrees in Flat Memory)", () => {
   it("should have correct metadata", () => {

@@ -12,14 +12,18 @@ describe("lstmConstantErrorCarousel algorithm spec", () => {
     expect(lstmConstantErrorCarousel.isMlInfra).toBe(true);
     expect(lstmConstantErrorCarousel.mlInfraLevel).toBe(6);
     expect(lstmConstantErrorCarousel.category).toBe("ml_recurrent_gates");
-    expect(lstmConstantErrorCarousel.defaultInput).toEqual(DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT);
+    expect(lstmConstantErrorCarousel.defaultInput).toEqual(
+      DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT,
+    );
     expect(lstmConstantErrorCarousel.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 6" },
     ]);
   });
 
   it("should compute correct LSTM CEC step gate activations and updated states", () => {
-    const steps = generateLstmConstantErrorCarouselSteps(DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT);
+    const steps = generateLstmConstantErrorCarouselSteps(
+      DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];

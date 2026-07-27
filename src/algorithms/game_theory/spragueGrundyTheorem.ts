@@ -35,9 +35,9 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const piles = (input.pileSizes || [3, 4]).map(p => Math.max(0, Math.floor(p)));
+  const piles = (input.pileSizes || [3, 4]).map((p) => Math.max(0, Math.floor(p)));
   const moves = (input.allowedMoves || [1, 2, 3])
-    .map(m => Math.max(1, Math.floor(m)))
+    .map((m) => Math.max(1, Math.floor(m)))
     .filter((m, i, arr) => arr.indexOf(m) === i)
     .sort((a, b) => a - b);
 
@@ -84,7 +84,7 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
     },
     auxiliaryState: {
       hashMap: {
-        "Piles": piles.join(", "),
+        Piles: piles.join(", "),
         "Allowed Moves": moves.join(", "),
         "G(0)": 0,
       },
@@ -114,7 +114,9 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 15,
       explanation: {
-        what: `Evaluating state ${i}: Reachable Grundy values = {${Array.from(reachable).sort((a,b)=>a-b).join(", ")}}. mex = ${mex}.`,
+        what: `Evaluating state ${i}: Reachable Grundy values = {${Array.from(reachable)
+          .sort((a, b) => a - b)
+          .join(", ")}}. mex = ${mex}.`,
         why: `Smallest non-negative integer absent from reachable Grundy values is ${mex}, so G(${i}) = ${mex}.`,
       },
       primarySnapshot: {
@@ -124,8 +126,10 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
       auxiliaryState: {
         hashMap: {
           [`G(${i})`]: mex,
-          "Reachable Set": `{${Array.from(reachable).sort((a,b)=>a-b).join(", ")}}`,
-          "Transitions": reachableDetails.join("; "),
+          "Reachable Set": `{${Array.from(reachable)
+            .sort((a, b) => a - b)
+            .join(", ")}}`,
+          Transitions: reachableDetails.join("; "),
         },
       },
       variables: { i, mex },
@@ -181,7 +185,8 @@ const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "MEX (Minimum Excluded)",
-      definition: "The smallest non-negative integer (0, 1, 2...) not present in a given set of numbers.",
+      definition:
+        "The smallest non-negative integer (0, 1, 2...) not present in a given set of numbers.",
     },
     {
       term: "Nim-Sum",
@@ -253,7 +258,7 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   },
   topicGuide: SPRAGUE_GRUNDY_TOPIC_GUIDE,
   trivia: SPRAGUE_GRUNDY_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

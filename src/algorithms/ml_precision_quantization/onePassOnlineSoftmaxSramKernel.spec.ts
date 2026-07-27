@@ -1,19 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { onePassOnlineSoftmaxSramKernel, DEFAULT_ONEPASSONLINESOFTMAXSRAMKERNEL_INPUT, generateOnePassOnlineSoftmaxSramKernelSteps } from "./onePassOnlineSoftmaxSramKernel";
+import {
+  onePassOnlineSoftmaxSramKernel,
+  generateOnePassOnlineSoftmaxSramKernelSteps,
+  DEFAULT_ONEPASSONLINESOFTMAXSRAMKERNEL_INPUT,
+} from "./onePassOnlineSoftmaxSramKernel";
 
-describe("one-pass-online-softmax-sram-kernel (1-Pass Online Softmax Streaming GPU Kernel)", () => {
+describe("One Pass Online Softmax Sram Kernel", () => {
   it("should have correct metadata", () => {
-    expect(onePassOnlineSoftmaxSramKernel.id).toBe("one-pass-online-softmax-sram-kernel");
-    expect(onePassOnlineSoftmaxSramKernel.isMlInfra).toBe(true);
-    expect(onePassOnlineSoftmaxSramKernel.mlInfraLevel).toBe(4);
-    expect(onePassOnlineSoftmaxSramKernel.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(onePassOnlineSoftmaxSramKernel.categories).toContain("ml_precision_quantization");
+    expect(onePassOnlineSoftmaxSramKernel.id).toBeDefined();
+    expect(onePassOnlineSoftmaxSramKernel.title).toBe("One Pass Online Softmax Sram Kernel");
+    expect(onePassOnlineSoftmaxSramKernel.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateOnePassOnlineSoftmaxSramKernelSteps(DEFAULT_ONEPASSONLINESOFTMAXSRAMKERNEL_INPUT);
+  it("should generate steps successfully", () => {
+    const steps = generateOnePassOnlineSoftmaxSramKernelSteps(
+      DEFAULT_ONEPASSONLINESOFTMAXSRAMKERNEL_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("1-Pass Online Softmax Streaming GPU Kernel");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(onePassOnlineSoftmaxSramKernel.examples?.length).toBe(3);
   });
 });

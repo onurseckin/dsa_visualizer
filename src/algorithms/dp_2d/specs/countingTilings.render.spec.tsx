@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateCountingTilingsSteps,
-  DEFAULT_COUNTING_TILINGS_INPUT,
-} from "../countingTilings";
+import { generateCountingTilingsSteps, DEFAULT_COUNTING_TILINGS_INPUT } from "../countingTilings";
 
 describe("countingTilings React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {

@@ -6,7 +6,8 @@ export interface dynamic2dBlockPrefixSumInput {
   target?: number;
 }
 
-export const DYNAMIC2DBLOCKPREFIXSUM_CODE = "def dynamic2d_block_prefix_sum(input_data: list) -> list:\n    # Block-Tiled 2D Prefix Sum Engine (Medium)\n    # Tiles 2D grid into block regions for cache-coherent prefix updates.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const DYNAMIC2DBLOCKPREFIXSUM_CODE =
+  "def dynamic2d_block_prefix_sum(input_data: list) -> list:\n    # Block-Tiled 2D Prefix Sum Engine (Medium)\n    # Tiles 2D grid into block regions for cache-coherent prefix updates.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT: dynamic2dBlockPrefixSumInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT: dynamic2dBlockPrefixSumInput
 };
 
 export const generateDynamic2dBlockPrefixSumSteps = (
-  input: dynamic2dBlockPrefixSumInput
+  input: dynamic2dBlockPrefixSumInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateDynamic2dBlockPrefixSumSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateDynamic2dBlockPrefixSumSteps = (
     1,
     "Initialize Block-Tiled 2D Prefix Sum Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateDynamic2dBlockPrefixSumSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateDynamic2dBlockPrefixSumSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateDynamic2dBlockPrefixSumSteps = (
 
 const DYNAMIC2DBLOCKPREFIXSUM_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Block-Tiled 2D Prefix Sum Engine.",
@@ -106,8 +112,8 @@ const DYNAMIC2DBLOCKPREFIXSUM_TRIVIA: TriviaMeta = {
 export const dynamic2dBlockPrefixSum: AlgorithmDefinition<dynamic2dBlockPrefixSumInput> = {
   id: "dynamic-2d-block-prefix-sum",
   title: "Block-Tiled 2D Prefix Sum Engine",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,18 @@ export const dynamic2dBlockPrefixSum: AlgorithmDefinition<dynamic2dBlockPrefixSu
   topicGuide: {
     overview: "Block tiling splits 2D grids into L1-friendly sub-blocks.",
     sections: [
-      { heading: "Core Concept", body: "Tiles 2D grid into block regions for cache-coherent prefix updates." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Tiles 2D grid into block regions for cache-coherent prefix updates.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Block Tiling","definition":"Partitioning large matrices into small sub-blocks."}],
+    keyTerms: [
+      { term: "Block Tiling", definition: "Partitioning large matrices into small sub-blocks." },
+    ],
   },
   trivia: DYNAMIC2DBLOCKPREFIXSUM_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

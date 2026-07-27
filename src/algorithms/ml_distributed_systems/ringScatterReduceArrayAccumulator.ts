@@ -2,24 +2,38 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ringScatterReduceArrayAccumulatorInput {
-  data: number[];
-  target?: number;
+  chunks: number[];
 }
 
-export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = "def ring_scatter_reduce_array_accumulator(input_data: list) -> list:\n    # Ring Scatter-Reduce Phase Array Accumulator (Medium)\n    # Simulates Scatter-Reduce phase accumulating array chunks over N-1 ring steps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `def ring_scatter_reduce(chunks: list[float]) -> float:
+    # Simulates one chunk's reduction across N GPUs in a Ring topology.
+    # Each GPU sends its partial chunk sum to the next GPU.
+    N = len(chunks)
+    if N == 0:
+        return 0.0
+    
+    reduced_value = chunks[0]
+    
+    for i in range(1, N):
+        # In a real system, this is a receive from neighbor and local sum
+        reduced_value += chunks[i]
+        
+    return reduced_value
+`;
 
-export const DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT: ringScatterReduceArrayAccumulatorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT: ringScatterReduceArrayAccumulatorInput =
+  {
+    chunks: [10, 20, 30, 40],
+  };
 
 export const generateRingScatterReduceArrayAccumulatorSteps = (
-  input: ringScatterReduceArrayAccumulatorInput
+  input: ringScatterReduceArrayAccumulatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+
+  const elements: ArrayElement[] = input.chunks.map((val, idx) => ({
+    id: `gpu-${idx}`,
     value: val,
     state: "default",
   }));
@@ -29,7 +43,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -37,129 +51,181 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
+        elements: customElements.map((el) => ({
           ...el,
           pointers: el.pointers ? [...el.pointers] : undefined,
         })),
       },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
+      auxiliaryState: { customState: {} },
       variables,
     });
   };
 
+  const N = input.chunks.length;
   addStep(
-    1,
-    "Initialize Ring Scatter-Reduce Phase Array Accumulator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    4,
+    "Initialize Ring Scatter-Reduce Simulation",
+    "We determine the number of GPUs participating in the ring.",
+    { N },
+    [...elements],
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
+  if (N === 0) {
+    addStep(5, "Empty chunks", "No GPUs in the ring.", { N }, [...elements]);
+    return steps;
+  }
+
+  let reducedValue = input.chunks[0];
+  let currentElements = elements.map((el, idx) =>
+    idx === 0 ? { ...el, state: "active" as const, pointers: ["reduced"] } : el,
+  );
+
+  addStep(
+    7,
+    "Initialize reduced_value",
+    "Start with the chunk value from the first GPU.",
+    { N, reduced_value: reducedValue },
+    currentElements,
+  );
+
+  for (let i = 1; i < N; i++) {
+    currentElements = elements.map((el, idx) => {
+      if (idx === i) return { ...el, state: "compare" as const, pointers: ["i"] };
+      if (idx < i) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
+      9,
+      `Enter loop for GPU ${i}`,
+      `Passing the chunk to GPU ${i} to accumulate its partial value.`,
+      { N, i, reduced_value: reducedValue },
+      currentElements,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    reducedValue += input.chunks[i];
 
+    currentElements = elements.map((el, idx) => {
+      if (idx === i) return { ...el, state: "active" as const, pointers: ["i", "reduced"] };
+      if (idx < i) return { ...el, state: "visited" as const };
+      return el;
+    });
+
+    addStep(
+      11,
+      `Accumulate chunk from GPU ${i}`,
+      "The received partial chunk is added to the local chunk value.",
+      { N, i, reduced_value: reducedValue },
+      currentElements,
+    );
+  }
+
+  currentElements = elements.map((el) => ({ ...el, state: "sorted" as const }));
   addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
+    13,
+    "Scatter-Reduce Complete",
+    "The chunk has traversed N-1 GPUs and is now fully reduced.",
+    { N, reduced_value: reducedValue },
+    currentElements,
   );
 
   return steps;
 };
 
 const RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  skipLines: [1, 2, 3],
+  distractors: ["reduced_value = 0.0", "for i in range(0, N):", "reduced_value *= chunks[i]"],
+  hints: [{ line: 11, hint: "Scatter-Reduce accumulates values additively across GPUs." }],
   lineExplanations: {
-    1: "Defines entry point for Ring Scatter-Reduce Phase Array Accumulator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    4: "Get the number of participating GPUs.",
+    7: "Initialize the running sum with the first GPU's chunk.",
+    9: "Iterate N-1 times, representing communication steps in the ring.",
+    11: "Accumulate the received chunk with the local chunk.",
+    13: "Return the fully reduced chunk.",
   },
 };
 
-export const ringScatterReduceArrayAccumulator: AlgorithmDefinition<ringScatterReduceArrayAccumulatorInput> = {
-  id: "ring-scatter-reduce-array-accumulator",
-  title: "Ring Scatter-Reduce Phase Array Accumulator",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","graph_traversal"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
-  description: "Simulates Scatter-Reduce phase accumulating array chunks over N-1 ring steps.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: RINGSCATTERREDUCEARRAYACCUMULATOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Scatter-Reduce phase sums tensor chunks across N-1 ring transmission steps.",
-    sections: [
-      { heading: "Core Concept", body: "Simulates Scatter-Reduce phase accumulating array chunks over N-1 ring steps." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const ringScatterReduceArrayAccumulator: AlgorithmDefinition<ringScatterReduceArrayAccumulatorInput> =
+  {
+    id: "ring-scatter-reduce-array-accumulator",
+    title: "Ring-AllReduce Scatter-Reduce Phase",
+    category: "ml_distributed_systems",
+    categories: ["ml_distributed_systems"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 11,
+    mlInfraCategory: "ml_distributed_systems",
+    description:
+      "Simulates the Scatter-Reduce phase of Ring-AllReduce where chunks are passed and accumulated across N GPUs.",
+    constraints: ["1 <= chunks.length <= 100", "-10^5 <= chunks[i] <= 10^5"],
+    examples: [
+      {
+        kind: "basic",
+        title: "4 GPUs",
+        inputDisplay: "chunks = [10, 20, 30, 40]",
+        outputDisplay: "100",
+        input: { chunks: [10, 20, 30, 40] },
+        output: "100",
+        explanation: "Each GPU contributes its partial chunk, totaling 100.",
+      },
+      {
+        kind: "complex",
+        title: "8 GPUs with Negative Gradients",
+        inputDisplay: "chunks = [1, -2, 3, -4, 5, -6, 7, -8]",
+        outputDisplay: "-4",
+        input: { chunks: [1, -2, 3, -4, 5, -6, 7, -8] },
+        output: "-4",
+        explanation: "Gradient accumulations can result in cancellations.",
+      },
+      {
+        kind: "negative",
+        title: "Single GPU",
+        inputDisplay: "chunks = [50]",
+        outputDisplay: "50",
+        input: { chunks: [50] },
+        output: "50",
+        explanation: "With 1 GPU, no communication or accumulation is needed.",
+      },
     ],
-    keyTerms: [{"term":"Scatter-Reduce","definition":"First phase of Ring-AllReduce reducing chunks."}],
-  },
-  trivia: RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
-  defaultInput: DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT,
-  generateSteps: generateRingScatterReduceArrayAccumulatorSteps,
-};
+    code: RINGSCATTERREDUCEARRAYACCUMULATOR_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Each chunk undergoes N-1 additions across the ring, resulting in O(N) time.",
+      space: "The accumulator requires O(1) auxiliary space beyond the input chunks.",
+    },
+    topicGuide: {
+      overview:
+        "Scatter-Reduce is the first half of the Ring-AllReduce collective operation used heavily in distributed data parallel training.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "In Scatter-Reduce, the tensor is split into N chunks. Each GPU passes one chunk to its neighbor and receives another, accumulating the results. After N-1 steps, each GPU holds exactly one fully reduced chunk.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "By splitting the payload and distributing the accumulation, Ring-AllReduce ensures network bandwidth is fully utilized uniformly across all links, avoiding bottlenecks.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Scatter-Reduce",
+          definition:
+            "Phase where partial sums are accumulated. Leaves each GPU with one fully reduced chunk.",
+        },
+        {
+          term: "All-Gather",
+          definition: "Second phase where the fully reduced chunks are shared with all GPUs.",
+        },
+        {
+          term: "Chunk",
+          definition:
+            "A partition of the full tensor. For N GPUs, the tensor is split into N chunks.",
+        },
+      ],
+    },
+    trivia: RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
+    defaultInput: DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT,
+    generateSteps: generateRingScatterReduceArrayAccumulatorSteps,
+  };

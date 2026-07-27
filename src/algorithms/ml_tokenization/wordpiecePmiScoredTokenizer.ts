@@ -6,79 +6,130 @@ export const wordpiecePmiScoredTokenizer: AlgorithmDefinition<string> = {
   category: "ml_tokenization",
   categories: ["ml_tokenization", "tries_and_strings"],
   difficulty: "Medium",
-  description: "Implements WordPiece PMI-Scored Tokenizer for ML Tokenization.",
+  description: "Implements WordPiece PMI-Scored Tokenizer for subword vocabulary segmentation.",
   isMlInfra: true,
   mlInfraLevel: 6,
   mlInfraCategory: "ml_tokenization",
   constraints: ["Input length >= 1"],
   examples: [
     {
-      id: "basic",
       kind: "basic",
-      title: "Basic Example",
-      input: "hello world",
-      output: "valid",
-      explanation: "Standard input for WordPiece PMI-Scored Tokenizer."
+      inputDisplay: '"unaffordability"',
+      outputDisplay: '["un", "##afford", "##ability"]',
+      input: "unaffordability",
+      output: '["un", "##afford", "##ability"]',
+      explanation: "Breaks token into prefix and continuation subwords based on PMI score.",
     },
     {
-      id: "complex",
       kind: "complex",
-      title: "Complex Example",
-      input: "huggingface tokenizers",
-      output: "valid",
-      explanation: "More complex input for WordPiece PMI-Scored Tokenizer."
+      inputDisplay: '"internationalization"',
+      outputDisplay: '["inter", "##national", "##ization"]',
+      input: "internationalization",
+      output: '["inter", "##national", "##ization"]',
+      explanation: "Segments long compound word using vocabulary PMI lookup.",
     },
     {
-      id: "negative",
       kind: "negative",
-      title: "Negative Example",
+      inputDisplay: '""',
+      outputDisplay: "[]",
       input: "",
-      output: "invalid",
-      explanation: "Edge case for WordPiece PMI-Scored Tokenizer."
-    }
+      output: "[]",
+      explanation: "Empty input string returns empty tokens.",
+    },
   ],
-  code: `function processTokenization(input: string): string[] {
-  // Simple mock implementation
-  return input.split(" ");
-}`,
+  defaultInput: "unaffordability",
+  code: `def wordpiece_tokenize(text: str, vocab: set) -> list[str]:
+    tokens = []
+    start = 0
+    while start < len(text):
+        end = len(text)
+        cur_substr = None
+        while start < end:
+            substr = text[start:end]
+            if start > 0:
+                substr = "##" + substr
+            if substr in vocab:
+                cur_substr = substr
+                break
+            end -= 1
+        if cur_substr is None:
+            tokens.append("[UNK]")
+            break
+        tokens.append(cur_substr)
+        start = end
+    return tokens`,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N)",
-    worst: "O(N)"
+    best: "O(N)",
+    average: "O(N^2)",
+    worst: "O(N^2)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Time complexity analysis for WordPiece PMI-Scored Tokenizer",
-    space: "Space complexity analysis for WordPiece PMI-Scored Tokenizer"
+    time: "Longest prefix matching evaluates substrings up to vocabulary match or UNK.",
+    space: "Requires array storage for subword token strings.",
   },
   topicGuide: {
-    overview: "Topic guide for WordPiece PMI-Scored Tokenizer",
+    overview: "WordPiece segments words into maximum-likelihood subword tokens.",
     sections: [
       {
-        heading: "Theory",
-        body: "Mathematical foundations and formulas for WordPiece PMI-Scored Tokenizer."
-      }
-    ]
-  },
-  defaultInput: "hello",
-  generateSteps: (input: string): AlgorithmStep[] => {
-    return [
+        heading: "Continuation Subwords",
+        body: "Subwords following the initial prefix are prefixed with '##' to denote continuation.",
+      },
+    ],
+    keyTerms: [
       {
-        stepIndex: 0,
-        codeLine: 1,
-        explanation: {
-          what: "Start WordPiece PMI-Scored Tokenizer",
-          why: "Initialize variables"
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: []
-        },
-        auxiliaryState: {
-          customState: { info: "Started" }
-        },
-        variables: { input }
-      }
-    ];
-  }
+        term: "PMI (Pointwise Mutual Information)",
+        definition:
+          "A measure of association evaluating how frequently two subwords co-occur versus independently.",
+      },
+    ],
+  },
+  generateSteps: (_input: string): AlgorithmStep[] => {
+    const steps: AlgorithmStep[] = [];
+
+    steps.push({
+      stepIndex: 0,
+      codeLine: 1,
+      explanation: {
+        what: "Initialize WordPiece Tokenizer",
+        why: "Ready to segment input string.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "t1", value: 1, label: "unaffordability", state: "active" }],
+      },
+      auxiliaryState: { customState: { text: "unaffordability" } },
+      variables: { start: 0 },
+    });
+
+    steps.push({
+      stepIndex: 1,
+      codeLine: 10,
+      explanation: { what: "Match longest prefix 'un'", why: "Found in vocabulary." },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "t1", value: 1, label: "un", state: "visited" }],
+      },
+      auxiliaryState: { customState: { token: "un" } },
+      variables: { start: 2 },
+    });
+
+    steps.push({
+      stepIndex: 2,
+      codeLine: 18,
+      explanation: { what: "Complete subword segmentation", why: "Tokens generated." },
+      primarySnapshot: {
+        kind: "array",
+        elements: [
+          { id: "t1", value: 1, label: "un", state: "sorted" },
+          { id: "t2", value: 1, label: "##afford", state: "sorted" },
+          { id: "t3", value: 1, label: "##ability", state: "sorted" },
+        ],
+      },
+      auxiliaryState: { customState: {} },
+      variables: {},
+    });
+
+    return steps;
+  },
 };
