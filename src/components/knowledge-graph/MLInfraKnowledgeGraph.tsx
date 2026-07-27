@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "../../ui";
+import { getAllAlgorithms } from "../../algorithms/registry";
+import { getAlgorithmCategories } from "../../app/categories";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_NODES,
@@ -49,6 +51,24 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
+
+  const allAlgsCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const allAlgs = getAllAlgorithms();
+    allAlgs.forEach((alg) => {
+      const cats = getAlgorithmCategories(alg);
+      cats.forEach((cat) => {
+        map.set(cat, (map.get(cat) || 0) + 1);
+      });
+      if (alg.category) {
+        map.set(alg.category, (map.get(alg.category) || 0) + 1);
+      }
+      if (alg.mlInfraCategory) {
+        map.set(alg.mlInfraCategory, (map.get(alg.mlInfraCategory) || 0) + 1);
+      }
+    });
+    return map;
+  }, []);
 
   const activeDrawerTopic = useMemo(() => {
     return drawerTopicId ? ML_INFRA_NODE_MAP.get(drawerTopicId) || null : null;
@@ -339,7 +359,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
               };
 
               const problemCount =
-                node.questions.length > 0 ? node.questions.length : node.algorithmCount;
+                allAlgsCountMap.get(node.categoryFolder) ??
+                (node.questions.length > 0 ? node.questions.length : node.algorithmCount);
 
               return (
                 <g

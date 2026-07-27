@@ -37,7 +37,9 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
     const count = allAlgs.filter((alg) => {
       const cats = getAlgorithmCategories(alg);
       return (
-        cats.includes(node.categoryFolder as CategoryType) || alg.category === node.categoryFolder
+        cats.includes(node.categoryFolder as CategoryType) ||
+        alg.category === node.categoryFolder ||
+        alg.mlInfraCategory === node.categoryFolder
       );
     }).length;
     return count > 0 ? count : node.algorithmCount;
