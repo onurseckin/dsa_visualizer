@@ -22,13 +22,14 @@ export const DEFAULT_DSU_ON_TREE_INPUT: DsuOnTreeInput = {
 const DSU_ON_TREE_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Signature: compute DSU on Tree / Sack small-to-large merging for subtree color frequencies.",
-    2: "Calculate subtree sizes sz[u] to find the heavy child (max subtree size) for each node.",
-    5: "DFS helper dfs(u, p, keep): main DSU on tree recursion.",
-    7: "Step 1: Process all light children with keep=False (clears their frequencies after processing).",
-    11: "Step 2: Process heavy child with keep=True (preserves its accumulated frequencies in the sack).",
-    14: "Step 3: Merge light children subtrees into the main sack (small-to-large merge).",
-    17: "Record answer for vertex u (e.g., distinct color count or most frequent color).",
-    19: "If keep=False, clear current subtree contributions from the global sack.",
+    7: "Calculate subtree sizes sz[u] to find the heavy child (max subtree size) for each node.",
+    10: "DFS helper to compute subtree sizes and identify big_child[u].",
+    32: "DFS helper dfs_dsu(u, p, keep): main DSU on tree recursion.",
+    33: "Step 1: Process all light children with keep=False (clears their frequencies after processing).",
+    36: "Step 2: Process heavy child with keep=True (preserves its accumulated frequencies in the sack).",
+    39: "Step 3: Merge light children subtrees into the main sack (small-to-large merge).",
+    43: "Record answer for vertex u (e.g., distinct color count or most frequent color).",
+    45: "If keep=False, clear current subtree contributions from the global sack.",
   },
 };
 
@@ -104,7 +105,7 @@ export const generateDsuOnTreeSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 2,
+    codeLine: 48,
     explanation: {
       what: `Precomputed subtree sizes sz[] and identified heavy children for all ${n} nodes.`,
       why: "Heavy children preserve their sack state to optimize total merge operations to O(N log N).",
@@ -165,7 +166,7 @@ export const generateDsuOnTreeSteps = (
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 17,
+      codeLine: 43,
       explanation: {
         what: `Processed Node ${u} (color=${colors[u]}). Subtree has ${cnt.size} distinct colors!`,
         why: `Merged light children into heavy child Node ${bigChild[u]}'s sack.`,
@@ -198,7 +199,7 @@ export const generateDsuOnTreeSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 17,
+    codeLine: 50,
     explanation: {
       what: "DSU on Tree processing complete across all nodes!",
       why: "Small-to-large merging evaluated subtree statistics in O(N log N) total operations.",

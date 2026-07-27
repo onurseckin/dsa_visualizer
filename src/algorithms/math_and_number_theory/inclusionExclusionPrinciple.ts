@@ -6,16 +6,19 @@ export interface InclusionExclusionInput {
   primes: number[];
 }
 
-export const PYTHON_INCLUSION_EXCLUSION_CODE = `def inclusion_exclusion(n: int, primes: list[int]) -> int:
+export const PYTHON_INCLUSION_EXCLUSION_CODE = `def get_mask_stats(mask: int, primes: list[int]) -> tuple[int, int]:
+    prod, bits = 1, 0
+    for i in range(len(primes)):
+        if (mask >> i) & 1:
+            prod *= primes[i]
+            bits += 1
+    return prod, bits
+
+def inclusion_exclusion(n: int, primes: list[int]) -> int:
     k = len(primes)
     total_count = 0
     for mask in range(1, 1 << k):
-        prod = 1
-        bits = 0
-        for i in range(k):
-            if (mask >> i) & 1:
-                prod *= primes[i]
-                bits += 1
+        prod, bits = get_mask_stats(mask, primes)
         count = n // prod
         if bits % 2 == 1:
             total_count += count
@@ -71,7 +74,7 @@ export const generateInclusionExclusionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 9,
     explanation: {
       what: `Initializing Inclusion-Exclusion for N = ${n} and ${k} primes: [${primes.join(", ")}].`,
       why: "The principle counts numbers in [1, N] divisible by at least one prime by summing sizes of odd-sized intersections and subtracting even-sized intersections.",
@@ -119,7 +122,7 @@ export const generateInclusionExclusionSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 14,
       explanation: {
         what: `Subset ${subsetHistory.length}/${totalSubsets}: ${selectedPrimes.join(" x ")} = ${prod}. Divisible count: ${n} // ${prod} = ${count}.`,
         why: `Subset size is ${bits} (${bits % 2 === 1 ? "odd" : "even"}), so we ${bits % 2 === 1 ? "ADD" : "SUBTRACT"} ${count} to/from total. New total = ${totalCount}.`,
@@ -150,7 +153,7 @@ export const generateInclusionExclusionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 19,
     explanation: {
       what: `Completed Inclusion-Exclusion Principle evaluation. Total integers in [1, ${n}] divisible by at least one of [${primes.join(", ")}] = ${totalCount}.`,
       why: "Evaluated all 2^k - 1 non-empty set intersections with alternating signs.",
@@ -198,14 +201,17 @@ const INCLUSION_EXCLUSION_TOPIC_GUIDE: TopicGuide = {
 
 const INCLUSION_EXCLUSION_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines the entry function receiving upper limit n and array of primes.",
-    2: "Calculates the number of prime conditions k.",
-    3: "Initializes total_count to 0.",
-    4: "Iterates through all non-empty subsets using bitmask 1 to 2^k - 1.",
-    5: "Computes subset product (prod) and bit count (bits).",
-    10: "Computes integer division n // prod to find multiples of prod in [1, n].",
-    11: "Adds count if bits is odd; otherwise subtracts count.",
-    16: "Returns final count of numbers divisible by at least one prime.",
+    1: "Helper get_mask_stats computes product of selected primes and bit count.",
+    9: "Defines inclusion_exclusion(n, primes) -> int.",
+    10: "Store number of primes in variable k.",
+    11: "Initialize total_count = 0.",
+    12: "Iterate through all non-empty subsets using bitmask 1 to (1 << k) - 1.",
+    13: "Compute subset product and set bits count using helper function.",
+    14: "Compute count = n // prod (multiples of prod in [1, n]).",
+    15: "Check if set bits count is odd.",
+    16: "Add count if bits count is odd.",
+    18: "Subtract count if bits count is even.",
+    19: "Return final count of numbers divisible by at least one prime.",
   },
 };
 
@@ -257,7 +263,7 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   },
   topicGuide: INCLUSION_EXCLUSION_TOPIC_GUIDE,
   trivia: INCLUSION_EXCLUSION_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -269,3 +275,4 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   defaultInput: DEFAULT_INCLUSION_EXCLUSION_INPUT,
   generateSteps: generateInclusionExclusionSteps,
 };
+

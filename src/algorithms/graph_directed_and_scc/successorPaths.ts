@@ -8,28 +8,24 @@ export interface SuccessorPathsInput {
 }
 
 export const SUCCESSOR_PATHS_CODE = `def floyd_cycle_and_successor(succ, start_node=0, k_steps=5):
-    # Phase 1: Detect cycle using Floyd's Tortoise and Hare
     tortoise = succ[start_node]
     hare = succ[succ[start_node]]
     while tortoise != hare:
         tortoise = succ[tortoise]
         hare = succ[succ[hare]]
 
-    # Phase 2: Find start of cycle
     tortoise = start_node
     while tortoise != hare:
         tortoise = succ[tortoise]
         hare = succ[hare]
     cycle_start = tortoise
 
-    # Phase 3: Compute cycle length
     length = 1
     hare = succ[tortoise]
     while hare != tortoise:
         hare = succ[hare]
         length += 1
 
-    # Phase 4: Fast k-step jump via binary lifting table
     curr = start_node
     for b in range(16):
         if (k_steps >> b) & 1:
@@ -47,29 +43,29 @@ export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 3,
+      line: 2,
       hint: "Tortoise advances 1 step while Hare advances 2 steps per iteration.",
     },
     {
-      line: 10,
+      line: 8,
       hint: "To find the cycle start, reset tortoise to start_node and advance both 1 step at a time.",
     },
     {
-      line: 17,
+      line: 14,
       hint: "Once at cycle start, advance hare 1 step at a time to count cycle length.",
     },
     {
-      line: 23,
+      line: 21,
       hint: "Binary lifting jumps 2^b steps in O(1) by inspecting binary bits of k_steps.",
     },
   ],
   lineExplanations: {
     1: "Defines cycle detection and successor path jumping on functional graphs.",
-    3: "Pointers start with hare moving twice as fast as tortoise.",
-    5: "Advances pointers until tortoise and hare meet inside the cycle.",
-    10: "Resets tortoise to start_node; both advance at equal speed until meeting at cycle entry.",
-    17: "Counts vertices around the cycle until returning to the entry node.",
-    23: "Decomposes k_steps into powers of 2 for O(log k) binary lifting jumps.",
+    2: "Pointers start with hare moving twice as fast as tortoise.",
+    4: "Advances pointers until tortoise and hare meet inside the cycle.",
+    8: "Resets tortoise to start_node; both advance at equal speed until meeting at cycle entry.",
+    14: "Counts vertices around the cycle until returning to the entry node.",
+    21: "Decomposes k_steps into powers of 2 for O(log k) binary lifting jumps.",
   },
 };
 
@@ -125,7 +121,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 3,
+    codeLine: 2,
     explanation: {
       what: `Phase 1: Initialized Tortoise at node ${tortoise} and Hare at node ${hare}.`,
       why: "Hare advances at twice the speed of Tortoise to enter the cycle.",
@@ -157,7 +153,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 5,
+      codeLine: 4,
       explanation: {
         what: `Step ${passCount}: Tortoise moved to ${tortoise}, Hare moved to ${hare}.`,
         why: "Advancing pointers until they intersect inside the cycle.",
@@ -189,7 +185,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
   tortoise = startNode;
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 10,
+    codeLine: 8,
     explanation: {
       what: `Phase 2: Reset Tortoise to startNode (${startNode}). Hare remains at ${hare}.`,
       why: "Both pointers now advance 1 step at a time to meet at cycle entry.",
@@ -221,7 +217,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 14,
+    codeLine: 12,
     explanation: {
       what: `Cycle start found at node ${cycleStart}.`,
       why: "Meeting point of equal-speed pointers marks entry to the functional cycle.",
@@ -250,7 +246,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 17,
+    codeLine: 14,
     explanation: {
       what: `Computed cycle length = ${length}.`,
       why: "Traversed loop back to cycle start node.",
@@ -285,7 +281,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 23,
+    codeLine: 21,
     explanation: {
       what: `Query succ(${startNode}, ${stepsQuery} steps) = node ${curr}.`,
       why: "Computed k-th successor via binary lifting / direct successor jump.",

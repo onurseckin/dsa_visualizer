@@ -1,4 +1,4 @@
-export const NIM_GAME_CODE = `def nim_game(piles):
+export const NIM_GAME_CODE = `def nim_game(piles: list[int]) -> dict[str, str | int]:
     xor_sum = 0
     n = len(piles)
     for i in range(n):
@@ -18,3 +18,4 @@ export const NIM_GAME_CODE = `def nim_game(piles):
             }
 
     return {"winner": "Second Player", "winning_pile": -1, "target_size": 0}`;
+

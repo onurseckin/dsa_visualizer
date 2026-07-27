@@ -12,8 +12,6 @@ export interface TwoSatSolverInput {
 }
 
 export const TWO_SAT_CODE = `def solve_2sat(variables, clauses):
-    # Construct 2-SAT implication graph
-    # Clause (A or B) translates to (~A -> B) and (~B -> A)
     adj = {}
     for v in variables:
         adj[v] = []
@@ -25,15 +23,12 @@ export const TWO_SAT_CODE = `def solve_2sat(variables, clauses):
         adj[not_u].append(v)
         adj[not_v].append(u)
 
-    # Compute SCCs of implication graph using Kosaraju's algorithm
     scc_ids = compute_sccs(adj)
 
-    # Check satisfiability condition
     assignment = {}
     for v in variables:
         if scc_ids[v] == scc_ids[f"~{v}"]:
             return "UNSATISFIABLE", {}
-        # Truth value assigned based on topological ordering of SCCs
         assignment[v] = scc_ids[v] > scc_ids[f"~{v}"]
 
     return "SATISFIABLE", assignment`;
@@ -48,29 +43,29 @@ export const TWO_SAT_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 11,
+      line: 7,
       hint: "A clause (A or B) is logically equivalent to (~A -> B) and (~B -> A).",
     },
     {
-      line: 17,
+      line: 13,
       hint: "Kosaraju's SCC decomposition identifies cycles of implications.",
     },
     {
-      line: 22,
+      line: 18,
       hint: "If a variable and its negation belong to the same SCC, a contradiction exists (x => ~x and ~x => x), making the formula UNSATISFIABLE.",
     },
     {
-      line: 24,
+      line: 19,
       hint: "If all variables reside in distinct SCCs from their negations, set x = true if SCC(x) comes after SCC(~x) topologically.",
     },
   ],
   lineExplanations: {
     1: "Defines the 2-SAT solver function via implication graph and SCC decomposition.",
-    11: "Converts each disjunctive clause (A or B) into two implication edges in the directed implication graph.",
-    17: "Decomposes the implication graph into Strongly Connected Components (SCCs).",
-    22: "Checks if any variable x and its negation ~x belong to the same SCC (contradiction test).",
-    24: "Assigns consistent boolean truth values based on component topological order.",
-    26: "Returns 'SATISFIABLE' along with the valid boolean assignment.",
+    7: "Converts each disjunctive clause (A or B) into two implication edges in the directed implication graph.",
+    13: "Decomposes the implication graph into Strongly Connected Components (SCCs).",
+    18: "Checks if any variable x and its negation ~x belong to the same SCC (contradiction test).",
+    19: "Assigns consistent boolean truth values based on component topological order.",
+    21: "Returns 'SATISFIABLE' along with the valid boolean assignment.",
   },
 };
 
@@ -168,7 +163,7 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 17,
+    codeLine: 13,
     explanation: {
       what: "Completed Kosaraju Pass 1: compute finish order stack.",
       why: "Post-order finish stack determines top-down order for SCC processing.",
@@ -216,7 +211,7 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 17,
+    codeLine: 13,
     explanation: {
       what: `Identified ${currentScc} Strongly Connected Components (SCCs).`,
       why: "Nodes in the same SCC form mutually reachable implication loops.",
@@ -255,7 +250,7 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
       isSat = false;
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 22,
+        codeLine: 17,
         explanation: {
           what: `Contradiction detected: ${v} and ${negateLiteral(v)} are in the SAME SCC (SCC ${posScc}).`,
           why: `Both ${v} => ${negateLiteral(v)} and ${negateLiteral(v)} => ${v} hold, making the formula UNSATISFIABLE.`,
@@ -282,7 +277,7 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
   if (isSat) {
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 26,
+      codeLine: 21,
       explanation: {
         what: "Formula is SATISFIABLE!",
         why: "No variable and its negation share an SCC. Truth assignment derived from SCC topological rank.",

@@ -20,17 +20,18 @@ const KNIGHT_MOVES = [
 
 const WARNSDORFF_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Signature: find a knight's tour on an N×N board starting at (start_r, start_c) using Warnsdorff's heuristic.",
+    1: "Signature: find a knight's tour on an N×N board using Warnsdorff's heuristic.",
     2: "Initialize an N×N board filled with -1 to indicate unvisited squares.",
-    3: "Define the 8 standard L-shaped moves a knight can make in chess.",
-    5: "Helper to count how many unvisited onward moves are available from position (r, c).",
-    12: "Mark the initial square with move index 0.",
-    15: "Iterate from move 1 up to N×N - 1 to visit all remaining squares.",
-    16: "Collect all valid unvisited neighbor squares and compute their Warnsdorff onward degree.",
-    21: "If no valid moves exist before visiting all squares, the tour fails (dead end).",
-    23: "Sort candidate moves by onward degree ascending (Warnsdorff's rule).",
-    25: "Move knight to candidate with minimum onward degree and set move number.",
-    28: "Return success status along with the completed board.",
+    3: "Define the 8 standard L-shaped moves a knight can make.",
+    5: "Helper count_onward_moves(r, c) counts unvisited onward moves.",
+    13: "Mark starting square with step 0.",
+    14: "Set current position to (start_r, start_c).",
+    16: "Loop step from 1 up to N*N - 1 to visit remaining squares.",
+    21: "Compute Warnsdorff onward degree for each unvisited move.",
+    24: "If candidates is empty, return False and current board state.",
+    25: "Sort candidates by onward degree ascending (Warnsdorff's rule).",
+    27: "Mark selected square with step number.",
+    30: "Return True and completed board matrix.",
   },
 };
 
@@ -93,7 +94,7 @@ export const generateKnightsTourWarnsdorffSteps = (
 
   steps.push({
     stepIndex: stepCount++,
-    codeLine: 12,
+    codeLine: 13,
     explanation: {
       what: `Placed knight at starting position (${startR}, ${startC}).`,
       why: "Initial position marked as step 1.",
@@ -135,7 +136,7 @@ export const generateKnightsTourWarnsdorffSteps = (
     if (candidates.length === 0) {
       steps.push({
         stepIndex: stepCount++,
-        codeLine: 21,
+        codeLine: 24,
         explanation: {
           what: `No valid unvisited moves remaining from (${currR}, ${currC}).`,
           why: "Knight reached a dead end before completing the full tour.",
@@ -163,7 +164,7 @@ export const generateKnightsTourWarnsdorffSteps = (
     // Step evaluating candidate degrees
     steps.push({
       stepIndex: stepCount++,
-      codeLine: 16,
+      codeLine: 21,
       explanation: {
         what: `Evaluated ${candidates.length} candidate moves from (${currR}, ${currC}) via Warnsdorff degrees.`,
         why: "Warnsdorff's rule prioritizes squares with the fewest onward unvisited neighbors.",
@@ -194,7 +195,7 @@ export const generateKnightsTourWarnsdorffSteps = (
 
     steps.push({
       stepIndex: stepCount++,
-      codeLine: 25,
+      codeLine: 27,
       explanation: {
         what: `Moved knight to (${currR}, ${currC}) (step ${moveIdx + 1}).`,
         why: "Selected candidate move with minimum onward degree.",
@@ -221,7 +222,7 @@ export const generateKnightsTourWarnsdorffSteps = (
   if (tourSuccess) {
     steps.push({
       stepIndex: stepCount++,
-      codeLine: 28,
+      codeLine: 30,
       explanation: {
         what: `Completed full Knight's Tour visiting all ${totalSquares} squares!`,
         why: "Warnsdorff's heuristic guided the knight through all squares without backtracking.",
@@ -283,11 +284,11 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
       explanation: "No complete knight tour exists on a 3x3 board due to topological bottlenecks.",
     },
   ],
-  code: `def knights_tour_warnsdorff(n, start_r, start_c):
+  code: `def knights_tour_warnsdorff(n: int, start_r: int, start_c: int) -> tuple[bool, list[list[int]]]:
     board = [[-1] * n for _ in range(n)]
-    moves = [(-2,1), (-1,2), (1,2), (2,1), (2,-1), (1,-2), (-1,-2), (-2,-1)]
-    
-    def count_onward_moves(r, c):
+    moves = [(-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1)]
+
+    def count_onward_moves(r: int, c: int) -> int:
         count = 0
         for dr, dc in moves:
             nr, nc = r + dr, c + dc
@@ -297,7 +298,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
 
     board[start_r][start_c] = 0
     curr_r, curr_c = start_r, start_c
-    
+
     for step in range(1, n * n):
         candidates = []
         for dr, dc in moves:
@@ -307,11 +308,11 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
                 candidates.append((deg, nr, nc))
         if not candidates:
             return False, board
-        candidates.sort(key=x: x[0])
+        candidates.sort(key=lambda x: x[0])
         _, next_r, next_c = candidates[0]
         board[next_r][next_c] = step
         curr_r, curr_c = next_r, next_c
-        
+
     return True, board`,
   timeComplexity: {
     best: "O(N^2)",
@@ -349,7 +350,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   },
   trivia: WARNSDORFF_TRIVIA,
   generateSteps: generateKnightsTourWarnsdorffSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -360,3 +361,4 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   ],
   defaultInput: DEFAULT_KNIGHTS_TOUR_INPUT,
 };
+

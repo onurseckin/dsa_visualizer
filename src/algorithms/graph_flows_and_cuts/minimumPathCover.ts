@@ -113,7 +113,7 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 5,
+    codeLine: 6,
     explanation: {
       what: "Initialize Bipartite Matching for Minimum Path Cover",
       why: "By Dilworth's theorem / Gallai's identity, Min Path Cover in DAG = N - Max Bipartite Matching size.",
@@ -155,7 +155,7 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
       matchingSize++;
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 20,
+        codeLine: 21,
         explanation: {
           what: `Found augmenting path for node ${i}. Matching size is now ${matchingSize}`,
           why: `Augmented matching with edge from node ${i}. Total matching count = ${matchingSize}.`,
@@ -170,7 +170,7 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
   const minPathCover = numNodes - matchingSize;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 23,
     explanation: {
       what: `Minimum Path Cover = ${minPathCover}`,
       why: `Calculated N - Max Matching: ${numNodes} - ${matchingSize} = ${minPathCover} paths needed to cover DAG vertices.`,
@@ -187,11 +187,11 @@ const MINIMUM_PATH_COVER_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines minimum_path_cover(num_nodes, edges) -> int.",
     2: "Builds adjacency list for directed graph DAG.",
-    5: "Initializes match array with -1 (unmatched).",
-    7: "Defines DFS helper for finding augmenting paths in bipartite graph.",
+    6: "Initializes match array with -1 (unmatched).",
+    8: "Defines DFS helper for finding augmenting paths in bipartite graph.",
     12: "If target node v is unmatched or its match can be re-routed, matches v to u.",
-    17: "Loops through each vertex i to find augmenting matching paths.",
-    22: "Returns num_nodes - matching_size (Minimum Path Cover count).",
+    18: "Loops through each vertex i to find augmenting matching paths.",
+    23: "Returns num_nodes - matching_size (Minimum Path Cover count).",
   },
 };
 

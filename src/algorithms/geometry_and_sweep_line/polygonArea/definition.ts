@@ -73,18 +73,16 @@ const POLYGON_AREA_TOPIC_GUIDE: TopicGuide = {
 const POLYGON_AREA_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines the function signature: takes ordered polygon vertices and returns a float area.",
-    3: "Documents that this implements the Shoelace formula for a simple, non-self-intersecting polygon.",
-    4: "Documents the expected input shape: an ordered list of (x, y) vertex tuples walking the boundary.",
-    6: "Caches the vertex count, needed both for the validity check and for wrapping the index in the main loop.",
-    7: "A polygon needs at least three vertices to enclose any region.",
-    8: "With fewer than three vertices there is no enclosed area, so we return zero immediately.",
-    10: "Initializes the running total that will accumulate each edge's signed cross-product term.",
-    11: "Walks every edge of the polygon exactly once.",
-    12: "Unpacks the current vertex's coordinates.",
-    13: "Unpacks the next vertex's coordinates, wrapping around to vertex 0 after the last one so the polygon closes.",
-    14: "Computes this edge's signed contribution — twice the signed area of the triangle it forms with the origin — so terms outside the polygon cancel and terms inside it add up.",
-    15: "Folds this edge's term into the running total.",
-    17: "The sign only reflected which way we walked the boundary, so taking the absolute value and halving (undoing the doubled cross product) yields the true enclosed area.",
+    2: "Caches the vertex count, needed both for the validity check and for wrapping the index in the main loop.",
+    3: "Checks if n < 3 (insufficient vertices for 2D area).",
+    4: "Returns 0.0 if fewer than 3 vertices.",
+    6: "Initializes the running total that will accumulate each edge's signed cross-product term.",
+    7: "Walks every edge of the polygon exactly once.",
+    8: "Unpacks the current vertex's coordinates.",
+    9: "Unpacks the next vertex's coordinates, wrapping around to vertex 0 after the last one so the polygon closes.",
+    10: "Computes this edge's signed contribution — twice the signed area of the triangle it forms with the origin.",
+    11: "Folds this edge's term into the running total.",
+    13: "The sign only reflected which way we walked the boundary, so taking the absolute value and halving yields the true enclosed area.",
   },
 };
 

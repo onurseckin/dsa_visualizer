@@ -61,7 +61,7 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 8,
+        codeLine: 10,
         explanation: {
           what: `Compare nums[${j}] (${nums[j]}) with nums[${i}] (${nums[i]})`,
           why: isIncreasing
@@ -95,7 +95,7 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
   const maxLis = Math.max(...dp);
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 12,
     explanation: {
       what: `Return max(dp) = ${maxLis}`,
       why: `The length of the longest increasing subsequence overall is ${maxLis}.`,
@@ -121,12 +121,14 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
 const LIS_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines length_of_lis(nums) -> int: returns length of the longest strictly increasing subsequence.",
+    2: "Base case: return 0 for empty input array.",
+    4: "Store array length in variable n.",
     5: "Initializes dp table of size n to 1s, since every single element is an increasing subsequence of length 1.",
     7: "Outer loop iterates i from 1 to n - 1, fixing the ending element of the subsequence.",
     8: "Inner loop iterates j from 0 to i - 1, checking all previous elements.",
     9: "If nums[i] > nums[j], nums[i] can extend the increasing subsequence that ends at nums[j].",
     10: "Updates dp[i] to max(dp[i], dp[j] + 1).",
-    11: "Returns maximum value in dp array.",
+    12: "Returns maximum value in dp array.",
   },
 };
 

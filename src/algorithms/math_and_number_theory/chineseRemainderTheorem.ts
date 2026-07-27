@@ -233,18 +233,18 @@ export const CHINESE_REMAINDER_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const CHINESE_REMAINDER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 5, 10],
-  distractors: [
-    "p = prod * n_i",
-    "inv = pow(p, n_i, n_i)",
-    "result += r_i * p",
-    "return result * prod",
-  ],
-  hints: [
-    { line: 7, hint: "Partial modulus M_i is defined as total product divided by current n_i." },
-    { line: 9, hint: "Accumulate term r_i * M_i * inverse into running result." },
-    { line: 10, hint: "Final result must be reduced modulo total product." },
-  ],
+  lineExplanations: {
+    1: "Defines chinese_remainder(num, rem) -> int for solving system of linear congruences.",
+    2: "Initialize total moduli product prod = 1.",
+    3: "Loop over moduli in num array.",
+    4: "Multiply each modulus n into total product prod.",
+    5: "Initialize running solution sum result = 0.",
+    6: "Loop over corresponding (n_i, r_i) pairs in num and rem.",
+    7: "Compute partial product p = prod // n_i.",
+    8: "Compute modular inverse inv = pow(p, n_i - 2, n_i) assuming n_i is prime.",
+    9: "Add term r_i * p * inv to running solution result.",
+    10: "Return result % prod, the unique solution modulo total product.",
+  },
 };
 
 export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput> = {

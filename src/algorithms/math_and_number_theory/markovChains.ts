@@ -148,7 +148,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 7,
+      codeLine: 4,
       explanation: {
         what: `Step ${s}/${rawSteps}: Computed next state distribution via matrix multiplication.`,
         why: `State S${maxProbIdx} now has highest probability (${(currentDist[maxProbIdx] * 100).toFixed(1)}%).`,

@@ -36,7 +36,7 @@ export const generateNearestSmallerElementSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 3,
     explanation: {
       what: "Initialize Monotonic Stack and Result Array",
       why: "result array initialized with -1s. Stack will maintain an increasing sequence of elements.",
@@ -64,7 +64,7 @@ export const generateNearestSmallerElementSteps = (
       const popped = stack.pop()!;
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 7,
+        codeLine: 8,
         explanation: {
           what: `Pop ${popped} from stack`,
           why: `Stack top ${popped} >= current element ${current}, so it cannot be a nearest smaller element for current or future items.`,
@@ -94,7 +94,7 @@ export const generateNearestSmallerElementSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 11,
       explanation: {
         what: `Set result[${i}] = ${result[i]} and push ${current} to stack`,
         why: result[i] !== -1
@@ -124,7 +124,7 @@ export const generateNearestSmallerElementSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 13,
     explanation: {
       what: `Return nearest smaller element array: [${result.join(", ")}]`,
       why: "Monotonic stack traversal complete in linear O(N) time.",
@@ -150,13 +150,17 @@ export const generateNearestSmallerElementSteps = (
 
 const NEAREST_SMALLER_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines nearest_smaller_element(nums) -> list[int].",
-    3: "Initializes result array with -1s and empty stack.",
+    1: "Declares nearest_smaller_element: given nums, returns array where entry i is nearest element to left smaller than nums[i].",
+    2: "Caches length of nums in n.",
+    3: "Initializes result array filled with default -1s.",
+    4: "Initializes an empty stack to maintain a monotonic increasing order of elements.",
     6: "Iterates through array indices i from 0 to n - 1.",
-    7: "Pops elements from stack while top element >= current element nums[i].",
-    9: "If stack is not empty, top of stack is nearest smaller element to the left.",
-    10: "Pushes current element nums[i] onto stack.",
-    12: "Returns complete result list.",
+    7: "Checks while stack is non-empty and top element is >= current element nums[i].",
+    8: "Pops top element from stack because it can never be a nearest smaller element for nums[i] or future items.",
+    9: "If stack is not empty after popping, top of stack is the nearest smaller element.",
+    10: "Records stack[-1] in result[i].",
+    11: "Pushes current element nums[i] onto stack.",
+    13: "Returns the completed result list.",
   },
 };
 

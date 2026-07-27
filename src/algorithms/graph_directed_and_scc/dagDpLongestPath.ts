@@ -13,7 +13,6 @@ export const DAG_DP_CODE = `def dag_longest_path(nodes, edges):
         adj[u].append((v, w))
         in_degree[v] += 1
 
-    # Step 1: Topological Sort via Kahn's algorithm
     queue = [u for u in nodes if in_degree[u] == 0]
     topo_order = []
     while queue:
@@ -24,7 +23,6 @@ export const DAG_DP_CODE = `def dag_longest_path(nodes, edges):
             if in_degree[v] == 0:
                 queue.append(v)
 
-    # Step 2: Dynamic Programming for longest path
     dp = {u: 0 for u in nodes}
     parent = {u: None for u in nodes}
 
@@ -47,11 +45,11 @@ export const DAG_DP_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 9,
+      line: 8,
       hint: "Topological sorting processes nodes in an order where all incoming dependencies precede target nodes.",
     },
     {
-      line: 19,
+      line: 18,
       hint: "Initialize DP array dp[u] = 0 for all nodes.",
     },
     {
@@ -59,17 +57,17 @@ export const DAG_DP_TRIVIA: TriviaMeta = {
       hint: "Relax edges u -> v: if dp[u] + weight > dp[v], update dp[v] and track predecessor.",
     },
     {
-      line: 28,
+      line: 27,
       hint: "The maximum value in the DP table yields the longest path length in the DAG.",
     },
   ],
   lineExplanations: {
     1: "Defines the DAG longest path dynamic programming algorithm.",
-    9: "Initializes Kahn's queue with in-degree 0 source vertices.",
-    12: "Builds a valid topological ordering of the DAG.",
-    19: "Initializes DP distance array dp[u] = 0 and parent pointers for path reconstruction.",
-    22: "Iterates over vertices in topological order to relax outgoing directed edges.",
-    28: "Identifies the node with maximum DP score and reconstructs the longest path.",
+    8: "Initializes Kahn's queue with in-degree 0 source vertices.",
+    10: "Builds a valid topological ordering of the DAG.",
+    18: "Initializes DP distance array dp[u] = 0 and parent pointers for path reconstruction.",
+    21: "Iterates over vertices in topological order to relax outgoing directed edges.",
+    27: "Identifies the node with maximum DP score and reconstructs the longest path.",
   },
 };
 
@@ -136,7 +134,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 9,
+    codeLine: 8,
     explanation: {
       what: `Sources with in-degree 0: [${queue.join(", ")}].`,
       why: "Initial nodes for Kahn's topological sorting queue.",
@@ -172,7 +170,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 12,
+    codeLine: 10,
     explanation: {
       what: `Topological Order computed: [${topoOrder.join(", ")}].`,
       why: "Processing DAG in topological order guarantees sub-problems are solved before dependent transitions.",
@@ -198,7 +196,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 19,
+    codeLine: 18,
     explanation: {
       what: "Initialized DP values dp[u] = 0 for all nodes.",
       why: "Base case for longest path DAG dynamic programming.",
@@ -217,7 +215,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
   for (const u of topoOrder) {
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 22,
+      codeLine: 21,
       explanation: {
         what: `Processing node ${u} (dp[${u}] = ${dp[u]}).`,
         why: "Relaxing outgoing edges from current topological vertex.",
@@ -295,7 +293,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 28,
+    codeLine: 27,
     explanation: {
       what: `Longest Path in DAG: ${longestPathNodes.join(" -> ")} (Length = ${dp[maxNode]}).`,
       why: `Node ${maxNode} achieves maximum path weight of ${dp[maxNode]}.`,

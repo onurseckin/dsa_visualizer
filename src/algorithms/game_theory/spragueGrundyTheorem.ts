@@ -112,7 +112,7 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 15,
       explanation: {
         what: `Evaluating state ${i}: Reachable Grundy values = {${Array.from(reachable).sort((a,b)=>a-b).join(", ")}}. mex = ${mex}.`,
         why: `Smallest non-negative integer absent from reachable Grundy values is ${mex}, so G(${i}) = ${mex}.`,
@@ -143,7 +143,7 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 17,
+    codeLine: 19,
     explanation: {
       what: `Calculated total Nim-Sum across all game piles: ${pileGrundySummary.join(" ⊕ ")} = ${nimSum}.`,
       why: `Nim-Sum is ${nimSum === 0 ? "ZERO (Losing Position)" : "NON-ZERO (Winning Position)"}. Strategy: ${winningPlayer} has a forced winning strategy.`,
@@ -193,12 +193,15 @@ const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
 const SPRAGUE_GRUNDY_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines helper function calculating minimum excluded non-negative integer (mex).",
-    7: "Main Sprague-Grundy function computing Grundy values for game states up to max pile size.",
-    11: "Loops through game states 1 to max pile size.",
-    12: "Collects Grundy values of all reachable states given allowed move transitions.",
-    13: "Computes G[i] as mex of reachable state Grundy values.",
-    14: "XOR sums Grundy values across all active game piles to get overall Nim-Sum.",
-    17: "Returns array of Grundy values and total Nim-Sum.",
+    7: "Main Sprague-Grundy function computing Grundy values for game states.",
+    8: "Finds maximum pile size max_p to size Grundy value array.",
+    9: "Initializes Grundy array g of size max_p + 1 with 0s.",
+    10: "Loops through game states 1 to max_p.",
+    12: "Loops through allowed moves from state i.",
+    14: "Adds reachable state Grundy value g[i - m] to reachable set.",
+    15: "Computes g[i] as mex of reachable state Grundy values.",
+    18: "XOR sums Grundy values across all active game piles to get overall Nim-Sum.",
+    19: "Returns array of Grundy values and total Nim-Sum.",
   },
 };
 

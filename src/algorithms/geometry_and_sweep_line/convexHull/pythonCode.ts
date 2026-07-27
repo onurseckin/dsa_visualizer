@@ -1,7 +1,4 @@
 export const PYTHON_CONVEX_HULL_CODE = `def convex_hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
-    """
-    Find the convex hull of a set of 2D points using Andrew's Monotone Chain algorithm.
-    """
     n = len(points)
     if n <= 3:
         return points

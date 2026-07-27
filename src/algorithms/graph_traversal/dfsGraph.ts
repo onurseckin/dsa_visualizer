@@ -21,7 +21,6 @@ export const DFS_GRAPH_CODE = `def dfs_graph(nodes, edges, start_node):
         if curr not in visited:
             visited.add(curr)
             traversal.append(curr)
-            # Push unvisited neighbors in reverse order to preserve canonical left-to-right DFS order
             for neighbor in reversed(adj[curr]):
                 if neighbor not in visited:
                     stack.append(neighbor)
@@ -38,15 +37,15 @@ export const DFS_GRAPH_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 6,
+      line: 7,
       hint: "Seeds the visited set and traversal stack with the starting vertex.",
     },
     {
-      line: 10,
+      line: 11,
       hint: "Pops from the top of the LIFO stack to dive as deep as possible before backtracking.",
     },
     {
-      line: 15,
+      line: 17,
       hint: "Pushes adjacent neighbors onto the stack, filtering out already visited nodes.",
     },
     {
@@ -56,11 +55,11 @@ export const DFS_GRAPH_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "Defines the Depth-First Search (DFS) graph traversal algorithm.",
-    6: "Initializes visited set and LIFO stack holding the source vertex.",
-    9: "Loops while unexplored vertices remain on the stack.",
-    10: "Pops top vertex, prioritizing deep exploration over broad expansion.",
-    12: "Marks vertex visited and appends to output traversal sequence.",
-    15: "Pushes unvisited neighbors onto the stack for upcoming recursive steps.",
+    7: "Initializes visited set and LIFO stack holding the source vertex.",
+    10: "Loops while unexplored vertices remain on the stack.",
+    11: "Pops top vertex, prioritizing deep exploration over broad expansion.",
+    13: "Marks vertex visited and appends to output traversal sequence.",
+    17: "Pushes unvisited neighbors onto the stack for upcoming recursive steps.",
   },
 };
 
@@ -152,7 +151,7 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 12,
+        codeLine: 13,
         explanation: {
           what: `Popped node "${curr}" from stack and marked visited.`,
           why: "Visited set updated; node appended to DFS traversal order.",
@@ -187,7 +186,7 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
       if (unvisitedNeighbors.length > 0) {
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 16,
+          codeLine: 17,
           explanation: {
             what: `Pushed unvisited neighbors of "${curr}" to stack: [${unvisitedNeighbors.join(", ")}].`,
             why: "Neighbors queued onto LIFO stack for upcoming recursive expansion.",

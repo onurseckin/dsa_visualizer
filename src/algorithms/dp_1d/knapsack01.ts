@@ -71,7 +71,7 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 7,
+        codeLine: 8,
         explanation: {
           what: `Consider item ${i} (weight ${w}, value ${v}) for capacity ${c}`,
           why: `Comparing keeping current dp[${c}] = ${prevDpC} vs including item ${i} (dp[${c - w}] + ${v} = ${candidate}). New dp[${c}] becomes ${dp[c]}.`,
@@ -102,7 +102,7 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
   const result = dp[capacity];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 10,
     explanation: {
       what: `Result is dp[${capacity}] = ${result}`,
       why: `The maximum value that can be obtained within capacity ${capacity} is ${result}.`,
@@ -128,12 +128,13 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
 const KNAPSACK_01_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines knapsack_01(weights, values, capacity) -> int.",
+    2: "Store number of items in variable n.",
     3: "Allocates 1D dp table of size capacity + 1 initialized to 0.",
     5: "Iterates through each item i from 0 to n - 1.",
     6: "Extracts weight w and value v for current item.",
     7: "Iterates capacity c backward from capacity down to w to ensure items are used at most once.",
     8: "Updates dp[c] to max of excluding item (dp[c]) or including item (dp[c - w] + v).",
-    9: "Returns dp[capacity] which holds optimal value for full capacity.",
+    10: "Returns dp[capacity] which holds optimal value for full capacity.",
   },
 };
 

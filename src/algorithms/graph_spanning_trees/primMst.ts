@@ -40,7 +40,7 @@ def prim_mst(num_nodes: int, edges: list[tuple[int, int, int]]) -> int:
         adj[v].append((w, u))
 
     visited = [False] * num_nodes
-    pq = [(0, 0)]  # (weight, node)
+    pq = [(0, 0)]
     total_weight = 0
     nodes_visited = 0
 
@@ -109,7 +109,7 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 10,
     explanation: {
       what: "Initialize Prim's algorithm at Node 0",
       why: "Start growing the Minimum Spanning Tree from node 0 with total weight 0.",
@@ -138,7 +138,7 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 16,
+      codeLine: 18,
       explanation: {
         what: `Add Node ${u} to MST (edge weight ${w})`,
         why: `Node ${u} visited. Cumulative MST weight is now ${totalWeight}. Nodes in MST: ${nodesVisited}/${numNodes}.`,
@@ -171,7 +171,7 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 26,
     explanation: {
       what: `Prim's MST Complete. Result = ${result}`,
       why: isConnected
@@ -191,12 +191,12 @@ const PRIM_MST_TRIVIA: TriviaMeta = {
     1: "Imports heapq for priority queue operations.",
     3: "Defines prim_mst(num_nodes, edges) -> int.",
     4: "Builds adjacency list adj with weights for undirected graph.",
-    8: "Initializes visited array to track nodes already included in MST.",
-    9: "Initializes min-priority queue with starting node 0 at distance 0.",
-    13: "Pops edge with minimum weight from priority queue.",
-    15: "Marks current node u as visited and adds edge weight to total_weight.",
-    19: "Pushes all adjacent edges to unvisited neighbors into priority queue.",
-    24: "Returns total_weight if all nodes visited, otherwise -1.",
+    9: "Initializes visited array to track nodes already included in MST.",
+    10: "Initializes min-priority queue with starting node 0 at distance 0.",
+    15: "Pops edge with minimum weight from priority queue.",
+    18: "Marks current node u as visited and adds edge weight to total_weight.",
+    22: "Pushes all adjacent edges to unvisited neighbors into priority queue.",
+    26: "Returns total_weight if all nodes visited, otherwise -1.",
   },
 };
 

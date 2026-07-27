@@ -21,12 +21,17 @@ export const DEFAULT_HAMILTONIAN_PATH_INPUT: HamiltonianPathInput = {
 
 const HAMILTONIAN_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Signature: check if graph has a Hamiltonian path using Bitmask DP.",
-    2: "Initialize dp[mask][u] table where mask represents visited nodes set.",
-    4: "Base case: single vertex path with mask (1 << u).",
-    7: "Iterate over all bitmask subsets of vertices.",
-    9: "Try extending path from vertex u to unvisited neighbor v.",
-    13: "Check if any vertex has dp[(1 << N) - 1][u] == True (full coverage).",
+    1: "Helper build_adj constructs undirected adjacency list.",
+    8: "Signature: check if graph has a Hamiltonian path using Bitmask DP.",
+    9: "Build adjacency list from graph edge list.",
+    10: "Initialize DP table of size (1 << n) × n with False.",
+    12: "Base case: single vertex paths dp[1 << u][u] = True.",
+    14: "Iterate over all subset bitmasks of vertices from 1 to (1 << n) - 1.",
+    18: "Try extending path from current endpoint u to neighbor v.",
+    19: "Check if node v is not yet visited in current bitmask.",
+    20: "Transition: set dp[mask | (1 << v)][v] = True.",
+    22: "Full mask representing all n vertices visited.",
+    23: "Check if any node u yields dp[full_mask][u] == True.",
   },
 };
 
@@ -97,7 +102,7 @@ export const generateHamiltonianPathDpSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 4,
+    codeLine: 12,
     explanation: {
       what: `Initialized Bitmask DP base cases: single-node paths for all ${n} vertices.`,
       why: "dp[1 << u][u] = True for each vertex u starting its own path.",
@@ -140,7 +145,7 @@ export const generateHamiltonianPathDpSteps = (
           if (steps.length < 25) {
             steps.push({
               stepIndex: stepIdx++,
-              codeLine: 9,
+              codeLine: 20,
               explanation: {
                 what: `Extended path from V${u} to V${v}. New mask: binary ${nextMask.toString(2).padStart(n, "0")}.`,
                 why: `v=V${v} was unvisited in mask ${mask.toString(2)}. Set dp[nextMask][${v}] = True.`,
@@ -167,7 +172,7 @@ export const generateHamiltonianPathDpSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 13,
+    codeLine: 23,
     explanation: {
       what: pathFound
         ? `Found valid Hamiltonian ${isCircuit ? "Circuit" : "Path"} ending at V${finalEndNode}!`
@@ -237,12 +242,15 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
       explanation: "Node 3 is isolated, making complete vertex coverage impossible.",
     },
   ],
-  code: `def hamiltonian_path_dp(n, edges):
-    adj = [[] for _ in range(n)]
+  code: `def build_adj(n: int, edges: list[tuple[int, int]]) -> list[list[int]]:
+    adj: list[list[int]] = [[] for _ in range(n)]
     for u, v in edges:
         adj[u].append(v)
         adj[v].append(u)
+    return adj
 
+def hamiltonian_path_dp(n: int, edges: list[tuple[int, int]]) -> bool:
+    adj = build_adj(n, edges)
     dp = [[False] * n for _ in range(1 << n)]
     for u in range(n):
         dp[1 << u][u] = True
@@ -289,7 +297,7 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   },
   trivia: HAMILTONIAN_TRIVIA,
   generateSteps: generateHamiltonianPathDpSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -300,3 +308,4 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   ],
   defaultInput: DEFAULT_HAMILTONIAN_PATH_INPUT,
 };
+

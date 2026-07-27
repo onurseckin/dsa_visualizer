@@ -227,17 +227,16 @@ export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 9],
-  distractors: [
-    "C[i][j] = C[i-1][j-1] * C[i-1][j]",
-    "C[i][j] = C[i][j-1] + C[i-1][j]",
-    "if j == 1 or j == i:",
-    "return C[n][n]",
-  ],
-  hints: [
-    { line: 5, hint: "Base cases occur when j == 0 or j == i, where C[i][j] = 1." },
-    { line: 8, hint: "Pascal's identity sums top-left C[i-1][j-1] and directly top C[i-1][j] cells." },
-  ],
+  lineExplanations: {
+    1: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP.",
+    2: "Initializes 2D table C of size (n + 1) × (k + 1) with 0s.",
+    3: "Loops through row i from 0 to n.",
+    4: "Loops through col j from 0 to min(i, k).",
+    5: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all elements).",
+    6: "Sets base case value C[i][j] = 1.",
+    8: "Pascal's identity: C[i][j] = C[i - 1][j - 1] + C[i - 1][j].",
+    9: "Returns C[n][k] containing binomial coefficient.",
+  },
 };
 
 export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficientsInput> = {

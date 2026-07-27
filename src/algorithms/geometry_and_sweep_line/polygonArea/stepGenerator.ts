@@ -81,7 +81,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   };
 
   addStep(
-    6,
+    2,
     "Start the shoelace formula",
     `We'll walk the ${n} vertices in order, cross-multiplying each edge's coordinates; the criss-cross pattern of those products is where the "shoelace" name comes from.`,
     getBaseNodes(),
@@ -93,7 +93,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   if (n < 3) {
     addStep(
-      8,
+      4,
       "Stop — too few vertices",
       `A polygon needs at least 3 vertices to enclose any region, and we only have ${n}, so the area is simply 0.`,
       getBaseNodes(),
@@ -109,7 +109,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   const terms: string[] = [];
 
   addStep(
-    10,
+    6,
     "Set the running sum to zero",
     "Each edge will add its signed cross product here; positive and negative terms partly cancel, and what survives is exactly twice the enclosed area.",
     getBaseNodes(),
@@ -134,7 +134,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     const edges = getBaseEdges(i);
 
     addStep(
-      14,
+      10,
       `Cross-multiply edge P${i} -> P${nextIdx}`,
       `This edge sweeps out a signed trapezoid against the axis worth (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}, bringing our running sum to ${areaSum}.`,
       nodes,
@@ -175,7 +175,7 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   }));
 
   addStep(
-    17,
+    13,
     `Halve the sum: area = ${finalArea}`,
     `Every edge has been folded in, so the total ${areaSum} is twice the signed area; taking the absolute value and dividing by 2 gives ${finalArea}. One trip around the boundary was all it took — O(n).`,
     finalNodes,

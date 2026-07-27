@@ -12,11 +12,9 @@ def closest_pair(points: list[tuple[float, float]]) -> float:
     pts = sorted(points, key=lambda p: p[0])
     min_d = float('inf')
     active = []
-    
+
     for p in pts:
-        # Remove points with x-distance >= min_d
         active = [pt for pt in active if p[0] - pt[0] < min_d]
-        # Compare with active points within y-distance < min_d
         for pt in active:
             if abs(p[1] - pt[1]) < min_d:
                 d = math.hypot(p[0] - pt[0], p[1] - pt[1])
@@ -148,7 +146,7 @@ export const generateClosestPairOfPointsSteps = (
 
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 14,
+            codeLine: 13,
             explanation: {
               what: `New closest pair found: ${p.id}(${p.x},${p.y}) and ${activePt.id}(${activePt.x},${activePt.y}). Distance = ${d.toFixed(2)}.`,
               why: `Updated minimum distance delta to ${d.toFixed(2)}.`,
@@ -169,7 +167,7 @@ export const generateClosestPairOfPointsSteps = (
         } else {
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 13,
+            codeLine: 12,
             explanation: {
               what: `Checked distance between ${p.id} and ${activePt.id}: d = ${d.toFixed(2)} (>= minDist ${minDist.toFixed(2)}).`,
               why: "Distance is greater than or equal to current minimum distance delta, so minimum distance is kept.",
@@ -196,7 +194,7 @@ export const generateClosestPairOfPointsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 15,
     explanation: {
       what: `Completed Closest Pair of Points search. Closest pair: ${closestPair ? `${closestPair[0].id} and ${closestPair[1].id}` : "None"} with distance ${minDist.toFixed(2)}.`,
       why: "Sweep line algorithm guarantees O(N log N) time complexity by comparing each point against at most 6 candidates in the active strip.",
@@ -244,11 +242,19 @@ const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
 
 const CLOSEST_PAIR_OF_POINTS_TRIVIA: TriviaMeta = {
   lineExplanations: {
+    1: "Imports math module for hypot (Euclidean distance) computation.",
+    3: "Defines closest_pair function taking a list of (x, y) point tuples.",
     4: "Sorts input 2D points primarily by X coordinate.",
+    5: "Initializes minimum distance delta to infinity.",
+    6: "Initializes active window list.",
+    8: "Iterates through sorted 2D points.",
     9: "Filters active window to keep only points within current minimum distance delta of sweep X.",
-    11: "Iterates through candidate points in active Y window.",
-    13: "Computes Euclidean hypotenuse distance between sweep point p and active candidate.",
-    14: "Updates minimum distance delta and records closest pair.",
+    10: "Iterates through candidate points in active Y window.",
+    11: "Checks if Y-distance between sweep point and candidate is within min_d.",
+    12: "Computes Euclidean hypotenuse distance between sweep point p and active candidate.",
+    13: "Updates minimum distance delta.",
+    14: "Appends current sweep point to active window list.",
+    15: "Returns overall minimum distance found between any pair.",
   },
 };
 

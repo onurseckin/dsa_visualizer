@@ -44,31 +44,31 @@ export const HIERHOLZER_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 11,
+      line: 12,
       hint: "Select a start node with out_degree - in_degree == 1 for Eulerian path, or any node with out_degree > 0 for Eulerian circuit.",
     },
     {
-      line: 17,
+      line: 19,
       hint: "Peek at the top of the stack and follow an unvisited outgoing edge if one exists.",
     },
     {
-      line: 21,
+      line: 24,
       hint: "When a vertex has no remaining outgoing edges, pop it from stack into the circuit.",
     },
     {
-      line: 23,
+      line: 26,
       hint: "The post-order traversal yields the circuit in reverse order.",
     },
   ],
   lineExplanations: {
     1: "Defines the function to compute an Eulerian path/circuit in a directed graph.",
     5: "Populates the adjacency list and tracks in-degree and out-degree for each vertex.",
-    11: "Finds the start vertex for an Eulerian path (where out-degree exceeds in-degree by 1).",
-    15: "Initializes the traversal stack with the chosen start vertex and an empty circuit list.",
-    17: "While stack is non-empty, peek at the top vertex to explore unused outgoing edges.",
-    19: "Follows an unvisited outgoing edge and pushes the target vertex onto the stack.",
-    21: "Backtracks when no outgoing edges remain, popping the vertex into the final circuit.",
-    23: "Reverses the circuit array to output the Eulerian traversal from start to finish.",
+    12: "Finds the start vertex for an Eulerian path (where out-degree exceeds in-degree by 1).",
+    16: "Initializes the traversal stack with the chosen start vertex and an empty circuit list.",
+    18: "While stack is non-empty, peek at the top vertex to explore unused outgoing edges.",
+    22: "Follows an unvisited outgoing edge and pushes the target vertex onto the stack.",
+    24: "Backtracks when no outgoing edges remain, popping the vertex into the final circuit.",
+    26: "Reverses the circuit array to output the Eulerian traversal from start to finish.",
   },
 };
 
@@ -142,7 +142,7 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 15,
+    codeLine: 16,
     explanation: {
       what: `Selected start vertex ${startNode}.`,
       why: "Vertex selected based on degree conditions or default start.",
@@ -178,7 +178,7 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 19,
+        codeLine: 22,
         explanation: {
           what: `Followed edge ${curr} -> ${nxt}.`,
           why: "Vertex still has unvisited outgoing edges; push target onto stack.",
@@ -207,7 +207,7 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 21,
+        codeLine: 24,
         explanation: {
           what: `Vertex ${popped} has no remaining outgoing edges. Popped to circuit.`,
           why: "When a vertex is stuck, it is appended to the post-order circuit list.",
@@ -235,7 +235,7 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
   const finalPath = [...circuit].reverse();
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 23,
+    codeLine: 26,
     explanation: {
       what: `Eulerian Path complete: ${finalPath.join(" -> ")}.`,
       why: "Reversing the post-order circuit yields the complete Eulerian path.",

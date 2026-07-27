@@ -260,17 +260,15 @@ export const EXTENDED_EUCLIDEAN_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const EXTENDED_EUCLIDEAN_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 7],
-  distractors: [
-    "x = x1",
-    "y = y1 - (a // b) * x1",
-    "return gcd, y1, x1",
-    "if a == 0:",
-  ],
-  hints: [
-    { line: 3, hint: "Base case b == 0 returns gcd = a, x = 1, y = 0." },
-    { line: 5, hint: "New x becomes old y1, and new y becomes x1 - (a // b) * y1." },
-  ],
+  lineExplanations: {
+    1: "Defines extended_gcd(a, b) -> tuple[int, int, int]: returns gcd and Bézout coefficients (gcd, x, y).",
+    2: "Base case: when b equals 0.",
+    3: "Returns (a, 1, 0) because a*1 + 0*0 = a.",
+    4: "Recursively calls extended_gcd(b, a % b) to obtain gcd, x1, y1.",
+    5: "Sets x = y1.",
+    6: "Sets y = x1 - (a // b) * y1 to maintain a*x + b*y = gcd.",
+    7: "Returns tuple (gcd, x, y).",
+  },
 };
 
 export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanInput> = {

@@ -98,7 +98,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   };
 
   addStep(
-    4,
+    3,
     "Initialize Meet in the Middle Subset Sum",
     `Input set of N = ${n} numbers: [${nums.join(", ")}]. Target sum = ${target}. Split size N // 2 = ${Math.floor(n / 2)}.`,
     { n, target },
@@ -120,7 +120,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   const rightPart = nums.slice(mid);
 
   addStep(
-    8,
+    7,
     `Split array into Left [0..${mid - 1}] and Right [${mid}..${n - 1}]`,
     `Left subset [${leftPart.join(", ")}] (size ${leftPart.length}), Right subset [${rightPart.join(", ")}] (size ${rightPart.length}).`,
     { leftLen: leftPart.length, rightLen: rightPart.length },
@@ -141,7 +141,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   const rightSums = getSubsetSums(rightPart).sort((a, b) => a - b);
 
   addStep(
-    16,
+    18,
     `Generated ${leftSums.length} left subset sums and ${rightSums.length} sorted right subset sums`,
     `Left sums: [${leftSums.join(", ")}]. Sorted Right sums: [${rightSums.join(", ")}].`,
     { leftSumsCount: leftSums.length, rightSumsCount: rightSums.length },
@@ -160,7 +160,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     const needed = target - s;
 
     addStep(
-      19,
+      21,
       `Testing left sum s = ${s} (needed right sum = ${needed})`,
       `Left sum ${s} requires complementary right sum target - s = ${target} - ${s} = ${needed}.`,
       { leftSum: s, needed, target },
@@ -186,7 +186,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     if (found) {
       foundMatch = true;
       addStep(
-        21,
+        24,
         `Found matching pair! Left sum (${s}) + Right sum (${needed}) = ${target}`,
         `Binary search located right sum ${needed} in rightSums array. Target ${target} successfully formed!`,
         { leftSum: s, rightSum: needed, target },
@@ -200,7 +200,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
 
   if (!foundMatch) {
     addStep(
-      23,
+      26,
       `No combination of left sum and right sum equals ${target}`,
       "All binary search lookups exhausted without finding a complementary pair.",
       { target, matched: false },
@@ -240,25 +240,26 @@ export const MEET_IN_THE_MIDDLE_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MEET_IN_THE_MIDDLE_TRIVIA: TriviaMeta = {
-  skipLines: [1, 4, 10, 18],
-  distractors: [
-    "needed = target + s",
-    "left_sums = get_subset_sums(nums)",
-    "idx = bisect.bisect_right(right_sums, s)",
-  ],
-  hints: [
-    {
-      line: 19,
-      hint: "Complementary right sum needed is calculated as target - s",
-    },
-    {
-      line: 20,
-      hint: "Perform binary search bisect_left on sorted right_sums array",
-    },
-  ],
   lineExplanations: {
-    19: "Calculate missing complement needed from right half to reach target sum.",
-    20: "Binary search in O(N/2) time to locate exact needed subset sum.",
+    1: "Imports bisect for binary search on sorted right subset sums.",
+    3: "Declares meet_in_the_middle_subset_sum: returns whether any subset of nums sums to target.",
+    4: "Caches length of nums.",
+    5: "Handles empty array base case.",
+    6: "Returns whether target equals 0 for empty array.",
+    7: "Calculates midpoint index n // 2 to split array into two equal halves.",
+    8: "Splits left half of array up to mid.",
+    9: "Splits right half of array from mid to end.",
+    11: "Defines helper get_subset_sums to generate all 2^k subset sums for an array.",
+    12: "Initializes subset sums list with 0 (empty subset sum).",
+    14: "Appends s + x for each existing sum to double the combinations for each element.",
+    17: "Generates all subset sums for left half of the array.",
+    18: "Generates and sorts all subset sums for right half of the array.",
+    20: "Iterates through each subset sum s generated from left half.",
+    21: "Calculates required complement needed = target - s from right half.",
+    22: "Binary searches sorted right_sums for needed complement.",
+    23: "Checks if binary search found matching complement element.",
+    24: "Returns True if valid subset pair sums to target.",
+    26: "Returns False if no complementary subset pair reaches target.",
   },
 };
 

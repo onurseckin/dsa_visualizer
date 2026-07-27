@@ -9,7 +9,6 @@ export interface DeBruijnSequenceInput {
 
 export const DE_BRUIJN_CODE = `def de_bruijn(k, n):
     alphabet = [str(i) for i in range(k)]
-    # De Bruijn graph nodes are prefixes of length n - 1
     nodes = ["".join(p) for p in product(alphabet, repeat=n-1)]
     adj = {node: [] for node in nodes}
     for node in nodes:
@@ -28,7 +27,6 @@ export const DE_BRUIJN_CODE = `def de_bruijn(k, n):
         else:
             circuit.append(stack.pop())
 
-    # Build sequence by collecting last symbol of each node in circuit
     res = "".join(node[-1] for node in reversed(circuit))
     return res`;
 
@@ -42,7 +40,7 @@ export const DE_BRUIJN_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 4,
+      line: 3,
       hint: "De Bruijn graph nodes represent prefixes of length n-1 over an alphabet of size k.",
     },
     {
@@ -50,7 +48,7 @@ export const DE_BRUIJN_TRIVIA: TriviaMeta = {
       hint: "Directed edges transition from node u to u[1:] + c, labeled with character c.",
     },
     {
-      line: 14,
+      line: 13,
       hint: "Hierholzer's Eulerian circuit algorithm traverses every edge in the De Bruijn graph exactly once.",
     },
     {
@@ -60,10 +58,10 @@ export const DE_BRUIJN_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "Defines the generator for a De Bruijn sequence B(k, n) of length k^n.",
-    4: "Constructs all k^(n-1) nodes representing state prefixes of length n - 1.",
+    3: "Constructs all k^(n-1) nodes representing state prefixes of length n - 1.",
     7: "Builds out-edges by appending each alphabet symbol c to the suffix of the current node.",
-    11: "Starts Hierholzer's traversal at the initial all-zeroes prefix.",
-    14: "Drives the post-order Eulerian circuit traversal with an explicit stack.",
+    10: "Starts Hierholzer's traversal at the initial all-zeroes prefix.",
+    13: "Drives the post-order Eulerian circuit traversal with an explicit stack.",
     21: "Concatenates the trailing symbol of each circuit node in reverse order to form the De Bruijn sequence.",
   },
 };
@@ -154,7 +152,7 @@ export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 11,
+    codeLine: 10,
     explanation: {
       what: `Initialized Eulerian Circuit starting at node "${start}".`,
       why: "Hierholzer's algorithm starts traversal from the first state.",
@@ -222,7 +220,7 @@ export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmSt
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 18,
+        codeLine: 19,
         explanation: {
           what: `Popped node "${popped}" to Eulerian circuit list.`,
           why: "Node has no remaining outgoing edges in De Bruijn graph.",

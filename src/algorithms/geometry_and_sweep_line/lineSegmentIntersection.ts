@@ -126,7 +126,7 @@ export const generateLineSegmentIntersectionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 12,
     explanation: {
       what: `Initializing segment intersection test for Segment 1 [P1(${p1.x},${p1.y}) -> Q1(${q1.x},${q1.y})] and Segment 2 [P2(${p2.x},${p2.y}) -> Q2(${q2.x},${q2.y})].`,
       why: "Two 2D line segments intersect if and only if endpoints of each segment straddle the line containing the other segment, or if an endpoint lies on the other segment.",
@@ -146,7 +146,7 @@ export const generateLineSegmentIntersectionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 13,
     explanation: {
       what: `Computed cross product orientation tests: d1=${d1}, d2=${d2}, d3=${d3}, d4=${d4}.`,
       why: "d1 & d2 test orientation of Segment 1 endpoints relative to Segment 2 line; d3 & d4 test Segment 2 endpoints relative to Segment 1 line.",
@@ -169,7 +169,7 @@ export const generateLineSegmentIntersectionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 17,
     explanation: {
       what: `Segment Intersection Result: Segments ${intersects ? "DO INTERSECT" : "DO NOT INTERSECT"}.`,
       why: intersects
@@ -224,8 +224,10 @@ const LINE_SEGMENT_INTERSECTION_TRIVIA: TriviaMeta = {
     6: "Defines 2D cross product of vector (p1->p2) with vector (p1->p3).",
     9: "Checks whether point q lies within bounding box of segment pr.",
     12: "Defines main segment intersection check using 4 cross product orientation tests.",
+    13: "Computes orientation tests d1, d2, d3, d4.",
     17: "Checks general straddle condition: opposite signs for both pairs.",
     19: "Handles special collinear degenerate cases.",
+    23: "Returns False if segments do not intersect.",
   },
 };
 

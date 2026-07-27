@@ -269,17 +269,20 @@ export const EULER_TOTIENT_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const EULER_TOTIENT_TRIVIA: TriviaMeta = {
-  skipLines: [1, 4, 10, 13],
-  distractors: [
-    "result -= p",
-    "result = result // p",
-    "p += 2",
-    "if temp == 0:",
-  ],
-  hints: [
-    { line: 9, hint: "Subtract result // p to apply the (1 - 1/p) term for prime factor p." },
-    { line: 12, hint: "Check if remaining temp > 1 to handle prime factors greater than sqrt(n)." },
-  ],
+  lineExplanations: {
+    1: "Defines phi(n) -> int: computes Euler's totient function φ(n).",
+    2: "Initialize result = n.",
+    3: "Start checking candidate prime factor p = 2.",
+    4: "Set temp = n to reduce as prime factors are found.",
+    5: "Loop while p * p <= temp (factors up to sqrt(n)).",
+    6: "Check if p divides temp.",
+    8: "Divide out all occurrences of prime factor p from temp.",
+    9: "Subtract result // p applying Euler product term (1 - 1/p).",
+    10: "Increment candidate factor p.",
+    11: "If leftover temp > 1, temp itself is a prime factor.",
+    12: "Subtract result // temp for final prime factor.",
+    13: "Return total count of coprime integers φ(n).",
+  },
 };
 
 export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {

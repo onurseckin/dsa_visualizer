@@ -12,15 +12,14 @@ export interface TasksAndDeadlinesInput {
 }
 
 export const PYTHON_TASKS_AND_DEADLINES_CODE = `def tasks_and_deadlines(tasks: list[tuple[int, int]]) -> int:
-    # Sort tasks by duration in ascending order (greedy choice)
     tasks.sort(key=lambda x: x[0])
     current_time = 0
     total_reward = 0
-    
+
     for duration, deadline in tasks:
         current_time += duration
         total_reward += (deadline - current_time)
-        
+
     return total_reward`;
 
 export const DEFAULT_TASKS_AND_DEADLINES_INPUT: TasksAndDeadlinesInput = {
@@ -90,7 +89,7 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
+    codeLine: 2,
     explanation: {
       what: "Sorted all tasks by duration in ascending order.",
       why: "Shorter duration tasks finish faster and reduce completion time delay for all subsequent tasks.",
@@ -126,7 +125,7 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 7,
       explanation: {
         what: `Executing task ${task.id} (duration ${task.duration}, deadline ${task.deadline}). Time: ${prevTime} -> ${currentTime}.`,
         why: `Task reward = deadline (${task.deadline}) - completion_time (${currentTime}) = ${taskReward}. Total reward: ${totalReward}.`,
@@ -157,7 +156,7 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
   // Step 3: Finish
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 10,
     explanation: {
       what: `All tasks processed. Maximum achievable total reward is ${totalReward}.`,
       why: "Greedy execution order minimizes overall task delay penalties.",
@@ -207,17 +206,16 @@ export const TASKS_AND_DEADLINES_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const TASKS_AND_DEADLINES_TRIVIA: TriviaMeta = {
-  skipLines: [1, 4, 5, 11],
-  distractors: [
-    "tasks.sort(key=lambda x: x[1])",
-    "tasks.sort(key=lambda x: x[1] - x[0])",
-    "total_reward += (current_time - deadline)",
-    "current_time -= duration",
-  ],
-  hints: [
-    { line: 3, hint: "Sort tasks strictly by duration x[0], ignoring deadlines." },
-    { line: 9, hint: "Reward for a task is deadline minus its completion time." },
-  ],
+  lineExplanations: {
+    1: "Defines tasks_and_deadlines: calculates max reward given (duration, deadline) tuples.",
+    2: "Sorts tasks by duration in ascending order (Shortest Processing Time first).",
+    3: "Initializes current_time accumulator to 0.",
+    4: "Initializes total_reward accumulator to 0.",
+    6: "Iterates through each task (duration, deadline) in sorted duration order.",
+    7: "Increments current_time by task duration.",
+    8: "Adds (deadline - current_time) reward for this task to total_reward.",
+    10: "Returns final total_reward.",
+  },
 };
 
 export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
