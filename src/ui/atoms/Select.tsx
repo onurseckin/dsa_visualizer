@@ -21,16 +21,13 @@ export function Select({
   ...rest
 }: SelectProps): ReactElement {
   return (
-    <div
-      className={cx(
-        "ui-select",
-        "w-full min-h-[40px] px-4 py-2.5 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] text-sm text-[var(--text-primary)] flex items-center justify-between cursor-pointer",
-        size === "sm" && "ui-select--sm",
-        className,
-      )}
-    >
+    <div className="ui-select w-full relative flex items-center">
       <select
-        className="ui-select__field"
+        className={cx(
+          "ui-select__field w-full min-h-[44px] px-4 py-2.5 pr-10 bg-[#0a0a0c] border border-white/10 rounded-xl text-sm text-white focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer transition-all",
+          size === "sm" && "min-h-[36px] py-1.5 text-xs",
+          className,
+        )}
         value={value}
         onChange={onChange}
         disabled={disabled}
@@ -38,8 +35,8 @@ export function Select({
       >
         {children}
       </select>
-      <span className="ui-select__icon" aria-hidden="true">
-        <ChevronDown />
+      <span className="ui-select__icon absolute right-3.5 z-10 pointer-events-none text-neutral-400" aria-hidden="true">
+        <ChevronDown size={16} />
       </span>
     </div>
   );

@@ -33,7 +33,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       aria-label="Problem directory"
       className="max-w-7xl px-6 md:px-8 py-8 mx-auto flex flex-col gap-8 w-full box-border flex-1 overflow-y-auto"
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 mt-6 md:mt-8 mb-2">
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
           Algorithm Directory
         </h1>
