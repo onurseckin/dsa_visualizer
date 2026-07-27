@@ -120,7 +120,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   };
 
   addStep(
-    13,
+    11,
     `DFS 1: start from node ${nodeMap.get(rootId)?.val ?? rootId}`,
     "The first pass starts anywhere — we use the root — and simply asks which node lies farthest away. That farthest node is guaranteed to be one end of the diameter.",
     rootId,
@@ -129,7 +129,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   runDfs1(rootId, null, 0);
 
   addStep(
-    13,
+    11,
     `DFS 1 done: endpoint A is node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
     `Nothing lies farther from the root than node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}, at ${maxDistA} edges — so it must be one endpoint of the diameter. Now we measure from there.`,
     undefined,
@@ -183,7 +183,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   };
 
   addStep(
-    15,
+    12,
     `DFS 2: start from endpoint A, node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
     `Measuring from a known endpoint changes everything: the node farthest from A is the diameter's other endpoint, and the distance between them is the diameter itself.`,
     farthestNodeA,
@@ -195,7 +195,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   const pathSet = new Set<string>(diameterPathNodes);
 
   addStep(
-    15,
+    12,
     `DFS 2 done: endpoint B is node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}`,
     `Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}, at ${diameter} edges from A, is as far as anything gets — so A and B are the two ends of the longest path in the tree.`,
     undefined,
@@ -212,7 +212,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   const pathVals = diameterPathNodes.map((id) => nodeMap.get(id)?.val ?? id).join(" -> ");
 
   addStep(
-    16,
+    13,
     `The diameter is ${diameter}`,
     `The longest path runs ${pathVals}, spanning ${diameter} edges between node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}. Two linear DFS passes were all it took — O(V + E) overall.`,
     undefined,

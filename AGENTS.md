@@ -19,10 +19,7 @@ repository: it documents the stack's provenance, the architecture as it exists t
 and — most importantly — a complete end-to-end playbook for adding a new algorithm
 ("problem") so that a future contributor can ship one from this file alone.
 
-The app is a fully client-side SPA: React 18 + TypeScript 5.3 + Vite 5, TanStack
-Router (file-based routes), vitest + jsdom for tests, **bun** for all scripts, plain
-CSS design tokens for styling. There is no server, no database, no environment
-variables, and no secrets.
+The app is a client-side SPA built with React 18 + TypeScript 5.3 + Vite 5, TanStack Router (file-based routes), vitest + jsdom for tests, **bun** for all scripts, and plain CSS design tokens for styling. Key-value state (workspace layouts, settings, and active trivia drill rounds) is persisted locally in a SQLite database (`data/dsa_visualizer.sqlite`) via `bun:sqlite` with zero external server dependencies. There are no environment variables and no secrets.
 
 Eight cross-cutting systems deserve reading before you touch anything: the **canvas
 geometry law** (section 2.8), the **inverted surface hierarchy** (section 2.5), the
@@ -54,7 +51,7 @@ repeated in context below:
    identical bands _outside_ the svg into the panel). Never reintroduce either
    (section 2.8).
 3. **Surfaces are INVERTED: cards are darker than the page.** The page is carbon
-   `#17171b`, cards and panels are near-black `#0a0a0c`, wells are `#050506`, and
+   `#17171b`, card surfaces are darkest black `#050506`, code viewer cards & visualizer canvases are pure black `#000000`, alert/callout boxes are carbon green `#0d1f17`, and
    controls raised on a card step _lighter_. Reading happens on the cards, so the cards
    are where the eye rests (section 2.5).
 4. **Every card, panel, well, chip and button MUST carry a visible border token.** The
@@ -67,9 +64,9 @@ repeated in context below:
    badges (semantic tokens), `--viz-1..8` identity in graphs, trees and the knowledge
    map, and `--state-*` algorithm marks inside visualizers. Chrome, panels, inputs,
    toolbars and body text stay neutral (section 2.5).
-7. **React component specs are named `*.spec.tsx` (do NOT use `.render.spec.tsx`).** If a
+7. **React component specs are named `*.render.spec.tsx` (do NOT use `.spec.tsx` next to `.spec.ts`).** If a
    `.spec.ts` (pure TS logic) exists in the same directory, use a distinct descriptive
-   basename for the component spec (e.g. `quickSortRender.spec.tsx`) to avoid duplicate
+   basename or `.render.spec.tsx` for the component spec (e.g. `quickSort.render.spec.tsx`) to avoid duplicate
    basename collisions in TypeScript (section 4.10 and section 6).
 8. **There is no `ViewMode` in the workspace**, and **"Reset layout" lives in the
    NAVBAR**, behind `ConfirmDialog`. Panel visibility is four independent booleans driven
@@ -262,11 +259,15 @@ on demand. Never hand-edit `routeTree.gen.ts` or the path string inside
   controls, then renders `MainLayout`. **Adding an algorithm requires zero route
   changes** — `/workspace/$algorithmId` resolves any registry id.
 
-### 2.2 Persistence: settings and workspace state
+### 2.2 Persistence: settings, SQLite database, and workspace state
 
-Three independent localStorage layers, all defensive — reads validate and fall back,
-writes are best-effort, nothing throws into render. Settings and workspace geometry are
-below; the trivia keys are the third layer and follow the same discipline (section 2.13).
+The application maintains defensive persistence across client storage and local SQLite database sync (`data/dsa_visualizer.sqlite`). Reads validate and fall back gracefully, writes are best-effort, and nothing throws into render.
+
+- **SQLite Database Persistence (`data/dsa_visualizer.sqlite`) via `bun:sqlite`**:
+  `src/server/sqliteServer.ts` establishes a local SQLite database at `data/dsa_visualizer.sqlite` (backed by a `kv_store` table with key, value, updated_at). In environments where native SQLite bindings are unavailable, it degrades seamlessly to a JSON key-value store (`data/kv_fallback.json`).
+  `src/app/sqliteSync.ts` handles client state hydration on startup (`initSqliteSync()` fetching `/api/db/state`) and asynchronously syncs state updates (`syncKeyToSqlite(key, value)`) so workspace layouts, settings, and trivia progress survive page reloads and server restarts.
+- **Active Trivia Round Continuity**:
+  Trivia sessions and active drill progress are preserved via `TRIVIA_ACTIVE_SESSION_KEY` (`dsa_visualizer_active_trivia_session_v1`) and `TRIVIA_SESSIONS_KEY` (`dsa_visualizer_trivia_sessions_v1`) alongside `TRIVIA_CONFIG_KEY` and `TRIVIA_PROGRESS_KEY`. Uncompleted rounds, active deck selections, and user answers persist seamlessly across browser refreshes and dev-server restarts.
 
 **`src/app/SettingsContext.tsx`** holds `panels: PanelVisibility` (the four independent
 panel booleans — section 2.11) and `lastAlgorithmId`, and exposes
@@ -402,15 +403,16 @@ existing token, not a new value.
 **THE SURFACE LAW (R6.2): the hierarchy is inverted — the reading surfaces are the
 darkest, and the page is the interactive backdrop they sit on.**
 
-| Token           | Value     | Role                                                    |
-| --------------- | --------- | ------------------------------------------------------- |
-| `--bg-inset`    | `#050506` | deepest: code wells, SVG canvases, inputs               |
-| `--bg-surface`  | `#0a0a0c` | cards and panels — **near-black, darker than the page** |
-| `--bg-page`     | `#17171b` | the page itself — **carbon**, the backdrop              |
-| `--bg-chrome`   | `#1c1c21` | navbar, toolbars, the in-panel strips                   |
-| `--bg-elevated` | `#1e1e24` | controls raised on a card: buttons, chips               |
-| `--bg-hover`    | `#282830` | hover                                                   |
-| `--bg-pressed`  | `#32323b` | pressed                                                 |
+| Token           | Value     | Role                                                                |
+| --------------- | --------- | ------------------------------------------------------------------- |
+| `--bg-inset`    | `#000000` | deepest: code viewer cards, visualizer SVG canvases, inputs         |
+| `--bg-surface`  | `#050506` | card surface color — **darkest black, darker than the page**        |
+| `--bg-page`     | `#17171b` | the page itself — **carbon**, the backdrop                          |
+| `--bg-alert`    | `#0d1f17` | alert & info callout backgrounds inside cards — **carbon green**    |
+| `--bg-chrome`   | `#141418` | navbar, toolbars, in-panel strips                                   |
+| `--bg-elevated` | `#1e1e24` | controls raised on a card: buttons, chips                           |
+| `--bg-hover`    | `#282830` | hover                                                               |
+| `--bg-pressed`  | `#32323b` | pressed                                                             |
 
 **Why inverted, and why not to "fix" it:** the learner reads code, tutorial prose and
 the topic guide for long stretches, and those all live on cards — so the cards are the
@@ -515,6 +517,9 @@ and `GlobalSearchBar` is gone.
 ### 2.7 Workspace anatomy: one stage container, tutorial first, a hugging code column
 
 There is **no layout mode switch**. One system handles every viewport.
+
+**Workspace Top Header Bar (Outside Togglable Containers):**
+`MainLayout` renders the top header bar (`ProblemHeader` displaying Problem Title, Difficulty Level Badge, and Category Tag) inside a fixed container at the top of the workspace. This header sits **outside** of togglable problem/stage/solution containers so that core problem identification remains visible at all times regardless of which panels are toggled open or closed.
 
 **The left column is ONE container.** `MainLayout` renders a single
 `Card data-panel="visualizer"` and everything about the current step lives _inside_ it.
@@ -1214,7 +1219,42 @@ Export, following the house pattern (see `src/algorithms/arrays_and_hashing/twoS
 as the canonical reference):
 
 1. A typed input interface (e.g. `export interface TwoSumInput { nums: number[]; target: number }`).
-2. The Python source as a named const template literal (e.g. `export const TWO_SUM_CODE = \`def two_sum(...)\``). Python only — the code viewer shows `solution.py`.
+2. The Python source as a named const template literal (e.g. `export const TWO_SUM_CODE = \`def two_sum(...)\``).
+   - **CRITICAL: NO comments inside Python code snippets.** Python source strings must contain zero `#` comments. Code must be clean, idiomatic, and self-documenting.
+   - **Standard Code Patterns**:
+     - Use `getNeighbors(row, col)` generator pattern for 2D grid/matrix traversal algorithms:
+       ```python
+       def get_neighbors(row, col, rows, cols):
+           for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+               nr, nc = row + dr, col + dc
+               if 0 <= nr < rows and 0 <= nc < cols:
+                   yield nr, nc
+       ```
+     - Use the canonical `UnionFind` class pattern (with path compression in `find` and rank/size balancing in `union`) for Disjoint Set Union (DSU) algorithms:
+       ```python
+       class UnionFind:
+           def __init__(self, n):
+               self.parent = list(range(n))
+               self.rank = [0] * n
+
+           def find(self, i):
+               if self.parent[i] == i:
+                   return i
+               self.parent[i] = self.find(self.parent[i])
+               return self.parent[i]
+
+           def union(self, i, j):
+               root_i = self.find(i)
+               root_j = self.find(j)
+               if root_i != root_j:
+                   if self.rank[root_i] < self.rank[root_j]:
+                       root_i, root_j = root_j, root_i
+                   self.parent[root_j] = root_i
+                   if self.rank[root_i] == self.rank[root_j]:
+                       self.rank[root_i] += 1
+                   return True
+               return False
+       ```
 3. A curated `DEFAULT_<NAME>_INPUT` const.
 4. The pure generator `generate<Name>Steps(input): AlgorithmStep[]`.
 5. The `AlgorithmDefinition<YourInput>` object wiring it all together — including the
@@ -2017,9 +2057,7 @@ Styling is tokens-only (section 2.5). Icons come from `lucide-react`.
 - **Router plugin order in `vite.config.ts`** — `tanstackRouter(...)` must precede
   `react()`; the wrong order fails silently. This file is finished — read, don't
   edit.
-- **Run scoped vitest during iteration** (`bunx vitest run <paths>`); the full
-  `bun run check` runs exactly once as the final gate. The full suite is ~760 tests
-  and is not an iteration loop.
+- **ALWAYS run file-scoped vitest during iterative agent work** (`bunx vitest run <file>`, e.g., `bunx vitest run src/app/specs/sqliteSync.spec.ts`); **NEVER** run repository-wide test commands (`bun run test` or `bun run check`) during iteration. The full test suite (`bun run check`) runs exactly once at the final verification gate before completing a task.
 - **Category aliases are not routeable** — `?category=` only accepts the 25 canonical
   ids via `isCategoryType`; legacy `CategoryType` aliases silently collapse to "no
   filter".

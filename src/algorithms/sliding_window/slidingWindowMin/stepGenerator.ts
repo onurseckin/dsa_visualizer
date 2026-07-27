@@ -101,7 +101,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       if (removedIdx !== undefined) {
         removedOut = true;
         addStep(
-          10,
+          9,
           `Evict index ${removedIdx} — it left the window`,
           `Index ${removedIdx} now sits outside the window's left edge, so its value can no longer be a candidate. We pop it off the front of the deque.`,
           { i, removedIdx },
@@ -111,7 +111,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
 
     if (!removedOut && deque.length > 0) {
       addStep(
-        9,
+        8,
         "Confirm the deque front still fits",
         `The front index ${deque[0]} is still inside the window, so its value remains a legitimate minimum candidate. Nothing to evict this round.`,
         { i, dequeFront: deque[0] },
@@ -122,7 +122,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       const poppedIdx = deque.pop();
       if (poppedIdx !== undefined) {
         addStep(
-          14,
+          12,
           `Pop index ${poppedIdx} from the back`,
           `nums[${poppedIdx}] = ${nums[poppedIdx]} is at least as big as the new value ${currentVal}, and ${currentVal} will outlive it in the window. The older value can never be a minimum again, so we discard it.`,
           { i, poppedIdx, "nums[popped]": nums[poppedIdx] },
@@ -133,7 +133,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
     deque.push(i);
 
     addStep(
-      16,
+      14,
       `Push index ${i} onto the deque`,
       `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}] — still increasing from front to back.`,
       { i, dequeState: deque.join(", ") },
@@ -147,7 +147,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       elements[minIdx].state = "sorted";
 
       addStep(
-        20,
+        17,
         `Record ${minVal} as this window's minimum`,
         `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to the result without rescanning the window.`,
         { windowStart, windowEnd: i, minVal, result: result.join(", ") },
@@ -156,7 +156,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
   }
 
   addStep(
-    22,
+    19,
     "Return the list of minimums",
     `Every window of size ${k} has been answered: [${result.join(", ")}]. Each index entered and left the deque at most once, which is why the whole run stayed linear.`,
     { result: result.join(", ") },

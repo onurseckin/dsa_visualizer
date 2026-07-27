@@ -4,24 +4,31 @@ def num_islands(grid):
     if not grid or not grid[0]:
         return 0
     
-    rows, cols = len(grid), len(grid[0])
+    maxRow, maxCol = len(grid), len(grid[0])
+    directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
     visited = set()
     count = 0
     
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == "1" and (r, c) not in visited:
+    def getNeighbors(row, col):
+        for rowDiff, colDiff in directions:
+            newRow = row + rowDiff
+            newCol = col + colDiff
+            if not (0 <= newRow < maxRow and 0 <= newCol < maxCol):
+                continue
+            if grid[newRow][newCol] == "0" or (newRow, newCol) in visited:
+                continue
+            yield (newRow, newCol)
+
+    for row in range(maxRow):
+        for col in range(maxCol):
+            if grid[row][col] == "1" and (row, col) not in visited:
                 count += 1
-                visited.add((r, c))
-                queue = deque([(r, c)])
-                
+                visited.add((row, col))
+                queue = deque([(row, col)])
                 while queue:
-                    cr, cc = queue.popleft()
-                    dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-                    for dr, dc in dirs:
-                        nr, nc = cr + dr, cc + dc
-                        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == "1" and (nr, nc) not in visited:
-                            visited.add((nr, nc))
-                            queue.append((nr, nc))
-                            
+                    currRow, currCol = queue.popleft()
+                    for newRow, newCol in getNeighbors(currRow, currCol):
+                        visited.add((newRow, newCol))
+                        queue.append((newRow, newCol))
+                        
     return count`;

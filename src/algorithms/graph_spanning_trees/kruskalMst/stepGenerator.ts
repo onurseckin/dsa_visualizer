@@ -64,7 +64,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   };
 
   addStep(
-    19,
+    26,
     "Start Kruskal's MST algorithm",
     "We want the cheapest set of edges that still connects every node. The plan: sort the edges by weight, then greedily keep each one that joins two components that are not yet connected.",
     { nodeCount: nodes.length, edgeCount: edges.length },
@@ -72,7 +72,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
 
   if (nodes.length === 0) {
     addStep(
-      28,
+      36,
       "Kruskal's MST complete",
       "With no nodes there is nothing to connect, so the spanning tree is empty.",
       { mstEdgeCount: 0 },
@@ -80,14 +80,16 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     return steps;
   }
 
+  const rank: Record<string, number> = {};
   for (const n of nodes) {
     parent[n.id] = n.id;
+    rank[n.id] = 1;
   }
 
   addStep(
-    20,
+    28,
     "Make each node its own set",
-    "We give every node parent[v] = v, so each one starts as its own tiny component. From here, union-find can tell us instantly whether an edge's endpoints are already connected.",
+    "We give every node parent[v] = v and rank[v] = 1, so each starts as a singleton component. From here, UnionFind tracks component roots and ranks.",
     { dsuInitialized: true },
   );
 
@@ -96,21 +98,23 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     while (parent[curr] !== curr) {
       curr = parent[curr];
     }
-    const root = curr;
-    curr = i;
-    while (curr !== root) {
-      const nxt = parent[curr];
-      parent[curr] = root;
-      curr = nxt;
-    }
-    return root;
+    return curr;
   };
 
   const union = (i: string, j: string): boolean => {
     const rootI = find(i);
     const rootJ = find(j);
     if (rootI !== rootJ) {
-      parent[rootI] = rootJ;
+      const rI = rank[rootI] ?? 1;
+      const rJ = rank[rootJ] ?? 1;
+      if (rI > rJ) {
+        parent[rootJ] = rootI;
+      } else if (rI < rJ) {
+        parent[rootI] = rootJ;
+      } else {
+        parent[rootJ] = rootI;
+        rank[rootI] = rI + 1;
+      }
       return true;
     }
     return false;
@@ -119,7 +123,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const sortedEdges = [...edges].sort((a, b) => (a.weight ?? 1) - (b.weight ?? 1));
 
   addStep(
-    21,
+    29,
     `Sort the ${sortedEdges.length} edges by weight`,
     `Cheapest-first is the whole greedy idea: [${sortedEdges
       .map((e) => `${e.from}-${e.to}(w=${e.weight ?? 1})`)
@@ -149,9 +153,9 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     const rootV = find(edge.to);
 
     addStep(
-      24,
+      33,
       `Examine edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1})`,
-      `Before deciding, we ask union-find which component each endpoint lives in: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}'. Different roots mean this edge connects new territory.`,
+      `Before deciding, we ask UnionFind which component each endpoint lives in: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}'. Different roots mean this edge connects new territory.`,
       {
         from: edge.from,
         to: edge.to,
@@ -173,9 +177,9 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       if (vNode) vNode.state = "active";
 
       addStep(
-        26,
+        35,
         `Add edge ${edge.from} - ${edge.to} to the MST`,
-        `'${edge.from}' and '${edge.to}' live in different components ('${rootU}' vs '${rootV}'), so this edge connects them without closing a loop. We keep it and merge the two sets by pointing '${rootU}' at '${rootV}'.`,
+        `'${edge.from}' and '${edge.to}' live in different components ('${rootU}' vs '${rootV}'), so this edge connects them without closing a loop. We keep it and merge the two sets using rank heuristics.`,
         {
           from: edge.from,
           to: edge.to,
@@ -186,7 +190,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       );
     } else {
       addStep(
-        25,
+        33,
         `Skip edge ${edge.from} - ${edge.to} (cycle)`,
         `Both '${edge.from}' and '${edge.to}' already trace back to the same root '${rootU}', so they're connected already. Keeping this edge would only close a loop — and a tree never has one.`,
         {
@@ -206,7 +210,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const totalMstWeight = mstEdges.reduce((sum, e) => sum + (e.weight ?? 1), 0);
 
   addStep(
-    28,
+    36,
     `Kruskal's MST complete: total weight ${totalMstWeight}`,
     `We kept ${mstEdges.length} edges that connect every node for a total weight of ${totalMstWeight}, and no cheaper spanning tree exists. Fittingly, the up-front sort was the most expensive part — O(E log E) overall.`,
     {

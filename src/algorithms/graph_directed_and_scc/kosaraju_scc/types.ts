@@ -6,7 +6,6 @@ export interface KosarajuSccInput {
 }
 
 export const KOSARAJU_SCC_CODE = `def kosaraju_scc(n, edges):
-    # Step 1: First DFS pass to record post-order stack
     visited = set()
     stack = []
     def dfs1(u):
@@ -20,7 +19,6 @@ export const KOSARAJU_SCC_CODE = `def kosaraju_scc(n, edges):
         if i not in visited:
             dfs1(i)
 
-    # Step 2: Second DFS pass on transposed graph
     visited.clear()
     sccs = []
     def dfs2(u, component):
