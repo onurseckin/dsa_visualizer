@@ -214,15 +214,34 @@ export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   constraints: ["0 <= n <= 10^5"],
   examples: [
     {
-      input: "n = 2",
-      output: "[0, 1, 1]",
-      explanation: "0 -> 0b0 (0 ones), 1 -> 0b1 (1 one), 2 -> 0b10 (1 one).",
-    },
-    {
-      input: "n = 5",
+      kind: "basic",
+      inputDisplay: "n = 5",
+      outputDisplay: "[0, 1, 1, 2, 1, 2]",
+      title: "Basic Example",
+      input: { n: 5 },
       output: "[0, 1, 1, 2, 1, 2]",
       explanation:
-        "0 -> 0b0 (0), 1 -> 0b1 (1), 2 -> 0b10 (1), 3 -> 0b11 (2), 4 -> 0b100 (1), 5 -> 0b101 (2).",
+        "Counts set bits for 0 through 5: 0=0b0(0), 1=0b1(1), 2=0b10(1), 3=0b11(2), 4=0b100(1), 5=0b101(2).",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "n = 15",
+      outputDisplay: "[0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]",
+      title: "Complex Edge Case",
+      input: { n: 15 },
+      output: "[0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]",
+      explanation:
+        "Sweeps through numbers up to 15 across multiple powers of 2, reusing dp[i] = dp[i >> 1] + (i & 1).",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "n = 0",
+      outputDisplay: "[0]",
+      title: "Failing / Boundary Case",
+      input: { n: 0 },
+      output: "[0]",
+      explanation:
+        "Boundary input n=0 produces a single-element array [0] since 0 has zero set bits in binary.",
     },
   ],
   code: `def countBits(n):

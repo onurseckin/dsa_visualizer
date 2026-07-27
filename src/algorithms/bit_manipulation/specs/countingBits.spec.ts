@@ -75,4 +75,19 @@ describe("countingBits logic spec", () => {
     const steps2 = generateCountingBitsSteps(DEFAULT_COUNTING_BITS_INPUT);
     expect(steps1).toEqual(steps2);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(countingBits.examples).toHaveLength(3);
+    expect(countingBits.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(countingBits.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of countingBits.examples!) {
+      const steps = countingBits.generateSteps(example.input as CountingBitsInput);
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

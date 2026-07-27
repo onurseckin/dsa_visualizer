@@ -59,10 +59,33 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   ],
   examples: [
     {
-      input: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
-      output: "Match at index 10",
+      kind: "basic",
+      inputDisplay: "text = \"ABABDABACDABABCABAB\", pattern = \"ABABCABAB\"",
+      outputDisplay: "10",
+      title: "Basic Example",
+      input: { text: "ABABDABACDABABCABAB", pattern: "ABABCABAB" },
+      output: "[10]",
+      explanation: "Precomputed LPS table allows skipping backward text comparisons during partial mismatches.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "text = \"AAAAABAAABA\", pattern = \"AAAA\"",
+      outputDisplay: "0",
+      title: "Complex Edge Case",
+      input: { text: "AABAACAADAABAABA", pattern: "AABA" },
+      output: "[0, 9, 12]",
       explanation:
-        "Precomputed LPS table allows skipping backward text comparisons during partial mismatches.",
+        "Pattern appears at multiple indices including overlapping positions, efficiently using LPS fallback transitions.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "text = \"ABCDEFG\", pattern = \"XYZ\"",
+      outputDisplay: "-1",
+      title: "Failing / Boundary Case",
+      input: { text: "AAAAABAAAAA", pattern: "AAAAAC" },
+      output: "[]",
+      explanation:
+        "Long prefix match fails at character 'C', returning no matches after skipping unnecessary re-checks.",
     },
   ],
   code: KMP_CODE,

@@ -17,10 +17,34 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   constraints: ["1 <= text.length <= 10^4", "Text consists of ASCII characters"],
   examples: [
     {
-      input: 'text = "abracadabra"',
+      kind: "basic",
+      inputDisplay: "text = \"abracadabra\"",
+      outputDisplay: "Codes: a: \"0\", b: \"110\", r: \"111\", c: \"100\", d: \"101\"",
+      title: "Basic Example",
+      input: { text: "abracadabra" },
       output: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
       explanation:
-        'Character "a" has highest frequency (5 occurrences) and receives a 1-bit code ("0"). Rare characters receiving 3-bit codes reduce total encoded string length.',
+        'Character "a" has highest frequency (5 occurrences) and receives shortest prefix code ("0").',
+    },
+    {
+      kind: "complex",
+      inputDisplay: "text = \"BEEP BOOP BEER\"",
+      outputDisplay: "Codes: E: \"00\", B: \"01\", P: \"100\", O: \"101\", R: \"110\", \" \": \"111\"",
+      title: "Complex Edge Case",
+      input: { text: "BEEP BOOP BEER" },
+      output: 'Codes: E: "00", B: "01", P: "100", O: "101", R: "110", " ": "111"',
+      explanation:
+        "6 distinct characters including spaces built into a multi-level prefix code binary tree.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "text = \"AAAAA\"",
+      outputDisplay: "Codes: A: \"0\"",
+      title: "Failing / Boundary Case",
+      input: { text: "AAAAA" },
+      output: 'Codes: A: "0"',
+      explanation:
+        "Single unique character text yields a single root node with a trivial 1-symbol prefix code mapping.",
     },
   ],
   code: PYTHON_HUFFMAN_CODE,

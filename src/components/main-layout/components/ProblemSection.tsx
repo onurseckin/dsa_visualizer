@@ -1,10 +1,13 @@
 import React from "react";
-import { AlgorithmDefinition } from "../../../types/dsa";
-import { ProblemDescriptionCard } from "../../../ui";
-import { DragHandle } from "../../../ui";
+import { AlgorithmDefinition, ProblemExample } from "../../../types/dsa";
+import { ProblemDescriptionCard, ProblemExamplesCard, DragHandle } from "../../../ui";
 
-interface ProblemSectionProps {
+export interface ProblemSectionProps {
   algorithm: AlgorithmDefinition;
+  selectedExampleId?: string;
+  onSelectExample?: (example: ProblemExample, index: number) => void;
+  showProblem?: boolean;
+  showExamples?: boolean;
   problemExpanded: boolean;
   problemPinned: number | null;
   problemDragging: boolean;
@@ -19,6 +22,10 @@ interface ProblemSectionProps {
 
 export const ProblemSection: React.FC<ProblemSectionProps> = ({
   algorithm,
+  selectedExampleId,
+  onSelectExample,
+  showProblem = true,
+  showExamples = true,
   problemExpanded,
   problemPinned,
   problemDragging,
@@ -34,6 +41,13 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
     return null;
   }
 
+  const renderProblem = showProblem;
+  const renderExamples = showExamples && Boolean(algorithm.examples && algorithm.examples.length > 0);
+
+  if (!renderProblem && !renderExamples) {
+    return null;
+  }
+
   return (
     <section aria-label="Problem description and details" className="flex flex-col shrink-0">
       <div
@@ -45,17 +59,27 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
           overflowY: problemPinned !== null ? "auto" : undefined,
         }}
       >
-        <ProblemDescriptionCard
-          title={algorithm.title}
-          category={algorithm.category}
-          difficulty={algorithm.difficulty}
-          description={algorithm.description}
-          constraints={algorithm.constraints}
-          examples={algorithm.examples}
-          expanded={problemExpanded}
-          onToggleExpanded={onToggleProblemExpanded}
-          showHeader={false}
-        />
+        {renderProblem && (
+          <ProblemDescriptionCard
+            title={algorithm.title}
+            category={algorithm.category}
+            difficulty={algorithm.difficulty}
+            description={algorithm.description}
+            constraints={algorithm.constraints}
+            sources={algorithm.sources}
+            leetcode={algorithm.leetcode}
+            expanded={problemExpanded}
+            onToggleExpanded={onToggleProblemExpanded}
+            showHeader={false}
+          />
+        )}
+        {renderExamples && (
+          <ProblemExamplesCard
+            examples={algorithm.examples}
+            selectedExampleId={selectedExampleId}
+            onSelectExample={onSelectExample}
+          />
+        )}
       </div>
 
       <DragHandle

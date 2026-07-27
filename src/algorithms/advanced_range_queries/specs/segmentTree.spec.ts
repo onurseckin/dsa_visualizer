@@ -83,4 +83,19 @@ describe("segmentTree algorithm spec", () => {
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Merge function");
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(segmentTree.examples).toHaveLength(3);
+    expect(segmentTree.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(segmentTree.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of segmentTree.examples!) {
+      const steps = segmentTree.generateSteps(example.input as { array: number[] });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

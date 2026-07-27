@@ -115,17 +115,63 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   ],
   examples: [
     {
-      input:
-        "StartNode = S, Nodes = [S,A,B,C,D], Edges = [S->A(4), S->B(2), B->A(1), A->C(3), B->C(5), B->D(4), C->D(-2)]",
+      kind: "basic",
+      inputDisplay: "graph = {S-A:6, S-B:7, A-B:8, A-C:5, A-D:-4, B-C:-3, B-E:9, C-A:-2, D-C:7, D-S:2}, start = \"S\"",
+      outputDisplay: "{S: 0, A: 2, B: 7, C: 4, D: -2}",
+      title: "Basic Example",
+      input: {
+        startNode: "S",
+        nodes: ["S", "A", "B", "C", "D"],
+        edges: [
+          { from: "S", to: "A", weight: 4 },
+          { from: "S", to: "B", weight: 2 },
+          { from: "B", to: "A", weight: 1 },
+          { from: "A", to: "C", weight: 3 },
+          { from: "B", to: "C", weight: 5 },
+          { from: "B", to: "D", weight: 4 },
+          { from: "C", to: "D", weight: -2 },
+        ],
+      },
       output: "Distances: S:0, A:3, B:2, C:6, D:4",
       explanation:
-        "Iterative edge relaxation updates S->B (2), S->A via B (2+1=3), S->C via A (3+3=6), and S->D via C (6-2=4). No negative cycles detected.",
+        "Iterative edge relaxation handles the negative edge C->D (-2) gracefully. Final shortest distances are computed with no negative cycles.",
     },
     {
-      input: "StartNode = A, Nodes = [A, B, C], Edges = [A->B(1), B->C(-2), C->B(-1)]",
+      kind: "complex",
+      inputDisplay: "graph = {S-A:1, A-B:3, B-C:-2, C-A:-2}, start = \"S\"",
+      outputDisplay: "Negative Cycle Detected",
+      title: "Complex Edge Case",
+      input: {
+        startNode: "S",
+        nodes: ["S", "A", "B", "C", "D"],
+        edges: [
+          { from: "S", to: "A", weight: 5 },
+          { from: "A", to: "B", weight: 2 },
+          { from: "B", to: "C", weight: -4 },
+          { from: "C", to: "D", weight: 1 },
+        ],
+      },
+      output: "Distances: S:0, A:5, B:7, C:3, D:4",
+      explanation:
+        "Relaxation propagates across 4 edges in sequence. The negative edge B->C (-4) lowers distances for both C and downstream node D.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "graph = {S-A:5, B-C:3}, start = \"S\"",
+      outputDisplay: "{S: 0, A: 5, B: ∞, C: ∞}",
+      title: "Failing / Boundary Case",
+      input: {
+        startNode: "A",
+        nodes: ["A", "B", "C"],
+        edges: [
+          { from: "A", to: "B", weight: 1 },
+          { from: "B", to: "C", weight: -2 },
+          { from: "C", to: "A", weight: -1 },
+        ],
+      },
       output: "Negative Cycle Detected: True",
       explanation:
-        "Cycle B -> C -> B has total weight (-2) + (-1) = -3. Iterative relaxation continues decreasing distance indefinitely.",
+        "Cycle A -> B -> C -> A has total weight 1 + (-2) + (-1) = -2. The 11th pass detects ongoing relaxation and flags a negative cycle.",
     },
   ],
   code: BELLMAN_FORD_CODE,

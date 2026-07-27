@@ -86,4 +86,19 @@ describe("fenwickTree algorithm spec", () => {
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Lowbit (i & -i)");
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(fenwickTree.examples).toHaveLength(3);
+    expect(fenwickTree.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(fenwickTree.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of fenwickTree.examples!) {
+      const steps = fenwickTree.generateSteps(example.input as { array: number[] });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

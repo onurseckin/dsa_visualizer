@@ -74,4 +74,19 @@ describe("sievePrimes spec logic", () => {
     const firstSnapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
     expect(firstSnapshot.elements.map((el) => el.value)).toEqual([0, 1, 2, 3, 4, 5]);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(sievePrimes.examples).toHaveLength(3);
+    expect(sievePrimes.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(sievePrimes.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of sievePrimes.examples!) {
+      const steps = sievePrimes.generateSteps(example.input as { limit: number });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

@@ -120,18 +120,52 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   ],
   examples: [
     {
-      input:
-        'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
+      kind: "basic",
+      inputDisplay: "grid = [[\"1\",\"1\",\"0\"],[\"1\",\"1\",\"0\"],[\"0\",\"0\",\"1\"]]",
+      outputDisplay: "2",
+      title: "Basic Example",
+      input: {
+        grid: [
+          ["1", "1", "0", "0", "0"],
+          ["1", "1", "0", "0", "0"],
+          ["0", "0", "1", "0", "0"],
+          ["0", "0", "0", "1", "1"],
+        ],
+      },
       output: "3",
       explanation:
-        "BFS from (0,0) visits the top-left 2x2 land block (Island 1). Scanning continues to (2,2) triggering Island 2. Finally (3,3) triggers Island 3 covering cells (3,3) and (3,4). Total = 3.",
+        "Top-left 2x2 land forms Island 1. Cell (2,2) forms Island 2. Bottom-right cells (3,3) and (3,4) form Island 3. Total = 3.",
     },
     {
-      input:
-        'grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]',
-      output: "1",
+      kind: "complex",
+      inputDisplay: "grid = [[\"1\",\"1\",\"0\",\"0\"],[\"1\",\"0\",\"0\",\"1\"],[\"0\",\"0\",\"1\",\"1\"],[\"0\",\"0\",\"0\",\"0\"]]",
+      outputDisplay: "2",
+      title: "Complex Edge Case",
+      input: {
+        grid: [
+          ["1", "0", "1"],
+          ["0", "1", "0"],
+          ["1", "0", "1"],
+        ],
+      },
+      output: "5",
       explanation:
-        "All land cells form a single 4-directionally connected component. BFS from (0,0) marks all land cells. Total = 1.",
+        "Diagonal land cells touch only at corners. Under 4-directional connectivity, none of them share edges, forming 5 distinct isolated islands.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "grid = [[\"0\",\"0\"],[\"0\",\"0\"]]",
+      outputDisplay: "0",
+      title: "Failing / Boundary Case",
+      input: {
+        grid: [
+          ["0", "0"],
+          ["0", "0"],
+        ],
+      },
+      output: "0",
+      explanation:
+        "The grid contains only water cells ('0'). No land is found, resulting in 0 islands.",
     },
   ],
   code: NUMBER_OF_ISLANDS_CODE,

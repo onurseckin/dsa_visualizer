@@ -77,4 +77,19 @@ describe("mergeIntervals logic spec", () => {
     expect(steps.length).toBe(1);
     expect(steps[0].auxiliaryState.customState?.merged).toBe("[]");
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(mergeIntervals.examples).toHaveLength(3);
+    expect(mergeIntervals.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(mergeIntervals.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of mergeIntervals.examples!) {
+      const steps = mergeIntervals.generateSteps(example.input as { intervals: Array<{ start: number; end: number }> });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

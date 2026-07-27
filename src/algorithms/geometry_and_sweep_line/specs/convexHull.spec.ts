@@ -81,4 +81,19 @@ describe("convexHull algorithm logic spec", () => {
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Lower and upper chain");
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(convexHull.examples).toHaveLength(3);
+    expect(convexHull.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(convexHull.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of convexHull.examples!) {
+      const steps = convexHull.generateSteps(example.input as ConvexHullInput);
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

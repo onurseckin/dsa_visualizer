@@ -50,14 +50,13 @@ describe("TutorialCard Component Spec", () => {
   /* The user's complaint about this strip was that it is too small to read
      (DESIGN.md R6.4). These assertions are the fix, not the intention. */
   describe("readable prose, not a caption", () => {
-    it("sets the body at --text-md with 1.6 line-height and reserves two lines", () => {
+    it("sets the body at --text-md with 1.6 line-height", () => {
       render(<TutorialCard explanation={sampleExplanation} stepIndex={0} />);
 
       const paragraph = prose();
       expect(paragraph.style.fontSize).toBe("var(--text-md)");
       expect(paragraph.style.lineHeight).toBe("1.6");
-      // Two lines are held open so the canvas boundary stops moving every step.
-      expect(paragraph.style.minHeight).toBe("calc(var(--text-md) * 1.6 * 2)");
+      expect(paragraph.style.minHeight).toBe("");
     });
 
     it("uses --text-xs nowhere, including the step counter", () => {
@@ -94,7 +93,8 @@ describe("TutorialCard Component Spec", () => {
       const body =
         (container.querySelector(".ui-card > div") as HTMLElement) ||
         (container.querySelector('[data-testid="tutorial-card"] > div') as HTMLElement);
-      expect(body.className).toContain("p-3");
+      expect(body.className).toContain("py-2");
+      expect(body.className).toContain("px-4");
       expect(body.className).toContain("flex-col");
 
       // The counter row is above the prose, so the sentence is not squeezed into

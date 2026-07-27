@@ -74,4 +74,19 @@ describe("polygonArea spec logic", () => {
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Winding order");
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(polygonArea.examples).toHaveLength(3);
+    expect(polygonArea.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(polygonArea.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of polygonArea.examples!) {
+      const steps = polygonArea.generateSteps(example.input as { points: Array<{ x: number; y: number }> });
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

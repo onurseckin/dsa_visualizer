@@ -35,16 +35,34 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   ],
   examples: [
     {
-      input: "nums = [3,2,1,5,6,4], k = 2",
+      kind: "basic",
+      inputDisplay: "nums = [3, 2, 1, 5, 6, 4], k = 2",
+      outputDisplay: "5",
+      title: "Basic Example",
+      input: { nums: [3, 2, 1, 5, 6, 4], k: 2 },
       output: "5",
       explanation:
-        "Sorting the array in non-decreasing order gives [1,2,3,4,5,6]. The 2nd largest element is 5. The min-heap of size 2 retains [5, 6] with root 5.",
+        "Sorting the array gives [1,2,3,4,5,6]. Min-heap of size 2 maintains [5, 6], with root 5 being the 2nd largest.",
     },
     {
-      input: "nums = [3,2,3,1,2,4,5,5,6], k = 4",
+      kind: "complex",
+      inputDisplay: "nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4",
+      outputDisplay: "4",
+      title: "Complex Edge Case",
+      input: { nums: [3, 2, 3, 1, 2, 4, 5, 5, 6], k: 4 },
       output: "4",
       explanation:
-        "Sorted order is [1,2,2,3,3,4,5,5,6]. The 4th largest element is 4. The min-heap of size 4 retains [4, 5, 5, 6] with root 4.",
+        "Handles duplicate elements correctly. Min-heap of size 4 retains [4, 5, 5, 6] with root 4.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "nums = [7, 10, 4, 3, 20, 15], k = 6",
+      outputDisplay: "3",
+      title: "Failing / Boundary Case",
+      input: { nums: [7], k: 1 },
+      output: "7",
+      explanation:
+        "Boundary input array of length 1 with k=1 directly returns the single element 7.",
     },
   ],
   code: KTH_LARGEST_CODE,

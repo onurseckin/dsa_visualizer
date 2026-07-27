@@ -44,15 +44,34 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
   constraints: ["1 <= N <= 9"],
   examples: [
     {
-      input: "n = 4",
+      kind: "basic",
+      inputDisplay: "n = 4",
+      outputDisplay: "2 solutions",
+      title: "Basic Example",
+      input: { n: 4 },
       output: "2 valid solutions",
       explanation:
-        'Solutions: [[".Q..", "...Q", "Q...", "..Q."], ["..Q.", "Q...", "...Q", ".Q.."]]',
+        "Standard 4x4 chessboard has 2 distinct non-attacking queen configurations.",
     },
     {
-      input: "n = 1",
-      output: "1 valid solution",
-      explanation: "Single queen placed at (0, 0).",
+      kind: "complex",
+      inputDisplay: "n = 5",
+      outputDisplay: "10 solutions",
+      title: "Complex Edge Case",
+      input: { n: 6 },
+      output: "4 valid solutions",
+      explanation:
+        "6x6 chessboard with deeper recursion and multiple diagonal constraint pruning steps.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "n = 3",
+      outputDisplay: "0 solutions",
+      title: "Failing / Boundary Case",
+      input: { n: 3 },
+      output: "0 valid solutions",
+      explanation:
+        "No valid non-attacking placement exists for N=3 (or N=2); all branch attempts lead to immediate diagonal or column attacks.",
     },
   ],
   code: N_QUEENS_CODE,

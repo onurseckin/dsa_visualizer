@@ -17,11 +17,52 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
-      input:
-        "array = [1, 3, 5, 7, 9, 11], operations = [Query [1..3], Update index 2 to 6, Query [1..3]]",
+      kind: "basic",
+      inputDisplay: "arr = [1, 3, 5, 7, 9, 11], queries = [sum(1..3), update(2, 6), sum(1..3)]",
+      outputDisplay: "Query 1: 15, Query 2: 16",
+      title: "Basic Example",
+      input: {
+        array: [1, 3, 5, 7, 9, 11],
+        operations: [
+          { type: "query", left: 1, right: 3 },
+          { type: "update", index: 2, value: 6 },
+          { type: "query", left: 1, right: 3 },
+        ],
+      },
       output: "Query 1: 15, Query 2: 16",
       explanation:
         "Initial sum arr[1..3] = 3+5+7 = 15. Updating arr[2] from 5 to 6 changes range sum to 3+6+7 = 16.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "arr = [2, 4, 6, 8, 10, 12, 14, 16], queries = [sum(0..7), update(0, 10), update(7, 20), sum(0..7)]",
+      outputDisplay: "Query 1: 72, Query 2: 90",
+      title: "Complex Edge Case",
+      input: {
+        array: [2, 4, 6, 8, 10, 12, 14, 16],
+        operations: [
+          { type: "query", left: 0, right: 7 },
+          { type: "update", index: 0, value: 10 },
+          { type: "update", index: 7, value: 20 },
+          { type: "query", left: 0, right: 7 },
+        ],
+      },
+      output: "Query 1: 72, Query 2: 90",
+      explanation:
+        "8-element tree full range query; updates at extreme indices 0 and 7 recompute tree internal nodes log(8) = 3 levels up.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "arr = [5], queries = [sum(0..0)]",
+      outputDisplay: "Query: 5",
+      title: "Failing / Boundary Case",
+      input: {
+        array: [5],
+        operations: [{ type: "query", left: 0, right: 0 }],
+      },
+      output: "Query: 5",
+      explanation:
+        "Single-element array N=1; leaf node directly matches query range [0..0] with sum 5.",
     },
   ],
   code: SEGMENT_TREE_CODE,

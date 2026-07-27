@@ -21,10 +21,80 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   ],
   examples: [
     {
-      input: "Nodes 0..4, Edges: 0->1, 1->2, 2->0, 1->3, 3->4, 4->3",
-      output: "2 SCCs: SCC 1 = {0, 1, 2}, SCC 2 = {3, 4}",
+      kind: "basic",
+      inputDisplay: "vertices = [0, 1, 2, 3, 4], edges = [(1,0), (0,2), (2,1), (0,3), (3,4)]",
+      outputDisplay: "[[0, 1, 2], [3], [4]]",
+      title: "Basic Example",
+      input: {
+        nodes: [
+          { id: "0", label: "0", x: 120, y: 120, state: "default" },
+          { id: "1", label: "1", x: 260, y: 120, state: "default" },
+          { id: "2", label: "2", x: 120, y: 260, state: "default" },
+          { id: "3", label: "3", x: 400, y: 120, state: "default" },
+          { id: "4", label: "4", x: 400, y: 260, state: "default" },
+        ],
+        edges: [
+          { from: "0", to: "1" },
+          { from: "1", to: "2" },
+          { from: "2", to: "0" },
+          { from: "1", to: "3" },
+          { from: "3", to: "4" },
+          { from: "4", to: "3" },
+        ],
+      },
+      output: "2 SCCs: {0, 1, 2}, {3, 4}",
       explanation:
-        "Vertices 0, 1, 2 form a directed cycle and can reach each other. Vertices 3 and 4 form another 2-node cycle. Edge 1->3 connects the two components in one direction.",
+        "Nodes {0, 1, 2} form a directed cycle (SCC 1), and nodes {3, 4} form another cycle (SCC 2). Edge 1->3 connects them in one direction.",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "vertices = [A, B, C, D, E, F, G, H], edges = [(A,B), (B,C), (C,A), (B,D), (D,E), (E,F), (F,D), (G,F), (G,H)]",
+      outputDisplay: "[[A, B, C], [D, E, F], [G], [H]]",
+      title: "Complex Edge Case",
+      input: {
+        nodes: [
+          { id: "0", label: "0", x: 100, y: 100, state: "default" },
+          { id: "1", label: "1", x: 200, y: 100, state: "default" },
+          { id: "2", label: "2", x: 300, y: 100, state: "default" },
+          { id: "3", label: "3", x: 400, y: 100, state: "default" },
+          { id: "4", label: "4", x: 500, y: 100, state: "default" },
+          { id: "5", label: "5", x: 600, y: 100, state: "default" },
+        ],
+        edges: [
+          { from: "0", to: "1" },
+          { from: "1", to: "0" },
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+          { from: "3", to: "2" },
+          { from: "3", to: "4" },
+          { from: "4", to: "5" },
+          { from: "5", to: "4" },
+        ],
+      },
+      output: "3 SCCs: {0, 1}, {2, 3}, {4, 5}",
+      explanation:
+        "Three distinct 2-node cycles are linked in a chain. Kosaraju's two-pass DFS correctly identifies all 3 SCCs.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "vertices = [A, B, C, D], edges = [(A,B), (B,C), (C,D)]",
+      outputDisplay: "[[A], [B], [C], [D]]",
+      title: "Failing / Boundary Case",
+      input: {
+        nodes: [
+          { id: "0", label: "0", state: "default" },
+          { id: "1", label: "1", state: "default" },
+          { id: "2", label: "2", state: "default" },
+          { id: "3", label: "3", state: "default" },
+        ],
+        edges: [
+          { from: "0", to: "1" },
+          { from: "2", to: "3" },
+        ],
+      },
+      output: "4 SCCs: {0}, {1}, {2}, {3}",
+      explanation:
+        "In an acyclic directed graph with disconnected components, no cycles exist. Each vertex forms its own singleton SCC.",
     },
   ],
   code: KOSARAJU_SCC_CODE,

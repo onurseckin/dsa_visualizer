@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { AlgorithmStep } from "../types/dsa";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { AlgorithmDefinition, AlgorithmStep } from "../types/dsa";
+import { resolveInput } from "./inputResolver";
 
 interface UseStepEngineOptions {
-  steps: AlgorithmStep[];
+  algorithm?: AlgorithmDefinition;
+  input?: unknown;
+  steps?: AlgorithmStep[];
   onStepChange?: (step: AlgorithmStep) => void;
   defaultSpeed?: number;
 }
@@ -24,6 +27,8 @@ export interface StepEngineControls {
 }
 
 export function useStepEngine({
+  algorithm,
+  input,
   steps,
   onStepChange,
   defaultSpeed = 300,
@@ -32,9 +37,19 @@ export function useStepEngine({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [speed, setSpeedState] = useState<number>(defaultSpeed);
 
+  const resolvedSteps = useMemo(() => {
+    if (steps) return steps;
+    if (algorithm) {
+      const inputToUse = input !== undefined ? input : algorithm.defaultInput;
+      const actualInput = resolveInput(inputToUse, algorithm.defaultInput);
+      return algorithm.generateSteps(actualInput);
+    }
+    return [];
+  }, [algorithm, input, steps]);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const onStepChangeRef = useRef(onStepChange);
-  const stepsRef = useRef(steps);
+  const stepsRef = useRef(resolvedSteps);
   // Initialized to 0 so the initial index-0 render never notifies (nothing fires on
   // page load); also guards StrictMode's double-invoked effects from double-firing.
   const lastNotifiedIndexRef = useRef<number>(0);
@@ -45,11 +60,11 @@ export function useStepEngine({
   }, [onStepChange]);
 
   useEffect(() => {
-    stepsRef.current = steps;
-  }, [steps]);
+    stepsRef.current = resolvedSteps;
+  }, [resolvedSteps]);
 
-  const totalSteps = steps.length;
-  const currentStep = steps[currentStepIndex] || null;
+  const totalSteps = resolvedSteps.length;
+  const currentStep = resolvedSteps[currentStepIndex] || null;
 
   // Fire onStepChange in a clean dedicated effect (outside setState updaters).
   // Only notify when the index actually moved since the last notification.
@@ -167,7 +182,7 @@ export function useStepEngine({
     setCurrentStepIndex(0);
     setIsPlaying(false);
     stopTimer();
-  }, [steps, stopTimer]);
+  }, [resolvedSteps, stopTimer]);
 
   return {
     currentStepIndex,

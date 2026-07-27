@@ -45,4 +45,19 @@ describe("coinChangeDp algorithm logic spec", () => {
     const lastStep = steps2[steps2.length - 1];
     expect(lastStep.variables.result).toBe(-1);
   });
+
+  it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
+    expect(coinChangeDp.examples).toHaveLength(3);
+    expect(coinChangeDp.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(coinChangeDp.examples?.map((ex) => ex.title)).toEqual([
+      "Basic Example",
+      "Complex Edge Case",
+      "Failing / Boundary Case",
+    ]);
+
+    for (const example of coinChangeDp.examples!) {
+      const steps = coinChangeDp.generateSteps(example.input as CoinChangeInput);
+      expect(steps.length).toBeGreaterThan(0);
+    }
+  });
 });

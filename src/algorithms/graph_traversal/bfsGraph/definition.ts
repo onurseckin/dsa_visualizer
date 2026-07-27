@@ -80,16 +80,82 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   ],
   examples: [
     {
-      input: 'startNode = "A", edges = [A-B, A-C, B-D, C-E, D-F, E-F]',
-      output: "Visited order: A, B, C, D, E, F",
+      kind: "basic",
+      inputDisplay: "graph = {A: [B, C], B: [D, E], C: [F]}, start = \"A\"",
+      outputDisplay: "[\"A\", \"B\", \"C\", \"D\", \"E\", \"F\"]",
+      title: "Basic Example",
+      input: {
+        startNodeId: "A",
+        nodes: [
+          { id: "A", label: "A", x: 100, y: 100, state: "default" },
+          { id: "B", label: "B", x: 200, y: 50, state: "default" },
+          { id: "C", label: "C", x: 200, y: 150, state: "default" },
+          { id: "D", label: "D", x: 300, y: 50, state: "default" },
+          { id: "E", label: "E", x: 300, y: 150, state: "default" },
+          { id: "F", label: "F", x: 400, y: 100, state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "A", to: "C" },
+          { from: "B", to: "D" },
+          { from: "C", to: "E" },
+          { from: "D", to: "F" },
+          { from: "E", to: "F" },
+        ],
+      },
+      output: "Order: A, B, C, D, E, F",
       explanation:
-        "Starting at A, BFS first visits distance-1 neighbors B and C, then distance-2 neighbors D and E, and finally distance-3 neighbor F.",
+        "Starting at A, BFS visits distance-1 neighbors (B, C), then distance-2 (D, E), and finally distance-3 (F).",
     },
     {
-      input: 'startNode = "A", disconnected components {A-B} and {C-D}',
-      output: "Visited set: {A, B}",
+      kind: "complex",
+      inputDisplay: "graph = {1: [2, 3], 2: [4, 5], 3: [6], 4: [7]}, start = \"1\"",
+      outputDisplay: "[\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\"]",
+      title: "Complex Edge Case",
+      input: {
+        startNodeId: "A",
+        nodes: [
+          { id: "A", label: "A", x: 100, y: 100, state: "default" },
+          { id: "B", label: "B", x: 200, y: 50, state: "default" },
+          { id: "C", label: "C", x: 200, y: 150, state: "default" },
+          { id: "D", label: "D", x: 300, y: 50, state: "default" },
+          { id: "E", label: "E", x: 300, y: 150, state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "B", to: "C" },
+          { from: "C", to: "A" },
+          { from: "B", to: "D" },
+          { from: "C", to: "E" },
+          { from: "D", to: "E" },
+          { from: "E", to: "B" },
+        ],
+      },
+      output: "Order: A, B, C, D, E",
       explanation:
-        "BFS only visits nodes in the connected component reachable from source node A. Isolated component {C, D} remains unvisited.",
+        "The graph contains back-edges and cycles (A-B-C-A, B-D-E-B). The visited set prevents infinite loops, visiting every reachable node once.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "graph = {X: []}, start = \"X\"",
+      outputDisplay: "[\"X\"]",
+      title: "Failing / Boundary Case",
+      input: {
+        startNodeId: "A",
+        nodes: [
+          { id: "A", label: "A", state: "default" },
+          { id: "B", label: "B", state: "default" },
+          { id: "C", label: "C", state: "default" },
+          { id: "D", label: "D", state: "default" },
+        ],
+        edges: [
+          { from: "A", to: "B" },
+          { from: "C", to: "D" },
+        ],
+      },
+      output: "Visited: {A, B}",
+      explanation:
+        "Nodes C and D reside in an isolated component. BFS from A visits only reachable vertices {A, B}, leaving C and D unvisited.",
     },
   ],
   code: BFS_GRAPH_CODE,

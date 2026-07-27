@@ -83,6 +83,7 @@ const dummyStep: AlgorithmStep = {
 const allPanels = (overrides: Partial<PanelVisibility> = {}): PanelVisibility => ({
   problem: true,
   solution: true,
+  examples: true,
   visualizer: true,
   code: true,
   tutorial: true,

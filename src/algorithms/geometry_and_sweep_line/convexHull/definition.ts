@@ -109,10 +109,58 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   constraints: ["1 <= points.length <= 1000", "-1000 <= x, y <= 1000"],
   examples: [
     {
-      input: "points = [{x:0, y:0}, {x:0, y:4}, {x:4, y:0}, {x:2, y:2}]",
-      output: "3 vertices: [(0,0), (4,0), (0,4)]",
+      kind: "basic",
+      inputDisplay: "points = [(100,300), (150,150), (250,100), (300,250), (400,350), (200,400), (350,180)]",
+      outputDisplay: "6 hull vertices",
+      title: "Basic Example",
+      input: {
+        points: [
+          { x: 100, y: 300, id: "P0", label: "P0" },
+          { x: 150, y: 150, id: "P1", label: "P1" },
+          { x: 250, y: 100, id: "P2", label: "P2" },
+          { x: 300, y: 250, id: "P3", label: "P3" },
+          { x: 400, y: 350, id: "P4", label: "P4" },
+          { x: 200, y: 400, id: "P5", label: "P5" },
+          { x: 350, y: 180, id: "P6", label: "P6" },
+        ],
+      },
+      output: "6 hull vertices",
       explanation:
-        "Point (2, 2) is strictly inside the triangle formed by (0,0), (4,0), (0,4) and is eliminated.",
+        "Andrew's monotone chain sweeps upper and lower chains, enclosing interior point P3 (300, 250).",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "points = [(50,50), (150,50), (250,50), (350,50), (200,250), (200,150)]",
+      outputDisplay: "3 hull vertices",
+      title: "Complex Edge Case",
+      input: {
+        points: [
+          { x: 50, y: 50, id: "P0", label: "P0" },
+          { x: 150, y: 50, id: "P1", label: "P1" },
+          { x: 250, y: 50, id: "P2", label: "P2" },
+          { x: 350, y: 50, id: "P3", label: "P3" },
+          { x: 200, y: 250, id: "P4", label: "P4" },
+          { x: 200, y: 150, id: "P5", label: "P5" },
+        ],
+      },
+      output: "3 hull vertices",
+      explanation:
+        "Pops non-extremal collinear points along the bottom edge, maintaining a strictly convex triangle boundary.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "points = [(100,100), (200,200)]",
+      outputDisplay: "2 points (line segment)",
+      title: "Failing / Boundary Case",
+      input: {
+        points: [
+          { x: 100, y: 100, id: "P0", label: "P0" },
+          { x: 200, y: 200, id: "P1", label: "P1" },
+        ],
+      },
+      output: "2 points (line segment)",
+      explanation:
+        "Boundary input with fewer than 3 points cannot form a 2D enclosed polygon; returns the 2 points directly.",
     },
   ],
   code: PYTHON_CONVEX_HULL_CODE,

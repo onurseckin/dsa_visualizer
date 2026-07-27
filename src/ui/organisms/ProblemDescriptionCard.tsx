@@ -2,7 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, FieldLabel, Well } from "..";
 import { cx } from "../cx";
-import { CategoryType, DifficultyLevel, ProblemExample } from "../../types/dsa";
+import { CategoryType, DifficultyLevel, LeetCodeMeta, ProblemExample, ProblemSource } from "../../types/dsa";
 import { ProblemHeader } from "../../components/primitives/ProblemHeader";
 
 export interface ProblemDescriptionCardProps {
@@ -17,6 +17,11 @@ export interface ProblemDescriptionCardProps {
   className?: string;
   style?: React.CSSProperties;
   showHeader?: boolean;
+  selectedExampleId?: string;
+  selectedExampleIndex?: number;
+  onSelectExample?: (example: ProblemExample, index: number) => void;
+  leetcode?: LeetCodeMeta | { id: number; url: string };
+  sources?: ProblemSource[];
 }
 
 export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
@@ -25,12 +30,13 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   difficulty = "Easy",
   description,
   constraints,
-  examples,
   expanded = true,
   onToggleExpanded,
   className,
   style,
   showHeader = true,
+  leetcode,
+  sources,
 }) => {
   if (!showHeader && !expanded) {
     return null;
@@ -48,7 +54,13 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
       <Card.Body className="p-4 md:p-5 flex flex-col gap-4">
         {showHeader && (
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <ProblemHeader title={title} category={category} difficulty={difficulty} />
+            <ProblemHeader
+              title={title}
+              category={category}
+              difficulty={difficulty}
+              leetcode={leetcode}
+              sources={sources}
+            />
             {onToggleExpanded && (
               <button
                 type="button"
@@ -96,41 +108,6 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
                     ))}
                   </ul>
                 </Well>
-              </section>
-            )}
-
-            {examples && examples.length > 0 && (
-              <section>
-                <FieldLabel label="Examples" />
-                <div
-                  data-testid="problem-description-examples"
-                  className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-x-5 gap-y-3 items-start"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
-                  }}
-                >
-                  {examples.map((example, idx) => (
-                    <Well
-                      key={`example-${idx}`}
-                      className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)] font-mono text-sm leading-relaxed"
-                    >
-                      <div>
-                        <span className="text-[var(--text-muted)]">Input: </span>
-                        <span className="text-[var(--text-primary)]">{example.input}</span>
-                      </div>
-                      <div>
-                        <span className="text-[var(--text-muted)]">Output: </span>
-                        <span className="text-[var(--text-primary)]">{example.output}</span>
-                      </div>
-                      {example.explanation && (
-                        <div className="mt-1 font-sans text-[var(--text-secondary)]">
-                          {example.explanation}
-                        </div>
-                      )}
-                    </Well>
-                  ))}
-                </div>
               </section>
             )}
           </div>

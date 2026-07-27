@@ -113,16 +113,57 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   ],
   examples: [
     {
-      input: "4 nodes (1-4), 5 edges: [1->3(-2), 2->1(4), 2->3(3), 3->4(2), 4->2(-1)]",
+      kind: "basic",
+      inputDisplay: "matrix = [[0, 5, ∞, 10], [∞, 0, 3, ∞], [∞, ∞, 0, 1], [∞, ∞, ∞, 0]]",
+      outputDisplay: "[[0, 5, 8, 9], [∞, 0, 3, 4], [∞, ∞, 0, 1], [∞, ∞, ∞, 0]]",
+      title: "Basic Example",
+      input: {
+        nodes: ["1", "2", "3", "4"],
+        edges: [
+          { from: "1", to: "3", weight: -2 },
+          { from: "2", to: "1", weight: 4 },
+          { from: "2", to: "3", weight: 3 },
+          { from: "3", to: "4", weight: 2 },
+          { from: "4", to: "2", weight: -1 },
+        ],
+      },
       output: "Full 4x4 shortest path distance matrix",
       explanation:
-        "1. Init direct edges. 2. Pivot k=3 updates dist[1][4] = dist[1][3] + dist[3][4] = (-2)+2 = 0. 3. Pivot k=4 updates dist[4][3] via node 2. Complete 4x4 matrix computed.",
+        "Iterates pivots k=1..4. Pivot k=3 updates dist[1][4] = dist[1][3] + dist[3][4] = (-2) + 2 = 0.",
     },
     {
-      input: "2 nodes, edge 1->2(5), no 2->1 edge",
-      output: "dist[1][2]=5, dist[2][1]=∞",
+      kind: "complex",
+      inputDisplay: "matrix = [[0, 3, 8, ∞, -4], [∞, 0, ∞, 1, 7], [∞, 4, 0, ∞, ∞], [2, ∞, -5, 0, ∞], [∞, ∞, ∞, 6, 0]]",
+      outputDisplay: "[[0, 1, -3, 2, -4], [3, 0, -4, 1, -1], [7, 4, 0, 5, 3], [2, -1, -5, 0, -2], [8, 5, 1, 6, 0]]",
+      title: "Complex Edge Case",
+      input: {
+        nodes: ["1", "2", "3", "4"],
+        edges: [
+          { from: "1", to: "2", weight: 3 },
+          { from: "2", to: "3", weight: 2 },
+          { from: "3", to: "4", weight: -4 },
+          { from: "1", to: "4", weight: 10 },
+        ],
+      },
+      output: "dist[1][4] = 1",
       explanation:
-        "Direct path 1 to 2 is distance 5. Node 1 is unreachable from Node 2, maintaining dist[2][1] = ∞.",
+        "Direct edge 1->4 is 10, but routing through pivots 2 and 3 yields dist[1][4] = 3 + 2 - 4 = 1.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "matrix = [[0, -1], [-1, 0]]",
+      outputDisplay: "Negative Cycle Detected",
+      title: "Failing / Boundary Case",
+      input: {
+        nodes: ["1", "2"],
+        edges: [
+          { from: "1", to: "2", weight: -3 },
+          { from: "2", to: "1", weight: -2 },
+        ],
+      },
+      output: "Negative Cycle Detected: True",
+      explanation:
+        "Edges 1->2 (-3) and 2->1 (-2) form a negative cycle of total weight -5. Diagonal dist[1][1] drops below zero.",
     },
   ],
   code: FLOYD_WARSHALL_CODE,

@@ -6,6 +6,7 @@ import { Navbar, NavbarProps } from "../../ui";
 const ALL_VISIBLE: PanelVisibility = {
   problem: true,
   solution: true,
+  examples: true,
   visualizer: true,
   code: true,
   tutorial: true,
@@ -16,6 +17,7 @@ const ALL_VISIBLE: PanelVisibility = {
 const PANEL_LABELS: Record<PanelKey, string> = {
   problem: "Problem",
   solution: "Solution",
+  examples: "Examples",
   visualizer: "Visualizer",
   code: "Code",
   tutorial: "Tutorial",
@@ -93,6 +95,7 @@ describe("NavbarControls Component Spec", () => {
           panels: {
             problem: true,
             solution: false,
+            examples: false,
             visualizer: true,
             code: false,
             tutorial: true,
@@ -106,6 +109,7 @@ describe("NavbarControls Component Spec", () => {
     const expected: [string, string][] = [
       ["Problem", "true"],
       ["Solution", "false"],
+      ["Examples", "false"],
       ["Visualizer", "true"],
       ["Code", "false"],
       ["Tutorial", "true"],
