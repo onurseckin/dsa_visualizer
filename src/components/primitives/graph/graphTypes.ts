@@ -23,7 +23,7 @@ export const MIN_NODE_R = 28;
 export const MAX_NODE_R = 72;
 export const SPACING_SHARE = 0.38;
 export const GROUP_RING_GAP = 5;
-export const EDGE_MARGIN = 3;
+export const EDGE_MARGIN = 24;
 
 export const SHAPE_TRANSITION =
   "fill var(--transition-normal), stroke var(--transition-normal), stroke-width var(--transition-normal), opacity var(--transition-normal)";

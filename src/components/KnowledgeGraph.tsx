@@ -42,9 +42,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       >
         <KnowledgeGraphLegend />
 
-        <div className="w-full p-6 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-lg)] flex items-center justify-center overflow-auto py-6 mx-auto">
+        <div className="w-full p-8 md:p-10 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] flex items-center justify-center overflow-auto py-8 px-8 mx-auto">
           <svg
-            viewBox="0 0 1350 920"
+            viewBox="-40 -40 1430 1000"
             preserveAspectRatio="xMidYMid meet"
             className="w-full h-auto max-w-full mx-auto block"
           >

@@ -92,8 +92,8 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
         </ButtonGroup>
       }
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-2 flex-wrap items-center">
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-3 flex-wrap items-center">
           <div className="flex-[1_1_200px] min-w-0">
             <Input
               value={search}
@@ -132,7 +132,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
           </div>
         </div>
 
-        <div className="flex justify-between items-center p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] flex-wrap gap-2">
+        <div className="flex justify-between items-center p-4 md:p-5 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] flex-wrap gap-3 shadow-sm">
           <div className="flex items-center gap-2">
             <Badge variant="neutral" size="sm">
               {deck.length} in deck

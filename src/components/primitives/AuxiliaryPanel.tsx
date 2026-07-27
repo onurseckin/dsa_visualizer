@@ -138,9 +138,9 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
   if (groups.length === 0) return null;
 
   return (
-    <div className="ui-card flex flex-col gap-4 p-6 min-w-0 bg-[var(--bg-surface)]">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-[var(--text-secondary)] whitespace-nowrap">
+    <div className="ui-card flex flex-col gap-5 p-6 md:p-8 min-w-0 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
+      <div className="flex items-center gap-2 pb-3 border-b border-[var(--border-subtle)]">
+        <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
           Working Data & Variables
         </span>
         <div className="flex-1 min-w-0" />
@@ -149,17 +149,19 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
         )}
       </div>
 
-      {groups.map((group) => (
-        <div
-          key={group.key}
-          className="grid grid-cols-[minmax(5.5rem,max-content)_1fr] items-baseline gap-x-3 gap-y-1.5 min-w-0"
-        >
-          <span className="text-sm text-[var(--text-muted)] whitespace-nowrap font-medium">
-            {group.label}
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5 min-w-0">{group.chips}</div>
-        </div>
-      ))}
+      <div className="flex flex-col gap-3.5">
+        {groups.map((group) => (
+          <div
+            key={group.key}
+            className="grid grid-cols-[minmax(6rem,max-content)_1fr] items-center gap-x-4 gap-y-2 min-w-0 py-1"
+          >
+            <span className="text-sm text-[var(--text-muted)] whitespace-nowrap font-medium">
+              {group.label}
+            </span>
+            <div className="flex flex-wrap items-center gap-2 min-w-0">{group.chips}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
