@@ -28,7 +28,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       aria-label="Algorithm Roadmap"
       className="flex flex-col items-center justify-start text-center p-6 md:p-10 lg:p-12 w-full max-w-full mx-auto box-border flex-1 gap-8 overflow-y-auto"
     >
-      <div className="flex flex-col items-center justify-center text-center mx-auto w-full max-w-3xl gap-3 py-6 px-10 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mb-2">
+      <div className="flex flex-col items-center justify-center text-center mx-auto w-full max-w-3xl py-6 px-10 gap-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm mb-4">
         <h1 className="text-3xl font-bold text-[var(--text-primary)]">Knowledge Tree</h1>
         <p className="text-base text-[var(--text-secondary)]">
           Interactive Data Structures and Algorithms Prerequisite Roadmap
@@ -38,13 +38,13 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
       <div
         role="region"
         aria-label="Interactive Data Structures and Algorithms Prerequisite Roadmap"
-        className="w-full relative p-6 md:p-8 lg:p-10 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center justify-center mx-auto gap-6"
+        className="w-full relative p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-md flex flex-col items-center justify-center mx-auto gap-4"
       >
         <KnowledgeGraphLegend />
 
-        <div className="w-full p-6 md:p-10 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] flex items-center justify-center overflow-auto mx-auto">
+        <div className="w-full p-4 md:p-6 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] overflow-hidden mx-auto">
           <svg
-            viewBox="-60 -60 1550 1220"
+            viewBox="-40 120 1430 870"
             preserveAspectRatio="xMidYMid meet"
             className="w-full h-auto max-w-full mx-auto block"
           >

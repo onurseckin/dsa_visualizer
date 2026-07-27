@@ -1,139 +1,91 @@
-# Agentic Graph System Architecture — Self-Validating & Recursive UI Optimization Engine
+# Agentic Graph System Architecture v3 — Visual Headless Capture & Adversarial Pushback Engine
 
-## 1. Executive Summary & Architectural Philosophy
-The **Agentic Graph System Architecture** is a hierarchical, recursive multi-agent system designed for zero-defect UI design system enforcement, spatial balance, and component refactoring. 
+## 1. Executive Summary & Core Paradigm Shift
+A code change is **not** a successful completion. In **Architecture v3**, the `layout_visual_auditor_v3` operates as an **Adversarial Visual Inspector**. 
 
-Rather than executing linear edits, this architecture operates as a **directed acyclic graph (DAG) of domain leads, recursive inspector/refactor subagents, and automated audit loops**.
+It does not rely on static code analysis alone. Instead, after every post-implementation edit, the Auditor **spins up a headless Chrome browser, renders the live page, captures a visual screenshot artifact, and audits the actual pixel layout**. If visual defects, clipping, or unappealing spatial balance are detected, the Auditor **pushes back** on the Refactor Agent with a detailed visual rejection payload.
 
 ---
 
-## 2. Agentic Graph Topology & Flow Diagram
+## 2. Adversarial Pushback Flow Architecture
 
 ```
-                                  +-----------------------+
-                                  | Main Orchestrator     |
-                                  +-----------+-----------+
-                                              |
-                +-----------------------------+-----------------------------+
-                |                             |                             |
-                v                             v                             v
-   +-------------------------+   +-------------------------+   +-------------------------+
-   | domain_lead_tree_layout |   | domain_lead_prob_trivia |   | domain_lead_workspace  |
-   +------------+------------+   +------------+------------+   +------------+------------+
-                |                             |                             |
-     +----------+----------+       +----------+----------+       +----------+----------+
-     |                     |       |                     |       |                     |
-     v                     v       v                     v       v                     v
-+----------+          +----------+ |                +----------+ |                +----------+
-|Inspector |          |Refactor  | |                |Inspector | |                |Inspector |
-+----+-----+          +----+-----+ |                +----+-----+ |                +----+-----+
-     |                     |       |                     |       |                     |
-     v                     v       v                     v       v                     v
-+----+---------------------+-----+ |                +----+-----+ |                +----+-----+
-| self_validation_auditor        | |                |Refactor  | |                |Refactor  |
-+--------------------------------+ +----------------+----+-----+ +----------------+----+-----+
-                                                         |                             |
-                                                         v                             v
-                                            +------------+-------------+  +------------+-------------+
-                                            | self_validation_auditor  |  | self_validation_auditor  |
-                                            +--------------------------+  +--------------------------+
+[ Refactor Subagent ]
+        │
+        │ 1. Applies Unstaged Edits
+        ▼
+[ Headless Chrome Engine ] ──► Captures Live Page Screenshot (.png)
+        │
+        ▼
+[ layout_visual_auditor_v3 (Adversarial Inspector) ]
+        │
+        ├───────────────────────────────────────────┐
+        │                                           │
+  Visual Defects Found?                     Visual Layout Clean?
+        │                                           │
+        ▼ (YES: PUSHBACK TRIGGER)                   ▼ (YES: GRADUATION)
+┌──────────────────────────────────────┐    ┌──────────────────────────────────┐
+│   Structured Visual Pushback Payload │    │     100% Visual Pass Signal      │
+│ - Screenshot Evidence (.png)         │    │     - Verified pixel layout      │
+│ - Bounding Box Defect Coordinates    │    │     - Master Quality Gatekeeper  │
+│ - Prescriptive Design Remediation    │    └──────────────────────────────────┘
+└──────────────────┬───────────────────┘
+                   │
+                   │ 2. Inter-Agent Rejection Message
+                   ▼
+         (Refactor Subagent Retries)
 ```
 
 ---
 
-## 3. Specialized Subagent Registry & Skills Matrix
+## 3. The Inter-Agent Pushback Protocol
 
-### Injected Skill Sets Overview
+### A. The Pushback Trigger
+The `layout_visual_auditor_v3` MUST evaluate rendered page screenshots against 5 Visual Layout Laws:
 
-| Subagent Role | Primary Skill Sets Injected | Core Engineering Disciplines |
-|---|---|---|
-| **`frontend_system_architect`** | `modern-web-guidance`, `vercel-composition-patterns` | 8pt spatial grid, CSS box model, container queries, surface elevation hierarchy, React compound components |
-| **`domain_lead_tree_layout`** | `web-design-guidelines`, SVG Coordinate Geometry Math | Dynamic viewBox math, 60px canvas margin clearance, node collision prevention, flexible navbar scaling |
-| **`domain_lead_problem_trivia`** | `web-design-guidelines`, `a11y-debugging` | Table padding standards, subtle tokenized borders (`--border-subtle`), pill badges (`radius-full`), card elevation |
-| **`domain_lead_workspace_primitives`**| `vercel-react-best-practices`, `modern-web-guidance` | 32px visualizer canvas padding floors, text well wrapping (`p-4 md:p-5`), border dividers, 44px control touch targets |
-| **`layout_visual_auditor`** | `web-interface-guidelines`, `verification-before-completion` | Automated AST/DOM inspection, token audit rules, zero-clipping invariants, 100% compliance verification |
+1. **Pixel Clipping & Clearance Law:** SVG canvas margins must be >= 60px; graph nodes must never collide with container boundaries.
+2. **Visual Dead Space Law:** Canvas and layout containers must balance vertical and horizontal padding without giant empty voids or cramped boundaries.
+3. **Card & Well Hierarchy:** Sub-sections (description text, constraints, options) MUST be contained within distinct, elevated `Well` surfaces (`#050506`) with subtle borders (`--border-subtle`).
+4. **Interactive Touch & Padding Floor:** Buttons, inputs, and search fields must maintain comfortable internal padding (`px-5 py-2.5`) and min 44px touch targets.
+5. **Aesthetic Balance & Badge Shapes:** Category badges must be pill-shaped (`radius-full`) with subtle borders; zero aggressive double borders.
 
----
-
-## 4. Detailed Skill Descriptions Injected into Agents
-
-### 1. Modern Web & CSS Layout Guidance (`modern-web-guidance`)
-- **Box Model & Spacing:** Strict 8pt spatial scale (`var(--space-1)` through `var(--space-8)`), flex/grid gaps over legacy margins.
-- **Container Hierarchy:** Inverted dark mode surface hierarchy (Cards: `#0a0a0c`, Wells: `#050506`, Page: `#17171b`).
-- **Responsive Layout:** Dynamic CSS grid columns (`repeat(auto-fit, minmax(...))`), container queries over rigid media queries.
-
-### 2. React Composition Patterns (`vercel-composition-patterns` & `vercel-react-best-practices`)
-- **Boolean Prop Elimination:** Refactor boolean modes into explicit variants or children composition.
-- **Compound Components:** Shared context providers for complex controls (`ButtonGroup`, `ControlPanel`, `ProblemDescriptionCard`).
-- **Clean Component APIs:** Decoupled implementation details from state interfaces.
-
-### 3. Web Interface Guidelines & UX (`web-design-guidelines` & `a11y-debugging`)
-- **Touch Target Floor:** Minimum 44px height and touch area for all interactive controls and sliders.
-- **Visual Contrast & Badges:** Pill-shaped badges (`radius-full`) with `--border-subtle` and semantic badges (`difficultyBadgeVariant`).
-- **Accessibility:** Proper `aria-expanded`, `aria-controls`, `aria-label`, and focus outline rings on interactive buttons/inputs.
-
-### 4. Vector Geometry & Canvas Math
-- **SVG ViewBox Laws:** Dynamic viewBox computation (`viewBox = boxViewBox(measuredBox)`), `preserveAspectRatio="xMidYMid meet"`, zero vertical dead space.
-
----
-
-## 5. Recursive Self-Validation Cycle (The Feedback Loop)
-
-Every Domain Lead executes the following 4-step recursive loop:
-
-```
-[Phase 1: Deep Inspection] ──► [Phase 2: System Refactor] ──► [Phase 3: Automated Audit] ──► [Phase 4: Gatekeeping]
-    (AST & Box-Model Audit)         (Frontend Token Edits)       (Visual & Token Checks)       (Orchestrator Approval)
-```
-
----
-
-## 6. Feedback Loop Mechanics, Callback Injection, and Exit Conditions
-
-### A. The Callback Point (Where Rejection Triggers)
-The callback interceptor sits directly between **Phase 3 (Automated Audit)** and **Phase 2 (System Refactor)**.
-
-When `layout_visual_auditor` evaluates the unstaged component changes, it runs an automated validation matrix against the 4 Visual Invariant Contracts:
-1. **Zero Text/SVG Clipping:** `viewBox` clearance >= 60px, canvas floor >= 32px.
-2. **Container Padding Integrity:** Cards must have `p-6 md:p-8`, Wells must have `p-4 md:p-5`, Headers must have `py-4 px-6`.
-3. **Tokenized Borders & Badges:** Badges must be pill-shaped (`radius-full`), borders must use `--border-subtle` or `--border-default` (zero raw hex or aggressive double borders).
-4. **Touch & Spatial Target:** Buttons/Inputs min height `var(--control-h-md)` with `px-4`/`px-5`.
-
-If ANY invariant fails, `layout_visual_auditor` immediately interrupts execution and constructs a **Structured Diagnostic Payload**:
+### B. The Adversarial Pushback Payload (Rejection Message)
+When any rule fails, the Auditor sends the following rejection payload back to the Refactor Agent:
 
 ```json
 {
-  "status": "REJECTED",
-  "iteration": 2,
-  "failedInvariants": [
-    "Invariant 2: Description text in ProblemDescriptionCard.tsx is not wrapped in a <Well>",
-    "Invariant 3: SearchTrigger.tsx retains a hardcoded height style property"
+  "status": "REJECTED_VISUAL_AUDIT",
+  "round": 2,
+  "screenshotArtifact": ".tempmediaStorage/knowledge_tree_round2.png",
+  "visualDefects": [
+    {
+      "element": "KnowledgeGraphLegend",
+      "issue": "Legend is placed directly against top container border with only 8px gap",
+      "requiredFix": "Increase container top margin to mt-8 mb-8 and add max-w-[1100px] w-full centering"
+    },
+    {
+      "element": "Node 1 SVG Circle",
+      "issue": "Top circle label touches upper boundary of viewBox",
+      "requiredFix": "Adjust viewBox Y min from 0 to -60 for 60px canvas margin clearance"
+    }
   ],
-  "targetFiles": [
-    "src/components/primitives/ProblemDescriptionCard.tsx",
-    "src/components/SearchTrigger.tsx"
-  ],
-  "prescriptiveGuidance": "Wrap paragraph in <Well className=\"p-4 md:p-5 border border-[var(--border-subtle)] shadow-sm\"> and remove inline style height."
+  "actionRequired": "Re-run refactor targeting these exact bounding boxes and reply with updated code."
 }
 ```
 
-### B. Iteration & Feedback Execution (Next Iterations Flow)
-1. **Payload Callback Delivery:** The `layout_visual_auditor` sends the `Structured Diagnostic Payload` directly back to the `Refactor Subagent`.
-2. **Contextual Delta Fix:** The `Refactor Subagent` reads the exact `failedInvariants` and `prescriptiveGuidance`. It executes targeted edits *only* on the failing lines/components.
-3. **Re-Audit Trigger:** The updated files are immediately re-submitted to `layout_visual_auditor` for a new audit pass (`iteration++`).
+---
 
-### C. System Exit Conditions (Termination & Graduation)
+## 4. Multi-Round Iteration Mechanics & Exit Thresholds
 
-There are 3 explicit exit pathways from the recursive loop:
+1. **Multi-Round Self-Talk:** The Refactor Agent and Auditor engage in up to **4 rounds of adversarial feedback**.
+2. **Screenshot History Tracking:** Each round produces a numbered screenshot artifact (`round1.png`, `round2.png`, `round3.png`) allowing visual progress tracking.
+3. **Exit Gate:** The loop exits ONLY when:
+   - `layout_visual_auditor_v3` verifies screenshot artifact contains ZERO visual defects.
+   - `bun run check` (typecheck, oxfmt, oxlint, 1342 unit tests, build) returns code 0.
 
-1. **Pathway 1: Clean Exit (100% Pass / Success)**
-   - `layout_visual_auditor` evaluates the diff and reports `status: "APPROVED"`, `auditScore: 100%`.
-   - `bun run check` (typecheck, oxlint, oxfmt, vitest, build) executes and returns exit code 0.
-   - The Domain Lead exits the loop and reports `SUCCESS` to the Main Orchestrator.
+---
 
-2. **Pathway 2: Bounded Circuit Breaker (Max Iterations Exceeded)**
-   - To prevent infinite loops in ambiguous edge cases, every Domain Lead enforces a `MAX_ITERATION_LIMIT = 4`.
-   - If `iteration > 4` and invariants still fail, the Auditor halts the loop and triggers an **Escalation Callback** to the `frontend_system_architect` to re-analyze structural constraints (e.g. conflicting parent flex properties or unit test contract bounds).
-
-3. **Pathway 3: Orchestrator Gatekeeper Final Handshake**
-   - Once all 3 Domain Leads (`tree_layout`, `problem_trivia`, `workspace_primitives`) return `status: "APPROVED"`, the Main Orchestrator runs the master quality check and presents the final verified diff to the user.
+## 5. Summary of System Improvements
+- **No Automatic Approvals:** Edits are never approved simply because code changed.
+- **Empirical Visual Proof:** Headless Chrome screenshots provide objective ground truth.
+- **Adversarial Agent Pushback:** Auditors actively reject suboptimal layouts and demand targeted re-iterations.
