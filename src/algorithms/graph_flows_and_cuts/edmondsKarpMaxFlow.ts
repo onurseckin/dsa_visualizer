@@ -67,7 +67,7 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
       hint: "Edmonds-Karp uses BFS (FIFO queue) to find augmenting paths with the fewest edges.",
     },
     {
-      line: 14,
+      line: 16,
       hint: "Residual capacity is defined as capacity[u][v] - flow[u][v].",
     },
     {
@@ -75,7 +75,7 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
       hint: "Find bottleneck flow as the minimum residual capacity along the augmenting path.",
     },
     {
-      line: 29,
+      line: 33,
       hint: "Add bottleneck flow to forward edges and subtract from reverse residual edges.",
     },
   ],
@@ -84,11 +84,11 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
     3: "Defines Edmonds-Karp Max Flow algorithm taking capacity matrix, source, and sink.",
     5: "Initializes flow matrix flow[u][v] = 0.",
     10: "Runs BFS to discover shortest augmenting path from source to sink in residual network.",
-    14: "Filters for edges with strictly positive residual capacity capacity[u][v] - flow[u][v] > 0.",
-    17: "Terminates when sink is unreachable from source in residual graph (parent[sink] == -1).",
-    23: "Calculates bottleneck flow constraint as minimum residual capacity along path.",
-    29: "Augments forward flow flow[u][v] += push and updates reverse residual edge flow[v][u] -= push.",
-    33: "Accumulates bottleneck flow into max_flow.",
+    16: "Filters for edges with strictly positive residual capacity capacity[u][v] - flow[u][v] > 0.",
+    20: "Terminates when sink is unreachable from source in residual graph (parent[sink] == -1).",
+    27: "Calculates bottleneck flow constraint as minimum residual capacity along path.",
+    33: "Augments forward flow flow[u][v] += push and updates reverse residual edge flow[v][u] -= push.",
+    37: "Accumulates bottleneck flow into max_flow.",
   },
 };
 
@@ -139,7 +139,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 1,
+    codeLine: 5,
     explanation: {
       what: `Initialized Edmonds-Karp Max Flow algorithm (Source: "${source}", Sink: "${sink}").`,
       why: "Edmonds-Karp uses BFS to repeatedly find the shortest augmenting path in the residual network.",
@@ -203,10 +203,31 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
     if (parent[sink] === null) {
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 21,
+        codeLine: 20,
         explanation: {
           what: `No more augmenting paths from "${source}" to "${sink}" in residual graph.`,
           why: "Edmonds-Karp algorithm terminates (Max Flow Min Cut theorem achieved).",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
+          edges: edges.map((e) => ({
+            ...e,
+            isTraversed: flow[e.from][e.to] > 0,
+          })),
+        },
+        auxiliaryState: {
+          customState: { "FINAL MAX FLOW": maxFlow },
+        },
+        variables: { maxFlow },
+      });
+
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 39,
+        explanation: {
+          what: `Edmonds-Karp complete. Maximum flow = ${maxFlow}.`,
+          why: "Returned total throughput reaching sink.",
         },
         primarySnapshot: {
           kind: "graph",
@@ -240,7 +261,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 23,
+      codeLine: 27,
       explanation: {
         what: `Found augmenting path: ${pathNodes.join(" -> ")} with Bottleneck Capacity = ${bottleneck}.`,
         why: "Bottleneck is the minimum residual edge capacity along the path.",
@@ -281,7 +302,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 37,
+      codeLine: 33,
       explanation: {
         what: `Augmented flow by +${bottleneck}. New Max Flow = ${maxFlow}.`,
         why: "Flow updated along path edges and reverse residual edges adjusted.",

@@ -43,7 +43,7 @@ export const generateCosineSimilarityNormalizedSteps = (
   // Step 0: Initialization
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 8,
     explanation: {
       what: "Initialize Normalized Cosine Similarity Engine",
       why: `Preparing to compute cosine similarities for query vector [${query.join(
@@ -87,7 +87,7 @@ export const generateCosineSimilarityNormalizedSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 11,
       explanation: {
         what: `Compute dot product for Vector V${i} [${vec.join(", ")}]`,
         why: `Dot product sum: (${products.join(" + ")}) = ${dotProduct.toFixed(4)}.`,
@@ -123,7 +123,7 @@ export const generateCosineSimilarityNormalizedSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 14,
+    codeLine: 15,
     explanation: {
       what: "Sort Candidate Vectors by Descending Cosine Similarity",
       why: `Top match is V${sortedScores[0].idx} with cosine similarity score ${sortedScores[0].dotProduct.toFixed(
@@ -149,6 +149,31 @@ export const generateCosineSimilarityNormalizedSteps = (
       },
     },
     variables: { topMatchIdx: sortedScores[0].idx, topScore: sortedScores[0].dotProduct },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: "Return Ranked Candidate Similarity Results",
+      why: "Function returns final sorted tuples of (vectorIndex, similarityScore).",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: sortedScores.map((item, rank) => ({
+        id: `v-${item.idx}`,
+        value: Math.round(item.dotProduct * 100),
+        label: `Rank ${rank + 1}: V${item.idx} (${item.dotProduct.toFixed(4)})`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+        pointers: rank === 0 ? ["Top Match"] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        status: "Completed",
+      },
+    },
+    variables: { results: sortedScores },
   });
 
   return steps;

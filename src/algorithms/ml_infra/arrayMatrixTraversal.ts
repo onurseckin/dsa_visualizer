@@ -151,7 +151,7 @@ export const generateArrayMatrixTraversalSteps = (
         const offset = c * rows + r;
 
         addStep(
-          16,
+          15,
           `Visit cell (${r}, ${c}) = ${val} [Col-Major Offset: ${offset}]`,
           `Column-major accesses elements along column ${c}. Strided access jump across rows in C layout.`,
           r,
@@ -165,7 +165,7 @@ export const generateArrayMatrixTraversalSteps = (
   }
 
   addStep(
-    18,
+    17,
     `Traversal complete (${result.length} elements)`,
     `Successfully traversed ${rows}x${cols} matrix in ${order} order. Result: [${result.join(", ")}].`,
     null,

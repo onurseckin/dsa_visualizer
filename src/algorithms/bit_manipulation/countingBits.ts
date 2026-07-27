@@ -53,6 +53,26 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIdx++,
+    codeLine: 1,
+    explanation: {
+      what: `Count set bits for integers 0 through ${n}`,
+      why: `We enter countBits with n = ${n}. The key insight is that any integer i has exactly one more bit than i >> 1, plus its lowest bit — so we can build the answer table bottom-up in O(n) without inspecting individual bits.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: createBitArrayElements(ans, -1, -1),
+    },
+    auxiliaryState: {
+      customState: {
+        n,
+        approach: "DP: ans[i] = ans[i >> 1] + (i & 1)",
+      },
+    },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
       what: `Initialize answer array of size ${n + 1} with zeros`,
@@ -79,29 +99,29 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
     const half = i >> 1;
     const lowestBit = i & 1;
 
-    if (stepsPerNum >= 4) {
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 3,
-        explanation: {
-          what: `Examine integer i = ${i} (binary 0b${i.toString(2)})`,
-          why: `We decompose ${i} into its right-shifted prefix ${half} (0b${half.toString(2)}) and its lowest bit ${lowestBit}.`,
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 3,
+      explanation: {
+        what: `Examine integer i = ${i} (binary 0b${i.toString(2)})`,
+        why: `We decompose ${i} into its right-shifted prefix ${half} (0b${half.toString(2)}) and its lowest bit ${lowestBit}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: createBitArrayElements(ans, i, half),
+      },
+      auxiliaryState: {
+        customState: {
+          currentNumber: i,
+          binaryString: `0b${i.toString(2)}`,
+          shiftedValue: half,
+          lowestBit,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: createBitArrayElements(ans, i, half),
-        },
-        auxiliaryState: {
-          customState: {
-            currentNumber: i,
-            binaryString: `0b${i.toString(2)}`,
-            shiftedValue: half,
-            lowestBit,
-          },
-        },
-        variables: { i, binary: i.toString(2), half, lowestBit },
-      });
+      },
+      variables: { i, binary: i.toString(2), half, lowestBit },
+    });
 
+    if (stepsPerNum >= 4) {
       steps.push({
         stepIndex: stepIdx++,
         codeLine: 4,
@@ -156,7 +176,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
       },
     });
 
-    if (stepsPerNum >= 4 || n >= 7) {
+    if (stepsPerNum >= 4) {
       steps.push({
         stepIndex: stepIdx++,
         codeLine: 4,

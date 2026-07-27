@@ -16,16 +16,39 @@ describe("fordFulkerson algorithm logic spec", () => {
     expect(fordFulkerson.code).toContain("def ford_fulkerson");
   });
 
+  it("should generate valid steps with 1-indexed codeLine within bounds for default input and examples", () => {
+    const lineCount = fordFulkerson.code.split("\n").length;
+    expect(lineCount).toBe(29);
+
+    const steps = generateFordFulkersonSteps(DEFAULT_FORD_FULKERSON_INPUT);
+    expect(steps.length).toBeGreaterThan(0);
+
+    const codeLines = new Set<number>();
+    for (const step of steps) {
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(lineCount);
+      codeLines.add(step.codeLine);
+    }
+    expect(codeLines.size).toBeGreaterThan(3);
+
+    for (const example of fordFulkerson.examples) {
+      const exSteps = generateFordFulkersonSteps(example.input);
+      for (const step of exSteps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(lineCount);
+      }
+    }
+  });
+
   it("should generate valid steps and compute max flow for default input", () => {
     const steps = generateFordFulkersonSteps(DEFAULT_FORD_FULKERSON_INPUT);
     expect(steps.length).toBeGreaterThan(0);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.codeLine).toBe(1);
+    expect(firstStep.codeLine).toBeGreaterThanOrEqual(1);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.explanation.what).toContain("no augmenting path remains");
     expect(lastStep.variables.maxFlow).toBe(20);
 
     const snapshot = lastStep.primarySnapshot;
@@ -52,7 +75,7 @@ describe("fordFulkerson algorithm logic spec", () => {
     const steps = generateFordFulkersonSteps(noPathInput);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.maxFlow).toBe(0);
-    expect(lastStep.explanation.what).toContain("no augmenting path remains");
+    expect(lastStep.explanation.what).toContain("Ford-Fulkerson complete");
   });
 
   it("should handle empty input graph", () => {

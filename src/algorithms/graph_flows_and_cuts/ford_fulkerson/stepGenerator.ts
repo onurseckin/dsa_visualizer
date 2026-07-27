@@ -123,7 +123,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 2,
     explanation: {
       what: `Set up flow network from '${source}' to '${sink}'`,
       why: `Every edge starts carrying 0 of its capacity, and we want to push as much flow as possible from '${source}' to '${sink}'. As long as some path with spare capacity exists, we can still do better.`,
@@ -146,7 +146,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 30,
+      codeLine: 23,
       explanation: {
         what: `Reset visited set for a new DFS augmenting path search from source '${source}'.`,
         why: "Each round requires a fresh residual graph search to locate available capacity.",
@@ -173,7 +173,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 18,
+        codeLine: 11,
         explanation: {
           what: `DFS visiting node '${u}' (current path bottleneck capacity = ${currentFlow === Infinity ? "∞" : currentFlow}).`,
           why: `Node '${u}' added to current search path.`,
@@ -213,7 +213,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     if (!pathResult || pathResult.bottleneck === 0) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 33,
+        codeLine: 26,
         explanation: {
           what: `Stop — no augmenting path remains`,
           why: `We searched the residual graph and found no route from '${source}' to '${sink}' with spare capacity left. The max-flow min-cut theorem tells us that means our total of ${currentMaxFlow} cannot be improved — the saturated edges form a minimum cut sealing off the sink.`,
@@ -226,6 +226,25 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         auxiliaryState: {
           visited: Array.from(visited),
           customState: getFormattedCustomState({ Status: "Terminated", "Final Max Flow": currentMaxFlow }),
+        },
+        variables: { maxFlow: currentMaxFlow, completed: true },
+      });
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 29,
+        explanation: {
+          what: `Ford-Fulkerson complete. Returned max_flow = ${currentMaxFlow}.`,
+          why: "Algorithm returns maximum total flow.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: getGraphNodes(),
+          edges: getGraphEdges(),
+        },
+        auxiliaryState: {
+          visited: Array.from(visited),
+          customState: getFormattedCustomState({ Status: "Completed", "Final Max Flow": currentMaxFlow }),
         },
         variables: { maxFlow: currentMaxFlow, completed: true },
       });
@@ -243,7 +262,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 31,
+      codeLine: 24,
       explanation: {
         what: `Find augmenting path ${pathNodes.join(" → ")}`,
         why: `Every edge along this route still has spare capacity, and the tightest one allows only ${bottleneck} more units — that bottleneck is exactly how much we can push in one go.`,
@@ -288,7 +307,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 34,
+      codeLine: 27,
       explanation: {
         what: `Push ${bottleneck} units along the path ${pathNodes.join(" → ")}`,
         why: `We add ${bottleneck} to the flow on each forward edge and record the same amount as reverse capacity, so a later path can undo part of this routing if a better one exists. Total flow is now ${currentMaxFlow}.`,

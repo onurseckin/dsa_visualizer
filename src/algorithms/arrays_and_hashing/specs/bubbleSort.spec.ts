@@ -56,6 +56,22 @@ describe("bubbleSort algorithm spec", () => {
     const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements.map((el) => el.value)).toEqual([1, 2, 3]);
   });
+
+  it("ensures codeLine is 1-indexed (1..7) for defaultInput and all examples", () => {
+    const totalLines = bubbleSort.code.split("\n").length;
+    expect(totalLines).toBe(7);
+    const inputs = [bubbleSort.defaultInput, ...bubbleSort.examples.map((e) => e.input)];
+    for (const input of inputs) {
+      const steps = generateBubbleSortSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+      const codeLines = new Set(steps.map((s) => s.codeLine));
+      expect(codeLines.size).toBeGreaterThan(1);
+    }
+  });
 });
 
 describe("bubbleSort trivia metadata", () => {

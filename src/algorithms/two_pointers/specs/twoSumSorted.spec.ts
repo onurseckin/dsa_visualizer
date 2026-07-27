@@ -73,4 +73,20 @@ describe("twoSumSorted algorithm spec", () => {
       expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
     }
   });
+
+  it("ensures codeLine is 1-indexed and within total lines N for all inputs", () => {
+    const N = twoSumSorted.code.split("\n").length;
+    const inputs = [
+      twoSumSorted.defaultInput,
+      ...(twoSumSorted.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const inp of inputs) {
+      const steps = twoSumSorted.generateSteps(inp);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(N);
+      }
+    }
+  });
 });

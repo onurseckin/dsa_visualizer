@@ -37,8 +37,7 @@ export const TRANSPOSEDCONV2DDECONVINDEXMAPPER_CODE = `def transposed_conv2d(inp
                     if 0 <= r_out < h_out and 0 <= c_out < w_out:
                         output_map[r_out][c_out] += val * kernel[kr][kc]
 
-    return output_map
-`;
+    return output_map`;
 
 export const DEFAULT_TRANSPOSEDCONV2DDECONVINDEXMAPPER_INPUT: transposedConv2dDeconvIndexMapperInput =
   {
@@ -371,22 +370,22 @@ export const transposedConv2dDeconvIndexMapper: AlgorithmDefinition<transposedCo
     },
     topicGuide: {
       overview:
-        "Transposed 2D Convolution performs spatial upsampling by scattering input activations into larger output feature maps.",
+        "The **Transposed 2D Convolution (Deconvolution) Engine** performs spatial upsampling by scattering input activations into larger output feature maps.",
       sections: [
         {
-          heading: "Overview & Mathematical Formulation",
-          body: "Standard convolution downsamples spatial resolutions. Transposed convolution reverses this spatial gradient, mapping lower-resolution bottleneck features back to high-resolution image space (e.g. in U-Net decoder branches). Direct index mapping computes r_out = r_in * stride + kr - padding and c_out = c_in * stride + kc - padding.",
+          heading: "1. Overview & Mathematical Formulation",
+          body: "Standard convolution downsamples spatial resolutions. Transposed convolution reverses this spatial gradient, mapping lower-resolution bottleneck features back to high-resolution image space (e.g. in U-Net decoder branches). Direct index mapping computes $r_{out} = r_{in} \\cdot S + kr - P$ and $c_{out} = c_{in} \\cdot S + kc - P$.",
         },
         {
-          heading: "Core Concepts & Scatter Accumulation",
-          body: "1. Direct Index Mapping: Maps each input element at (r_in, c_in) to an output patch starting at (r_in * stride, c_in * stride).\n2. Scatter Accumulation: Overlapping output patches accumulate weight products iteratively.\n3. Output Shape Formula: H_out = (H_in - 1) * stride - 2 * padding + K_h + output_padding.",
+          heading: "2. Core Concepts & Scatter Accumulation",
+          body: "1. Direct Index Mapping: Maps each input element at $(r_{in}, c_{in})$ to an output patch starting at $(r_{in} \\cdot S, c_{in} \\cdot S)$.\n2. Scatter Accumulation: Overlapping output patches accumulate weight products iteratively.\n3. Output Shape Formula: $H_{out} = (H_{in} - 1) \\cdot S - 2P + K_h + OP$.",
         },
         {
-          heading: "Systems & Performance Impact",
+          heading: "3. Systems & Performance Impact",
           body: "Naive implementations expand input tensors with sparse zeros (inserting stride-1 zeros), wasting memory bandwidth and FLOPs on zero multiplication. Direct index mapping eliminates zero-padding overhead completely.",
         },
         {
-          heading: "Implementation Nuances & Production Artifacts",
+          heading: "4. Implementation Nuances & Production Artifacts",
           body: "Checkerboard artifacts occur when kernel size is not divisible by stride. Using resize-convolution (nearest-neighbor or bilinear interpolation followed by standard convolution) is often an alternative to eliminate artifacts.",
         },
       ],

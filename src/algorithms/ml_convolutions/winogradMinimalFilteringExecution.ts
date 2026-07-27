@@ -66,8 +66,7 @@ export const WINOGRADMINIMALFILTERINGEXECUTION_CODE = `def winograd_minimal_filt
                     if r_tile + dy < h_out and c_tile + dx < w_out:
                         output[r_tile + dy][c_tile + dx] = Y[dy][dx]
 
-    return output
-`;
+    return output`;
 
 export const DEFAULT_WINOGRADMINIMALFILTERINGEXECUTION_INPUT: winogradMinimalFilteringExecutionInput =
   {
@@ -216,80 +215,73 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
     });
   };
 
-  // Step 1: Function entry
   addStep(
-    11,
+    1,
     "Winograd F(2x2, 3x3) Minimal Filtering Execution Engine Entry",
     `Started end-to-end Winograd F(2x2, 3x3) execution engine on ${hIn}x${wIn} image with 3x3 kernel and padding P=${padding}.`,
     { hIn, wIn, padding },
   );
 
-  // Step 2: Measure hIn, wIn
   addStep(
-    18,
+    8,
     "Measure Input Image Spatial Dimensions",
     `Input spatial dimensions: h_in = ${hIn}, w_in = ${wIn}.`,
     { hIn, wIn },
   );
 
-  // Step 3: Output spatial dimensions
   addStep(
-    29,
+    19,
     "Calculate Spatial Output Height h_out",
     `Output spatial height h_out = ${hIn} - 2 = ${hOut}.`,
     { hOut, hIn },
   );
 
   addStep(
-    30,
+    20,
     "Calculate Spatial Output Width w_out",
     `Output spatial width w_out = ${wIn} - 2 = ${wOut}.`,
     { wOut, wIn },
   );
 
-  // Step 4: Output matrix buffer allocation
   addStep(
-    31,
+    21,
     "Allocate Output Feature Map Buffer",
     `Allocated ${hOut}x${wOut} output feature map matrix initialized to 0.0.`,
     { hOut, wOut },
   );
 
-  // Step 5: Define transform matrices
   addStep(
-    33,
+    23,
     "Construct Data Transform Matrix B_T (4x4)",
     `Loaded 4x4 data transform matrix B_T for Winograd F(2x2, 3x3).`,
     { B_T_rows: 4, B_T_cols: 4 },
   );
 
   addStep(
-    35,
+    25,
     "Construct Filter Transform Matrix G (4x3)",
     `Loaded 4x3 filter transform matrix G for Winograd F(2x2, 3x3).`,
     { G_rows: 4, G_cols: 3 },
   );
 
   addStep(
-    37,
+    27,
     "Construct Inverse Output Transform Matrix A_T (2x4)",
     `Loaded 2x4 output transform matrix A_T for Winograd F(2x2, 3x3).`,
     { A_T_rows: 2, A_T_cols: 4 },
   );
 
-  // Step 6: Filter pre-transformation U = G @ kernel @ GT
   const U = matmul(matmul(G, kernel), GT);
   addStep(
-    46,
+    36,
     "Pre-Transform Filter Kernel: Compute U = G @ g @ G_T (4x4)",
     `Completed offline 3x3 filter pre-transformation into 4x4 Winograd domain tensor U.`,
     { U_rows: 4, U_cols: 4 },
   );
 
-  // Tile loop execution
   for (let rTile = 0; rTile < hOut; rTile += 2) {
     addStep(
-      49,
+      39,
       `Outer Tile Row Loop: r_tile = ${rTile}`,
       `Processing Winograd 4x4 spatial tile row at r_tile = ${rTile} of ${hOut - 1}.`,
       { rTile, hOut },
@@ -297,7 +289,7 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 
     for (let cTile = 0; cTile < wOut; cTile += 2) {
       addStep(
-        50,
+        40,
         `Inner Tile Column Loop: c_tile = ${cTile}`,
         `Processing Winograd 4x4 spatial tile column at c_tile = ${cTile} of ${wOut - 1}.`,
         { rTile, cTile, wOut },
@@ -305,7 +297,7 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 
       const tile: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
       addStep(
-        51,
+        41,
         `Allocate 4x4 Local Tile Buffer`,
         `Allocated 4x4 local tile matrix for spatial position (${rTile}, ${cTile}).`,
         { rTile, cTile },
@@ -322,7 +314,7 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
       }
 
       addStep(
-        57,
+        47,
         `Extract 4x4 Spatial Input Tile d`,
         `Extracted 4x4 image tile d anchored at spatial coordinates (${rTile}, ${cTile}).`,
         { rTile, cTile, d_00: tile[0][0], d_33: tile[3][3] },
@@ -330,10 +322,9 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
         cTile,
       );
 
-      // Data transform V = BT @ tile @ B
       const V = matmul(matmul(BT, tile), B);
       addStep(
-        59,
+        49,
         `Winograd Data Transform: Compute V = B_T @ d @ B (4x4)`,
         `Transformed 4x4 input data tile d into 4x4 Winograd domain tensor V.`,
         { rTile, cTile, V_00: V[0][0] },
@@ -341,23 +332,26 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
         cTile,
       );
 
-      // Hadamard product M = U (*) V
       const M: number[][] = Array.from({ length: 4 }, (_, i) =>
         Array.from({ length: 4 }, (_, j) => U[i][j] * V[i][j]),
       );
-      addStep(
-        60,
-        `Hadamard Elementwise Multiplication: Compute M = U (*) V (4x4)`,
-        `Executed 16 domain multiplications M = U (*) V for tile (${rTile}, ${cTile}).`,
-        { rTile, cTile, M_00: M[0][0] },
-        rTile,
-        cTile,
-      );
 
-      // Inverse transform Y = AT @ M @ A
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          addStep(
+            50,
+            `Domain Multiplication Cell M[${i}][${j}] = U[${i}][${j}] * V[${i}][${j}] = ${M[i][j].toFixed(2)}`,
+            `Multiplied transformed filter cell U[${i}][${j}] by data cell V[${i}][${j}] -> ${M[i][j].toFixed(2)}.`,
+            { i, j, "U[i][j]": U[i][j], "V[i][j]": V[i][j], "M[i][j]": M[i][j] },
+            rTile,
+            cTile,
+          );
+        }
+      }
+
       const Y = matmul(matmul(AT, M), A);
       addStep(
-        61,
+        51,
         `Output Inverse Spatial Transform: Compute Y = A_T @ M @ A (2x2)`,
         `Transformed 4x4 domain matrix M back to 2x2 spatial output activation patch Y.`,
         { rTile, cTile, Y_00: Y[0][0], Y_01: Y[0][1], Y_10: Y[1][0], Y_11: Y[1][1] },
@@ -365,13 +359,12 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
         cTile,
       );
 
-      // Stitch Y into output matrix
       for (let dy = 0; dy < 2; dy++) {
         for (let dx = 0; dx < 2; dx++) {
           if (rTile + dy < hOut && cTile + dx < wOut) {
             output[rTile + dy][cTile + dx] = Y[dy][dx];
             addStep(
-              66,
+              56,
               `Stitch 2x2 Output Tile: output[${rTile + dy}][${cTile + dx}] = ${Y[dy][dx].toFixed(1)}`,
               `Wrote Winograd 2x2 output activation patch cell into output feature map at (${rTile + dy}, ${cTile + dx}).`,
               { rTile, cTile, dy, dx, "output[r+dy][c+dx]": Y[dy][dx] },
@@ -384,9 +377,8 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
     }
   }
 
-  // Step final
   addStep(
-    68,
+    58,
     "Execution Complete",
     `Successfully completed end-to-end Winograd F(2x2, 3x3) minimal filtering execution. Output spatial shape ${hOut}x${wOut}.`,
     { completed: true, hOut, wOut },
@@ -396,7 +388,7 @@ export const generateWinogradMinimalFilteringExecutionSteps = (
 };
 
 const WINOGRADMINIMALFILTERINGEXECUTION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 15, 16, 17, 19, 28, 32, 40, 44, 45, 47, 48, 67],
+  skipLines: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 22, 24, 26, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 42, 43, 44, 45, 46, 48, 52, 53, 54, 55, 57],
   distractors: [
     "output[r_tile][c_tile] = Y",
     "U = matmul(G, kernel_3x3)",
@@ -405,78 +397,77 @@ const WINOGRADMINIMALFILTERINGEXECUTION_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 46,
+      line: 36,
       hint: "Filter pre-transformation equation: U = G @ kernel_3x3 @ G_T.",
     },
     {
-      line: 49,
+      line: 39,
       hint: "Winograd 4x4 spatial tiles advance by stride 2 across output coordinates.",
     },
     {
-      line: 61,
+      line: 51,
       hint: "Inverse spatial transform equation: Y = A_T @ M @ A.",
     },
   ],
   lineExplanations: {
-    11: "Defines entry point for end-to-end Winograd F(2x2, 3x3) minimal filtering execution engine function.",
-    12: "Docstring opening delimiter tag.",
-    13: "Describes end-to-end Winograd F(2x2, 3x3) minimal filtering spatial tiling execution.",
-    14: "Docstring continuation detailing 4x4 spatial tiling and Winograd domain transforms.",
-    15: "Docstring continuation listing transform equations U = G g G_T, V = B_T d B, M = U (*) V, Y = A_T M A.",
-    16: "Docstring continuation detailing output 2x2 tile stitching.",
-    17: "Docstring closing delimiter tag.",
-    18: "Measures height h_in and width w_in of input image matrix.",
-    19: "Blank line before zero-padding check.",
-    20: "Checks if boundary zero-padding padding > 0 is requested.",
-    21: "Allocates padded matrix of shape (h_in + 2*padding) x (w_in + 2*padding).",
-    22: "Iterates over input image row index r from 0 to h_in - 1.",
-    23: "Iterates over input image column index c from 0 to w_in - 1.",
-    24: "Copies input image pixel float to padded matrix with padding offset.",
-    25: "Replaces image reference with padded matrix.",
-    26: "Updates h_in to include total padded height.",
-    27: "Updates w_in to include total padded width.",
-    28: "Blank line before output shape calculation.",
-    29: "Calculates spatial output height h_out = h_in - 2.",
-    30: "Calculates spatial output width w_out = w_in - 2.",
-    31: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
-    32: "Blank line before transform matrix definitions.",
-    33: "Constructs 4x4 data transform transposed matrix B_T.",
-    34: "Transposes B_T to form 4x4 data transform matrix B.",
-    35: "Constructs 4x3 filter transform matrix G.",
-    36: "Transposes G to form 3x4 filter transform transposed matrix G_T.",
-    37: "Constructs 2x4 inverse transform transposed matrix A_T.",
-    38: "Transposes A_T to form 4x2 inverse transform matrix A.",
-    39: "Blank line before matmul helper function.",
-    40: "Defines helper function matmul for 2D matrix multiplication.",
-    41: "Extracts row and column dimensions for M1 and M2.",
-    42: "Computes matrix multiplication dot products.",
-    43: "Returns matrix multiplication result.",
-    44: "Blank line before filter pre-transformation.",
-    45: "Comment for pre-transforming 3x3 filter to 4x4 Winograd domain.",
-    46: "Computes transformed 4x4 filter matrix U = G @ kernel_3x3 @ G_T.",
-    47: "Blank line before tile processing loop.",
-    48: "Comment for processing 4x4 tiles with spatial stride 2.",
-    49: "Iterates over tile row coordinate r_tile from 0 to h_out - 1 with step 2.",
-    50: "Iterates over tile column coordinate c_tile from 0 to w_out - 1 with step 2.",
-    51: "Allocates 4x4 local tile matrix initialized to 0.0.",
-    52: "Iterates over tile row index tr from 0 to 3.",
-    53: "Iterates over tile column index tc from 0 to 3.",
-    54: "Calculates image row index ir = r_tile + tr.",
-    55: "Calculates image column index ic = c_tile + tc.",
-    56: "Checks if image coordinate (ir, ic) lies within valid image bounds.",
-    57: "Copies image pixel image[ir][ic] into tile[tr][tc].",
-    58: "Blank line before Winograd domain transforms.",
-    59: "Computes transformed 4x4 data matrix V = B_T @ tile @ B.",
-    60: "Computes 4x4 Hadamard elementwise product matrix M = U (*) V.",
-    61: "Computes 2x2 output spatial patch matrix Y = A_T @ M @ A.",
-    62: "Blank line before tile stitching loop.",
-    63: "Iterates over 2x2 output patch row index dy from 0 to 1.",
-    64: "Iterates over 2x2 output patch column index dx from 0 to 1.",
-    65: "Checks if output coordinate (r_tile + dy, c_tile + dx) lies within output map bounds.",
-    66: "Stitches 2x2 output patch value Y[dy][dx] into output map at (r_tile + dy, c_tile + dx).",
-    67: "Blank line separating tile loop from return statement.",
-    68: "Returns final 2D feature map matrix output.",
-    69: "Blank line at end of file.",
+    1: "Defines entry point for end-to-end Winograd F(2x2, 3x3) minimal filtering execution engine function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes end-to-end Winograd F(2x2, 3x3) minimal filtering spatial tiling execution.",
+    4: "Docstring continuation detailing 4x4 spatial tiling and Winograd domain transforms.",
+    5: "Docstring continuation listing transform equations U = G g G_T, V = B_T d B, M = U (*) V, Y = A_T M A.",
+    6: "Docstring continuation detailing output 2x2 tile stitching.",
+    7: "Docstring closing delimiter tag.",
+    8: "Measures height h_in and width w_in of input image matrix.",
+    9: "Blank line before zero-padding check.",
+    10: "Checks if boundary zero-padding padding > 0 is requested.",
+    11: "Allocates padded matrix of shape (h_in + 2*padding) x (w_in + 2*padding).",
+    12: "Iterates over input image row index r from 0 to h_in - 1.",
+    13: "Iterates over input image column index c from 0 to w_in - 1.",
+    14: "Copies input image pixel float to padded matrix with padding offset.",
+    15: "Replaces image reference with padded matrix.",
+    16: "Updates h_in to include total padded height.",
+    17: "Updates w_in to include total padded width.",
+    18: "Blank line before output shape calculation.",
+    19: "Calculates spatial output height h_out = h_in - 2.",
+    20: "Calculates spatial output width w_out = w_in - 2.",
+    21: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
+    22: "Blank line before transform matrix definitions.",
+    23: "Constructs 4x4 data transform transposed matrix B_T.",
+    24: "Transposes B_T to form 4x4 data transform matrix B.",
+    25: "Constructs 4x3 filter transform matrix G.",
+    26: "Transposes G to form 3x4 filter transform transposed matrix G_T.",
+    27: "Constructs 2x4 inverse transform transposed matrix A_T.",
+    28: "Transposes A_T to form 4x2 inverse transform matrix A.",
+    29: "Blank line before matmul helper function.",
+    30: "Defines helper function matmul for 2D matrix multiplication.",
+    31: "Extracts row and column dimensions for M1 and M2.",
+    32: "Computes matrix multiplication dot products.",
+    33: "Returns matrix multiplication result.",
+    34: "Blank line before filter pre-transformation.",
+    35: "Comment for pre-transforming 3x3 filter to 4x4 Winograd domain.",
+    36: "Computes transformed 4x4 filter matrix U = G @ kernel_3x3 @ G_T.",
+    37: "Blank line before tile processing loop.",
+    38: "Comment for processing 4x4 tiles with spatial stride 2.",
+    39: "Iterates over tile row coordinate r_tile from 0 to h_out - 1 with step 2.",
+    40: "Iterates over tile column coordinate c_tile from 0 to w_out - 1 with step 2.",
+    41: "Allocates 4x4 local tile matrix initialized to 0.0.",
+    42: "Iterates over tile row index tr from 0 to 3.",
+    43: "Iterates over tile column index tc from 0 to 3.",
+    44: "Calculates image row index ir = r_tile + tr.",
+    45: "Calculates image column index ic = c_tile + tc.",
+    46: "Checks if image coordinate (ir, ic) lies within valid image bounds.",
+    47: "Copies image pixel image[ir][ic] into tile[tr][tc].",
+    48: "Blank line before Winograd domain transforms.",
+    49: "Computes transformed 4x4 data matrix V = B_T @ tile @ B.",
+    50: "Computes 4x4 Hadamard elementwise product matrix M = U (*) V.",
+    51: "Computes 2x2 output spatial patch matrix Y = A_T @ M @ A.",
+    52: "Blank line before tile stitching loop.",
+    53: "Iterates over 2x2 output patch row index dy from 0 to 1.",
+    54: "Iterates over 2x2 output patch column index dx from 0 to 1.",
+    55: "Checks if output coordinate (r_tile + dy, c_tile + dx) lies within output map bounds.",
+    56: "Stitches 2x2 output patch value Y[dy][dx] into output map at (r_tile + dy, c_tile + dx).",
+    57: "Blank line separating tile loop from return statement.",
+    58: "Returns final 2D feature map matrix output.",
   },
 };
 
@@ -521,23 +512,23 @@ export const winogradMinimalFilteringExecution: AlgorithmDefinition<winogradMini
     },
     topicGuide: {
       overview:
-        "The Winograd F(2x2, 3x3) Execution Engine processes full 2D spatial images by tiling, Winograd domain transformations, and output patch stitching.",
+        "The **Winograd F(2x2, 3x3) Execution Engine** processes full 2D spatial images by tiling, Winograd domain transformations, and output patch stitching.",
       sections: [
         {
-          heading: "Core Concept & Full-Image Tiling",
-          body: "Winograd F(m, r) algorithms process images by tiling them into (m + r - 1) x (m + r - 1) overlapping patches with stride m. For F(2, 3), 4x4 input tiles are processed with spatial stride 2 to produce non-overlapping 2x2 output tiles.",
+          heading: "1. Core Concept & Full-Image Tiling",
+          body: "Winograd F(m, r) algorithms process images by tiling them into ($m + r - 1) \\times (m + r - 1)$ overlapping patches with stride $m$. For $F(2, 3)$, $4 \\times 4$ input tiles are processed with spatial stride 2 to produce non-overlapping $2 \\times 2$ output tiles.",
         },
         {
-          heading: "Systems & Compute Efficiency",
+          heading: "2. Systems & Compute Efficiency",
           body: "In cuDNN and NCNN execution graphs, image tiling and Winograd domain transforms are fused with 2D GEMM across channels. Batched Winograd transforms achieve near 100% Tensor Core utilization on NVIDIA GPUs.",
         },
         {
-          heading: "Implementation Nuances & Boundary Padding",
-          body: "When image dimensions are not multiples of 2, edge tiles are padded to 4x4 with zeros. Inverse spatial transform A_T @ M @ A truncates any out-of-bounds padded elements.",
+          heading: "3. Implementation Nuances & Boundary Padding",
+          body: "When image dimensions are not multiples of 2, edge tiles are padded to $4 \\times 4$ with zeros. Inverse spatial transform $A_T \\cdot M \\cdot A$ truncates any out-of-bounds padded elements.",
         },
         {
-          heading: "Edge Case Analysis & Production Safeguards",
-          body: "Handling arbitrary spatial padding P > 0 requires prepending zero borders prior to tile extraction. Pre-transformed filter matrices U are cached across inference iterations.",
+          heading: "4. Edge Case Analysis & Production Safeguards",
+          body: "Handling arbitrary spatial padding $P > 0$ requires prepending zero borders prior to tile extraction. Pre-transformed filter matrices $U$ are cached across inference iterations.",
         },
       ],
       keyTerms: [

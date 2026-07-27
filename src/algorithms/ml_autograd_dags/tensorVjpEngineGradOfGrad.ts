@@ -112,7 +112,15 @@ export const generateTensorVjpEngineGradOfGradSteps = (
 
     addStep(
       9,
-      `Outer Loop Row ${i}: Fetch Upstream Gradient v_val = ${vVal}`,
+      `Outer Loop Row ${i}: for i in range(${m})`,
+      `Iterating over Jacobian row index i = ${i}.`,
+      { i, phase: "OUTER_LOOP_I" },
+      stateA,
+    );
+
+    addStep(
+      10,
+      `Fetch Upstream Gradient v_val = ${vVal}`,
       `Reading upstream gradient component vjp_vector[${i}] = ${vVal} for Jacobian row ${i}.`,
       { i, v_val: vVal, phase: "FETCH_V_VAL" },
       stateA,
@@ -130,6 +138,14 @@ export const generateTensorVjpEngineGradOfGradSteps = (
         if (idx < j) return { ...el, state: "visited" };
         return el;
       });
+
+      addStep(
+        11,
+        `Inner Loop Column ${j}: for j in range(${n})`,
+        `Iterating over Jacobian column index j = ${j}.`,
+        { i, j, phase: "INNER_LOOP_J" },
+        stateB,
+      );
 
       addStep(
         12,

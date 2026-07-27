@@ -8,6 +8,7 @@ export interface flashAttention1ForwardTilingInput {
   Br?: number;
   Bc?: number;
   data?: number[];
+  target?: number;
   [key: string]: unknown;
 }
 
@@ -68,6 +69,8 @@ export const DEFAULT_FLASHATTENTION1FORWARDTILING_INPUT: flashAttention1ForwardT
   ],
   Br: 2,
   Bc: 2,
+  data: [1, 0, 0, 1],
+  target: 0,
 };
 
 export const generateFLASHATTENTION1FORWARDTILINGSteps = (
@@ -90,36 +93,37 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
   const m: number[] = new Array(N).fill(-Infinity);
   const lse: number[] = new Array(N).fill(0.0);
 
-  const createMatrixSnapshot = (
-    activeRow?: number,
-    activeTileJ?: number,
-    activeTileI?: number,
-  ): MatrixCellItem[][] => {
-    const grid: MatrixCellItem[][] = [];
+  const getSnapshot = (
+    activeRow: number = -1,
+    _activeTileJ: number = -1,
+    activeTileI: number = -1,
+  ) => {
+    const cells: MatrixCellItem[] = [];
     for (let r = 0; r < N; r++) {
-      const rowItems: MatrixCellItem[] = [];
       for (let c = 0; c < d; c++) {
-        const val = Number(O[r][c].toFixed(2));
-        let state: MatrixCellItem["state"] = "default";
-        if (activeRow === r) {
-          state = "active";
-        } else if (activeTileI !== undefined && r >= activeTileI && r < activeTileI + Br) {
-          state = "compare";
-        } else if (m[r] > -Infinity) {
-          state = "sorted";
-        }
+        const val = O[r][c];
+        const isCurrent = r === activeRow;
+        const isInTile = activeTileI >= 0 && r >= activeTileI && r < activeTileI + Br;
 
-        rowItems.push({
+        cells.push({
           row: r,
           col: c,
-          val,
-          label: `O[${r}][${c}]=${val}`,
-          state,
+          value: val.toFixed(2),
+          label: `O[${r},${c}]`,
+          state: isCurrent ? "active" : isInTile ? "compared" : val !== 0 ? "sorted" : "default",
         });
       }
-      grid.push(rowItems);
     }
-    return grid;
+
+    return {
+      kind: "matrix" as const,
+      rows: N,
+      cols: d,
+      rowHeaders: Array.from({ length: N }, (_, r) => `Seq ${r}`),
+      colHeaders: Array.from({ length: d }, (_, c) => `Head ${c}`),
+      cells,
+      title: `FlashAttention-1 Output Matrix O (${N}x${d}, Br=${Br}, Bc=${Bc})`,
+    };
   };
 
   const addStep = (
@@ -127,110 +131,115 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeRow?: number,
-    activeTileJ?: number,
-    activeTileI?: number,
-    customState?: Record<string, string | number>,
+    activeRow: number = -1,
+    activeTileJ: number = -1,
+    activeTileI: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "matrix",
-        matrix: createMatrixSnapshot(activeRow, activeTileJ, activeTileI),
-      },
+      primarySnapshot: getSnapshot(activeRow, activeTileJ, activeTileI),
       auxiliaryState: {
-        customState: customState ?? {
-          Br: String(Br),
-          Bc: String(Bc),
-          scale: scale.toFixed(3),
+        customState: {
+          "Algorithm": "FlashAttention-1 Forward Pass (Dao et al. 2022)",
+          "Sequence Length N": String(N),
+          "Head Dimension d": String(d),
+          "SRAM Row Block Br": String(Br),
+          "SRAM Col Block Bc": String(Bc),
+          "IO Complexity": "O(N^2 d^2 / M) Memory Accesses",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
-    "Initialize FlashAttention-1 SRAM Tiled Forward Kernel",
-    `Configuring SRAM tiling: N=${N}, d=${d}, tile sizes Br=${Br}, Bc=${Bc}, scale=${scale.toFixed(3)}.`,
+    "FlashAttention-1 Forward Engine Entry",
+    `Started FlashAttention-1 forward pass on sequence length N=${N}, head dimension d=${d}, tiling Br=${Br}, Bc=${Bc}.`,
     { N, d, Br, Bc },
   );
 
+  // Step 2: Measure N & d (3, 4)
   addStep(
     3,
-    `Read N = len(Q) = ${N}`,
-    `Storing sequence length N=${N} for block partitioning.`,
+    `Measure Sequence Length: N = len(Q) = ${N}`,
+    `Sequence length N = ${N}.`,
     { N },
   );
 
   addStep(
     4,
-    `Read d = len(Q[0]) = ${d}`,
-    `Storing head dimension d=${d}.`,
-    { d },
+    `Measure Head Dimension: d = len(Q[0]) = ${d}`,
+    `Head dimension d = ${d}. Scale factor 1/sqrt(d) = ${scale.toFixed(4)}.`,
+    { d, scale },
   );
 
+  // Step 3: Init O (6)
   addStep(
     6,
-    `Initialize Output accumulator matrix O of shape [${N}, ${d}] with zeros`,
-    "Allocating output tensor O in SRAM registers.",
-    { O_shape: `[${N}, ${d}]` },
+    `Allocate Output Matrix O (${N}x${d}) in HBM DRAM`,
+    `Zero-initialized ${N}x${d} output matrix O in HBM DRAM.`,
+    { N, d },
   );
 
+  // Step 4: Init lse (7)
   addStep(
     7,
-    `Initialize log-sum-exp sum array lse of size ${N} with zeros`,
-    "Allocating lse denominator array in SRAM.",
-    { lse_len: N },
+    `Allocate Normalizer Accumulator lse [] (${N} Elements)`,
+    `Zero-initialized online softmax denominator accumulator list.`,
+    { N },
   );
 
+  // Step 5: Init m (8)
   addStep(
     8,
-    `Initialize running maximum array m of size ${N} with -inf`,
-    "Allocating online row max tracker initialized to negative infinity.",
-    { m_len: N },
+    `Allocate Max Score Tracker m [] (${N} Elements)`,
+    "Initialized row max score tracker m to -infinity.",
+    { N },
   );
 
+  // Outer loop over J (10..12)
   for (let j = 0; j < N; j += Bc) {
     addStep(
       10,
-      `Outer loop j = ${j}: load K, V block [${j}..${Math.min(j + Bc, N) - 1}] into SRAM`,
-      `Loading Key tile K[${j}:${j + Bc}] and Value tile V[${j}:${j + Bc}] into fast GPU SRAM.`,
+      `Outer Column Block Loop: Load K, V Blocks starting at j = ${j}`,
+      `Loading K_block [${j}:${j + Bc}] and V_block [${j}:${j + Bc}] into fast SRAM shared memory.`,
       { j, Bc },
-      undefined,
+      -1,
       j,
     );
 
     const KBlock = K.slice(j, j + Bc);
-    const VBlock = V.slice(j, j + Bc);
-
     addStep(
       11,
-      `Load K_block = K[${j}:${j + Bc}] (${KBlock.length} rows)`,
-      `SRAM read: Key tile K_block loaded.`,
-      { j, K_block_len: KBlock.length },
-      undefined,
+      `Load K_block [${j}:${j + Bc}] (${KBlock.length} vectors) into SRAM`,
+      `Loaded K_block into GPU SRAM shared memory.`,
+      { j, KBlockLength: KBlock.length },
+      -1,
       j,
     );
 
+    const VBlock = V.slice(j, j + Bc);
     addStep(
       12,
-      `Load V_block = V[${j}:${j + Bc}] (${VBlock.length} rows)`,
-      `SRAM read: Value tile V_block loaded.`,
-      { j, V_block_len: VBlock.length },
-      undefined,
+      `Load V_block [${j}:${j + Bc}] (${VBlock.length} vectors) into SRAM`,
+      `Loaded V_block into GPU SRAM shared memory.`,
+      { j, VBlockLength: VBlock.length },
+      -1,
       j,
     );
 
+    // Inner loop over I (14..15)
     for (let i = 0; i < N; i += Br) {
       addStep(
         14,
-        `Inner loop i = ${i}: load Q block [${i}..${Math.min(i + Br, N) - 1}] into SRAM`,
-        `Loading Query tile Q[${i}:${i + Br}] into fast GPU SRAM.`,
-        { i, j, Br },
-        undefined,
+        `Inner Row Block Loop: Load Q Block starting at i = ${i}`,
+        `Loading Q_block [${i}:${i + Br}] into fast SRAM shared memory.`,
+        { i, Br },
+        -1,
         j,
         i,
       );
@@ -238,50 +247,61 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
       const QBlock = Q.slice(i, i + Br);
       addStep(
         15,
-        `Load Q_block = Q[${i}:${i + Br}] (${QBlock.length} rows)`,
-        `SRAM read: Query tile Q_block loaded.`,
-        { i, Q_block_len: QBlock.length },
-        undefined,
+        `Load Q_block [${i}:${i + Br}] (${QBlock.length} vectors) into SRAM`,
+        `Loaded Q_block into GPU SRAM shared memory.`,
+        { i, QBlockLength: QBlock.length },
+        -1,
         j,
         i,
       );
 
+      // Loop over rows in Q_block (17..33)
       for (let r = 0; r < QBlock.length; r++) {
-        const qVec = QBlock[r];
         const rowIdx = i + r;
+        const qVec = QBlock[r];
 
         addStep(
-          18,
-          `Process query vector at row_idx = i + r = ${i} + ${r} = ${rowIdx}`,
-          `Calculating attention scores for query row ${rowIdx} against K_block tile.`,
-          { row_idx: rowIdx, r, i },
+          17,
+          `Process Q Row ${rowIdx} (Block Offset r = ${r})`,
+          `Processing query vector q_${rowIdx} against SRAM K_block [${j}:${j + Bc}].`,
+          { rowIdx, r },
           rowIdx,
           j,
           i,
         );
 
-        const rawScores: number[] = KBlock.map((kVec) => {
-          let dot = 0;
-          for (let k = 0; k < d; k++) dot += qVec[k] * kVec[k];
+        addStep(
+          18,
+          `Set Active Row Index: row_idx = ${rowIdx}`,
+          `Set global query row index row_idx = ${rowIdx}.`,
+          { row_idx: rowIdx },
+          rowIdx,
+          j,
+          i,
+        );
+
+        // Calculate scores
+        const scores = KBlock.map((kVec) => {
+          const dot = qVec.reduce((acc, qVal, idx) => acc + qVal * kVec[idx], 0);
           return dot * scale;
         });
 
         addStep(
           19,
-          `Compute S_ij scores = Q[${rowIdx}] @ K[${j}:${j + Bc}]^T * scale`,
-          `Tile attention scores: [${rawScores.map((s) => s.toFixed(2)).join(", ")}].`,
-          { row_idx: rowIdx, scores: JSON.stringify(rawScores.map((s) => Number(s.toFixed(2)))) },
+          `SRAM Dot Product: S_row = Q[${rowIdx}] * K_block^T * scale`,
+          `Evaluated unnormalized attention score block: [${scores.map((s) => s.toFixed(4)).join(", ")}].`,
+          { rowIdx, scores: JSON.stringify(scores.map((s) => s.toFixed(4))) },
           rowIdx,
           j,
           i,
         );
 
-        const mCurr = Math.max(...rawScores);
+        const mCurr = Math.max(...scores);
         addStep(
           21,
-          `Compute local tile max m_curr = ${mCurr.toFixed(2)}`,
-          `Tile maximum score for numerical stability.`,
-          { row_idx: rowIdx, m_curr: Number(mCurr.toFixed(2)) },
+          `Find Block Max Score: m_curr = ${mCurr.toFixed(4)}`,
+          `Local block maximum score m_curr = ${mCurr.toFixed(4)}.`,
+          { m_curr: mCurr },
           rowIdx,
           j,
           i,
@@ -291,34 +311,32 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
         const mNew = Math.max(mPrev, mCurr);
         addStep(
           22,
-          `Update running row max m_new = max(m_prev=${mPrev === -Infinity ? "-inf" : mPrev.toFixed(2)}, m_curr=${mCurr.toFixed(2)}) = ${mNew.toFixed(2)}`,
-          `Updated online row maximum to ${mNew.toFixed(2)}.`,
-          { row_idx: rowIdx, m_prev: mPrev === -Infinity ? "-inf" : Number(mPrev.toFixed(2)), m_new: Number(mNew.toFixed(2)) },
+          `Online Softmax Rescaling: m_new = max(${mPrev === -Infinity ? "-inf" : mPrev.toFixed(4)}, ${mCurr.toFixed(4)}) = ${mNew.toFixed(4)}`,
+          `Updated online max score m_new = ${mNew.toFixed(4)}.`,
+          { m_prev: mPrev === -Infinity ? -999 : mPrev, m_curr: mCurr, m_new: mNew },
           rowIdx,
           j,
           i,
         );
 
-        const expScores = rawScores.map((s) => Math.exp(s - mNew));
+        const expScores = scores.map((s) => Math.exp(s - mNew));
         addStep(
           24,
-          `Compute tile exp_scores = exp(S_ij - m_new)`,
-          `Unnormalized softmax exponents: [${expScores.map((e) => e.toFixed(3)).join(", ")}].`,
-          { row_idx: rowIdx, exp_scores: JSON.stringify(expScores.map((e) => Number(e.toFixed(3)))) },
+          `Exponentiate Rescaled Scores: exp(S - m_new)`,
+          `Evaluated exponentiated scores: [${expScores.map((e) => e.toFixed(4)).join(", ")}].`,
+          { expScores: JSON.stringify(expScores.map((e) => e.toFixed(4))) },
           rowIdx,
           j,
           i,
         );
 
         const scalePrev = mPrev === -Infinity ? 0.0 : Math.exp(mPrev - mNew);
-        const tileExpSum = expScores.reduce((a, b) => a + b, 0);
-        const lNew = lse[rowIdx] * scalePrev + tileExpSum;
-
+        const lNew = lse[rowIdx] * scalePrev + expScores.reduce((a, b) => a + b, 0);
         addStep(
           25,
-          `Update running sum-exp l_new = l_prev * exp(m_prev - m_new) + sum(exp_scores) = ${lNew.toFixed(3)}`,
-          `Updated online softmax denominator sum l_new to ${lNew.toFixed(3)}.`,
-          { row_idx: rowIdx, l_prev: Number(lse[rowIdx].toFixed(3)), l_new: Number(lNew.toFixed(3)) },
+          `Online Normalizer Update: l_new = ${lNew.toFixed(4)}`,
+          `Updated online denominator sum l_new = ${lNew.toFixed(4)}.`,
+          { l_new: lNew },
           rowIdx,
           j,
           i,
@@ -326,49 +344,25 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
 
         addStep(
           27,
-          `Calculate output scale factor scale_prev = exp(m_prev - m_new) = ${scalePrev.toFixed(3)}`,
-          `Rescaling factor for previously accumulated O[${rowIdx}] output vector.`,
-          { row_idx: rowIdx, scale_prev: Number(scalePrev.toFixed(3)) },
+          `Calculate Output Rescaling Factor: scale_prev = exp(m_prev - m_new) = ${scalePrev.toFixed(4)}`,
+          `Evaluated output correction multiplier scale_prev = ${scalePrev.toFixed(4)}.`,
+          { scale_prev: scalePrev },
           rowIdx,
           j,
           i,
         );
 
         for (let col = 0; col < d; col++) {
-          addStep(
-            28,
-            `Loop dimension col = ${col}/${d - 1} for row ${rowIdx}`,
-            `Updating accumulator cell O[${rowIdx}][${col}].`,
-            { row_idx: rowIdx, col },
-            rowIdx,
-            j,
-            i,
-          );
-
-          let pvCol = 0;
-          for (let k = 0; k < expScores.length; k++) {
-            pvCol += expScores[k] * VBlock[k][col];
-          }
-
-          addStep(
-            29,
-            `Compute pv_col = P_ij @ V_j[col ${col}] = ${pvCol.toFixed(2)}`,
-            `Matrix product of tile exponent weights and Value tile column ${col}.`,
-            { row_idx: rowIdx, col, pv_col: Number(pvCol.toFixed(2)) },
-            rowIdx,
-            j,
-            i,
-          );
-
-          const oldO = O[rowIdx][col];
-          const unnormalizedNewO = oldO * lse[rowIdx] * scalePrev + pvCol;
-          O[rowIdx][col] = unnormalizedNewO / lNew;
+          const pvCol = expScores.reduce((acc, expS, kIdx) => acc + expS * VBlock[kIdx][col], 0);
+          const oOld = O[rowIdx][col];
+          const oNew = (oOld * (lse[rowIdx] * scalePrev) + pvCol) / lNew;
+          O[rowIdx][col] = oNew;
 
           addStep(
             30,
-            `Update O[${rowIdx}][${col}] = (${oldO.toFixed(2)} * scale_prev + ${pvCol.toFixed(2)}) / ${lNew.toFixed(3)} = ${O[rowIdx][col].toFixed(2)}`,
-            `Rescaled and accumulated output value at O[${rowIdx}][${col}].`,
-            { row_idx: rowIdx, col, old_val: Number(oldO.toFixed(2)), new_val: Number(O[rowIdx][col].toFixed(2)) },
+            `Update O[${rowIdx}][${col}]: Rescaled Attention Output = ${oNew.toFixed(4)}`,
+            `Rescaled and accumulated attention output O[${rowIdx}][${col}] = ${oNew.toFixed(4)}.`,
+            { rowIdx, col, oNew },
             rowIdx,
             j,
             i,
@@ -378,9 +372,9 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
         m[rowIdx] = mNew;
         addStep(
           32,
-          `Store m[${rowIdx}] = ${mNew.toFixed(2)}`,
-          `Cached running maximum for row ${rowIdx}.`,
-          { row_idx: rowIdx, m_val: Number(mNew.toFixed(2)) },
+          `Persist Row Max Score: m[${rowIdx}] = ${mNew.toFixed(4)}`,
+          `Updated row max tracker m[${rowIdx}] = ${mNew.toFixed(4)}.`,
+          { rowIdx, mNew },
           rowIdx,
           j,
           i,
@@ -389,9 +383,9 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
         lse[rowIdx] = lNew;
         addStep(
           33,
-          `Store lse[${rowIdx}] = ${lNew.toFixed(3)}`,
-          `Cached running log-sum-exp sum for row ${rowIdx}.`,
-          { row_idx: rowIdx, lse_val: Number(lNew.toFixed(3)) },
+          `Persist Row Normalizer: lse[${rowIdx}] = ${lNew.toFixed(4)}`,
+          `Updated row normalizer lse[${rowIdx}] = ${lNew.toFixed(4)}.`,
+          { rowIdx, lNew },
           rowIdx,
           j,
           i,
@@ -400,253 +394,148 @@ export const generateFLASHATTENTION1FORWARDTILINGSteps = (
     }
   }
 
+  // Return step (35)
   addStep(
     35,
-    "Return final attention output matrix O",
-    `FlashAttention-1 forward kernel complete. Computed exact attention output O of shape [${N}, ${d}] in SRAM without materializing $N \\times N$ HBM matrices.`,
-    { completed: true, O_shape: `[${N}, ${d}]` },
+    "Execution Complete: Return FlashAttention Output Matrix O",
+    `Completed FlashAttention-1 forward pass. Exact attention output O computed with zero HBM intermediate materialization!`,
+    { N, d, completed: true },
   );
 
   return steps;
 };
 
-export const FLASHATTENTION1FORWARDTILING_TRIVIA: TriviaMeta = {
-  skipLines: [2, 5, 9, 13, 16, 20, 23, 26, 31, 34],
+const FLASHATTENTION1FORWARDTILING_TRIVIA: TriviaMeta = {
+  skipLines: [2, 5, 9, 13, 16, 20, 23, 26, 29, 31, 34],
   distractors: [
-    "m_new = m[row_idx] + m_curr",
-    "scale_prev = math.exp(m_new - m[row_idx])",
-    "O[row_idx][col] = O[row_idx][col] + pv_col",
-    "l_new = lse[row_idx] + sum(exp_scores)",
+    "S = Q @ K.T",
+    "O = softmax(S) @ V",
+    "l_new = lse[row_idx] + sum(scores)",
+    "scale_prev = m_curr - m_new",
   ],
   hints: [
-    { line: 22, hint: "Compute running maximum m_new = max(m_prev, max(scores))." },
-    { line: 25, hint: "Rescale previous log-sum-exp l_prev by exp(m_prev - m_new)." },
-    { line: 30, hint: "Rescale accumulated output O_prev by exp(m_prev - m_new) before adding new tile values." },
+    { line: 22, hint: "Online max updating equation: m_new = max(m[row_idx], m_curr)." },
+    { line: 30, hint: "Online softmax output correction: O[row_idx][col] = (O * scale_prev + pv_col) / l_new." },
   ],
   lineExplanations: {
-    1: "Defines flash_attention_1_forward signature with Q, K, V matrices and SRAM tile sizes Br, Bc.",
-    2: "Docstring describing FlashAttention-1 forward algorithm with SRAM tiling and online softmax.",
-    3: "Retrieves sequence length N from Q matrix rows.",
-    4: "Retrieves head dimension d from Q matrix columns.",
-    5: "Blank line preceding matrix initialization.",
-    6: "Initializes output matrix O of shape [N, d] with zeros in SRAM accumulator.",
-    7: "Initializes log-sum-exp denominator array lse of length N with zeros.",
-    8: "Initializes row maximum array m of length N with negative infinity.",
-    9: "Blank line preceding outer loop.",
-    10: "Outer loop over key/value block index j stepping by Bc.",
-    11: "Loads Key tile K_block of shape [Bc, d] into fast SRAM.",
-    12: "Loads Value tile V_block of shape [Bc, d] into fast SRAM.",
-    13: "Blank line preceding inner loop.",
-    14: "Inner loop over query block index i stepping by Br.",
-    15: "Loads Query tile Q_block of shape [Br, d] into fast SRAM.",
-    16: "Blank line preceding row loop.",
-    17: "Iterates over query vectors in Q_block.",
+    1: "Defines entry point for flash_attention_1_forward function (Dao et al. 2022).",
+    2: "Docstring describing FlashAttention-1 forward pass with SRAM tiling & online softmax.",
+    3: "Measures sequence length N = len(Q).",
+    4: "Measures head dimension d = len(Q[0]).",
+    5: "Blank line before output buffers allocation.",
+    6: "Allocates output matrix O (N x d) filled with zeros.",
+    7: "Allocates online normalizer accumulator list lse of size N.",
+    8: "Allocates max score tracker list m of size N initialized to negative infinity.",
+    9: "Blank line before outer column block loop.",
+    10: "Iterates over column tile block index j from 0 to N in steps of Bc.",
+    11: "Slices K_block = K[j : j + Bc] into SRAM shared memory.",
+    12: "Slices V_block = V[j : j + Bc] into SRAM shared memory.",
+    13: "Blank line before inner row block loop.",
+    14: "Iterates over row tile block index i from 0 to N in steps of Br.",
+    15: "Slices Q_block = Q[i : i + Br] into SRAM shared memory.",
+    16: "Blank line before Q_block row iteration.",
+    17: "Iterates over row index r and query vector q_vec in enumerate(Q_block).",
     18: "Calculates global sequence row index row_idx = i + r.",
-    19: "Computes scaled dot-product attention scores S_ij = Q_i @ K_j.T * scale.",
-    20: "Blank line preceding online max update.",
-    21: "Finds maximum score m_curr within current tile scores.",
-    22: "Updates running row maximum m_new = max(m_prev, m_curr) for numerical stability.",
-    23: "Blank line preceding exponent sum update.",
-    24: "Computes unnormalized tile exponent scores exp(s - m_new).",
-    25: "Rescales previous sum-exp lse by exp(m_prev - m_new) and adds new tile exponent sum.",
-    26: "Blank line preceding output accumulator update.",
-    27: "Calculates rescaling factor scale_prev = exp(m_prev - m_new) for previous output state.",
-    28: "Loops across head dimensions col from 0 to d - 1.",
-    29: "Computes tile matrix-vector product sum(exp_s * v_vec[col]).",
-    30: "Rescales previous O[row_idx][col] and accumulates new tile contribution divided by l_new.",
-    31: "Blank line preceding state update.",
-    32: "Updates running row maximum m[row_idx] = m_new.",
-    33: "Updates running log-sum-exp sum lse[row_idx] = l_new.",
-    34: "Blank line ending loop blocks.",
-    35: "Returns final attention output matrix O computed entirely via SRAM tiling.",
+    19: "Calculates scaled dot-product attention score block scores = Q_block * K_block^T * scale.",
+    20: "Blank line before online max calculation.",
+    21: "Calculates local block max score m_curr = max(scores).",
+    22: "Updates online row max score m_new = max(m[row_idx], m_curr).",
+    23: "Blank line before exponentiation.",
+    24: "Calculates rescaled exponentiated scores exp_scores = [exp(s - m_new) for s in scores].",
+    25: "Updates online normalizer sum l_new = lse[row_idx] * exp(m_prev - m_new) + sum(exp_scores).",
+    26: "Blank line before output update loop.",
+    27: "Calculates previous output rescaling factor scale_prev = exp(m_prev - m_new).",
+    28: "Iterates over head dimension column col from 0 to d - 1.",
+    29: "Computes matrix multiplication of exp_scores * V_block for column col.",
+    30: "Rescales and updates FlashAttention output cell O[row_idx][col] = (O * scale_prev + pv_col) / l_new.",
+    31: "Blank line before updating state arrays.",
+    32: "Persists updated row max score m[row_idx] = m_new.",
+    33: "Persists updated row normalizer lse[row_idx] = l_new.",
+    34: "Blank line separating tiling loops from return statement.",
+    35: "Returns completed FlashAttention output matrix O.",
   },
 };
 
 export const flashAttention1ForwardTiling: AlgorithmDefinition<flashAttention1ForwardTilingInput> = {
-  id: "flash-attention-1-forward-tiling",
-  title: "FlashAttention-1 SRAM Tiled Forward Kernel",
+  id: "flashAttention1ForwardTiling",
+  title: "FlashAttention-1 SRAM Tiling Forward Engine",
   category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "ml_attention_geometry"],
+  categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
   difficulty: "Hard",
   isMlInfra: true,
-  mlInfraLevel: 9,
+  mlInfraLevel: 8,
   mlInfraCategory: "ml_hardware_kernels",
-  description: `Master FlashAttention-1 SRAM Tiled Forward Pass: eliminate $O(N^2)$ HBM memory accesses using online softmax and GPU SRAM block tiling.
-
-### Why It Exists & What It Solves
-Standard scaled dot-product attention ($S = Q K^T / \\sqrt{d}, P = \\text{Softmax}(S), O = P V$) requires materializing large $N \\times N$ attention score and probability matrices in High Bandwidth Memory (HBM). For sequence lengths $N = 32{,}000$ or $128{,}000$, storing $N \\times N$ floats requires gigabytes or terabytes of HBM, creating a severe memory bandwidth bottleneck ($O(N^2)$ HBM reads/writes).
-
-FlashAttention-1 (Dao et al., NeurIPS 2022) restructures attention to be **IO-aware**. It partitions $Q, K, V$ into blocks of size $B_r \\times d$ and $B_c \\times d$ small enough to fit inside fast GPU SRAM (~20 TB/s bandwidth vs ~2 TB/s HBM bandwidth). Using **online softmax**, it incrementally computes partial attention scores $S_{ij}$, updates running maximum $m_i$ and log-sum-exp sum $\\ell_i$, and rescales the running output accumulator $O_i$ directly in SRAM registers:
-$$O_i^{\\text{new}} = \\frac{O_i^{\\text{old}} \\cdot \\ell_i^{\\text{old}} e^{m_i^{\\text{old}} - m_i^{\\text{new}}} + P_{ij} V_j}{\\ell_i^{\\text{new}}}$$
-
-This reduces HBM memory accesses from $O(N^2 d)$ down to $O(N^2 d^2 / M)$ (where $M$ is SRAM size), accelerating Transformer training and inference by $2\\times$-$4\\times$ without any approximation.
-
-### Step-by-Step Intuition
-1. **SRAM Block Partitioning**: Divide $Q$ into $\\lceil N / B_r \\rceil$ row blocks and $K, V$ into $\\lceil N / B_c \\rceil$ column blocks.
-2. **Outer Loop over $K_j, V_j$**: Load Key block $K_j$ and Value block $V_j$ into fast GPU SRAM.
-3. **Inner Loop over $Q_i$**: Load Query block $Q_i$ into SRAM.
-4. **Online Softmax Update**:
-   - Compute tile scores $S_{ij} = Q_i K_j^T / \\sqrt{d}$.
-   - Update running maximum: $m_i^{\\text{new}} = \\max(m_i^{\\text{old}}, \\text{rowmax}(S_{ij}))$.
-   - Rescale previous sum-exp and add tile exponents: $\\ell_i^{\\text{new}} = \\ell_i^{\\text{old}} e^{m_i^{\\text{old}} - m_i^{\\text{new}}} + \\text{rowsum}(e^{S_{ij} - m_i^{\\text{new}}})$.
-   - Rescale output accumulator: $O_i^{\\text{new}} = \\frac{O_i^{\\text{old}} \\cdot \\ell_i^{\\text{old}} e^{m_i^{\\text{old}} - m_i^{\\text{new}}} + e^{S_{ij} - m_i^{\\text{new}}} V_j}{\\ell_i^{\\text{new}}}$.
-
-### Input Parameters
-- \`Q\`: Query matrix of shape $[N, d]$.
-- \`K\`: Key matrix of shape $[N, d]$.
-- \`V\`: Value matrix of shape $[N, d]$.
-- \`Br\`: Row tile block size (default 2).
-- \`Bc\`: Column tile block size (default 2).
-
-### Output
-- Returns exact attention output matrix $O \\in \\mathbb{R}^{N \\times d}$ computed entirely via SRAM tiling.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(N^2 \\cdot d)$ FLOPs (identical arithmetic operations to standard attention).
-- **Space Complexity**: $O(N)$ auxiliary memory to store running max $m_i$ and sum-exp $\\ell_i$ vectors, bypassing $O(N^2)$ DRAM allocations.`,
-  constraints: ["1 <= N <= 128000", "32 <= d <= 256", "Br, Bc = SRAM tile sizes"],
+  description:
+    "The FlashAttention-1 SRAM Tiling Forward Engine implements the breakthrough exact attention algorithm introduced by **Tri Dao et al. (2022)**. Standard Scaled Dot-Product Attention $O = \\text{softmax}(Q K^T / \\sqrt{d}) V$ materializes the $N \\times N$ attention matrix $S$ in GPU High Bandwidth Memory (HBM DRAM), causing severe $O(N^2)$ memory bandwidth IO bottlenecks. FlashAttention tiles $Q, K, V$ into fast GPU SRAM shared memory ($B_r \\times d, B_c \\times d$), computing exact attention in $O(N^2 d)$ math FLOPs with only $O(N^2 d^2 / M)$ HBM memory accesses by fusing scaling, exponentiation, and reduction via **Online Softmax**.\n\n### Why It Exists\nFor LLMs (GPT-4, LLaMA-3, Claude 3) with long context windows ($N = 128\\text{k}$), standard $N \\times N$ attention materializes 32 GB of intermediate $S, P$ matrices per head. FlashAttention avoids materializing $S, P$ entirely, achieving **2x-4x speedups** and reducing memory footprint from $O(N^2)$ to $O(N)$!\n\n### Mathematical Formulation\nFor Query block $Q_i \\in \\mathbb{R}^{B_r \\times d}$, Key block $K_j \\in \\mathbb{R}^{B_c \\times d}$, Value block $V_j \\in \\mathbb{R}^{B_c \\times d}$, and online max $m_i$, normalizer $l_i$:\n\n$$1. \\quad S_{i,j} = \\frac{Q_i K_j^T}{\\sqrt{d}} \\in \\mathbb{R}^{B_r \\times B_c} \\quad (\\text{SRAM Local Attention Block})$$\n\n$$2. \\quad \\tilde{m}_i = \\max(\\text{rowmax}(S_{i,j})) \\in \\mathbb{R}^{B_r}, \\quad m_i^{new} = \\max(m_i^{old}, \\tilde{m}_i)$$\n\n$$3. \\quad P_{i,j} = \\exp(S_{i,j} - m_i^{new}), \\quad l_i^{new} = l_i^{old} \\cdot e^{m_i^{old} - m_i^{new}} + \\text{rowsum}(P_{i,j})$$\n\n$$4. \\quad O_i^{new} = \\frac{O_i^{old} \\cdot l_i^{old} \\cdot e^{m_i^{old} - m_i^{new}} + P_{i,j} V_j}{l_i^{new}} \\quad (\\text{Online Softmax Rescaling})$$\n\n### Step-by-Step Intuition\n1. **Outer Key/Value Block Loop**: Load tile blocks $K_j, V_j$ of size $B_c \\times d$ into fast SRAM shared memory.\n2. **Inner Query Block Loop**: Load tile block $Q_i$ of size $B_r \\times d$ into SRAM shared memory.\n3. **Local Score Block Calculation**: Compute unnormalized dot product block $S_{i,j} = \\frac{Q_i K_j^T}{\\sqrt{d}}$.\n4. **Online Max & Exponentiation**: Track running row maximum $m_i^{new} = \\max(m_i^{old}, \\max(S_{i,j}))$, and exponentiate $P_{i,j} = \\exp(S_{i,j} - m_i^{new})$.\n5. **Rescaled Accumulation**: Correct prior partial output $O_i^{old}$ by multiplier $e^{m_i^{old} - m_i^{new}}$, add $P_{i,j} V_j$, and divide by new normalizer $l_i^{new}$.\n\n### Key Trade-Offs & Hardware Execution\n- **HBM DRAM Bandwidth Bound**: Standard attention is memory-bandwidth bound (reading/writing $N \\times N$ matrices at 2 TB/s). FlashAttention makes attention compute-bound (operating in 19 TB/s SRAM).\n- **Recomputation in Backward Pass**: Instead of storing $S, P$ for backprop, FlashAttention recomputes $S_{i,j}$ on-the-fly during backward pass from stored $m_i, l_i$, saving 90%+ VRAM.",
+  constraints: [
+    "1 <= N <= 8192",
+    "1 <= d <= 128",
+    "1 <= Br, Bc <= 256",
+  ],
   examples: [
     {
       kind: "basic",
-      title: "Standard SRAM Tiled Forward",
-      inputDisplay: "N = 4, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Output O computed in SRAM tiles",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-          [50.0, 60.0],
-          [70.0, 80.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Exact attention O without HBM N^2 storage",
-      explanation: "Computes exact attention tile by tile using online softmax rescaling.",
-    },
-    {
-      kind: "complex",
-      title: "4-Tile SRAM Stream Test",
-      inputDisplay: "N = 4, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Zero HBM intermediate write",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-          [1.0, 1.0],
-          [0.5, 0.5],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-          [50.0, 60.0],
-          [70.0, 80.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Zero HBM intermediate write",
-      explanation: "Evaluates online softmax updates across 4 consecutive tile pairs.",
-    },
-    {
-      kind: "negative",
-      title: "Single Tile Fallback",
-      inputDisplay: "N = 2, d = 2, Br = 2, Bc = 2",
-      outputDisplay: "Single Tile Executed",
-      input: {
-        Q: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-        ],
-        K: [
-          [1.0, 0.0],
-          [0.0, 1.0],
-        ],
-        V: [
-          [10.0, 20.0],
-          [30.0, 40.0],
-        ],
-        Br: 2,
-        Bc: 2,
-      },
-      output: "Single Tile Executed",
-      explanation: "When sequence length equals block size, tiles execute in single SRAM pass.",
+      title: "4x4 FlashAttention-1 Forward Tiling (Br=2, Bc=2)",
+      inputDisplay: "N=4 tokens, d=2 dimensions, Tile sizes Br=2, Bc=2",
+      outputDisplay: "Output Matrix O (4x2 exact attention vectors)",
+      input: DEFAULT_FLASHATTENTION1FORWARDTILING_INPUT,
+      output: "[[19.5, 29.5], [26.2, 36.2], [32.1, 42.1], [38.0, 48.0]]",
+      explanation: "Tiles Q, K, V into 2x2 SRAM blocks, computing exact attention via online softmax with zero HBM N x N matrix materialization.",
     },
   ],
   code: FLASHATTENTION1FORWARDTILING_CODE,
   timeComplexity: {
-    best: "O(N^2 * d)",
-    average: "O(N^2 * d)",
-    worst: "O(N^2 * d)",
+    best: "O(N^2 \\cdot d)",
+    average: "O(N^2 \\cdot d)",
+    worst: "O(N^2 \\cdot d)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(N \\cdot d)",
   complexityAnalysis: {
-    time: "Computes exact attention in O(N^2 * d) FLOPs, identically to standard attention, but with 2x-4x faster wall-clock time due to IO efficiency.",
-    space: "Requires O(N) auxiliary memory to store running max m_i and sum-exp l_i vectors, bypassing O(N^2) DRAM allocations.",
+    time: "Requires $O(N^2 \\cdot d)$ math operations (identical FLOP count to standard attention), but operates inside fast SRAM.",
+    space: "Requires $O(N \\cdot d)$ memory space for output $O$ and online trackers $m, lse$, eliminating $O(N^2)$ intermediate memory.",
   },
   topicGuide: {
     overview:
-      "FlashAttention-1 is one of the most influential machine learning systems papers of the decade. By restructuring attention around GPU SRAM cache hierarchy, it demonstrated that memory IO complexity is as important as FLOP complexity.",
+      "The FlashAttention-1 SRAM Tiling Forward Engine computes exact attention without materializing intermediate N x N attention matrices in HBM.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Let $Q_i \\in \\mathbb{R}^{B_r \\times d}$ and $K_j, V_j \\in \\mathbb{R}^{B_c \\times d}$. For each block pair $(i, j)$, $S_{ij} = Q_i K_j^T / \\sqrt{d}$. Local max $\\tilde{m}_{ij} = \\text{rowmax}(S_{ij})$, updated max $m_i^{\\text{new}} = \\max(m_i^{\\text{old}}, \\tilde{m}_{ij})$, local sum $\\tilde{\\ell}_{ij} = \\text{rowsum}(e^{S_{ij} - m_i^{\\text{new}}})$. Updated sum $\\ell_i^{\\text{new}} = \\ell_i^{\\text{old}} e^{m_i^{\\text{old}} - m_i^{\\text{new}}} + \\tilde{\\ell}_{ij}$. Output update $O_i^{\\text{new}} = \\text{diag}(e^{m_i^{\\text{old}} - m_i^{\\text{new}}}) O_i^{\\text{old}} + e^{S_{ij} - m_i^{\\text{new}}} V_j$.",
+        heading: "Core Concept & Tri Dao's Breakthrough",
+        body: "FlashAttention-1 (Dao et al. 2022) fuses scaling, softmax, and matrix multiplication into a single GPU kernel, tiling Q, K, V into SRAM and avoiding N x N HBM DRAM reads/writes.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "GPU Memory Hierarchy: HBM (1.5 - 3.0 TB/s) vs SRAM (19 - 33 TB/s). Standard attention is memory-bound due to writing/reading $S$ and $P$ to HBM ($O(N^2)$ transfers). FlashAttention tiles computations into SRAM, keeping arithmetic intensity high ($O(d)$ FLOPs/byte).",
+        heading: "Online Softmax Rescaling Mechanics",
+        body: "Online softmax updates running max m_new = max(m_old, m_block) and normalizer l_new, rescaling previous output accumulators O_old by exp(m_old - m_new) / l_new.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "FlashAttention-1 uses an outer loop over key/value blocks $j$ and an inner loop over query blocks $i$. This order ensures key/value blocks loaded into shared memory are reused across all query blocks.",
+        heading: "HBM IO Reduction & TFLOPS Speedup",
+        body: "FlashAttention reduces HBM DRAM accesses from O(N^2 d + N d) down to O(N^2 d^2 / M), increasing GPU Tensor Core utilization from 15% to 60%+.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Numerical stability: Initializing $m_i = -\\infty$ and $\\ell_i = 0$ handles cold starts. Final division by $\\ell_i$ occurs once at the end of the loop per row block.",
+        heading: "Memory Efficiency in Long Context LLMs",
+        body: "Standard attention O(N^2) memory footprint OOMs at 32k context lengths. FlashAttention O(N) memory scaling enables training 128k+ context LLMs.",
       },
     ],
     keyTerms: [
       {
         term: "FlashAttention",
-        definition:
-          "An IO-aware exact attention algorithm that tiles computation into GPU SRAM to avoid DRAM reads/writes.",
+        definition: "Exact IO-aware fast attention algorithm utilizing SRAM tiling and online softmax (Dao et al. 2022).",
       },
       {
         term: "Online Softmax",
-        definition:
-          "A technique computing Softmax progressively over stream blocks using running max and sum-exp statistics.",
+        definition: "Algorithm computing softmax incrementally over tiled blocks without storing full N x N matrix.",
       },
       {
-        term: "GPU SRAM (Shared Memory)",
-        definition: "Ultra-fast on-chip GPU memory cache with ~20 TB/s bandwidth.",
+        term: "SRAM Shared Memory",
+        definition: "Ultra-fast 19 TB/s GPU on-chip memory buffer used to store Q, K, V tile blocks.",
       },
       {
-        term: "IO-Awareness",
-        definition:
-          "Designing algorithms to optimize data movements between different memory levels (HBM vs SRAM).",
+        term: "HBM DRAM",
+        definition: "Main GPU High Bandwidth Memory (2 TB/s) where model weights and final outputs reside.",
       },
     ],
   },
   trivia: FLASHATTENTION1FORWARDTILING_TRIVIA,
-  sources: [],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
   defaultInput: DEFAULT_FLASHATTENTION1FORWARDTILING_INPUT,
   generateSteps: generateFLASHATTENTION1FORWARDTILINGSteps,
 };

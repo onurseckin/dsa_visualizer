@@ -212,7 +212,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 1: Function entry
   addStep(
-    56,
+    46,
     "2D Fast Fourier Transform (FFT) Convolution Engine Entry",
     `Started 2D FFT frequency domain convolution engine on ${hIn}x${wIn} image and ${kH}x${kW} kernel via the Convolution Theorem.`,
     { hIn, wIn, kH, kW },
@@ -222,7 +222,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 2: Measure image dimensions
   addStep(
-    61,
+    51,
     "Measure Spatial Input Dimensions h_in, w_in",
     `Spatial image height h_in = ${hIn}, width w_in = ${wIn}.`,
     { hIn, wIn },
@@ -232,7 +232,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 3: Measure kernel dimensions
   addStep(
-    62,
+    52,
     "Measure Spatial Kernel Dimensions k_h, k_w",
     `Filter kernel height k_h = ${kH}, width k_w = ${kW}.`,
     { kH, kW },
@@ -242,7 +242,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 4: Calculate target_h
   addStep(
-    66,
+    56,
     `Calculate Power-of-2 Target Height: target_h = ${targetH}`,
     `Found smallest power-of-2 height target_h = ${targetH} >= ${hIn} + ${kH} - 1 (${hIn + kH - 1}) to prevent circular convolution aliasing.`,
     { targetH, min_h: hIn + kH - 1 },
@@ -252,7 +252,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 5: Calculate target_w
   addStep(
-    69,
+    59,
     `Calculate Power-of-2 Target Width: target_w = ${targetW}`,
     `Found smallest power-of-2 width target_w = ${targetW} >= ${wIn} + ${kW} - 1 (${wIn + kW - 1}) to prevent circular convolution aliasing.`,
     { targetW, min_w: wIn + kW - 1 },
@@ -262,7 +262,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 6: Pad image
   addStep(
-    73,
+    63,
     `Pad Input Image to ${targetH}x${targetW}`,
     `Zero-padded input image to power-of-2 shape ${targetH}x${targetW}.`,
     { targetH, targetW },
@@ -272,7 +272,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 7: Pad kernel
   addStep(
-    78,
+    68,
     `Pad Filter Kernel to ${targetH}x${targetW}`,
     `Zero-padded filter kernel to power-of-2 shape ${targetH}x${targetW}.`,
     { targetH, targetW },
@@ -282,7 +282,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 8: Forward FFT2 on image
   addStep(
-    84,
+    74,
     "Forward 2D FFT: Transform Padded Image to Frequency Domain",
     `Executed 2D Cooley-Tukey FFT transform on image tensor. Converted spatial activations to complex frequency spectrum FFT(Image).`,
     { targetH, targetW },
@@ -292,7 +292,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 9: Forward FFT2 on kernel
   addStep(
-    85,
+    75,
     "Forward 2D FFT: Transform Padded Kernel to Frequency Domain",
     `Executed 2D Cooley-Tukey FFT transform on kernel tensor. Converted spatial filter to complex frequency spectrum FFT(Kernel).`,
     { targetH, targetW },
@@ -307,7 +307,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
     for (let c = 0; c < targetW; c++) {
       spatialConv[r][c] = (paddedImg[r][c] + paddedKrn[r][c]) * 0.5; // visualization representation
       addStep(
-        88,
+        78,
         `Pointwise Complex Multiplication in Frequency Domain: Cell (${r}, ${c})`,
         `Multiplied complex frequency component FFT(Image)[${r}][${c}] by FFT(Kernel)[${r}][${c}] in O(1) time.`,
         { r, c },
@@ -321,7 +321,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Step 11: Inverse 2D FFT
   addStep(
-    91,
+    81,
     "Inverse 2D FFT: Transform Frequency Product Back to Spatial Domain",
     `Executed 2D Inverse FFT on frequency product. Converted complex frequency spectrum back to real spatial convolution matrix.`,
     { targetH, targetW },
@@ -331,7 +331,7 @@ export const generateFftFrequencyDomainConvolution2dSteps = (
 
   // Final step
   addStep(
-    93,
+    83,
     "Execution Complete",
     `Successfully completed 2D FFT frequency domain convolution. Transformed spatial O(N^4) direct loops into O(N^2 log N) FFT multiplications.`,
     { completed: true, targetH, targetW },

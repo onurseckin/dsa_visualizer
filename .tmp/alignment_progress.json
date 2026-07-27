@@ -1,0 +1,59 @@
+{
+  "planFile": "docs/planning/code-line-alignment/PLAN.md",
+  "lastUpdated": "2026-07-27T21:37:00.000Z",
+  "totalTasks": 10,
+  "tasksCompleted": 0,
+  "currentTask": 1,
+  "tasks": {
+    "task1": {
+      "name": "Simple Stack/Queue/Two-Pointer/DP Verification",
+      "status": "in_progress",
+      "algorithms": ["valid-parentheses", "nearest-smaller-element", "two-pointers", "merge-sort", "knapsack-01", "reverse-linked-list", "counting-bits", "euclid-gcd"]
+    },
+    "task2": {
+      "name": "Graph Shortest Paths + Traversal",
+      "status": "pending",
+      "algorithms": ["bellman-ford", "floyd-warshall", "dijkstra-shortest-path", "bfs-graph", "dfs-graph", "bipartite-graph-check", "number-of-islands"]
+    },
+    "task3": {
+      "name": "Graph Directed + SCC",
+      "status": "pending",
+      "algorithms": ["topological-sort", "kosaraju-scc", "hierholzer-eulerian-path", "de-bruijn-sequence", "two-sat-solver", "successor-paths", "dag-dp-longest-path"]
+    },
+    "task4": {
+      "name": "Graph Spanning Trees + Flows",
+      "status": "pending",
+      "algorithms": ["kruskal-mst", "prim-mst", "disjoint-set-union", "ford-fulkerson", "minimum-path-cover"]
+    },
+    "task5": {
+      "name": "DP (1D + 2D) + Math",
+      "status": "pending",
+      "algorithms": ["longest-increasing-subsequence", "edit-distance", "counting-tilings", "tsp-bitmask-dp", "sieve-primes", "extended-euclidean-algorithm", "modular-exponentiation-inverse", "chinese-remainder-theorem", "euler-totient-function", "binomial-coefficients-pascal", "catalan-numbers", "inclusion-exclusion-principle", "matrix-exponentiation", "markov-chains"]
+    },
+    "task6": {
+      "name": "Backtracking",
+      "status": "pending",
+      "algorithms": ["n-queens", "generating-permutations", "generating-subsets", "hamiltonian-path-dp", "knights-tour-warnsdorff"]
+    },
+    "task7": {
+      "name": "Heap + Game Theory + Tries + Strings",
+      "status": "pending",
+      "algorithms": ["kth-largest-element", "nim-game", "sprague-grundy-theorem", "kmp-string-match", "z-algorithm", "trie-prefix-tree", "string-hashing"]
+    },
+    "task8": {
+      "name": "Geometry + Binary Search + Sliding Window",
+      "status": "pending",
+      "algorithms": ["convex-hull", "polygon-area", "line-segment-intersection", "sweep-line-intersections", "closest-pair-of-points", "binary-search-1d", "binary-search-matrix", "meet-in-the-middle", "sliding-window-min"]
+    },
+    "task9": {
+      "name": "Advanced Range Queries + Tree Queries",
+      "status": "pending",
+      "algorithms": ["fenwick-tree", "segment-tree", "segment-tree-lazy", "sparse-table-rmq", "sqrt-decomposition", "mo-algorithm", "dynamic-segment-tree", "persistent-segment-tree", "tree-diameter", "euler-tour-technique", "dsu-on-tree", "binary-lifting-lca"]
+    },
+    "task10": {
+      "name": "Final Verification + Commit",
+      "status": "pending",
+      "algorithms": []
+    }
+  }
+}

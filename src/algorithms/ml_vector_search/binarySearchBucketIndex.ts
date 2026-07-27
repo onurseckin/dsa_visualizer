@@ -78,7 +78,7 @@ export const generateBinarySearchBucketIndexSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 11,
       explanation: {
         what: `Calculate midpoint index mid = ${mid}`,
         why: `Evaluating boundary value boundaries[${mid}] = ${midVal} against queryValue = ${queryValue}.`,
@@ -119,7 +119,7 @@ export const generateBinarySearchBucketIndexSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 12,
+        codeLine: 13,
         explanation: {
           what: `Boundary boundaries[${mid}] (${midVal}) > queryValue (${queryValue})`,
           why: `Query falls to the left of index ${mid}. Update potential target bucket to ${mid} and contract high to ${high}.`,
@@ -154,7 +154,7 @@ export const generateBinarySearchBucketIndexSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 14,
+        codeLine: 16,
         explanation: {
           what: `Boundary boundaries[${mid}] (${midVal}) <= queryValue (${queryValue})`,
           why: `Query falls to the right of index ${mid}. Advance low pointer to ${low}.`,
@@ -193,7 +193,7 @@ export const generateBinarySearchBucketIndexSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 18,
     explanation: {
       what: `Binary Search Complete: Assigned to Bucket ${targetBucket}`,
       why: `Query value ${queryValue} lies in range [${lowerBound}, ${upperBound}), corresponding to Bucket ${targetBucket}.`,

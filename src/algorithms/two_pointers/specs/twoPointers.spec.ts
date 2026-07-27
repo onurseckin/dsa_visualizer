@@ -74,4 +74,20 @@ describe("twoPointers algorithm spec", () => {
       expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
     }
   });
+
+  it("ensures codeLine is 1-indexed and within total lines N for all inputs", () => {
+    const N = twoPointers.code.split("\n").length;
+    const inputs = [
+      twoPointers.defaultInput,
+      ...(twoPointers.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const inp of inputs) {
+      const steps = twoPointers.generateSteps(inp);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(N);
+      }
+    }
+  });
 });

@@ -80,7 +80,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       const cfg = configs[r];
       const isCurrent = r === currentIdx;
       const isBest = r === bestIdx;
-      const state = isBest ? "sorted" : isCurrent ? "active" : r < currentIdx ? "visited" : "default";
+      const state = isBest ? "sorted" : isCurrent ? "active" : r < currentIdx ? "compared" : "default";
 
       cells.push(
         { row: rowIdx, col: 0, value: `Cfg #${r}`, state },

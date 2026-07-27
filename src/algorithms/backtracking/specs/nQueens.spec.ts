@@ -70,9 +70,20 @@ describe("nQueens algorithm spec", () => {
       "Failing / Boundary Case",
     ]);
 
-    for (const example of nQueens.examples!) {
-      const steps = nQueens.generateSteps(example.input as { n: number });
+    const inputsToTest = [
+      nQueens.defaultInput,
+      ...(nQueens.examples?.map((e) => e.input) ?? []),
+    ];
+
+    const totalLines = nQueens.code.split("\n").length;
+
+    for (const input of inputsToTest) {
+      const steps = nQueens.generateSteps(input);
       expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
     }
   });
 });

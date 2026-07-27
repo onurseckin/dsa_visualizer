@@ -48,7 +48,7 @@ export const generateGaussianL2LshSteps = (
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 9,
     explanation: {
       what: "Initialize Gaussian L2 Locality-Sensitive Hash (LSH)",
       why: `Hashing vector [${vector.join(", ")}] across ${projectionVectors.length} random Gaussian projections with bin width W = ${binWidth}.`,
@@ -86,7 +86,7 @@ export const generateGaussianL2LshSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 16,
       explanation: {
         what: `Evaluate Hash Function h_${i}(v)`,
         why: `Dot product (a . v) = ${dotProduct.toFixed(3)}. Adding offset b=${b} yields ${projVal.toFixed(
@@ -126,7 +126,7 @@ export const generateGaussianL2LshSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 19,
     explanation: {
       what: `LSH Key Construction Complete: [${hashKeys.join(", ")}]`,
       why: `Composite LSH hash bucket key string: "${compositeKey}". Vectors with close Euclidean distances collisionally map to the same key.`,

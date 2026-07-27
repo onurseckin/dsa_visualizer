@@ -28,4 +28,21 @@ describe("knightsTourWarnsdorff logic spec", () => {
       expect(knightsTourWarnsdorff.trivia?.lineExplanations[line]).toBeDefined();
     }
   });
+
+  it("should have codeLine in valid range (1..N) for defaultInput and all examples", () => {
+    const totalLines = knightsTourWarnsdorff.code.split("\n").length;
+    const inputsToTest = [
+      knightsTourWarnsdorff.defaultInput,
+      ...(knightsTourWarnsdorff.examples?.map((e) => e.input) ?? []),
+    ];
+
+    for (const input of inputsToTest) {
+      const steps = generateKnightsTourWarnsdorffSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+    }
+  });
 });

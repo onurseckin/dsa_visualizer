@@ -43,6 +43,21 @@ describe("kruskalMst algorithm spec", () => {
     }
   });
 
+  it("ensures codeLine is 1-indexed (1..N) for defaultInput and all examples", () => {
+    const totalLines = kruskalMst.code.split("\n").length;
+    const inputs = [
+      kruskalMst.defaultInput,
+      ...kruskalMst.examples.map((e) => e.input),
+    ];
+    for (const input of inputs) {
+      const steps = kruskalMst.generateSteps(input);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+    }
+  });
+
   it("should skip cycle-forming edges", () => {
     const steps = generateKruskalSteps(DEFAULT_KRUSKAL_INPUT);
     const hasSkippedStep = steps.some(

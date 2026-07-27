@@ -44,6 +44,22 @@ describe("prefixSum algorithm spec", () => {
     expect(snapshot.elements).toHaveLength(4);
   });
 
+  it("ensures codeLine is 1-indexed (1..6) for defaultInput and all examples", () => {
+    const totalLines = prefixSum.code.split("\n").length;
+    expect(totalLines).toBe(6);
+    const inputs = [prefixSum.defaultInput, ...prefixSum.examples.map((e) => e.input)];
+    for (const input of inputs) {
+      const steps = generatePrefixSumSteps(input);
+      expect(steps.length).toBeGreaterThan(0);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+      const codeLines = new Set(steps.map((s) => s.codeLine));
+      expect(codeLines.size).toBeGreaterThan(1);
+    }
+  });
+
   it("maps every code line in lineExplanations", () => {
     const meta = prefixSum.trivia;
     const lines = prefixSum.code.split("\n");

@@ -19,4 +19,20 @@ describe("disjointSetUnion definition and step generator", () => {
       expect(explanations[i], `Missing explanation for line ${i}`).toBeDefined();
     }
   });
+
+  it("ensures codeLine is 1-indexed (1..N) for defaultInput and all examples", () => {
+    const totalLines = disjointSetUnion.code.split("\n").length;
+    const inputs = [
+      disjointSetUnion.defaultInput,
+      ...disjointSetUnion.examples.map((e) => e.input),
+    ];
+    for (const input of inputs) {
+      const steps = disjointSetUnion.generateSteps(input);
+      for (const step of steps) {
+        expect(step.codeLine).toBeGreaterThanOrEqual(1);
+        expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+      }
+    }
+  });
 });
+
