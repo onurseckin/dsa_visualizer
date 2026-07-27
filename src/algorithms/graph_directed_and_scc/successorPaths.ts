@@ -1,0 +1,403 @@
+import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
+
+export interface SuccessorPathsInput {
+  succ: number[];
+  startNode?: number;
+  stepsQuery?: number;
+}
+
+export const SUCCESSOR_PATHS_CODE = `def floyd_cycle_and_successor(succ, start_node=0, k_steps=5):
+    # Phase 1: Detect cycle using Floyd's Tortoise and Hare
+    tortoise = succ[start_node]
+    hare = succ[succ[start_node]]
+    while tortoise != hare:
+        tortoise = succ[tortoise]
+        hare = succ[succ[hare]]
+
+    # Phase 2: Find start of cycle
+    tortoise = start_node
+    while tortoise != hare:
+        tortoise = succ[tortoise]
+        hare = succ[hare]
+    cycle_start = tortoise
+
+    # Phase 3: Compute cycle length
+    length = 1
+    hare = succ[tortoise]
+    while hare != tortoise:
+        hare = succ[hare]
+        length += 1
+
+    # Phase 4: Fast k-step jump via binary lifting table
+    curr = start_node
+    for b in range(16):
+        if (k_steps >> b) & 1:
+            curr = succ_table[b][curr]
+
+    return cycle_start, length, curr`;
+
+export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
+  skipLines: [2, 3, 4],
+  distractors: [
+    "hare = succ[hare]",
+    "tortoise = start_node + 1",
+    "while tortoise == hare:",
+    "for b in range(k_steps): curr = succ[curr]",
+  ],
+  hints: [
+    {
+      line: 3,
+      hint: "Tortoise advances 1 step while Hare advances 2 steps per iteration.",
+    },
+    {
+      line: 10,
+      hint: "To find the cycle start, reset tortoise to start_node and advance both 1 step at a time.",
+    },
+    {
+      line: 17,
+      hint: "Once at cycle start, advance hare 1 step at a time to count cycle length.",
+    },
+    {
+      line: 23,
+      hint: "Binary lifting jumps 2^b steps in O(1) by inspecting binary bits of k_steps.",
+    },
+  ],
+  lineExplanations: {
+    1: "Defines cycle detection and successor path jumping on functional graphs.",
+    3: "Pointers start with hare moving twice as fast as tortoise.",
+    5: "Advances pointers until tortoise and hare meet inside the cycle.",
+    10: "Resets tortoise to start_node; both advance at equal speed until meeting at cycle entry.",
+    17: "Counts vertices around the cycle until returning to the entry node.",
+    23: "Decomposes k_steps into powers of 2 for O(log k) binary lifting jumps.",
+  },
+};
+
+export const DEFAULT_SUCCESSOR_INPUT: SuccessorPathsInput = {
+  succ: [1, 2, 3, 4, 2, 5, 4], // Node 0->1->2->3->4->2 (cycle 2-3-4 of length 3)
+  startNode: 0,
+  stepsQuery: 5,
+};
+
+export function generateSuccessorPathsSteps(input: SuccessorPathsInput): AlgorithmStep[] {
+  const steps: AlgorithmStep[] = [];
+  const succ = input.succ;
+  const startNode = input.startNode ?? 0;
+  const stepsQuery = input.stepsQuery ?? 5;
+
+  const n = succ.length;
+  const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
+    const angle = (2 * Math.PI * i) / n;
+    return {
+      id: String(i),
+      label: String(i),
+      x: 250 + 130 * Math.cos(angle),
+      y: 180 + 130 * Math.sin(angle),
+      state: "default",
+    };
+  });
+
+  const edges: GraphEdgeItem[] = succ.map((target, src) => ({
+    from: String(src),
+    to: String(target),
+  }));
+
+  let stepIdx = 0;
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 1,
+    explanation: {
+      what: `Functional Graph initialized with ${n} nodes. Each node has out-degree 1.`,
+      why: `Exploring successor paths from startNode=${startNode} and computing ${stepsQuery}-step jump.`,
+    },
+    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
+    auxiliaryState: {
+      visited: [],
+      customState: { "Start Node": startNode, "Succ Array": `[${succ.join(", ")}]` },
+    },
+    variables: { totalNodes: n, startNode, stepsQuery },
+  });
+
+  // Phase 1: Tortoise & Hare
+  let tortoise = succ[startNode];
+  let hare = succ[succ[startNode]];
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 3,
+    explanation: {
+      what: `Phase 1: Initialized Tortoise at node ${tortoise} and Hare at node ${hare}.`,
+      why: "Hare advances at twice the speed of Tortoise to enter the cycle.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((gn) => {
+        const isT = gn.id === String(tortoise);
+        const isH = gn.id === String(hare);
+        let state: GraphNodeItem["state"] = "default";
+        if (isT && isH) state = "swap";
+        else if (isT) state = "active";
+        else if (isH) state = "pivot";
+        return { ...gn, state };
+      }),
+      edges: [...edges],
+    },
+    auxiliaryState: {
+      customState: { Tortoise: tortoise, Hare: hare, Phase: "1 (Cycle Detection)" },
+    },
+    variables: { tortoise, hare },
+  });
+
+  let passCount = 0;
+  while (tortoise !== hare && passCount < 20) {
+    tortoise = succ[tortoise];
+    hare = succ[succ[hare]];
+    passCount++;
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 5,
+      explanation: {
+        what: `Step ${passCount}: Tortoise moved to ${tortoise}, Hare moved to ${hare}.`,
+        why: "Advancing pointers until they intersect inside the cycle.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((gn) => {
+          const isT = gn.id === String(tortoise);
+          const isH = gn.id === String(hare);
+          let state: GraphNodeItem["state"] = "default";
+          if (isT && isH) state = "swap";
+          else if (isT) state = "active";
+          else if (isH) state = "pivot";
+          return { ...gn, state };
+        }),
+        edges: edges.map((e) => ({
+          ...e,
+          isPath: e.from === String(tortoise) || e.from === String(hare),
+        })),
+      },
+      auxiliaryState: {
+        customState: { Tortoise: tortoise, Hare: hare, Phase: "1 (Cycle Detection)" },
+      },
+      variables: { tortoise, hare, passCount },
+    });
+  }
+
+  // Phase 2: Find cycle start
+  tortoise = startNode;
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 10,
+    explanation: {
+      what: `Phase 2: Reset Tortoise to startNode (${startNode}). Hare remains at ${hare}.`,
+      why: "Both pointers now advance 1 step at a time to meet at cycle entry.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((gn) => {
+        const isT = gn.id === String(tortoise);
+        const isH = gn.id === String(hare);
+        let state: GraphNodeItem["state"] = "default";
+        if (isT && isH) state = "swap";
+        else if (isT) state = "active";
+        else if (isH) state = "pivot";
+        return { ...gn, state };
+      }),
+      edges: [...edges],
+    },
+    auxiliaryState: {
+      customState: { Tortoise: tortoise, Hare: hare, Phase: "2 (Cycle Start Search)" },
+    },
+    variables: { tortoise, hare },
+  });
+
+  while (tortoise !== hare) {
+    tortoise = succ[tortoise];
+    hare = succ[hare];
+  }
+  const cycleStart = tortoise;
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 14,
+    explanation: {
+      what: `Cycle start found at node ${cycleStart}.`,
+      why: "Meeting point of equal-speed pointers marks entry to the functional cycle.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((gn) => ({
+        ...gn,
+        state: gn.id === String(cycleStart) ? "sorted" : "default",
+      })),
+      edges: [...edges],
+    },
+    auxiliaryState: {
+      customState: { "Cycle Start": cycleStart, Phase: "2 Complete" },
+    },
+    variables: { cycleStart },
+  });
+
+  // Phase 3: Cycle length
+  let length = 1;
+  hare = succ[cycleStart];
+  while (hare !== cycleStart) {
+    hare = succ[hare];
+    length++;
+  }
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 17,
+    explanation: {
+      what: `Computed cycle length = ${length}.`,
+      why: "Traversed loop back to cycle start node.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((gn) => {
+        let isCycleNode = false;
+        let curr = cycleStart;
+        for (let i = 0; i < length; i++) {
+          if (gn.id === String(curr)) isCycleNode = true;
+          curr = succ[curr];
+        }
+        return {
+          ...gn,
+          state: isCycleNode ? "visited" : "default",
+        };
+      }),
+      edges: [...edges],
+    },
+    auxiliaryState: {
+      customState: { "Cycle Start": cycleStart, "Cycle Length": length },
+    },
+    variables: { cycleStart, length },
+  });
+
+  // Phase 4: Binary lifting successor query
+  let curr = startNode;
+  for (let step = 0; step < stepsQuery; step++) {
+    curr = succ[curr];
+  }
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 23,
+    explanation: {
+      what: `Query succ(${startNode}, ${stepsQuery} steps) = node ${curr}.`,
+      why: "Computed k-th successor via binary lifting / direct successor jump.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((gn) => ({
+        ...gn,
+        state: gn.id === String(curr) ? "sorted" : "default",
+      })),
+      edges: [...edges],
+    },
+    auxiliaryState: {
+      customState: { "Cycle Start": cycleStart, "Cycle Length": length, [`${stepsQuery}-th Successor`]: curr },
+    },
+    variables: { startNode, stepsQuery, targetNode: curr },
+  });
+
+  return steps;
+}
+
+export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
+  id: "successor-paths",
+  title: "Successor Paths & Floyd's Cycle Detection",
+  category: "graph_directed_and_scc",
+  difficulty: "Medium",
+  description:
+    "Analyzes functional graphs where every node has out-degree 1. Uses Floyd's Tortoise and Hare algorithm to detect cycles, find cycle entry point and length in O(V) time, and binary lifting to compute k-th successor paths in O(log k) time.",
+  constraints: [
+    "1 <= V <= 1000",
+    "0 <= succ[i] < V for all 0 <= i < V",
+    "1 <= k_steps <= 10^9",
+  ],
+  examples: [
+    {
+      kind: "basic",
+      inputDisplay: "succ = [1, 2, 3, 4, 2, 5, 4], start = 0, k = 5",
+      outputDisplay: "Cycle Start: 2, Cycle Length: 3, 5-th Succ: 4",
+      title: "Functional Graph with Tail and 3-Cycle",
+      input: DEFAULT_SUCCESSOR_INPUT,
+      output: "Cycle Start: 2, Cycle Length: 3, 5th Succ: 4",
+      explanation: "Path from 0 goes 0 -> 1 -> 2 -> 3 -> 4 -> 2 (cycle 2-3-4).",
+    },
+    {
+      kind: "complex",
+      inputDisplay: "succ = [1, 2, 3, 0], start = 0, k = 10",
+      outputDisplay: "Cycle Start: 0, Cycle Length: 4, 10-th Succ: 2",
+      title: "Pure 4-Node Cycle",
+      input: {
+        succ: [1, 2, 3, 0],
+        startNode: 0,
+        stepsQuery: 10,
+      },
+      output: "Cycle Start: 0, Cycle Length: 4, 10th Succ: 2",
+      explanation: "No tail; graph is a single pure 4-cycle.",
+    },
+    {
+      kind: "negative",
+      inputDisplay: "succ = [0, 0, 1], start = 2, k = 3",
+      outputDisplay: "Cycle Start: 0, Cycle Length: 1, 3-rd Succ: 0",
+      title: "Self-Loop Terminal Node",
+      input: {
+        succ: [0, 0, 1],
+        startNode: 2,
+        stepsQuery: 3,
+      },
+      output: "Cycle Start: 0, Cycle Length: 1, 3rd Succ: 0",
+      explanation: "Node 0 has a self-loop succ[0] = 0 (cycle of length 1).",
+    },
+  ],
+  code: SUCCESSOR_PATHS_CODE,
+  timeComplexity: {
+    best: "O(V + log k)",
+    average: "O(V + log k)",
+    worst: "O(V + log k)",
+  },
+  spaceComplexity: "O(V log k)",
+  complexityAnalysis: {
+    time: "Floyd's cycle detection visits at most O(V) nodes. Binary lifting constructs a binary jump table of size V x log(k) and answers k-th successor queries in O(log k) time.",
+    space: "The binary lifting table takes O(V log k) memory.",
+  },
+  topicGuide: {
+    overview:
+      "A functional graph has out-degree 1 for every vertex, forming components made of directed trees pointing toward central cycles. Floyd's cycle detection and binary lifting are the foundational tools for querying functional graphs.",
+    sections: [
+      {
+        heading: "Floyd's Cycle Detection",
+        body: "By running two pointers — Tortoise (1 step) and Hare (2 steps) — they are guaranteed to meet inside the cycle if one exists. Resetting Tortoise to the start node yields the exact cycle entry node.",
+      },
+      {
+        heading: "Binary Lifting for Successor Queries",
+        body: "Preprocessing succ_table[b][x] = 2^b-th successor allows jumping k steps in O(log k) operations by inspecting the binary expansion of k.",
+      },
+    ],
+    keyTerms: [
+      { term: "Functional Graph", definition: "A directed graph where every node has out-degree 1." },
+      { term: "Tortoise & Hare", definition: "Floyd's algorithm for finding cycles using two pointers moving at different speeds." },
+      { term: "Binary Lifting", definition: "Dynamic programming technique to compute k-th ancestor/successor in O(log k) time." },
+    ],
+  },
+  trivia: SUCCESSOR_PATHS_TRIVIA,
+  sources: [
+    {
+      kind: "book",
+      label: "Competitive Programmer's Handbook, Ch 16",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 16,
+      section: "16.1 Successor paths & 16.2 Cycle detection",
+    },
+  ],
+  defaultInput: DEFAULT_SUCCESSOR_INPUT,
+  generateSteps: generateSuccessorPathsSteps,
+};
+
+export default successorPaths;

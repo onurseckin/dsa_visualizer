@@ -23,9 +23,8 @@ function getDb(): DatabaseInstance {
   }
 
   try {
-    // Attempt using bun:sqlite
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Database } = require("bun:sqlite");
+    const req = globalThis.require;
+    const { Database } = req("bun:sqlite");
     const db = new Database(DB_PATH, { create: true });
     db.exec(`
       CREATE TABLE IF NOT EXISTS kv_store (
