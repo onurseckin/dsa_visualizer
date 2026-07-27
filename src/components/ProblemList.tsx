@@ -31,7 +31,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   return (
     <main
       aria-label="Problem directory"
-      className="flex flex-col items-center justify-start p-6 md:p-10 w-full max-w-full mx-auto box-border flex-1 gap-8 overflow-y-auto"
+      className="flex flex-col items-center justify-start p-6 md:p-8 w-full max-w-full mx-auto box-border flex-1 gap-8 overflow-y-auto"
     >
       <div className="flex flex-col items-center justify-center text-center mx-auto w-full max-w-3xl gap-4 p-6 md:p-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] shadow-sm mb-6">
         <h1 className="text-3xl font-bold text-[var(--text-primary)]">Algorithm Directory</h1>
@@ -40,7 +40,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         </p>
       </div>
 
-      <div className="w-full flex flex-col gap-6 mb-6">
+      <div className="w-full flex flex-col gap-6">
         <ProblemListFilterToolbar
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}

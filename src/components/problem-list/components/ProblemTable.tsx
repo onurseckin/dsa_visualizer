@@ -180,7 +180,13 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       </span>
                     </td>
                     <td style={{ padding: cellPadding }}>
-                      <Badge variant="neutral">{catLabel}</Badge>
+                      <Badge
+                        variant={
+                          alg.difficulty ? difficultyBadgeVariant(alg.difficulty) : "neutral"
+                        }
+                      >
+                        {catLabel}
+                      </Badge>
                     </td>
                     <td style={{ padding: cellPadding }}>
                       {alg.difficulty && (

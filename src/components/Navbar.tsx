@@ -90,8 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between h-[var(--navbar-h)] shrink-0 px-6 gap-6 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
-      <nav aria-label="Main Navigation" className="flex items-center gap-4 min-w-0">
+    <header className="flex items-center justify-between py-3 shrink-0 px-6 gap-6 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
+      <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
         <IconButton
           icon={<Network className="w-[18px] h-[18px]" />}
           aria-label="DSA Visualizer home"
@@ -110,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         />
       </nav>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
         <ButtonGroup role="group" aria-label="Panel toggles" gap="sm">
           {appView === "workspace" &&
             PANEL_TOGGLES.map(({ key, label, icon, hint }) => (
