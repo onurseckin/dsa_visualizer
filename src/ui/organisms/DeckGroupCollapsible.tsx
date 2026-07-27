@@ -1,6 +1,7 @@
 import React from "react";
-import type { CategoryType, DifficultyLevel } from "../../types/dsa";
-import { Badge, Button, difficultyBadgeVariant } from "../index";
+import type { CategoryType, DifficultyLevel, ProblemSource } from "../../types/dsa";
+import { getAlgorithmSources } from "../../types/dsa";
+import { Badge, Button, difficultyBadgeVariant, SourceBadgeList } from "../index";
 import { Collapsible } from "@base-ui-components/react/collapsible";
 import { ChevronRight } from "lucide-react";
 
@@ -8,6 +9,8 @@ export interface DeckEntry {
   id: string;
   title: string;
   difficulty?: DifficultyLevel;
+  sources?: ProblemSource[];
+  leetcode?: { id: number; url: string };
 }
 
 export interface DeckGroup {
@@ -71,6 +74,7 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
       <Collapsible.Panel className="ui-collapsible__content flex flex-col gap-2 p-6 md:p-8 bg-[var(--bg-elevated)] border-t-2 border-[var(--border-default)]">
         {group.entries.map((entry) => {
           const isSelected = selected.has(entry.id);
+          const sources = getAlgorithmSources(entry);
           return (
             <Button
               key={entry.id}
@@ -81,14 +85,17 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
               className="flex items-center justify-between gap-3 w-full text-left border-none font-normal"
               onClick={() => onToggleOne(entry.id)}
             >
-              <span className="min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+              <span className="min-w-0 overflow-hidden whitespace-nowrap text-ellipsis text-left">
                 {entry.title}
               </span>
-              {entry.difficulty !== undefined ? (
-                <Badge variant={difficultyBadgeVariant(entry.difficulty)} size="sm">
-                  {entry.difficulty}
-                </Badge>
-              ) : null}
+              <div className="ml-auto flex items-center gap-2 shrink-0">
+                <SourceBadgeList sources={sources} size="sm" />
+                {entry.difficulty !== undefined ? (
+                  <Badge variant={difficultyBadgeVariant(entry.difficulty)} size="sm">
+                    {entry.difficulty}
+                  </Badge>
+                ) : null}
+              </div>
             </Button>
           );
         })}
@@ -96,3 +103,4 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
     </Collapsible.Root>
   );
 };
+

@@ -115,7 +115,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="h-18 px-8 py-4 bg-[var(--bg-chrome)] border-b border-[var(--border-default)] flex items-center justify-between gap-6 shrink-0">
+    <header className="h-18 px-8 py-4 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between gap-6 shrink-0">
       <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
         <Button
           variant="secondary"

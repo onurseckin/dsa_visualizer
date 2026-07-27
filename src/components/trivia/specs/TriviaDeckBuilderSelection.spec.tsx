@@ -150,7 +150,8 @@ describe("TriviaDeckBuilderSelection", () => {
       expect(title?.className).toContain("whitespace-nowrap");
       expect(title?.className).toContain("text-ellipsis");
 
-      const badge = button.querySelector(".ui-badge");
+      const badges = button.querySelectorAll(".ui-badge");
+      const badge = badges[badges.length - 1];
       expect(badge).not.toBeNull();
       const variant = Array.from(badge?.classList ?? []).find(
         (name) => name.startsWith("ui-badge--") && !name.endsWith("--sm") && !name.endsWith("--md"),

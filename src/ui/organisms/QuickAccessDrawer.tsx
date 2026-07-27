@@ -144,7 +144,7 @@ export function QuickAccessDrawer({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="ui-drawer-backdrop" />
-        <Dialog.Popup className="ui-drawer ui-drawer--right" style={{ width: 420 }}>
+        <Dialog.Popup className="ui-drawer ui-drawer--right w-[35vw] min-w-[320px]" style={{ width: "35vw", minWidth: "320px" }}>
           <div className="ui-drawer__header">
             <Dialog.Title className="ui-drawer__title">Algorithms</Dialog.Title>
             <Dialog.Close

@@ -43,7 +43,6 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           leadingIcon={<Search className="text-[var(--text-muted)]" size={18} />}
           placeholder="Search problems by title, category, description..."
           aria-label="Filter problems"
-          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full placeholder-[var(--text-muted)]"
         />
       </div>
 
@@ -55,7 +54,6 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedCategory}
           onChange={(e) => onCategorySelect(e.target.value as CategoryType | "All")}
           aria-label="Filter by Category"
-          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full"
         >
           <option value="All">All Categories ({stats.total})</option>
           {CATEGORY_ENTRIES.map(([catKey, label]) => (
@@ -74,7 +72,6 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedDifficulty}
           onChange={(e) => onDifficultySelect(e.target.value as ProblemListDifficulty)}
           aria-label="Filter by Difficulty"
-          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full"
         >
           <option value="All">All Difficulties</option>
           <option value="Easy">Easy ({stats.easy})</option>
@@ -91,7 +88,6 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedSource}
           onChange={(e) => onSourceSelect && onSourceSelect(e.target.value as ProblemListSource)}
           aria-label="Filter by Source"
-          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full"
         >
           <option value="All">All Sources</option>
           <option value="leetcode">LeetCode</option>

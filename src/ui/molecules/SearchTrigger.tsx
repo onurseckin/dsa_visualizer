@@ -12,7 +12,7 @@ export function SearchTrigger({ onOpenDrawer }: SearchTriggerProps): ReactElemen
     <Button
       onClick={onOpenDrawer}
       aria-label="Search algorithms"
-      className="w-72 px-4.5 py-2.5 min-h-[44px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] hover:border-[var(--border-accent)] transition-all flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      className="w-72 px-4.5 py-2.5 min-h-[44px] bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] hover:border-[var(--border-accent)] transition-all flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
     >
       <div className="flex items-center gap-3">
         <Search className="w-4 h-4 text-neutral-300 shrink-0" aria-hidden="true" />

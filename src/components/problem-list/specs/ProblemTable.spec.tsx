@@ -99,7 +99,7 @@ describe("ProblemTable render spec", () => {
     const row = screen.getByRole("row", { name: /Open visualization for Bubble Sort/i });
 
     // Hover and Focus state handlers
-    expect(row.className).toContain("hover:bg-[var(--bg-hover)]");
+    expect(row.className).toContain("hover:bg-[var(--bg-surface-hover)]");
 
     // Keyboard selection (Enter & Space)
     fireEvent.keyDown(row, { key: "Enter" });
