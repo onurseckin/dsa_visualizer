@@ -17,6 +17,7 @@ interface DeckEntry {
   id: string;
   title: string;
   difficulty?: DifficultyLevel;
+  sources?: ReturnType<typeof getAlgorithmSources>;
 }
 
 const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
@@ -39,8 +40,8 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     algorithms.forEach((algorithm) => {
       if (categoryFilter !== "ALL" && algorithm.category !== categoryFilter) return;
       if (difficultyFilter !== "ALL" && algorithm.difficulty !== difficultyFilter) return;
+      const sources = getAlgorithmSources(algorithm);
       if (sourceFilter !== "ALL") {
-        const sources = getAlgorithmSources(algorithm);
         if (!sources.some((s) => getSourceKind(s) === sourceFilter)) return;
       }
 
@@ -52,7 +53,12 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       if (!matches) return;
 
       const entries = byCategory.get(algorithm.category) ?? [];
-      entries.push({ id: algorithm.id, title: algorithm.title, difficulty: algorithm.difficulty });
+      entries.push({
+        id: algorithm.id,
+        title: algorithm.title,
+        difficulty: algorithm.difficulty,
+        sources,
+      });
       byCategory.set(algorithm.category, entries);
     });
 

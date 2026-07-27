@@ -36,10 +36,10 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] m-0">
           {title}
         </h1>
-        <Badge variant={difficultyBadgeVariant(difficulty)} size="sm">
+        <Badge variant={difficultyBadgeVariant(difficulty)} size="md">
           {difficulty}
         </Badge>
-        <Badge variant="neutral" size="sm">
+        <Badge variant="neutral" size="md">
           {humanizeCategory(category)}
         </Badge>
         <SourceBadgeList sources={sources} leetcode={leetcode} size="md" />

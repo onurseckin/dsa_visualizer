@@ -11,8 +11,8 @@ describe("ProblemHeader", () => {
     const categoryBadge = screen.getByText("Intervals");
     expect(difficultyBadge).toBeInTheDocument();
     expect(categoryBadge).toBeInTheDocument();
-    expect(difficultyBadge).toHaveClass("ui-badge--sm");
-    expect(categoryBadge).toHaveClass("ui-badge--sm");
+    expect(difficultyBadge).toHaveClass("ui-badge--md");
+    expect(categoryBadge).toHaveClass("ui-badge--md");
   });
 
   it("applies className and style when provided", () => {

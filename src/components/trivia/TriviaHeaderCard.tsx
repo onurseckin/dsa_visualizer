@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, Check as CheckIcon, Edit2, X as CancelIcon } from "lucide-react";
+import { Check as CheckIcon, Edit2, X as CancelIcon } from "lucide-react";
 import type { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../types/trivia";
 import { Badge, Button, ButtonGroup, Card, IconButton, Input } from "../../ui";
 import { TriviaSettings } from "../../ui";
@@ -65,7 +65,6 @@ export function TriviaHeaderCard({
   return (
     <Card
       className="p-6 md:p-8 border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm"
-      icon={<Brain aria-hidden="true" className="w-[22px] h-[22px] text-[var(--accent)]" />}
       title={
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 flex-wrap">

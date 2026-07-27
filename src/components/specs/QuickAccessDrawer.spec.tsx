@@ -232,4 +232,11 @@ describe("QuickAccessDrawer Component Spec", () => {
     const leetCodeBadge = screen.getByText("LC #1");
     expect(leetCodeBadge).toBeInTheDocument();
   });
+
+  it("applies responsive 35vw width and 320px min-width to the dialog popup", () => {
+    render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveStyle({ width: "35vw", minWidth: "320px" });
+  });
 });
