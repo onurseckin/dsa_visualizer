@@ -6,7 +6,8 @@ export interface parallelCourseCriticalPathInput {
   target?: number;
 }
 
-export const PARALLELCOURSECRITICALPATH_CODE = "def parallel_course_critical_path(input_data: list) -> list:\n    # Critical Path Latency Bounds in Computational Graph (Medium)\n    # Calculates longest latency path across parallel execution stages.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const PARALLELCOURSECRITICALPATH_CODE =
+  "def parallel_course_critical_path(input_data: list) -> list:\n    # Critical Path Latency Bounds in Computational Graph (Medium)\n    # Calculates longest latency path across parallel execution stages.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_PARALLELCOURSECRITICALPATH_INPUT: parallelCourseCriticalPathInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_PARALLELCOURSECRITICALPATH_INPUT: parallelCourseCriticalPat
 };
 
 export const generateParallelCourseCriticalPathSteps = (
-  input: parallelCourseCriticalPathInput
+  input: parallelCourseCriticalPathInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateParallelCourseCriticalPathSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateParallelCourseCriticalPathSteps = (
     1,
     "Initialize Critical Path Latency Bounds in Computational Graph",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateParallelCourseCriticalPathSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateParallelCourseCriticalPathSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateParallelCourseCriticalPathSteps = (
 
 const PARALLELCOURSECRITICALPATH_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Critical Path Latency Bounds in Computational Graph.",
@@ -106,8 +112,8 @@ const PARALLELCOURSECRITICALPATH_TRIVIA: TriviaMeta = {
 export const parallelCourseCriticalPath: AlgorithmDefinition<parallelCourseCriticalPathInput> = {
   id: "parallel-course-critical-path",
   title: "Critical Path Latency Bounds in Computational Graph",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "graph_directed_and_scc"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,21 @@ export const parallelCourseCriticalPath: AlgorithmDefinition<parallelCourseCriti
   topicGuide: {
     overview: "Critical path length determines minimum execution latency of parallel DAGs.",
     sections: [
-      { heading: "Core Concept", body: "Calculates longest latency path across parallel execution stages." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Calculates longest latency path across parallel execution stages.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Critical Path","definition":"Longest weighted path in a DAG defining lower bound latency."}],
+    keyTerms: [
+      {
+        term: "Critical Path",
+        definition: "Longest weighted path in a DAG defining lower bound latency.",
+      },
+    ],
   },
   trivia: PARALLELCOURSECRITICALPATH_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

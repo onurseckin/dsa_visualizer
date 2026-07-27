@@ -6,7 +6,8 @@ export interface antiDiagonalExtractionInput {
   target?: number;
 }
 
-export const ANTIDIAGONALEXTRACTION_CODE = "def anti_diagonal_extraction(input_data: list) -> list:\n    # Anti-Diagonal Matrix Traversal (Medium)\n    # Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ANTIDIAGONALEXTRACTION_CODE =
+  "def anti_diagonal_extraction(input_data: list) -> list:\n    # Anti-Diagonal Matrix Traversal (Medium)\n    # Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ANTIDIAGONALEXTRACTION_INPUT: antiDiagonalExtractionInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ANTIDIAGONALEXTRACTION_INPUT: antiDiagonalExtractionInput =
 };
 
 export const generateAntiDiagonalExtractionSteps = (
-  input: antiDiagonalExtractionInput
+  input: antiDiagonalExtractionInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAntiDiagonalExtractionSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAntiDiagonalExtractionSteps = (
     1,
     "Initialize Anti-Diagonal Matrix Traversal",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAntiDiagonalExtractionSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAntiDiagonalExtractionSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAntiDiagonalExtractionSteps = (
 
 const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Anti-Diagonal Matrix Traversal.",
@@ -106,13 +112,14 @@ const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
 export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionInput> = {
   id: "anti-diagonal-extraction",
   title: "Anti-Diagonal Matrix Traversal",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
-  description: "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.",
+  description:
+    "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -153,10 +160,16 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
   topicGuide: {
     overview: "Anti-diagonals connect elements where row + col equals a constant sum.",
     sections: [
-      { heading: "Core Concept", body: "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Anti-Diagonal","definition":"Stripes running top-right to bottom-left."}],
+    keyTerms: [{ term: "Anti-Diagonal", definition: "Stripes running top-right to bottom-left." }],
   },
   trivia: ANTIDIAGONALEXTRACTION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

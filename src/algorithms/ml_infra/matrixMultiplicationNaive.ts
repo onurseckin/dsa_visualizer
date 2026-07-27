@@ -35,7 +35,7 @@ export const DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT: MatrixMultiplicationNaiv
 };
 
 export const generateMatrixMultiplicationNaiveSteps = (
-  input: MatrixMultiplicationNaiveInput
+  input: MatrixMultiplicationNaiveInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -50,7 +50,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
     activeRowA: number | null,
     activeColB: number | null,
     _activeK: number | null,
-    C: number[][]
+    C: number[][],
   ): GridCellNode[][] => {
     // Render matrix C as grid
     return C.map((rowArr, r) =>
@@ -59,7 +59,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
         col: c,
         distance: val,
         state: r === activeRowA && c === activeColB ? "active" : val !== 0 ? "visited" : "default",
-      }))
+      })),
     );
   };
 
@@ -71,7 +71,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
     activeColB: number | null,
     activeK: number | null,
     C: number[][],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -95,7 +95,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
   };
 
   const emptyC: number[][] = Array.from({ length: Math.max(1, M) }, () =>
-    Array(Math.max(1, N)).fill(0)
+    Array(Math.max(1, N)).fill(0),
   );
 
   if (M === 0 || K1 === 0 || K2 === 0 || N === 0 || K1 !== K2) {
@@ -107,7 +107,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
       null,
       null,
       emptyC,
-      { M, K1, K2, N, valid: false }
+      { M, K1, K2, N, valid: false },
     );
     return steps;
   }
@@ -122,7 +122,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
     null,
     null,
     C.map((r) => [...r]),
-    { M, K1, N, totalMACs: M * N * K1 }
+    { M, K1, N, totalMACs: M * N * K1 },
   );
 
   for (let i = 0; i < M; i++) {
@@ -136,7 +136,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
         j,
         null,
         C.map((r) => [...r]),
-        { i, j, acc }
+        { i, j, acc },
       );
 
       for (let k = 0; k < K1; k++) {
@@ -151,7 +151,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
           j,
           k,
           C.map((r) => [...r]),
-          { i, j, k, aVal: A[i][k], bVal: B[k][j], prod, acc }
+          { i, j, k, aVal: A[i][k], bVal: B[k][j], prod, acc },
         );
       }
 
@@ -164,7 +164,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
         j,
         null,
         C.map((r) => [...r]),
-        { i, j, resultVal: acc }
+        { i, j, resultVal: acc },
       );
     }
   }
@@ -177,7 +177,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
     null,
     null,
     C.map((r) => [...r]),
-    { complete: true }
+    { complete: true },
   );
 
   return steps;
@@ -190,11 +190,7 @@ export const MATRIX_MULTIPLICATION_NAIVE_TRIVIA: TriviaMeta = {
     { line: 11, hint: "Middle loop j iterates over columns of matrix B" },
     { line: 13, hint: "Inner loop k computes dot product along dimension K" },
   ],
-  distractors: [
-    "for k in range(M):",
-    "acc += A[k][i] * B[j][k]",
-    "C[i][j] = A[i][j] * B[i][j]",
-  ],
+  distractors: ["for k in range(M):", "acc += A[k][i] * B[j][k]", "C[i][j] = A[i][j] * B[i][j]"],
 };
 
 export const matrixMultiplicationNaive: AlgorithmDefinition<MatrixMultiplicationNaiveInput> = {

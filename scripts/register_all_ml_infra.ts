@@ -23,12 +23,14 @@ for (const folder of topicFolders) {
   const folderPath = path.join(process.cwd(), "src", "algorithms", folder);
   if (!fs.existsSync(folderPath)) continue;
 
-  const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
-  
+  const files = fs
+    .readdirSync(folderPath)
+    .filter((f) => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
+
   for (const file of files) {
     const filePath = path.join(folderPath, file);
     const content = fs.readFileSync(filePath, "utf8");
-    
+
     // Extract exported algorithm variable name and id
     const varMatch = content.match(/export const (\w+): AlgorithmDefinition/);
     const idMatch = content.match(/id: ["']([^"']+)["']/);
@@ -53,13 +55,18 @@ const lastImportIdx = currentRegistry.lastIndexOf("import ");
 const endOfLastImport = currentRegistry.indexOf("\n", lastImportIdx);
 
 const newImports = "\n// ML Infra Curriculum Imports\n" + imports.join("\n");
-currentRegistry = currentRegistry.slice(0, endOfLastImport) + newImports + currentRegistry.slice(endOfLastImport);
+currentRegistry =
+  currentRegistry.slice(0, endOfLastImport) + newImports + currentRegistry.slice(endOfLastImport);
 
 // Insert registry entries inside ALGORITHM_REGISTRY object
-const closingBraceIdx = currentRegistry.indexOf("};", currentRegistry.indexOf("ALGORITHM_REGISTRY"));
+const closingBraceIdx = currentRegistry.indexOf(
+  "};",
+  currentRegistry.indexOf("ALGORITHM_REGISTRY"),
+);
 const newEntries = "\n  // Extended ML Infra Curriculum\n" + registryEntries.join("\n") + "\n";
 
-currentRegistry = currentRegistry.slice(0, closingBraceIdx) + newEntries + currentRegistry.slice(closingBraceIdx);
+currentRegistry =
+  currentRegistry.slice(0, closingBraceIdx) + newEntries + currentRegistry.slice(closingBraceIdx);
 
 fs.writeFileSync(registryPath, currentRegistry, "utf8");
 console.log("Successfully updated src/algorithms/registry.ts!");

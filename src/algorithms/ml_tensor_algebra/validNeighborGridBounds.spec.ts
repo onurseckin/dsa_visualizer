@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { validNeighborGridBounds, DEFAULT_VALIDNEIGHBORGRIDBOUNDS_INPUT, generateValidNeighborGridBoundsSteps } from "./validNeighborGridBounds";
+import {
+  validNeighborGridBounds,
+  DEFAULT_VALIDNEIGHBORGRIDBOUNDS_INPUT,
+  generateValidNeighborGridBoundsSteps,
+} from "./validNeighborGridBounds";
 
 describe("valid-neighbor-grid-bounds (Valid 2D Grid Neighbor Bounds Check)", () => {
   it("should have correct metadata", () => {

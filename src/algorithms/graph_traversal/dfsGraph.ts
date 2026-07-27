@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DfsGraphInput {
@@ -160,7 +165,14 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
           kind: "graph",
           nodes: nodes.map((n) => ({
             ...n,
-            state: n.id === curr ? "active" : visited.has(n.id) ? "visited" : stack.includes(n.id) ? "in-stack" : "default",
+            state:
+              n.id === curr
+                ? "active"
+                : visited.has(n.id)
+                  ? "visited"
+                  : stack.includes(n.id)
+                    ? "in-stack"
+                    : "default",
           })),
           edges: edges.map((e) => ({
             ...e,
@@ -250,11 +262,7 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   difficulty: "Easy",
   description:
     "Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each branch before backtracking. It uses a call stack (or explicit LIFO stack) and a visited set to avoid cycles and process all reachable vertices in O(V + E) time.",
-  constraints: [
-    "1 <= V <= 1000",
-    "0 <= E <= 5000",
-    "Start node must be present in graph",
-  ],
+  constraints: ["1 <= V <= 1000", "0 <= E <= 5000", "Start node must be present in graph"],
   examples: [
     {
       kind: "basic",
@@ -263,7 +271,8 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
       title: "6-Node Graph Traversal",
       input: DEFAULT_DFS_GRAPH_INPUT,
       output: "A -> B -> D -> F -> E -> C",
-      explanation: "Explores deep branch A -> B -> D -> F first before backtracking to expand branch C -> E.",
+      explanation:
+        "Explores deep branch A -> B -> D -> F first before backtracking to expand branch C -> E.",
     },
     {
       kind: "complex",
@@ -307,7 +316,8 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
         ],
       },
       output: "Visited: [A, B]",
-      explanation: "DFS from start node A explores only its connected component {A, B}, leaving {C, D} unvisited.",
+      explanation:
+        "DFS from start node A explores only its connected component {A, B}, leaving {C, D} unvisited.",
     },
   ],
   code: DFS_GRAPH_CODE,
@@ -319,7 +329,8 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   spaceComplexity: "O(V)",
   complexityAnalysis: {
     time: "Each vertex and edge in the reachable component is visited a constant number of times, yielding O(V + E) time.",
-    space: "The visited set and recursion/call stack require memory proportional to the depth of the graph, taking O(V) space.",
+    space:
+      "The visited set and recursion/call stack require memory proportional to the depth of the graph, taking O(V) space.",
   },
   topicGuide: {
     overview:
@@ -336,8 +347,14 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
     ],
     keyTerms: [
       { term: "DFS", definition: "Depth-First Search algorithm." },
-      { term: "Backtracking", definition: "Retracting along the search tree when a branch is exhausted." },
-      { term: "Call Stack", definition: "The stack storing pending search frames during recursive traversal." },
+      {
+        term: "Backtracking",
+        definition: "Retracting along the search tree when a branch is exhausted.",
+      },
+      {
+        term: "Call Stack",
+        definition: "The stack storing pending search frames during recursive traversal.",
+      },
     ],
   },
   trivia: DFS_GRAPH_TRIVIA,

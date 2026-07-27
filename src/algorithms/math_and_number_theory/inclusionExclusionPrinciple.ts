@@ -38,13 +38,18 @@ export const generateInclusionExclusionSteps = (
   let stepIndex = 0;
 
   const n = Math.max(1, Math.floor(input.n));
-  const primes = input.primes.length > 0 ? input.primes.map(p => Math.abs(Math.floor(p))) : [2, 3];
+  const primes =
+    input.primes.length > 0 ? input.primes.map((p) => Math.abs(Math.floor(p))) : [2, 3];
   const k = primes.length;
 
   let totalCount = 0;
   const subsetHistory: string[] = [];
 
-  const makeElements = (activeMask: number, currentProd: number, sign: "+" | "-"): ArrayElement[] => {
+  const makeElements = (
+    activeMask: number,
+    currentProd: number,
+    sign: "+" | "-",
+  ): ArrayElement[] => {
     const elts: ArrayElement[] = primes.map((p, idx) => {
       const isSelected = ((activeMask >> idx) & 1) === 1;
       return {
@@ -134,7 +139,7 @@ export const generateInclusionExclusionSteps = (
       auxiliaryState: {
         hashMap: {
           "Current Subset": selectedPrimes.join(" × "),
-          "Product": prod,
+          Product: prod,
           "Divisibles Count": count,
           "Sign Operation": sign,
           "Running Total": totalCount,
@@ -190,11 +195,13 @@ const INCLUSION_EXCLUSION_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Bitmask",
-      definition: "An integer representation where the i-th bit indicates whether the i-th prime is included in the current subset.",
+      definition:
+        "An integer representation where the i-th bit indicates whether the i-th prime is included in the current subset.",
     },
     {
       term: "Parity / Popcount",
-      definition: "The number of set bits in the bitmask determines whether the subset intersection size is added (+ for odd) or subtracted (- for even).",
+      definition:
+        "The number of set bits in the bitmask determines whether the subset intersection size is added (+ for odd) or subtracted (- for even).",
     },
   ],
 };
@@ -222,11 +229,7 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   difficulty: "Medium",
   description:
     "Count elements in the union of multiple sets by alternating sums of set intersections for all sub-collections.",
-  constraints: [
-    "1 <= n <= 10^9",
-    "1 <= primes.length <= 10",
-    "2 <= primes[i] <= 10^5",
-  ],
+  constraints: ["1 <= n <= 10^9", "1 <= primes.length <= 10", "2 <= primes[i] <= 10^5"],
   examples: [
     {
       kind: "basic",
@@ -275,4 +278,3 @@ export const inclusionExclusionPrinciple: AlgorithmDefinition<InclusionExclusion
   defaultInput: DEFAULT_INCLUSION_EXCLUSION_INPUT,
   generateSteps: generateInclusionExclusionSteps,
 };
-

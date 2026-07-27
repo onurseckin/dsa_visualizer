@@ -145,7 +145,8 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
       title: "Complex Edge Case",
       input: { nums: [-3, 5, -2, 0, 7, -4] },
       output: "[0, -3, 2, 0, 0, 7, 3]",
-      explanation: "Handles negative numbers and zeros, correctly updating prefix sums across signs.",
+      explanation:
+        "Handles negative numbers and zeros, correctly updating prefix sums across signs.",
     },
     {
       kind: "negative",

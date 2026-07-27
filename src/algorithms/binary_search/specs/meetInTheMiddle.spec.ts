@@ -43,10 +43,16 @@ describe("meetInTheMiddle algorithm spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(meetInTheMiddle.examples).toHaveLength(3);
-    expect(meetInTheMiddle.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(meetInTheMiddle.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of meetInTheMiddle.examples!) {
-      const steps = meetInTheMiddle.generateSteps(example.input as { array: number[]; target: number });
+      const steps = meetInTheMiddle.generateSteps(
+        example.input as { array: number[]; target: number },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

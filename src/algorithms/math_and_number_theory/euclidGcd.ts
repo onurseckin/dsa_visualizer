@@ -308,8 +308,7 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
       title: "Failing / Boundary Case",
       input: { a: 17, b: 0 },
       output: "17",
-      explanation:
-        "Boundary input b=0 terminates instantly with GCD(a, 0) = a.",
+      explanation: "Boundary input b=0 terminates instantly with GCD(a, 0) = a.",
     },
   ],
   code: PYTHON_EUCLID_GCD_CODE,

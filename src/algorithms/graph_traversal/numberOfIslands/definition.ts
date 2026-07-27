@@ -121,7 +121,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "grid = [[\"1\",\"1\",\"0\"],[\"1\",\"1\",\"0\"],[\"0\",\"0\",\"1\"]]",
+      inputDisplay: 'grid = [["1","1","0"],["1","1","0"],["0","0","1"]]',
       outputDisplay: "2",
       title: "Basic Example",
       input: {
@@ -138,7 +138,8 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "grid = [[\"1\",\"1\",\"0\",\"0\"],[\"1\",\"0\",\"0\",\"1\"],[\"0\",\"0\",\"1\",\"1\"],[\"0\",\"0\",\"0\",\"0\"]]",
+      inputDisplay:
+        'grid = [["1","1","0","0"],["1","0","0","1"],["0","0","1","1"],["0","0","0","0"]]',
       outputDisplay: "2",
       title: "Complex Edge Case",
       input: {
@@ -154,7 +155,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "grid = [[\"0\",\"0\"],[\"0\",\"0\"]]",
+      inputDisplay: 'grid = [["0","0"],["0","0"]]',
       outputDisplay: "0",
       title: "Failing / Boundary Case",
       input: {

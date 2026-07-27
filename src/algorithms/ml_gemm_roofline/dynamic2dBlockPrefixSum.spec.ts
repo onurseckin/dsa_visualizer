@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { dynamic2dBlockPrefixSum, DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT, generateDynamic2dBlockPrefixSumSteps } from "./dynamic2dBlockPrefixSum";
+import {
+  dynamic2dBlockPrefixSum,
+  DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
+  generateDynamic2dBlockPrefixSumSteps,
+} from "./dynamic2dBlockPrefixSum";
 
 describe("dynamic-2d-block-prefix-sum (Block-Tiled 2D Prefix Sum Engine)", () => {
   it("should have correct metadata", () => {

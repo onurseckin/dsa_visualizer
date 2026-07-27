@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { astConstantFolding, DEFAULT_ASTCONSTANTFOLDING_INPUT, generateAstConstantFoldingSteps } from "./astConstantFolding";
+import {
+  astConstantFolding,
+  DEFAULT_ASTCONSTANTFOLDING_INPUT,
+  generateAstConstantFoldingSteps,
+} from "./astConstantFolding";
 
 describe("ast-constant-folding (AST Constant Folding Compiler Pass)", () => {
   it("should have correct metadata", () => {

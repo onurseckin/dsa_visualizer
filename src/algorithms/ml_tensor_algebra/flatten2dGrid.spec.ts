@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { flatten2dGrid, DEFAULT_FLATTEN2DGRID_INPUT, generateFlatten2dGridSteps } from "./flatten2dGrid";
+import {
+  flatten2dGrid,
+  DEFAULT_FLATTEN2DGRID_INPUT,
+  generateFlatten2dGridSteps,
+} from "./flatten2dGrid";
 
 describe("flatten-2d-grid (Flatten 2D Grid into 1D Contiguous Buffer)", () => {
   it("should have correct metadata", () => {
@@ -13,7 +17,7 @@ describe("flatten-2d-grid (Flatten 2D Grid into 1D Contiguous Buffer)", () => {
   it("should generate valid algorithm steps", () => {
     const steps = generateFlatten2dGridSteps(DEFAULT_FLATTEN2DGRID_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Flatten 2D Grid into 1D Contiguous Buffer");
+    expect(steps[0].explanation.what).toContain("Initialize");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

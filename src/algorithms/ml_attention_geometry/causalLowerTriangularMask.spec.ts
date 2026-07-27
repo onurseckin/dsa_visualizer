@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { causalLowerTriangularMask, DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT, generateCausalLowerTriangularMaskSteps } from "./causalLowerTriangularMask";
+import {
+  causalLowerTriangularMask,
+  DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT,
+  generateCausalLowerTriangularMaskSteps,
+} from "./causalLowerTriangularMask";
 
 describe("causal-lower-triangular-mask (Causal Lower-Triangular Mask Generator)", () => {
   it("should have correct metadata", () => {

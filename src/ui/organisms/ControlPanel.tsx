@@ -48,7 +48,9 @@ export function ControlPanel({
       data-currentstep={currentStep}
       data-totalsteps={totalSteps}
       className={`bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-wrap items-center justify-between gap-2 md:gap-3 w-full box-border py-1 px-3 ${
-        isEmbedded ? "border-t border-x-0 border-b-0 rounded-none shadow-none" : "rounded-2xl shadow-xl relative top-2 z-10"
+        isEmbedded
+          ? "border-t border-x-0 border-b-0 rounded-none shadow-none"
+          : "rounded-2xl shadow-xl relative top-2 z-10"
       }`}
     >
       <div className="flex items-center gap-1.5 md:gap-2">

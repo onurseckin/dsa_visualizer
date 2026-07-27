@@ -16,7 +16,9 @@ describe("modularExponentiationInverse React component spec", () => {
     );
     const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
 
-    render(<ArrayVisualizer elements={snapshot.elements} title="Modular Exponentiation & Inverse" />);
+    render(
+      <ArrayVisualizer elements={snapshot.elements} title="Modular Exponentiation & Inverse" />,
+    );
 
     expect(screen.getByText("Modular Exponentiation & Inverse")).toBeInTheDocument();
   });

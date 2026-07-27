@@ -35,7 +35,8 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "arr = [2, 4, 6, 8, 10, 12, 14, 16], queries = [sum(0..7), update(0, 10), update(7, 20), sum(0..7)]",
+      inputDisplay:
+        "arr = [2, 4, 6, 8, 10, 12, 14, 16], queries = [sum(0..7), update(0, 10), update(7, 20), sum(0..7)]",
       outputDisplay: "Query 1: 72, Query 2: 90",
       title: "Complex Edge Case",
       input: {

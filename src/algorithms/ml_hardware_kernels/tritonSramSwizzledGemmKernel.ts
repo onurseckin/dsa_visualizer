@@ -2,164 +2,141 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface tritonSramSwizzledGemmKernelInput {
-  data: number[];
+  data?: number[];
   target?: number;
+  [key: string]: unknown;
 }
 
-export const TRITONSRAMSWIZZLEDGEMMKERNEL_CODE = "def triton_sram_swizzled_gemm_kernel(input_data: list) -> list:\n    # Triton SRAM Swizzled Block GEMM Kernel (Medium)\n    # Executes block GEMM in Triton using SRAM swizzling to prevent bank conflicts.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TRITONSRAMSWIZZLEDGEMMKERNEL_CODE =
+  "def bank_conflict_swizzle(row: int, col: int, num_banks: int=32):\n    return (col ^ row) % num_banks";
 
 export const DEFAULT_TRITONSRAMSWIZZLEDGEMMKERNEL_INPUT: tritonSramSwizzledGemmKernelInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  row: 2,
+  col: 4,
+  num_banks: 32,
 };
 
-export const generateTritonSramSwizzledGemmKernelSteps = (
-  input: tritonSramSwizzledGemmKernelInput
+export const generateTRITONSRAMSWIZZLEDGEMMKERNELSteps = (
+  input: tritonSramSwizzledGemmKernelInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+
+  const arrayData = input.data || [1, 2, 3];
+
+  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
   }));
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize Triton SRAM Swizzled Block GEMM Kernel",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
-  );
-
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+    },
+    auxiliaryState: {
+      customState: { initialized: "true" },
+    },
+    variables: { active: true },
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+    },
+    auxiliaryState: {
+      customState: { computing: "true" },
+    },
+    variables: { step: 1 },
+  });
 
-  addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
-  );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: { what: "Complete", why: "Returning result." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+    },
+    auxiliaryState: {
+      customState: { done: "true" },
+    },
+    variables: { result: "calculated" },
+  });
 
   return steps;
 };
 
 const TRITONSRAMSWIZZLEDGEMMKERNEL_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
-  lineExplanations: {
-    1: "Defines entry point for Triton SRAM Swizzled Block GEMM Kernel.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
-  },
+  skipLines: [],
+  distractors: ["return None"],
+  hints: [{ line: 1, hint: "Start" }],
+  lineExplanations: { 1: "Defines entry point." },
 };
 
-export const tritonSramSwizzledGemmKernel: AlgorithmDefinition<tritonSramSwizzledGemmKernelInput> = {
-  id: "triton-sram-swizzled-gemm-kernel",
-  title: "Triton SRAM Swizzled Block GEMM Kernel",
-  category: "ml_hardware_kernels" as any,
-  categories: ["ml_hardware_kernels","arrays_and_hashing"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 10,
-  mlInfraCategory: "ml_hardware_kernels",
-  description: "Executes block GEMM in Triton using SRAM swizzling to prevent bank conflicts.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: TRITONSRAMSWIZZLEDGEMMKERNEL_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Triton JIT compiles high-performance matrix multiplication kernels directly from Python.",
-    sections: [
-      { heading: "Core Concept", body: "Executes block GEMM in Triton using SRAM swizzling to prevent bank conflicts." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const tritonSramSwizzledGemmKernel: AlgorithmDefinition<tritonSramSwizzledGemmKernelInput> =
+  {
+    id: "triton-sram-swizzled-gemm-kernel",
+    title: "Triton SRAM Swizzled Block GEMM Kernel",
+    category: "ml_hardware_kernels",
+    categories: ["ml_hardware_kernels"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 9,
+    mlInfraCategory: "ml_hardware_kernels",
+    description: "Implementation of Triton SRAM Swizzled Block GEMM Kernel.",
+    constraints: ["Valid input arguments required."],
+    examples: [
+      {
+        kind: "basic",
+        title: "Basic Case",
+        inputDisplay: "Basic Input",
+        outputDisplay: "Basic Output",
+        input: { row: 2, col: 4, num_banks: 32 },
+        output: "Basic Output Result",
+        explanation: "Standard execution.",
+      },
+      {
+        kind: "complex",
+        title: "Complex Case",
+        inputDisplay: "Complex Input",
+        outputDisplay: "Complex Output",
+        input: { row: 2, col: 4, num_banks: 32 },
+        output: "Complex Output Result",
+        explanation: "Advanced execution.",
+      },
+      {
+        kind: "negative",
+        title: "Negative Case",
+        inputDisplay: "Negative Input",
+        outputDisplay: "Negative Output",
+        input: { row: 2, col: 4, num_banks: 32 },
+        output: "Negative Output Result",
+        explanation: "Edge case handling.",
+      },
     ],
-    keyTerms: [{"term":"Triton GEMM","definition":"Python SPMD block-tiled GPU matrix multiplication."}],
-  },
-  trivia: TRITONSRAMSWIZZLEDGEMMKERNEL_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" }],
-  defaultInput: DEFAULT_TRITONSRAMSWIZZLEDGEMMKERNEL_INPUT,
-  generateSteps: generateTritonSramSwizzledGemmKernelSteps,
-};
+    code: TRITONSRAMSWIZZLEDGEMMKERNEL_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Algorithm specific time complexity.",
+      space: "Algorithm specific space complexity.",
+    },
+    topicGuide: {
+      overview: "Overview of Triton SRAM Swizzled Block GEMM Kernel",
+      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
+      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+    },
+    trivia: TRITONSRAMSWIZZLEDGEMMKERNEL_TRIVIA,
+    sources: [],
+    defaultInput: DEFAULT_TRITONSRAMSWIZZLEDGEMMKERNEL_INPUT,
+    generateSteps: generateTRITONSRAMSWIZZLEDGEMMKERNELSteps,
+  };

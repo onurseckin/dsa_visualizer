@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DeBruijnSequenceInput {
@@ -179,9 +184,15 @@ export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmSt
       const item = adj[curr].pop()!;
       const nxt = item.to;
 
-      const edgeObj = graphEdges.find(
-        (e) => e.from === curr && e.to === nxt && String(e.weight) === item.char && !edgeUsed[`${e.from}->${e.to}-${e.weight}`]
-      ) || graphEdges.find((e) => e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}`]);
+      const edgeObj =
+        graphEdges.find(
+          (e) =>
+            e.from === curr &&
+            e.to === nxt &&
+            String(e.weight) === item.char &&
+            !edgeUsed[`${e.from}->${e.to}-${e.weight}`],
+        ) ||
+        graphEdges.find((e) => e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}`]);
 
       if (edgeObj) {
         edgeUsed[`${edgeObj.from}->${edgeObj.to}-${edgeObj.weight ?? 0}`] = true;
@@ -229,7 +240,11 @@ export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmSt
           kind: "graph",
           nodes: graphNodes.map((gn) => ({
             ...gn,
-            state: circuit.includes(gn.id) ? "visited" : stack.includes(gn.id) ? "in-stack" : "default",
+            state: circuit.includes(gn.id)
+              ? "visited"
+              : stack.includes(gn.id)
+                ? "in-stack"
+                : "default",
           })),
           edges: graphEdges.map((ge) => ({
             ...ge,
@@ -286,7 +301,8 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
       title: "Binary Order-3 De Bruijn Sequence",
       input: { k: 2, n: 3 },
       output: '"00011101"',
-      explanation: "Contains all 8 length-3 binary substrings: 000, 001, 011, 111, 110, 101, 010, 100.",
+      explanation:
+        "Contains all 8 length-3 binary substrings: 000, 001, 011, 111, 110, 101, 010, 100.",
     },
     {
       kind: "complex",
@@ -332,8 +348,14 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
       },
     ],
     keyTerms: [
-      { term: "De Bruijn Sequence", definition: "A cyclic sequence containing all length-n substrings over alphabet k." },
-      { term: "De Bruijn Graph", definition: "A directed graph representing overlaps between sequences of symbols." },
+      {
+        term: "De Bruijn Sequence",
+        definition: "A cyclic sequence containing all length-n substrings over alphabet k.",
+      },
+      {
+        term: "De Bruijn Graph",
+        definition: "A directed graph representing overlaps between sequences of symbols.",
+      },
     ],
   },
   trivia: DE_BRUIJN_TRIVIA,

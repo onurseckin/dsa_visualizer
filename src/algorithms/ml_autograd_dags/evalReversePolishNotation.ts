@@ -6,7 +6,8 @@ export interface evalReversePolishNotationInput {
   target?: number;
 }
 
-export const EVALREVERSEPOLISHNOTATION_CODE = "def eval_reverse_polish_notation(input_data: list) -> list:\n    # Evaluate Reverse Polish Notation (Easy)\n    # Evaluates arithmetic expressions in RPN stack order.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const EVALREVERSEPOLISHNOTATION_CODE =
+  "def eval_reverse_polish_notation(input_data: list) -> list:\n    # Evaluate Reverse Polish Notation (Easy)\n    # Evaluates arithmetic expressions in RPN stack order.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT: evalReversePolishNotationInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT: evalReversePolishNotationI
 };
 
 export const generateEvalReversePolishNotationSteps = (
-  input: evalReversePolishNotationInput
+  input: evalReversePolishNotationInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateEvalReversePolishNotationSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateEvalReversePolishNotationSteps = (
     1,
     "Initialize Evaluate Reverse Polish Notation",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateEvalReversePolishNotationSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateEvalReversePolishNotationSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateEvalReversePolishNotationSteps = (
 
 const EVALREVERSEPOLISHNOTATION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Evaluate Reverse Polish Notation.",
@@ -106,8 +112,8 @@ const EVALREVERSEPOLISHNOTATION_TRIVIA: TriviaMeta = {
 export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNotationInput> = {
   id: "eval-reverse-polish-notation",
   title: "Evaluate Reverse Polish Notation",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","stack_and_queue"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "stack_and_queue"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -154,9 +160,12 @@ export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNot
     overview: "Stack evaluation models expression AST traversal.",
     sections: [
       { heading: "Core Concept", body: "Evaluates arithmetic expressions in RPN stack order." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"RPN","definition":"Reverse Polish Notation stack evaluation."}],
+    keyTerms: [{ term: "RPN", definition: "Reverse Polish Notation stack evaluation." }],
   },
   trivia: EVALREVERSEPOLISHNOTATION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

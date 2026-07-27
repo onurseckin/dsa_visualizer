@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { evalReversePolishNotation, DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT, generateEvalReversePolishNotationSteps } from "./evalReversePolishNotation";
+import {
+  evalReversePolishNotation,
+  DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT,
+  generateEvalReversePolishNotationSteps,
+} from "./evalReversePolishNotation";
 
 describe("eval-reverse-polish-notation (Evaluate Reverse Polish Notation)", () => {
   it("should have correct metadata", () => {

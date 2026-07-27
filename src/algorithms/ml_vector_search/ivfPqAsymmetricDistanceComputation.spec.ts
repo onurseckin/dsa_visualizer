@@ -11,7 +11,9 @@ describe("ivfPqAsymmetricDistanceComputation", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = ivfPqAsymmetricDistanceComputation.generateSteps(ivfPqAsymmetricDistanceComputation.defaultInput);
+    const steps = ivfPqAsymmetricDistanceComputation.generateSteps(
+      ivfPqAsymmetricDistanceComputation.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

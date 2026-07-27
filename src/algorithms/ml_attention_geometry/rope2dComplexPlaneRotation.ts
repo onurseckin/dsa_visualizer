@@ -6,7 +6,8 @@ export interface rope2dComplexPlaneRotationInput {
   target?: number;
 }
 
-export const ROPE2DCOMPLEXPLANEROTATION_CODE = "def rope2d_complex_plane_rotation(input_data: list) -> list:\n    # RoPE 2D Complex Plane Rotation Matrix (Medium)\n    # Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ROPE2DCOMPLEXPLANEROTATION_CODE =
+  "def rope2d_complex_plane_rotation(input_data: list) -> list:\n    # RoPE 2D Complex Plane Rotation Matrix (Medium)\n    # Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT: rope2dComplexPlaneRotationInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT: rope2dComplexPlaneRotatio
 };
 
 export const generateRope2dComplexPlaneRotationSteps = (
-  input: rope2dComplexPlaneRotationInput
+  input: rope2dComplexPlaneRotationInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateRope2dComplexPlaneRotationSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateRope2dComplexPlaneRotationSteps = (
     1,
     "Initialize RoPE 2D Complex Plane Rotation Matrix",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateRope2dComplexPlaneRotationSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateRope2dComplexPlaneRotationSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateRope2dComplexPlaneRotationSteps = (
 
 const ROPE2DCOMPLEXPLANEROTATION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for RoPE 2D Complex Plane Rotation Matrix.",
@@ -106,13 +112,14 @@ const ROPE2DCOMPLEXPLANEROTATION_TRIVIA: TriviaMeta = {
 export const rope2dComplexPlaneRotation: AlgorithmDefinition<rope2dComplexPlaneRotationInput> = {
   id: "rope-2d-complex-plane-rotation",
   title: "RoPE 2D Complex Plane Rotation Matrix",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","math_and_number_theory"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
-  description: "Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs.",
+  description:
+    "Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -151,12 +158,24 @@ export const rope2dComplexPlaneRotation: AlgorithmDefinition<rope2dComplexPlaneR
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "RoPE encodes relative position by rotating query and key vector pairs in complex plane.",
+    overview:
+      "RoPE encodes relative position by rotating query and key vector pairs in complex plane.",
     sections: [
-      { heading: "Core Concept", body: "Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Applies 2D rotation matrix R_m^d = [[cos mθ, -sin mθ], [sin mθ, cos mθ]] to vector pairs.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Rotary Position Embedding","definition":"RoPE relative position rotation encoding."}],
+    keyTerms: [
+      {
+        term: "Rotary Position Embedding",
+        definition: "RoPE relative position rotation encoding.",
+      },
+    ],
   },
   trivia: ROPE2DCOMPLEXPLANEROTATION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

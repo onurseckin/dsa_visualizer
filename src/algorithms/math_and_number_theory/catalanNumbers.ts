@@ -217,7 +217,8 @@ export const CATALAN_NUMBERS_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Dyck Path",
-      definition: "Grid path from (0,0) to (n,n) taking right and up steps that stays on or below the main diagonal.",
+      definition:
+        "Grid path from (0,0) to (n,n) taking right and up steps that stays on or below the main diagonal.",
     },
     {
       term: "Catalan Sequence",

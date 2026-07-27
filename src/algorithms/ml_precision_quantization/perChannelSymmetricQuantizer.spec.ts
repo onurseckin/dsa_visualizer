@@ -1,19 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { perChannelSymmetricQuantizer, DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT, generatePerChannelSymmetricQuantizerSteps } from "./perChannelSymmetricQuantizer";
+import {
+  perChannelSymmetricQuantizer,
+  generatePerChannelSymmetricQuantizerSteps,
+  DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT,
+} from "./perChannelSymmetricQuantizer";
 
-describe("per-channel-symmetric-quantizer (Per-Channel Symmetric INT8 Quantizer)", () => {
+describe("Per Channel Symmetric Quantizer", () => {
   it("should have correct metadata", () => {
-    expect(perChannelSymmetricQuantizer.id).toBe("per-channel-symmetric-quantizer");
-    expect(perChannelSymmetricQuantizer.isMlInfra).toBe(true);
-    expect(perChannelSymmetricQuantizer.mlInfraLevel).toBe(4);
-    expect(perChannelSymmetricQuantizer.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(perChannelSymmetricQuantizer.categories).toContain("ml_precision_quantization");
+    expect(perChannelSymmetricQuantizer.id).toBeDefined();
+    expect(perChannelSymmetricQuantizer.title).toBe("Per Channel Symmetric Quantizer");
+    expect(perChannelSymmetricQuantizer.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generatePerChannelSymmetricQuantizerSteps(DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT);
+  it("should generate steps successfully", () => {
+    const steps = generatePerChannelSymmetricQuantizerSteps(
+      DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Per-Channel Symmetric INT8 Quantizer");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(perChannelSymmetricQuantizer.examples?.length).toBe(3);
   });
 });

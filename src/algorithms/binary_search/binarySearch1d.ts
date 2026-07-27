@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface BinarySearch1dInput {
@@ -127,14 +122,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
   );
 
   if (n === 0) {
-    addStep(
-      14,
-      "Array is empty",
-      "Cannot search in an empty array.",
-      { n: 0, target },
-      0,
-      -1,
-    );
+    addStep(14, "Array is empty", "Cannot search in an empty array.", { n: 0, target }, 0, -1);
     return steps;
   }
 
@@ -276,11 +264,13 @@ export const BINARY_SEARCH_1D_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Search Space",
-      definition: "The range of array indices [left, right] currently eligible to contain the target.",
+      definition:
+        "The range of array indices [left, right] currently eligible to contain the target.",
     },
     {
       term: "Lower Bound",
-      definition: "The smallest index i in a sorted array such that arr[i] is greater than or equal to target.",
+      definition:
+        "The smallest index i in a sorted array such that arr[i] is greater than or equal to target.",
     },
   ],
 };
@@ -366,7 +356,8 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   spaceComplexity: "O(1)",
   complexityAnalysis: {
     time: "Each step cuts the remaining search space [left..right] in half. An array of size n is reduced to 1 element in log2(n) steps, running in O(log n) time.",
-    space: "Uses O(1) auxiliary space as search maintains only left, right, and mid integer pointers.",
+    space:
+      "Uses O(1) auxiliary space as search maintains only left, right, and mid integer pointers.",
   },
   topicGuide: BINARY_SEARCH_1D_TOPIC_GUIDE,
   trivia: BINARY_SEARCH_1D_TRIVIA,

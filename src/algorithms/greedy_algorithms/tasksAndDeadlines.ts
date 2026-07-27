@@ -241,7 +241,8 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
         ],
       },
       output: "Max Total Reward: -2",
-      explanation: "Sorting by duration gives order (2,7), (3,5), (4,2), (4,5) yielding completion times 2, 5, 9, 13 and total reward (7-2)+(5-5)+(2-9)+(5-13) = -2.",
+      explanation:
+        "Sorting by duration gives order (2,7), (3,5), (4,2), (4,5) yielding completion times 2, 5, 9, 13 and total reward (7-2)+(5-5)+(2-9)+(5-13) = -2.",
     },
     {
       kind: "complex",
@@ -256,7 +257,8 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
         ],
       },
       output: "Max Total Reward: 5",
-      explanation: "Order by duration: (1,2) at t=1 (score 1), (2,4) at t=3 (score 1), (5,10) at t=8 (score 2). Total = 4.",
+      explanation:
+        "Order by duration: (1,2) at t=1 (score 1), (2,4) at t=3 (score 1), (5,10) at t=8 (score 2). Total = 4.",
     },
     {
       kind: "negative",

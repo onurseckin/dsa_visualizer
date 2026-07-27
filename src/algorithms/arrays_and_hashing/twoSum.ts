@@ -77,7 +77,7 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     elements[i].state = "active";
     elements[i].pointers = ["i"];
 
-    const currentVal = elements[i].value;
+    const currentVal = Number(elements[i].value);
 
     addStep(
       3,
@@ -216,7 +216,8 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
       title: "Complex Edge Case",
       input: { nums: [3, 2, 4, 1, 9, 8], target: 12 },
       output: "[2, 5]",
-      explanation: "Looking up complement 12 - 8 = 4 in the hash map finds index 2 (value 4), returning [2, 5].",
+      explanation:
+        "Looking up complement 12 - 8 = 4 in the hash map finds index 2 (value 4), returning [2, 5].",
     },
     {
       kind: "negative",
@@ -225,7 +226,8 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
       title: "Failing / Boundary Case",
       input: { nums: [1, 2, 3, 4], target: 10 },
       output: "[]",
-      explanation: "No pair adds up to 10. All elements are processed into the hash map and [] is returned.",
+      explanation:
+        "No pair adds up to 10. All elements are processed into the hash map and [] is returned.",
     },
   ],
   code: TWO_SUM_CODE,

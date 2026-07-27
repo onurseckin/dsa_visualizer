@@ -33,9 +33,7 @@ const BINARY_LIFTING_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateBinaryLiftingLcaSteps = (
-  input: BinaryLiftingLcaInput,
-): AlgorithmStep[] => {
+export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): AlgorithmStep[] => {
   const n = Math.max(2, Math.min(15, input.numNodes));
   const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
   const [qU, qV] = input.query;
@@ -77,11 +75,7 @@ export const generateBinaryLiftingLcaSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIdx = 0;
 
-  const buildTreeSnapshot = (
-    activeU: number,
-    activeV: number,
-    lcaNode: number = -1,
-  ) => {
+  const buildTreeSnapshot = (activeU: number, activeV: number, lcaNode: number = -1) => {
     const treeNodes: TreeNodeItem[] = Array.from({ length: n }, (_, i) => {
       const leftChild = children[i][0];
       const rightChild = children[i][1];
@@ -372,4 +366,3 @@ def binary_lifting_lca(n, edges, u, v):
   ],
   defaultInput: DEFAULT_BINARY_LIFTING_LCA_INPUT,
 };
-

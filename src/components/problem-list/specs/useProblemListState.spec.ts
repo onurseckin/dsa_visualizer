@@ -45,8 +45,8 @@ describe("useProblemListState hook", () => {
 
     expect(result.current.selectedCategory).toBe("arrays_and_hashing");
 
-    act(() => result.current.handleCategorySelect("trees"));
-    expect(onCategoryChange).toHaveBeenCalledWith("trees");
+    act(() => result.current.setSelectedCategory("tree_fundamentals"));
+    expect(onCategoryChange).toHaveBeenCalledWith("tree_fundamentals");
   });
 
   it("toggles sort order and sort field across title, category, and difficulty", () => {

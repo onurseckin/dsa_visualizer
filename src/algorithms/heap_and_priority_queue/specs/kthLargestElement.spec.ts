@@ -64,7 +64,11 @@ describe("kthLargestElement logic spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(kthLargestElement.examples).toHaveLength(3);
-    expect(kthLargestElement.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(kthLargestElement.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
     expect(kthLargestElement.examples?.map((ex) => ex.title)).toEqual([
       "Basic Example",
       "Complex Edge Case",

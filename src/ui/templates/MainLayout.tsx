@@ -1,5 +1,10 @@
 import React from "react";
-import { AlgorithmDefinition, AlgorithmStep, PanelVisibility, ProblemExample } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  PanelVisibility,
+  ProblemExample,
+} from "../../types/dsa";
 import { ControlPanelProps } from "../organisms/ControlPanel";
 import { useMainLayoutState } from "../../components/main-layout/hooks/useMainLayoutState";
 import { ProblemSection } from "../../components/main-layout/components/ProblemSection";

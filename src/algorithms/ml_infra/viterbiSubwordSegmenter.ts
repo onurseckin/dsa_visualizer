@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ViterbiSubwordInput {
@@ -56,7 +52,7 @@ export const DEFAULT_VITERBI_SUBWORD_INPUT: ViterbiSubwordInput = {
 };
 
 export const generateViterbiSubwordSegmenterSteps = (
-  input: ViterbiSubwordInput
+  input: ViterbiSubwordInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -84,7 +80,7 @@ export const generateViterbiSubwordSegmenterSteps = (
     },
     auxiliaryState: {
       distanceTable: {
-        "dp_0": 0.0,
+        dp_0: 0.0,
       },
     },
     variables: {
@@ -119,14 +115,22 @@ export const generateViterbiSubwordSegmenterSteps = (
               else if (idx < j) state = "visited";
               return {
                 id: `char-${idx}`,
-                value: idx + 1 <= i ? (dp[idx + 1] === -Infinity ? -99 : Number(dp[idx + 1].toFixed(1))) : 0,
+                value:
+                  idx + 1 <= i
+                    ? dp[idx + 1] === -Infinity
+                      ? -99
+                      : Number(dp[idx + 1].toFixed(1))
+                    : 0,
                 state,
               };
             }),
           },
           auxiliaryState: {
             distanceTable: Object.fromEntries(
-              dp.map((val, idx) => [`dp_${idx}`, val === -Infinity ? -999 : Number(val.toFixed(2))])
+              dp.map((val, idx) => [
+                `dp_${idx}`,
+                val === -Infinity ? -999 : Number(val.toFixed(2)),
+              ]),
             ),
           },
           variables: {
@@ -231,11 +235,13 @@ export const viterbiSubwordSegmenter: AlgorithmDefinition<ViterbiSubwordInput> =
     {
       kind: "basic",
       title: "Unigram Subword Tokenization ('unbreakable')",
-      inputDisplay: "text='unbreakable', vocab={'un': -1.2, 'break': -1.5, 'able': -1.1, 'unbreak': -3.5}",
+      inputDisplay:
+        "text='unbreakable', vocab={'un': -1.2, 'break': -1.5, 'able': -1.1, 'unbreak': -3.5}",
       outputDisplay: "['un', 'break', 'able'] (logP=-3.80)",
       input: DEFAULT_VITERBI_SUBWORD_INPUT,
       output: "['un', 'break', 'able']",
-      explanation: "Segmentation ['un', 'break', 'able'] gives log-prob -1.2 + -1.5 + -1.1 = -3.80, outperforming ['unbreak', 'able'] (-4.60).",
+      explanation:
+        "Segmentation ['un', 'break', 'able'] gives log-prob -1.2 + -1.5 + -1.1 = -3.80, outperforming ['unbreak', 'able'] (-4.60).",
     },
     {
       kind: "complex",
@@ -253,7 +259,8 @@ export const viterbiSubwordSegmenter: AlgorithmDefinition<ViterbiSubwordInput> =
         },
       },
       output: "['transform', 'er']",
-      explanation: "Viterbi DP selects ['transform', 'er'] (-2.6 total) over ['trans', 'former'] (-4.2 total).",
+      explanation:
+        "Viterbi DP selects ['transform', 'er'] (-2.6 total) over ['trans', 'former'] (-4.2 total).",
     },
     {
       kind: "negative",
@@ -268,7 +275,8 @@ export const viterbiSubwordSegmenter: AlgorithmDefinition<ViterbiSubwordInput> =
         },
       },
       output: "[]",
-      explanation: "When no substring matches vocabulary entries, parent pointers remain -1 and Viterbi returns an empty list.",
+      explanation:
+        "When no substring matches vocabulary entries, parent pointers remain -1 and Viterbi returns an empty list.",
     },
   ],
   code: VITERBI_SUBWORD_SEGMENTER_CODE,
@@ -298,11 +306,13 @@ export const viterbiSubwordSegmenter: AlgorithmDefinition<ViterbiSubwordInput> =
     keyTerms: [
       {
         term: "Unigram LM",
-        definition: "Probabilistic subword tokenizer assuming subword tokens occur independently with unigram probabilities.",
+        definition:
+          "Probabilistic subword tokenizer assuming subword tokens occur independently with unigram probabilities.",
       },
       {
         term: "Viterbi Algorithm",
-        definition: "Dynamic programming method for finding the most likely sequence of hidden states.",
+        definition:
+          "Dynamic programming method for finding the most likely sequence of hidden states.",
       },
     ],
   },

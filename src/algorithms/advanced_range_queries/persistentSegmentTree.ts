@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  TopicGuide,
-  TreeNodeItem,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, TopicGuide, TreeNodeItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface PersistentSegOp {
@@ -72,7 +67,9 @@ interface PNode {
   version: number;
 }
 
-export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeInput): AlgorithmStep[] => {
+export const generatePersistentSegmentTreeSteps = (
+  input: PersistentSegmentTreeInput,
+): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   let nodeCounter = 0;
@@ -134,12 +131,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
   };
 
   if (n === 0) {
-    addStep(
-      8,
-      "Array is empty",
-      "No tree built for empty array.",
-      { n: 0 },
-    );
+    addStep(8, "Array is empty", "No tree built for empty array.", { n: 0 });
     return steps;
   }
 
@@ -180,7 +172,14 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
     rootV0.id,
   );
 
-  const updateTree = (prev: PNode, l: number, r: number, idx: number, val: number, v: number): PNode => {
+  const updateTree = (
+    prev: PNode,
+    l: number,
+    r: number,
+    idx: number,
+    val: number,
+    v: number,
+  ): PNode => {
     const id = `pnode-v${v}-${nodeCounter++}`;
     if (l === r) {
       addStep(
@@ -225,7 +224,13 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
     return newNode;
   };
 
-  const queryTree = (node: PNode | undefined, l: number, r: number, ql: number, qr: number): number => {
+  const queryTree = (
+    node: PNode | undefined,
+    l: number,
+    r: number,
+    ql: number,
+    qr: number,
+  ): number => {
     if (!node || qr < l || ql > r) return 0;
     if (ql <= l && r <= qr) {
       addStep(
@@ -321,7 +326,8 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Path Copying",
-      definition: "Duplicating only the nodes along the update path while re-using existing nodes for unchanged subtrees.",
+      definition:
+        "Duplicating only the nodes along the update path while re-using existing nodes for unchanged subtrees.",
     },
   ],
 };
@@ -364,7 +370,8 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
     {
       kind: "basic",
       title: "Basic Example",
-      inputDisplay: "arr = [1, 3, 5, 7], ops = [update(v0, idx=1, val=10) -> v1, query(v0, 0..3), query(v1, 0..3)]",
+      inputDisplay:
+        "arr = [1, 3, 5, 7], ops = [update(v0, idx=1, val=10) -> v1, query(v0, 0..3), query(v1, 0..3)]",
       outputDisplay: "Query v0[0..3]: 16, Query v1[0..3]: 23",
       input: {
         array: [1, 3, 5, 7],
@@ -375,12 +382,14 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
         ],
       },
       output: "Query v0[0..3]: 16, Query v1[0..3]: 23",
-      explanation: "Version 0 preserves original sum 16; Version 1 has updated arr[1] = 10 with sum 23.",
+      explanation:
+        "Version 0 preserves original sum 16; Version 1 has updated arr[1] = 10 with sum 23.",
     },
     {
       kind: "complex",
       title: "Complex Edge Case",
-      inputDisplay: "arr = [2, 4, 6, 8, 10], ops = [update(v0, 0, 20)->v1, update(v1, 4, 30)->v2, query(v0, 0..4)]",
+      inputDisplay:
+        "arr = [2, 4, 6, 8, 10], ops = [update(v0, 0, 20)->v1, update(v1, 4, 30)->v2, query(v0, 0..4)]",
       outputDisplay: "Query v0[0..4]: 30, Query v2[0..4]: 74",
       input: {
         array: [2, 4, 6, 8, 10],
@@ -392,7 +401,8 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
         ],
       },
       output: "Query v0[0..4]: 30, Query v2[0..4]: 74",
-      explanation: "Chained updates v0 -> v1 -> v2 generate independent tree roots via path copying.",
+      explanation:
+        "Chained updates v0 -> v1 -> v2 generate independent tree roots via path copying.",
     },
     {
       kind: "negative",
@@ -419,7 +429,8 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
   spaceComplexity: "O(n + q log n)",
   complexityAnalysis: {
     time: "Each update creates log2(n) new nodes in O(log n) time. Range queries traverse at most log2(n) levels in O(log n) time.",
-    space: "Initial tree construction takes O(n) space. Each update adds O(log n) nodes, requiring O(n + q log n) overall space for q updates.",
+    space:
+      "Initial tree construction takes O(n) space. Each update adds O(log n) nodes, requiring O(n + q log n) overall space for q updates.",
   },
   topicGuide: PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE,
   trivia: PERSISTENT_SEGMENT_TREE_TRIVIA,

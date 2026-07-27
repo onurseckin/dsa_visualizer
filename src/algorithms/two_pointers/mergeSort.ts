@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MergeSortInput {
@@ -229,11 +224,13 @@ export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Divide and Conquer",
-      definition: "Breaking a problem into independent subproblems, solving subproblems recursively, and combining solutions.",
+      definition:
+        "Breaking a problem into independent subproblems, solving subproblems recursively, and combining solutions.",
     },
     {
       term: "Stable Sort",
-      definition: "A sorting algorithm that preserves the relative order of duplicate equal elements.",
+      definition:
+        "A sorting algorithm that preserves the relative order of duplicate equal elements.",
     },
   ],
 };
@@ -306,7 +303,8 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   spaceComplexity: "O(n)",
   complexityAnalysis: {
     time: "The recursion tree has log2(n) levels. Merging elements across each level takes O(n) total comparisons, giving O(n log n) overall time.",
-    space: "Requires O(n) auxiliary space to store temporary merged arrays during subproblem combination.",
+    space:
+      "Requires O(n) auxiliary space to store temporary merged arrays during subproblem combination.",
   },
   topicGuide: MERGE_SORT_TOPIC_GUIDE,
   trivia: MERGE_SORT_TRIVIA,

@@ -48,7 +48,8 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "vertices = [A, B, C, D, E, F, G, H], edges = [(A,B), (B,C), (C,A), (B,D), (D,E), (E,F), (F,D), (G,F), (G,H)]",
+      inputDisplay:
+        "vertices = [A, B, C, D, E, F, G, H], edges = [(A,B), (B,C), (C,A), (B,D), (D,E), (E,F), (F,D), (G,F), (G,H)]",
       outputDisplay: "[[A, B, C], [D, E, F], [G], [H]]",
       title: "Complex Edge Case",
       input: {

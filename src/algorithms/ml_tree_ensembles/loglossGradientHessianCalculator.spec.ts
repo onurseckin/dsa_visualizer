@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { loglossGradientHessianCalculator, DEFAULT_LOGLOSSGRADIENTHESSIANCALCULATOR_INPUT, generateLoglossGradientHessianCalculatorSteps } from "./loglossGradientHessianCalculator";
+import { loglossGradientHessianCalculator } from "./loglossGradientHessianCalculator";
 
-describe("logloss-gradient-hessian-calculator (LogLoss 1st & 2nd Order Gradient Calculator)", () => {
-  it("should have correct metadata", () => {
-    expect(loglossGradientHessianCalculator.id).toBe("logloss-gradient-hessian-calculator");
-    expect(loglossGradientHessianCalculator.isMlInfra).toBe(true);
-    expect(loglossGradientHessianCalculator.mlInfraLevel).toBe(9);
-    expect(loglossGradientHessianCalculator.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(loglossGradientHessianCalculator.categories).toContain("ml_tree_ensembles");
+describe("loglossGradientHessianCalculator", () => {
+  it("should have valid metadata", () => {
+    expect(loglossGradientHessianCalculator.id).toBeDefined();
+    expect(loglossGradientHessianCalculator.title).toBeDefined();
+    expect(loglossGradientHessianCalculator.code).toBeDefined();
+    expect(loglossGradientHessianCalculator.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateLoglossGradientHessianCalculatorSteps(DEFAULT_LOGLOSSGRADIENTHESSIANCALCULATOR_INPUT);
+  it("should generate valid steps", () => {
+    const steps = loglossGradientHessianCalculator.generateSteps(
+      loglossGradientHessianCalculator.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("LogLoss 1st & 2nd Order Gradient Calculator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

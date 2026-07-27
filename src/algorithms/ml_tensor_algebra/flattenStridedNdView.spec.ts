@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { flattenStridedNdView, DEFAULT_FLATTENSTRIDEDNDVIEW_INPUT, generateFlattenStridedNdViewSteps } from "./flattenStridedNdView";
+import {
+  flattenStridedNdView,
+  DEFAULT_FLATTENSTRIDEDNDVIEW_INPUT,
+  generateFlattenStridedNdViewSteps,
+} from "./flattenStridedNdView";
 
 describe("flatten-strided-nd-view (Multi-Dimensional Strided Coordinate Mapper)", () => {
   it("should have correct metadata", () => {

@@ -6,16 +6,15 @@ export interface sparseMatmulCsrInput {
   target?: number;
 }
 
-export const SPARSEMATMULCSR_CODE = "def sparse_matmul_csr(input_data: list) -> list:\n    # Sparse Matrix Multiplication (CSR Format) (Medium)\n    # Multiplies sparse matrices encoded in Compressed Sparse Row (CSR) index format.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const SPARSEMATMULCSR_CODE =
+  "def sparse_matmul_csr(input_data: list) -> list:\n    # Sparse Matrix Multiplication (CSR Format) (Medium)\n    # Multiplies sparse matrices encoded in Compressed Sparse Row (CSR) index format.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_SPARSEMATMULCSR_INPUT: sparseMatmulCsrInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateSparseMatmulCsrSteps = (
-  input: sparseMatmulCsrInput
-): AlgorithmStep[] => {
+export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateSparseMatmulCsrSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateSparseMatmulCsrSteps = (
     1,
     "Initialize Sparse Matrix Multiplication (CSR Format)",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateSparseMatmulCsrSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateSparseMatmulCsrSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateSparseMatmulCsrSteps = (
 
 const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Sparse Matrix Multiplication (CSR Format).",
@@ -106,8 +110,8 @@ const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
 export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
   id: "sparse-matmul-csr",
   title: "Sparse Matrix Multiplication (CSR Format)",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -151,12 +155,19 @@ export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "CSR format stores non-zero values, column indices, and row pointers to skip zero operations.",
+    overview:
+      "CSR format stores non-zero values, column indices, and row pointers to skip zero operations.",
     sections: [
-      { heading: "Core Concept", body: "Multiplies sparse matrices encoded in Compressed Sparse Row (CSR) index format." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Multiplies sparse matrices encoded in Compressed Sparse Row (CSR) index format.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"CSR Format","definition":"Compressed Sparse Row matrix representation."}],
+    keyTerms: [{ term: "CSR Format", definition: "Compressed Sparse Row matrix representation." }],
   },
   trivia: SPARSEMATMULCSR_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

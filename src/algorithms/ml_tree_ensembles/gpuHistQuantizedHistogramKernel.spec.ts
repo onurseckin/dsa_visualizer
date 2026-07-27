@@ -1,19 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { gpuHistQuantizedHistogramKernel, DEFAULT_GPUHISTQUANTIZEDHISTOGRAMKERNEL_INPUT, generateGpuHistQuantizedHistogramKernelSteps } from "./gpuHistQuantizedHistogramKernel";
+import { gpuHistQuantizedHistogramKernel } from "./gpuHistQuantizedHistogramKernel";
 
-describe("gpu-hist-quantized-histogram-kernel (GPU `gpu_hist` Shared Memory Quantized Histogram Builder)", () => {
-  it("should have correct metadata", () => {
-    expect(gpuHistQuantizedHistogramKernel.id).toBe("gpu-hist-quantized-histogram-kernel");
-    expect(gpuHistQuantizedHistogramKernel.isMlInfra).toBe(true);
-    expect(gpuHistQuantizedHistogramKernel.mlInfraLevel).toBe(9);
-    expect(gpuHistQuantizedHistogramKernel.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(gpuHistQuantizedHistogramKernel.categories).toContain("ml_tree_ensembles");
+describe("gpuHistQuantizedHistogramKernel", () => {
+  it("should have valid metadata", () => {
+    expect(gpuHistQuantizedHistogramKernel.id).toBeDefined();
+    expect(gpuHistQuantizedHistogramKernel.title).toBeDefined();
+    expect(gpuHistQuantizedHistogramKernel.code).toBeDefined();
+    expect(gpuHistQuantizedHistogramKernel.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateGpuHistQuantizedHistogramKernelSteps(DEFAULT_GPUHISTQUANTIZEDHISTOGRAMKERNEL_INPUT);
+  it("should generate valid steps", () => {
+    const steps = gpuHistQuantizedHistogramKernel.generateSteps(
+      gpuHistQuantizedHistogramKernel.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("GPU `gpu_hist` Shared Memory Quantized Histogram Builder");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

@@ -28,7 +28,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     toggleSort,
     stats,
     filteredAlgorithms,
-  } = useProblemListState({ category, onCategoryChange });
+  } = useProblemListState({ category: category ?? "All", onCategoryChange });
 
   return (
     <main

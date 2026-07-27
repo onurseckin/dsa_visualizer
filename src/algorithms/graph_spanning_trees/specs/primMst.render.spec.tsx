@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import GraphVisualizer from "../../../components/primitives/GraphVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generatePrimMstSteps,
-  DEFAULT_PRIM_MST_INPUT,
-} from "../primMst";
+import { generatePrimMstSteps, DEFAULT_PRIM_MST_INPUT } from "../primMst";
 
 describe("primMst React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {
@@ -37,11 +34,7 @@ describe("primMst React component spec", () => {
 
     if (snapshot.kind === "graph") {
       render(
-        <GraphVisualizer
-          nodes={snapshot.nodes}
-          edges={snapshot.edges}
-          title="Prim MST Graph"
-        />,
+        <GraphVisualizer nodes={snapshot.nodes} edges={snapshot.edges} title="Prim MST Graph" />,
       );
       expect(screen.getByText("Prim MST Graph")).toBeInTheDocument();
     }

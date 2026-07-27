@@ -2,11 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
-import {
-  DEFAULT_DSU_ON_TREE_INPUT,
-  dsuOnTree,
-  generateDsuOnTreeSteps,
-} from "../dsuOnTree";
+import { DEFAULT_DSU_ON_TREE_INPUT, dsuOnTree, generateDsuOnTreeSteps } from "../dsuOnTree";
 
 describe("DsuOnTree Render Spec", () => {
   it("renders algorithm title and description", () => {

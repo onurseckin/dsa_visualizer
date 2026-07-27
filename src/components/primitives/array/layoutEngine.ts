@@ -43,7 +43,10 @@ export const computeArrayLayout = (
   box: Size,
   mode: "bar" | "box" = "bar",
 ): ArrayMetrics => {
-  const maxVal = Math.max(...elements.map((el) => el.value), 1);
+  const maxVal = Math.max(
+    ...elements.map((el) => (typeof el.value === "number" ? el.value : Number(el.value) || 1)),
+    1,
+  );
   const count = Math.max(elements.length, 1);
   const pointerRows = elements.reduce(
     (rows, element) => Math.max(rows, element.pointers?.length ?? 0),

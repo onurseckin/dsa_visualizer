@@ -31,7 +31,7 @@ export const DEFAULT_RECURRENT_UNROLLING_BPTT_INPUT: RecurrentUnrollingBpttInput
 };
 
 export const generateRecurrentUnrollingBpttSteps = (
-  input: RecurrentUnrollingBpttInput
+  input: RecurrentUnrollingBpttInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -45,7 +45,7 @@ export const generateRecurrentUnrollingBpttSteps = (
     why: string,
     activeT: number | null,
     hiddenStates: number[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     const elements: ArrayElement[] = inputs.map((xVal, t) => {
       const hVal = hiddenStates[t];
@@ -58,9 +58,7 @@ export const generateRecurrentUnrollingBpttSteps = (
         value: hVal !== undefined ? Math.round(hVal * 100) / 100 : xVal,
         state,
         pointers:
-          hVal !== undefined
-            ? [`t=${t}: x=${xVal}, h=${hVal.toFixed(2)}`]
-            : [`t=${t}: x=${xVal}`],
+          hVal !== undefined ? [`t=${t}: x=${xVal}, h=${hVal.toFixed(2)}`] : [`t=${t}: x=${xVal}`],
       };
     });
 
@@ -96,7 +94,7 @@ export const generateRecurrentUnrollingBpttSteps = (
     `Unrolling RNN cell over ${T} time steps with w_x=${wX}, w_h=${wH}, bias=${bias}, h_0=${initH}.`,
     null,
     [],
-    { T, initH }
+    { T, initH },
   );
 
   const hiddenStates: number[] = [];
@@ -113,11 +111,11 @@ export const generateRecurrentUnrollingBpttSteps = (
       8,
       `Time step t=${t}: compute raw activation = ${rawActivation.toFixed(4)}`,
       `Raw activation = x[${t}]*w_x (${x}*${wX}) + h_${t === 0 ? "0" : t - 1}*w_h (${hPrev.toFixed(
-        3
+        3,
       )}*${wH}) + bias (${bias}) = ${rawActivation.toFixed(4)}.`,
       t,
       [...hiddenStates],
-      { t, x, hPrev, rawActivation: Math.round(rawActivation * 10000) / 10000 }
+      { t, x, hPrev, rawActivation: Math.round(rawActivation * 10000) / 10000 },
     );
 
     addStep(
@@ -126,7 +124,7 @@ export const generateRecurrentUnrollingBpttSteps = (
       `Non-linear tanh activation produces hidden state h_${t} = ${roundedH}. Updated recurrent state.`,
       t,
       [...hiddenStates],
-      { t, hT: roundedH }
+      { t, hT: roundedH },
     );
 
     hPrev = roundedH;
@@ -145,7 +143,7 @@ export const generateRecurrentUnrollingBpttSteps = (
     explanation: {
       what: `Forward Unrolling Complete across T=${T} time steps`,
       why: `Saved full sequence of hidden states [${hiddenStates.join(
-        ", "
+        ", ",
       )}] for BPTT backward pass.`,
     },
     primarySnapshot: {
@@ -195,7 +193,8 @@ export const recurrentUnrollingBptt: AlgorithmDefinition<RecurrentUnrollingBpttI
       title: "3 Time-Step RNN Forward Unroll",
       input: DEFAULT_RECURRENT_UNROLLING_BPTT_INPUT,
       output: "[0.664, 0.6231, -0.0881]",
-      explanation: "h1 = tanh(0.8) = 0.664; h2 = tanh(0.4 + 0.332) = 0.6231; h3 = tanh(-0.4 + 0.3116) = -0.0881.",
+      explanation:
+        "h1 = tanh(0.8) = 0.664; h2 = tanh(0.4 + 0.332) = 0.6231; h3 = tanh(-0.4 + 0.3116) = -0.0881.",
     },
     {
       kind: "complex",
@@ -244,7 +243,11 @@ export const recurrentUnrollingBptt: AlgorithmDefinition<RecurrentUnrollingBpttI
       },
     ],
     keyTerms: [
-      { term: "BPTT", definition: "Backpropagation Through Time: gradient computation algorithm for recurrent networks." },
+      {
+        term: "BPTT",
+        definition:
+          "Backpropagation Through Time: gradient computation algorithm for recurrent networks.",
+      },
       { term: "Hidden State", definition: "Memory vector h_t passed from time step t-1 to t." },
     ],
   },

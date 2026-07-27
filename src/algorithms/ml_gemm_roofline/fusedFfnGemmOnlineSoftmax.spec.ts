@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { fusedFfnGemmOnlineSoftmax, DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT, generateFusedFfnGemmOnlineSoftmaxSteps } from "./fusedFfnGemmOnlineSoftmax";
+import {
+  fusedFfnGemmOnlineSoftmax,
+  DEFAULT_FUSEDFFNGEMMONLINESOFTMAX_INPUT,
+  generateFusedFfnGemmOnlineSoftmaxSteps,
+} from "./fusedFfnGemmOnlineSoftmax";
 
 describe("fused-ffn-gemm-online-softmax (Fused FFN GEMM & Online Softmax Kernel)", () => {
   it("should have correct metadata", () => {

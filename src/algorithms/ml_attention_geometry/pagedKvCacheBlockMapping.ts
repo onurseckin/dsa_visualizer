@@ -6,7 +6,8 @@ export interface pagedKvCacheBlockMappingInput {
   target?: number;
 }
 
-export const PAGEDKVCACHEBLOCKMAPPING_CODE = "def paged_kv_cache_block_mapping(input_data: list) -> list:\n    # Paged KV-Cache Block Table Mapper (Medium)\n    # Maps logical token indices to physical block table pointers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const PAGEDKVCACHEBLOCKMAPPING_CODE =
+  "def paged_kv_cache_block_mapping(input_data: list) -> list:\n    # Paged KV-Cache Block Table Mapper (Medium)\n    # Maps logical token indices to physical block table pointers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT: pagedKvCacheBlockMappingInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT: pagedKvCacheBlockMappingInp
 };
 
 export const generatePagedKvCacheBlockMappingSteps = (
-  input: pagedKvCacheBlockMappingInput
+  input: pagedKvCacheBlockMappingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generatePagedKvCacheBlockMappingSteps = (
     1,
     "Initialize Paged KV-Cache Block Table Mapper",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generatePagedKvCacheBlockMappingSteps = (
 
 const PAGEDKVCACHEBLOCKMAPPING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Paged KV-Cache Block Table Mapper.",
@@ -106,8 +112,8 @@ const PAGEDKVCACHEBLOCKMAPPING_TRIVIA: TriviaMeta = {
 export const pagedKvCacheBlockMapping: AlgorithmDefinition<pagedKvCacheBlockMappingInput> = {
   id: "paged-kv-cache-block-mapping",
   title: "Paged KV-Cache Block Table Mapper",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","arrays_and_hashing"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 7,
@@ -151,12 +157,24 @@ export const pagedKvCacheBlockMapping: AlgorithmDefinition<pagedKvCacheBlockMapp
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Paged KV cache eliminates VRAM fragmentation by storing tokens in fixed physical blocks.",
+    overview:
+      "Paged KV cache eliminates VRAM fragmentation by storing tokens in fixed physical blocks.",
     sections: [
-      { heading: "Core Concept", body: "Maps logical token indices to physical block table pointers." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Maps logical token indices to physical block table pointers.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Paged KV Cache","definition":"Virtual memory paging applied to transformer KV cache."}],
+    keyTerms: [
+      {
+        term: "Paged KV Cache",
+        definition: "Virtual memory paging applied to transformer KV cache.",
+      },
+    ],
   },
   trivia: PAGEDKVCACHEBLOCKMAPPING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

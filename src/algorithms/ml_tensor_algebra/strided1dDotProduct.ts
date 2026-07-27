@@ -6,7 +6,8 @@ export interface strided1dDotProductInput {
   target?: number;
 }
 
-export const STRIDED1DDOTPRODUCT_CODE = "def strided1d_dot_product(input_data: list) -> list:\n    # Strided 1D Vector Dot Product (Medium)\n    # Calculates inner dot product of non-contiguous vector views using custom stride steps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const STRIDED1DDOTPRODUCT_CODE =
+  "def strided1d_dot_product(input_data: list) -> list:\n    # Strided 1D Vector Dot Product (Medium)\n    # Calculates inner dot product of non-contiguous vector views using custom stride steps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_STRIDED1DDOTPRODUCT_INPUT: strided1dDotProductInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_STRIDED1DDOTPRODUCT_INPUT: strided1dDotProductInput = {
 };
 
 export const generateStrided1dDotProductSteps = (
-  input: strided1dDotProductInput
+  input: strided1dDotProductInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateStrided1dDotProductSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateStrided1dDotProductSteps = (
     1,
     "Initialize Strided 1D Vector Dot Product",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateStrided1dDotProductSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateStrided1dDotProductSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateStrided1dDotProductSteps = (
 
 const STRIDED1DDOTPRODUCT_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Strided 1D Vector Dot Product.",
@@ -106,13 +112,14 @@ const STRIDED1DDOTPRODUCT_TRIVIA: TriviaMeta = {
 export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> = {
   id: "strided-1d-dot-product",
   title: "Strided 1D Vector Dot Product",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
-  description: "Calculates inner dot product of non-contiguous vector views using custom stride steps.",
+  description:
+    "Calculates inner dot product of non-contiguous vector views using custom stride steps.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -153,10 +160,18 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
   topicGuide: {
     overview: "Non-unit strides require explicit offset step calculation: ptr + i * stride.",
     sections: [
-      { heading: "Core Concept", body: "Calculates inner dot product of non-contiguous vector views using custom stride steps." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Calculates inner dot product of non-contiguous vector views using custom stride steps.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Stride","definition":"Memory step size between adjacent dimension elements."}],
+    keyTerms: [
+      { term: "Stride", definition: "Memory step size between adjacent dimension elements." },
+    ],
   },
   trivia: STRIDED1DDOTPRODUCT_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

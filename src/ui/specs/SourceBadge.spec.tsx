@@ -22,12 +22,12 @@ describe("BookBadge", () => {
 
     expect(screen.getByText("CP Handbook Ch 12")).toBeInTheDocument();
     const badge = screen.getByTitle(
-      "Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)"
+      "Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)",
     );
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveAttribute(
       "aria-label",
-      "Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)"
+      "Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)",
     );
     expect(badge.className).toContain("text-cyan-300");
     expect(badge.className).toContain("border-indigo-500/30");
@@ -42,12 +42,12 @@ describe("BookBadge", () => {
         chapterTitle="Divide-and-Conquer"
         section="4.1"
         shortTitle="CLRS"
-      />
+      />,
     );
 
     expect(screen.getByText("CLRS Ch 4")).toBeInTheDocument();
     expect(
-      screen.getByTitle("Introduction to Algorithms — Chapter 4: Divide-and-Conquer (4.1)")
+      screen.getByTitle("Introduction to Algorithms — Chapter 4: Divide-and-Conquer (4.1)"),
     ).toBeInTheDocument();
   });
 });
@@ -93,7 +93,7 @@ describe("SourceBadge", () => {
 
     expect(screen.getByText("CP Handbook Ch 12")).toBeInTheDocument();
     expect(
-      screen.getByTitle("Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)")
+      screen.getByTitle("Competitive Programmer's Handbook — Chapter 12: Graph algorithms (12.1)"),
     ).toBeInTheDocument();
   });
 

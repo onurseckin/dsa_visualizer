@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { vectorInnerProductScaling, DEFAULT_VECTORINNERPRODUCTSCALING_INPUT, generateVectorInnerProductScalingSteps } from "./vectorInnerProductScaling";
+import {
+  vectorInnerProductScaling,
+  DEFAULT_VECTORINNERPRODUCTSCALING_INPUT,
+  generateVectorInnerProductScalingSteps,
+} from "./vectorInnerProductScaling";
 
 describe("vector-inner-product-scaling (Vector Inner Product Scaling)", () => {
   it("should have correct metadata", () => {

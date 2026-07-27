@@ -6,7 +6,8 @@ export interface diagonalCacheThrashingInput {
   target?: number;
 }
 
-export const DIAGONALCACHETHRASHING_CODE = "def diagonal_cache_thrashing(input_data: list) -> list:\n    # Diagonal Matrix Access Cache Thrashing (Medium)\n    # Demonstrates memory latency degradation during non-stride-1 diagonal access.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const DIAGONALCACHETHRASHING_CODE =
+  "def diagonal_cache_thrashing(input_data: list) -> list:\n    # Diagonal Matrix Access Cache Thrashing (Medium)\n    # Demonstrates memory latency degradation during non-stride-1 diagonal access.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_DIAGONALCACHETHRASHING_INPUT: diagonalCacheThrashingInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_DIAGONALCACHETHRASHING_INPUT: diagonalCacheThrashingInput =
 };
 
 export const generateDiagonalCacheThrashingSteps = (
-  input: diagonalCacheThrashingInput
+  input: diagonalCacheThrashingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateDiagonalCacheThrashingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateDiagonalCacheThrashingSteps = (
     1,
     "Initialize Diagonal Matrix Access Cache Thrashing",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateDiagonalCacheThrashingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateDiagonalCacheThrashingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateDiagonalCacheThrashingSteps = (
 
 const DIAGONALCACHETHRASHING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Diagonal Matrix Access Cache Thrashing.",
@@ -106,8 +112,8 @@ const DIAGONALCACHETHRASHING_TRIVIA: TriviaMeta = {
 export const diagonalCacheThrashing: AlgorithmDefinition<diagonalCacheThrashingInput> = {
   id: "diagonal-cache-thrashing",
   title: "Diagonal Matrix Access Cache Thrashing",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,21 @@ export const diagonalCacheThrashing: AlgorithmDefinition<diagonalCacheThrashingI
   topicGuide: {
     overview: "Non-unit strides cause CPU cache line evictions and memory latency thrashing.",
     sections: [
-      { heading: "Core Concept", body: "Demonstrates memory latency degradation during non-stride-1 diagonal access." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Demonstrates memory latency degradation during non-stride-1 diagonal access.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Cache Thrashing","definition":"Repeated cache misses due to poor stride access patterns."}],
+    keyTerms: [
+      {
+        term: "Cache Thrashing",
+        definition: "Repeated cache misses due to poor stride access patterns.",
+      },
+    ],
   },
   trivia: DIAGONALCACHETHRASHING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

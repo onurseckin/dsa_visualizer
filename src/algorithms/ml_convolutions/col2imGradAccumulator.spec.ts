@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { col2imGradAccumulator, DEFAULT_COL2IMGRADACCUMULATOR_INPUT, generateCol2imGradAccumulatorSteps } from "./col2imGradAccumulator";
+import {
+  col2imGradAccumulator,
+  DEFAULT_COL2IMGRADACCUMULATOR_INPUT,
+  generateCol2imGradAccumulatorSteps,
+} from "./col2imGradAccumulator";
 
 describe("col2im-grad-accumulator (col2im Gradient Accumulator)", () => {
   it("should have correct metadata", () => {

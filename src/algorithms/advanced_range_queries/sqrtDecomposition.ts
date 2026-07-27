@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface SqrtDecompositionOp {
@@ -75,10 +70,7 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
     blocks[Math.floor(i / blockSize)] += arr[i];
   }
 
-  const makeElements = (
-    activeIndices?: number[],
-    highlightIndices?: number[],
-  ): ArrayElement[] => {
+  const makeElements = (activeIndices?: number[], highlightIndices?: number[]): ArrayElement[] => {
     return arr.map((val, idx) => {
       let state: ArrayElement["state"] = "default";
       if (activeIndices && activeIndices.includes(idx)) {
@@ -131,12 +123,11 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
   );
 
   if (n === 0) {
-    addStep(
-      5,
-      "Array is empty",
-      "No blocks to build for an empty array.",
-      { n: 0, blockSize: 1, numBlocks: 0 },
-    );
+    addStep(5, "Array is empty", "No blocks to build for an empty array.", {
+      n: 0,
+      blockSize: 1,
+      numBlocks: 0,
+    });
     return steps;
   }
 
@@ -284,7 +275,8 @@ export const SQRT_DECOMPOSITION_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Block Sum",
-      definition: "The precomputed aggregate value (e.g., sum, min) representing an entire block of elements.",
+      definition:
+        "The precomputed aggregate value (e.g., sum, min) representing an entire block of elements.",
     },
     {
       term: "Partial Block",
@@ -329,7 +321,8 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
     {
       kind: "basic",
       title: "Basic Example",
-      inputDisplay: "arr = [1, 5, 2, 4, 6, 1, 3, 8, 9], ops = [query(1,7), update(3,10), query(1,7)]",
+      inputDisplay:
+        "arr = [1, 5, 2, 4, 6, 1, 3, 8, 9], ops = [query(1,7), update(3,10), query(1,7)]",
       outputDisplay: "Query 1: 29, Query 2: 35",
       input: {
         array: [1, 5, 2, 4, 6, 1, 3, 8, 9],
@@ -346,14 +339,16 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
     {
       kind: "complex",
       title: "Complex Edge Case",
-      inputDisplay: "arr = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ops = [query(0,15)]",
+      inputDisplay:
+        "arr = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ops = [query(0,15)]",
       outputDisplay: "Query: 1360",
       input: {
         array: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160],
         operations: [{ type: "query", left: 0, right: 15 }],
       },
       output: "Query: 1360",
-      explanation: "N=16 has block size 4. Full query aggregates 4 complete blocks in O(sqrt(N)) steps.",
+      explanation:
+        "N=16 has block size 4. Full query aggregates 4 complete blocks in O(sqrt(N)) steps.",
     },
     {
       kind: "negative",
@@ -377,7 +372,8 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
   spaceComplexity: "O(n)",
   complexityAnalysis: {
     time: "Point updates adjust one block sum in O(1) time. Range queries visit at most 2 partial blocks and O(sqrt n) full blocks, running in O(sqrt n) time per query.",
-    space: "Requires O(n) space to store original array and O(sqrt n) space for block aggregate sums.",
+    space:
+      "Requires O(n) space to store original array and O(sqrt n) space for block aggregate sums.",
   },
   topicGuide: SQRT_DECOMPOSITION_TOPIC_GUIDE,
   trivia: SQRT_DECOMPOSITION_TRIVIA,

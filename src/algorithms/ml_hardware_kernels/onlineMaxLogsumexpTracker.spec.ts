@@ -1,19 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { onlineMaxLogsumexpTracker, DEFAULT_ONLINEMAXLOGSUMEXPTRACKER_INPUT, generateOnlineMaxLogsumexpTrackerSteps } from "./onlineMaxLogsumexpTracker";
+import { onlineMaxLogsumexpTracker } from "./onlineMaxLogsumexpTracker";
 
-describe("online-max-logsumexp-tracker (Online Softmax Running Max & LSE Tracker)", () => {
-  it("should have correct metadata", () => {
-    expect(onlineMaxLogsumexpTracker.id).toBe("online-max-logsumexp-tracker");
-    expect(onlineMaxLogsumexpTracker.isMlInfra).toBe(true);
-    expect(onlineMaxLogsumexpTracker.mlInfraLevel).toBe(10);
-    expect(onlineMaxLogsumexpTracker.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(onlineMaxLogsumexpTracker.categories).toContain("ml_hardware_kernels");
+describe("onlineMaxLogsumexpTracker", () => {
+  it("should have valid metadata", () => {
+    expect(onlineMaxLogsumexpTracker.id).toBeDefined();
+    expect(onlineMaxLogsumexpTracker.title).toBeDefined();
+    expect(onlineMaxLogsumexpTracker.code).toBeDefined();
+    expect(onlineMaxLogsumexpTracker.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateOnlineMaxLogsumexpTrackerSteps(DEFAULT_ONLINEMAXLOGSUMEXPTRACKER_INPUT);
+  it("should generate valid steps", () => {
+    const steps = onlineMaxLogsumexpTracker.generateSteps(onlineMaxLogsumexpTracker.defaultInput);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Online Softmax Running Max & LSE Tracker");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

@@ -6,7 +6,8 @@ export interface asyncPipelinedVjpEvaluationInput {
   target?: number;
 }
 
-export const ASYNCPIPELINEDVJPEVALUATION_CODE = "def async_pipelined_vjp_evaluation(input_data: list) -> list:\n    # Async Pipelined Multi-GPU VJP Evaluator (Hard)\n    # Schedules backward VJP evaluations across pipeline parallel worker streams.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASYNCPIPELINEDVJPEVALUATION_CODE =
+  "def async_pipelined_vjp_evaluation(input_data: list) -> list:\n    # Async Pipelined Multi-GPU VJP Evaluator (Hard)\n    # Schedules backward VJP evaluations across pipeline parallel worker streams.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT: asyncPipelinedVjpEvaluationInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT: asyncPipelinedVjpEvaluat
 };
 
 export const generateAsyncPipelinedVjpEvaluationSteps = (
-  input: asyncPipelinedVjpEvaluationInput
+  input: asyncPipelinedVjpEvaluationInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     1,
     "Initialize Async Pipelined Multi-GPU VJP Evaluator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
 
 const ASYNCPIPELINEDVJPEVALUATION_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Async Pipelined Multi-GPU VJP Evaluator.",
@@ -106,8 +112,8 @@ const ASYNCPIPELINEDVJPEVALUATION_TRIVIA: TriviaMeta = {
 export const asyncPipelinedVjpEvaluation: AlgorithmDefinition<asyncPipelinedVjpEvaluationInput> = {
   id: "async-pipelined-vjp-evaluation",
   title: "Async Pipelined Multi-GPU VJP Evaluator",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "graph_directed_and_scc"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,21 @@ export const asyncPipelinedVjpEvaluation: AlgorithmDefinition<asyncPipelinedVjpE
   topicGuide: {
     overview: "Pipelined VJP execution overlaps backward node evaluations across worker ranks.",
     sections: [
-      { heading: "Core Concept", body: "Schedules backward VJP evaluations across pipeline parallel worker streams." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Schedules backward VJP evaluations across pipeline parallel worker streams.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Pipelined VJP","definition":"Asynchronous backward pass execution over distributed nodes."}],
+    keyTerms: [
+      {
+        term: "Pipelined VJP",
+        definition: "Asynchronous backward pass execution over distributed nodes.",
+      },
+    ],
   },
   trivia: ASYNCPIPELINEDVJPEVALUATION_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

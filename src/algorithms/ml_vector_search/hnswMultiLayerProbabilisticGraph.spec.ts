@@ -11,7 +11,9 @@ describe("hnswMultiLayerProbabilisticGraph", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = hnswMultiLayerProbabilisticGraph.generateSteps(hnswMultiLayerProbabilisticGraph.defaultInput);
+    const steps = hnswMultiLayerProbabilisticGraph.generateSteps(
+      hnswMultiLayerProbabilisticGraph.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

@@ -11,7 +11,9 @@ describe("gaussianL2LocalitySensitiveHash", () => {
   });
 
   it("should generate steps successfully", () => {
-    const steps = gaussianL2LocalitySensitiveHash.generateSteps(gaussianL2LocalitySensitiveHash.defaultInput);
+    const steps = gaussianL2LocalitySensitiveHash.generateSteps(
+      gaussianL2LocalitySensitiveHash.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

@@ -254,7 +254,8 @@ export const EXTENDED_EUCLIDEAN_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Diophantine Equation",
-      definition: "Polynomial equation with integer coefficients where integer solutions are sought.",
+      definition:
+        "Polynomial equation with integer coefficients where integer solutions are sought.",
     },
   ],
 };

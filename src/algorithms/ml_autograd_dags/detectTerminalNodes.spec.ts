@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { detectTerminalNodes, DEFAULT_DETECTTERMINALNODES_INPUT, generateDetectTerminalNodesSteps } from "./detectTerminalNodes";
+import {
+  detectTerminalNodes,
+  DEFAULT_DETECTTERMINALNODES_INPUT,
+  generateDetectTerminalNodesSteps,
+} from "./detectTerminalNodes";
 
 describe("detect-terminal-nodes (Detect Terminal Leaf Nodes in DAG)", () => {
   it("should have correct metadata", () => {

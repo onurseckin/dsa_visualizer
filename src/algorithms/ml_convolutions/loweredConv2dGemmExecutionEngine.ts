@@ -6,15 +6,17 @@ export interface loweredConv2dGemmExecutionEngineInput {
   target?: number;
 }
 
-export const LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE = "def lowered_conv2d_gemm_execution_engine(input_data: list) -> list:\n    # Lowered Conv2D GEMM Execution Engine (Medium)\n    # Executes convolution via lowered BLAS GEMM W_row * X_col.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE =
+  "def lowered_conv2d_gemm_execution_engine(input_data: list) -> list:\n    # Lowered Conv2D GEMM Execution Engine (Medium)\n    # Executes convolution via lowered BLAS GEMM W_row * X_col.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT: loweredConv2dGemmExecutionEngineInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT: loweredConv2dGemmExecutionEngineInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateLoweredConv2dGemmExecutionEngineSteps = (
-  input: loweredConv2dGemmExecutionEngineInput
+  input: loweredConv2dGemmExecutionEngineInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     1,
     "Initialize Lowered Conv2D GEMM Execution Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
 
 const LOWEREDCONV2DGEMMEXECUTIONENGINE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Lowered Conv2D GEMM Execution Engine.",
@@ -103,63 +110,75 @@ const LOWEREDCONV2DGEMMEXECUTIONENGINE_TRIVIA: TriviaMeta = {
   },
 };
 
-export const loweredConv2dGemmExecutionEngine: AlgorithmDefinition<loweredConv2dGemmExecutionEngineInput> = {
-  id: "lowered-conv2d-gemm-execution-engine",
-  title: "Lowered Conv2D GEMM Execution Engine",
-  category: "ml_convolutions" as any,
-  categories: ["ml_convolutions","arrays_and_hashing"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_convolutions",
-  description: "Executes convolution via lowered BLAS GEMM W_row * X_col.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Lowered convolutions execute via highly optimized BLAS GEMM kernels.",
-    sections: [
-      { heading: "Core Concept", body: "Executes convolution via lowered BLAS GEMM W_row * X_col." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const loweredConv2dGemmExecutionEngine: AlgorithmDefinition<loweredConv2dGemmExecutionEngineInput> =
+  {
+    id: "lowered-conv2d-gemm-execution-engine",
+    title: "Lowered Conv2D GEMM Execution Engine",
+    category: "ml_convolutions",
+    categories: ["ml_convolutions", "arrays_and_hashing"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 8,
+    mlInfraCategory: "ml_convolutions",
+    description: "Executes convolution via lowered BLAS GEMM W_row * X_col.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"Lowered GEMM Conv","definition":"Executing convolution via BLAS GEMM matrix multiplication."}],
-  },
-  trivia: LOWEREDCONV2DGEMMEXECUTIONENGINE_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
-  defaultInput: DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT,
-  generateSteps: generateLoweredConv2dGemmExecutionEngineSteps,
-};
+    code: LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview: "Lowered convolutions execute via highly optimized BLAS GEMM kernels.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Executes convolution via lowered BLAS GEMM W_row * X_col.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Lowered GEMM Conv",
+          definition: "Executing convolution via BLAS GEMM matrix multiplication.",
+        },
+      ],
+    },
+    trivia: LOWEREDCONV2DGEMMEXECUTIONENGINE_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+    defaultInput: DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT,
+    generateSteps: generateLoweredConv2dGemmExecutionEngineSteps,
+  };

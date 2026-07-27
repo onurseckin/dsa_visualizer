@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { twoGpuParameterSplitter, DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT, generateTwoGpuParameterSplitterSteps } from "./twoGpuParameterSplitter";
+import {
+  twoGpuParameterSplitter,
+  DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT,
+  generateTwoGpuParameterSplitterSteps,
+} from "./twoGpuParameterSplitter";
 
 describe("two-gpu-parameter-splitter (2-GPU Model Layer Pipeline Splitter)", () => {
   it("should have correct metadata", () => {

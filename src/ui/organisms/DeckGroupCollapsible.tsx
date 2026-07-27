@@ -103,4 +103,3 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
     </Collapsible.Root>
   );
 };
-

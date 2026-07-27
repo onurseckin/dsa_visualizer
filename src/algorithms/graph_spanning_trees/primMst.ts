@@ -267,7 +267,7 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
     ],
   },
   trivia: PRIM_MST_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

@@ -6,15 +6,17 @@ export interface cudaIpcSharedMemoryPointerMapperInput {
   target?: number;
 }
 
-export const CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE = "def cuda_ipc_shared_memory_pointer_mapper(input_data: list) -> list:\n    # CUDA IPC Zero-Copy Shared Memory Pointer Mapper (Medium)\n    # Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE =
+  "def cuda_ipc_shared_memory_pointer_mapper(input_data: list) -> list:\n    # CUDA IPC Zero-Copy Shared Memory Pointer Mapper (Medium)\n    # Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_CUDAIPCSHAREDMEMORYPOINTERMAPPER_INPUT: cudaIpcSharedMemoryPointerMapperInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_CUDAIPCSHAREDMEMORYPOINTERMAPPER_INPUT: cudaIpcSharedMemoryPointerMapperInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateCudaIpcSharedMemoryPointerMapperSteps = (
-  input: cudaIpcSharedMemoryPointerMapperInput
+  input: cudaIpcSharedMemoryPointerMapperInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
     1,
     "Initialize CUDA IPC Zero-Copy Shared Memory Pointer Mapper",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
 const CUDAIPCSHAREDMEMORYPOINTERMAPPER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for CUDA IPC Zero-Copy Shared Memory Pointer Mapper.",
@@ -103,63 +110,76 @@ const CUDAIPCSHAREDMEMORYPOINTERMAPPER_TRIVIA: TriviaMeta = {
   },
 };
 
-export const cudaIpcSharedMemoryPointerMapper: AlgorithmDefinition<cudaIpcSharedMemoryPointerMapperInput> = {
-  id: "cuda-ipc-shared-memory-pointer-mapper",
-  title: "CUDA IPC Zero-Copy Shared Memory Pointer Mapper",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","arrays_and_hashing"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
-  description: "Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "CUDA IPC allows GPUs on the same PCIe/NVLink bus to read each other's memory zero-copy.",
-    sections: [
-      { heading: "Core Concept", body: "Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const cudaIpcSharedMemoryPointerMapper: AlgorithmDefinition<cudaIpcSharedMemoryPointerMapperInput> =
+  {
+    id: "cuda-ipc-shared-memory-pointer-mapper",
+    title: "CUDA IPC Zero-Copy Shared Memory Pointer Mapper",
+    category: "ml_distributed_systems",
+    categories: ["ml_distributed_systems", "arrays_and_hashing"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 11,
+    mlInfraCategory: "ml_distributed_systems",
+    description: "Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"CUDA IPC","definition":"Inter-Process Communication for peer GPU direct VRAM access."}],
-  },
-  trivia: CUDAIPCSHAREDMEMORYPOINTERMAPPER_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
-  defaultInput: DEFAULT_CUDAIPCSHAREDMEMORYPOINTERMAPPER_INPUT,
-  generateSteps: generateCudaIpcSharedMemoryPointerMapperSteps,
-};
+    code: CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview:
+        "CUDA IPC allows GPUs on the same PCIe/NVLink bus to read each other's memory zero-copy.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Maps intra-node GPU VRAM pointers across process boundaries via CUDA IPC.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "CUDA IPC",
+          definition: "Inter-Process Communication for peer GPU direct VRAM access.",
+        },
+      ],
+    },
+    trivia: CUDAIPCSHAREDMEMORYPOINTERMAPPER_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
+    defaultInput: DEFAULT_CUDAIPCSHAREDMEMORYPOINTERMAPPER_INPUT,
+    generateSteps: generateCudaIpcSharedMemoryPointerMapperSteps,
+  };

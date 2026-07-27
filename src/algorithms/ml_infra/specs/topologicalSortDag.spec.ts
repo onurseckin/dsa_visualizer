@@ -33,11 +33,7 @@ describe("topologicalSortDag algorithm spec", () => {
   it("should detect cycle in cyclic graph", () => {
     const cyclicInput = {
       numNodes: 3,
-      edges: [
-        [0, 1] as [number, number],
-        [1, 2] as [number, number],
-        [2, 0] as [number, number],
-      ],
+      edges: [[0, 1] as [number, number], [1, 2] as [number, number], [2, 0] as [number, number]],
     };
     const steps = generateTopologicalSortDagSteps(cyclicInput);
     const lastStep = steps[steps.length - 1];

@@ -37,10 +37,7 @@ describe("nearestSmallerElement React component spec", () => {
 
     if (snapshot.kind === "array") {
       render(
-        <ArrayVisualizer
-          elements={snapshot.elements}
-          title="Nearest Smaller Element Array"
-        />,
+        <ArrayVisualizer elements={snapshot.elements} title="Nearest Smaller Element Array" />,
       );
       expect(screen.getByText("Nearest Smaller Element Array")).toBeInTheDocument();
     }

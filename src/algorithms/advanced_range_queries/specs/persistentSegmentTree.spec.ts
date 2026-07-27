@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { persistentSegmentTree, generatePersistentSegmentTreeSteps } from "../persistentSegmentTree";
+import {
+  persistentSegmentTree,
+  generatePersistentSegmentTreeSteps,
+} from "../persistentSegmentTree";
 import type { TreeVisualSnapshot } from "../../../types/dsa";
 
 describe("persistentSegmentTree algorithm spec", () => {
@@ -37,10 +40,26 @@ describe("persistentSegmentTree algorithm spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(persistentSegmentTree.examples).toHaveLength(3);
-    expect(persistentSegmentTree.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(persistentSegmentTree.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of persistentSegmentTree.examples!) {
-      const steps = persistentSegmentTree.generateSteps(example.input as { array: number[]; operations: { type: "update" | "query"; version: number; index?: number; value?: number; left?: number; right?: number }[] });
+      const steps = persistentSegmentTree.generateSteps(
+        example.input as {
+          array: number[];
+          operations: {
+            type: "update" | "query";
+            version: number;
+            index?: number;
+            value?: number;
+            left?: number;
+            right?: number;
+          }[];
+        },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

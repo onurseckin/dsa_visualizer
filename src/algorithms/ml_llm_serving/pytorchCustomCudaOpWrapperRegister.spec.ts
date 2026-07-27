@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { pytorchCustomCudaOpWrapperRegister, DEFAULT_PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_INPUT, generatePytorchCustomCudaOpWrapperRegisterSteps } from "./pytorchCustomCudaOpWrapperRegister";
+import {
+  pytorchCustomCudaOpWrapperRegister,
+  DEFAULT_PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_INPUT,
+  generatePytorchCustomCudaOpWrapperRegisterSteps,
+} from "./pytorchCustomCudaOpWrapperRegister";
 
 describe("pytorch-custom-cuda-op-wrapper-register (PyTorch `@CustomOp.register` C++ CUDA Kernel Register)", () => {
   it("should have correct metadata", () => {
@@ -11,9 +15,13 @@ describe("pytorch-custom-cuda-op-wrapper-register (PyTorch `@CustomOp.register` 
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generatePytorchCustomCudaOpWrapperRegisterSteps(DEFAULT_PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_INPUT);
+    const steps = generatePytorchCustomCudaOpWrapperRegisterSteps(
+      DEFAULT_PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("PyTorch `@CustomOp.register` C++ CUDA Kernel Register");
+    expect(steps[0].explanation.what).toContain(
+      "PyTorch `@CustomOp.register` C++ CUDA Kernel Register",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

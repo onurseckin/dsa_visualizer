@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface HamiltonianPathInput {
@@ -35,9 +40,7 @@ const HAMILTONIAN_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateHamiltonianPathDpSteps = (
-  input: HamiltonianPathInput,
-): AlgorithmStep[] => {
+export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): AlgorithmStep[] => {
   const n = Math.max(2, Math.min(8, input.numNodes));
   const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
   const isCircuit = Boolean(input.isCircuit);
@@ -60,11 +63,7 @@ export const generateHamiltonianPathDpSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIdx = 0;
 
-  const buildGraphSnapshot = (
-    mask: number,
-    currNode: number,
-    pathEdges: Set<string>,
-  ) => {
+  const buildGraphSnapshot = (mask: number, currNode: number, pathEdges: Set<string>) => {
     const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
       const isVisited = (mask & (1 << i)) !== 0;
       const isActive = i === currNode;
@@ -222,7 +221,13 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
       title: "5-node Cycle",
       input: {
         numNodes: 5,
-        edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]],
+        edges: [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+          [4, 0],
+        ],
         isCircuit: true,
       },
       output: "Valid circuit found",
@@ -235,7 +240,10 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
       title: "Disconnected Star Graph",
       input: {
         numNodes: 4,
-        edges: [[0, 1], [0, 2]],
+        edges: [
+          [0, 1],
+          [0, 2],
+        ],
         isCircuit: false,
       },
       output: "No path covers all 4 nodes",
@@ -308,4 +316,3 @@ def hamiltonian_path_dp(n: int, edges: list[tuple[int, int]]) -> bool:
   ],
   defaultInput: DEFAULT_HAMILTONIAN_PATH_INPUT,
 };
-

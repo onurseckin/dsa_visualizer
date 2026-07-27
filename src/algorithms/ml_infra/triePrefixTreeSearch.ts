@@ -46,7 +46,7 @@ interface InternalTrieNode {
 }
 
 export const generateTriePrefixTreeSearchSteps = (
-  input: TriePrefixTreeSearchInput
+  input: TriePrefixTreeSearchInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -62,10 +62,7 @@ export const generateTriePrefixTreeSearchSteps = (
   };
 
   // Build tree nodes for TreeVisualSnapshot
-  const flattenedTreeNodes = (
-    activeId: string | null,
-    visitedIds: Set<string>
-  ): TreeNodeItem[] => {
+  const flattenedTreeNodes = (activeId: string | null, visitedIds: Set<string>): TreeNodeItem[] => {
     const list: TreeNodeItem[] = [];
 
     const traverse = (n: InternalTrieNode, depth: number, posIndex: number) => {
@@ -104,7 +101,7 @@ export const generateTriePrefixTreeSearchSteps = (
     activeId: string | null,
     visitedSet: Set<string>,
     matchedWords: string[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -136,7 +133,7 @@ export const generateTriePrefixTreeSearchSteps = (
     "node-root",
     visited,
     [],
-    { vocabSize: words.length }
+    { vocabSize: words.length },
   );
 
   // Insert words into Trie
@@ -165,7 +162,7 @@ export const generateTriePrefixTreeSearchSteps = (
     "node-root",
     visited,
     [],
-    { nodeCount: nodeCounter + 1 }
+    { nodeCount: nodeCounter + 1 },
   );
 
   // Search prefix
@@ -183,7 +180,7 @@ export const generateTriePrefixTreeSearchSteps = (
         searchCurr ? searchCurr.id : null,
         pathVisited,
         [],
-        { searchPrefix, found: false }
+        { searchPrefix, found: false },
       );
       return steps;
     }
@@ -198,7 +195,7 @@ export const generateTriePrefixTreeSearchSteps = (
       searchCurr.id,
       new Set(pathVisited),
       [],
-      { char: ch, depth: i + 1 }
+      { char: ch, depth: i + 1 },
     );
   }
 
@@ -225,7 +222,7 @@ export const generateTriePrefixTreeSearchSteps = (
     searchCurr ? searchCurr.id : null,
     pathVisited,
     completions,
-    { matches: completions.length, complete: true }
+    { matches: completions.length, complete: true },
   );
 
   return steps;
@@ -306,8 +303,14 @@ export const triePrefixTreeSearch: AlgorithmDefinition<TriePrefixTreeSearchInput
       },
     ],
     keyTerms: [
-      { term: "Trie", definition: "Tree structure where edges represent characters and paths represent words." },
-      { term: "Prefix Search", definition: "Finding all vocabulary tokens sharing a common query prefix." },
+      {
+        term: "Trie",
+        definition: "Tree structure where edges represent characters and paths represent words.",
+      },
+      {
+        term: "Prefix Search",
+        definition: "Finding all vocabulary tokens sharing a common query prefix.",
+      },
     ],
   },
   trivia: TRIE_PREFIX_TREE_SEARCH_TRIVIA,

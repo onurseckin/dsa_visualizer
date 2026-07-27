@@ -3,7 +3,10 @@ import { describe, it, expect, vi } from "vitest";
 import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import { generateIntervalSchedulingSteps, DEFAULT_INTERVAL_SCHEDULING_INPUT } from "../intervalScheduling";
+import {
+  generateIntervalSchedulingSteps,
+  DEFAULT_INTERVAL_SCHEDULING_INPUT,
+} from "../intervalScheduling";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("intervalScheduling React component spec", () => {

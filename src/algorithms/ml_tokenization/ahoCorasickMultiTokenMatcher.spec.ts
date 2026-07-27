@@ -10,7 +10,9 @@ describe("ahoCorasickMultiTokenMatcher", () => {
   });
 
   it("generateSteps should return at least one step for defaultInput", () => {
-    const steps = ahoCorasickMultiTokenMatcher.generateSteps(ahoCorasickMultiTokenMatcher.defaultInput);
+    const steps = ahoCorasickMultiTokenMatcher.generateSteps(
+      ahoCorasickMultiTokenMatcher.defaultInput,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].stepIndex).toBe(0);
   });

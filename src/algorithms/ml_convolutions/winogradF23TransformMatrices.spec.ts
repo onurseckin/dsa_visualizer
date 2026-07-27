@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { winogradF23TransformMatrices, DEFAULT_WINOGRADF23TRANSFORMMATRICES_INPUT, generateWinogradF23TransformMatricesSteps } from "./winogradF23TransformMatrices";
+import {
+  winogradF23TransformMatrices,
+  DEFAULT_WINOGRADF23TRANSFORMMATRICES_INPUT,
+  generateWinogradF23TransformMatricesSteps,
+} from "./winogradF23TransformMatrices";
 
 describe("winograd-f23-transform-matrices (Winograd F(2x2, 3x3) Transform Matrices)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("winograd-f23-transform-matrices (Winograd F(2x2, 3x3) Transform Matric
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateWinogradF23TransformMatricesSteps(DEFAULT_WINOGRADF23TRANSFORMMATRICES_INPUT);
+    const steps = generateWinogradF23TransformMatricesSteps(
+      DEFAULT_WINOGRADF23TRANSFORMMATRICES_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Winograd F(2x2, 3x3) Transform Matrices");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

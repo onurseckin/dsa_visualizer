@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { tensorContiguityVerifier, DEFAULT_TENSORCONTIGUITYVERIFIER_INPUT, generateTensorContiguityVerifierSteps } from "./tensorContiguityVerifier";
+import {
+  tensorContiguityVerifier,
+  DEFAULT_TENSORCONTIGUITYVERIFIER_INPUT,
+  generateTensorContiguityVerifierSteps,
+} from "./tensorContiguityVerifier";
 
 describe("tensor-contiguity-verifier (PyTorch-Style Tensor Contiguity Verifier)", () => {
   it("should have correct metadata", () => {

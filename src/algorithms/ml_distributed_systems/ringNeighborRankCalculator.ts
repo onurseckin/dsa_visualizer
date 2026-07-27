@@ -6,7 +6,8 @@ export interface ringNeighborRankCalculatorInput {
   target?: number;
 }
 
-export const RINGNEIGHBORRANKCALCULATOR_CODE = "def ring_neighbor_rank_calculator(input_data: list) -> list:\n    # Ring Topology Neighbor Rank Calculator (Easy)\n    # Calculates left and right neighbor ranks (r-1)%N and (r+1)%N in ring topology.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const RINGNEIGHBORRANKCALCULATOR_CODE =
+  "def ring_neighbor_rank_calculator(input_data: list) -> list:\n    # Ring Topology Neighbor Rank Calculator (Easy)\n    # Calculates left and right neighbor ranks (r-1)%N and (r+1)%N in ring topology.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT: ringNeighborRankCalculatorInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT: ringNeighborRankCalculato
 };
 
 export const generateRingNeighborRankCalculatorSteps = (
-  input: ringNeighborRankCalculatorInput
+  input: ringNeighborRankCalculatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateRingNeighborRankCalculatorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateRingNeighborRankCalculatorSteps = (
     1,
     "Initialize Ring Topology Neighbor Rank Calculator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateRingNeighborRankCalculatorSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateRingNeighborRankCalculatorSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateRingNeighborRankCalculatorSteps = (
 
 const RINGNEIGHBORRANKCALCULATOR_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Ring Topology Neighbor Rank Calculator.",
@@ -106,8 +112,8 @@ const RINGNEIGHBORRANKCALCULATOR_TRIVIA: TriviaMeta = {
 export const ringNeighborRankCalculator: AlgorithmDefinition<ringNeighborRankCalculatorInput> = {
   id: "ring-neighbor-rank-calculator",
   title: "Ring Topology Neighbor Rank Calculator",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","graph_traversal"] as any,
+  category: "ml_distributed_systems",
+  categories: ["ml_distributed_systems", "graph_traversal"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 11,
@@ -153,10 +159,18 @@ export const ringNeighborRankCalculator: AlgorithmDefinition<ringNeighborRankCal
   topicGuide: {
     overview: "Ring topology connects N GPU worker ranks in a circular ring.",
     sections: [
-      { heading: "Core Concept", body: "Calculates left and right neighbor ranks (r-1)%N and (r+1)%N in ring topology." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Calculates left and right neighbor ranks (r-1)%N and (r+1)%N in ring topology.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Ring Topology","definition":"Circular network graph linking rank i to i+1."}],
+    keyTerms: [
+      { term: "Ring Topology", definition: "Circular network graph linking rank i to i+1." },
+    ],
   },
   trivia: RINGNEIGHBORRANKCALCULATOR_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],

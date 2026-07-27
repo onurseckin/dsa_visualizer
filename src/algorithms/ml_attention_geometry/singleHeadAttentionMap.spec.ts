@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { singleHeadAttentionMap, DEFAULT_SINGLEHEADATTENTIONMAP_INPUT, generateSingleHeadAttentionMapSteps } from "./singleHeadAttentionMap";
+import {
+  singleHeadAttentionMap,
+  DEFAULT_SINGLEHEADATTENTIONMAP_INPUT,
+  generateSingleHeadAttentionMapSteps,
+} from "./singleHeadAttentionMap";
 
 describe("single-head-attention-map (Single-Head Attention Map Generator)", () => {
   it("should have correct metadata", () => {
@@ -13,7 +17,7 @@ describe("single-head-attention-map (Single-Head Attention Map Generator)", () =
   it("should generate valid algorithm steps", () => {
     const steps = generateSingleHeadAttentionMapSteps(DEFAULT_SINGLEHEADATTENTIONMAP_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Single-Head Attention Map Generator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].explanation.what).toContain("Initialize attention map");
+    expect(steps[steps.length - 1].explanation.what).toBe("Attention Complete");
   });
 });

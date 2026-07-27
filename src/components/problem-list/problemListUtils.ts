@@ -79,7 +79,11 @@ export const isProblemListDifficulty = (value: unknown): value is ProblemListDif
   value === "All" || value === "Easy" || value === "Medium" || value === "Hard";
 
 export const isProblemListSource = (value: unknown): value is ProblemListSource =>
-  value === "All" || value === "leetcode" || value === "book" || value === "standard" || value === "ml_infra";
+  value === "All" ||
+  value === "leetcode" ||
+  value === "book" ||
+  value === "standard" ||
+  value === "ml_infra";
 
 export const isProblemListSortField = (value: unknown): value is ProblemListSortField =>
   value === "title" || value === "difficulty" || value === "category";

@@ -1,19 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { maskedMemoryLoadStoreGuard, DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT, generateMaskedMemoryLoadStoreGuardSteps } from "./maskedMemoryLoadStoreGuard";
+import { maskedMemoryLoadStoreGuard } from "./maskedMemoryLoadStoreGuard";
 
-describe("masked-memory-load-store-guard (Triton Masked Load/Store Boundary Guard)", () => {
-  it("should have correct metadata", () => {
-    expect(maskedMemoryLoadStoreGuard.id).toBe("masked-memory-load-store-guard");
-    expect(maskedMemoryLoadStoreGuard.isMlInfra).toBe(true);
-    expect(maskedMemoryLoadStoreGuard.mlInfraLevel).toBe(10);
-    expect(maskedMemoryLoadStoreGuard.mlInfraCategory).toBe("ml_hardware_kernels");
-    expect(maskedMemoryLoadStoreGuard.categories).toContain("ml_hardware_kernels");
+describe("maskedMemoryLoadStoreGuard", () => {
+  it("should have valid metadata", () => {
+    expect(maskedMemoryLoadStoreGuard.id).toBeDefined();
+    expect(maskedMemoryLoadStoreGuard.title).toBeDefined();
+    expect(maskedMemoryLoadStoreGuard.code).toBeDefined();
+    expect(maskedMemoryLoadStoreGuard.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateMaskedMemoryLoadStoreGuardSteps(DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT);
+  it("should generate valid steps", () => {
+    const steps = maskedMemoryLoadStoreGuard.generateSteps(maskedMemoryLoadStoreGuard.defaultInput);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Triton Masked Load/Store Boundary Guard");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

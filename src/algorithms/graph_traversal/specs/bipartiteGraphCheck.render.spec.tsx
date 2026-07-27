@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
-import { DEFAULT_BIPARTITE_INPUT, bipartiteGraphCheck, generateBipartiteCheckSteps } from "../bipartiteGraphCheck";
+import {
+  DEFAULT_BIPARTITE_INPUT,
+  bipartiteGraphCheck,
+  generateBipartiteCheckSteps,
+} from "../bipartiteGraphCheck";
 
 describe("bipartiteGraphCheck Render Spec", () => {
   it("renders algorithm title and description", () => {
@@ -23,11 +27,13 @@ describe("bipartiteGraphCheck Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/Bipartite Graph Check/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Determines whether an undirected graph is bipartite/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Determines whether an undirected graph is bipartite/i),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with bipartite check result", () => {
@@ -49,7 +55,7 @@ describe("bipartiteGraphCheck Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

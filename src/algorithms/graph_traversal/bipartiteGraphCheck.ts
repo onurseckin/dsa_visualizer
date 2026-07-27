@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface BipartiteGraphCheckInput {
@@ -136,7 +141,11 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
         },
         auxiliaryState: {
           queue: [...queue],
-          customState: { Colors: Object.entries(color).map(([k, v]) => `${k}:${v}`).join(", ") },
+          customState: {
+            Colors: Object.entries(color)
+              .map(([k, v]) => `${k}:${v}`)
+              .join(", "),
+          },
         },
         variables: { startNode: startNode.id, initialColor: 0 },
       });
@@ -170,7 +179,11 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
               },
               auxiliaryState: {
                 queue: [...queue],
-                customState: { Colors: Object.entries(color).map(([k, v]) => `${k}:${v}`).join(", ") },
+                customState: {
+                  Colors: Object.entries(color)
+                    .map(([k, v]) => `${k}:${v}`)
+                    .join(", "),
+                },
               },
               variables: { node: u, neighbor: v, color: color[v] },
             });
@@ -237,8 +250,14 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
       auxiliaryState: {
         customState: {
           Result: "BIPARTITE (2-Colorable)",
-          Set_0: nodes.filter((n) => color[n.id] === 0).map((n) => n.id).join(", "),
-          Set_1: nodes.filter((n) => color[n.id] === 1).map((n) => n.id).join(", "),
+          Set_0: nodes
+            .filter((n) => color[n.id] === 0)
+            .map((n) => n.id)
+            .join(", "),
+          Set_1: nodes
+            .filter((n) => color[n.id] === 1)
+            .map((n) => n.id)
+            .join(", "),
         },
       },
       variables: { isBipartite: true },
@@ -255,11 +274,7 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   difficulty: "Medium",
   description:
     "Determines whether an undirected graph is bipartite (2-colorable) in linear O(V + E) time using BFS/DFS. A graph is bipartite if its vertices can be divided into two disjoint sets such that no two vertices within the same set are adjacent (i.e. contains no odd cycles).",
-  constraints: [
-    "1 <= V <= 1000",
-    "0 <= E <= 5000",
-    "Graph is undirected",
-  ],
+  constraints: ["1 <= V <= 1000", "0 <= E <= 5000", "Graph is undirected"],
   examples: [
     {
       kind: "basic",
@@ -341,9 +356,19 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
       },
     ],
     keyTerms: [
-      { term: "Bipartite Graph", definition: "A graph whose vertices can be partitioned into two independent sets." },
-      { term: "2-Coloring", definition: "Coloring vertices with 2 colors such that no two adjacent vertices share the same color." },
-      { term: "Odd Cycle", definition: "A cycle with an odd number of edges, which destroys 2-colorability." },
+      {
+        term: "Bipartite Graph",
+        definition: "A graph whose vertices can be partitioned into two independent sets.",
+      },
+      {
+        term: "2-Coloring",
+        definition:
+          "Coloring vertices with 2 colors such that no two adjacent vertices share the same color.",
+      },
+      {
+        term: "Odd Cycle",
+        definition: "A cycle with an odd number of edges, which destroys 2-colorability.",
+      },
     ],
   },
   trivia: BIPARTITE_CHECK_TRIVIA,

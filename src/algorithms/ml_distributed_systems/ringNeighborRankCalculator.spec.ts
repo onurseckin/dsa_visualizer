@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ringNeighborRankCalculator, DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT, generateRingNeighborRankCalculatorSteps } from "./ringNeighborRankCalculator";
+import {
+  ringNeighborRankCalculator,
+  DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT,
+  generateRingNeighborRankCalculatorSteps,
+} from "./ringNeighborRankCalculator";
 
 describe("ring-neighbor-rank-calculator (Ring Topology Neighbor Rank Calculator)", () => {
   it("should have correct metadata", () => {

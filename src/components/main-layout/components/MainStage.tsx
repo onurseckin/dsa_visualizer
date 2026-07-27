@@ -10,7 +10,7 @@ import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
 
-const DEFAULT_STAGE_HEIGHT = "50vh";
+const DEFAULT_STAGE_HEIGHT = "max(var(--stage-min-h), calc(100dvh - var(--navbar-h) - 40px))";
 
 export interface MainStageProps {
   algorithm: AlgorithmDefinition;
@@ -40,8 +40,8 @@ export const MainStage: React.FC<MainStageProps> = ({
     stagePinned !== null
       ? `${stagePinned}px`
       : visualizerPinned !== null
-      ? `${visualizerPinned}px`
-      : DEFAULT_STAGE_HEIGHT;
+        ? `${visualizerPinned}px`
+        : DEFAULT_STAGE_HEIGHT;
 
   const leftRows: ResizableRow[] = [
     {

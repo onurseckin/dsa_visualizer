@@ -23,11 +23,15 @@ describe("dfsGraph Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/DFS Graph Traversal/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Depth-First Search \(DFS\) traverses a graph by exploring as deep as possible/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Depth-First Search \(DFS\) traverses a graph by exploring as deep as possible/i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with traversal sequence", () => {
@@ -49,7 +53,7 @@ describe("dfsGraph Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

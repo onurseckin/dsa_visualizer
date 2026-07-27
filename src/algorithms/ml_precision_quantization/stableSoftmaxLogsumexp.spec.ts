@@ -1,19 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { stableSoftmaxLogsumexp, DEFAULT_STABLESOFTMAXLOGSUMEXP_INPUT, generateStableSoftmaxLogsumexpSteps } from "./stableSoftmaxLogsumexp";
+import {
+  stableSoftmaxLogsumexp,
+  generateStableSoftmaxLogsumexpSteps,
+  DEFAULT_STABLESOFTMAXLOGSUMEXP_INPUT,
+} from "./stableSoftmaxLogsumexp";
 
-describe("stable-softmax-logsumexp (Numerically Stable Softmax & LogSumExp)", () => {
+describe("Stable Softmax Logsumexp", () => {
   it("should have correct metadata", () => {
-    expect(stableSoftmaxLogsumexp.id).toBe("stable-softmax-logsumexp");
-    expect(stableSoftmaxLogsumexp.isMlInfra).toBe(true);
-    expect(stableSoftmaxLogsumexp.mlInfraLevel).toBe(4);
-    expect(stableSoftmaxLogsumexp.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(stableSoftmaxLogsumexp.categories).toContain("ml_precision_quantization");
+    expect(stableSoftmaxLogsumexp.id).toBeDefined();
+    expect(stableSoftmaxLogsumexp.title).toBe("Stable Softmax Logsumexp");
+    expect(stableSoftmaxLogsumexp.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate steps successfully", () => {
     const steps = generateStableSoftmaxLogsumexpSteps(DEFAULT_STABLESOFTMAXLOGSUMEXP_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Numerically Stable Softmax & LogSumExp");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(stableSoftmaxLogsumexp.examples?.length).toBe(3);
   });
 });

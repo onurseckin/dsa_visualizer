@@ -6,15 +6,17 @@ export interface optimalSubgraphActivationCheckpointingInput {
   target?: number;
 }
 
-export const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_CODE = "def optimal_subgraph_activation_checkpointing(input_data: list) -> list:\n    # Optimal Subgraph Activation Checkpointing Scheduler (Hard)\n    # Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_CODE =
+  "def optimal_subgraph_activation_checkpointing(input_data: list) -> list:\n    # Optimal Subgraph Activation Checkpointing Scheduler (Hard)\n    # Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_INPUT: optimalSubgraphActivationCheckpointingInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_INPUT: optimalSubgraphActivationCheckpointingInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateOptimalSubgraphActivationCheckpointingSteps = (
-  input: optimalSubgraphActivationCheckpointingInput
+  input: optimalSubgraphActivationCheckpointingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     1,
     "Initialize Optimal Subgraph Activation Checkpointing Scheduler",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
 
 const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Optimal Subgraph Activation Checkpointing Scheduler.",
@@ -103,63 +110,76 @@ const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA: TriviaMeta = {
   },
 };
 
-export const optimalSubgraphActivationCheckpointing: AlgorithmDefinition<optimalSubgraphActivationCheckpointingInput> = {
-  id: "optimal-subgraph-activation-checkpointing",
-  title: "Optimal Subgraph Activation Checkpointing Scheduler",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
-  description: "Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Activation checkpointing drops intermediate activations to fit large models in memory.",
-    sections: [
-      { heading: "Core Concept", body: "Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const optimalSubgraphActivationCheckpointing: AlgorithmDefinition<optimalSubgraphActivationCheckpointingInput> =
+  {
+    id: "optimal-subgraph-activation-checkpointing",
+    title: "Optimal Subgraph Activation Checkpointing Scheduler",
+    category: "ml_autograd_dags",
+    categories: ["ml_autograd_dags", "graph_directed_and_scc"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 3,
+    mlInfraCategory: "ml_autograd_dags",
+    description: "Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"Activation Checkpointing","definition":"Trading compute for VRAM by recomputing activations during backward pass."}],
-  },
-  trivia: OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
-  defaultInput: DEFAULT_OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_INPUT,
-  generateSteps: generateOptimalSubgraphActivationCheckpointingSteps,
-};
+    code: OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview:
+        "Activation checkpointing drops intermediate activations to fit large models in memory.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Selects optimal checkpoint nodes to trade recomputation FLOPs for VRAM savings.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Activation Checkpointing",
+          definition: "Trading compute for VRAM by recomputing activations during backward pass.",
+        },
+      ],
+    },
+    trivia: OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
+    defaultInput: DEFAULT_OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_INPUT,
+    generateSteps: generateOptimalSubgraphActivationCheckpointingSteps,
+  };

@@ -58,8 +58,75 @@ import { sqrtDecomposition } from "./advanced_range_queries/sqrtDecomposition";
 import { moAlgorithm } from "./advanced_range_queries/moAlgorithm";
 import { dynamicSegmentTree } from "./advanced_range_queries/dynamicSegmentTree";
 import { persistentSegmentTree } from "./advanced_range_queries/persistentSegmentTree";
+import { mergeSort } from "./two_pointers/mergeSort";
+import { binarySearch1d } from "./binary_search/binarySearch1d";
+import { meetInTheMiddle } from "./binary_search/meetInTheMiddle";
+import { convexHull } from "./geometry_and_sweep_line/convexHull";
+import { polygonArea } from "./geometry_and_sweep_line/polygonArea";
+import { inclusionExclusionPrinciple } from "./math_and_number_theory/inclusionExclusionPrinciple";
+import { matrixExponentiation } from "./math_and_number_theory/matrixExponentiation";
+import { markovChains } from "./math_and_number_theory/markovChains";
+import { spragueGrundyTheorem } from "./game_theory/spragueGrundyTheorem";
+import { stringHashing } from "./tries_and_strings/stringHashing";
+import { lineSegmentIntersection } from "./geometry_and_sweep_line/lineSegmentIntersection";
+import { sweepLineIntersections } from "./geometry_and_sweep_line/sweepLineIntersections";
+import { closestPairOfPoints } from "./geometry_and_sweep_line/closestPairOfPoints";
+import { hierholzerEulerianPath } from "./graph_directed_and_scc/hierholzerEulerianPath";
+import { deBruijnSequence } from "./graph_directed_and_scc/deBruijnSequence";
+import { twoSatSolver } from "./graph_directed_and_scc/twoSatSolver";
+import { successorPaths } from "./graph_directed_and_scc/successorPaths";
+import { dagDpLongestPath } from "./graph_directed_and_scc/dagDpLongestPath";
+import { dfsGraph } from "./graph_traversal/dfsGraph";
+import { bipartiteGraphCheck } from "./graph_traversal/bipartiteGraphCheck";
+import { edmondsKarpMaxFlow } from "./graph_flows_and_cuts/edmondsKarpMaxFlow";
+import { eulerTourTechnique } from "./tree_queries_and_diameter/eulerTourTechnique";
+import { dsuOnTree } from "./tree_queries_and_diameter/dsuOnTree";
+import { binaryLiftingLca } from "./tree_queries_and_diameter/binaryLiftingLca";
+import { disjointSetUnion } from "./graph_spanning_trees/disjointSetUnion";
+import { generatingPermutations } from "./backtracking/generatingPermutations";
+import { knightsTourWarnsdorff } from "./backtracking/knightsTourWarnsdorff";
+import { hamiltonianPathDp } from "./backtracking/hamiltonianPathDp";
+import { generatingSubsets } from "./backtracking/generatingSubsets";
 
-// Extended ML Infra Curriculum Imports
+import { tensorStrideOffset } from "./ml_infra/tensorStrideOffset";
+import { tensorContiguityReshape } from "./ml_infra/tensorContiguityReshape";
+import { sramGemmTiling } from "./ml_infra/sramGemmTiling";
+import { rooflineIntensityClassifier } from "./ml_infra/rooflineIntensityClassifier";
+import { autogradVjpDag } from "./ml_infra/autogradVjpDag";
+import { activationCheckpointing } from "./ml_infra/activationCheckpointing";
+import { fusedSoftmaxLse } from "./ml_infra/fusedSoftmaxLse";
+import { affineQuantizationSq8 } from "./ml_infra/affineQuantizationSq8";
+import { smoothquantScaling } from "./ml_infra/smoothquantScaling";
+import { lshVectorHashing } from "./ml_infra/lshVectorHashing";
+import { ivfPqAdcSearch } from "./ml_infra/ivfPqAdcSearch";
+import { hnswVectorSearch } from "./ml_infra/hnswVectorSearch";
+import { bpeTokenizer } from "./ml_infra/bpeTokenizer";
+import { viterbiSubwordSegmenter } from "./ml_infra/viterbiSubwordSegmenter";
+import { xgboostGradientSplit } from "./ml_infra/xgboostGradientSplit";
+import { im2colConvTiling } from "./ml_infra/im2colConvTiling";
+import { lstmConstantErrorCarousel } from "./ml_infra/lstmConstantErrorCarousel";
+import { scaledDotAttentionMask } from "./ml_infra/scaledDotAttentionMask";
+import { ropeRotaryPosition } from "./ml_infra/ropeRotaryPosition";
+import { groupedQueryAttention } from "./ml_infra/groupedQueryAttention";
+import { flashAttentionTiling } from "./ml_infra/flashAttentionTiling";
+import { tritonKernelFusion } from "./ml_infra/tritonKernelFusion";
+import { ringAllreducePartition } from "./ml_infra/ringAllreducePartition";
+import { megatronTpSpSplit } from "./ml_infra/megatronTpSpSplit";
+import { deepspeedZeroSharding } from "./ml_infra/deepspeedZeroSharding";
+import { pagedAttentionBlockTable } from "./ml_infra/pagedAttentionBlockTable";
+import { continuousBatchingScheduler } from "./ml_infra/continuousBatchingScheduler";
+import { speculativeDecodingVerifier } from "./ml_infra/speculativeDecodingVerifier";
+import { arrayMatrixTraversal } from "./ml_infra/arrayMatrixTraversal";
+import { stridedIndexArithmetic } from "./ml_infra/stridedIndexArithmetic";
+import { matrixMultiplicationNaive } from "./ml_infra/matrixMultiplicationNaive";
+import { topologicalSortDag } from "./ml_infra/topologicalSortDag";
+import { floatingPointOverflow } from "./ml_infra/floatingPointOverflow";
+import { distanceMetricsKnn } from "./ml_infra/distanceMetricsKnn";
+import { triePrefixTreeSearch } from "./ml_infra/triePrefixTreeSearch";
+import { decisionTreeGiniSplit } from "./ml_infra/decisionTreeGiniSplit";
+import { conv2dSlidingWindow } from "./ml_infra/conv2dSlidingWindow";
+import { recurrentUnrollingBptt } from "./ml_infra/recurrentUnrollingBptt";
+// Extended 190 ML Infra Curriculum Imports
 import { tensorContiguityVerifier } from "./ml_tensor_algebra/tensorContiguityVerifier";
 import { strided1dDotProduct } from "./ml_tensor_algebra/strided1dDotProduct";
 import { antiDiagonalExtraction } from "./ml_tensor_algebra/antiDiagonalExtraction";
@@ -311,8 +378,77 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "mo-algorithm": moAlgorithm as AlgorithmDefinition,
   "dynamic-segment-tree": dynamicSegmentTree as AlgorithmDefinition,
   "persistent-segment-tree": persistentSegmentTree as AlgorithmDefinition,
+  "merge-sort": mergeSort as AlgorithmDefinition,
+  "binary-search-1d": binarySearch1d as AlgorithmDefinition,
+  "meet-in-the-middle": meetInTheMiddle as AlgorithmDefinition,
+  "convex-hull": convexHull as AlgorithmDefinition,
+  "polygon-area": polygonArea as AlgorithmDefinition,
+  "inclusion-exclusion-principle": inclusionExclusionPrinciple as AlgorithmDefinition,
+  "matrix-exponentiation": matrixExponentiation as AlgorithmDefinition,
+  "markov-chains": markovChains as AlgorithmDefinition,
+  "sprague-grundy-theorem": spragueGrundyTheorem as AlgorithmDefinition,
+  "string-hashing": stringHashing as AlgorithmDefinition,
+  "line-segment-intersection": lineSegmentIntersection as AlgorithmDefinition,
+  "sweep-line-intersections": sweepLineIntersections as AlgorithmDefinition,
+  "closest-pair-of-points": closestPairOfPoints as AlgorithmDefinition,
+  "hierholzer-eulerian-path": hierholzerEulerianPath as AlgorithmDefinition,
+  "de-bruijn-sequence": deBruijnSequence as AlgorithmDefinition,
+  "two-sat-solver": twoSatSolver as AlgorithmDefinition,
+  "successor-paths": successorPaths as AlgorithmDefinition,
+  "dag-dp-longest-path": dagDpLongestPath as AlgorithmDefinition,
+  "dfs-graph": dfsGraph as AlgorithmDefinition,
+  "bipartite-graph-check": bipartiteGraphCheck as AlgorithmDefinition,
+  "edmonds-karp-max-flow": edmondsKarpMaxFlow as AlgorithmDefinition,
+  "euler-tour-technique": eulerTourTechnique as AlgorithmDefinition,
+  "dsu-on-tree": dsuOnTree as AlgorithmDefinition,
+  "binary-lifting-lca": binaryLiftingLca as AlgorithmDefinition,
+  "disjoint-set-union": disjointSetUnion as AlgorithmDefinition,
+  "generating-permutations": generatingPermutations as AlgorithmDefinition,
+  "knights-tour-warnsdorff": knightsTourWarnsdorff as AlgorithmDefinition,
+  "hamiltonian-path-dp": hamiltonianPathDp as AlgorithmDefinition,
+  "generating-subsets": generatingSubsets as AlgorithmDefinition,
+  // ML Infra Algorithms
+  "tensor-stride-offset": tensorStrideOffset as AlgorithmDefinition,
+  "tensor-contiguity-reshape": tensorContiguityReshape as AlgorithmDefinition,
+  "sram-gemm-tiling": sramGemmTiling as AlgorithmDefinition,
+  "roofline-intensity-classifier": rooflineIntensityClassifier as AlgorithmDefinition,
+  "autograd-vjp-dag": autogradVjpDag as AlgorithmDefinition,
+  "activation-checkpointing": activationCheckpointing as AlgorithmDefinition,
+  "fused-softmax-lse": fusedSoftmaxLse as AlgorithmDefinition,
+  "affine-quantization-sq8": affineQuantizationSq8 as AlgorithmDefinition,
+  "smoothquant-scaling": smoothquantScaling as AlgorithmDefinition,
+  "lsh-vector-hashing": lshVectorHashing as AlgorithmDefinition,
+  "ivf-pq-adc-search": ivfPqAdcSearch as AlgorithmDefinition,
+  "hnsw-vector-search": hnswVectorSearch as AlgorithmDefinition,
+  "bpe-tokenizer": bpeTokenizer as AlgorithmDefinition,
+  "viterbi-subword-segmenter": viterbiSubwordSegmenter as AlgorithmDefinition,
+  "xgboost-gradient-split": xgboostGradientSplit as AlgorithmDefinition,
+  "im2col-conv-tiling": im2colConvTiling as AlgorithmDefinition,
+  "lstm-constant-error-carousel": lstmConstantErrorCarousel as AlgorithmDefinition,
+  "scaled-dot-attention-mask": scaledDotAttentionMask as AlgorithmDefinition,
+  "rope-rotary-position": ropeRotaryPosition as AlgorithmDefinition,
+  "grouped-query-attention": groupedQueryAttention as AlgorithmDefinition,
+  "flash-attention-tiling": flashAttentionTiling as AlgorithmDefinition,
+  "triton-kernel-fusion": tritonKernelFusion as AlgorithmDefinition,
+  "ring-allreduce-partition": ringAllreducePartition as AlgorithmDefinition,
+  "megatron-tp-sp-split": megatronTpSpSplit as AlgorithmDefinition,
+  "deepspeed-zero-sharding": deepspeedZeroSharding as AlgorithmDefinition,
+  "paged-attention-block-table": pagedAttentionBlockTable as AlgorithmDefinition,
+  "continuous-batching-scheduler": continuousBatchingScheduler as AlgorithmDefinition,
+  "speculative-decoding-verifier": speculativeDecodingVerifier as AlgorithmDefinition,
+  "2d-array-matrix-traversal": arrayMatrixTraversal as AlgorithmDefinition,
+  "array-matrix-traversal": arrayMatrixTraversal as AlgorithmDefinition,
+  "strided-index-arithmetic": stridedIndexArithmetic as AlgorithmDefinition,
+  "matrix-multiplication-naive": matrixMultiplicationNaive as AlgorithmDefinition,
+  "topological-sort-dag": topologicalSortDag as AlgorithmDefinition,
+  "floating-point-overflow": floatingPointOverflow as AlgorithmDefinition,
+  "distance-metrics-knn": distanceMetricsKnn as AlgorithmDefinition,
+  "trie-prefix-tree-search": triePrefixTreeSearch as AlgorithmDefinition,
+  "decision-tree-gini-split": decisionTreeGiniSplit as AlgorithmDefinition,
+  "conv2d-sliding-window": conv2dSlidingWindow as AlgorithmDefinition,
+  "recurrent-unrolling-bptt": recurrentUnrollingBptt as AlgorithmDefinition,
 
-  // Extended ML Infra Curriculum
+  // Extended 190 ML Infra Curriculum Entries
   "tensor-contiguity-verifier": tensorContiguityVerifier as AlgorithmDefinition,
   "strided-1d-dot-product": strided1dDotProduct as AlgorithmDefinition,
   "anti-diagonal-extraction": antiDiagonalExtraction as AlgorithmDefinition,
@@ -352,7 +488,8 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "parallel-course-critical-path": parallelCourseCriticalPath as AlgorithmDefinition,
   "micrograd-reverse-gradients": microgradReverseGradients as AlgorithmDefinition,
   "deep-copy-linked-list-random": deepCopyLinkedListRandom as AlgorithmDefinition,
-  "optimal-subgraph-activation-checkpointing": optimalSubgraphActivationCheckpointing as AlgorithmDefinition,
+  "optimal-subgraph-activation-checkpointing":
+    optimalSubgraphActivationCheckpointing as AlgorithmDefinition,
   "ast-expression-eval-variables": astExpressionEvalVariables as AlgorithmDefinition,
   "prefix-to-postfix-conversion": prefixToPostfixConversion as AlgorithmDefinition,
   "compute-scalar-chain-rule": computeScalarChainRule as AlgorithmDefinition,
@@ -376,50 +513,54 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "zero-point-alignment-shift": zeroPointAlignmentShift as AlgorithmDefinition,
   "bitwise-sign-extraction": bitwiseSignExtraction as AlgorithmDefinition,
   "one-pass-online-softmax-sram-kernel": onePassOnlineSoftmaxSramKernel as AlgorithmDefinition,
-  "hnswMultiLayerProbabilisticGraph": hnswMultiLayerProbabilisticGraph as AlgorithmDefinition,
-  "linearScanKnnTopk": linearScanKnnTopk as AlgorithmDefinition,
-  "binarySearchBucketIndex": binarySearchBucketIndex as AlgorithmDefinition,
-  "kmeansCentroidClustering": kmeansCentroidClustering as AlgorithmDefinition,
-  "hnswHeuristicSpatialPruning": hnswHeuristicSpatialPruning as AlgorithmDefinition,
-  "ivfInvertedIndexPostingLists": ivfInvertedIndexPostingLists as AlgorithmDefinition,
-  "simdSwizzledAdcDistanceLookup": simdSwizzledAdcDistanceLookup as AlgorithmDefinition,
-  "gaussianL2LocalitySensitiveHash": gaussianL2LocalitySensitiveHash as AlgorithmDefinition,
-  "l2DistancePairwise": l2DistancePairwise as AlgorithmDefinition,
-  "lshMultiTableBucketGrouping": lshMultiTableBucketGrouping as AlgorithmDefinition,
-  "randomHyperplaneSignHash": randomHyperplaneSignHash as AlgorithmDefinition,
-  "hnswGreedyBeamSearchEngine": hnswGreedyBeamSearchEngine as AlgorithmDefinition,
-  "ivfPqAsymmetricDistanceComputation": ivfPqAsymmetricDistanceComputation as AlgorithmDefinition,
-  "subvectorDecompositionCodebook": subvectorDecompositionCodebook as AlgorithmDefinition,
-  "cosineSimilarityNormalized": cosineSimilarityNormalized as AlgorithmDefinition,
-  "singleSkipListLayerTraversal": singleSkipListLayerTraversal as AlgorithmDefinition,
-  "byteLevelBpeTiktokenTokenizer": byteLevelBpeTiktokenTokenizer as AlgorithmDefinition,
-  "characterFrequencyNgramCounter": characterFrequencyNgramCounter as AlgorithmDefinition,
-  "viterbiLatticeSubwordSegmenter": viterbiLatticeSubwordSegmenter as AlgorithmDefinition,
-  "iterativeBpeVocabularyTrainer": iterativeBpeVocabularyTrainer as AlgorithmDefinition,
-  "sentencepieceByteFallbackEncoder": sentencepieceByteFallbackEncoder as AlgorithmDefinition,
-  "unigramEmVocabularyPruner": unigramEmVocabularyPruner as AlgorithmDefinition,
-  "basicTrieInsertSearch": basicTrieInsertSearch as AlgorithmDefinition,
-  "adjacentPairFrequencyCounter": adjacentPairFrequencyCounter as AlgorithmDefinition,
-  "wordpiecePmiScoredTokenizer": wordpiecePmiScoredTokenizer as AlgorithmDefinition,
-  "unigramCandidateLossRanks": unigramCandidateLossRanks as AlgorithmDefinition,
-  "singlePassBpeMerger": singlePassBpeMerger as AlgorithmDefinition,
-  "trieLongestPrefixMatcher": trieLongestPrefixMatcher as AlgorithmDefinition,
-  "fastSubwordLatticeViterbiBeam": fastSubwordLatticeViterbiBeam as AlgorithmDefinition,
-  "parallelLockFreeBpeEncoder": parallelLockFreeBpeEncoder as AlgorithmDefinition,
-  "ahoCorasickMultiTokenMatcher": ahoCorasickMultiTokenMatcher as AlgorithmDefinition,
-  "utf8ByteSequenceValidator": utf8ByteSequenceValidator as AlgorithmDefinition,
+  hnswMultiLayerProbabilisticGraph: hnswMultiLayerProbabilisticGraph as AlgorithmDefinition,
+  linearScanKnnTopk: linearScanKnnTopk as AlgorithmDefinition,
+  binarySearchBucketIndex: binarySearchBucketIndex as AlgorithmDefinition,
+  kmeansCentroidClustering: kmeansCentroidClustering as AlgorithmDefinition,
+  hnswHeuristicSpatialPruning: hnswHeuristicSpatialPruning as AlgorithmDefinition,
+  ivfInvertedIndexPostingLists: ivfInvertedIndexPostingLists as AlgorithmDefinition,
+  simdSwizzledAdcDistanceLookup: simdSwizzledAdcDistanceLookup as AlgorithmDefinition,
+  gaussianL2LocalitySensitiveHash: gaussianL2LocalitySensitiveHash as AlgorithmDefinition,
+  l2DistancePairwise: l2DistancePairwise as AlgorithmDefinition,
+  lshMultiTableBucketGrouping: lshMultiTableBucketGrouping as AlgorithmDefinition,
+  randomHyperplaneSignHash: randomHyperplaneSignHash as AlgorithmDefinition,
+  hnswGreedyBeamSearchEngine: hnswGreedyBeamSearchEngine as AlgorithmDefinition,
+  ivfPqAsymmetricDistanceComputation: ivfPqAsymmetricDistanceComputation as AlgorithmDefinition,
+  subvectorDecompositionCodebook: subvectorDecompositionCodebook as AlgorithmDefinition,
+  cosineSimilarityNormalized: cosineSimilarityNormalized as AlgorithmDefinition,
+  singleSkipListLayerTraversal: singleSkipListLayerTraversal as AlgorithmDefinition,
+  byteLevelBpeTiktokenTokenizer: byteLevelBpeTiktokenTokenizer as AlgorithmDefinition,
+  characterFrequencyNgramCounter: characterFrequencyNgramCounter as AlgorithmDefinition,
+  viterbiLatticeSubwordSegmenter: viterbiLatticeSubwordSegmenter as AlgorithmDefinition,
+  iterativeBpeVocabularyTrainer: iterativeBpeVocabularyTrainer as AlgorithmDefinition,
+  sentencepieceByteFallbackEncoder: sentencepieceByteFallbackEncoder as AlgorithmDefinition,
+  unigramEmVocabularyPruner: unigramEmVocabularyPruner as AlgorithmDefinition,
+  basicTrieInsertSearch: basicTrieInsertSearch as AlgorithmDefinition,
+  adjacentPairFrequencyCounter: adjacentPairFrequencyCounter as AlgorithmDefinition,
+  wordpiecePmiScoredTokenizer: wordpiecePmiScoredTokenizer as AlgorithmDefinition,
+  unigramCandidateLossRanks: unigramCandidateLossRanks as AlgorithmDefinition,
+  singlePassBpeMerger: singlePassBpeMerger as AlgorithmDefinition,
+  trieLongestPrefixMatcher: trieLongestPrefixMatcher as AlgorithmDefinition,
+  fastSubwordLatticeViterbiBeam: fastSubwordLatticeViterbiBeam as AlgorithmDefinition,
+  parallelLockFreeBpeEncoder: parallelLockFreeBpeEncoder as AlgorithmDefinition,
+  ahoCorasickMultiTokenMatcher: ahoCorasickMultiTokenMatcher as AlgorithmDefinition,
+  utf8ByteSequenceValidator: utf8ByteSequenceValidator as AlgorithmDefinition,
   "variance-preservation-proof-sim": variancePreservationProofSim as AlgorithmDefinition,
   "single-head-attention-map": singleHeadAttentionMap as AlgorithmDefinition,
   "rope-2d-complex-plane-rotation": rope2dComplexPlaneRotation as AlgorithmDefinition,
   "grouped-query-attention-gqa-engine": groupedQueryAttentionGqaEngine as AlgorithmDefinition,
-  "relative-position-inner-product-preservation": relativePositionInnerProductPreservation as AlgorithmDefinition,
-  "flash-decoding-split-k-sequence-parallel": flashDecodingSplitKSequenceParallel as AlgorithmDefinition,
+  "relative-position-inner-product-preservation":
+    relativePositionInnerProductPreservation as AlgorithmDefinition,
+  "flash-decoding-split-k-sequence-parallel":
+    flashDecodingSplitKSequenceParallel as AlgorithmDefinition,
   "multi-head-attention-split-concat": multiHeadAttentionSplitConcat as AlgorithmDefinition,
   "causal-lower-triangular-mask": causalLowerTriangularMask as AlgorithmDefinition,
   "softmax-row-normalize": softmaxRowNormalize as AlgorithmDefinition,
-  "sliding-window-prefix-attention-engine": slidingWindowPrefixAttentionEngine as AlgorithmDefinition,
+  "sliding-window-prefix-attention-engine":
+    slidingWindowPrefixAttentionEngine as AlgorithmDefinition,
   "vector-inner-product-scaling": vectorInnerProductScaling as AlgorithmDefinition,
-  "rotary-embedding-attention-cuda-kernel": rotaryEmbeddingAttentionCudaKernel as AlgorithmDefinition,
+  "rotary-embedding-attention-cuda-kernel":
+    rotaryEmbeddingAttentionCudaKernel as AlgorithmDefinition,
   "multi-query-attention-broadcast": multiQueryAttentionBroadcast as AlgorithmDefinition,
   "kv-cache-step-append": kvCacheStepAppend as AlgorithmDefinition,
   "rope-frequency-scaling-yarn": ropeFrequencyScalingYarn as AlgorithmDefinition,
@@ -433,7 +574,8 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "conv2d-sliding-window-direct": conv2dSlidingWindowDirect as AlgorithmDefinition,
   "lowered-conv2d-gemm-execution-engine": loweredConv2dGemmExecutionEngine as AlgorithmDefinition,
   "conv2d-padding-stride-output-shape": conv2dPaddingStrideOutputShape as AlgorithmDefinition,
-  "fused-depthwise-separable-conv2d-engine": fusedDepthwiseSeparableConv2dEngine as AlgorithmDefinition,
+  "fused-depthwise-separable-conv2d-engine":
+    fusedDepthwiseSeparableConv2dEngine as AlgorithmDefinition,
   "cudnn-implicit-gemm-on-the-fly-kernel": cudnnImplicitGemmOnTheFlyKernel as AlgorithmDefinition,
   "receptive-field-growth-calculator": receptiveFieldGrowthCalculator as AlgorithmDefinition,
   "conv2d-to-gemm-receptive-field-unroll": conv2dToGemmReceptiveFieldUnroll as AlgorithmDefinition,
@@ -443,9 +585,11 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "single-feature-threshold-split": singleFeatureThresholdSplit as AlgorithmDefinition,
   "gini-impurity-binary-split": giniImpurityBinarySplit as AlgorithmDefinition,
   "greedy-decision-tree-builder": greedyDecisionTreeBuilder as AlgorithmDefinition,
-  "multi-tree-additive-ensemble-predictor": multiTreeAdditiveEnsemblePredictor as AlgorithmDefinition,
+  "multi-tree-additive-ensemble-predictor":
+    multiTreeAdditiveEnsemblePredictor as AlgorithmDefinition,
   "exact-greedy-split-search": exactGreedySplitSearch as AlgorithmDefinition,
-  "missing-value-default-direction-splitter": missingValueDefaultDirectionSplitter as AlgorithmDefinition,
+  "missing-value-default-direction-splitter":
+    missingValueDefaultDirectionSplitter as AlgorithmDefinition,
   "xgboost-histogram-split-search": xgboostHistogramSplitSearch as AlgorithmDefinition,
   "variance-reduction-split": varianceReductionSplit as AlgorithmDefinition,
   "tree-node-prediction-traverser": treeNodePredictionTraverser as AlgorithmDefinition,
@@ -458,51 +602,74 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "tile-index-grid-mapper": tileIndexGridMapper as AlgorithmDefinition,
   "online-max-logsumexp-tracker": onlineMaxLogsumexpTracker as AlgorithmDefinition,
   "autotune-config-grid-search-engine": autotuneConfigGridSearchEngine as AlgorithmDefinition,
-  "triton-fused-add-softmax-dropout-kernel": tritonFusedAddSoftmaxDropoutKernel as AlgorithmDefinition,
-  "flash-attention-2-sequence-parallel-forward": flashAttention2SequenceParallelForward as AlgorithmDefinition,
+  "triton-fused-add-softmax-dropout-kernel":
+    tritonFusedAddSoftmaxDropoutKernel as AlgorithmDefinition,
+  "flash-attention-2-sequence-parallel-forward":
+    flashAttention2SequenceParallelForward as AlgorithmDefinition,
   "triton-program-id-1d-to-2d-map": tritonProgramId1dTo2dMap as AlgorithmDefinition,
-  "triton-mlir-to-ptx-compiler-pipeline-simulator": tritonMlirToPtxCompilerPipelineSimulator as AlgorithmDefinition,
+  "triton-mlir-to-ptx-compiler-pipeline-simulator":
+    tritonMlirToPtxCompilerPipelineSimulator as AlgorithmDefinition,
   "masked-memory-load-store-guard": maskedMemoryLoadStoreGuard as AlgorithmDefinition,
   "flash-attention-1-forward-tiling": flashAttention1ForwardTiling as AlgorithmDefinition,
   "triton-sram-swizzled-gemm-kernel": tritonSramSwizzledGemmKernel as AlgorithmDefinition,
-  "flash-attention-3-tma-warp-specialized-kernel": flashAttention3TmaWarpSpecializedKernel as AlgorithmDefinition,
+  "flash-attention-3-tma-warp-specialized-kernel":
+    flashAttention3TmaWarpSpecializedKernel as AlgorithmDefinition,
   "hbm-vs-sram-bandwidth-calculator": hbmVsSramBandwidthCalculator as AlgorithmDefinition,
-  "triton-l2-cache-swizzled-gemm-scheduler": tritonL2CacheSwizzledGemmScheduler as AlgorithmDefinition,
+  "triton-l2-cache-swizzled-gemm-scheduler":
+    tritonL2CacheSwizzledGemmScheduler as AlgorithmDefinition,
   "warp-shuffle-butterfly-reduction": warpShuffleButterflyReduction as AlgorithmDefinition,
-  "flash-attention-backward-recomputation-engine": flashAttentionBackwardRecomputationEngine as AlgorithmDefinition,
+  "flash-attention-backward-recomputation-engine":
+    flashAttentionBackwardRecomputationEngine as AlgorithmDefinition,
   "bank-conflict-swizzle-calculator": bankConflictSwizzleCalculator as AlgorithmDefinition,
   "column-parallel-linear-reshaper": columnParallelLinearReshaper as AlgorithmDefinition,
   "two-gpu-parameter-splitter": twoGpuParameterSplitter as AlgorithmDefinition,
-  "full-ring-allreduce-collective-simulator": fullRingAllreduceCollectiveSimulator as AlgorithmDefinition,
-  "one-f1b-pipeline-parallel-execution-scheduler": oneF1bPipelineParallelExecutionScheduler as AlgorithmDefinition,
-  "zero1-optimizer-state-memory-estimator": zero1OptimizerStateMemoryEstimator as AlgorithmDefinition,
-  "fp16-model-memory-footprint-calculator": fp16ModelMemoryFootprintCalculator as AlgorithmDefinition,
+  "full-ring-allreduce-collective-simulator":
+    fullRingAllreduceCollectiveSimulator as AlgorithmDefinition,
+  "one-f1b-pipeline-parallel-execution-scheduler":
+    oneF1bPipelineParallelExecutionScheduler as AlgorithmDefinition,
+  "zero1-optimizer-state-memory-estimator":
+    zero1OptimizerStateMemoryEstimator as AlgorithmDefinition,
+  "fp16-model-memory-footprint-calculator":
+    fp16ModelMemoryFootprintCalculator as AlgorithmDefinition,
   "ring-scatter-reduce-array-accumulator": ringScatterReduceArrayAccumulator as AlgorithmDefinition,
   "zero2-gradient-partitioning-engine": zero2GradientPartitioningEngine as AlgorithmDefinition,
-  "zero3-parameter-sharding-dynamic-allgather": zero3ParameterShardingDynamicAllgather as AlgorithmDefinition,
+  "zero3-parameter-sharding-dynamic-allgather":
+    zero3ParameterShardingDynamicAllgather as AlgorithmDefinition,
   "ring-allgather-vector-reconstructor": ringAllgatherVectorReconstructor as AlgorithmDefinition,
   "nccl-tree-vs-ring-allreduce-simulator": ncclTreeVsRingAllreduceSimulator as AlgorithmDefinition,
   "ring-allreduce-data-volume-estimator": ringAllreduceDataVolumeEstimator as AlgorithmDefinition,
   "ring-neighbor-rank-calculator": ringNeighborRankCalculator as AlgorithmDefinition,
   "row-parallel-linear-allreducer": rowParallelLinearAllreducer as AlgorithmDefinition,
   "cuda-ipc-shared-memory-pointer-mapper": cudaIpcSharedMemoryPointerMapper as AlgorithmDefinition,
-  "nvlink-symmetric-memory-peer-to-peer-engine": nvlinkSymmetricMemoryPeerToPeerEngine as AlgorithmDefinition,
+  "nvlink-symmetric-memory-peer-to-peer-engine":
+    nvlinkSymmetricMemoryPeerToPeerEngine as AlgorithmDefinition,
   "kv-cache-sequence-memory-estimator": kvCacheSequenceMemoryEstimator as AlgorithmDefinition,
   "draft-model-lookahead-token-sampler": draftModelLookaheadTokenSampler as AlgorithmDefinition,
-  "iteration-level-continuous-batch-scheduler": iterationLevelContinuousBatchScheduler as AlgorithmDefinition,
-  "rejection-sampling-acceptance-threshold": rejectionSamplingAcceptanceThreshold as AlgorithmDefinition,
-  "full-speculative-decoding-serving-engine": fullSpeculativeDecodingServingEngine as AlgorithmDefinition,
-  "hash-based-prefix-cache-trie-allocator": hashBasedPrefixCacheTrieAllocator as AlgorithmDefinition,
+  "iteration-level-continuous-batch-scheduler":
+    iterationLevelContinuousBatchScheduler as AlgorithmDefinition,
+  "rejection-sampling-acceptance-threshold":
+    rejectionSamplingAcceptanceThreshold as AlgorithmDefinition,
+  "full-speculative-decoding-serving-engine":
+    fullSpeculativeDecodingServingEngine as AlgorithmDefinition,
+  "hash-based-prefix-cache-trie-allocator":
+    hashBasedPrefixCacheTrieAllocator as AlgorithmDefinition,
   "paged-attention-block-table-allocator": pagedAttentionBlockTableAllocator as AlgorithmDefinition,
-  "sequence-length-padding-waste-calculator": sequenceLengthPaddingWasteCalculator as AlgorithmDefinition,
-  "speculative-decoding-residual-distribution-recoverer": speculativeDecodingResidualDistributionRecoverer as AlgorithmDefinition,
-  "logical-to-physical-block-address-translator": logicalToPhysicalBlockAddressTranslator as AlgorithmDefinition,
-  "chunked-prefill-token-budget-scheduler": chunkedPrefillTokenBudgetScheduler as AlgorithmDefinition,
-  "reference-counting-cow-beam-search-brancher": referenceCountingCowBeamSearchBrancher as AlgorithmDefinition,
-  "pytorch-custom-cuda-op-wrapper-register": pytorchCustomCudaOpWrapperRegister as AlgorithmDefinition,
+  "sequence-length-padding-waste-calculator":
+    sequenceLengthPaddingWasteCalculator as AlgorithmDefinition,
+  "speculative-decoding-residual-distribution-recoverer":
+    speculativeDecodingResidualDistributionRecoverer as AlgorithmDefinition,
+  "logical-to-physical-block-address-translator":
+    logicalToPhysicalBlockAddressTranslator as AlgorithmDefinition,
+  "chunked-prefill-token-budget-scheduler":
+    chunkedPrefillTokenBudgetScheduler as AlgorithmDefinition,
+  "reference-counting-cow-beam-search-brancher":
+    referenceCountingCowBeamSearchBrancher as AlgorithmDefinition,
+  "pytorch-custom-cuda-op-wrapper-register":
+    pytorchCustomCudaOpWrapperRegister as AlgorithmDefinition,
   "vllm-paged-attention-kernel-executor": vllmPagedAttentionKernelExecutor as AlgorithmDefinition,
   "flash-decoding-split-k-kv-cache-gather": flashDecodingSplitKKvCacheGather as AlgorithmDefinition,
-  "target-model-parallel-verification-pass": targetModelParallelVerificationPass as AlgorithmDefinition,
+  "target-model-parallel-verification-pass":
+    targetModelParallelVerificationPass as AlgorithmDefinition,
 };
 
 export const getAlgorithm = (id: string): AlgorithmDefinition | undefined => {

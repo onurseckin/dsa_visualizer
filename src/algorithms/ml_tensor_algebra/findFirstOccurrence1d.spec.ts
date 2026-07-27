@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { findFirstOccurrence1d, DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT, generateFindFirstOccurrence1dSteps } from "./findFirstOccurrence1d";
+import {
+  findFirstOccurrence1d,
+  DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT,
+  generateFindFirstOccurrence1dSteps,
+} from "./findFirstOccurrence1d";
 
 describe("find-first-occurrence-1d (Find First Occurrence in 1D Buffer)", () => {
   it("should have correct metadata", () => {

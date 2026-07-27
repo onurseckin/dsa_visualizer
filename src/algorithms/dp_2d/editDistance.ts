@@ -204,7 +204,7 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "word1 = \"horse\", word2 = \"ros\"",
+      inputDisplay: 'word1 = "horse", word2 = "ros"',
       outputDisplay: "3",
       title: "Basic Example",
       input: { word1: "horse", word2: "ros" },
@@ -214,7 +214,7 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "word1 = \"intention\", word2 = \"execution\"",
+      inputDisplay: 'word1 = "intention", word2 = "execution"',
       outputDisplay: "5",
       title: "Complex Edge Case",
       input: { word1: "intention", word2: "execution" },
@@ -224,7 +224,7 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "word1 = \"\", word2 = \"abc\"",
+      inputDisplay: 'word1 = "", word2 = "abc"',
       outputDisplay: "3",
       title: "Failing / Boundary Case",
       input: { word1: "", word2: "abc" },

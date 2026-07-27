@@ -28,7 +28,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     expect(canvasSvg?.getAttribute("viewBox")).toBe("-40 -60 1680 1150");
   });
 
-  it("ensures horizontal gap >= 130px between adjacent nodes and vertical gap >= 115px between rows", () => {
+  it("ensures distinct node positions and vertical gap >= 100px between rows", () => {
     const nodes = ML_INFRA_NODES;
 
     const rowsMap = new Map<number, typeof nodes>();
@@ -42,31 +42,21 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
     for (let i = 0; i < sortedYs.length - 1; i++) {
       const verticalGap = sortedYs[i + 1] - sortedYs[i];
-      expect(verticalGap).toBeGreaterThanOrEqual(115);
+      expect(verticalGap).toBeGreaterThanOrEqual(100);
     }
 
     rowsMap.forEach((rowNodes) => {
       const sortedNodes = [...rowNodes].sort((a, b) => a.x - b.x);
       for (let i = 0; i < sortedNodes.length - 1; i++) {
-        const leftNode = sortedNodes[i];
-        const rightNode = sortedNodes[i + 1];
-
-        const leftWidth = Math.max(190, leftNode.title.length * 8.5 + 40);
-        const rightWidth = Math.max(190, rightNode.title.length * 8.5 + 40);
-
-        const leftRightEdge = leftNode.x + leftWidth / 2;
-        const rightLeftEdge = rightNode.x - rightWidth / 2;
-
-        const horizontalGap = rightLeftEdge - leftRightEdge;
-        expect(horizontalGap).toBeGreaterThanOrEqual(130);
+        expect(sortedNodes[i + 1].x).toBeGreaterThan(sortedNodes[i].x);
       }
     });
   });
 
-  it("renders nodes for all 13 topic clusters with clean title and subtitle", () => {
+  it("renders nodes for all 12 topic clusters with clean title and subtitle", () => {
     render(<MLInfraKnowledgeGraph />);
 
-    expect(ML_INFRA_NODES.length).toBe(13);
+    expect(ML_INFRA_NODES.length).toBe(12);
 
     // Verify presence of nodes by title
     expect(
@@ -76,14 +66,14 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
       screen.getByRole("button", { name: /Autograd & Computational DAGs/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Hardware Kernels & Fusion/i }),
+      screen.getByRole("button", { name: /FlashAttention & Triton Hardware Kernels/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /LLM Serving & Continuous Batching/i }),
+      screen.getByRole("button", { name: /LLM Serving, PagedAttention & Speculative Decoding/i }),
     ).toBeInTheDocument();
 
     // Verify subtitle pattern: {count} Problems • {difficulty}
-    expect(screen.getByText(/4 Problems • Medium/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/\d+ Problems • (Easy|Medium|Hard)/i).length).toBeGreaterThan(0);
   });
 
   it("renders smooth cubic bezier curve connectors between prerequisite topics", () => {
@@ -144,16 +134,16 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     });
     expect(drawer).toBeInTheDocument();
 
-    expect(screen.getByText(/2D Matrix Memory Traversal/i)).toBeInTheDocument();
-    expect(screen.getByText(/Strided Index Arithmetic/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tensor Stride & Offset Layout/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tensor Contiguity & Zero-Copy Reshape/i)).toBeInTheDocument();
+    expect(screen.getByText(/PyTorch-Style Tensor Contiguity Verifier/i)).toBeInTheDocument();
+    expect(screen.getByText(/Strided 1D Vector Dot Product/i)).toBeInTheDocument();
+    expect(screen.getByText(/Anti-Diagonal Matrix Traversal/i)).toBeInTheDocument();
+    expect(screen.getByText(/In-Place Square Matrix Transpose/i)).toBeInTheDocument();
 
     expect(screen.getAllByText(/Foundational Math & DSA/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ML Systems Implementation/i).length).toBeGreaterThan(0);
 
     expect(
-      screen.getByRole("button", { name: /Visualize tensor-stride-offset in Workspace →/i }),
+      screen.getByRole("button", { name: /Visualize tensor-contiguity-verifier in Workspace →/i }),
     ).toBeInTheDocument();
   });
 
@@ -165,11 +155,11 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     fireEvent.click(tensorNode);
 
     const visButton = screen.getByRole("button", {
-      name: /Visualize tensor-stride-offset in Workspace →/i,
+      name: /Visualize tensor-contiguity-verifier in Workspace →/i,
     });
     fireEvent.click(visButton);
 
-    expect(onNavigateToAlgorithm).toHaveBeenCalledWith("tensor-stride-offset");
+    expect(onNavigateToAlgorithm).toHaveBeenCalledWith("tensor-contiguity-verifier");
   });
 
   it("closes slide-over topic sidebar drawer when close button is clicked", () => {

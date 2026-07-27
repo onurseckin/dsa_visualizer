@@ -28,12 +28,7 @@ describe("ProblemListFilterToolbar Component Spec", () => {
 
   it("calls onSourceSelect when ML Infra option is chosen in dropdown or clicked via toggle button", () => {
     const onSourceSelectMock = vi.fn();
-    render(
-      <ProblemListFilterToolbar
-        {...defaultProps}
-        onSourceSelect={onSourceSelectMock}
-      />,
-    );
+    render(<ProblemListFilterToolbar {...defaultProps} onSourceSelect={onSourceSelectMock} />);
 
     const sourceSelect = screen.getByRole("combobox", { name: /Filter by Source/i });
     fireEvent.change(sourceSelect, { target: { value: "ml_infra" } });

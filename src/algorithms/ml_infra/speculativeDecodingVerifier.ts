@@ -59,7 +59,8 @@ export const SPECULATIVE_DECODING_EXAMPLES: ProblemExample<SpeculativeDecodingIn
       gamma: 4,
     },
     output: "Accepts tokens 42 and 108; rejects token 999 at position 3 and samples recovery token",
-    explanation: "Draft tokens 1 and 2 pass target model verification ratio (p_target >= p_draft). Token 3 fails (0.1 < 0.4) and triggers target recovery.",
+    explanation:
+      "Draft tokens 1 and 2 pass target model verification ratio (p_target >= p_draft). Token 3 fails (0.1 < 0.4) and triggers target recovery.",
   },
   {
     id: "complex",
@@ -72,7 +73,8 @@ export const SPECULATIVE_DECODING_EXAMPLES: ProblemExample<SpeculativeDecodingIn
       gamma: 5,
     },
     output: "All 5 draft tokens accepted in 1 target forward pass",
-    explanation: "Achieves 5x speedup per target forward pass when all proposed tokens match target distribution.",
+    explanation:
+      "Achieves 5x speedup per target forward pass when all proposed tokens match target distribution.",
   },
   {
     id: "negative",
@@ -85,7 +87,8 @@ export const SPECULATIVE_DECODING_EXAMPLES: ProblemExample<SpeculativeDecodingIn
       gamma: 1,
     },
     output: "Token 77 rejected; target samples 177",
-    explanation: "First token fails verification, falling back to standard 1-token target generation.",
+    explanation:
+      "First token fails verification, falling back to standard 1-token target generation.",
   },
 ];
 
@@ -134,7 +137,7 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     what: string,
     why: string,
     activeIdx: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -144,7 +147,12 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
         kind: "array",
         elements: elements.map((el, idx) => ({
           ...el,
-          state: idx === activeIdx ? "active" : idx < activeIdx && acceptedTokens.length > idx ? "sorted" : "default",
+          state:
+            idx === activeIdx
+              ? "active"
+              : idx < activeIdx && acceptedTokens.length > idx
+                ? "sorted"
+                : "default",
           pointers: idx === activeIdx ? [`Draft #${idx}`] : undefined,
         })),
       },
@@ -165,7 +173,7 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     "Initialize Speculative Decoding Verification",
     `Small draft model proposed ${gamma} candidate tokens. Launching 1 parallel target LLM forward pass to compute target probabilities.`,
     -1,
-    { gamma, draftTokens: draftTokens.slice(0, gamma).join(", ") }
+    { gamma, draftTokens: draftTokens.slice(0, gamma).join(", ") },
   );
 
   let rejected = false;
@@ -184,7 +192,7 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
         `Draft Token #${i} (Val: ${token}) Accepted`,
         `Target probability (${pT}) >= Draft probability (${pD}). Ratio: ${ratio.toFixed(2)}. Token accepted into final output sequence.`,
         i,
-        { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(2) }
+        { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(2) },
       );
     } else {
       const recoveryToken = token + 100;
@@ -196,7 +204,14 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
         `Draft Token #${i} (Val: ${token}) Rejected`,
         `Target probability (${pT}) < Draft probability (${pD}). Ratio: ${ratio.toFixed(2)}. Draft sequence truncated; sampled recovery token (${recoveryToken}) from target distribution.`,
         i,
-        { tokenIndex: i, draftToken: token, recoveryToken, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(2) }
+        {
+          tokenIndex: i,
+          draftToken: token,
+          recoveryToken,
+          pDraft: pD,
+          pTarget: pT,
+          ratio: ratio.toFixed(2),
+        },
       );
       break;
     }
@@ -208,7 +223,7 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
       "All Draft Tokens Verified & Accepted",
       `Target model validated all ${gamma} draft tokens in 1 single forward pass. Achieved maximum ${gamma}x generation speedup.`,
       gamma - 1,
-      { totalAccepted: acceptedTokens.length, speedup: `${acceptedTokens.length}x` }
+      { totalAccepted: acceptedTokens.length, speedup: `${acceptedTokens.length}x` },
     );
   }
 
@@ -257,7 +272,8 @@ export const speculativeDecodingVerifier: AlgorithmDefinition<SpeculativeDecodin
     keyTerms: [
       {
         term: "Speculative Decoding",
-        definition: "Accelerating LLM serving by verifying K draft model tokens in 1 parallel target model pass.",
+        definition:
+          "Accelerating LLM serving by verifying K draft model tokens in 1 parallel target model pass.",
       },
       {
         term: "Draft Model",
@@ -265,7 +281,8 @@ export const speculativeDecodingVerifier: AlgorithmDefinition<SpeculativeDecodin
       },
       {
         term: "Rejection Sampling",
-        definition: "Statistical verification mechanism maintaining exact mathematical output distribution of the target model.",
+        definition:
+          "Statistical verification mechanism maintaining exact mathematical output distribution of the target model.",
       },
     ],
   },

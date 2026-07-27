@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import GridVisualizer from "../../../components/primitives/GridVisualizer";
-import { generateMatrixExponentiationSteps, DEFAULT_MATRIX_EXPONENTIATION_INPUT } from "../matrixExponentiation";
+import {
+  generateMatrixExponentiationSteps,
+  DEFAULT_MATRIX_EXPONENTIATION_INPUT,
+} from "../matrixExponentiation";
 import type { GridVisualSnapshot } from "../../../types/dsa";
 
 describe("matrixExponentiation React component spec", () => {

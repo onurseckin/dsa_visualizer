@@ -69,8 +69,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     return steps;
   }
 
-  let currentMax = elements[0].value;
-  let globalMax = elements[0].value;
+  let currentMax = Number(elements[0].value);
+  let globalMax = Number(elements[0].value);
   let start = 0;
   let end = 0;
   let tempStart = 0;
@@ -86,7 +86,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   );
 
   for (let i = 1; i < n; i++) {
-    const val = elements[i].value;
+    const val = Number(elements[i].value);
 
     // Reset element states to default, then set active bounds
     for (let k = 0; k < n; k++) {
@@ -211,7 +211,8 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       title: "Complex Edge Case",
       input: [5, 4, -1, 7, 8],
       output: "23",
-      explanation: "All positive elements except -1; the maximum subarray spans the entire array with sum 23.",
+      explanation:
+        "All positive elements except -1; the maximum subarray spans the entire array with sum 23.",
     },
     {
       kind: "negative",
@@ -220,7 +221,8 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       title: "Failing / Boundary Case",
       input: [-8, -3, -6, -2, -5],
       output: "-2",
-      explanation: "All elements are negative. Kadane's algorithm selects the single max element -2.",
+      explanation:
+        "All elements are negative. Kadane's algorithm selects the single max element -2.",
     },
   ],
   code: KADANE_MAX_SUBARRAY_CODE,

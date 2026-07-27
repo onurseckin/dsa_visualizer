@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { vectorDotProductMac, DEFAULT_VECTORDOTPRODUCTMAC_INPUT, generateVectorDotProductMacSteps } from "./vectorDotProductMac";
+import {
+  vectorDotProductMac,
+  DEFAULT_VECTORDOTPRODUCTMAC_INPUT,
+  generateVectorDotProductMacSteps,
+} from "./vectorDotProductMac";
 
 describe("vector-dot-product-mac (Vector Multiply-Accumulate (MAC))", () => {
   it("should have correct metadata", () => {

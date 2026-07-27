@@ -45,7 +45,9 @@ describe("moAlgorithm algorithm spec", () => {
     expect(moAlgorithm.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
 
     for (const example of moAlgorithm.examples!) {
-      const steps = moAlgorithm.generateSteps(example.input as { array: number[]; queries: { left: number; right: number }[] });
+      const steps = moAlgorithm.generateSteps(
+        example.input as { array: number[]; queries: { left: number; right: number }[] },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

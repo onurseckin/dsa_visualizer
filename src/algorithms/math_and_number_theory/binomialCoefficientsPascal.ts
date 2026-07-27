@@ -30,9 +30,7 @@ export const generateBinomialCoefficientsPascalSteps = (
   const nVal = Math.min(10, Math.max(0, Math.floor(input.n)));
   const kVal = Math.min(nVal, Math.max(0, Math.floor(input.k)));
 
-  const dp: number[][] = Array.from({ length: nVal + 1 }, () =>
-    new Array(kVal + 1).fill(0),
-  );
+  const dp: number[][] = Array.from({ length: nVal + 1 }, () => new Array(kVal + 1).fill(0));
 
   const createGridSnapshot = (
     activeRow: number | null,
@@ -217,7 +215,8 @@ export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Pascal's Triangle",
-      definition: "A triangular array of binomial coefficients where each number is the sum of the two directly above it.",
+      definition:
+        "A triangular array of binomial coefficients where each number is the sum of the two directly above it.",
     },
     {
       term: "Combinations C(n, k)",

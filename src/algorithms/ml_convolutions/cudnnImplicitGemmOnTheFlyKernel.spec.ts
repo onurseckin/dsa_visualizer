@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { cudnnImplicitGemmOnTheFlyKernel, DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT, generateCudnnImplicitGemmOnTheFlyKernelSteps } from "./cudnnImplicitGemmOnTheFlyKernel";
+import {
+  cudnnImplicitGemmOnTheFlyKernel,
+  DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT,
+  generateCudnnImplicitGemmOnTheFlyKernelSteps,
+} from "./cudnnImplicitGemmOnTheFlyKernel";
 
 describe("cudnn-implicit-gemm-on-the-fly-kernel (cuDNN Implicit GEMM On-The-Fly Kernel)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("cudnn-implicit-gemm-on-the-fly-kernel (cuDNN Implicit GEMM On-The-Fly 
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateCudnnImplicitGemmOnTheFlyKernelSteps(DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT);
+    const steps = generateCudnnImplicitGemmOnTheFlyKernelSteps(
+      DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("cuDNN Implicit GEMM On-The-Fly Kernel");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

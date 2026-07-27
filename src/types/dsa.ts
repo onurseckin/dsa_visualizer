@@ -14,7 +14,8 @@ export type ElementState =
 
 export interface ArrayElement {
   id: string;
-  value: number;
+  value: number | string;
+  label?: string;
   state: ElementState;
   pointers?: string[];
 }
@@ -303,7 +304,15 @@ export function getAlgorithmSources(alg: {
   if (alg.sources && alg.sources.length > 0) {
     result = [...alg.sources];
   } else if (alg.leetcode) {
-    result = [{ type: "leetcode", kind: "leetcode", id: alg.leetcode.id, leetcodeId: alg.leetcode.id, url: alg.leetcode.url }];
+    result = [
+      {
+        type: "leetcode",
+        kind: "leetcode",
+        id: alg.leetcode.id,
+        leetcodeId: alg.leetcode.id,
+        url: alg.leetcode.url,
+      },
+    ];
   } else {
     result = [{ type: "standard", kind: "standard", label: "Standard" }];
   }

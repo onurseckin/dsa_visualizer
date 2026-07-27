@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MoQuery {
@@ -291,11 +286,13 @@ export const MO_ALGORITHM_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Offline Querying",
-      definition: "Processing all queries after reading them entirely, allowing reordering for efficiency.",
+      definition:
+        "Processing all queries after reading them entirely, allowing reordering for efficiency.",
     },
     {
       term: "Mo's Order",
-      definition: "Sorting queries by block index (L // S) and then by R to minimize overall pointer displacement.",
+      definition:
+        "Sorting queries by block index (L // S) and then by R to minimize overall pointer displacement.",
     },
   ],
 };

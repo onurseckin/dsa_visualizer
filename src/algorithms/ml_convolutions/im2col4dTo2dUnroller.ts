@@ -6,7 +6,8 @@ export interface im2col4dTo2dUnrollerInput {
   target?: number;
 }
 
-export const IM2COL4DTO2DUNROLLER_CODE = "def im2col4d_to2d_unroller(input_data: list) -> list:\n    # Strided im2col 4D-to-2D Matrix Unroller (Medium)\n    # Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const IM2COL4DTO2DUNROLLER_CODE =
+  "def im2col4d_to2d_unroller(input_data: list) -> list:\n    # Strided im2col 4D-to-2D Matrix Unroller (Medium)\n    # Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_IM2COL4DTO2DUNROLLER_INPUT: im2col4dTo2dUnrollerInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_IM2COL4DTO2DUNROLLER_INPUT: im2col4dTo2dUnrollerInput = {
 };
 
 export const generateIm2col4dTo2dUnrollerSteps = (
-  input: im2col4dTo2dUnrollerInput
+  input: im2col4dTo2dUnrollerInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateIm2col4dTo2dUnrollerSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateIm2col4dTo2dUnrollerSteps = (
     1,
     "Initialize Strided im2col 4D-to-2D Matrix Unroller",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateIm2col4dTo2dUnrollerSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateIm2col4dTo2dUnrollerSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateIm2col4dTo2dUnrollerSteps = (
 
 const IM2COL4DTO2DUNROLLER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Strided im2col 4D-to-2D Matrix Unroller.",
@@ -106,13 +112,14 @@ const IM2COL4DTO2DUNROLLER_TRIVIA: TriviaMeta = {
 export const im2col4dTo2dUnroller: AlgorithmDefinition<im2col4dTo2dUnrollerInput> = {
   id: "im2col-4d-to-2d-unroller",
   title: "Strided im2col 4D-to-2D Matrix Unroller",
-  category: "ml_convolutions" as any,
-  categories: ["ml_convolutions","arrays_and_hashing"] as any,
+  category: "ml_convolutions",
+  categories: ["ml_convolutions", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
-  description: "Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out).",
+  description:
+    "Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -153,10 +160,21 @@ export const im2col4dTo2dUnroller: AlgorithmDefinition<im2col4dTo2dUnrollerInput
   topicGuide: {
     overview: "im2col transforms 4D tensor convolutions into 2D BLAS GEMM matrix multiplications.",
     sections: [
-      { heading: "Core Concept", body: "Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out)." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Unrolls (N, C_in, H, W) tensors into 2D GEMM input matrices (C_in*K_h*K_w, H_out*W_out).",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"im2col Unrolling","definition":"Mapping spatial image patches to GEMM matrix columns."}],
+    keyTerms: [
+      {
+        term: "im2col Unrolling",
+        definition: "Mapping spatial image patches to GEMM matrix columns.",
+      },
+    ],
   },
   trivia: IM2COL4DTO2DUNROLLER_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],

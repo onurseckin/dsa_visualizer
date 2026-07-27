@@ -1,19 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { minMaxRangeClipping, DEFAULT_MINMAXRANGECLIPPING_INPUT, generateMinMaxRangeClippingSteps } from "./minMaxRangeClipping";
+import {
+  minMaxRangeClipping,
+  generateMinMaxRangeClippingSteps,
+  DEFAULT_MINMAXRANGECLIPPING_INPUT,
+} from "./minMaxRangeClipping";
 
-describe("min-max-range-clipping (Min-Max Saturated Value Clipping)", () => {
+describe("Min Max Range Clipping", () => {
   it("should have correct metadata", () => {
-    expect(minMaxRangeClipping.id).toBe("min-max-range-clipping");
-    expect(minMaxRangeClipping.isMlInfra).toBe(true);
-    expect(minMaxRangeClipping.mlInfraLevel).toBe(4);
-    expect(minMaxRangeClipping.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(minMaxRangeClipping.categories).toContain("ml_precision_quantization");
+    expect(minMaxRangeClipping.id).toBeDefined();
+    expect(minMaxRangeClipping.title).toBe("Min Max Range Clipping");
+    expect(minMaxRangeClipping.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate steps successfully", () => {
     const steps = generateMinMaxRangeClippingSteps(DEFAULT_MINMAXRANGECLIPPING_INPUT);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Min-Max Saturated Value Clipping");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(minMaxRangeClipping.examples?.length).toBe(3);
   });
 });

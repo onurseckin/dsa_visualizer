@@ -88,7 +88,9 @@ describe("mergeIntervals logic spec", () => {
     ]);
 
     for (const example of mergeIntervals.examples!) {
-      const steps = mergeIntervals.generateSteps(example.input as { intervals: Array<{ start: number; end: number }> });
+      const steps = mergeIntervals.generateSteps(
+        example.input as { intervals: Array<{ start: number; end: number }> },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

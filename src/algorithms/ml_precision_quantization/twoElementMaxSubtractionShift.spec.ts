@@ -1,19 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { twoElementMaxSubtractionShift, DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT, generateTwoElementMaxSubtractionShiftSteps } from "./twoElementMaxSubtractionShift";
+import {
+  twoElementMaxSubtractionShift,
+  generateTwoElementMaxSubtractionShiftSteps,
+  DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT,
+} from "./twoElementMaxSubtractionShift";
 
-describe("two-element-max-subtraction-shift (Shift-Invariant Log-Sum-Exp Normalization)", () => {
+describe("Two Element Max Subtraction Shift", () => {
   it("should have correct metadata", () => {
-    expect(twoElementMaxSubtractionShift.id).toBe("two-element-max-subtraction-shift");
-    expect(twoElementMaxSubtractionShift.isMlInfra).toBe(true);
-    expect(twoElementMaxSubtractionShift.mlInfraLevel).toBe(4);
-    expect(twoElementMaxSubtractionShift.mlInfraCategory).toBe("ml_precision_quantization");
-    expect(twoElementMaxSubtractionShift.categories).toContain("ml_precision_quantization");
+    expect(twoElementMaxSubtractionShift.id).toBeDefined();
+    expect(twoElementMaxSubtractionShift.title).toBe("Two Element Max Subtraction Shift");
+    expect(twoElementMaxSubtractionShift.category).toBe("ml_precision_quantization");
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateTwoElementMaxSubtractionShiftSteps(DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT);
+  it("should generate steps successfully", () => {
+    const steps = generateTwoElementMaxSubtractionShiftSteps(
+      DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Shift-Invariant Log-Sum-Exp Normalization");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBe("array");
+    if (steps.length > 0) {
+      expect(steps[steps.length - 1].variables).toBeDefined();
+    }
+  });
+
+  it("should have exactly 3 examples", () => {
+    expect(twoElementMaxSubtractionShift.examples?.length).toBe(3);
   });
 });

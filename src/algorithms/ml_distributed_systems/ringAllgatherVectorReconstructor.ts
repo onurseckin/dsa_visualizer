@@ -6,15 +6,17 @@ export interface ringAllgatherVectorReconstructorInput {
   target?: number;
 }
 
-export const RINGALLGATHERVECTORRECONSTRUCTOR_CODE = "def ring_allgather_vector_reconstructor(input_data: list) -> list:\n    # Ring All-Gather Phase Vector Reconstructor (Medium)\n    # Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const RINGALLGATHERVECTORRECONSTRUCTOR_CODE =
+  "def ring_allgather_vector_reconstructor(input_data: list) -> list:\n    # Ring All-Gather Phase Vector Reconstructor (Medium)\n    # Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT: ringAllgatherVectorReconstructorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT: ringAllgatherVectorReconstructorInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateRingAllgatherVectorReconstructorSteps = (
-  input: ringAllgatherVectorReconstructorInput
+  input: ringAllgatherVectorReconstructorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateRingAllgatherVectorReconstructorSteps = (
     1,
     "Initialize Ring All-Gather Phase Vector Reconstructor",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
 const RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Ring All-Gather Phase Vector Reconstructor.",
@@ -103,63 +110,76 @@ const RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA: TriviaMeta = {
   },
 };
 
-export const ringAllgatherVectorReconstructor: AlgorithmDefinition<ringAllgatherVectorReconstructorInput> = {
-  id: "ring-allgather-vector-reconstructor",
-  title: "Ring All-Gather Phase Vector Reconstructor",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","graph_traversal"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
-  description: "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: RINGALLGATHERVECTORRECONSTRUCTOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "All-Gather phase broadcasts fully reduced chunks so every GPU holds the final tensor.",
-    sections: [
-      { heading: "Core Concept", body: "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const ringAllgatherVectorReconstructor: AlgorithmDefinition<ringAllgatherVectorReconstructorInput> =
+  {
+    id: "ring-allgather-vector-reconstructor",
+    title: "Ring All-Gather Phase Vector Reconstructor",
+    category: "ml_distributed_systems",
+    categories: ["ml_distributed_systems", "graph_traversal"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 11,
+    mlInfraCategory: "ml_distributed_systems",
+    description: "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"All-Gather","definition":"Second phase of Ring-AllReduce broadcasting reduced chunks."}],
-  },
-  trivia: RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
-  defaultInput: DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT,
-  generateSteps: generateRingAllgatherVectorReconstructorSteps,
-};
+    code: RINGALLGATHERVECTORRECONSTRUCTOR_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview:
+        "All-Gather phase broadcasts fully reduced chunks so every GPU holds the final tensor.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Simulates All-Gather phase broadcasting reduced chunks across N-1 ring steps.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "All-Gather",
+          definition: "Second phase of Ring-AllReduce broadcasting reduced chunks.",
+        },
+      ],
+    },
+    trivia: RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
+    defaultInput: DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT,
+    generateSteps: generateRingAllgatherVectorReconstructorSteps,
+  };

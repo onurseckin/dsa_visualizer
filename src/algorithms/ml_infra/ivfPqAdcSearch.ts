@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface IvfPqCoarseCentroid {
@@ -78,9 +74,7 @@ export const DEFAULT_IVF_PQ_ADC_INPUT: IvfPqAdcInput = {
   nprobe: 1,
 };
 
-export const generateIvfPqAdcSearchSteps = (
-  input: IvfPqAdcInput
-): AlgorithmStep[] => {
+export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -154,7 +148,7 @@ export const generateIvfPqAdcSearchSteps = (
       },
       auxiliaryState: {
         distanceTable: Object.fromEntries(
-          lut.flatMap((subLut, m) => subLut.map((val, k) => [`LUT_m${m}_k${k}`, val]))
+          lut.flatMap((subLut, m) => subLut.map((val, k) => [`LUT_m${m}_k${k}`, val])),
         ),
       },
       variables: {
@@ -284,7 +278,8 @@ export const ivfPqAdcSearch: AlgorithmDefinition<IvfPqAdcInput> = {
       outputDisplay: "V1: dist²=2.0, V0: dist²=25.0",
       input: DEFAULT_IVF_PQ_ADC_INPUT,
       output: "V1: dist²=2.0, V0: dist²=25.0",
-      explanation: "Probing C0 [0,0] yields residual [3,4]. Sub-space 0 (x=3) dist to sub-centroid 1 (x=2) is 1. Sub-space 1 (y=4) dist to sub-centroid 1 (y=3) is 1. V1 with codes [1,1] has ADC dist 1+1=2.",
+      explanation:
+        "Probing C0 [0,0] yields residual [3,4]. Sub-space 0 (x=3) dist to sub-centroid 1 (x=2) is 1. Sub-space 1 (y=4) dist to sub-centroid 1 (y=3) is 1. V1 with codes [1,1] has ADC dist 1+1=2.",
     },
     {
       kind: "complex",
@@ -297,7 +292,8 @@ export const ivfPqAdcSearch: AlgorithmDefinition<IvfPqAdcInput> = {
         nprobe: 2,
       },
       output: "V2: ADC dist² evaluated across multiple probed lists",
-      explanation: "Setting nprobe=2 probes both coarse centroids C0 and C1, building separate LUTs and combining candidate lists.",
+      explanation:
+        "Setting nprobe=2 probes both coarse centroids C0 and C1, building separate LUTs and combining candidate lists.",
     },
     {
       kind: "negative",
@@ -312,7 +308,8 @@ export const ivfPqAdcSearch: AlgorithmDefinition<IvfPqAdcInput> = {
         nprobe: 1,
       },
       output: "V0: dist²=25.0",
-      explanation: "Minimum single-node IVF list executes ADC lookup against single codebook centroid.",
+      explanation:
+        "Minimum single-node IVF list executes ADC lookup against single codebook centroid.",
     },
   ],
   code: IVF_PQ_ADC_SEARCH_CODE,
@@ -346,7 +343,8 @@ export const ivfPqAdcSearch: AlgorithmDefinition<IvfPqAdcInput> = {
       },
       {
         term: "ADC Lookup Table (LUT)",
-        definition: "Precomputed matrix storing squared distances between query sub-vectors and PQ codebook sub-centroids.",
+        definition:
+          "Precomputed matrix storing squared distances between query sub-vectors and PQ codebook sub-centroids.",
       },
     ],
   },

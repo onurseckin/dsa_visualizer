@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface SuccessorPathsInput {
@@ -295,7 +300,11 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
       edges: [...edges],
     },
     auxiliaryState: {
-      customState: { "Cycle Start": cycleStart, "Cycle Length": length, [`${stepsQuery}-th Successor`]: curr },
+      customState: {
+        "Cycle Start": cycleStart,
+        "Cycle Length": length,
+        [`${stepsQuery}-th Successor`]: curr,
+      },
     },
     variables: { startNode, stepsQuery, targetNode: curr },
   });
@@ -310,11 +319,7 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   difficulty: "Medium",
   description:
     "Analyzes functional graphs where every node has out-degree 1. Uses Floyd's Tortoise and Hare algorithm to detect cycles, find cycle entry point and length in O(V) time, and binary lifting to compute k-th successor paths in O(log k) time.",
-  constraints: [
-    "1 <= V <= 1000",
-    "0 <= succ[i] < V for all 0 <= i < V",
-    "1 <= k_steps <= 10^9",
-  ],
+  constraints: ["1 <= V <= 1000", "0 <= succ[i] < V for all 0 <= i < V", "1 <= k_steps <= 10^9"],
   examples: [
     {
       kind: "basic",
@@ -377,9 +382,20 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
       },
     ],
     keyTerms: [
-      { term: "Functional Graph", definition: "A directed graph where every node has out-degree 1." },
-      { term: "Tortoise & Hare", definition: "Floyd's algorithm for finding cycles using two pointers moving at different speeds." },
-      { term: "Binary Lifting", definition: "Dynamic programming technique to compute k-th ancestor/successor in O(log k) time." },
+      {
+        term: "Functional Graph",
+        definition: "A directed graph where every node has out-degree 1.",
+      },
+      {
+        term: "Tortoise & Hare",
+        definition:
+          "Floyd's algorithm for finding cycles using two pointers moving at different speeds.",
+      },
+      {
+        term: "Binary Lifting",
+        definition:
+          "Dynamic programming technique to compute k-th ancestor/successor in O(log k) time.",
+      },
     ],
   },
   trivia: SUCCESSOR_PATHS_TRIVIA,

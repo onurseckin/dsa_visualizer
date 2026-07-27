@@ -2,7 +2,13 @@ import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, FieldLabel, Well } from "..";
 import { cx } from "../cx";
-import { CategoryType, DifficultyLevel, LeetCodeMeta, ProblemExample, ProblemSource } from "../../types/dsa";
+import {
+  CategoryType,
+  DifficultyLevel,
+  LeetCodeMeta,
+  ProblemExample,
+  ProblemSource,
+} from "../../types/dsa";
 import { ProblemHeader } from "../../components/primitives/ProblemHeader";
 
 export interface ProblemDescriptionCardProps {

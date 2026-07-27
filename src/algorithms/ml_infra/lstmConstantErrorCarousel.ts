@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface LstmGateWeights {
@@ -10,16 +6,16 @@ export interface LstmGateWeights {
   Wi: number[][]; // input gate weight matrix
   Wc: number[][]; // candidate cell state weight matrix
   Wo: number[][]; // output gate weight matrix
-  bf: number[];   // forget bias
-  bi: number[];   // input bias
-  bc: number[];   // candidate bias
-  bo: number[];   // output bias
+  bf: number[]; // forget bias
+  bi: number[]; // input bias
+  bc: number[]; // candidate bias
+  bo: number[]; // output bias
 }
 
 export interface LstmConstantErrorCarouselInput {
-  x: number[];        // input vector at step t
-  hPrev: number[];    // hidden state at step t-1
-  cPrev: number[];    // cell state at step t-1
+  x: number[]; // input vector at step t
+  hPrev: number[]; // hidden state at step t-1
+  cPrev: number[]; // cell state at step t-1
   weights: LstmGateWeights;
 }
 
@@ -80,7 +76,7 @@ export const DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT: LstmConstantErrorCarous
 const sigmoid = (v: number) => 1.0 / (1.0 + Math.exp(-v));
 
 export const generateLstmConstantErrorCarouselSteps = (
-  input: LstmConstantErrorCarouselInput
+  input: LstmConstantErrorCarouselInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -90,10 +86,10 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   // Step 1: Compute Forget gate and Input gate
   const f_t = Array.from({ length: dim }, (_, d) =>
-    sigmoid(input.x.reduce((sum, xj, j) => sum + Wf[d][j] * xj, 0) + bf[d])
+    sigmoid(input.x.reduce((sum, xj, j) => sum + Wf[d][j] * xj, 0) + bf[d]),
   );
   const i_t = Array.from({ length: dim }, (_, d) =>
-    sigmoid(input.x.reduce((sum, xj, j) => sum + Wi[d][j] * xj, 0) + bi[d])
+    sigmoid(input.x.reduce((sum, xj, j) => sum + Wi[d][j] * xj, 0) + bi[d]),
   );
 
   steps.push({
@@ -132,7 +128,7 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   // Step 2: Compute Candidate cell state
   const c_tilde = Array.from({ length: dim }, (_, d) =>
-    Math.tanh(input.x.reduce((sum, xj, j) => sum + Wc[d][j] * xj, 0) + bc[d])
+    Math.tanh(input.x.reduce((sum, xj, j) => sum + Wc[d][j] * xj, 0) + bc[d]),
   );
 
   steps.push({
@@ -152,7 +148,7 @@ export const generateLstmConstantErrorCarouselSteps = (
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
-        c_tilde.map((v, d) => [`c_tilde_${d}`, Number(v.toFixed(3))])
+        c_tilde.map((v, d) => [`c_tilde_${d}`, Number(v.toFixed(3))]),
       ),
     },
     variables: {
@@ -179,9 +175,7 @@ export const generateLstmConstantErrorCarouselSteps = (
       })),
     },
     auxiliaryState: {
-      distanceTable: Object.fromEntries(
-        c_t.map((v, d) => [`c_t[${d}]`, Number(v.toFixed(3))])
-      ),
+      distanceTable: Object.fromEntries(c_t.map((v, d) => [`c_t[${d}]`, Number(v.toFixed(3))])),
     },
     variables: {
       c_t_0: Number(c_t[0].toFixed(3)),
@@ -190,7 +184,7 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   // Step 4: Output gate and hidden state
   const o_t = Array.from({ length: dim }, (_, d) =>
-    sigmoid(input.x.reduce((sum, xj, j) => sum + Wo[d][j] * xj, 0) + bo[d])
+    sigmoid(input.x.reduce((sum, xj, j) => sum + Wo[d][j] * xj, 0) + bo[d]),
   );
   const h_t = Array.from({ length: dim }, (_, d) => o_t[d] * Math.tanh(c_t[d]));
 
@@ -262,10 +256,7 @@ export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCar
   mlInfraLevel: 6,
   description:
     "Simulates Hochreiter & Schmidhuber's Long Short-Term Memory (LSTM) Constant Error Carousel (CEC) linear cell state memory update and gate activations.",
-  constraints: [
-    "len(x) == len(cPrev)",
-    "weights dimension matches x and cPrev dimension",
-  ],
+  constraints: ["len(x) == len(cPrev)", "weights dimension matches x and cPrev dimension"],
   examples: [
     {
       kind: "basic",
@@ -274,7 +265,8 @@ export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCar
       outputDisplay: "c_t = [2.145, 1.157], h_t = [0.711, 0.600]",
       input: DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT,
       output: "c_t = [2.145, 1.157], h_t = [0.711, 0.600]",
-      explanation: "Forget gate f_t is close to 0.95, allowing previous cell state memory (2.0, 1.0) to pass through the Constant Error Carousel with virtually zero gradient degradation.",
+      explanation:
+        "Forget gate f_t is close to 0.95, allowing previous cell state memory (2.0, 1.0) to pass through the Constant Error Carousel with virtually zero gradient degradation.",
     },
     {
       kind: "complex",
@@ -289,7 +281,8 @@ export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCar
         },
       },
       output: "Cell memory cleared (f_t = 0.0)",
-      explanation: "When forget gate f_t drops to 0.0, the CEC carousel clears historic memory c_{t-1}, resetting the unit's context.",
+      explanation:
+        "When forget gate f_t drops to 0.0, the CEC carousel clears historic memory c_{t-1}, resetting the unit's context.",
     },
     {
       kind: "negative",
@@ -304,7 +297,8 @@ export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCar
         },
       },
       output: "c_t = f_t * cPrev (inputs blocked)",
-      explanation: "Input gate i_t = 0 blocks new input candidates from altering the cell state memory.",
+      explanation:
+        "Input gate i_t = 0 blocks new input candidates from altering the cell state memory.",
     },
   ],
   code: LSTM_CONSTANT_ERROR_CAROUSEL_CODE,
@@ -334,11 +328,13 @@ export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCar
     keyTerms: [
       {
         term: "Constant Error Carousel",
-        definition: "Linear additive cell state update that prevents gradient vanishing during backpropagation through time.",
+        definition:
+          "Linear additive cell state update that prevents gradient vanishing during backpropagation through time.",
       },
       {
         term: "Forget Gate",
-        definition: "Sigmoid multiplicative gate controlling what fraction of historic cell memory to retain.",
+        definition:
+          "Sigmoid multiplicative gate controlling what fraction of historic cell memory to retain.",
       },
     ],
   },

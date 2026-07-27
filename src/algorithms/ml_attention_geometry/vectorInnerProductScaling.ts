@@ -6,7 +6,8 @@ export interface vectorInnerProductScalingInput {
   target?: number;
 }
 
-export const VECTORINNERPRODUCTSCALING_CODE = "def vector_inner_product_scaling(input_data: list) -> list:\n    # Vector Inner Product Scaling (Easy)\n    # Scales query-key dot product by 1 / sqrt(d_k).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const VECTORINNERPRODUCTSCALING_CODE =
+  "def vector_inner_product_scaling(input_data: list) -> list:\n    # Vector Inner Product Scaling (Easy)\n    # Scales query-key dot product by 1 / sqrt(d_k).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_VECTORINNERPRODUCTSCALING_INPUT: vectorInnerProductScalingInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_VECTORINNERPRODUCTSCALING_INPUT: vectorInnerProductScalingI
 };
 
 export const generateVectorInnerProductScalingSteps = (
-  input: vectorInnerProductScalingInput
+  input: vectorInnerProductScalingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateVectorInnerProductScalingSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateVectorInnerProductScalingSteps = (
     1,
     "Initialize Vector Inner Product Scaling",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateVectorInnerProductScalingSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateVectorInnerProductScalingSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateVectorInnerProductScalingSteps = (
 
 const VECTORINNERPRODUCTSCALING_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Vector Inner Product Scaling.",
@@ -106,8 +112,8 @@ const VECTORINNERPRODUCTSCALING_TRIVIA: TriviaMeta = {
 export const vectorInnerProductScaling: AlgorithmDefinition<vectorInnerProductScalingInput> = {
   id: "vector-inner-product-scaling",
   title: "Vector Inner Product Scaling",
-  category: "ml_attention_geometry" as any,
-  categories: ["ml_attention_geometry","arrays_and_hashing"] as any,
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 7,
@@ -154,9 +160,12 @@ export const vectorInnerProductScaling: AlgorithmDefinition<vectorInnerProductSc
     overview: "Scaling query-key dot products by 1/sqrt(d_k) preserves variance = 1.",
     sections: [
       { heading: "Core Concept", body: "Scales query-key dot product by 1 / sqrt(d_k)." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Attention Scale","definition":"Scaling factor 1 / sqrt(d_k)."}],
+    keyTerms: [{ term: "Attention Scale", definition: "Scaling factor 1 / sqrt(d_k)." }],
   },
   trivia: VECTORINNERPRODUCTSCALING_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],

@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
-import { DEFAULT_DE_BRUIJN_INPUT, deBruijnSequence, generateDeBruijnSteps } from "../deBruijnSequence";
+import {
+  DEFAULT_DE_BRUIJN_INPUT,
+  deBruijnSequence,
+  generateDeBruijnSteps,
+} from "../deBruijnSequence";
 
 describe("deBruijnSequence Render Spec", () => {
   it("renders algorithm title and description", () => {
@@ -23,11 +27,13 @@ describe("deBruijnSequence Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/De Bruijn Sequence/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/A De Bruijn sequence B\(k, n\) is a cyclic sequence/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/A De Bruijn sequence B\(k, n\) is a cyclic sequence/i),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with calculated sequence", () => {
@@ -49,7 +55,7 @@ describe("deBruijnSequence Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

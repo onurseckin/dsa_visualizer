@@ -6,7 +6,8 @@ export interface deepCopyLinkedListRandomInput {
   target?: number;
 }
 
-export const DEEPCOPYLINKEDLISTRANDOM_CODE = "def deep_copy_linked_list_random(input_data: list) -> list:\n    # Deep Copy Graph with Random Pointers (Easy)\n    # Clones complex directed graph structures using hash maps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const DEEPCOPYLINKEDLISTRANDOM_CODE =
+  "def deep_copy_linked_list_random(input_data: list) -> list:\n    # Deep Copy Graph with Random Pointers (Easy)\n    # Clones complex directed graph structures using hash maps.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT: deepCopyLinkedListRandomInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT: deepCopyLinkedListRandomInp
 };
 
 export const generateDeepCopyLinkedListRandomSteps = (
-  input: deepCopyLinkedListRandomInput
+  input: deepCopyLinkedListRandomInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateDeepCopyLinkedListRandomSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateDeepCopyLinkedListRandomSteps = (
     1,
     "Initialize Deep Copy Graph with Random Pointers",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateDeepCopyLinkedListRandomSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateDeepCopyLinkedListRandomSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateDeepCopyLinkedListRandomSteps = (
 
 const DEEPCOPYLINKEDLISTRANDOM_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Deep Copy Graph with Random Pointers.",
@@ -106,8 +112,8 @@ const DEEPCOPYLINKEDLISTRANDOM_TRIVIA: TriviaMeta = {
 export const deepCopyLinkedListRandom: AlgorithmDefinition<deepCopyLinkedListRandomInput> = {
   id: "deep-copy-linked-list-random",
   title: "Deep Copy Graph with Random Pointers",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","linked_list"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "linked_list"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,18 @@ export const deepCopyLinkedListRandom: AlgorithmDefinition<deepCopyLinkedListRan
   topicGuide: {
     overview: "Deep copying graph DAGs duplicates node & edge metadata.",
     sections: [
-      { heading: "Core Concept", body: "Clones complex directed graph structures using hash maps." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Clones complex directed graph structures using hash maps.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Graph Clone","definition":"Creating independent copy of graph structure."}],
+    keyTerms: [
+      { term: "Graph Clone", definition: "Creating independent copy of graph structure." },
+    ],
   },
   trivia: DEEPCOPYLINKEDLISTRANDOM_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

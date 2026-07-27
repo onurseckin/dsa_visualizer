@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { hardwareRooflineModelCalculator, DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT, generateHardwareRooflineModelCalculatorSteps } from "./hardwareRooflineModelCalculator";
+import {
+  hardwareRooflineModelCalculator,
+  DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
+  generateHardwareRooflineModelCalculatorSteps,
+} from "./hardwareRooflineModelCalculator";
 
 describe("hardware-roofline-model-calculator (Berkeley Hardware Roofline Model Calculator)", () => {
   it("should have correct metadata", () => {
@@ -11,9 +15,11 @@ describe("hardware-roofline-model-calculator (Berkeley Hardware Roofline Model C
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateHardwareRooflineModelCalculatorSteps(DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT);
+    const steps = generateHardwareRooflineModelCalculatorSteps(
+      DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Berkeley Hardware Roofline Model Calculator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].explanation.what).toContain("Initialize Roofline Calculation");
+    expect(steps[steps.length - 1].explanation.what).toBe("Compare AI and Machine Balance");
   });
 });

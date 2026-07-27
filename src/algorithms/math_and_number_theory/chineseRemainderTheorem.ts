@@ -41,9 +41,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
   const num = input.num;
   const rem = input.rem;
 
-  const createElements = (
-    activeIdx: number | null,
-  ): ArrayElement[] => {
+  const createElements = (activeIdx: number | null): ArrayElement[] => {
     return num.map((nVal, idx) => {
       const rVal = rem[idx];
       let state: ArrayElement["state"] = "default";

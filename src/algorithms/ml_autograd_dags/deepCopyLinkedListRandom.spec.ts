@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { deepCopyLinkedListRandom, DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT, generateDeepCopyLinkedListRandomSteps } from "./deepCopyLinkedListRandom";
+import {
+  deepCopyLinkedListRandom,
+  DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT,
+  generateDeepCopyLinkedListRandomSteps,
+} from "./deepCopyLinkedListRandom";
 
 describe("deep-copy-linked-list-random (Deep Copy Graph with Random Pointers)", () => {
   it("should have correct metadata", () => {

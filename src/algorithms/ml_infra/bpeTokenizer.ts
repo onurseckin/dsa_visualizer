@@ -52,9 +52,7 @@ export const DEFAULT_BPE_TOKENIZER_INPUT: BpeTokenizerInput = {
   numMerges: 3,
 };
 
-export const generateBpeTokenizerSteps = (
-  input: BpeTokenizerInput
-): AlgorithmStep[] => {
+export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -64,15 +62,14 @@ export const generateBpeTokenizerSteps = (
 
   const getSnapshotElements = (
     currentVocab: string[][],
-    mergedPair?: [string, string]
+    mergedPair?: [string, string],
   ): ArrayElement[] => {
     const elements: ArrayElement[] = [];
     let idx = 0;
 
     currentVocab.forEach((wordTokens) => {
       wordTokens.forEach((token) => {
-        const isMerged =
-          mergedPair !== undefined && token === mergedPair[0] + mergedPair[1];
+        const isMerged = mergedPair !== undefined && token === mergedPair[0] + mergedPair[1];
         elements.push({
           id: `tok-${idx++}`,
           value: token.length,
@@ -91,7 +88,7 @@ export const generateBpeTokenizerSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     currentVocab: string[][],
-    mergedPair?: [string, string]
+    mergedPair?: [string, string],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -117,7 +114,7 @@ export const generateBpeTokenizerSteps = (
     "Initialize Byte-Pair Encoding (BPE) Subword Tokenizer",
     `Target text: "${input.text}". Splitting into initial character tokens with '</w>' end-of-word markers. Max merges: ${input.numMerges}.`,
     { numMerges: input.numMerges, numWords: rawWords.length },
-    vocab
+    vocab,
   );
 
   for (let iter = 0; iter < input.numMerges; iter++) {
@@ -136,7 +133,7 @@ export const generateBpeTokenizerSteps = (
         "No adjacent pairs remaining to merge",
         "Vocabulary contains no adjacent token pairs.",
         { iteration: iter },
-        vocab
+        vocab,
       );
       break;
     }
@@ -157,7 +154,7 @@ export const generateBpeTokenizerSteps = (
         `Stop condition reached at iteration ${iter}: highest pair frequency = ${maxCount}`,
         `No pair appears at least 2 times. Halting BPE merge iterations.`,
         { iteration: iter, maxCount },
-        vocab
+        vocab,
       );
       break;
     }
@@ -173,7 +170,7 @@ export const generateBpeTokenizerSteps = (
       `Selected pair ('${t1}', '${t2}') for vocabulary merge into single subword token '${targetToken}'.`,
       { iteration: iter + 1, pair1: t1, pair2: t2, count: maxCount, newToken: targetToken },
       vocab,
-      mergedPair
+      mergedPair,
     );
 
     // Apply merge
@@ -200,7 +197,7 @@ export const generateBpeTokenizerSteps = (
       `Updated vocabulary tokens: [${vocab.map((w) => w.join("")).join(", ")}].`,
       { iteration: iter + 1, newToken: targetToken, totalMerges: merges.length },
       vocab,
-      mergedPair
+      mergedPair,
     );
   }
 
@@ -211,7 +208,7 @@ export const generateBpeTokenizerSteps = (
     `BPE Subword Tokenization Complete`,
     `Final subword vocabulary tokens: [${finalTokens.map((t) => `'${t}'`).join(", ")}]. Total merges executed: ${merges.length}.`,
     { totalTokens: finalTokens.length, mergesExecuted: merges.length },
-    vocab
+    vocab,
   );
 
   return steps;
@@ -258,19 +255,18 @@ export const bpeTokenizer: AlgorithmDefinition<BpeTokenizerInput> = {
   mlInfraLevel: 5,
   description:
     "Constructs a subword vocabulary and tokenizes text using Byte-Pair Encoding (BPE), iteratively merging the most frequent adjacent pair of characters/tokens.",
-  constraints: [
-    "len(text) > 0",
-    "numMerges >= 1",
-  ],
+  constraints: ["len(text) > 0", "numMerges >= 1"],
   examples: [
     {
       kind: "basic",
       title: "Basic Corpus Subword Merges",
       inputDisplay: "text = 'hug hugging hugger', numMerges = 3",
-      outputDisplay: "tokens = ['hug</w>', 'hug', 'g', 'i', 'n', 'g</w>', 'hug', 'g', 'e', 'r</w>']",
+      outputDisplay:
+        "tokens = ['hug</w>', 'hug', 'g', 'i', 'n', 'g</w>', 'hug', 'g', 'e', 'r</w>']",
       input: DEFAULT_BPE_TOKENIZER_INPUT,
       output: "['hug</w>', 'hug', 'g', 'i', 'n', 'g</w>', 'hug', 'g', 'e', 'r</w>']",
-      explanation: "Iterative merges count 'h'+'u' -> 'hu', then 'hu'+'g' -> 'hug', creating subword 'hug'.",
+      explanation:
+        "Iterative merges count 'h'+'u' -> 'hu', then 'hu'+'g' -> 'hug', creating subword 'hug'.",
     },
     {
       kind: "complex",
@@ -282,7 +278,8 @@ export const bpeTokenizer: AlgorithmDefinition<BpeTokenizerInput> = {
         numMerges: 4,
       },
       output: "subwords learned: ['lo', 'low', 'est</w>']",
-      explanation: "BPE extracts high-frequency subword prefixes 'lo' and 'low' and suffix 'est</w>' across vocabulary.",
+      explanation:
+        "BPE extracts high-frequency subword prefixes 'lo' and 'low' and suffix 'est</w>' across vocabulary.",
     },
     {
       kind: "negative",
@@ -294,7 +291,8 @@ export const bpeTokenizer: AlgorithmDefinition<BpeTokenizerInput> = {
         numMerges: 3,
       },
       output: "0 merges executed",
-      explanation: "All characters are distinct with frequency 1 (< 2), so 0 merges occur and search halts early.",
+      explanation:
+        "All characters are distinct with frequency 1 (< 2), so 0 merges occur and search halts early.",
     },
   ],
   code: BPE_TOKENIZER_CODE,
@@ -324,7 +322,8 @@ export const bpeTokenizer: AlgorithmDefinition<BpeTokenizerInput> = {
     keyTerms: [
       {
         term: "Subword Tokenization",
-        definition: "Breaking words into variable-length sub-strings based on character frequency statistics.",
+        definition:
+          "Breaking words into variable-length sub-strings based on character frequency statistics.",
       },
       {
         term: "Tiktoken / BPE",

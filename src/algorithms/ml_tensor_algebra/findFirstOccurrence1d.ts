@@ -6,7 +6,8 @@ export interface findFirstOccurrence1dInput {
   target?: number;
 }
 
-export const FINDFIRSTOCCURRENCE1D_CODE = "def find_first_occurrence1d(input_data: list) -> list:\n    # Find First Occurrence in 1D Buffer (Easy)\n    # Scans a 1D linear memory buffer for the first occurrence of a target scalar value.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FINDFIRSTOCCURRENCE1D_CODE =
+  "def find_first_occurrence1d(input_data: list) -> list:\n    # Find First Occurrence in 1D Buffer (Easy)\n    # Scans a 1D linear memory buffer for the first occurrence of a target scalar value.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT: findFirstOccurrence1dInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT: findFirstOccurrence1dInput = {
 };
 
 export const generateFindFirstOccurrence1dSteps = (
-  input: findFirstOccurrence1dInput
+  input: findFirstOccurrence1dInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateFindFirstOccurrence1dSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateFindFirstOccurrence1dSteps = (
     1,
     "Initialize Find First Occurrence in 1D Buffer",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateFindFirstOccurrence1dSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateFindFirstOccurrence1dSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateFindFirstOccurrence1dSteps = (
 
 const FINDFIRSTOCCURRENCE1D_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Find First Occurrence in 1D Buffer.",
@@ -106,8 +112,8 @@ const FINDFIRSTOCCURRENCE1D_TRIVIA: TriviaMeta = {
 export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInput> = {
   id: "find-first-occurrence-1d",
   title: "Find First Occurrence in 1D Buffer",
-  category: "ml_tensor_algebra" as any,
-  categories: ["ml_tensor_algebra","arrays_and_hashing"] as any,
+  category: "ml_tensor_algebra",
+  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 1,
@@ -151,12 +157,24 @@ export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInp
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Linear scanning over 1D contiguous memory arrays forms the fundamental baseline for vector indexing.",
+    overview:
+      "Linear scanning over 1D contiguous memory arrays forms the fundamental baseline for vector indexing.",
     sections: [
-      { heading: "Core Concept", body: "Scans a 1D linear memory buffer for the first occurrence of a target scalar value." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Scans a 1D linear memory buffer for the first occurrence of a target scalar value.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Contiguous Buffer","definition":"Memory array stored in adjacent memory addresses."}],
+    keyTerms: [
+      {
+        term: "Contiguous Buffer",
+        definition: "Memory array stored in adjacent memory addresses.",
+      },
+    ],
   },
   trivia: FINDFIRSTOCCURRENCE1D_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],

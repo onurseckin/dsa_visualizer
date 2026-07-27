@@ -33,7 +33,7 @@ export const DEFAULT_FLOATING_POINT_OVERFLOW_INPUT: FloatingPointOverflowInput =
 };
 
 export const generateFloatingPointOverflowSteps = (
-  input: FloatingPointOverflowInput
+  input: FloatingPointOverflowInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -44,7 +44,7 @@ export const generateFloatingPointOverflowSteps = (
   const buildElements = (
     vals: number[],
     state: ArrayElement["state"],
-    ptrs?: string[]
+    ptrs?: string[],
   ): ArrayElement[] => {
     return vals.map((v, i) => ({
       id: `elem-${i}`,
@@ -60,7 +60,7 @@ export const generateFloatingPointOverflowSteps = (
     why: string,
     elements: ArrayElement[],
     vars: Record<string, string | number | boolean>,
-    customState?: Record<string, string>
+    customState?: Record<string, string>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -92,10 +92,10 @@ export const generateFloatingPointOverflowSteps = (
     5,
     `Start Softmax computation (Stabilized: ${useStabilized})`,
     `Input logits: [${logits.join(
-      ", "
+      ", ",
     )}]. Testing numerical stability of exponential calculations.`,
     buildElements(logits, "default"),
-    { n, useStabilized }
+    { n, useStabilized },
   );
 
   let shifted: number[] = [];
@@ -111,7 +111,7 @@ export const generateFloatingPointOverflowSteps = (
       `Subtracting maxVal = ${maxVal} guarantees all shifted logits are <= 0, preventing exp(x) overflow.`,
       buildElements(shifted, "active"),
       { maxVal },
-      { shifted: `[${shifted.join(", ")}]` }
+      { shifted: `[${shifted.join(", ")}]` },
     );
   } else {
     shifted = [...logits];
@@ -120,7 +120,7 @@ export const generateFloatingPointOverflowSteps = (
       "Naive Softmax: Skipping logit shift",
       "Using raw logits without subtracting max value. Large positive logits will cause float overflow (inf).",
       buildElements(shifted, "compare"),
-      { maxVal: 0 }
+      { maxVal: 0 },
     );
   }
 
@@ -145,7 +145,7 @@ export const generateFloatingPointOverflowSteps = (
           : "Value successfully computed within bounds."
       }`,
       buildElements(exps, overflowOccurred ? "compare" : "visited"),
-      { i, x, expVal: Number.isFinite(e) ? e : "inf", overflowOccurred }
+      { i, x, expVal: Number.isFinite(e) ? e : "inf", overflowOccurred },
     );
   }
 
@@ -156,8 +156,12 @@ export const generateFloatingPointOverflowSteps = (
       16,
       "Numerical Failure: Sum of exps is inf/NaN",
       "Dividing by inf/NaN produces [NaN, NaN, ...]. Softmax failed due to floating-point overflow!",
-      buildElements(exps, "compare", exps.map(() => "OVERFLOW")),
-      { sumExps: "inf", success: false }
+      buildElements(
+        exps,
+        "compare",
+        exps.map(() => "OVERFLOW"),
+      ),
+      { sumExps: "inf", success: false },
     );
     return steps;
   }
@@ -168,8 +172,12 @@ export const generateFloatingPointOverflowSteps = (
     18,
     `Compute Softmax Probabilities: [${probs.map((p) => p.toFixed(4)).join(", ")}]`,
     `Successfully normalized exponentiated values into valid probability distribution (sum = 1.0).`,
-    buildElements(probs, "sorted", probs.map((p) => `p=${p.toFixed(3)}`)),
-    { sumExps, success: true }
+    buildElements(
+      probs,
+      "sorted",
+      probs.map((p) => `p=${p.toFixed(3)}`),
+    ),
+    { sumExps, success: true },
   );
 
   return steps;
@@ -244,8 +252,14 @@ export const floatingPointOverflow: AlgorithmDefinition<FloatingPointOverflowInp
       },
     ],
     keyTerms: [
-      { term: "Softmax", definition: "Function mapping a vector of real numbers to a probability distribution." },
-      { term: "Log-Sum-Exp", definition: "Smooth approximation to the max function: LSE(x) = log(sum(exp(x_i)))." },
+      {
+        term: "Softmax",
+        definition: "Function mapping a vector of real numbers to a probability distribution.",
+      },
+      {
+        term: "Log-Sum-Exp",
+        definition: "Smooth approximation to the max function: LSE(x) = log(sum(exp(x_i))).",
+      },
     ],
   },
   trivia: FLOATING_POINT_OVERFLOW_TRIVIA,

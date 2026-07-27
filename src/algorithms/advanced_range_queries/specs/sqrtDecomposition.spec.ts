@@ -42,10 +42,25 @@ describe("sqrtDecomposition algorithm spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(sqrtDecomposition.examples).toHaveLength(3);
-    expect(sqrtDecomposition.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(sqrtDecomposition.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of sqrtDecomposition.examples!) {
-      const steps = sqrtDecomposition.generateSteps(example.input as { array: number[]; operations: { type: "query" | "update"; left?: number; right?: number; index?: number; value?: number }[] });
+      const steps = sqrtDecomposition.generateSteps(
+        example.input as {
+          array: number[];
+          operations: {
+            type: "query" | "update";
+            left?: number;
+            right?: number;
+            index?: number;
+            value?: number;
+          }[];
+        },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

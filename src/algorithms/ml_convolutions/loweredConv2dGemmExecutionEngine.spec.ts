@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { loweredConv2dGemmExecutionEngine, DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT, generateLoweredConv2dGemmExecutionEngineSteps } from "./loweredConv2dGemmExecutionEngine";
+import {
+  loweredConv2dGemmExecutionEngine,
+  DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT,
+  generateLoweredConv2dGemmExecutionEngineSteps,
+} from "./loweredConv2dGemmExecutionEngine";
 
 describe("lowered-conv2d-gemm-execution-engine (Lowered Conv2D GEMM Execution Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("lowered-conv2d-gemm-execution-engine (Lowered Conv2D GEMM Execution En
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateLoweredConv2dGemmExecutionEngineSteps(DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT);
+    const steps = generateLoweredConv2dGemmExecutionEngineSteps(
+      DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Lowered Conv2D GEMM Execution Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

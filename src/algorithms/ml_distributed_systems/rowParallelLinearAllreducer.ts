@@ -6,7 +6,8 @@ export interface rowParallelLinearAllreducerInput {
   target?: number;
 }
 
-export const ROWPARALLELLINEARALLREDUCER_CODE = "def row_parallel_linear_allreducer(input_data: list) -> list:\n    # Megatron-LM Row Parallel Linear All-Reduce Engine (Medium)\n    # Splits weight matrix W along rows and performs All-Reduce sum over layer outputs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ROWPARALLELLINEARALLREDUCER_CODE =
+  "def row_parallel_linear_allreducer(input_data: list) -> list:\n    # Megatron-LM Row Parallel Linear All-Reduce Engine (Medium)\n    # Splits weight matrix W along rows and performs All-Reduce sum over layer outputs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT: rowParallelLinearAllreducerInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT: rowParallelLinearAllredu
 };
 
 export const generateRowParallelLinearAllreducerSteps = (
-  input: rowParallelLinearAllreducerInput
+  input: rowParallelLinearAllreducerInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateRowParallelLinearAllreducerSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateRowParallelLinearAllreducerSteps = (
     1,
     "Initialize Megatron-LM Row Parallel Linear All-Reduce Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateRowParallelLinearAllreducerSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateRowParallelLinearAllreducerSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateRowParallelLinearAllreducerSteps = (
 
 const ROWPARALLELLINEARALLREDUCER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Megatron-LM Row Parallel Linear All-Reduce Engine.",
@@ -106,8 +112,8 @@ const ROWPARALLELLINEARALLREDUCER_TRIVIA: TriviaMeta = {
 export const rowParallelLinearAllreducer: AlgorithmDefinition<rowParallelLinearAllreducerInput> = {
   id: "row-parallel-linear-allreducer",
   title: "Megatron-LM Row Parallel Linear All-Reduce Engine",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","arrays_and_hashing"] as any,
+  category: "ml_distributed_systems",
+  categories: ["ml_distributed_systems", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 11,
@@ -151,12 +157,24 @@ export const rowParallelLinearAllreducer: AlgorithmDefinition<rowParallelLinearA
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "Row parallel linear layers split weights along input rows and sum outputs via All-Reduce.",
+    overview:
+      "Row parallel linear layers split weights along input rows and sum outputs via All-Reduce.",
     sections: [
-      { heading: "Core Concept", body: "Splits weight matrix W along rows and performs All-Reduce sum over layer outputs." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Splits weight matrix W along rows and performs All-Reduce sum over layer outputs.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Row Parallelism","definition":"Splitting GEMM weight rows and summing outputs via All-Reduce."}],
+    keyTerms: [
+      {
+        term: "Row Parallelism",
+        definition: "Splitting GEMM weight rows and summing outputs via All-Reduce.",
+      },
+    ],
   },
   trivia: ROWPARALLELLINEARALLREDUCER_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],

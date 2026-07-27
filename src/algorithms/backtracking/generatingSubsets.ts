@@ -25,9 +25,7 @@ const SUBSETS_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateGeneratingSubsetsSteps = (
-  input: GeneratingSubsetsInput,
-): AlgorithmStep[] => {
+export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): AlgorithmStep[] => {
   const nums = input.elements && input.elements.length > 0 ? input.elements.slice(0, 6) : [1, 2, 3];
   const n = nums.length;
 
@@ -276,4 +274,3 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   ],
   defaultInput: DEFAULT_GENERATING_SUBSETS_INPUT,
 };
-

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { submatrixSum2dQuery, DEFAULT_SUBMATRIXSUM2DQUERY_INPUT, generateSubmatrixSum2dQuerySteps } from "./submatrixSum2dQuery";
+import {
+  submatrixSum2dQuery,
+  DEFAULT_SUBMATRIXSUM2DQUERY_INPUT,
+  generateSubmatrixSum2dQuerySteps,
+} from "./submatrixSum2dQuery";
 
 describe("submatrix-sum-2d-query (2D Submatrix Region Sum Query)", () => {
   it("should have correct metadata", () => {

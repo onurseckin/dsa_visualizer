@@ -47,7 +47,9 @@ describe("sparseTableRmq algorithm spec", () => {
     expect(sparseTableRmq.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
 
     for (const example of sparseTableRmq.examples!) {
-      const steps = sparseTableRmq.generateSteps(example.input as { array: number[]; queries: { left: number; right: number }[] });
+      const steps = sparseTableRmq.generateSteps(
+        example.input as { array: number[]; queries: { left: number; right: number }[] },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

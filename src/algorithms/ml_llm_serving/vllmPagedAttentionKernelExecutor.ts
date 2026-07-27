@@ -6,15 +6,17 @@ export interface vllmPagedAttentionKernelExecutorInput {
   target?: number;
 }
 
-export const VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE = "def vllm_paged_attention_kernel_executor(input_data: list) -> list:\n    # vLLM PagedAttention GPU Kernel Execution Simulator (Hard)\n    # Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE =
+  "def vllm_paged_attention_kernel_executor(input_data: list) -> list:\n    # vLLM PagedAttention GPU Kernel Execution Simulator (Hard)\n    # Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
-export const DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT: vllmPagedAttentionKernelExecutorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT: vllmPagedAttentionKernelExecutorInput =
+  {
+    data: [10, 20, 30, 40, 50],
+    target: 30,
+  };
 
 export const generateVllmPagedAttentionKernelExecutorSteps = (
-  input: vllmPagedAttentionKernelExecutorInput
+  input: vllmPagedAttentionKernelExecutorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +31,7 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +58,14 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
     1,
     "Initialize vLLM PagedAttention GPU Kernel Execution Simulator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +75,7 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +89,7 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +97,11 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
 
 const VLLMPAGEDATTENTIONKERNELEXECUTOR_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for vLLM PagedAttention GPU Kernel Execution Simulator.",
@@ -103,63 +110,77 @@ const VLLMPAGEDATTENTIONKERNELEXECUTOR_TRIVIA: TriviaMeta = {
   },
 };
 
-export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAttentionKernelExecutorInput> = {
-  id: "vllm-paged-attention-kernel-executor",
-  title: "vLLM PagedAttention GPU Kernel Execution Simulator",
-  category: "ml_llm_serving" as any,
-  categories: ["ml_llm_serving","arrays_and_hashing"] as any,
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 12,
-  mlInfraCategory: "ml_llm_serving",
-  description: "Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "PagedAttention kernel fetches KV tokens directly from non-contiguous physical block pointers.",
-    sections: [
-      { heading: "Core Concept", body: "Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAttentionKernelExecutorInput> =
+  {
+    id: "vllm-paged-attention-kernel-executor",
+    title: "vLLM PagedAttention GPU Kernel Execution Simulator",
+    category: "ml_llm_serving",
+    categories: ["ml_llm_serving", "arrays_and_hashing"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 12,
+    mlInfraCategory: "ml_llm_serving",
+    description:
+      "Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers.",
+    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    examples: [
+      {
+        kind: "basic",
+        title: "Standard Case",
+        inputDisplay: "data = [10, 20, 30], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [10, 20, 30], target: 30 },
+        output: "[10, 20, 30]",
+        explanation: "Processes standard input array cleanly.",
+      },
+      {
+        kind: "complex",
+        title: "Larger Data Input",
+        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
+        outputDisplay: "[1, 2, 3, 4, 5]",
+        input: { data: [1, 2, 3, 4, 5], target: 4 },
+        output: "[1, 2, 3, 4, 5]",
+        explanation: "Evaluates larger array with 5 elements.",
+      },
+      {
+        kind: "negative",
+        title: "Edge Case Target Not Found",
+        inputDisplay: "data = [5, 10, 15], target = 99",
+        outputDisplay: "[5, 10, 15]",
+        input: { data: [5, 10, 15], target: 99 },
+        output: "[5, 10, 15]",
+        explanation: "Target is absent from memory, processing finishes safely.",
+      },
     ],
-    keyTerms: [{"term":"PagedAttention Kernel","definition":"Gathering KV blocks directly from block table during attention computation."}],
-  },
-  trivia: VLLMPAGEDATTENTIONKERNELEXECUTOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
-  defaultInput: DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT,
-  generateSteps: generateVllmPagedAttentionKernelExecutorSteps,
-};
+    code: VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Linear time pass across input elements.",
+      space: "Linear memory allocation for result structures.",
+    },
+    topicGuide: {
+      overview:
+        "PagedAttention kernel fetches KV tokens directly from non-contiguous physical block pointers.",
+      sections: [
+        {
+          heading: "Core Concept",
+          body: "Executes PagedAttention kernel gathering KV blocks directly from physical block table pointers.",
+        },
+        {
+          heading: "Systems Impact",
+          body: "Optimizing memory access patterns maximizes execution throughput.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "PagedAttention Kernel",
+          definition: "Gathering KV blocks directly from block table during attention computation.",
+        },
+      ],
+    },
+    trivia: VLLMPAGEDATTENTIONKERNELEXECUTOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
+    defaultInput: DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT,
+    generateSteps: generateVllmPagedAttentionKernelExecutorSteps,
+  };

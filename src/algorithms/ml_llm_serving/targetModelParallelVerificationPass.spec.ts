@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { targetModelParallelVerificationPass, DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT, generateTargetModelParallelVerificationPassSteps } from "./targetModelParallelVerificationPass";
+import {
+  targetModelParallelVerificationPass,
+  DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT,
+  generateTargetModelParallelVerificationPassSteps,
+} from "./targetModelParallelVerificationPass";
 
 describe("target-model-parallel-verification-pass (Speculative Decoding Target Model Parallel Verification Pass)", () => {
   it("should have correct metadata", () => {
@@ -11,9 +15,13 @@ describe("target-model-parallel-verification-pass (Speculative Decoding Target M
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateTargetModelParallelVerificationPassSteps(DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT);
+    const steps = generateTargetModelParallelVerificationPassSteps(
+      DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Speculative Decoding Target Model Parallel Verification Pass");
+    expect(steps[0].explanation.what).toContain(
+      "Speculative Decoding Target Model Parallel Verification Pass",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 });

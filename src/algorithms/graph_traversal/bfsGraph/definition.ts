@@ -81,8 +81,8 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "graph = {A: [B, C], B: [D, E], C: [F]}, start = \"A\"",
-      outputDisplay: "[\"A\", \"B\", \"C\", \"D\", \"E\", \"F\"]",
+      inputDisplay: 'graph = {A: [B, C], B: [D, E], C: [F]}, start = "A"',
+      outputDisplay: '["A", "B", "C", "D", "E", "F"]',
       title: "Basic Example",
       input: {
         startNodeId: "A",
@@ -109,8 +109,8 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "graph = {1: [2, 3], 2: [4, 5], 3: [6], 4: [7]}, start = \"1\"",
-      outputDisplay: "[\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\"]",
+      inputDisplay: 'graph = {1: [2, 3], 2: [4, 5], 3: [6], 4: [7]}, start = "1"',
+      outputDisplay: '["1", "2", "3", "4", "5", "6", "7"]',
       title: "Complex Edge Case",
       input: {
         startNodeId: "A",
@@ -137,8 +137,8 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "graph = {X: []}, start = \"X\"",
-      outputDisplay: "[\"X\"]",
+      inputDisplay: 'graph = {X: []}, start = "X"',
+      outputDisplay: '["X"]',
       title: "Failing / Boundary Case",
       input: {
         startNodeId: "A",

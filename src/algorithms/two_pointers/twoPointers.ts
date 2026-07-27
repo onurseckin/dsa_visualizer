@@ -104,7 +104,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   };
 
   for (let right = 0; right < n; right++) {
-    const rightVal = elements[right].value;
+    const rightVal = Number(elements[right].value);
     currentSum += rightVal;
 
     syncElementStates(left, right);
@@ -117,7 +117,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     );
 
     while (currentSum > target && left <= right) {
-      const leftVal = elements[left].value;
+      const leftVal = Number(elements[left].value);
 
       addStep(
         9,
@@ -261,7 +261,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
       title: "Complex Edge Case",
       input: { array: [1, 4, 20, 3, 10, 5], target: 33 },
       output: "[2, 4]",
-      explanation: "Subarray [20, 3, 10] from index 2 to 4 sums to 33 after shrinking the left pointer past earlier elements.",
+      explanation:
+        "Subarray [20, 3, 10] from index 2 to 4 sums to 33 after shrinking the left pointer past earlier elements.",
     },
     {
       kind: "negative",
@@ -270,7 +271,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
       title: "Failing / Boundary Case",
       input: { array: [1, 2, 3, 4], target: 15 },
       output: "[-1, -1]",
-      explanation: "No contiguous subarray sums to 15. Standard [-1, -1] failure indicator returned.",
+      explanation:
+        "No contiguous subarray sums to 15. Standard [-1, -1] failure indicator returned.",
     },
   ],
   code: TWO_POINTERS_CODE,

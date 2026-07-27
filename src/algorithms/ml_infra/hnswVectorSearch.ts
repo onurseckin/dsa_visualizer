@@ -112,9 +112,7 @@ function euclideanDist(v1: [number, number], v2: [number, number]): number {
   return Math.sqrt((v1[0] - v2[0]) ** 2 + (v1[1] - v2[1]) ** 2);
 }
 
-export const generateHnswVectorSearchSteps = (
-  input: HnswVectorSearchInput
-): AlgorithmStep[] => {
+export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -125,7 +123,7 @@ export const generateHnswVectorSearchSteps = (
     currentLayer: number,
     activeId?: string,
     visitedSet: Set<string> = new Set(),
-    wSet: string[] = []
+    wSet: string[] = [],
   ) => {
     const graphNodes: GraphNodeItem[] = input.nodes.map((n) => {
       const dist = euclideanDist(input.query, n.vector);
@@ -181,7 +179,7 @@ export const generateHnswVectorSearchSteps = (
     currentLayer: number,
     activeId?: string,
     visitedSet: Set<string> = new Set(),
-    wSet: string[] = []
+    wSet: string[] = [],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -204,11 +202,11 @@ export const generateHnswVectorSearchSteps = (
     1,
     "Initialize HNSW Graph Multi-Layer Beam Search",
     `Target Query vector: [${input.query.join(
-      ", "
+      ", ",
     )}]. Entry point at top layer ${input.maxLayer}: '${input.entryPointId}'. efSearch=${input.efSearch}.`,
     { queryX: input.query[0], queryY: input.query[1], maxLayer: input.maxLayer },
     input.maxLayer,
-    input.entryPointId
+    input.entryPointId,
   );
 
   let currId = input.entryPointId;
@@ -224,7 +222,7 @@ export const generateHnswVectorSearchSteps = (
       `Routing greedily through layer ${level} graph to find closest entry point for layer ${level - 1}.`,
       { level, currId, currDist: Number(currDist.toFixed(2)) },
       level,
-      currId
+      currId,
     );
 
     while (changed) {
@@ -240,12 +238,12 @@ export const generateHnswVectorSearchSteps = (
             addStep(
               19,
               `Greedy hop at Layer ${level}: '${currId}' -> '${nbrId}' (dist ${currDist.toFixed(
-                1
+                1,
               )} -> ${d.toFixed(1)})`,
               `Found closer neighbor '${nbrId}' in layer ${level}. Updating current nearest entry point.`,
               { level, from: currId, to: nbrId, newDist: Number(d.toFixed(2)) },
               level,
-              nbrId
+              nbrId,
             );
             currDist = d;
             currId = nbrId;
@@ -269,15 +267,13 @@ export const generateHnswVectorSearchSteps = (
     0,
     currId,
     visited,
-    wSet
+    wSet,
   );
 
   while (candidates.length > 0) {
     const currCandidate = candidates.shift()!;
     const candidateNode = nodeMap.get(currCandidate);
-    const cDist = candidateNode
-      ? euclideanDist(input.query, candidateNode.vector)
-      : Infinity;
+    const cDist = candidateNode ? euclideanDist(input.query, candidateNode.vector) : Infinity;
 
     const furthestWNodeId = wSet.reduce((furthest, id) => {
       const fNode = nodeMap.get(furthest);
@@ -297,15 +293,17 @@ export const generateHnswVectorSearchSteps = (
         32,
         `Terminate Beam Search early`,
         `Candidate distance ${cDist.toFixed(
-          1
-        )} exceeds furthest neighbor distance ${furthestWDist.toFixed(
-          1
-        )} in beam set W.`,
-        { currCandidate, cDist: Number(cDist.toFixed(2)), furthestWDist: Number(furthestWDist.toFixed(2)) },
+          1,
+        )} exceeds furthest neighbor distance ${furthestWDist.toFixed(1)} in beam set W.`,
+        {
+          currCandidate,
+          cDist: Number(cDist.toFixed(2)),
+          furthestWDist: Number(furthestWDist.toFixed(2)),
+        },
         0,
         currCandidate,
         visited,
-        wSet
+        wSet,
       );
       break;
     }
@@ -336,13 +334,13 @@ export const generateHnswVectorSearchSteps = (
                 44,
                 `Insert '${nbrId}' into beam set W (evicted '${evicted}')`,
                 `Neighbor '${nbrId}' (dist ${dNbr.toFixed(
-                  1
+                  1,
                 )}) is closer than furthest in W. Evicted '${evicted}'.`,
                 { inserted: nbrId, evicted: String(evicted), beamSize: wSet.length },
                 0,
                 nbrId,
                 visited,
-                wSet
+                wSet,
               );
             } else {
               addStep(
@@ -353,7 +351,7 @@ export const generateHnswVectorSearchSteps = (
                 0,
                 nbrId,
                 visited,
-                wSet
+                wSet,
               );
             }
           }
@@ -365,14 +363,12 @@ export const generateHnswVectorSearchSteps = (
   addStep(
     46,
     `HNSW Vector Search Complete: Result set [${wSet.join(", ")}]`,
-    `Returned ${wSet.length} nearest neighbor vectors to query [${input.query.join(
-      ", "
-    )}].`,
+    `Returned ${wSet.length} nearest neighbor vectors to query [${input.query.join(", ")}].`,
     { resultCount: wSet.length, topMatch: wSet[0] },
     0,
     wSet[0],
     visited,
-    wSet
+    wSet,
   );
 
   return steps;
@@ -434,7 +430,8 @@ export const hnswVectorSearch: AlgorithmDefinition<HnswVectorSearchInput> = {
       outputDisplay: "['N4', 'N3']",
       input: DEFAULT_HNSW_VECTOR_SEARCH_INPUT,
       output: "['N4', 'N3']",
-      explanation: "Greedy routing at Layer 1 navigates from N0 (dist 50.3) -> N1 (dist 31.9) -> N3 (dist 4.1). Descending to Layer 0 beam search discovers N4 at [48, 50] with dist 2.2, returning ['N4', 'N3'].",
+      explanation:
+        "Greedy routing at Layer 1 navigates from N0 (dist 50.3) -> N1 (dist 31.9) -> N3 (dist 4.1). Descending to Layer 0 beam search discovers N4 at [48, 50] with dist 2.2, returning ['N4', 'N3'].",
     },
     {
       kind: "complex",
@@ -447,7 +444,8 @@ export const hnswVectorSearch: AlgorithmDefinition<HnswVectorSearchInput> = {
         efSearch: 3,
       },
       output: "['N0', 'N2', 'N1']",
-      explanation: "Target query [11, 11] matches closely with cluster nodes N0 [10, 10] (dist 1.4) and N2 [12, 12] (dist 1.4). Beam search expands W to ef=3 candidates.",
+      explanation:
+        "Target query [11, 11] matches closely with cluster nodes N0 [10, 10] (dist 1.4) and N2 [12, 12] (dist 1.4). Beam search expands W to ef=3 candidates.",
     },
     {
       kind: "negative",
@@ -498,11 +496,13 @@ export const hnswVectorSearch: AlgorithmDefinition<HnswVectorSearchInput> = {
     keyTerms: [
       {
         term: "ANN Vector Search",
-        definition: "Approximate Nearest Neighbor search that trades marginal recall accuracy for sub-millisecond query performance.",
+        definition:
+          "Approximate Nearest Neighbor search that trades marginal recall accuracy for sub-millisecond query performance.",
       },
       {
         term: "efSearch",
-        definition: "The beam width capacity defining maximum candidate neighbors evaluated during graph traversal.",
+        definition:
+          "The beam width capacity defining maximum candidate neighbors evaluated during graph traversal.",
       },
     ],
   },

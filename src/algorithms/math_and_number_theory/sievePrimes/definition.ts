@@ -102,8 +102,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
       title: "Basic Example",
       input: { limit: 10 },
       output: "[2, 3, 5, 7]",
-      explanation:
-        "Composite numbers 4, 6, 8, 9, 10 are eliminated, leaving 4 prime numbers.",
+      explanation: "Composite numbers 4, 6, 8, 9, 10 are eliminated, leaving 4 prime numbers.",
     },
     {
       kind: "complex",
@@ -112,8 +111,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
       title: "Complex Edge Case",
       input: { limit: 30 },
       output: "[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]",
-      explanation:
-        "Iteratively marks multiples of base primes 2, 3, and 5 up to sqrt(30) ~ 5.47.",
+      explanation: "Iteratively marks multiples of base primes 2, 3, and 5 up to sqrt(30) ~ 5.47.",
     },
     {
       kind: "negative",
@@ -122,8 +120,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
       title: "Failing / Boundary Case",
       input: { limit: 1 },
       output: "[]",
-      explanation:
-        "Boundary input limit=1 contains no prime numbers since 0 and 1 are non-prime.",
+      explanation: "Boundary input limit=1 contains no prime numbers since 0 and 1 are non-prime.",
     },
   ],
   code: PYTHON_SIEVE_CODE,

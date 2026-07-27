@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { draftModelLookaheadTokenSampler, DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT, generateDraftModelLookaheadTokenSamplerSteps } from "./draftModelLookaheadTokenSampler";
+import {
+  draftModelLookaheadTokenSampler,
+  DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT,
+  generateDraftModelLookaheadTokenSamplerSteps,
+} from "./draftModelLookaheadTokenSampler";
 
 describe("draft-model-lookahead-token-sampler (Speculative Decoding Draft Token Sampler)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("draft-model-lookahead-token-sampler (Speculative Decoding Draft Token 
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateDraftModelLookaheadTokenSamplerSteps(DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT);
+    const steps = generateDraftModelLookaheadTokenSamplerSteps(
+      DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Speculative Decoding Draft Token Sampler");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

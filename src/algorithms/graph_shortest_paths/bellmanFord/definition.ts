@@ -116,7 +116,8 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "graph = {S-A:6, S-B:7, A-B:8, A-C:5, A-D:-4, B-C:-3, B-E:9, C-A:-2, D-C:7, D-S:2}, start = \"S\"",
+      inputDisplay:
+        'graph = {S-A:6, S-B:7, A-B:8, A-C:5, A-D:-4, B-C:-3, B-E:9, C-A:-2, D-C:7, D-S:2}, start = "S"',
       outputDisplay: "{S: 0, A: 2, B: 7, C: 4, D: -2}",
       title: "Basic Example",
       input: {
@@ -138,7 +139,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "graph = {S-A:1, A-B:3, B-C:-2, C-A:-2}, start = \"S\"",
+      inputDisplay: 'graph = {S-A:1, A-B:3, B-C:-2, C-A:-2}, start = "S"',
       outputDisplay: "Negative Cycle Detected",
       title: "Complex Edge Case",
       input: {
@@ -157,7 +158,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "graph = {S-A:5, B-C:3}, start = \"S\"",
+      inputDisplay: 'graph = {S-A:5, B-C:3}, start = "S"',
       outputDisplay: "{S: 0, A: 5, B: ∞, C: ∞}",
       title: "Failing / Boundary Case",
       input: {

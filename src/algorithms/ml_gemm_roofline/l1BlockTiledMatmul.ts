@@ -6,7 +6,8 @@ export interface l1BlockTiledMatmulInput {
   target?: number;
 }
 
-export const L1BLOCKTILEDMATMUL_CODE = "def l1_block_tiled_matmul(input_data: list) -> list:\n    # L1 Cache Block-Tiled MatMul Engine (Medium)\n    # Tiles matrix multiplication into B x B sub-blocks fitting in L1 cache.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const L1BLOCKTILEDMATMUL_CODE =
+  "def l1_block_tiled_matmul(input_data: list) -> list:\n    # L1 Cache Block-Tiled MatMul Engine (Medium)\n    # Tiles matrix multiplication into B x B sub-blocks fitting in L1 cache.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_L1BLOCKTILEDMATMUL_INPUT: l1BlockTiledMatmulInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_L1BLOCKTILEDMATMUL_INPUT: l1BlockTiledMatmulInput = {
 };
 
 export const generateL1BlockTiledMatmulSteps = (
-  input: l1BlockTiledMatmulInput
+  input: l1BlockTiledMatmulInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateL1BlockTiledMatmulSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateL1BlockTiledMatmulSteps = (
     1,
     "Initialize L1 Cache Block-Tiled MatMul Engine",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateL1BlockTiledMatmulSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateL1BlockTiledMatmulSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateL1BlockTiledMatmulSteps = (
 
 const L1BLOCKTILEDMATMUL_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for L1 Cache Block-Tiled MatMul Engine.",
@@ -106,8 +112,8 @@ const L1BLOCKTILEDMATMUL_TRIVIA: TriviaMeta = {
 export const l1BlockTiledMatmul: AlgorithmDefinition<l1BlockTiledMatmulInput> = {
   id: "l1-block-tiled-matmul",
   title: "L1 Cache Block-Tiled MatMul Engine",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,18 @@ export const l1BlockTiledMatmul: AlgorithmDefinition<l1BlockTiledMatmulInput> = 
   topicGuide: {
     overview: "Block tiling reduces memory traffic from O(N^3) to O(N^3 / B).",
     sections: [
-      { heading: "Core Concept", body: "Tiles matrix multiplication into B x B sub-blocks fitting in L1 cache." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Tiles matrix multiplication into B x B sub-blocks fitting in L1 cache.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Cache Tiling","definition":"Structuring GEMM loops to re-use data in L1/L2 cache."}],
+    keyTerms: [
+      { term: "Cache Tiling", definition: "Structuring GEMM loops to re-use data in L1/L2 cache." },
+    ],
   },
   trivia: L1BLOCKTILEDMATMUL_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

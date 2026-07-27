@@ -23,7 +23,7 @@ describe("twoSatSolver Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getAllByText(/2-SAT Solver/i)[0]).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("twoSatSolver Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import { MainLayout } from "../../../ui";
-import { DEFAULT_SUCCESSOR_INPUT, generateSuccessorPathsSteps, successorPaths } from "../successorPaths";
+import {
+  DEFAULT_SUCCESSOR_INPUT,
+  generateSuccessorPathsSteps,
+  successorPaths,
+} from "../successorPaths";
 
 describe("successorPaths Render Spec", () => {
   it("renders algorithm title and description", () => {
@@ -23,11 +27,15 @@ describe("successorPaths Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
-    expect(screen.getAllByText(/Successor Paths & Floyd's Cycle Detection/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Analyzes functional graphs where every node has out-degree 1/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Successor Paths & Floyd's Cycle Detection/i)[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Analyzes functional graphs where every node has out-degree 1/i),
+    ).toBeInTheDocument();
   });
 
   it("renders final step with computed cycle details", () => {
@@ -49,7 +57,7 @@ describe("successorPaths Render Spec", () => {
         }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
-      />
+      />,
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();

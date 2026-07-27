@@ -35,10 +35,26 @@ describe("dynamicSegmentTree algorithm spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(dynamicSegmentTree.examples).toHaveLength(3);
-    expect(dynamicSegmentTree.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(dynamicSegmentTree.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of dynamicSegmentTree.examples!) {
-      const steps = dynamicSegmentTree.generateSteps(example.input as { rangeMin: number; rangeMax: number; operations: { type: "update" | "query"; index?: number; value?: number; left?: number; right?: number }[] });
+      const steps = dynamicSegmentTree.generateSteps(
+        example.input as {
+          rangeMin: number;
+          rangeMax: number;
+          operations: {
+            type: "update" | "query";
+            index?: number;
+            value?: number;
+            left?: number;
+            right?: number;
+          }[];
+        },
+      );
       expect(steps.length).toBeGreaterThan(0);
     }
   });

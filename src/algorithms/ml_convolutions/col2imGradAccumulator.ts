@@ -6,7 +6,8 @@ export interface col2imGradAccumulatorInput {
   target?: number;
 }
 
-export const COL2IMGRADACCUMULATOR_CODE = "def col2im_grad_accumulator(input_data: list) -> list:\n    # col2im Gradient Accumulator (Medium)\n    # Reverses im2col unrolling to accumulate backward gradients into 4D tensor shapes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const COL2IMGRADACCUMULATOR_CODE =
+  "def col2im_grad_accumulator(input_data: list) -> list:\n    # col2im Gradient Accumulator (Medium)\n    # Reverses im2col unrolling to accumulate backward gradients into 4D tensor shapes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_COL2IMGRADACCUMULATOR_INPUT: col2imGradAccumulatorInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_COL2IMGRADACCUMULATOR_INPUT: col2imGradAccumulatorInput = {
 };
 
 export const generateCol2imGradAccumulatorSteps = (
-  input: col2imGradAccumulatorInput
+  input: col2imGradAccumulatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateCol2imGradAccumulatorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateCol2imGradAccumulatorSteps = (
     1,
     "Initialize col2im Gradient Accumulator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateCol2imGradAccumulatorSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateCol2imGradAccumulatorSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateCol2imGradAccumulatorSteps = (
 
 const COL2IMGRADACCUMULATOR_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for col2im Gradient Accumulator.",
@@ -106,8 +112,8 @@ const COL2IMGRADACCUMULATOR_TRIVIA: TriviaMeta = {
 export const col2imGradAccumulator: AlgorithmDefinition<col2imGradAccumulatorInput> = {
   id: "col2im-grad-accumulator",
   title: "col2im Gradient Accumulator",
-  category: "ml_convolutions" as any,
-  categories: ["ml_convolutions","arrays_and_hashing"] as any,
+  category: "ml_convolutions",
+  categories: ["ml_convolutions", "arrays_and_hashing"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
@@ -151,12 +157,21 @@ export const col2imGradAccumulator: AlgorithmDefinition<col2imGradAccumulatorInp
     space: "Linear memory allocation for result structures.",
   },
   topicGuide: {
-    overview: "col2im folds 2D gradient matrices back into 4D spatial image tensors during backprop.",
+    overview:
+      "col2im folds 2D gradient matrices back into 4D spatial image tensors during backprop.",
     sections: [
-      { heading: "Core Concept", body: "Reverses im2col unrolling to accumulate backward gradients into 4D tensor shapes." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Reverses im2col unrolling to accumulate backward gradients into 4D tensor shapes.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"col2im","definition":"Fold 2D GEMM gradients back into 4D spatial tensors."}],
+    keyTerms: [
+      { term: "col2im", definition: "Fold 2D GEMM gradients back into 4D spatial tensors." },
+    ],
   },
   trivia: COL2IMGRADACCUMULATOR_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],

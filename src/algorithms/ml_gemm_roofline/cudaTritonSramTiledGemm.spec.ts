@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { cudaTritonSramTiledGemm, DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT, generateCudaTritonSramTiledGemmSteps } from "./cudaTritonSramTiledGemm";
+import {
+  cudaTritonSramTiledGemm,
+  DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT,
+  generateCudaTritonSramTiledGemmSteps,
+} from "./cudaTritonSramTiledGemm";
 
 describe("cuda-triton-sram-tiled-gemm (CUDA/Triton SRAM Tiled GEMM Engine)", () => {
   it("should have correct metadata", () => {

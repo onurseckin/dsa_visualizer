@@ -6,7 +6,8 @@ export interface vectorDotProductMacInput {
   target?: number;
 }
 
-export const VECTORDOTPRODUCTMAC_CODE = "def vector_dot_product_mac(input_data: list) -> list:\n    # Vector Multiply-Accumulate (MAC) (Easy)\n    # Accumulates elementwise products of two 1D vectors into a scalar sum.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const VECTORDOTPRODUCTMAC_CODE =
+  "def vector_dot_product_mac(input_data: list) -> list:\n    # Vector Multiply-Accumulate (MAC) (Easy)\n    # Accumulates elementwise products of two 1D vectors into a scalar sum.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_VECTORDOTPRODUCTMAC_INPUT: vectorDotProductMacInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_VECTORDOTPRODUCTMAC_INPUT: vectorDotProductMacInput = {
 };
 
 export const generateVectorDotProductMacSteps = (
-  input: vectorDotProductMacInput
+  input: vectorDotProductMacInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateVectorDotProductMacSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateVectorDotProductMacSteps = (
     1,
     "Initialize Vector Multiply-Accumulate (MAC)",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateVectorDotProductMacSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateVectorDotProductMacSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateVectorDotProductMacSteps = (
 
 const VECTORDOTPRODUCTMAC_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Vector Multiply-Accumulate (MAC).",
@@ -106,8 +112,8 @@ const VECTORDOTPRODUCTMAC_TRIVIA: TriviaMeta = {
 export const vectorDotProductMac: AlgorithmDefinition<vectorDotProductMacInput> = {
   id: "vector-dot-product-mac",
   title: "Vector Multiply-Accumulate (MAC)",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +159,16 @@ export const vectorDotProductMac: AlgorithmDefinition<vectorDotProductMacInput> 
   topicGuide: {
     overview: "MAC is the foundational hardware instruction for linear algebra.",
     sections: [
-      { heading: "Core Concept", body: "Accumulates elementwise products of two 1D vectors into a scalar sum." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Accumulates elementwise products of two 1D vectors into a scalar sum.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"MAC","definition":"Multiply-Accumulate operation (a * b + c)."}],
+    keyTerms: [{ term: "MAC", definition: "Multiply-Accumulate operation (a * b + c)." }],
   },
   trivia: VECTORDOTPRODUCTMAC_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

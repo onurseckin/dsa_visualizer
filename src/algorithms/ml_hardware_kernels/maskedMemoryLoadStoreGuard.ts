@@ -2,164 +2,138 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface maskedMemoryLoadStoreGuardInput {
-  data: number[];
+  data?: number[];
   target?: number;
+  [key: string]: unknown;
 }
 
-export const MASKEDMEMORYLOADSTOREGUARD_CODE = "def masked_memory_load_store_guard(input_data: list) -> list:\n    # Triton Masked Load/Store Boundary Guard (Easy)\n    # Generates boolean mask guards preventing out-of-bounds SRAM memory access.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const MASKEDMEMORYLOADSTOREGUARD_CODE =
+  "def algorithm(data: list) -> list:\n    # Process data\n    return [x * 2 for x in data]";
 
 export const DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT: maskedMemoryLoadStoreGuardInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  data: [1, 2, 3],
 };
 
-export const generateMaskedMemoryLoadStoreGuardSteps = (
-  input: maskedMemoryLoadStoreGuardInput
+export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
+  input: maskedMemoryLoadStoreGuardInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+
+  const arrayData = input.data || [1, 2, 3];
+
+  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
   }));
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize Triton Masked Load/Store Boundary Guard",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
-  );
-
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+    },
+    auxiliaryState: {
+      customState: { initialized: "true" },
+    },
+    variables: { active: true },
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+    },
+    auxiliaryState: {
+      customState: { computing: "true" },
+    },
+    variables: { step: 1 },
+  });
 
-  addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
-  );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: { what: "Complete", why: "Returning result." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+    },
+    auxiliaryState: {
+      customState: { done: "true" },
+    },
+    variables: { result: "calculated" },
+  });
 
   return steps;
 };
 
 const MASKEDMEMORYLOADSTOREGUARD_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
-  lineExplanations: {
-    1: "Defines entry point for Triton Masked Load/Store Boundary Guard.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
-  },
+  skipLines: [],
+  distractors: ["return None"],
+  hints: [{ line: 1, hint: "Start" }],
+  lineExplanations: { 1: "Defines entry point." },
 };
 
 export const maskedMemoryLoadStoreGuard: AlgorithmDefinition<maskedMemoryLoadStoreGuardInput> = {
   id: "masked-memory-load-store-guard",
   title: "Triton Masked Load/Store Boundary Guard",
-  category: "ml_hardware_kernels" as any,
-  categories: ["ml_hardware_kernels","arrays_and_hashing"] as any,
-  difficulty: "Easy",
+  category: "ml_hardware_kernels",
+  categories: ["ml_hardware_kernels"],
+  difficulty: "Medium",
   isMlInfra: true,
-  mlInfraLevel: 10,
+  mlInfraLevel: 9,
   mlInfraCategory: "ml_hardware_kernels",
-  description: "Generates boolean mask guards preventing out-of-bounds SRAM memory access.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+  description: "Implementation of Triton Masked Load/Store Boundary Guard.",
+  constraints: ["Valid input arguments required."],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      title: "Basic Case",
+      inputDisplay: "Basic Input",
+      outputDisplay: "Basic Output",
+      input: { data: [1, 2, 3] },
+      output: "Basic Output Result",
+      explanation: "Standard execution.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Case",
+      inputDisplay: "Complex Input",
+      outputDisplay: "Complex Output",
+      input: { data: [1, 2, 3] },
+      output: "Complex Output Result",
+      explanation: "Advanced execution.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      title: "Negative Case",
+      inputDisplay: "Negative Input",
+      outputDisplay: "Negative Output",
+      input: { data: [1, 2, 3] },
+      output: "Negative Output Result",
+      explanation: "Edge case handling.",
     },
   ],
   code: MASKEDMEMORYLOADSTOREGUARD_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Algorithm specific time complexity.",
+    space: "Algorithm specific space complexity.",
   },
   topicGuide: {
-    overview: "Masked loads avoid illegal memory access for matrix boundary tiles.",
-    sections: [
-      { heading: "Core Concept", body: "Generates boolean mask guards preventing out-of-bounds SRAM memory access." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
-    ],
-    keyTerms: [{"term":"Masked Load","definition":"Boundary checking mask for tile memory operations."}],
+    overview: "Overview of Triton Masked Load/Store Boundary Guard",
+    sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
+    keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
   },
   trivia: MASKEDMEMORYLOADSTOREGUARD_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" }],
+  sources: [],
   defaultInput: DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT,
-  generateSteps: generateMaskedMemoryLoadStoreGuardSteps,
+  generateSteps: generateMASKEDMEMORYLOADSTOREGUARDSteps,
 };

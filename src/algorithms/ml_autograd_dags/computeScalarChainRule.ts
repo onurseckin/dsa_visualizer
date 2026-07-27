@@ -6,7 +6,8 @@ export interface computeScalarChainRuleInput {
   target?: number;
 }
 
-export const COMPUTESCALARCHAINRULE_CODE = "def compute_scalar_chain_rule(input_data: list) -> list:\n    # Scalar Chain Rule Gradient Accumulator (Easy)\n    # Applies multivariate chain rule dL/dx = sum(dL/dy * dy/dx).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const COMPUTESCALARCHAINRULE_CODE =
+  "def compute_scalar_chain_rule(input_data: list) -> list:\n    # Scalar Chain Rule Gradient Accumulator (Easy)\n    # Applies multivariate chain rule dL/dx = sum(dL/dy * dy/dx).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_COMPUTESCALARCHAINRULE_INPUT: computeScalarChainRuleInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_COMPUTESCALARCHAINRULE_INPUT: computeScalarChainRuleInput =
 };
 
 export const generateComputeScalarChainRuleSteps = (
-  input: computeScalarChainRuleInput
+  input: computeScalarChainRuleInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateComputeScalarChainRuleSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateComputeScalarChainRuleSteps = (
     1,
     "Initialize Scalar Chain Rule Gradient Accumulator",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateComputeScalarChainRuleSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateComputeScalarChainRuleSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateComputeScalarChainRuleSteps = (
 
 const COMPUTESCALARCHAINRULE_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Scalar Chain Rule Gradient Accumulator.",
@@ -106,8 +112,8 @@ const COMPUTESCALARCHAINRULE_TRIVIA: TriviaMeta = {
 export const computeScalarChainRule: AlgorithmDefinition<computeScalarChainRuleInput> = {
   id: "compute-scalar-chain-rule",
   title: "Scalar Chain Rule Gradient Accumulator",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","math_and_number_theory"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "math_and_number_theory"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -153,10 +159,18 @@ export const computeScalarChainRule: AlgorithmDefinition<computeScalarChainRuleI
   topicGuide: {
     overview: "The chain rule propagates upstream gradients backward.",
     sections: [
-      { heading: "Core Concept", body: "Applies multivariate chain rule dL/dx = sum(dL/dy * dy/dx)." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Applies multivariate chain rule dL/dx = sum(dL/dy * dy/dx).",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Chain Rule","definition":"Derivative product rule for composed functions."}],
+    keyTerms: [
+      { term: "Chain Rule", definition: "Derivative product rule for composed functions." },
+    ],
   },
   trivia: COMPUTESCALARCHAINRULE_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

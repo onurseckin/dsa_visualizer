@@ -86,7 +86,10 @@ function WorkspacePage(): React.ReactElement {
     setPersistedSpeed(nextSpeed);
   };
 
-  const handleSelectExample = (example: { id?: string; input: unknown; inputValue?: unknown }, index: number) => {
+  const handleSelectExample = (
+    example: { id?: string; input: unknown; inputValue?: unknown },
+    index: number,
+  ) => {
     const exId = example.id ?? `example-${index}`;
     setSelectedExampleId(exId);
     setSelectedInput(example.inputValue ?? example.input);

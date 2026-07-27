@@ -102,8 +102,7 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
         nodes: [{ id: "1", val: 1, state: "default" }],
       },
       output: "0",
-      explanation:
-        "A single node tree has zero edges. The diameter distance is 0.",
+      explanation: "A single node tree has zero edges. The diameter distance is 0.",
     },
   ],
   code: TREE_DIAMETER_CODE,

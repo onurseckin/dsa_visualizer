@@ -42,7 +42,8 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
   }
 
   const renderProblem = showProblem;
-  const renderExamples = showExamples && Boolean(algorithm.examples && algorithm.examples.length > 0);
+  const renderExamples =
+    showExamples && Boolean(algorithm.examples && algorithm.examples.length > 0);
 
   if (!renderProblem && !renderExamples) {
     return null;

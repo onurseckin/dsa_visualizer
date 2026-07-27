@@ -6,7 +6,8 @@ export interface conv1dSlidingWindowDirectInput {
   target?: number;
 }
 
-export const CONV1DSLIDINGWINDOWDIRECT_CODE = "def conv1d_sliding_window_direct(input_data: list) -> list:\n    # 1D Cross-Correlation Basics (Easy)\n    # Sliding window operations over 1D arrays with valid boundary handling.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CONV1DSLIDINGWINDOWDIRECT_CODE =
+  "def conv1d_sliding_window_direct(input_data: list) -> list:\n    # 1D Cross-Correlation Basics (Easy)\n    # Sliding window operations over 1D arrays with valid boundary handling.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT: conv1dSlidingWindowDirectInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT: conv1dSlidingWindowDirectI
 };
 
 export const generateConv1dSlidingWindowDirectSteps = (
-  input: conv1dSlidingWindowDirectInput
+  input: conv1dSlidingWindowDirectInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateConv1dSlidingWindowDirectSteps = (
     1,
     "Initialize 1D Cross-Correlation Basics",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
 const CONV1DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for 1D Cross-Correlation Basics.",
@@ -106,8 +112,8 @@ const CONV1DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
 export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowDirectInput> = {
   id: "conv1d-sliding-window-direct",
   title: "1D Cross-Correlation Basics",
-  category: "ml_convolutions" as any,
-  categories: ["ml_convolutions","sliding_window"] as any,
+  category: "ml_convolutions",
+  categories: ["ml_convolutions", "sliding_window"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 8,
@@ -153,10 +159,16 @@ export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowD
   topicGuide: {
     overview: "1D spatial convolution slides filter weights across sequential inputs.",
     sections: [
-      { heading: "Core Concept", body: "Sliding window operations over 1D arrays with valid boundary handling." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Sliding window operations over 1D arrays with valid boundary handling.",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"1D Conv","definition":"Sliding 1D filter cross-correlation."}],
+    keyTerms: [{ term: "1D Conv", definition: "Sliding 1D filter cross-correlation." }],
   },
   trivia: CONV1DSLIDINGWINDOWDIRECT_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],

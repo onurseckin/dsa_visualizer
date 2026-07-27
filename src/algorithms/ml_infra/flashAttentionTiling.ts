@@ -11,8 +11,8 @@ export interface FlashAttentionInput {
   blockQ: number;
   blockK: number;
   queries: number[][]; // [seqLen][headDim]
-  keys: number[][];    // [seqLen][headDim]
-  values: number[][];  // [seqLen][headDim]
+  keys: number[][]; // [seqLen][headDim]
+  values: number[][]; // [seqLen][headDim]
 }
 
 export const FLASH_ATTENTION_TILING_CODE = `import math
@@ -115,7 +115,8 @@ export const FLASH_ATTENTION_EXAMPLES: ProblemExample<FlashAttentionInput>[] = [
       ],
     },
     output: "4 Output Vectors computed in IO-aware blocks",
-    explanation: "Processes 2 Q-blocks x 2 K/V-blocks in fast SRAM without materializing the N x N attention matrix in DRAM.",
+    explanation:
+      "Processes 2 Q-blocks x 2 K/V-blocks in fast SRAM without materializing the N x N attention matrix in DRAM.",
   },
   {
     id: "complex",
@@ -127,20 +128,33 @@ export const FLASH_ATTENTION_EXAMPLES: ProblemExample<FlashAttentionInput>[] = [
       blockQ: 2,
       blockK: 2,
       queries: [
-        [1.0, 0.0], [0.0, 1.0], [0.5, 0.5],
-        [0.7, 0.3], [0.2, 0.8], [0.9, 0.1],
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [0.5, 0.5],
+        [0.7, 0.3],
+        [0.2, 0.8],
+        [0.9, 0.1],
       ],
       keys: [
-        [1.0, 0.0], [0.0, 1.0], [0.5, 0.5],
-        [0.7, 0.3], [0.2, 0.8], [0.9, 0.1],
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [0.5, 0.5],
+        [0.7, 0.3],
+        [0.2, 0.8],
+        [0.9, 0.1],
       ],
       values: [
-        [2.0, 1.0], [1.0, 2.0], [1.5, 1.5],
-        [2.1, 0.9], [0.6, 2.4], [2.7, 0.3],
+        [2.0, 1.0],
+        [1.0, 2.0],
+        [1.5, 1.5],
+        [2.1, 0.9],
+        [0.6, 2.4],
+        [2.7, 0.3],
       ],
     },
     output: "6 Output Vectors computed via 3x3 block iterations",
-    explanation: "Online softmax updates running max m and denominator l per row dynamically across 9 tile iterations.",
+    explanation:
+      "Online softmax updates running max m and denominator l per row dynamically across 9 tile iterations.",
   },
   {
     id: "negative",
@@ -212,7 +226,7 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
     why: string,
     qBlockIdx: number,
     kBlockIdx: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -220,7 +234,10 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({ ...el, pointers: el.pointers ? [...el.pointers] : undefined })),
+        elements: elements.map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
       auxiliaryState: {
         customState: {
@@ -241,7 +258,7 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
     `Setting up online softmax statistics (m=-inf, l=0) and tiled SRAM iteration for ${N} queries with head dimension ${d}.`,
     0,
     0,
-    { N, d, blockQ, blockK, scale: scale.toFixed(4) }
+    { N, d, blockQ, blockK, scale: scale.toFixed(4) },
   );
 
   const numQBlocks = Math.ceil(N / blockQ);
@@ -309,7 +326,7 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
         `Updated online softmax max (m) and sum (l) statistics dynamically in fast SRAM without writing N x N matrix to HBM.`,
         qb,
         kb,
-        { qb, kb, qStart, kStart, activeRows: `${qStart}..${qEnd - 1}` }
+        { qb, kb, qStart, kStart, activeRows: `${qStart}..${qEnd - 1}` },
       );
     }
   }
@@ -325,7 +342,7 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
     "Successfully evaluated exact attention matrix product in IO-aware tiled fashion, saving memory bandwidth by O(N).",
     numQBlocks - 1,
     numKBlocks - 1,
-    { totalOutputRows: N, headDim: d }
+    { totalOutputRows: N, headDim: d },
   );
 
   return steps;
@@ -356,7 +373,8 @@ export const flashAttentionTiling: AlgorithmDefinition<FlashAttentionInput> = {
   spaceComplexity: "O(N * d)",
   complexityAnalysis: {
     time: "Requires N^2 * d floating-point operations total, matching standard attention compute cost while avoiding high-latency HBM accesses.",
-    space: "Requires O(N * d) memory to store output matrix O and running online softmax statistics (m, l), reducing memory complexity from O(N^2) to O(N).",
+    space:
+      "Requires O(N * d) memory to store output matrix O and running online softmax statistics (m, l), reducing memory complexity from O(N^2) to O(N).",
   },
   topicGuide: {
     overview:
@@ -374,11 +392,13 @@ export const flashAttentionTiling: AlgorithmDefinition<FlashAttentionInput> = {
     keyTerms: [
       {
         term: "FlashAttention",
-        definition: "IO-aware exact attention kernel using online softmax tiling for fast execution and small memory footprint.",
+        definition:
+          "IO-aware exact attention kernel using online softmax tiling for fast execution and small memory footprint.",
       },
       {
         term: "Online Softmax",
-        definition: "Algorithmic technique for incrementally computing exact softmax over streaming data blocks using running max and sum.",
+        definition:
+          "Algorithmic technique for incrementally computing exact softmax over streaming data blocks using running max and sum.",
       },
       {
         term: "SRAM vs HBM",

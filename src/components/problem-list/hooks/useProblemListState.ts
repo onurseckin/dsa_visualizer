@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { CategoryType, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
 import { getAllAlgorithms } from "../../../algorithms/registry";
+import { CATEGORY_LABELS } from "../../../app/categories";
 import {
-  CATEGORY_LABELS,
   ProblemListDifficulty,
   ProblemListSource,
   ProblemListSortField,
@@ -20,15 +20,16 @@ interface UseProblemListStateProps {
   onCategoryChange?: (category: CategoryType | "All") => void;
 }
 
-export function useProblemListState({ category, onCategoryChange }: UseProblemListStateProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+export function useProblemListState({
+  category = "All",
+  onCategoryChange,
+}: UseProblemListStateProps = {}) {
   const [selectedDifficulty, setSelectedDifficultyState] = useState<ProblemListDifficulty>(() =>
     readStoredProblemListValue("difficulty", "All", isProblemListDifficulty),
   );
   const [selectedSource, setSelectedSourceState] = useState<ProblemListSource>(() =>
     readStoredProblemListValue("source", "All", isProblemListSource),
   );
-  const [internalCategory, setInternalCategory] = useState<CategoryType | "All">("All");
 
   const setSelectedDifficulty = (next: ProblemListDifficulty) => {
     setSelectedDifficultyState(next);
@@ -40,16 +41,16 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
     writeStoredProblemListValue("source", next);
   };
 
-  const selectedCategory = category ?? internalCategory;
-
-  const handleCategorySelect = (next: CategoryType | "All") => {
+  const [internalCategory, setInternalCategory] = useState<CategoryType | "All">(category ?? "All");
+  const selectedCategory = onCategoryChange ? (category ?? "All") : internalCategory;
+  const setSelectedCategory = (next: CategoryType | "All") => {
+    setInternalCategory(next);
     if (onCategoryChange) {
       onCategoryChange(next);
-    } else {
-      setInternalCategory(next);
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortByState] = useState<ProblemListSortField>(() =>
     readStoredProblemListValue("sort_by", "title", isProblemListSortField),
   );
@@ -109,12 +110,8 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
         const sources = getAlgorithmSources(alg);
         const matchesSource = sources.some((s) => getSourceKind(s) === selectedSource);
         const matchesMlSource = selectedSource === "ml_infra" && isMlAlg;
-        const isExplicitCategoryMatch =
-          selectedCategory !== "All" &&
-          (alg.category === selectedCategory ||
-            (isMlAlg && (selectedCategory === "ml_infra" || selectedCategory === "ml_infrastructure")));
 
-        if (!matchesSource && !matchesMlSource && !isExplicitCategoryMatch) return false;
+        if (!matchesSource && !matchesMlSource) return false;
       }
 
       if (!q) return true;
@@ -138,7 +135,15 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
       }
       return sortOrder === "asc" ? comp : -comp;
     });
-  }, [algorithms, searchTerm, selectedDifficulty, selectedCategory, selectedSource, sortBy, sortOrder]);
+  }, [
+    algorithms,
+    searchTerm,
+    selectedDifficulty,
+    selectedCategory,
+    selectedSource,
+    sortBy,
+    sortOrder,
+  ]);
 
   const toggleSort = (field: ProblemListSortField) => {
     if (sortBy === field) {
@@ -153,13 +158,16 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
     searchTerm,
     setSearchTerm,
     selectedCategory,
-    handleCategorySelect,
+    setSelectedCategory,
+    handleCategorySelect: setSelectedCategory,
     selectedDifficulty,
     setSelectedDifficulty,
     selectedSource,
     setSelectedSource,
     sortBy,
+    setSortBy,
     sortOrder,
+    setSortOrder,
     toggleSort,
     stats,
     filteredAlgorithms,

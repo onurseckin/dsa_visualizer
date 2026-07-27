@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  TopicGuide,
-  TreeNodeItem,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, TopicGuide, TreeNodeItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DynamicSegOp {
@@ -73,7 +68,9 @@ interface InternalNode {
   rightNode?: InternalNode;
 }
 
-export const generateDynamicSegmentTreeSteps = (input: DynamicSegmentTreeInput): AlgorithmStep[] => {
+export const generateDynamicSegmentTreeSteps = (
+  input: DynamicSegmentTreeInput,
+): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -303,11 +300,13 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Sparse Segment Tree",
-      definition: "A segment tree structure where missing nodes are treated as default zero values without being allocated.",
+      definition:
+        "A segment tree structure where missing nodes are treated as default zero values without being allocated.",
     },
     {
       term: "Lazy Pointer Allocation",
-      definition: "Creating child pointers (left and right) dynamically only when a path is visited by an update operation.",
+      definition:
+        "Creating child pointers (left and right) dynamically only when a path is visited by an update operation.",
     },
   ],
 };
@@ -363,7 +362,8 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
         ],
       },
       output: "Query [1..10]: 5",
-      explanation: "Nodes covering index 3 and 12 are created lazily; query [1..10] picks up index 3 (value 5).",
+      explanation:
+        "Nodes covering index 3 and 12 are created lazily; query [1..10] picks up index 3 (value 5).",
     },
     {
       kind: "complex",
@@ -407,7 +407,8 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
   spaceComplexity: "O(Q log C)",
   complexityAnalysis: {
     time: "Both update and query descend down at most log2(C) levels of the dynamic segment tree, taking O(log C) time.",
-    space: "Each update adds at most log2(C) nodes, taking O(Q log C) total space across Q operations.",
+    space:
+      "Each update adds at most log2(C) nodes, taking O(Q log C) total space across Q operations.",
   },
   topicGuide: DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE,
   trivia: DYNAMIC_SEGMENT_TREE_TRIVIA,

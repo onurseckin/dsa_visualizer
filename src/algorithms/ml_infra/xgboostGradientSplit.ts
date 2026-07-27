@@ -1,8 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ElementState,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface XgboostSample {
@@ -14,7 +10,7 @@ export interface XgboostSample {
 export interface XgboostGradientSplitInput {
   samples: XgboostSample[];
   lambda: number; // L2 regularization
-  gamma: number;  // Minimal gain penalty
+  gamma: number; // Minimal gain penalty
 }
 
 export const XGBOOST_GRADIENT_SPLIT_CODE = `def xgboost_find_best_split(samples: list[dict], reg_lambda: float, gamma: float) -> tuple[float, float]:
@@ -60,7 +56,7 @@ export const DEFAULT_XGBOOST_GRADIENT_SPLIT_INPUT: XgboostGradientSplitInput = {
 };
 
 export const generateXgboostGradientSplitSteps = (
-  input: XgboostGradientSplitInput
+  input: XgboostGradientSplitInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -69,7 +65,7 @@ export const generateXgboostGradientSplitSteps = (
   const G_total = sortedSamples.reduce((acc, s) => acc + s.g, 0);
   const H_total = sortedSamples.reduce((acc, s) => acc + s.h, 0);
 
-  const gainRoot = (G_total ** 2) / (H_total + input.lambda);
+  const gainRoot = G_total ** 2 / (H_total + input.lambda);
 
   steps.push({
     stepIndex: stepIndex++,
@@ -112,8 +108,8 @@ export const generateXgboostGradientSplitSteps = (
     const G_R = G_total - G_L;
     const H_R = H_total - H_L;
 
-    const gainL = (G_L ** 2) / (H_L + input.lambda);
-    const gainR = (G_R ** 2) / (H_R + input.lambda);
+    const gainL = G_L ** 2 / (H_L + input.lambda);
+    const gainR = G_R ** 2 / (H_R + input.lambda);
     const gain = 0.5 * (gainL + gainR - gainRoot) - input.gamma;
 
     const splitVal = (sortedSamples[i].featureVal + sortedSamples[i + 1].featureVal) / 2.0;
@@ -172,7 +168,8 @@ export const generateXgboostGradientSplitSteps = (
       elements: sortedSamples.map((s) => ({
         id: `sample-${s.featureVal}`,
         value: s.featureVal,
-        state: s.featureVal < bestSplitVal ? ("sorted" as ElementState) : ("active" as ElementState),
+        state:
+          s.featureVal < bestSplitVal ? ("sorted" as ElementState) : ("active" as ElementState),
       })),
     },
     auxiliaryState: {
@@ -228,11 +225,7 @@ export const xgboostGradientSplit: AlgorithmDefinition<XgboostGradientSplitInput
   mlInfraLevel: 5,
   description:
     "Finds the optimal decision tree split threshold in XGBoost by calculating second-order Taylor expansion gain from sample gradients (g) and Hessians (h) with L2 regularization.",
-  constraints: [
-    "len(samples) >= 2",
-    "lambda >= 0",
-    "gamma >= 0",
-  ],
+  constraints: ["len(samples) >= 2", "lambda >= 0", "gamma >= 0"],
   examples: [
     {
       kind: "basic",
@@ -241,7 +234,8 @@ export const xgboostGradientSplit: AlgorithmDefinition<XgboostGradientSplitInput
       outputDisplay: "Best Split threshold x = 2.75 (Max Gain = 0.812)",
       input: DEFAULT_XGBOOST_GRADIENT_SPLIT_INPUT,
       output: "Split threshold x = 2.75 (Gain = 0.812)",
-      explanation: "Samples are separated between x=2.5 (negative gradients) and x=3.0 (positive gradients). Midpoint split at x=2.75 achieves highest objective reduction gain.",
+      explanation:
+        "Samples are separated between x=2.5 (negative gradients) and x=3.0 (positive gradients). Midpoint split at x=2.75 achieves highest objective reduction gain.",
     },
     {
       kind: "complex",
@@ -253,7 +247,8 @@ export const xgboostGradientSplit: AlgorithmDefinition<XgboostGradientSplitInput
         lambda: 10.0,
       },
       output: "Split threshold x = 2.75",
-      explanation: "Increasing L2 regularization lambda shrinks leaf weight denominators (H + lambda), reducing total split gain while maintaining split boundary.",
+      explanation:
+        "Increasing L2 regularization lambda shrinks leaf weight denominators (H + lambda), reducing total split gain while maintaining split boundary.",
     },
     {
       kind: "negative",
@@ -299,11 +294,13 @@ export const xgboostGradientSplit: AlgorithmDefinition<XgboostGradientSplitInput
     keyTerms: [
       {
         term: "Gradient (g_i)",
-        definition: "First derivative of the loss function with respect to current model prediction.",
+        definition:
+          "First derivative of the loss function with respect to current model prediction.",
       },
       {
         term: "Hessian (h_i)",
-        definition: "Second derivative of the loss function with respect to current model prediction.",
+        definition:
+          "Second derivative of the loss function with respect to current model prediction.",
       },
     ],
   },

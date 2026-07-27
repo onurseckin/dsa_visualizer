@@ -2,25 +2,47 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface zero1OptimizerStateMemoryEstimatorInput {
-  data: number[];
-  target?: number;
+  parameters: number;
+  gpus: number;
 }
 
-export const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE = "def zero1_optimizer_state_memory_estimator(input_data: list) -> list:\n    # DeepSpeed ZeRO-1 Optimizer State Sharding Estimator (Medium)\n    # Calculates per-GPU VRAM footprint under ZeRO-1: 4*Psi + 12*Psi/N.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE = `def zero1_optimizer_memory(parameters: int, gpus: int) -> float:
+    # DeepSpeed ZeRO-1 shards the optimizer states across N GPUs.
+    # In mixed-precision Adam, optimizer states are:
+    # - FP32 master weights (4 bytes * P)
+    # - FP32 momentum (4 bytes * P)
+    # - FP32 variance (4 bytes * P)
+    # Total = 12 * P bytes.
+    # With ZeRO-1, these are sharded, so each GPU holds (12 * P) / N bytes.
+    # The FP16 weights (2*P) and FP16 gradients (2*P) are not sharded in ZeRO-1.
+    
+    if gpus == 0: return 0.0
+    
+    bytes_per_param = 12
+    total_optimizer_memory = parameters * bytes_per_param
+    per_gpu_memory = total_optimizer_memory / gpus
+    
+    return per_gpu_memory
+`;
 
-export const DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT: zero1OptimizerStateMemoryEstimatorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
-};
+export const DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT: zero1OptimizerStateMemoryEstimatorInput =
+  {
+    parameters: 1_000_000_000,
+    gpus: 8,
+  };
 
 export const generateZero1OptimizerStateMemoryEstimatorSteps = (
-  input: zero1OptimizerStateMemoryEstimatorInput
+  input: zero1OptimizerStateMemoryEstimatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
+
+  const gpus = input.gpus;
+  const params = input.parameters;
+
+  const elements: ArrayElement[] = Array.from({ length: Math.min(gpus, 8) }).map((_, idx) => ({
+    id: `gpu-${idx}`,
+    value: `GPU ${idx}`,
     state: "default",
   }));
 
@@ -29,7 +51,7 @@ export const generateZero1OptimizerStateMemoryEstimatorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -37,15 +59,15 @@ export const generateZero1OptimizerStateMemoryEstimatorSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
+        elements: customElements.map((el) => ({
           ...el,
           pointers: el.pointers ? [...el.pointers] : undefined,
         })),
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          parameters: params.toLocaleString(),
+          gpus: String(gpus),
         },
       },
       variables,
@@ -53,113 +75,142 @@ export const generateZero1OptimizerStateMemoryEstimatorSteps = (
   };
 
   addStep(
-    1,
-    "Initialize DeepSpeed ZeRO-1 Optimizer State Sharding Estimator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    10,
+    "Initialize memory estimator",
+    "Prepare to compute the memory footprint of Adam optimizer states under ZeRO-1.",
+    { parameters: params, gpus },
+    [...elements],
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const bytesPerParam = 12;
+  addStep(
+    12,
+    "Define bytes per parameter for Adam",
+    "Adam requires FP32 master weights, momentum, and variance (3 * 4 = 12 bytes per parameter).",
+    { bytes_per_param: bytesPerParam },
+    [...elements],
+  );
 
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
-  });
+  const totalOptimizerMemory = params * bytesPerParam;
+  addStep(
+    13,
+    "Calculate total optimizer memory",
+    "This is the memory required if we didn't shard the optimizer states.",
+    { total_optimizer_memory: totalOptimizerMemory },
+    [...elements],
+  );
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
+  const perGpuMemory = totalOptimizerMemory / gpus;
+  const finalElements = elements.map((el) => ({
     ...el,
-    state: "sorted",
+    state: "sorted" as const,
+    value: `${(perGpuMemory / 1e9).toFixed(2)} GB`,
   }));
 
   addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
+    14,
+    "Shard memory across GPUs",
+    "ZeRO-1 divides the optimizer states evenly across all GPUs in the data parallel group.",
+    { per_gpu_memory: perGpuMemory },
+    finalElements,
+  );
+
+  addStep(
+    16,
+    "Return per-GPU footprint",
+    "Computation complete.",
+    { per_gpu_memory: perGpuMemory },
+    finalElements,
   );
 
   return steps;
 };
 
 const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  skipLines: [1, 2, 3, 4, 5, 6, 7],
+  distractors: ["bytes_per_param = 16", "per_gpu_memory = total_optimizer_memory * gpus"],
+  hints: [{ line: 12, hint: "FP32 Master Weights (4) + Momentum (4) + Variance (4) = 12." }],
   lineExplanations: {
-    1: "Defines entry point for DeepSpeed ZeRO-1 Optimizer State Sharding Estimator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    10: "Check for zero GPUs to prevent division by zero.",
+    12: "Define the optimizer state footprint per parameter.",
+    13: "Calculate un-sharded memory requirements.",
+    14: "Divide the footprint evenly across the DP group.",
+    16: "Return the result.",
   },
 };
 
-export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1OptimizerStateMemoryEstimatorInput> = {
-  id: "zero1-optimizer-state-memory-estimator",
-  title: "DeepSpeed ZeRO-1 Optimizer State Sharding Estimator",
-  category: "ml_distributed_systems" as any,
-  categories: ["ml_distributed_systems","math_and_number_theory"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
-  description: "Calculates per-GPU VRAM footprint under ZeRO-1: 4*Psi + 12*Psi/N.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "ZeRO-1 shards FP32 master parameters and Adam optimizer states across N GPUs.",
-    sections: [
-      { heading: "Core Concept", body: "Calculates per-GPU VRAM footprint under ZeRO-1: 4*Psi + 12*Psi/N." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1OptimizerStateMemoryEstimatorInput> =
+  {
+    id: "zero1-optimizer-state-memory-estimator",
+    title: "DeepSpeed ZeRO-1 Optimizer Sharding",
+    category: "ml_distributed_systems",
+    categories: ["ml_distributed_systems", "math_and_number_theory"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 11,
+    mlInfraCategory: "ml_distributed_systems",
+    description:
+      "Calculates the per-GPU memory footprint of optimizer states when sharded using ZeRO-1.",
+    constraints: ["1 <= parameters <= 10^12", "1 <= gpus <= 1000"],
+    examples: [
+      {
+        kind: "basic",
+        title: "1B Parameter Model on 8 GPUs",
+        inputDisplay: "params = 1,000,000,000, GPUs = 8",
+        outputDisplay: "1,500,000,000 bytes (1.5 GB)",
+        input: { parameters: 1000000000, gpus: 8 },
+        output: "1.5 GB per GPU",
+        explanation: "Total optimizer memory is 12GB. Divided by 8 GPUs, each stores 1.5GB.",
+      },
+      {
+        kind: "complex",
+        title: "70B Model on 64 GPUs",
+        inputDisplay: "params = 70,000,000,000, GPUs = 64",
+        outputDisplay: "13.125 GB per GPU",
+        input: { parameters: 70000000000, gpus: 64 },
+        output: "13.125 GB per GPU",
+        explanation: "70B * 12 = 840GB total. 840GB / 64 = 13.125GB per GPU.",
+      },
+      {
+        kind: "negative",
+        title: "Single GPU (No Sharding Benefit)",
+        inputDisplay: "params = 100,000,000, GPUs = 1",
+        outputDisplay: "1.2 GB per GPU",
+        input: { parameters: 100000000, gpus: 1 },
+        output: "1.2 GB per GPU",
+        explanation: "With 1 GPU, it must hold the entire 12 bytes/param optimizer state.",
+      },
     ],
-    keyTerms: [{"term":"ZeRO-1","definition":"Optimizer State Partitioning reducing memory from 16*Psi to 4*Psi + 12*Psi/N."}],
-  },
-  trivia: ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
-  defaultInput: DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT,
-  generateSteps: generateZero1OptimizerStateMemoryEstimatorSteps,
-};
+    code: ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "O(1) algebraic computation.",
+      space: "O(1) memory for the calculation variables.",
+    },
+    topicGuide: {
+      overview:
+        "ZeRO-1 (Zero Redundancy Optimizer, Stage 1) reduces memory footprint by partitioning optimizer states across GPUs in data parallel training.",
+      sections: [
+        {
+          heading: "Memory Wall",
+          body: "In mixed-precision training, the Adam optimizer requires storing FP32 copies of weights, momentum, and variance. This consumes 12 bytes per parameter, often exceeding VRAM limits for large models.",
+        },
+        {
+          heading: "Sharding",
+          body: "Instead of every GPU keeping a redundant copy of all optimizer states, ZeRO-1 divides them. Each GPU updates only its partition and synchronizes the updated FP16 weights.",
+        },
+      ],
+      keyTerms: [
+        { term: "ZeRO-1", definition: "Optimizer state partitioning." },
+        {
+          term: "Adam Optimizer",
+          definition: "Maintains running averages of gradients and squared gradients.",
+        },
+      ],
+    },
+    trivia: ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 11" }],
+    defaultInput: DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT,
+    generateSteps: generateZero1OptimizerStateMemoryEstimatorSteps,
+  };

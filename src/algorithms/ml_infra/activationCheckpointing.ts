@@ -40,12 +40,13 @@ export const DEFAULT_ACTIVATION_CHECKPOINTING_INPUT: ActivationCheckpointingInpu
 };
 
 export const generateActivationCheckpointingSteps = (
-  input: ActivationCheckpointingInput
+  input: ActivationCheckpointingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const { numLayers, checkpointInterval, activationSizePerLayerMb, recomputeFlopsPerLayerGflop } = input;
+  const { numLayers, checkpointInterval, activationSizePerLayerMb, recomputeFlopsPerLayerGflop } =
+    input;
 
   const elements: ArrayElement[] = Array.from({ length: Math.max(0, numLayers) }, (_, idx) => ({
     id: `layer-${idx}`,
@@ -60,7 +61,7 @@ export const generateActivationCheckpointingSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
-    customState?: Record<string, string | number>
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -87,7 +88,7 @@ export const generateActivationCheckpointingSteps = (
     1,
     "Initialize Activation Checkpointing Schedule",
     `Analyzing ${numLayers} transformer/neural net layers with checkpoint interval ${checkpointInterval}.`,
-    { numLayers, checkpointInterval }
+    { numLayers, checkpointInterval },
   );
 
   if (numLayers <= 0 || checkpointInterval <= 0) {
@@ -97,7 +98,7 @@ export const generateActivationCheckpointingSteps = (
       "Layer count or interval must be strictly positive.",
       { vram_saved_mb: 0, recomputed_flops_gflop: 0 },
       [],
-      { error: "Invalid configuration" }
+      { error: "Invalid configuration" },
     );
     return steps;
   }
@@ -121,11 +122,11 @@ export const generateActivationCheckpointingSteps = (
     5,
     `Identify Checkpoint Layer Indices: [${checkpoints.join(", ")}]`,
     `Saving activations only at layer boundaries [${checkpoints.join(
-      ", "
+      ", ",
     )}]. Intermediate ${numLayers - checkpoints.length} layer activations will be freed.`,
     { checkpoints: checkpoints.join(","), numSaved: checkpoints.length },
     scheduledElements,
-    { checkpoints: `[${checkpoints.join(", ")}]` }
+    { checkpoints: `[${checkpoints.join(", ")}]` },
   );
 
   const vramWithoutCpMb = numLayers * activationSizePerLayerMb;
@@ -143,7 +144,7 @@ export const generateActivationCheckpointingSteps = (
       vramWithoutCpMb: `${vramWithoutCpMb} MB`,
       vramWithCpMb: `${vramWithCpMb} MB`,
       vramSavedMb: `${vramSavedMb} MB`,
-    }
+    },
   );
 
   const omittedActivations = numLayers - checkpoints.length;
@@ -153,7 +154,7 @@ export const generateActivationCheckpointingSteps = (
     14,
     `Compute On-the-Fly Recomputation Overhead: ${recomputedFlopsGflop.toFixed(1)} GFLOPs`,
     `Backward pass will recompute activations for ${omittedActivations} omitted layers, incurring +${recomputedFlopsGflop.toFixed(
-      1
+      1,
     )} GFLOPs compute overhead.`,
     {
       omittedActivations,
@@ -164,7 +165,7 @@ export const generateActivationCheckpointingSteps = (
     {
       omittedLayers: omittedActivations,
       recomputedFlops: `${recomputedFlopsGflop.toFixed(1)} GFLOPs`,
-    }
+    },
   );
 
   return steps;
@@ -220,24 +221,30 @@ export const activationCheckpointing: AlgorithmDefinition<ActivationCheckpointin
       kind: "basic",
       title: "Standard 8-Layer Checkpoint (Interval 2)",
       inputDisplay: "numLayers = 8, interval = 2, actSize = 500MB, flopPerLayer = 2.0 GFLOPs",
-      outputDisplay: "checkpoints = [0, 2, 4, 6], VRAM saved = 2000MB (50.0%), recomputed = 8.0 GFLOPs",
+      outputDisplay:
+        "checkpoints = [0, 2, 4, 6], VRAM saved = 2000MB (50.0%), recomputed = 8.0 GFLOPs",
       input: DEFAULT_ACTIVATION_CHECKPOINTING_INPUT,
-      output: "{checkpoints: [0, 2, 4, 6], vram_saved_mb: 2000.0, vram_saved_pct: 50.0, recomputed_flops_gflop: 8.0}",
-      explanation: "Stores activations at 4 checkpoint layers [0, 2, 4, 6]. Reduces VRAM usage from 4000MB to 2000MB, trading 8 GFLOPs recomputation.",
+      output:
+        "{checkpoints: [0, 2, 4, 6], vram_saved_mb: 2000.0, vram_saved_pct: 50.0, recomputed_flops_gflop: 8.0}",
+      explanation:
+        "Stores activations at 4 checkpoint layers [0, 2, 4, 6]. Reduces VRAM usage from 4000MB to 2000MB, trading 8 GFLOPs recomputation.",
     },
     {
       kind: "complex",
       title: "Deep 16-Layer Model (Interval 4)",
       inputDisplay: "numLayers = 16, interval = 4, actSize = 1000MB, flopPerLayer = 5.0 GFLOPs",
-      outputDisplay: "checkpoints = [0, 4, 8, 12], VRAM saved = 12000MB (75.0%), recomputed = 60.0 GFLOPs",
+      outputDisplay:
+        "checkpoints = [0, 4, 8, 12], VRAM saved = 12000MB (75.0%), recomputed = 60.0 GFLOPs",
       input: {
         numLayers: 16,
         checkpointInterval: 4,
         activationSizePerLayerMb: 1000,
         recomputeFlopsPerLayerGflop: 5.0,
       },
-      output: "{checkpoints: [0, 4, 8, 12], vram_saved_mb: 12000.0, vram_saved_pct: 75.0, recomputed_flops_gflop: 60.0}",
-      explanation: "Interval of 4 retains only 4 out of 16 layers, yielding a 75% memory footprint reduction for large model training.",
+      output:
+        "{checkpoints: [0, 4, 8, 12], vram_saved_mb: 12000.0, vram_saved_pct: 75.0, recomputed_flops_gflop: 60.0}",
+      explanation:
+        "Interval of 4 retains only 4 out of 16 layers, yielding a 75% memory footprint reduction for large model training.",
     },
     {
       kind: "negative",
@@ -281,11 +288,13 @@ export const activationCheckpointing: AlgorithmDefinition<ActivationCheckpointin
     keyTerms: [
       {
         term: "Activation Checkpointing",
-        definition: "Technique that drops intermediate forward activations and recomputes them during the backward pass to save VRAM.",
+        definition:
+          "Technique that drops intermediate forward activations and recomputes them during the backward pass to save VRAM.",
       },
       {
         term: "Recomputation Overhead",
-        definition: "The extra FLOP compute spent re-executing forward passes during backpropagation.",
+        definition:
+          "The extra FLOP compute spent re-executing forward passes during backpropagation.",
       },
     ],
   },

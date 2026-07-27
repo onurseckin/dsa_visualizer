@@ -6,7 +6,8 @@ export interface detectTerminalNodesInput {
   target?: number;
 }
 
-export const DETECTTERMINALNODES_CODE = "def detect_terminal_nodes(input_data: list) -> list:\n    # Detect Terminal Leaf Nodes in DAG (Easy)\n    # Identifies graph sink nodes with out-degree zero.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const DETECTTERMINALNODES_CODE =
+  "def detect_terminal_nodes(input_data: list) -> list:\n    # Detect Terminal Leaf Nodes in DAG (Easy)\n    # Identifies graph sink nodes with out-degree zero.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_DETECTTERMINALNODES_INPUT: detectTerminalNodesInput = {
   data: [10, 20, 30, 40, 50],
@@ -14,7 +15,7 @@ export const DEFAULT_DETECTTERMINALNODES_INPUT: detectTerminalNodesInput = {
 };
 
 export const generateDetectTerminalNodesSteps = (
-  input: detectTerminalNodesInput
+  input: detectTerminalNodesInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -29,7 +30,7 @@ export const generateDetectTerminalNodesSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +57,14 @@ export const generateDetectTerminalNodesSteps = (
     1,
     "Initialize Detect Terminal Leaf Nodes in DAG",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +74,7 @@ export const generateDetectTerminalNodesSteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +88,7 @@ export const generateDetectTerminalNodesSteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +96,11 @@ export const generateDetectTerminalNodesSteps = (
 
 const DETECTTERMINALNODES_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for Detect Terminal Leaf Nodes in DAG.",
@@ -106,8 +112,8 @@ const DETECTTERMINALNODES_TRIVIA: TriviaMeta = {
 export const detectTerminalNodes: AlgorithmDefinition<detectTerminalNodesInput> = {
   id: "detect-terminal-nodes",
   title: "Detect Terminal Leaf Nodes in DAG",
-  category: "ml_autograd_dags" as any,
-  categories: ["ml_autograd_dags","graph_directed_and_scc"] as any,
+  category: "ml_autograd_dags",
+  categories: ["ml_autograd_dags", "graph_directed_and_scc"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 3,
@@ -154,9 +160,12 @@ export const detectTerminalNodes: AlgorithmDefinition<detectTerminalNodesInput> 
     overview: "Terminal nodes represent final target loss outputs.",
     sections: [
       { heading: "Core Concept", body: "Identifies graph sink nodes with out-degree zero." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Sink Node","definition":"Node with zero outgoing edges."}],
+    keyTerms: [{ term: "Sink Node", definition: "Node with zero outgoing edges." }],
   },
   trivia: DETECTTERMINALNODES_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],

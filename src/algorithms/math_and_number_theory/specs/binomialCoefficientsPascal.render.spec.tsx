@@ -16,7 +16,9 @@ describe("binomialCoefficientsPascal React component spec", () => {
     );
     const snapshot = steps[0].primarySnapshot as GridVisualSnapshot;
 
-    render(<GridVisualizer grid={snapshot.grid} title="Binomial Coefficients (Pascal's Triangle)" />);
+    render(
+      <GridVisualizer grid={snapshot.grid} title="Binomial Coefficients (Pascal's Triangle)" />,
+    );
 
     expect(screen.getByText("Binomial Coefficients (Pascal's Triangle)")).toBeInTheDocument();
   });

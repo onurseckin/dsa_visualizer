@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { sparseMatmulCsr, DEFAULT_SPARSEMATMULCSR_INPUT, generateSparseMatmulCsrSteps } from "./sparseMatmulCsr";
+import {
+  sparseMatmulCsr,
+  DEFAULT_SPARSEMATMULCSR_INPUT,
+  generateSparseMatmulCsrSteps,
+} from "./sparseMatmulCsr";
 
 describe("sparse-matmul-csr (Sparse Matrix Multiplication (CSR Format))", () => {
   it("should have correct metadata", () => {

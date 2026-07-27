@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import GridVisualizer from "../../../components/primitives/GridVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateGridPathsDpSteps,
-  DEFAULT_GRID_PATHS_INPUT,
-} from "../gridPathsDp";
+import { generateGridPathsDpSteps, DEFAULT_GRID_PATHS_INPUT } from "../gridPathsDp";
 
 describe("gridPathsDp React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {

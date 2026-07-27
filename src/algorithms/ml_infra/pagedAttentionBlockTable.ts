@@ -58,7 +58,8 @@ export const PAGED_ATTENTION_EXAMPLES: ProblemExample<PagedAttentionInput>[] = [
       sequenceTokens: 10,
     },
     output: "Maps 3 Logical Blocks to 3 Physical Blocks [0, 1, 2] with 5 free blocks remaining",
-    explanation: "Tokens 0..3 -> Physical Block 0; Tokens 4..7 -> Physical Block 1; Tokens 8..9 -> Physical Block 2 (2 tokens active).",
+    explanation:
+      "Tokens 0..3 -> Physical Block 0; Tokens 4..7 -> Physical Block 1; Tokens 8..9 -> Physical Block 2 (2 tokens active).",
   },
   {
     id: "complex",
@@ -70,7 +71,8 @@ export const PAGED_ATTENTION_EXAMPLES: ProblemExample<PagedAttentionInput>[] = [
       sequenceTokens: 25,
     },
     output: "Allocates 7 Physical Blocks for 25 tokens",
-    explanation: "Logical blocks 0..6 mapped dynamically without requiring contiguous physical GPU VRAM.",
+    explanation:
+      "Logical blocks 0..6 mapped dynamically without requiring contiguous physical GPU VRAM.",
   },
   {
     id: "negative",
@@ -144,7 +146,7 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     what: string,
     why: string,
     _activeLogicalIdx: number,
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -180,7 +182,7 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     "Initialize PagedAttention Block Table Allocator",
     `Configured ${P} physical KV-cache blocks of size ${B} tokens. Sequence of ${S} tokens requires ${numLogicalBlocks} logical blocks.`,
     -1,
-    { sequenceTokens: S, blockSize: B, totalPhysicalBlocks: P }
+    { sequenceTokens: S, blockSize: B, totalPhysicalBlocks: P },
   );
 
   for (let lIdx = 0; lIdx < numLogicalBlocks; lIdx++) {
@@ -195,7 +197,7 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
       `Allocated Physical Block #${physIdx} for Logical Block #${lIdx}`,
       `Mapped token range [${startToken}..${endToken}] to non-contiguous physical GPU block #${physIdx}. Remaining free blocks: ${freeBlocks.length}.`,
       lIdx,
-      { logicalBlock: lIdx, physicalBlock: physIdx, tokens: `${startToken}..${endToken}` }
+      { logicalBlock: lIdx, physicalBlock: physIdx, tokens: `${startToken}..${endToken}` },
     );
   }
 
@@ -204,7 +206,7 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     "PagedAttention Block Allocation Complete",
     `Successfully constructed Virtual Block Table mapping for ${S} tokens across ${numLogicalBlocks} physical blocks without VRAM fragmentation.`,
     numLogicalBlocks,
-    { totalAllocatedBlocks: blockTable.length, freeBlocksRemaining: freeBlocks.length }
+    { totalAllocatedBlocks: blockTable.length, freeBlocksRemaining: freeBlocks.length },
   );
 
   return steps;
@@ -219,11 +221,7 @@ export const pagedAttentionBlockTable: AlgorithmDefinition<PagedAttentionInput> 
     "Virtual memory management algorithm (vLLM / Kwon et al.) that maps logical sequence KV-cache blocks to non-contiguous physical GPU memory pages, eliminating internal and external VRAM fragmentation.",
   isMlInfra: true,
   mlInfraLevel: 10,
-  constraints: [
-    "Block size B > 0",
-    "Total physical blocks P > 0",
-    "Sequence tokens S > 0",
-  ],
+  constraints: ["Block size B > 0", "Total physical blocks P > 0", "Sequence tokens S > 0"],
   examples: PAGED_ATTENTION_EXAMPLES,
   code: PAGED_ATTENTION_BLOCK_TABLE_CODE,
   timeComplexity: {
@@ -234,7 +232,8 @@ export const pagedAttentionBlockTable: AlgorithmDefinition<PagedAttentionInput> 
   spaceComplexity: "O(P * B)",
   complexityAnalysis: {
     time: "O(S / B) allocation time per request to update block lookup table.",
-    space: "O(P * B) total KV-cache memory pool utilization, reducing wasted VRAM from 60-80% down to under 4%.",
+    space:
+      "O(P * B) total KV-cache memory pool utilization, reducing wasted VRAM from 60-80% down to under 4%.",
   },
   topicGuide: {
     overview:
@@ -256,7 +255,8 @@ export const pagedAttentionBlockTable: AlgorithmDefinition<PagedAttentionInput> 
       },
       {
         term: "Block Table",
-        definition: "Lookup table translating logical token sequence block IDs to physical GPU memory addresses.",
+        definition:
+          "Lookup table translating logical token sequence block IDs to physical GPU memory addresses.",
       },
     ],
   },

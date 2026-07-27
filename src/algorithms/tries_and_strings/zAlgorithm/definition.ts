@@ -45,7 +45,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "s = \"aabxaab\"",
+      inputDisplay: 's = "aabxaab"',
       outputDisplay: "[0, 1, 0, 0, 3, 1, 0]",
       title: "Basic Example",
       input: { text: "ababaaba", pattern: "aba" },
@@ -55,16 +55,17 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "s = \"aaaaa\"",
+      inputDisplay: 's = "aaaaa"',
       outputDisplay: "[0, 4, 3, 2, 1]",
       title: "Complex Edge Case",
       input: { text: "aaaaa", pattern: "aa" },
       output: "[0, 1, 2, 3]",
-      explanation: "Overlapping pattern occurrences in uniform text, reusing Z-box right boundaries.",
+      explanation:
+        "Overlapping pattern occurrences in uniform text, reusing Z-box right boundaries.",
     },
     {
       kind: "negative",
-      inputDisplay: "s = \"abcdef\"",
+      inputDisplay: 's = "abcdef"',
       outputDisplay: "[0, 0, 0, 0, 0, 0]",
       title: "Failing / Boundary Case",
       input: { text: "abcdef", pattern: "xyz" },

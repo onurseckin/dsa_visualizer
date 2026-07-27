@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { multiQueryAttentionBroadcast, DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT, generateMultiQueryAttentionBroadcastSteps } from "./multiQueryAttentionBroadcast";
+import {
+  multiQueryAttentionBroadcast,
+  DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT,
+  generateMultiQueryAttentionBroadcastSteps,
+} from "./multiQueryAttentionBroadcast";
 
 describe("multi-query-attention-broadcast (Multi-Query Attention (MQA) Broadcaster)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("multi-query-attention-broadcast (Multi-Query Attention (MQA) Broadcast
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateMultiQueryAttentionBroadcastSteps(DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT);
+    const steps = generateMultiQueryAttentionBroadcastSteps(
+      DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Multi-Query Attention (MQA) Broadcaster");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

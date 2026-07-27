@@ -6,16 +6,15 @@ export interface flatten2dArrayInput {
   target?: number;
 }
 
-export const FLATTEN2DARRAY_CODE = "def flatten2d_array(input_data: list) -> list:\n    # 1D Buffer Matrix Flattening (Easy)\n    # Converts 2D matrix indices (r, c) to flat memory address (r * N + c).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FLATTEN2DARRAY_CODE =
+  "def flatten2d_array(input_data: list) -> list:\n    # 1D Buffer Matrix Flattening (Easy)\n    # Converts 2D matrix indices (r, c) to flat memory address (r * N + c).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
 
 export const DEFAULT_FLATTEN2DARRAY_INPUT: flatten2dArrayInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
-export const generateFlatten2dArraySteps = (
-  input: flatten2dArrayInput
-): AlgorithmStep[] => {
+export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
@@ -29,7 +28,7 @@ export const generateFlatten2dArraySteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
+    customElements?: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -56,13 +55,14 @@ export const generateFlatten2dArraySteps = (
     1,
     "Initialize 1D Buffer Matrix Flattening",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
+    { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+      if (i === idx)
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
@@ -72,7 +72,7 @@ export const generateFlatten2dArraySteps = (
       `Process element ${idx}: value = ${val}`,
       `Evaluating element at index ${idx} against target condition.`,
       { idx, val, isTarget },
-      currentElements
+      currentElements,
     );
   });
 
@@ -86,7 +86,7 @@ export const generateFlatten2dArraySteps = (
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
-    finalElements
+    finalElements,
   );
 
   return steps;
@@ -94,7 +94,11 @@ export const generateFlatten2dArraySteps = (
 
 const FLATTEN2DARRAY_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
   hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
   lineExplanations: {
     1: "Defines entry point for 1D Buffer Matrix Flattening.",
@@ -106,8 +110,8 @@ const FLATTEN2DARRAY_TRIVIA: TriviaMeta = {
 export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
   id: "flatten-2d-array",
   title: "1D Buffer Matrix Flattening",
-  category: "ml_gemm_roofline" as any,
-  categories: ["ml_gemm_roofline","arrays_and_hashing"] as any,
+  category: "ml_gemm_roofline",
+  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 2,
@@ -153,10 +157,16 @@ export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
   topicGuide: {
     overview: "Linear indexing simplifies 2D matrix storage into 1D memory buffers.",
     sections: [
-      { heading: "Core Concept", body: "Converts 2D matrix indices (r, c) to flat memory address (r * N + c)." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+      {
+        heading: "Core Concept",
+        body: "Converts 2D matrix indices (r, c) to flat memory address (r * N + c).",
+      },
+      {
+        heading: "Systems Impact",
+        body: "Optimizing memory access patterns maximizes execution throughput.",
+      },
     ],
-    keyTerms: [{"term":"Linear Address","definition":"Flat offset calculated as r * cols + c."}],
+    keyTerms: [{ term: "Linear Address", definition: "Flat offset calculated as r * cols + c." }],
   },
   trivia: FLATTEN2DARRAY_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],

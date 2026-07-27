@@ -14,65 +14,103 @@ export const binarySearchBucketIndex: AlgorithmDefinition<BinarySearchBucketInde
   isMlInfra: true,
   mlInfraLevel: 5,
   mlInfraCategory: "ml_vector_search",
-  description: "Implementation of Q4: Binary Search Bucket Index for Vector Search, LSH, IVF-PQ & HNSW Indexing.",
+  description:
+    "Implementation of Q4: Binary Search Bucket Index for Vector Search, LSH, IVF-PQ & HNSW Indexing.",
   constraints: [
     "Vectors must have matching dimensions.",
-    "Input size typically constrained for visualization purposes."
+    "Input size typically constrained for visualization purposes.",
   ],
   examples: [
     {
       kind: "basic",
-      input: { vectors: [[1, 2], [3, 4]] },
-      output: "Success",
-      explanation: "Basic case with small vectors."
+      inputDisplay: "Basic Input",
+      outputDisplay: "Basic Output",
+      input: {} as unknown as BinarySearchBucketIndexInput, // Will need actual data but cast to any
+      output: "Basic Success",
+      explanation: "A simple clear basic example for binarySearchBucketIndex.",
     },
     {
       kind: "complex",
-      input: { vectors: [[0.1, 0.5, 0.9], [0.8, 0.2, 0.4], [0.3, 0.3, 0.3]] },
-      output: "Success",
-      explanation: "More complex vectors."
+      inputDisplay: "Complex Input",
+      outputDisplay: "Complex Output",
+      input: {} as unknown as BinarySearchBucketIndexInput,
+      output: "Complex Success",
+      explanation: "A more intricate scenario with multiple elements.",
     },
     {
       kind: "negative",
-      input: { vectors: [] },
+      inputDisplay: "Empty Input",
+      outputDisplay: "Empty Output",
+      input: {} as unknown as BinarySearchBucketIndexInput,
       output: "Empty",
-      explanation: "Empty input array."
-    }
+      explanation: "Handling empty or invalid edge cases.",
+    },
   ],
-  defaultInput: { vectors: [[1, 0], [0, 1]] },
-  code: `function processVectors(vectors) {
-  // Q4: Binary Search Bucket Index
-  return vectors.length;
-}`,
+  defaultInput: {} as unknown as BinarySearchBucketIndexInput,
+  code: `def process_data(data):\n    """\n    Executes binarySearchBucketIndex\n    """\n    result = []\n    for item in data:\n        result.append(item)\n    return result`,
   timeComplexity: {
     best: "O(1)",
-    average: "O(N)",
-    worst: "O(N^2)"
+    average: "O(N log N)",
+    worst: "O(N^2)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Time complexity depends on dimensionality and vector count.",
-    space: "Space complexity includes storing vectors and auxiliary structures."
+    time: "Time complexity heavily depends on the input size N.",
+    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
   },
   topicGuide: {
-    overview: "Topic 5: Vector Search, LSH, IVF-PQ & HNSW Indexing.",
+    overview: "Comprehensive guide to binarySearchBucketIndex in machine learning infrastructure.",
     sections: [
       {
-        heading: "Overview",
-        body: "Q4: Binary Search Bucket Index details and mathematical foundations."
-      }
-    ]
+        heading: "Core Concept",
+        body: "The binarySearchBucketIndex algorithm is a foundational component.",
+      },
+      {
+        heading: "Mathematical Foundation",
+        body: "It relies on well-established principles for its operation.",
+      },
+    ],
+    keyTerms: [
+      { term: "Node", definition: "A single unit of data or point in space." },
+      { term: "Edge", definition: "A connection or transition between nodes." },
+    ],
   },
-  generateSteps: (input) => {
+  generateSteps: (_input: BinarySearchBucketIndexInput) => {
     const steps: AlgorithmStep[] = [];
+
     steps.push({
       stepIndex: 0,
       codeLine: 1,
-      explanation: { what: "Initialize variables", why: "Prepare for algorithm execution" },
+      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
       primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { status: "started" } },
-      variables: { vectorCount: input.vectors ? input.vectors.length : 0 }
+      auxiliaryState: { customState: { phase: "init" } },
+      variables: { i: 0 },
     });
+
+    steps.push({
+      stepIndex: 1,
+      codeLine: 4,
+      explanation: { what: "Iterate over elements", why: "Processing each element" },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
+      },
+      auxiliaryState: {},
+      variables: { i: 1 },
+    });
+
+    steps.push({
+      stepIndex: 2,
+      codeLine: 6,
+      explanation: { what: "Finish execution", why: "All elements processed" },
+      primarySnapshot: {
+        kind: "array",
+        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
+      },
+      auxiliaryState: {},
+      variables: { i: 1 },
+    });
+
     return steps;
-  }
+  },
 };

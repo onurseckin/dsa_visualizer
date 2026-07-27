@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { antiDiagonalExtraction, DEFAULT_ANTIDIAGONALEXTRACTION_INPUT, generateAntiDiagonalExtractionSteps } from "./antiDiagonalExtraction";
+import {
+  antiDiagonalExtraction,
+  DEFAULT_ANTIDIAGONALEXTRACTION_INPUT,
+  generateAntiDiagonalExtractionSteps,
+} from "./antiDiagonalExtraction";
 
 describe("anti-diagonal-extraction (Anti-Diagonal Matrix Traversal)", () => {
   it("should have correct metadata", () => {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { transposedConv2dDeconvIndexMapper, DEFAULT_TRANSPOSEDCONV2DDECONVINDEXMAPPER_INPUT, generateTransposedConv2dDeconvIndexMapperSteps } from "./transposedConv2dDeconvIndexMapper";
+import {
+  transposedConv2dDeconvIndexMapper,
+  DEFAULT_TRANSPOSEDCONV2DDECONVINDEXMAPPER_INPUT,
+  generateTransposedConv2dDeconvIndexMapperSteps,
+} from "./transposedConv2dDeconvIndexMapper";
 
 describe("transposed-conv2d-deconv-index-mapper (Transposed 2D Convolution (Deconvolution) Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("transposed-conv2d-deconv-index-mapper (Transposed 2D Convolution (Deco
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateTransposedConv2dDeconvIndexMapperSteps(DEFAULT_TRANSPOSEDCONV2DDECONVINDEXMAPPER_INPUT);
+    const steps = generateTransposedConv2dDeconvIndexMapperSteps(
+      DEFAULT_TRANSPOSEDCONV2DDECONVINDEXMAPPER_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Transposed 2D Convolution (Deconvolution) Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

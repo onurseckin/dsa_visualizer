@@ -55,7 +55,11 @@ export const generateMatrixExponentiationSteps = (
       for (let c = 0; c < 4; c++) {
         const isRes = c < 2;
         const val = isRes ? mat[r][c] : baseMat[r][c - 2];
-        const isActive = activePos && (isRes ? (activePos.row === r && activePos.col === c) : (activePos.row === r && activePos.col === c - 2));
+        const isActive =
+          activePos &&
+          (isRes
+            ? activePos.row === r && activePos.col === c
+            : activePos.row === r && activePos.col === c - 2);
 
         row.push({
           row: r,
@@ -98,7 +102,16 @@ export const generateMatrixExponentiationSteps = (
       },
       primarySnapshot: {
         kind: "grid",
-        grid: matrixToGrid([[0, 0], [0, 0]], [[1, 1], [1, 0]]),
+        grid: matrixToGrid(
+          [
+            [0, 0],
+            [0, 0],
+          ],
+          [
+            [1, 1],
+            [1, 0],
+          ],
+        ),
       },
       auxiliaryState: {
         hashMap: { "Fibonacci Term F(0)": 0 },
@@ -230,11 +243,13 @@ const MATRIX_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Transformation Matrix",
-      definition: "A matrix describing how previous state values combine to yield the next state in a recurrence.",
+      definition:
+        "A matrix describing how previous state values combine to yield the next state in a recurrence.",
     },
     {
       term: "Binary Exponentiation",
-      definition: "Computing powers in logarithmic steps by halving the exponent and squaring the base.",
+      definition:
+        "Computing powers in logarithmic steps by halving the exponent and squaring the base.",
     },
   ],
 };
@@ -259,10 +274,7 @@ export const matrixExponentiation: AlgorithmDefinition<MatrixExponentiationInput
   difficulty: "Medium",
   description:
     "Compute the n-th term of linear recurrences (like Fibonacci) in O(k^3 log n) time using binary matrix power under modulo.",
-  constraints: [
-    "0 <= n <= 10^18",
-    "1 <= modulo <= 2 * 10^9",
-  ],
+  constraints: ["0 <= n <= 10^18", "1 <= modulo <= 2 * 10^9"],
   examples: [
     {
       kind: "basic",
@@ -299,7 +311,7 @@ export const matrixExponentiation: AlgorithmDefinition<MatrixExponentiationInput
   },
   topicGuide: MATRIX_EXPONENTIATION_TOPIC_GUIDE,
   trivia: MATRIX_EXPONENTIATION_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

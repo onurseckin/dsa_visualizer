@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DagDpLongestPathInput {
@@ -123,7 +128,11 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
     auxiliaryState: {
       visited: [],
       distanceTable: {},
-      customState: { "In-Degrees": Object.entries(inDegree).map(([k, v]) => `${k}:${v}`).join(", ") },
+      customState: {
+        "In-Degrees": Object.entries(inDegree)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(", "),
+      },
     },
     variables: { totalNodes: nodes.length, totalEdges: edges.length },
   });
@@ -420,8 +429,15 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
     ],
     keyTerms: [
       { term: "DAG", definition: "Directed Acyclic Graph containing no directed cycles." },
-      { term: "Topological Sort", definition: "Linear ordering of vertices such that for every directed edge u -> v, u comes before v." },
-      { term: "DP on DAGs", definition: "Optimal substructure optimization enabled by topological node evaluation." },
+      {
+        term: "Topological Sort",
+        definition:
+          "Linear ordering of vertices such that for every directed edge u -> v, u comes before v.",
+      },
+      {
+        term: "DP on DAGs",
+        definition: "Optimal substructure optimization enabled by topological node evaluation.",
+      },
     ],
   },
   trivia: DAG_DP_TRIVIA,

@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import GraphVisualizer from "../../../components/primitives/GraphVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
-import {
-  generateTspBitmaskDpSteps,
-  DEFAULT_TSP_BITMASK_INPUT,
-} from "../tspBitmaskDp";
+import { generateTspBitmaskDpSteps, DEFAULT_TSP_BITMASK_INPUT } from "../tspBitmaskDp";
 
 describe("tspBitmaskDp React component spec", () => {
   it("renders layout cleanly with MainLayout", () => {
@@ -36,13 +33,7 @@ describe("tspBitmaskDp React component spec", () => {
     expect(snapshot.kind).toBe("graph");
 
     if (snapshot.kind === "graph") {
-      render(
-        <GraphVisualizer
-          nodes={snapshot.nodes}
-          edges={snapshot.edges}
-          title="TSP Graph"
-        />,
-      );
+      render(<GraphVisualizer nodes={snapshot.nodes} edges={snapshot.edges} title="TSP Graph" />);
       expect(screen.getByText("TSP Graph")).toBeInTheDocument();
     }
   });

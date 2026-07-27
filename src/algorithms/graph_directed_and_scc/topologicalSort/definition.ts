@@ -127,7 +127,8 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "vertices = [5, 4, 2, 3, 1, 0], edges = [(5,2), (5,0), (4,0), (4,1), (2,3), (3,1)]",
+      inputDisplay:
+        "vertices = [5, 4, 2, 3, 1, 0], edges = [(5,2), (5,0), (4,0), (4,1), (2,3), (3,1)]",
       outputDisplay: "[5, 4, 2, 3, 1, 0]",
       title: "Basic Example",
       input: {

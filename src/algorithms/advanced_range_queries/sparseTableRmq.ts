@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface SparseTableQuery {
@@ -136,7 +131,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   );
 
   // Dynamic programming to compute st[i][j]
-  for (let j = 1; (1 << j) <= n; j++) {
+  for (let j = 1; 1 << j <= n; j++) {
     const len = 1 << j;
     const half = 1 << (j - 1);
 
@@ -235,11 +230,13 @@ export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Idempotence",
-      definition: "A operation property where f(a, a) = a, allowing overlapping intervals to be combined without error.",
+      definition:
+        "A operation property where f(a, a) = a, allowing overlapping intervals to be combined without error.",
     },
     {
       term: "Sparse Table",
-      definition: "A 2D array st[i][j] holding precomputed query answers for intervals of length 2^j starting at index i.",
+      definition:
+        "A 2D array st[i][j] holding precomputed query answers for intervals of length 2^j starting at index i.",
     },
   ],
 };

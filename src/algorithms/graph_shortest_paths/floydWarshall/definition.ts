@@ -133,8 +133,10 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "matrix = [[0, 3, 8, ∞, -4], [∞, 0, ∞, 1, 7], [∞, 4, 0, ∞, ∞], [2, ∞, -5, 0, ∞], [∞, ∞, ∞, 6, 0]]",
-      outputDisplay: "[[0, 1, -3, 2, -4], [3, 0, -4, 1, -1], [7, 4, 0, 5, 3], [2, -1, -5, 0, -2], [8, 5, 1, 6, 0]]",
+      inputDisplay:
+        "matrix = [[0, 3, 8, ∞, -4], [∞, 0, ∞, 1, 7], [∞, 4, 0, ∞, ∞], [2, ∞, -5, 0, ∞], [∞, ∞, ∞, 6, 0]]",
+      outputDisplay:
+        "[[0, 1, -3, 2, -4], [3, 0, -4, 1, -1], [7, 4, 0, 5, 3], [2, -1, -5, 0, -2], [8, 5, 1, 6, 0]]",
       title: "Complex Edge Case",
       input: {
         nodes: ["1", "2", "3", "4"],

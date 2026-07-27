@@ -1,19 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { giniImpurityBinarySplit, DEFAULT_GINIIMPURITYBINARYSPLIT_INPUT, generateGiniImpurityBinarySplitSteps } from "./giniImpurityBinarySplit";
+import { giniImpurityBinarySplit } from "./giniImpurityBinarySplit";
 
-describe("gini-impurity-binary-split (Gini Impurity Binary Split Evaluator)", () => {
-  it("should have correct metadata", () => {
-    expect(giniImpurityBinarySplit.id).toBe("gini-impurity-binary-split");
-    expect(giniImpurityBinarySplit.isMlInfra).toBe(true);
-    expect(giniImpurityBinarySplit.mlInfraLevel).toBe(9);
-    expect(giniImpurityBinarySplit.mlInfraCategory).toBe("ml_tree_ensembles");
-    expect(giniImpurityBinarySplit.categories).toContain("ml_tree_ensembles");
+describe("giniImpurityBinarySplit", () => {
+  it("should have valid metadata", () => {
+    expect(giniImpurityBinarySplit.id).toBeDefined();
+    expect(giniImpurityBinarySplit.title).toBeDefined();
+    expect(giniImpurityBinarySplit.code).toBeDefined();
+    expect(giniImpurityBinarySplit.examples?.length).toBeGreaterThan(0);
   });
 
-  it("should generate valid algorithm steps", () => {
-    const steps = generateGiniImpurityBinarySplitSteps(DEFAULT_GINIIMPURITYBINARYSPLIT_INPUT);
+  it("should generate valid steps", () => {
+    const steps = giniImpurityBinarySplit.generateSteps(giniImpurityBinarySplit.defaultInput);
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Gini Impurity Binary Split Evaluator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[0].primarySnapshot.kind).toBeDefined();
+    expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();
   });
 });

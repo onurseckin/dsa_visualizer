@@ -50,8 +50,7 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
       title: "Basic Example",
       input: { n: 4 },
       output: "2 valid solutions",
-      explanation:
-        "Standard 4x4 chessboard has 2 distinct non-attacking queen configurations.",
+      explanation: "Standard 4x4 chessboard has 2 distinct non-attacking queen configurations.",
     },
     {
       kind: "complex",

@@ -38,7 +38,7 @@ export const DEFAULT_DISTANCE_METRICS_KNN_INPUT: DistanceMetricsKnnInput = {
 };
 
 export const generateDistanceMetricsKnnSteps = (
-  input: DistanceMetricsKnnInput
+  input: DistanceMetricsKnnInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -68,7 +68,7 @@ export const generateDistanceMetricsKnnSteps = (
     why: string,
     activeIdx: number | null,
     distList: { idx: number; dist: number }[],
-    vars: Record<string, string | number | boolean>
+    vars: Record<string, string | number | boolean>,
   ) => {
     const elements: ArrayElement[] = dataset.map((vec, i) => {
       const match = distList.find((d) => d.idx === i);
@@ -80,9 +80,7 @@ export const generateDistanceMetricsKnnSteps = (
         id: `vec-${i}`,
         value: match ? Math.round(match.dist * 100) / 100 : i,
         state,
-        pointers: match
-          ? [`Vec${i}: d=${match.dist.toFixed(2)}`]
-          : [`Vec${i}: [${vec.join(",")}]`],
+        pointers: match ? [`Vec${i}: d=${match.dist.toFixed(2)}`] : [`Vec${i}: [${vec.join(",")}]`],
       };
     });
 
@@ -99,9 +97,7 @@ export const generateDistanceMetricsKnnSteps = (
           metric,
           query: `[${query.join(", ")}]`,
           k: String(k),
-          computedDistances: distList
-            .map((d) => `V${d.idx}:${d.dist.toFixed(3)}`)
-            .join(", "),
+          computedDistances: distList.map((d) => `V${d.idx}:${d.dist.toFixed(3)}`).join(", "),
         },
       },
       variables: vars,
@@ -121,7 +117,7 @@ export const generateDistanceMetricsKnnSteps = (
     `Query vector: [${query.join(", ")}]. Computing ${metric} distance to ${n} dataset vectors.`,
     null,
     [],
-    { n, k, metric }
+    { n, k, metric },
   );
 
   const distances: { idx: number; dist: number }[] = [];
@@ -138,7 +134,7 @@ export const generateDistanceMetricsKnnSteps = (
       `Distance between Query and Vec ${idx} is ${dist}. Appended to candidate distance pool.`,
       idx,
       [...distances],
-      { idx, dist, poolSize: distances.length }
+      { idx, dist, poolSize: distances.length },
     );
   }
 
@@ -147,12 +143,10 @@ export const generateDistanceMetricsKnnSteps = (
   addStep(
     15,
     `Sort candidates by distance ascending`,
-    `Sorted distances: ${sortedDistances
-      .map((d) => `V${d.idx}: ${d.dist}`)
-      .join(", ")}.`,
+    `Sorted distances: ${sortedDistances.map((d) => `V${d.idx}: ${d.dist}`).join(", ")}.`,
     null,
     sortedDistances,
-    { poolSize: sortedDistances.length }
+    { poolSize: sortedDistances.length },
   );
 
   const topK = sortedDistances.slice(0, Math.min(k, n));
@@ -224,7 +218,8 @@ export const distanceMetricsKnn: AlgorithmDefinition<DistanceMetricsKnnInput> = 
       title: "Euclidean 2-NN Search",
       input: DEFAULT_DISTANCE_METRICS_KNN_INPUT,
       output: "[(0, 0.7071), (2, 0.7071)]",
-      explanation: "Vec 0 and Vec 2 are nearest to query [1.0, 2.0] at distance sqrt(0.5) = 0.7071.",
+      explanation:
+        "Vec 0 and Vec 2 are nearest to query [1.0, 2.0] at distance sqrt(0.5) = 0.7071.",
     },
     {
       kind: "complex",

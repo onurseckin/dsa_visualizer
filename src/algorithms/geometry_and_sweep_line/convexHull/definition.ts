@@ -109,7 +109,8 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "points = [(100,300), (150,150), (250,100), (300,250), (400,350), (200,400), (350,180)]",
+      inputDisplay:
+        "points = [(100,300), (150,150), (250,100), (300,250), (400,350), (200,400), (350,180)]",
       outputDisplay: "6 hull vertices",
       title: "Basic Example",
       input: {

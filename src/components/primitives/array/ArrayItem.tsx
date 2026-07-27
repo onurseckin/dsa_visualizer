@@ -18,8 +18,9 @@ export const ArrayItem: React.FC<ArrayItemProps> = ({ item, index, metrics }) =>
   const pointers = item.pointers;
 
   if (!metrics.isBoxMode) {
+    const numVal = typeof item.value === "number" ? item.value : Number(item.value) || 1;
     const barHeight = Math.max(
-      (item.value / metrics.maxVal) * metrics.bandHeight,
+      (numVal / metrics.maxVal) * metrics.bandHeight,
       metrics.minBarHeight,
     );
     const y = metrics.baselineY - barHeight;

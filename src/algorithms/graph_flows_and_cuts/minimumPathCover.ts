@@ -105,7 +105,14 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
       kind: "graph",
       nodes: nodes.map((node, i) => ({
         ...node,
-        state: i === activeV ? "active" : i === activeU ? "pivot" : match.includes(i) ? "visited" : "default",
+        state:
+          i === activeV
+            ? "active"
+            : i === activeU
+              ? "pivot"
+              : match.includes(i)
+                ? "visited"
+                : "default",
       })),
       edges: edgeItems,
     };
@@ -249,7 +256,8 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
     time: "DFS augmenting path algorithm runs once for each of V vertices, yielding O(V * E) runtime.",
-    space: "Requires matching and visited arrays of size V, plus adjacency list taking O(V + E) memory.",
+    space:
+      "Requires matching and visited arrays of size V, plus adjacency list taking O(V + E) memory.",
   },
   topicGuide: {
     overview:
@@ -262,7 +270,7 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
     ],
   },
   trivia: MINIMUM_PATH_COVER_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

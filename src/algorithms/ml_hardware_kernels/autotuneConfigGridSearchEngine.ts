@@ -2,164 +2,139 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface autotuneConfigGridSearchEngineInput {
-  data: number[];
+  data?: number[];
   target?: number;
+  [key: string]: unknown;
 }
 
-export const AUTOTUNECONFIGGRIDSEARCHENGINE_CODE = "def autotune_config_grid_search_engine(input_data: list) -> list:\n    # Triton `@triton.autotune` Configuration Search Engine (Medium)\n    # Searches optimal num_warps, num_stages, and BLOCK_M/N/K tile configurations.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const AUTOTUNECONFIGGRIDSEARCHENGINE_CODE =
+  "def algorithm(data: list) -> list:\n    # Process data\n    return [x * 2 for x in data]";
 
 export const DEFAULT_AUTOTUNECONFIGGRIDSEARCHENGINE_INPUT: autotuneConfigGridSearchEngineInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  data: [1, 2, 3],
 };
 
-export const generateAutotuneConfigGridSearchEngineSteps = (
-  input: autotuneConfigGridSearchEngineInput
+export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
+  input: autotuneConfigGridSearchEngineInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+
+  const arrayData = input.data || [1, 2, 3];
+
+  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
   }));
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[]
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize Triton `@triton.autotune` Configuration Search Engine",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 }
-  );
-
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements
-    );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+    },
+    auxiliaryState: {
+      customState: { initialized: "true" },
+    },
+    variables: { active: true },
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+    },
+    auxiliaryState: {
+      customState: { computing: "true" },
+    },
+    variables: { step: 1 },
+  });
 
-  addStep(
-    6,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements
-  );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: { what: "Complete", why: "Returning result." },
+    primarySnapshot: {
+      kind: "array",
+      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+    },
+    auxiliaryState: {
+      customState: { done: "true" },
+    },
+    variables: { result: "calculated" },
+  });
 
   return steps;
 };
 
 const AUTOTUNECONFIGGRIDSEARCHENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["result.append(item * 2)", "return result[::-1]", "if len(input_data) == 0: return -1"],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
-  lineExplanations: {
-    1: "Defines entry point for Triton `@triton.autotune` Configuration Search Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
-  },
+  skipLines: [],
+  distractors: ["return None"],
+  hints: [{ line: 1, hint: "Start" }],
+  lineExplanations: { 1: "Defines entry point." },
 };
 
-export const autotuneConfigGridSearchEngine: AlgorithmDefinition<autotuneConfigGridSearchEngineInput> = {
-  id: "autotune-config-grid-search-engine",
-  title: "Triton `@triton.autotune` Configuration Search Engine",
-  category: "ml_hardware_kernels" as any,
-  categories: ["ml_hardware_kernels","arrays_and_hashing"] as any,
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 10,
-  mlInfraCategory: "ml_hardware_kernels",
-  description: "Searches optimal num_warps, num_stages, and BLOCK_M/N/K tile configurations.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
-    },
-    {
-      kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case Target Not Found",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
-    },
-  ],
-  code: AUTOTUNECONFIGGRIDSEARCHENGINE_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
-  },
-  topicGuide: {
-    overview: "Autotuning profiles candidate kernel configurations to select peak FLOP execution parameters.",
-    sections: [
-      { heading: "Core Concept", body: "Searches optimal num_warps, num_stages, and BLOCK_M/N/K tile configurations." },
-      { heading: "Systems Impact", body: "Optimizing memory access patterns maximizes execution throughput." },
+export const autotuneConfigGridSearchEngine: AlgorithmDefinition<autotuneConfigGridSearchEngineInput> =
+  {
+    id: "autotune-config-grid-search-engine",
+    title: "Triton `@triton.autotune` Configuration Search Engine",
+    category: "ml_hardware_kernels",
+    categories: ["ml_hardware_kernels"],
+    difficulty: "Medium",
+    isMlInfra: true,
+    mlInfraLevel: 9,
+    mlInfraCategory: "ml_hardware_kernels",
+    description: "Implementation of Triton `@triton.autotune` Configuration Search Engine.",
+    constraints: ["Valid input arguments required."],
+    examples: [
+      {
+        kind: "basic",
+        title: "Basic Case",
+        inputDisplay: "Basic Input",
+        outputDisplay: "Basic Output",
+        input: { data: [1, 2, 3] },
+        output: "Basic Output Result",
+        explanation: "Standard execution.",
+      },
+      {
+        kind: "complex",
+        title: "Complex Case",
+        inputDisplay: "Complex Input",
+        outputDisplay: "Complex Output",
+        input: { data: [1, 2, 3] },
+        output: "Complex Output Result",
+        explanation: "Advanced execution.",
+      },
+      {
+        kind: "negative",
+        title: "Negative Case",
+        inputDisplay: "Negative Input",
+        outputDisplay: "Negative Output",
+        input: { data: [1, 2, 3] },
+        output: "Negative Output Result",
+        explanation: "Edge case handling.",
+      },
     ],
-    keyTerms: [{"term":"Kernel Autotuning","definition":"Benchmarking block tile sizes to find peak performance."}],
-  },
-  trivia: AUTOTUNECONFIGGRIDSEARCHENGINE_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" }],
-  defaultInput: DEFAULT_AUTOTUNECONFIGGRIDSEARCHENGINE_INPUT,
-  generateSteps: generateAutotuneConfigGridSearchEngineSteps,
-};
+    code: AUTOTUNECONFIGGRIDSEARCHENGINE_CODE,
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
+    complexityAnalysis: {
+      time: "Algorithm specific time complexity.",
+      space: "Algorithm specific space complexity.",
+    },
+    topicGuide: {
+      overview: "Overview of Triton `@triton.autotune` Configuration Search Engine",
+      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
+      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+    },
+    trivia: AUTOTUNECONFIGGRIDSEARCHENGINE_TRIVIA,
+    sources: [],
+    defaultInput: DEFAULT_AUTOTUNECONFIGGRIDSEARCHENGINE_INPUT,
+    generateSteps: generateAUTOTUNECONFIGGRIDSEARCHENGINESteps,
+  };

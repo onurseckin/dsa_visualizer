@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { virtualMatrixAdditionZeroStride, DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT, generateVirtualMatrixAdditionZeroStrideSteps } from "./virtualMatrixAdditionZeroStride";
+import {
+  virtualMatrixAdditionZeroStride,
+  DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT,
+  generateVirtualMatrixAdditionZeroStrideSteps,
+} from "./virtualMatrixAdditionZeroStride";
 
 describe("virtual-matrix-addition-zero-stride (Zero-Stride Broadcasting Matrix Addition)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("virtual-matrix-addition-zero-stride (Zero-Stride Broadcasting Matrix A
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateVirtualMatrixAdditionZeroStrideSteps(DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT);
+    const steps = generateVirtualMatrixAdditionZeroStrideSteps(
+      DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Zero-Stride Broadcasting Matrix Addition");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

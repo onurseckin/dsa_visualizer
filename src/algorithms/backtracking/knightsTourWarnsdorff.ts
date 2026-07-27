@@ -14,8 +14,14 @@ export const DEFAULT_KNIGHTS_TOUR_INPUT: KnightsTourInput = {
 };
 
 const KNIGHT_MOVES = [
-  [-2, 1], [-1, 2], [1, 2], [2, 1],
-  [2, -1], [1, -2], [-1, -2], [-2, -1],
+  [-2, 1],
+  [-1, 2],
+  [1, 2],
+  [2, 1],
+  [2, -1],
+  [1, -2],
+  [-1, -2],
+  [-2, -1],
 ] as const;
 
 const WARNSDORFF_TRIVIA: TriviaMeta = {
@@ -35,9 +41,7 @@ const WARNSDORFF_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateKnightsTourWarnsdorffSteps = (
-  input: KnightsTourInput,
-): AlgorithmStep[] => {
+export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): AlgorithmStep[] => {
   const n = Math.max(3, Math.min(8, input.size));
   const startR = Math.max(0, Math.min(n - 1, input.startRow));
   const startC = Math.max(0, Math.min(n - 1, input.startCol));
@@ -340,11 +344,13 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
     keyTerms: [
       {
         term: "Knight's Graph",
-        definition: "A graph where each chessboard square is a vertex and edges connect valid knight moves.",
+        definition:
+          "A graph where each chessboard square is a vertex and edges connect valid knight moves.",
       },
       {
         term: "Warnsdorff Degree",
-        definition: "The number of valid onward unvisited squares accessible from a candidate square.",
+        definition:
+          "The number of valid onward unvisited squares accessible from a candidate square.",
       },
     ],
   },
@@ -361,4 +367,3 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   ],
   defaultInput: DEFAULT_KNIGHTS_TOUR_INPUT,
 };
-

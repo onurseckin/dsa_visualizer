@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { slidingWindowPrefixAttentionEngine, DEFAULT_SLIDINGWINDOWPREFIXATTENTIONENGINE_INPUT, generateSlidingWindowPrefixAttentionEngineSteps } from "./slidingWindowPrefixAttentionEngine";
+import {
+  slidingWindowPrefixAttentionEngine,
+  DEFAULT_SLIDINGWINDOWPREFIXATTENTIONENGINE_INPUT,
+  generateSlidingWindowPrefixAttentionEngineSteps,
+} from "./slidingWindowPrefixAttentionEngine";
 
 describe("sliding-window-prefix-attention-engine (Sliding Window Prefix Attention Engine)", () => {
   it("should have correct metadata", () => {
@@ -11,7 +15,9 @@ describe("sliding-window-prefix-attention-engine (Sliding Window Prefix Attentio
   });
 
   it("should generate valid algorithm steps", () => {
-    const steps = generateSlidingWindowPrefixAttentionEngineSteps(DEFAULT_SLIDINGWINDOWPREFIXATTENTIONENGINE_INPUT);
+    const steps = generateSlidingWindowPrefixAttentionEngineSteps(
+      DEFAULT_SLIDINGWINDOWPREFIXATTENTIONENGINE_INPUT,
+    );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Sliding Window Prefix Attention Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

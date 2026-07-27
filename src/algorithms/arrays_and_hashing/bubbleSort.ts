@@ -243,7 +243,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
     sections: [
       {
         heading: "The core idea: fix neighbours and let order emerge",
-        body: "The algorithm never looks at the array as a whole; it only ever asks whether one adjacent pair is in the wrong relative order and swaps if so. The insight is that an unsorted array must contain at least one adjacent pair that is out of order, so as long as any disorder remains there is always a swap available to make. Each swap removes exactly one inversion, and since a sorted array is precisely an array with zero inversions, this local rule cannot get stuck short of the answer. The name comes from the visible side effect: within a single sweep the largest value encountered keeps winning its comparisons and rides all the way to the end of the pass, like a bubble surfacing.",
+        body: "The algorithm never looks at the array as a whole; it only ever asks whether one adjacent pair is in the wrong relative order and swaps if so. The insight is that an unsorted array must contain at least one adjacent pair that is out of order, so as long disorder remains there is always a swap available to make. Each swap removes exactly one inversion, and since a sorted array is precisely an array with zero inversions, this local rule cannot get stuck short of the answer. The name comes from the visible side effect: within a single sweep the largest value encountered keeps winning its comparisons and rides all the way to the end of the pass, like a bubble surfacing.",
       },
       {
         heading: "How the passes and the shrinking boundary work",

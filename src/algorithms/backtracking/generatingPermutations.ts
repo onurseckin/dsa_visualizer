@@ -253,7 +253,8 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   spaceComplexity: "O(N)",
   complexityAnalysis: {
     time: "Generating N! permutations where building each permutation of length N takes O(N) copy operations yields O(N * N!) total time.",
-    space: "O(N) stack memory required for recursion of depth N plus the boolean used tracking array.",
+    space:
+      "O(N) stack memory required for recursion of depth N plus the boolean used tracking array.",
   },
   topicGuide: {
     overview:
@@ -271,7 +272,8 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
       },
       {
         term: "Backtracking Guard",
-        definition: "A boolean array tracking used elements to prevent duplicate element selection within a single branch.",
+        definition:
+          "A boolean array tracking used elements to prevent duplicate element selection within a single branch.",
       },
     ],
   },
@@ -288,4 +290,3 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   ],
   defaultInput: DEFAULT_GENERATING_PERMUTATIONS_INPUT,
 };
-
