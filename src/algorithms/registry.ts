@@ -96,9 +96,16 @@ import { autogradVjpDag } from "./ml_infra/autogradVjpDag";
 import { activationCheckpointing } from "./ml_infra/activationCheckpointing";
 import { fusedSoftmaxLse } from "./ml_infra/fusedSoftmaxLse";
 import { affineQuantizationSq8 } from "./ml_infra/affineQuantizationSq8";
+import { smoothquantScaling } from "./ml_infra/smoothquantScaling";
+import { lshVectorHashing } from "./ml_infra/lshVectorHashing";
+import { ivfPqAdcSearch } from "./ml_infra/ivfPqAdcSearch";
 import { hnswVectorSearch } from "./ml_infra/hnswVectorSearch";
 import { bpeTokenizer } from "./ml_infra/bpeTokenizer";
+import { viterbiSubwordSegmenter } from "./ml_infra/viterbiSubwordSegmenter";
+import { xgboostGradientSplit } from "./ml_infra/xgboostGradientSplit";
 import { im2colConvTiling } from "./ml_infra/im2colConvTiling";
+import { lstmConstantErrorCarousel } from "./ml_infra/lstmConstantErrorCarousel";
+import { scaledDotAttentionMask } from "./ml_infra/scaledDotAttentionMask";
 import { ropeRotaryPosition } from "./ml_infra/ropeRotaryPosition";
 import { groupedQueryAttention } from "./ml_infra/groupedQueryAttention";
 import { flashAttentionTiling } from "./ml_infra/flashAttentionTiling";
@@ -208,9 +215,16 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "activation-checkpointing": activationCheckpointing as AlgorithmDefinition,
   "fused-softmax-lse": fusedSoftmaxLse as AlgorithmDefinition,
   "affine-quantization-sq8": affineQuantizationSq8 as AlgorithmDefinition,
+  "smoothquant-scaling": smoothquantScaling as AlgorithmDefinition,
+  "lsh-vector-hashing": lshVectorHashing as AlgorithmDefinition,
+  "ivf-pq-adc-search": ivfPqAdcSearch as AlgorithmDefinition,
   "hnsw-vector-search": hnswVectorSearch as AlgorithmDefinition,
   "bpe-tokenizer": bpeTokenizer as AlgorithmDefinition,
+  "viterbi-subword-segmenter": viterbiSubwordSegmenter as AlgorithmDefinition,
+  "xgboost-gradient-split": xgboostGradientSplit as AlgorithmDefinition,
   "im2col-conv-tiling": im2colConvTiling as AlgorithmDefinition,
+  "lstm-constant-error-carousel": lstmConstantErrorCarousel as AlgorithmDefinition,
+  "scaled-dot-attention-mask": scaledDotAttentionMask as AlgorithmDefinition,
   "rope-rotary-position": ropeRotaryPosition as AlgorithmDefinition,
   "grouped-query-attention": groupedQueryAttention as AlgorithmDefinition,
   "flash-attention-tiling": flashAttentionTiling as AlgorithmDefinition,
