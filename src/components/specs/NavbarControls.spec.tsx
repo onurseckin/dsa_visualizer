@@ -149,7 +149,7 @@ describe("NavbarControls Component Spec", () => {
 
       const group = screen.getByRole("group", { name: "App view" });
       const labels = Array.from(group.querySelectorAll("button")).map((btn) => btn.textContent);
-      expect(labels).toEqual(["Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
+      console.log("LABELS:", labels); expect(labels).toEqual(["Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
     });
 
     it("switches the app view when the Trivia segment is clicked", () => {

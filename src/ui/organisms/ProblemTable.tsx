@@ -36,11 +36,14 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   );
 
   return (
-    <Card className="border border-[var(--border-default)] rounded-[var(--radius-lg)] overflow-hidden shadow-sm">
+    <Card
+      className="border border-[var(--border-default)] rounded-[var(--radius-lg)] overflow-hidden shadow-sm"
+      style={{ borderColor: "var(--border-default)" }}
+    >
       <div style={{ overflowX: "auto" }}>
         <table className="w-full border-collapse text-left">
-          <thead>
-            <tr>
+          <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
+            <tr className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
               <th className="px-6 py-4 bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-default)] w-[60px]">
                 #
               </th>

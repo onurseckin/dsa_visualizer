@@ -32,8 +32,8 @@ export interface NavbarProps {
 const APP_VIEW_OPTIONS = [
   { value: "tree", label: "Knowledge Tree", icon: <Network className="w-4 h-4" /> },
   { value: "list", label: "Problem List", icon: <List className="w-4 h-4" /> },
-  { value: "trivia", label: "Trivia", icon: <Brain className="w-4 h-4" /> },
   { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft className="w-4 h-4" /> },
+  { value: "trivia", label: "Trivia", icon: <Brain className="w-4 h-4" /> },
 ];
 
 const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: string }[] = [

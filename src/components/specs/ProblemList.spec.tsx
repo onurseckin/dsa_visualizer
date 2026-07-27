@@ -25,12 +25,12 @@ describe("ProblemList Component Spec", () => {
     const cards = Array.from(container.querySelectorAll<HTMLElement>(".ui-card"));
     expect(cards.length).toBeGreaterThanOrEqual(1);
     cards.forEach((card) => {
-      expect(card.style.borderColor).toBe("var(--border-default)");
+      expect(card).toHaveClass("border-[var(--border-default)]");
     });
 
     const headerRow = container.querySelector<HTMLElement>("thead tr");
-    expect(headerRow?.style.background).toBe("var(--bg-elevated)");
-    expect(headerRow?.style.borderBottom).toBe("1px solid var(--border-default)");
+    expect(headerRow?.className).toContain("bg-[var(--bg-elevated)]");
+    expect(headerRow?.className).toContain("border-b");
 
     const rows = Array.from(container.querySelectorAll<HTMLElement>("tbody tr"));
     expect(rows.length).toBeGreaterThan(10);
