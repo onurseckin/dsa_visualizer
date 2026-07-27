@@ -43,7 +43,7 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       role="button"
       tabIndex={0}
       aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-      transform={`translate(${node.x - 100}, ${node.y - 36})`}
+      transform={`translate(${node.x - 95}, ${node.y - 32})`}
       onClick={() => onSelectCategoryFolder(node.categoryFolder)}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => onHover(node.id)}
@@ -60,9 +60,9 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       className={isHovered ? "scale-[1.02]" : ""}
     >
       <rect
-        width="200"
-        height="72"
-        rx="16"
+        width="190"
+        height="64"
+        rx="12"
         fill={activeFocusOrHover ? topicFamilyFillHover(node.family) : topicFamilyFill(node.family)}
         stroke={
           activeFocusOrHover
@@ -80,33 +80,23 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
         }}
       />
 
-      <rect x="10" y="16" width="6" height="40" rx="3" fill={topicFamilyColor(node.family)} 
+      <rect x="8" y="12" width="5" height="40" rx="2.5" fill={topicFamilyColor(node.family)} 
             style={{ filter: activeFocusOrHover ? "brightness(1.2)" : "none" }} />
 
       <text
-        x="105"
-        y="30"
+        x="95"
+        y="28"
         textAnchor="middle"
-        fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
-        fontSize="13.5"
-        fontWeight="700"
-        letterSpacing="0.01em"
-        fontFamily="var(--font-ui)"
-        style={{ transition: "all 0.3s ease" }}
+        className={`font-bold text-[13px] transition-all duration-300 ${isHovered ? 'fill-[var(--accent)]' : 'fill-white'}`}
       >
         {node.title}
       </text>
 
       <text
-        x="105"
-        y="54"
+        x="95"
+        y="48"
         textAnchor="middle"
-        fill={isHovered ? "var(--text-primary)" : "var(--text-secondary)"}
-        fontSize="11"
-        fontWeight="500"
-        fontFamily="var(--font-code)"
-        letterSpacing="0.04em"
-        style={{ transition: "all 0.3s ease" }}
+        className={`font-mono text-[11px] transition-all duration-300 ${isHovered ? 'fill-neutral-200' : 'fill-neutral-400'}`}
       >
         {node.algorithmCount} Algs • {node.difficulty}
       </text>

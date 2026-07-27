@@ -22,9 +22,9 @@
   color-scheme: dark;
 
   /* Surfaces — page is carbon, cards are darker than the page, wells deepest. */
-  --bg-inset: #050506;
-  --bg-surface: #0a0a0c;
-  --bg-page: #17171b;
+  --bg-inset: #08080a;
+  --bg-surface: #141418;
+  --bg-page: #0c0c0e;
   --bg-chrome: #1c1c21;
   --bg-elevated: #1e1e24;
   --bg-hover: #282830;
@@ -32,16 +32,16 @@
   --bg-backdrop: rgba(3, 3, 4, 0.82);
 
   /* Borders carry the edge definition on near-black cards. */
-  --border-subtle: #2a2a31;
-  --border-default: #50505b;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.08);
   --border-strong: #75757f;
   --border-accent: #d8d8e0;
 
   /* Accent — light smoke for selection, emphasis text and active borders.
      Primary buttons stay BLACK-backed (see .ui-btn--primary in ui.css); this
      token is the ink and edge on them, not their fill. */
-  --accent: #d8d8e0;
-  --accent-hover: #f2f2f6;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
   --accent-soft: rgba(216, 216, 224, 0.1);
   --accent-softer: rgba(216, 216, 224, 0.05);
   --text-on-accent: #f5f5f7;
@@ -137,8 +137,9 @@
 
   /* Elevation — neutral, subtle */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-accent: 0 0 15px rgba(99,102,241,0.3);
 
   /* Focus */
   --focus-ring: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--accent);

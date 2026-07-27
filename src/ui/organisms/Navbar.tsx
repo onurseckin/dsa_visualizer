@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="flex w-full items-center justify-between px-6 py-4 gap-6 shrink-0 bg-[var(--bg-chrome)] border-b border-[var(--border-default)]">
+    <header className="h-16 px-6 bg-[#0c0c0e]/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-6 shrink-0">
       <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
         <IconButton
           icon={<Network className="w-[18px] h-[18px]" />}
@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <Segmented
           aria-label="App view"
           size="md"
-          className="[&_.ui-segmented__btn]:px-4 [&_.ui-segmented__btn]:py-2 [&_.ui-segmented__btn]:h-auto"
+          className="[&_.ui-segmented__btn]:px-4 [&_.ui-segmented__btn]:py-2 [&_.ui-segmented__btn]:text-sm [&_.ui-segmented__btn]:font-medium [&_.ui-segmented__btn]:rounded-lg [&_.ui-segmented__btn]:text-neutral-300 hover:[&_.ui-segmented__btn]:text-white [&_.ui-segmented__btn]:transition-all [&_.ui-segmented__btn[aria-pressed=true]]:bg-[#1e1e28] [&_.ui-segmented__btn[aria-pressed=true]]:text-white [&_.ui-segmented__btn[aria-pressed=true]]:border [&_.ui-segmented__btn[aria-pressed=true]]:border-white/10 [&_.ui-segmented__btn[aria-pressed=true]]:shadow-sm"
           options={APP_VIEW_OPTIONS}
           value={appView}
           onChange={(value) => onSetAppView(value as AppView)}

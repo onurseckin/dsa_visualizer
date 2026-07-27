@@ -1,7 +1,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { CategoryType } from "../../types/dsa";
-import { Badge, Input, Select } from "../index";
+import { Input, Select } from "../index";
 import {
   CATEGORY_ENTRIES,
   ProblemListDifficulty,
@@ -29,16 +29,16 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   stats,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl mb-8">
+    <div className="bg-[#141418] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
       <div className="flex-1 min-w-[240px]">
         <Input
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
           onClear={() => onSearchTermChange("")}
-          leadingIcon={<Search />}
+          leadingIcon={<Search className="text-neutral-400" size={18} />}
           placeholder="Search problems by title, category, description..."
           aria-label="Filter problems"
-          className="min-h-[40px]"
+          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full placeholder-neutral-500"
         />
       </div>
 
@@ -50,6 +50,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedCategory}
           onChange={(e) => onCategorySelect(e.target.value as CategoryType | "All")}
           aria-label="Filter by Category"
+          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full"
         >
           <option value="All">All Categories ({stats.total})</option>
           {CATEGORY_ENTRIES.map(([catKey, label]) => (
@@ -68,6 +69,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedDifficulty}
           onChange={(e) => onDifficultySelect(e.target.value as ProblemListDifficulty)}
           aria-label="Filter by Difficulty"
+          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full"
         >
           <option value="All">All Difficulties</option>
           <option value="Easy">Easy ({stats.easy})</option>
@@ -77,9 +79,9 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <Badge variant="neutral" size="md" className="px-3 py-1">
+        <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
           {filteredCount} / {stats.total} Problems
-        </Badge>
+        </span>
       </div>
     </div>
   );
