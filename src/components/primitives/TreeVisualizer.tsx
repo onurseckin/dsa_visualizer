@@ -57,6 +57,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
+          padding: "var(--space-4)",
         }}
       >
         <svg

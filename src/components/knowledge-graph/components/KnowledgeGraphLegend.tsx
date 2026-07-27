@@ -7,7 +7,7 @@ export const KnowledgeGraphLegend: React.FC = () => {
   return (
     <ul
       aria-label="Topic family colors"
-      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 max-w-[1100px] mx-auto mt-4 mb-8 py-4 px-8 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] list-none text-center shadow-sm"
+      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 max-w-[1100px] mx-auto mt-8 mb-8 py-6 px-10 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] list-none text-center shadow-sm"
     >
       {TOPIC_FAMILIES.map((family) => (
         <li
