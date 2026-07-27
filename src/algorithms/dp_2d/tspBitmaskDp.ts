@@ -22,7 +22,10 @@ export const DEFAULT_TSP_BITMASK_INPUT: TspBitmaskDpInput = {
   ],
 };
 
-export const PYTHON_TSP_BITMASK_CODE = `def tsp_bitmask(dist: list[list[int]]) -> int:
+export const PYTHON_TSP_BITMASK_CODE = `def is_visited(mask: int, city: int) -> bool:
+    return (mask & (1 << city)) != 0
+
+def tsp_bitmask(dist: list[list[int]]) -> int:
     n = len(dist)
     INF = float('inf')
     dp = [[INF] * n for _ in range(1 << n)]
@@ -33,7 +36,7 @@ export const PYTHON_TSP_BITMASK_CODE = `def tsp_bitmask(dist: list[list[int]]) -
             if dp[mask][u] == INF:
                 continue
             for v in range(n):
-                if not (mask & (1 << v)) and dist[u][v] != INF:
+                if not is_visited(mask, v) and dist[u][v] != INF:
                     next_mask = mask | (1 << v)
                     dp[next_mask][v] = min(dp[next_mask][v], dp[mask][u] + dist[u][v])
 
@@ -52,7 +55,6 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
   const dp: number[][] = Array.from({ length: numMasks }, () => new Array<number>(n).fill(INF));
   dp[1][0] = 0;
 
-  // Node positions in a ring for graph layout
   const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
     const angle = (2 * Math.PI * i) / n;
     return {
@@ -97,7 +99,7 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 5,
+    codeLine: 8,
     explanation: {
       what: "Initialize TSP DP state: start at City 0 with mask 1 (0001_2)",
       why: "dp[mask][u] stores min cost to visit cities in mask ending at u. dp[1][0] = 0.",
@@ -120,7 +122,7 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
 
             steps.push({
               stepIndex: stepIndex++,
-              codeLine: 13,
+              codeLine: 17,
               explanation: {
                 what: `Relax edge City ${u} -> City ${v} (weight ${dist[u][v]})`,
                 why: `Mask ${mask.toString(2)} -> ${nextMask.toString(2)}. dp[${nextMask.toString(2)}][${v}] updated to ${dp[nextMask][v]}.`,
@@ -159,7 +161,7 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
   const finalCost = ans === INF ? -1 : ans;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 17,
+    codeLine: 21,
     explanation: {
       what: `Complete TSP Tour. Optimal Cost = ${finalCost}`,
       why: finalCost !== -1
@@ -176,15 +178,16 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
 
 const TSP_BITMASK_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines tsp_bitmask(dist) -> int using Held-Karp algorithm.",
-    4: "Initializes dp[mask][u] table of size (2^n) x n to infinity.",
-    5: "Sets base case dp[1][0] = 0 (city 0 visited, starting cost 0).",
-    7: "Outer loop iterates through all bitmasks from 1 to (2^n - 1).",
-    8: "Iterates through current city u.",
-    11: "Iterates through next unvisited city v (where bit v in mask is 0).",
-    13: "Updates dp[next_mask][v] to min(dp[next_mask][v], dp[mask][u] + dist[u][v]).",
-    16: "Calculates total tour cost by returning to city 0 from last city u.",
-    17: "Returns minimum total tour cost or -1 if unreachable.",
+    1: "Helper is_visited checks if city bit is set in mask.",
+    4: "Defines tsp_bitmask(dist) -> int using Held-Karp algorithm.",
+    7: "Initializes dp[mask][u] table of size (2^n) × n to infinity.",
+    8: "Sets base case dp[1][0] = 0 (city 0 visited, starting cost 0).",
+    10: "Outer loop iterates through all bitmasks from 1 to (2^n - 1).",
+    11: "Iterates through current city u.",
+    14: "Iterates through next unvisited city v (where is_visited(mask, v) is False).",
+    17: "Updates dp[next_mask][v] to min(dp[next_mask][v], dp[mask][u] + dist[u][v]).",
+    20: "Calculates minimum total tour cost returning to city 0 from last city u.",
+    21: "Returns minimum total tour cost or -1 if unreachable.",
   },
 };
 
@@ -264,9 +267,15 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
         body: "dp[mask][u] stores min cost to visit cities in mask ending at city u.",
       },
     ],
+    keyTerms: [
+      {
+        term: "Bitmask State",
+        definition: "Representation of visited city subset and current city endpoint.",
+      },
+    ],
   },
   trivia: TSP_BITMASK_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

@@ -22,13 +22,14 @@ export const DEFAULT_BINARY_LIFTING_LCA_INPUT: BinaryLiftingLcaInput = {
 
 const BINARY_LIFTING_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Signature: compute LCA of nodes u and v in O(log N) using Binary Lifting.",
-    2: "Precompute depth array and up table up[u][j] = 2^j ancestor of u.",
-    5: "DFS traversal to assign depths and immediate parents (up[u][0]).",
-    9: "Fill binary lifting DP: 2^j ancestor is the 2^(j-1) ancestor of the 2^(j-1) ancestor.",
-    14: "Bring u and v to the same depth by lifting the deeper node.",
-    19: "Lift both u and v in parallel using power-of-two jumps as high as possible.",
-    23: "Return up[u][0], which is the lowest common ancestor of u and v.",
+    1: "Import math module for logarithmic calculations.",
+    3: "Signature: compute LCA of nodes u and v in O(log N) using Binary Lifting.",
+    8: "Precompute depth array and up table up[u][j] = 2^j ancestor of u.",
+    12: "DFS traversal to assign depths and immediate parents (up[u][0]).",
+    20: "Fill binary lifting DP: 2^j ancestor is the 2^(j-1) ancestor of the 2^(j-1) ancestor.",
+    27: "Bring u and v to the same depth by lifting the deeper node.",
+    36: "Lift both u and v in parallel using power-of-two jumps as high as possible.",
+    40: "Return up[u][0], which is the lowest common ancestor of u and v.",
   },
 };
 
@@ -110,7 +111,7 @@ export const generateBinaryLiftingLcaSteps = (
   // Step 1: Precomputation summary
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 2,
+    codeLine: 20,
     explanation: {
       what: `Precomputed Binary Lifting table up[N][${LOGN}] and depths for ${n} nodes.`,
       why: "Allows log2(N) power-of-two jumps up the ancestor tree.",
@@ -150,7 +151,7 @@ export const generateBinaryLiftingLcaSteps = (
     }
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 14,
+      codeLine: 27,
       explanation: {
         what: `Lifted deeper node by ${diff} levels to match depth ${depth[v]}.`,
         why: "Binary lifting equalizes depths before parallel jumping.",
@@ -180,7 +181,7 @@ export const generateBinaryLiftingLcaSteps = (
 
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 19,
+          codeLine: 36,
           explanation: {
             what: `Lifted both nodes by 2^${j} = ${1 << j} levels to (${u}, ${v}).`,
             why: `Ancestors up[u][${j}] and up[v][${j}] differ, so jump up safely below LCA.`,
@@ -206,7 +207,7 @@ export const generateBinaryLiftingLcaSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 23,
+    codeLine: 40,
     explanation: {
       what: `Found LCA of nodes ${targetU} and ${targetV}: Node ${finalLca}!`,
       why: "Lowest common ancestor identified in O(log N) jump steps.",
@@ -287,25 +288,30 @@ export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
       explanation: "Node 1 is a direct ancestor of Node 3, so LCA is Node 1 itself.",
     },
   ],
-  code: `def binary_lifting_lca(n, edges, query_u, query_v):
-    import math
+  code: `import math
+
+def binary_lifting_lca(n, edges, u, v):
+    adj = [[] for _ in range(n)]
+    for a, b in edges:
+        adj[a].append(b)
+        adj[b].append(a)
+
     LOGN = math.ceil(math.log2(n + 1))
     depth = [0] * n
     up = [[0] * LOGN for _ in range(n)]
 
-    def dfs(u, p, d):
-        depth[u] = d
-        up[u][0] = p
-        for v in adj[u]:
-            if v != p:
-                dfs(v, u, d + 1)
+    def dfs(node, parent, d):
+        depth[node] = d
+        up[node][0] = parent
+        for child in adj[node]:
+            if child != parent:
+                dfs(child, node, d + 1)
 
     dfs(0, 0, 0)
     for j in range(1, LOGN):
         for i in range(n):
-            up[i][j] = up[up[i][j-1]][j-1]
+            up[i][j] = up[up[i][j - 1]][j - 1]
 
-    u, v = query_u, query_v
     if depth[u] < depth[v]:
         u, v = v, u
 
@@ -355,7 +361,7 @@ export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   },
   trivia: BINARY_LIFTING_TRIVIA,
   generateSteps: generateBinaryLiftingLcaSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -366,3 +372,4 @@ export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   ],
   defaultInput: DEFAULT_BINARY_LIFTING_LCA_INPUT,
 };
+

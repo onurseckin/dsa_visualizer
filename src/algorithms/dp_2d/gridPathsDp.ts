@@ -18,8 +18,11 @@ export const DEFAULT_GRID_PATHS_INPUT: GridPathsDpInput = {
   ],
 };
 
-export const PYTHON_GRID_PATHS_CODE = `def grid_paths(grid: list[list[int]]) -> int:
-    if not grid or grid[0][0] == 1:
+export const PYTHON_GRID_PATHS_CODE = `def is_blocked(grid: list[list[int]], r: int, c: int) -> bool:
+    return grid[r][c] == 1
+
+def grid_paths(grid: list[list[int]]) -> int:
+    if not grid or is_blocked(grid, 0, 0):
         return 0
     m, n = len(grid), len(grid[0])
     dp = [[0] * n for _ in range(m)]
@@ -27,7 +30,7 @@ export const PYTHON_GRID_PATHS_CODE = `def grid_paths(grid: list[list[int]]) -> 
 
     for r in range(m):
         for c in range(n):
-            if grid[r][c] == 1:
+            if is_blocked(grid, r, c):
                 dp[r][c] = 0
                 continue
             if r > 0:
@@ -71,7 +74,7 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
   if (grid[0][0] === 1) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 3,
+      codeLine: 6,
       explanation: {
         what: "Start cell (0,0) is blocked by an obstacle",
         why: "Impossible to reach the destination since start is an obstacle. Return 0.",
@@ -86,7 +89,7 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
   dp[0][0] = 1;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 9,
     explanation: {
       what: "Initialize dp[0][0] = 1",
       why: "There is exactly 1 way to start at cell (0,0).",
@@ -104,7 +107,7 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
         dp[r][c] = 0;
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 11,
+          codeLine: 14,
           explanation: {
             what: `Cell (${r}, ${c}) is an obstacle`,
             why: "No paths can pass through an obstacle, so dp[r][c] is set to 0.",
@@ -121,7 +124,7 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 15,
+        codeLine: 17,
         explanation: {
           what: `Compute dp[${r}][${c}] = ${dp[r][c]}`,
           why: `Accumulated paths from top cell (${r > 0 ? dp[r - 1][c] : 0}) and left cell (${c > 0 ? dp[r][c - 1] : 0}).`,
@@ -136,7 +139,7 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
   const ans = dp[m - 1][n - 1];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 21,
     explanation: {
       what: `Return dp[${m - 1}][${n - 1}] = ${ans}`,
       why: `The total number of unique paths to reach bottom-right cell is ${ans}.`,
@@ -151,16 +154,18 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
 
 const GRID_PATHS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines grid_paths(grid) -> int.",
-    2: "Checks if grid is empty or start cell is an obstacle.",
-    5: "Initializes 2D dp table of size m x n with 0s.",
-    6: "Sets base case dp[0][0] = 1.",
-    8: "Iterates through rows r from 0 to m - 1.",
-    9: "Iterates through cols c from 0 to n - 1.",
-    10: "If grid[r][c] == 1, cell is an obstacle, dp[r][c] = 0.",
-    13: "Adds paths from top neighbor dp[r-1][c] if r > 0.",
-    15: "Adds paths from left neighbor dp[r][c-1] if c > 0.",
-    18: "Returns dp[m-1][n-1] which is the answer.",
+    1: "Helper is_blocked checks if cell (r, c) contains an obstacle.",
+    4: "Defines grid_paths(grid) -> int.",
+    5: "Checks if grid is empty or start cell is blocked.",
+    7: "Store grid dimensions m and n.",
+    8: "Initializes 2D dp table of size m × n with 0s.",
+    9: "Sets base case dp[0][0] = 1.",
+    11: "Iterates through rows r from 0 to m - 1.",
+    12: "Iterates through cols c from 0 to n - 1.",
+    13: "If cell (r, c) is blocked, set dp[r][c] = 0 and skip.",
+    16: "Adds paths from top neighbor dp[r-1][c] if r > 0.",
+    18: "Adds paths from left neighbor dp[r][c-1] if c > 0.",
+    21: "Returns dp[m-1][n-1] containing total unique paths to destination.",
   },
 };
 
@@ -236,7 +241,7 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
     ],
   },
   trivia: GRID_PATHS_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

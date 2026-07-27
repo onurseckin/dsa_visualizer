@@ -184,7 +184,7 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     }
 
     addStep(
-      21,
+      19,
       `Subarray [${l}..${r}] merged and sorted: [${currentArr.slice(l, r + 1).join(", ")}]`,
       `Completed merging for interval [${l}..${r}]. Elements are now in sorted order.`,
       { l, r, mergedSubarray: currentArr.slice(l, r + 1).join(", ") },
@@ -197,7 +197,7 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
   sortSubarray(0, n - 1);
 
   addStep(
-    22,
+    21,
     "Merge Sort complete",
     `Entire array is fully sorted in O(N log N) time: [${currentArr.join(", ")}].`,
     { n, finalArray: currentArr.join(", ") },
@@ -239,25 +239,24 @@ export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MERGE_SORT_TRIVIA: TriviaMeta = {
-  skipLines: [1, 3, 7, 12],
-  distractors: [
-    "if left_half[i] > right_half[j]: merged.append(left_half[i])",
-    "mid = (l + r) // 3",
-    "merged = left_half + right_half",
-  ],
-  hints: [
-    {
-      line: 13,
-      hint: "Compare left_half[i] and right_half[j] to maintain stable sorted order",
-    },
-    {
-      line: 20,
-      hint: "Append remaining unmerged elements from left and right halves",
-    },
-  ],
   lineExplanations: {
-    13: "Pick smaller element to maintain ascending order during merge.",
-    20: "Append remaining elements once one pointer reaches end of half.",
+    1: "Declares the function: splits arr in half, recursively sorts each half, and merges them.",
+    2: "Base case check: an array with 0 or 1 element is already sorted.",
+    3: "Returns the array as-is for base cases.",
+    5: "Finds the midpoint to split the array into two equal halves.",
+    6: "Recursively sorts the left half of the array.",
+    7: "Recursively sorts the right half of the array.",
+    9: "Initializes an empty list to store the merged result.",
+    10: "Sets pointers i and j to 0 for tracking positions in left and right halves.",
+    11: "Loops while both halves still have unmerged elements.",
+    12: "Compares current elements of left and right halves.",
+    13: "Appends the smaller left element to merged.",
+    14: "Advances index i in left_half.",
+    16: "Appends the smaller right element to merged.",
+    17: "Advances index j in right_half.",
+    19: "Appends any remaining elements from left_half to merged.",
+    20: "Appends any remaining elements from right_half to merged.",
+    21: "Returns the fully sorted merged array.",
   },
 };
 

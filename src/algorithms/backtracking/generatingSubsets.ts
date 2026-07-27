@@ -15,9 +15,13 @@ const SUBSETS_TRIVIA: TriviaMeta = {
     2: "Initialize result list to collect generated subsets.",
     4: "Recursive helper function backtrack(index, current_subset).",
     5: "Base case: when index equals n, record a copy of current_subset.",
+    6: "Append current subset copy to result list.",
     9: "Branch 1: exclude elements[index] and recurse to next index.",
-    11: "Branch 2: include elements[index] in current_subset and recurse.",
-    13: "Un-choose: pop element to restore current_subset before unwinding.",
+    10: "Branch 2: append elements[index] to current_subset.",
+    11: "Recurse with updated current_subset containing elements[index].",
+    12: "Un-choose: pop element to restore current_subset before unwinding.",
+    14: "Start backtracking recursion from index 0 with empty subset.",
+    15: "Return all generated subsets.",
   },
 };
 
@@ -73,7 +77,7 @@ export const generateGeneratingSubsetsSteps = (
       allSubsets.push([...currSubset]);
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 5,
+        codeLine: 6,
         explanation: {
           what: `Base case reached! Recorded subset: [${currSubset.join(", ")}].`,
           why: "All element decisions processed up to length N.",
@@ -126,7 +130,7 @@ export const generateGeneratingSubsetsSteps = (
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 11,
+      codeLine: 10,
       explanation: {
         what: `Decision at index ${idx} (element ${nums[idx]}): INCLUDE.`,
         why: `Added ${nums[idx]} to current subset.`,
@@ -155,7 +159,7 @@ export const generateGeneratingSubsetsSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 13,
+    codeLine: 15,
     explanation: {
       what: `Completed power set generation! Produced all ${allSubsets.length} subsets.`,
       why: "Recursive backtracking systematically explored all 2^N binary decision paths.",
@@ -214,22 +218,19 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
       explanation: "An empty set has exactly 1 subset: the empty set itself.",
     },
   ],
-  code: `def generating_subsets(elements):
+  code: `def generating_subsets(elements: list[int]) -> list[list[int]]:
     result = []
-    
-    def backtrack(index, current_subset):
+
+    def backtrack(index: int, current_subset: list[int]):
         if index == len(elements):
             result.append(list(current_subset))
             return
-            
-        # Branch 1: Exclude
+
         backtrack(index + 1, current_subset)
-        
-        # Branch 2: Include
         current_subset.append(elements[index])
         backtrack(index + 1, current_subset)
         current_subset.pop()
-        
+
     backtrack(0, [])
     return result`,
   timeComplexity: {
@@ -264,7 +265,7 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   },
   trivia: SUBSETS_TRIVIA,
   generateSteps: generateGeneratingSubsetsSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -275,3 +276,4 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   ],
   defaultInput: DEFAULT_GENERATING_SUBSETS_INPUT,
 };
+

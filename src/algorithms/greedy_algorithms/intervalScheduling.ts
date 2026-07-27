@@ -12,16 +12,15 @@ export interface IntervalSchedulingInput {
 }
 
 export const PYTHON_INTERVAL_SCHEDULING_CODE = `def interval_scheduling(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    # Sort intervals by their end times (greedy choice)
     intervals.sort(key=lambda x: x[1])
     selected = []
     last_end = float('-inf')
-    
+
     for start, end in intervals:
         if start >= last_end:
             selected.append((start, end))
             last_end = end
-            
+
     return selected`;
 
 export const DEFAULT_INTERVAL_SCHEDULING_INPUT: IntervalSchedulingInput = {
@@ -96,7 +95,7 @@ export const generateIntervalSchedulingSteps = (input: IntervalSchedulingInput):
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
+    codeLine: 2,
     explanation: {
       what: "Sorted all intervals by finish time in ascending order.",
       why: "Greedy choice principle: Finishing earlier leaves maximum available time for remaining intervals.",
@@ -212,7 +211,7 @@ export const generateIntervalSchedulingSteps = (input: IntervalSchedulingInput):
   // Final Step: Return result
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 11,
     explanation: {
       what: `Algorithm finished. Selected ${selected.length} optimal non-overlapping intervals.`,
       why: "No more intervals remain to evaluate.",
@@ -262,17 +261,17 @@ export const INTERVAL_SCHEDULING_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const INTERVAL_SCHEDULING_TRIVIA: TriviaMeta = {
-  skipLines: [1, 5, 6, 12],
-  distractors: [
-    "intervals.sort(key=lambda x: x[0])",
-    "intervals.sort(key=lambda x: x[1] - x[0])",
-    "if start > last_end:",
-    "last_end = start",
-  ],
-  hints: [
-    { line: 3, hint: "Always sort intervals by finish time (end time), not start time or length." },
-    { line: 7, hint: "Check if start time is greater than or equal to last selected finish time." },
-  ],
+  lineExplanations: {
+    1: "Defines interval_scheduling: selects max non-overlapping intervals.",
+    2: "Sorts intervals by their end (finish) time in ascending order.",
+    3: "Initializes selected list to store chosen intervals.",
+    4: "Initializes last_end to negative infinity.",
+    6: "Iterates through each interval (start, end) in sorted order.",
+    7: "Checks if current start >= last_end (non-overlapping condition).",
+    8: "Appends current interval to selected list.",
+    9: "Updates last_end to current interval's finish time.",
+    11: "Returns optimal list of selected non-overlapping intervals.",
+  },
 };
 
 export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = {

@@ -12,15 +12,20 @@ export const DEFAULT_GENERATING_PERMUTATIONS_INPUT: GeneratingPermutationsInput 
 const PERMUTATIONS_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Signature: generate all N! permutations of array elements.",
-    2: "Initialize output list to collect permutations.",
-    3: "Create boolean used array tracking which elements are in current permutation.",
+    2: "Initialize result list to collect generated permutations.",
+    3: "Create boolean used array tracking elements in current permutation.",
     5: "Recursive helper function backtrack(current_perm).",
-    6: "Base case: when current_perm has length equal to N, append copy of permutation.",
-    9: "Iterate over all elements to pick the next element for current_perm.",
-    10: "If element is already used in current branch, skip it.",
-    12: "Choose: mark element as used and add to current_perm.",
-    14: "Explore: recurse to pick the next element position.",
-    15: "Un-choose: pop element and unmark used to backtrack for sibling choices.",
+    6: "Base case: when len(current_perm) equals len(elements), record copy.",
+    7: "Append current permutation copy to result list.",
+    10: "Iterate over all elements to pick the next position.",
+    11: "If element is already used in current branch, skip it.",
+    12: "Mark element as used.",
+    13: "Append element to current_perm.",
+    14: "Recurse to choose next position element.",
+    15: "Pop element from current_perm.",
+    16: "Unmark used[i] to backtrack for sibling choices.",
+    18: "Start recursion with empty initial permutation.",
+    19: "Return all generated permutations.",
   },
 };
 
@@ -77,7 +82,7 @@ export const generateGeneratingPermutationsSteps = (
       allPermutations.push([...currPerm]);
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 6,
+        codeLine: 7,
         explanation: {
           what: `Found complete permutation #${allPermutations.length}: [${currPerm.join(", ")}].`,
           why: "All N positions filled.",
@@ -106,7 +111,7 @@ export const generateGeneratingPermutationsSteps = (
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 12,
+        codeLine: 13,
         explanation: {
           what: `Picked element ${nums[i]} at position ${currPerm.length - 1}.`,
           why: `Element ${nums[i]} was not yet used in current branch.`,
@@ -155,7 +160,7 @@ export const generateGeneratingPermutationsSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 6,
+    codeLine: 19,
     explanation: {
       what: `Permutation generation complete! Generated all ${allPermutations.length} permutations.`,
       why: "Systematically explored all decision paths of the permutation tree.",
@@ -221,15 +226,15 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
       explanation: "1 element array has exactly 1 permutation: [1].",
     },
   ],
-  code: `def generating_permutations(elements):
+  code: `def generating_permutations(elements: list[int]) -> list[list[int]]:
     result = []
     used = [False] * len(elements)
-    
-    def backtrack(current_perm):
+
+    def backtrack(current_perm: list[int]):
         if len(current_perm) == len(elements):
             result.append(list(current_perm))
             return
-            
+
         for i in range(len(elements)):
             if not used[i]:
                 used[i] = True
@@ -237,7 +242,7 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
                 backtrack(current_perm)
                 current_perm.pop()
                 used[i] = False
-                
+
     backtrack([])
     return result`,
   timeComplexity: {
@@ -272,7 +277,7 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   },
   trivia: PERMUTATIONS_TRIVIA,
   generateSteps: generateGeneratingPermutationsSteps,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",
@@ -283,3 +288,4 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   ],
   defaultInput: DEFAULT_GENERATING_PERMUTATIONS_INPUT,
 };
+

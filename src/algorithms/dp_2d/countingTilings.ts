@@ -11,7 +11,10 @@ export const DEFAULT_COUNTING_TILINGS_INPUT: CountingTilingsInput = {
   m: 3,
 };
 
-export const PYTHON_COUNTING_TILINGS_CODE = `def count_tilings(n: int, m: int) -> int:
+export const PYTHON_COUNTING_TILINGS_CODE = `def is_bit_set(mask: int, row: int) -> bool:
+    return (mask & (1 << row)) != 0
+
+def count_tilings(n: int, m: int) -> int:
     if (n * m) % 2 != 0:
         return 0
 
@@ -24,11 +27,11 @@ export const PYTHON_COUNTING_TILINGS_CODE = `def count_tilings(n: int, m: int) -
             for mask in range(1 << n):
                 if not dp[mask]:
                     continue
-                if mask & (1 << row):
+                if is_bit_set(mask, row):
                     next_dp[mask ^ (1 << row)] += dp[mask]
                 else:
                     next_dp[mask | (1 << row)] += dp[mask]
-                    if row + 1 < n and not (mask & (1 << (row + 1))):
+                    if row + 1 < n and not is_bit_set(mask, row + 1):
                         next_dp[mask] += dp[mask]
             dp = next_dp
 
@@ -43,7 +46,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
   if ((n * m) % 2 !== 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 3,
+      codeLine: 6,
       explanation: {
         what: `Total area n * m = ${n * m} is odd`,
         why: "A grid with odd total area cannot be tiled using 1x2 dominoes of area 2. Return 0.",
@@ -64,7 +67,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 9,
     explanation: {
       what: `Initialize bitmask DP table for n=${n}`,
       why: `Size of mask space is 2^${n} = ${numMasks}. dp[0] = 1 (empty profile before col 0).`,
@@ -103,7 +106,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 10,
+        codeLine: 23,
         explanation: {
           what: `Processed cell (row ${row}, col ${col})`,
           why: `Profile transition updated dp table for column ${col}, row ${row}. dp[0] is currently ${dp[0]}.`,
@@ -128,7 +131,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
   const result = dp[0];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 25,
     explanation: {
       what: `Return dp[0] = ${result}`,
       why: `The total number of valid domino tilings for a ${n}x${m} grid is ${result}.`,
@@ -151,17 +154,19 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
 const COUNTING_TILINGS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines count_tilings(n, m) -> int: profile bitmask DP.",
-    2: "If n * m is odd, returning 0 immediately.",
-    5: "Initializes dp table of size 2^n with 0s.",
-    6: "Sets dp[0] = 1 for the empty boundary.",
-    8: "Iterates through each column col from 0 to m - 1.",
-    9: "Iterates through each row row from 0 to n - 1.",
-    10: "Allocates next_dp table for current cell transition.",
-    11: "Loops through all bitmasks from 0 to 2^n - 1.",
-    14: "If bit at row is set, places horizontal domino extending from previous cell.",
-    16: "Else places horizontal domino extending to next cell or vertical domino with row below.",
-    20: "Returns dp[0], valid tilings leaving no overhangs.",
+    1: "Helper is_bit_set checks if specific bit row is set in mask.",
+    4: "Defines count_tilings(n, m) -> int: broken profile bitmask DP.",
+    5: "If total area n * m is odd, returning 0 immediately.",
+    8: "Initializes DP array dp of size 2^n with 0s.",
+    9: "Sets base case dp[0] = 1 for empty boundary.",
+    11: "Iterates through each column col from 0 to m - 1.",
+    12: "Iterates through each row row from 0 to n - 1.",
+    13: "Allocates next_dp array for current cell transition.",
+    14: "Loops through all bitmask profile states from 0 to 2^n - 1.",
+    17: "If bit at row is set, clear bit and carry over previous count.",
+    20: "Else place horizontal domino or test vertical domino with cell below.",
+    23: "Update dp table to next_dp after processing cell.",
+    25: "Returns dp[0], valid tilings leaving no overhangs.",
   },
 };
 
@@ -218,9 +223,15 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
         body: "Bit i in mask represents whether cell (i, col) is filled by a horizontal domino extending into the next column.",
       },
     ],
+    keyTerms: [
+      {
+        term: "Profile Bitmask",
+        definition: "Bit representation of occupied boundary cells.",
+      },
+    ],
   },
   trivia: COUNTING_TILINGS_TRIVIA,
-    sources: [
+  sources: [
     {
       type: "book",
       kind: "book",

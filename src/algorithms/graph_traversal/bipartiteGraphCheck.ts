@@ -12,7 +12,7 @@ export const BIPARTITE_CHECK_CODE = `def is_bipartite(nodes, edges):
         adj[u].append(v)
         adj[v].append(u)
 
-    color = {}  # 0 or 1
+    color = {}
     for start in nodes:
         if start not in color:
             color[start] = 0
@@ -24,12 +24,12 @@ export const BIPARTITE_CHECK_CODE = `def is_bipartite(nodes, edges):
                         color[v] = 1 - color[u]
                         queue.append(v)
                     elif color[v] == color[u]:
-                        return False, {}  # Conflict: Odd cycle detected
+                        return False, {}
 
     return True, color`;
 
 export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [2, 3, 4, 5],
   distractors: [
     "color[v] = color[u]",
     "if color[v] != color[u]: return False",
@@ -46,7 +46,7 @@ export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
       hint: "Assign opposite color (1 - color[u]) to unvisited neighbors.",
     },
     {
-      line: 18,
+      line: 19,
       hint: "If a neighbor already shares the same color, an odd-length cycle exists, breaking 2-colorability.",
     },
     {
@@ -57,9 +57,9 @@ export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines 2-coloring bipartite graph validation algorithm.",
     7: "Initializes color assignment table.",
-    11: "Runs BFS/DFS traversal over each connected component.",
+    12: "Runs BFS/DFS traversal over each connected component.",
     16: "Assigns opposite color (1 - color[u]) to neighboring vertices.",
-    18: "Detects color collision indicating an odd-length cycle.",
+    19: "Detects color collision indicating an odd-length cycle.",
     21: "Confirms graph is 2-colorable (bipartite).",
   },
 };
@@ -179,7 +179,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
             steps.push({
               stepIndex: stepIdx++,
-              codeLine: 18,
+              codeLine: 19,
               explanation: {
                 what: `Conflict detected on edge ${u} -- ${v}! Both nodes share Color ${color[u]}.`,
                 why: "An odd-length cycle prevents 2-coloring. Graph is NOT bipartite.",

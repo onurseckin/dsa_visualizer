@@ -123,7 +123,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
   };
 
   addStep(
-    4,
+    3,
     "Initialize Mo's Algorithm",
     `Offline processing ${input.queries.length} queries on array of length N = ${n}. Block size S = floor(sqrt(${n})) = ${Math.max(1, Math.floor(Math.sqrt(n)))}.`,
     { n, numQueries: input.queries.length },
@@ -133,7 +133,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
 
   if (n === 0 || input.queries.length === 0) {
     addStep(
-      6,
+      5,
       "Input is empty",
       "No queries to process or array is empty.",
       { n, numQueries: input.queries.length },
@@ -176,7 +176,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
     const { L, R, id } = indexedQueries[stepQ];
 
     addStep(
-      17,
+      16,
       `Processing Query Q${id + 1}: Range [${L}..${R}]`,
       `Adjusting current window [${currL}..${currR}] to target range [${L}..${R}].`,
       { queryId: id + 1, L, R, currL, currR, currSum },
@@ -191,7 +191,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       currL--;
       currSum += arr[currL];
       addStep(
-        19,
+        17,
         `Expand left pointer to currL = ${currL}`,
         `Added arr[${currL}] (${arr[currL]}) to current window sum (${currSum}).`,
         { currL, currR, currSum, addedVal: arr[currL] },
@@ -207,7 +207,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       currR++;
       currSum += arr[currR];
       addStep(
-        22,
+        20,
         `Expand right pointer to currR = ${currR}`,
         `Added arr[${currR}] (${arr[currR]}) to current window sum (${currSum}).`,
         { currL, currR, currSum, addedVal: arr[currR] },
@@ -223,7 +223,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       currSum -= arr[currL];
       currL++;
       addStep(
-        25,
+        23,
         `Shrink left pointer to currL = ${currL}`,
         `Removed arr[${currL - 1}] (${arr[currL - 1]}) from window sum (${currSum}).`,
         { currL, currR, currSum, removedVal: arr[currL - 1] },
@@ -239,7 +239,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       currSum -= arr[currR];
       currR--;
       addStep(
-        28,
+        26,
         `Shrink right pointer to currR = ${currR}`,
         `Removed arr[${currR + 1}] (${arr[currR + 1]}) from window sum (${currSum}).`,
         { currL, currR, currSum, removedVal: arr[currR + 1] },
@@ -252,7 +252,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
 
     ans[id] = currSum;
     addStep(
-      30,
+      29,
       `Saved result for Q${id + 1}: sum([${L}..${R}]) = ${currSum}`,
       `Recorded result for query Q${id + 1}. Current answers array: [${ans.join(", ")}].`,
       { queryId: id + 1, L, R, answer: currSum },
@@ -301,7 +301,7 @@ export const MO_ALGORITHM_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
-  skipLines: [1, 4, 10, 15],
+  skipLines: [1, 2, 8, 11],
   distractors: [
     "indexed_queries.sort(key=lambda q: (q[0], q[1]))",
     "curr_sum += arr[curr_r]; curr_r -= 1",
@@ -313,14 +313,20 @@ export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
       hint: "Sort queries primarily by L // block_size and secondarily by R",
     },
     {
-      line: 19,
+      line: 17,
       hint: "Move curr_l left (decrement) and add element to sum",
     },
   ],
   lineExplanations: {
-    10: "Order queries offline to achieve O((N + Q) sqrt(N)) bound.",
-    19: "Expand window to the left.",
-    30: "Record query answer into original query position.",
+    3: "Signature: mo_algorithm(arr, queries) processes offline range queries.",
+    5: "Check for empty input or empty queries list.",
+    10: "Order queries offline using block decomposition to optimize total pointer movement.",
+    17: "Move left pointer left (decrement curr_l) and expand window sum.",
+    20: "Move right pointer right (increment curr_r) and expand window sum.",
+    23: "Move left pointer right (increment curr_l) and shrink window sum.",
+    26: "Move right pointer left (decrement curr_r) and shrink window sum.",
+    29: "Record query answer into original query position.",
+    31: "Return list of computed query answers.",
   },
 };
 

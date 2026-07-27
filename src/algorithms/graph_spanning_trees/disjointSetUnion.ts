@@ -26,9 +26,9 @@ const DSU_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Signature: initialize DSU structure with N elements.",
     2: "Set parent[i] = i (each element is initially its own root leader) and rank[i] = 0.",
-    4: "find(u) with path compression: flattens tree by pointing visited nodes directly to root.",
-    8: "union(u, v) with union by rank: attaches lower-rank root under higher-rank root.",
-    14: "Increment rank[rootU] if both roots had equal rank.",
+    6: "find(u) with path compression: flattens tree by pointing visited nodes directly to root.",
+    12: "union(u, v) with union by rank: attaches lower-rank root under higher-rank root.",
+    19: "Increment rank[root_i] if both roots had equal rank.",
   },
 };
 
@@ -147,7 +147,7 @@ export const generateDisjointSetUnionSteps = (
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 4,
+        codeLine: 6,
         explanation: {
           what: `Executed find(${u}) with path compression -> Representative Root: V${root}.`,
           why: "Path compression updates parent pointers directly to root, flattening tree depth to O(α(N)).",
@@ -184,7 +184,7 @@ export const generateDisjointSetUnionSteps = (
 
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 8,
+          codeLine: 12,
           explanation: {
             what: `Executed union(${u}, ${v}) -> Merged component V${rootV} into V${rootU}.`,
             why: "Union by rank attached tree with smaller rank under root with larger rank.",
@@ -208,7 +208,7 @@ export const generateDisjointSetUnionSteps = (
       } else {
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 8,
+          codeLine: 12,
           explanation: {
             what: `Executed union(${u}, ${v}) -> Nodes V${u} and V${v} are already in the same component!`,
             why: `Both nodes share root V${rootU}. No edge added.`,
@@ -235,7 +235,7 @@ export const generateDisjointSetUnionSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 14,
+    codeLine: 21,
     explanation: {
       what: `Completed all DSU operations! Remaining disjoint components: ${finalRoots.size}.`,
       why: "Union-Find operations completed in near-constant amortized time O(α(N)).",

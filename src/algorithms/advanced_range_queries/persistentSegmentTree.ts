@@ -215,7 +215,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
     };
 
     addStep(
-      22,
+      21,
       `Created version v${v} node [${l}..${r}] (val = ${newNodeVal})`,
       `Cloned parent node for v${v}. Left child is ${newLeft?.id}, right child is ${newRight?.id} (shared or new).`,
       { v, l, r, val: newNodeVal },
@@ -229,7 +229,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
     if (!node || qr < l || ql > r) return 0;
     if (ql <= l && r <= qr) {
       addStep(
-        27,
+        30,
         `Node [${l}..${r}] fully inside query range. Returning ${node.val}`,
         `Exact match. Returning version v${node.version} precomputed node value ${node.val}.`,
         { l, r, val: node.val, v: node.version },
@@ -264,7 +264,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
       versions.push(newRoot);
 
       addStep(
-        22,
+        21,
         `Version v${newV} generated (root val = ${newRoot.val})`,
         `Successfully generated persistent version ${newV}. Version ${targetVersion} remains completely unmodified.`,
         { newVersion: newV, rootVal: newRoot.val },
@@ -275,7 +275,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
       const qr = Math.max(ql, Math.min(op.right ?? n - 1, n - 1));
 
       addStep(
-        24,
+        26,
         `Query Range [${ql}..${qr}] on Tree Version v${targetVersion}`,
         `Querying version ${targetVersion} without affecting any other tree version.`,
         { targetVersion, ql, qr },
@@ -284,7 +284,7 @@ export const generatePersistentSegmentTreeSteps = (input: PersistentSegmentTreeI
 
       const res = queryTree(rootTarget, 0, n - 1, ql, qr);
       addStep(
-        29,
+        32,
         `Query Result on v${targetVersion}: sum([${ql}..${qr}]) = ${res}`,
         `Completed persistent segment tree query on version ${targetVersion}. Result is ${res}.`,
         { targetVersion, ql, qr, result: res },
@@ -327,7 +327,7 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const PERSISTENT_SEGMENT_TREE_TRIVIA: TriviaMeta = {
-  skipLines: [1, 7, 15, 24],
+  skipLines: [1, 6, 14, 25],
   distractors: [
     "return Node(prev.val + val, prev.left, prev.right)",
     "prev.left = new_left",
@@ -335,17 +335,20 @@ export const PERSISTENT_SEGMENT_TREE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 20,
+      line: 21,
       hint: "Create a new node pointing to new_left and prev.right",
     },
     {
-      line: 27,
+      line: 30,
       hint: "Return node.val when node range is fully contained in query range",
     },
   ],
   lineExplanations: {
-    20: "Clone parent node: connect newly created left child and keep previous right child.",
-    27: "Base case for range query returning precomputed version node aggregate.",
+    7: "Recursive build function constructing initial tree version (v0).",
+    15: "Path copying update creating a new version of the segment tree.",
+    21: "Clone parent node: connect newly created left child and keep previous right child.",
+    26: "Query range minimum/sum over a specific persistent version.",
+    30: "Base case for range query returning precomputed version node aggregate.",
   },
 };
 

@@ -21,11 +21,12 @@ export const DEFAULT_EULER_TOUR_INPUT: EulerTourInput = {
 const EULER_TOUR_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Signature: compute Euler Tour entry (tin) and exit (tout) times to flatten tree into array.",
-    2: "Initialize tin, tout arrays and flattened traversal list.",
-    4: "Recursive DFS: record tin[u] when entering vertex u.",
-    7: "Traverse unvisited neighbor children recursively.",
-    11: "Record tout[u] when exiting vertex u after visiting its full subtree.",
-    13: "Subtree of u corresponds to contiguous range [tin[u], tout[u]] in flattened array.",
+    7: "Initialize tin, tout arrays and flattened traversal list.",
+    12: "Recursive DFS: record tin[u] when entering vertex u.",
+    14: "Record tin[u] entry timestamp when entering vertex u.",
+    18: "Traverse unvisited neighbor children recursively.",
+    22: "Record tout[u] when exiting vertex u after visiting its full subtree.",
+    25: "Subtree of u corresponds to contiguous range [tin[u], tout[u]] in flattened array.",
   },
 };
 
@@ -93,7 +94,7 @@ export const generateEulerTourTechniqueSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 2,
+    codeLine: 7,
     explanation: {
       what: `Initialized Euler Tour for tree with ${n} nodes.`,
       why: "DFS traversal will record entry (tin) and exit (tout) timestamps.",
@@ -117,7 +118,7 @@ export const generateEulerTourTechniqueSteps = (
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 4,
+      codeLine: 14,
       explanation: {
         what: `Entered Node ${u} (val=${nodeValues[u]}). Assigned tin[${u}] = ${tin[u]}.`,
         why: "Entry timestamp opens the contiguous subtree range.",
@@ -147,7 +148,7 @@ export const generateEulerTourTechniqueSteps = (
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 11,
+      codeLine: 22,
       explanation: {
         what: `Exited Node ${u}. Assigned tout[${u}] = ${tout[u]}. Subtree range: [${tin[u]}, ${tout[u]}].`,
         why: "Exit timestamp closes the contiguous subtree range.",
@@ -174,7 +175,7 @@ export const generateEulerTourTechniqueSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 13,
+    codeLine: 25,
     explanation: {
       what: "Euler Tour Complete! Tree is fully flattened into linear array order.",
       why: "Any subtree sum/update query on Node u now maps to range query on [tin[u], tout[u]].",

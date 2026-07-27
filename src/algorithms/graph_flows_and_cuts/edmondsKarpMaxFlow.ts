@@ -16,7 +16,6 @@ export const EDMONDS_KARP_CODE = `def edmonds_karp(nodes, edges, source, sink):
 
     max_flow = 0
     while True:
-        # Step 1: BFS to find shortest augmenting path (by edge count)
         parent = {u: None for u in nodes}
         queue = [source]
         while queue:
@@ -29,9 +28,8 @@ export const EDMONDS_KARP_CODE = `def edmonds_karp(nodes, edges, source, sink):
                     queue.append(nxt)
 
         if parent[sink] is None:
-            break  # Termination: No remaining augmenting path from source to sink
+            break
 
-        # Step 2: Compute bottleneck capacity along path
         bottleneck = float("inf")
         curr = sink
         while curr != source:
@@ -39,7 +37,6 @@ export const EDMONDS_KARP_CODE = `def edmonds_karp(nodes, edges, source, sink):
             bottleneck = min(bottleneck, capacity[p][curr] - flow[p][curr])
             curr = p
 
-        # Step 3: Augment flow along path and update residual capacities
         curr = sink
         while curr != source:
             p = parent[curr]
@@ -61,7 +58,7 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 9,
+      line: 10,
       hint: "Edmonds-Karp uses BFS (FIFO queue) to find augmenting paths with the fewest edges.",
     },
     {
@@ -69,21 +66,21 @@ export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
       hint: "Residual capacity is defined as capacity[u][v] - flow[u][v].",
     },
     {
-      line: 25,
+      line: 23,
       hint: "Find bottleneck flow as the minimum residual capacity along the augmenting path.",
     },
     {
-      line: 32,
+      line: 30,
       hint: "Add bottleneck flow to forward edges and subtract from reverse residual edges.",
     },
   ],
   lineExplanations: {
     1: "Defines the Edmonds-Karp Max Flow algorithm using BFS augmenting paths.",
-    9: "Runs BFS to discover the shortest path from source to sink in the residual network.",
+    10: "Runs BFS to discover the shortest path from source to sink in the residual network.",
     16: "Filters for edges with strictly positive residual capacity.",
     21: "Terminates when sink is unreachable from source in residual graph.",
-    25: "Calculates bottleneck flow constraint along the discovered path.",
-    32: "Augments forward flow and updates reverse residual edge capacity.",
+    23: "Calculates bottleneck flow constraint along the discovered path.",
+    30: "Augments forward flow and updates reverse residual edge capacity.",
   },
 };
 
@@ -160,7 +157,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 9,
+      codeLine: 10,
       explanation: {
         what: `Iteration ${iteration}: Running BFS from source "${source}" to find shortest augmenting path.`,
         why: "BFS explores layer-by-layer in residual graph where capacity[u][v] - flow[u][v] > 0.",
@@ -235,7 +232,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 25,
+      codeLine: 23,
       explanation: {
         what: `Found augmenting path: ${pathNodes.join(" -> ")} with Bottleneck Capacity = ${bottleneck}.`,
         why: "Bottleneck is the minimum residual edge capacity along the path.",
@@ -276,7 +273,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 35,
+      codeLine: 37,
       explanation: {
         what: `Augmented flow by +${bottleneck}. New Max Flow = ${maxFlow}.`,
         why: "Flow updated along path edges and reverse residual edges adjusted.",

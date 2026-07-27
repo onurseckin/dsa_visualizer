@@ -101,7 +101,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   };
 
   addStep(
-    4,
+    3,
     "Initialize Sparse Table construction",
     `Building Sparse Table for array of length N = ${n}. Precomputation takes O(N log N) time to enable O(1) Range Minimum Queries.`,
     { n },
@@ -109,7 +109,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
 
   if (n === 0) {
     addStep(
-      6,
+      5,
       "Array is empty",
       "Sparse Table cannot be constructed for an empty array. Returning empty table.",
       { n: 0 },
@@ -186,7 +186,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     const queryMin = Math.min(leftPartMin, rightPartMin);
 
     addStep(
-      21,
+      20,
       `Query ${qIdx + 1}: RMQ(${L}, ${R})`,
       `Range length = ${len}. Largest power of 2 fitting in ${len} is 2^${k} = ${1 << k}.`,
       { queryIndex: qIdx + 1, L, R, length: len, k },
@@ -245,7 +245,7 @@ export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
-  skipLines: [1, 5, 8, 20],
+  skipLines: [1, 2, 19],
   distractors: [
     "return min(st[L][k], st[R][k])",
     "st[i][j] = st[i][j - 1] + st[i + (1 << j)][j - 1]",
@@ -262,8 +262,11 @@ export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
     },
   ],
   lineExplanations: {
+    3: "Function signature for building Sparse Table for RMQ.",
     6: "Handle boundary check for empty array.",
+    10: "Base case: store single elements of length 2^0 = 1.",
     15: "Fill table via dynamic programming over powers of two.",
+    20: "Function signature for querying range minimum.",
     23: "Look up two overlapping intervals in constant O(1) time.",
   },
 };

@@ -12,8 +12,7 @@ export interface SweepLineIntersectionsInput {
   segments: SegmentItem[];
 }
 
-export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `# Bentley-Ottmann / Shamos-Hoey algorithm concept
-def sweep_line_intersections(segments: list) -> list:
+export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `def sweep_line_intersections(segments: list) -> list:
     events = []
     for idx, seg in enumerate(segments):
         p1, p2 = seg['p1'], seg['p2']
@@ -21,7 +20,7 @@ def sweep_line_intersections(segments: list) -> list:
         events.append((p1['x'], 'LEFT', idx, p1, p2))
         events.append((p2['x'], 'RIGHT', idx, p1, p2))
     events.sort(key=lambda e: (e[0], 0 if e[1] == 'LEFT' else 1))
-    
+
     intersections = []
     active_segments = set()
     for x, event_type, seg_id, p1, p2 in events:
@@ -170,7 +169,7 @@ export const generateSweepLineIntersectionsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 1,
     explanation: {
       what: `Initializing Sweep Line algorithm across ${segments.length} line segments. Generated ${events.length} endpoint events.`,
       why: "A vertical line sweeps left-to-right across the plane, maintaining a status structure of active segments intersecting the sweep line.",
@@ -221,7 +220,7 @@ export const generateSweepLineIntersectionsSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 12,
       explanation: {
         what: `Sweep Line at X=${sweepX}: Processed ${ev.type} event for segment ${ev.seg.id}. Active set: [${activeIds.join(", ")}].`,
         why: `Total intersections discovered so far: ${intersectionsFound.length}.`,
@@ -244,7 +243,7 @@ export const generateSweepLineIntersectionsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 17,
     explanation: {
       what: `Sweep Line algorithm complete. Total intersections found: ${intersectionsFound.length}.`,
       why: "The sweep line approach restricts intersection tests to active spatial neighbors.",
@@ -291,11 +290,14 @@ const SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE: TopicGuide = {
 
 const SWEEP_LINE_INTERSECTIONS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    2: "Builds event list consisting of LEFT and RIGHT endpoint events sorted by X coordinate.",
-    9: "Sorts events primarily by X coordinate to process plane left-to-right.",
-    13: "Iterates through event queue updating active segment set.",
+    1: "Defines function sweep_line_intersections taking a list of line segments.",
+    2: "Builds event list consisting of LEFT and RIGHT endpoint events.",
+    8: "Sorts events primarily by X coordinate to process plane left-to-right.",
+    11: "Initializes active_segments set.",
+    12: "Iterates through event queue updating active segment set.",
     14: "Adds new segment to active set when LEFT event occurs.",
     16: "Removes segment from active set when RIGHT event occurs.",
+    17: "Returns list of detected intersections.",
   },
 };
 

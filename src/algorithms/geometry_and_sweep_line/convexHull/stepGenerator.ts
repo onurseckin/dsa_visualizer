@@ -35,7 +35,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
   if (!rawPoints || rawPoints.length === 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 6,
+      codeLine: 3,
       explanation: {
         what: "Check the input points",
         why: "There are no points to wrap, so we stop — a hull needs at least one point to exist.",
@@ -96,7 +96,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 6,
     explanation: {
       what: `Sort ${points.length} points left to right`,
       why: "We order the points by x (then y) so we can sweep across the plane once for the lower boundary and once back for the upper — each half of the hull then builds up with a simple stack.",
@@ -118,7 +118,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
       const crossVal = cross(prevO, popped, p);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 17,
+        codeLine: 14,
         explanation: {
           what: `Pop ${popped.id} from the lower hull`,
           why: `Walking from ${prevO.id} through ${popped.id} to ${p.id} turns clockwise or goes straight (cross product ${crossVal} <= 0), which would dent the boundary inward — so ${popped.id} can't be a corner of the hull.`,
@@ -139,7 +139,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
     lower.push(p);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 18,
+      codeLine: 15,
       explanation: {
         what: `Push ${p.id} onto the lower hull`,
         why: `From here the boundary keeps turning left, so ${p.id} stands as a valid corner of the lower chain — at least until a later point proves otherwise.`,
@@ -162,7 +162,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
       const crossVal = cross(prevO, popped, p);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 23,
+        codeLine: 20,
         explanation: {
           what: `Pop ${popped.id} from the upper hull`,
           why: `Scanning right to left now, ${p.id} makes a non-left turn through ${popped.id} (cross product ${crossVal} <= 0), so ${popped.id} sits inside the upper boundary and gets discarded.`,
@@ -183,7 +183,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
     upper.push(p);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 24,
+      codeLine: 21,
       explanation: {
         what: `Push ${p.id} onto the upper hull`,
         why: `The turn stays counter-clockwise, so ${p.id} holds a spot on the upper chain for now.`,
@@ -203,7 +203,7 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 28,
+    codeLine: 25,
     explanation: {
       what: `Close the hull with ${fullHull.length} vertices`,
       why: "We drop each chain's duplicated endpoint and stitch the lower and upper chains together into the smallest convex polygon enclosing every point. The initial sort dominated the work, at O(N log N).",

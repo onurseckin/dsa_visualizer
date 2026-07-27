@@ -144,7 +144,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
     while (left < right) {
       const mid = Math.floor((left + right) / 2);
       addStep(
-        19,
+        20,
         `Lower Bound: Mid index ${mid} (val = ${arr[mid]})`,
         `Comparing arr[mid] (${arr[mid]}) against target ${target}.`,
         { left, right, mid, val: arr[mid], target },
@@ -156,7 +156,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       if (arr[mid] < target) {
         left = mid + 1;
         addStep(
-          21,
+          22,
           `arr[mid] < target: Shift left to mid + 1 = ${left}`,
           `Target ${target} is strictly greater than arr[${mid}] (${arr[mid]}). Search right half.`,
           { left, right, mid },
@@ -166,7 +166,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       } else {
         right = mid;
         addStep(
-          23,
+          24,
           `arr[mid] >= target: Shift right to mid = ${right}`,
           `Found element >= target. Keep mid in search range by setting right = ${right}.`,
           { left, right, mid },
@@ -177,7 +177,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
     }
 
     addStep(
-      24,
+      25,
       `Lower bound for target ${target} found at index ${left}`,
       `First index where arr[i] >= ${target} is index ${left}${left < n ? ` (value ${arr[left]})` : " (out of bounds)"}.`,
       { lowerBoundIndex: left },
@@ -196,7 +196,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       const mid = Math.floor((left + right) / 2);
 
       addStep(
-        5,
+        6,
         `Calculate mid index ${mid} (value = ${arr[mid]})`,
         `Searching range [${left}..${right}]. Checking middle element arr[${mid}] = ${arr[mid]}.`,
         { left, right, mid, midValue: arr[mid], target },
@@ -221,7 +221,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       } else if (arr[mid] < target) {
         left = mid + 1;
         addStep(
-          10,
+          11,
           `arr[${mid}] (${arr[mid]}) < ${target}: Shift left to ${left}`,
           `Target lies in upper half. Setting left = mid + 1 = ${left}.`,
           { left, right, mid },
@@ -231,7 +231,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       } else {
         right = mid - 1;
         addStep(
-          12,
+          13,
           `arr[${mid}] (${arr[mid]}) > ${target}: Shift right to ${right}`,
           `Target lies in lower half. Setting right = mid - 1 = ${right}.`,
           { left, right, mid },
@@ -243,7 +243,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
 
     if (foundIdx === -1) {
       addStep(
-        14,
+        15,
         `Target ${target} not found in array`,
         `Search range exhausted (left > right). Target ${target} does not exist in array.`,
         { target, result: -1 },
@@ -286,25 +286,25 @@ export const BINARY_SEARCH_1D_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const BINARY_SEARCH_1D_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 4, 14],
-  distractors: [
-    "mid = (left + right) // 3",
-    "if arr[mid] <= target: left = mid",
-    "right = mid + 1",
-  ],
-  hints: [
-    {
-      line: 5,
-      hint: "Calculate mid index as integer average of left and right",
-    },
-    {
-      line: 10,
-      hint: "If middle element is less than target, target must be in right half",
-    },
-  ],
   lineExplanations: {
-    5: "Halve current range by selecting middle index.",
-    10: "Discard left half since arr[mid] < target.",
+    1: "Declares binary_search_1d: returns index of target in sorted arr, or -1 if absent.",
+    2: "Initializes left and right pointers to span the full array range [0..N-1].",
+    3: "Initializes found_idx to -1 as the default result for target not found.",
+    5: "Loops while search range is valid (left <= right).",
+    6: "Computes mid index as the floor of (left + right) / 2.",
+    7: "Checks if middle element arr[mid] equals target.",
+    8: "Stores matching index mid in found_idx.",
+    9: "Breaks out of loop upon finding exact match.",
+    11: "Discards left half by setting left = mid + 1 when arr[mid] < target.",
+    13: "Discards right half by setting right = mid - 1 when arr[mid] > target.",
+    15: "Returns found_idx (-1 if not present).",
+    17: "Declares lower_bound: finds first index where arr[i] >= target.",
+    18: "Initializes left to 0 and right to len(arr) (half-open range [0..N]).",
+    19: "Loops while left < right.",
+    20: "Computes mid index.",
+    22: "Sets left = mid + 1 if arr[mid] < target.",
+    24: "Sets right = mid if arr[mid] >= target.",
+    25: "Returns left, the first index where arr[i] >= target.",
   },
 };
 

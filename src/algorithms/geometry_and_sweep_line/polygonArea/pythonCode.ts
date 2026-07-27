@@ -1,8 +1,4 @@
 export const PYTHON_POLYGON_AREA_CODE = `def polygon_area(vertices: list[tuple[float, float]]) -> float:
-    """
-    Calculate the area of a non-self-intersecting polygon using the Shoelace formula.
-    vertices: list of (x, y) coordinate tuples in ordered traversal.
-    """
     n = len(vertices)
     if n < 3:
         return 0.0

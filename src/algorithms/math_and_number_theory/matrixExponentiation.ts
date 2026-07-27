@@ -91,7 +91,7 @@ export const generateMatrixExponentiationSteps = (
   if (n === 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 11,
       explanation: {
         what: "N = 0 requested for Fibonacci calculation.",
         why: "Fibonacci F(0) is defined as 0.",
@@ -120,7 +120,7 @@ export const generateMatrixExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 13,
     explanation: {
       what: `Initializing Matrix Exponentiation for F(${n}). Power required: ${power}.`,
       why: "Fibonacci matrix [[1,1],[1,0]] raised to power (n-1) yields [[F(n), F(n-1)], [F(n-1), F(n-2)]].",
@@ -145,7 +145,7 @@ export const generateMatrixExponentiationSteps = (
       res = matMult(res, base);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 16,
+        codeLine: 18,
         explanation: {
           what: `Power is odd (${power}). Multiplied result matrix by current base matrix (mod ${mod}).`,
           why: "When binary power bit is 1, incorporate current base matrix square power into accumulated result matrix.",
@@ -172,7 +172,7 @@ export const generateMatrixExponentiationSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 17,
+      codeLine: 19,
       explanation: {
         what: `Squared base matrix and halved power to ${power}.`,
         why: "Repeated squaring allows exponentiation in O(log n) matrix multiplications.",
@@ -194,7 +194,7 @@ export const generateMatrixExponentiationSteps = (
   const ans = res[0][0];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 21,
     explanation: {
       what: `Completed Matrix Exponentiation. F(${n}) = ${ans} (mod ${mod}).`,
       why: "Top-left cell res[0][0] holds the n-th Fibonacci number.",
@@ -241,14 +241,14 @@ const MATRIX_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
 
 const MATRIX_EXPONENTIATION_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines 2x2 matrix multiplication helper function.",
-    9: "Defines main function computing n-th Fibonacci number via matrix power.",
-    10: "Handles base case F(0) = 0.",
-    12: "Sets up identity matrix res and Fibonacci transformation base [[1,1],[1,0]].",
-    14: "Loops while binary power remains greater than zero.",
-    15: "Multiplies res by base when current power bit is odd.",
-    17: "Squares base matrix and shifts power right by 1 bit (halves power).",
-    19: "Returns top-left cell res[0][0] representing F(n).",
+    1: "Defines matrix multiplication helper function.",
+    10: "Defines main function computing n-th Fibonacci number via matrix power.",
+    11: "Handles base case F(0) = 0.",
+    13: "Sets up identity matrix res, Fibonacci base [[1,1],[1,0]], and power = n - 1.",
+    16: "Loops while binary power remains greater than zero.",
+    18: "Multiplies res by base when current power bit is odd.",
+    19: "Squares base matrix and halves power.",
+    21: "Returns top-left cell res[0][0] representing F(n).",
   },
 };
 

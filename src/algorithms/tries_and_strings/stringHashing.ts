@@ -186,9 +186,9 @@ const STRING_HASHING_TOPIC_GUIDE: TopicGuide = {
 const STRING_HASHING_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines prefix hash precomputation function.",
-    4: "Computes rolling prefix hashes and powers of prime base p modulo M.",
-    9: "Defines O(1) substring hash query function.",
-    10: "Extracts substring hash from prefix hash array using modular arithmetic.",
+    5: "Computes rolling prefix hashes and powers of prime base p modulo M.",
+    10: "Defines O(1) substring hash query function.",
+    11: "Extracts substring hash from prefix hash array using modular arithmetic.",
   },
 };
 

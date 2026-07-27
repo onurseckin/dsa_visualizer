@@ -143,7 +143,7 @@ export const generateDynamicSegmentTreeSteps = (input: DynamicSegmentTreeInput):
 
   const updateNode = (node: InternalNode, idx: number, val: number) => {
     addStep(
-      14,
+      13,
       `Visiting node [${node.l}..${node.r}] for update at index ${idx}`,
       `Traversing node [${node.l}..${node.r}]. Target index is ${idx}.`,
       { l: node.l, r: node.r, idx, val },
@@ -153,7 +153,7 @@ export const generateDynamicSegmentTreeSteps = (input: DynamicSegmentTreeInput):
     if (node.l === node.r) {
       node.val += val;
       addStep(
-        16,
+        15,
         `Leaf node [${node.l}..${node.r}] updated to value ${node.val}`,
         `Base case reached at leaf index ${idx}. Added value ${val}.`,
         { idx, leafValue: node.val },
@@ -237,7 +237,7 @@ export const generateDynamicSegmentTreeSteps = (input: DynamicSegmentTreeInput):
     const sumRes = leftRes + rightRes;
 
     addStep(
-      32,
+      33,
       `Combined child results for node [${node.l}..${node.r}]: ${leftRes} + ${rightRes} = ${sumRes}`,
       `Partial range coverage. Combined left child query (${leftRes}) and right child query (${rightRes}) to get ${sumRes}.`,
       { l: node.l, r: node.r, leftRes, rightRes, sumRes },
@@ -270,7 +270,7 @@ export const generateDynamicSegmentTreeSteps = (input: DynamicSegmentTreeInput):
       );
       const res = queryNode(root, ql, qr);
       addStep(
-        32,
+        33,
         `Query [${ql}..${qr}] result = ${res}`,
         `Completed dynamic segment tree range query with total sum ${res}.`,
         { ql, qr, result: res },
@@ -313,7 +313,7 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
-  skipLines: [1, 9, 13, 27],
+  skipLines: [1, 8, 12, 27],
   distractors: [
     "node.left = DynamicSegTreeNode(node.l, node.r)",
     "if node.left and node.right: return",
@@ -325,14 +325,17 @@ export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
       hint: "Allocate left child node covering range [node.l..mid]",
     },
     {
-      line: 32,
+      line: 30,
       hint: "Return 0 if node is None or out of query bounds",
     },
   ],
   lineExplanations: {
+    10: "Constructor creates root node covering range [range_l, range_r].",
+    13: "Point update allocates nodes lazily along path.",
     20: "Instantiate left child dynamically when unallocated.",
     26: "Combine left and right child values into parent node.",
-    32: "Gracefully return 0 for uninstantiated or out-of-bounds nodes.",
+    28: "Query range minimum/sum over dynamic segment tree.",
+    30: "Gracefully return 0 for uninstantiated or out-of-bounds nodes.",
   },
 };
 

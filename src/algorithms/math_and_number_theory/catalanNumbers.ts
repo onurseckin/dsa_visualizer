@@ -227,17 +227,15 @@ export const CATALAN_NUMBERS_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const CATALAN_NUMBERS_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 7],
-  distractors: [
-    "C[i] += C[j] + C[i - 1 - j]",
-    "C[i] += C[j] * C[i - j]",
-    "for j in range(1, i):",
-    "C[0] = 0",
-  ],
-  hints: [
-    { line: 3, hint: "Base case C[0] = 1 for the empty structure." },
-    { line: 6, hint: "Recurrence term multiplies left subproblem C[j] by right subproblem C[i - 1 - j]." },
-  ],
+  lineExplanations: {
+    1: "Defines catalan_number(n) -> int: computes n-th Catalan number.",
+    2: "Initializes DP table C of size n + 1 with 0s.",
+    3: "Base case: C[0] = 1 for empty structure.",
+    4: "Outer loop iterates i from 1 to n.",
+    5: "Inner loop iterates j from 0 to i - 1.",
+    6: "Accumulates product of left subtree size j (C[j]) and right subtree size i-1-j (C[i-1-j]).",
+    7: "Returns C[n], the n-th Catalan number.",
+  },
 };
 
 export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {

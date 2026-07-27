@@ -18,7 +18,6 @@ export const PYTHON_MODULAR_EXPONENTIATION_INVERSE_CODE = `def mod_pow(base: int
     return res
 
 def mod_inverse(a: int, m: int) -> int:
-    # Inverse using Fermat's Little Theorem (m is prime)
     return mod_pow(a, m - 2, m)`;
 
 export const DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT: ModularExponentiationInput = {
@@ -251,18 +250,19 @@ export const MODULAR_EXPONENTIATION_INVERSE_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MODULAR_EXPONENTIATION_INVERSE_TRIVIA: TriviaMeta = {
-  skipLines: [1, 10, 12],
-  distractors: [
-    "res = (res + base) % mod",
-    "base = (base * 2) % mod",
-    "exp -= 1",
-    "return mod_pow(a, m - 1, m)",
-  ],
-  hints: [
-    { line: 6, hint: "Multiply res by current base when exponent bit is 1 (exp % 2 == 1)." },
-    { line: 7, hint: "Square base and divide exponent by 2 in each iteration step." },
-    { line: 12, hint: "Fermat's inverse computes power m - 2 modulo m." },
-  ],
+  lineExplanations: {
+    1: "Defines mod_pow(base, exp, mod) -> int: binary exponentiation modulo mod.",
+    2: "Initialize result res = 1.",
+    3: "Reduce base modulo mod up front.",
+    4: "Loop while exponent exp > 0.",
+    5: "Check if current exponent bit is 1 (exp % 2 == 1).",
+    6: "Multiply res by current base modulo mod.",
+    7: "Square base modulo mod for next bit position.",
+    8: "Integer divide exponent by 2.",
+    9: "Return calculated res.",
+    11: "Defines mod_inverse(a, m) -> int using Fermat's Little Theorem.",
+    12: "Returns mod_pow(a, m - 2, m) when m is prime.",
+  },
 };
 
 export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentiationInput> = {
