@@ -162,6 +162,30 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     { TP, S, H, colCols, spSeq },
   );
 
+  addStep(
+    8,
+    `Compute Column Parallel Weight Slice: col_weight_cols = ${H} // ${TP} = ${colCols}`,
+    `Column-parallel linear layer (e.g. QKV projection, MLP gate) splits weight cols: each GPU gets [${H}, ${colCols}] slice.`,
+    -1,
+    { hidden_dim: H, tp_world_size: TP, col_weight_cols: colCols },
+  );
+
+  addStep(
+    12,
+    `Compute Row Parallel Weight Slice: row_weight_rows = ${H} // ${TP} = ${colCols}`,
+    `Row-parallel linear layer (e.g. output projection, MLP down) splits weight rows: each GPU gets [${colCols}, ${H}] slice.`,
+    -1,
+    { hidden_dim: H, tp_world_size: TP, row_weight_rows: colCols },
+  );
+
+  addStep(
+    16,
+    `Compute SP Activation Slice: sp_seq_len_per_rank = ${S} // ${TP} = ${spSeq}`,
+    `Sequence Parallel activations (LayerNorm / Dropout inputs) split along sequence length: each GPU holds [${spSeq}, ${H}] tokens.`,
+    -1,
+    { seq_len: S, tp_world_size: TP, sp_seq_len_per_rank: spSeq },
+  );
+
   for (let r = 0; r < TP; r++) {
     const tokenStart = r * spSeq;
     const tokenEnd = tokenStart + spSeq - 1;
@@ -169,7 +193,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     const colEnd = colStart + colCols - 1;
 
     addStep(
-      10,
+      8,
       `GPU Rank #${r} TP/SP Partition Assigned`,
       `GPU #${r} holds Column-Parallel weight cols ${colStart}..${colEnd} and Sequence-Parallel activation tokens ${tokenStart}..${tokenEnd}.`,
       r,
@@ -182,8 +206,8 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
   });
 
   addStep(
-    20,
-    "Megatron TP+SP Partitioning Complete",
+    18,
+    "Return TP+SP Partition Map",
     `Successfully sharded Transformer layer across ${TP} GPUs with zero activation memory redundancy.`,
     TP,
     { totalGpus: TP, activationMemoryReduction: `${TP}x` },
