@@ -7,6 +7,7 @@ export interface tritonMlirToPtxCompilerPipelineSimulatorInput {
   block_n?: number;
   num_warps?: number;
   data?: number[];
+  target?: number;
   [key: string]: unknown;
 }
 
@@ -55,6 +56,8 @@ export const DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT: tritonMlirT
   block_m: 64,
   block_n: 64,
   num_warps: 4,
+  data: [64, 64, 4],
+  target: 0,
 };
 
 export const generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps = (
@@ -67,6 +70,7 @@ export const generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps = (
   const blockM = input.block_m !== undefined ? input.block_m : 64;
   const blockN = input.block_n !== undefined ? input.block_n : 64;
   const numWarps = input.num_warps !== undefined ? input.num_warps : 4;
+  const totalThreads = numWarps * 32;
 
   const stageNames = [
     "1_python_ast",
@@ -78,44 +82,41 @@ export const generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps = (
 
   const pipelineMap: Record<string, string> = {};
 
-  const createMatrixSnapshot = (
-    activeStageIdx?: number,
-  ): MatrixCellItem[][] => {
-    const grid: MatrixCellItem[][] = [];
-    stageNames.forEach((name, idx) => {
-      const codeStr = pipelineMap[name];
-      let state: MatrixCellItem["state"] = "default";
-      if (activeStageIdx === idx) {
-        state = "active";
-      } else if (codeStr) {
-        state = "sorted";
-      }
+  const getSnapshot = (
+    activeStageIdx: number = -1,
+  ) => {
+    const rows = 5;
+    const cols = 3;
+    const cells: MatrixCellItem[] = [];
 
-      grid.push([
-        {
-          row: idx,
-          col: 0,
-          value: idx + 1,
-          label: `Stage ${idx + 1}: ${name}`,
-          state,
-        },
-        {
-          row: idx,
-          col: 1,
-          value: codeStr ? 100 : 0,
-          label: codeStr ? "LOWERED" : "PENDING",
-          state,
-        },
-        {
-          row: idx,
-          col: 2,
-          value: codeStr ? codeStr.length : 0,
-          label: codeStr ? `${codeStr.slice(0, 25)}...` : "None",
-          state,
-        },
-      ]);
-    });
-    return grid;
+    const headers = ["Stage Name", "Compiler Dialect", "IR Snippet"];
+    for (let c = 0; c < 3; c++) {
+      cells.push({ row: 0, col: c, value: headers[c], label: "Header", state: "default" });
+    }
+
+    const dialects = ["Python @triton.jit", "Triton IR (tt)", "TritonGPU IR (tritongpu)", "LLVM IR (nvvm)", "NVIDIA PTX Assembly"];
+
+    for (let r = 0; r < 5; r++) {
+      const rowIdx = r + 1;
+      const name = stageNames[r];
+      const codeStr = pipelineMap[name];
+      const isCurrent = r === activeStageIdx;
+      const state = isCurrent ? "active" : codeStr ? "sorted" : "default";
+
+      cells.push(
+        { row: rowIdx, col: 0, value: name, state },
+        { row: rowIdx, col: 1, value: dialects[r], state },
+        { row: rowIdx, col: 2, value: codeStr ? codeStr.split("\n")[0] : "-", state },
+      );
+    }
+
+    return {
+      kind: "matrix" as const,
+      rows: 6,
+      cols: 3,
+      title: `Triton MLIR-to-PTX 5-Stage Compiler Pipeline (Tile ${blockM}x${blockN}, ${numWarps} Warps)`,
+      cells,
+    };
   };
 
   const addStep = (
@@ -123,480 +124,371 @@ export const generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeStageIdx?: number,
-    customState?: Record<string, string | number>,
+    activeStageIdx: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "matrix",
-        rows: stageNames.length,
-        cols: 3,
-        cells: createMatrixSnapshot(activeStageIdx),
-      },
+      primarySnapshot: getSnapshot(activeStageIdx),
       auxiliaryState: {
-        customState: customState ?? {
-          operation: opType,
-          tile_shape: `[${blockM}, ${blockN}]`,
-          num_warps: String(numWarps),
-          total_threads: String(numWarps * 32),
+        customState: {
+          "Algorithm": "Triton MLIR-to-PTX 5-Stage Compiler Pipeline",
+          "Kernel Operation": opType,
+          "Tile Size": `${blockM} x ${blockN}`,
+          "GPU Warps Count": String(numWarps),
+          "Total CUDA Threads": String(totalThreads),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry (1)
   addStep(
     1,
-    "Initialize Triton MLIR-to-PTX Compiler Pipeline Simulator",
-    `Configuring compiler parameters: op=${opType}, tile [${blockM}, ${blockN}], ${numWarps} warps (${numWarps * 32} threads).`,
-    { opType, blockM, blockN, numWarps },
+    "Triton MLIR-to-PTX Compiler Pipeline Simulator Entry",
+    `Started 5-stage MLIR lowering simulation for kernel_${opType} (tile ${blockM}x${blockN}, ${numWarps} warps / ${totalThreads} CUDA threads).`,
+    { opType, blockM, blockN, numWarps, totalThreads },
   );
 
+  // Step 2: Init pipeline dict (3)
   addStep(
     3,
-    "Initialize pipeline dictionary",
-    "Allocating container for the 5 lowering stage IR representations.",
-    { stage_count: 5 },
+    "Initialize pipeline {} Dictionary",
+    "Allocated dictionary to log IR output for all 5 compiler passes.",
+    { stages_count: 0 },
   );
 
-  // Stage 1: Python AST
+  // Stage 1: Python AST (5..12)
+  const stage1Code = `@triton.jit\ndef kernel_${opType}(A_ptr, B_ptr, C_ptr):\n    a = tl.load(A_ptr)\n    b = tl.load(B_ptr)\n    c = tl.dot(a, b)\n    tl.store(C_ptr, c)`;
   addStep(
     5,
-    "Begin Stage 1: Python AST Parsing (@triton.jit AST parse)",
-    "Extracting Python function syntax tree into Triton JIT dialect nodes.",
-    { stage: 1, name: "1_python_ast" },
+    "Stage 1 Lowering: Parse Python AST (@triton.jit Decorator)",
+    "Parsed Python AST containing high-level block-level tensor operations.",
+    { stage: 1, opType },
     0,
   );
 
   addStep(
     6,
-    "Parse @triton.jit decorator",
-    "Registering JIT compilation hook.",
+    "Stage 1: Parse Function Decorator @triton.jit",
+    "Identified JIT kernel entry point decorator @triton.jit.",
     { stage: 1, decorator: "@triton.jit" },
     0,
   );
 
   addStep(
     7,
-    `Parse signature def kernel_${opType}(A_ptr, B_ptr, C_ptr):`,
-    "Extracting pointer parameters for HBM memory inputs.",
-    { stage: 1, fn_name: `kernel_${opType}` },
+    `Stage 1: Parse Kernel Function Signature def kernel_${opType}`,
+    `Parsed kernel signature def kernel_${opType}(A_ptr, B_ptr, C_ptr).`,
+    { stage: 1, fn: `kernel_${opType}` },
     0,
   );
 
   addStep(
     8,
-    "Parse block load: a = tl.load(A_ptr)",
-    "Parsing 2D block load operator.",
-    { stage: 1, load_a: "tl.load(A_ptr)" },
-    0,
-  );
-
-  addStep(
-    9,
-    "Parse block load: b = tl.load(B_ptr)",
-    "Parsing 2D block load operator.",
-    { stage: 1, load_b: "tl.load(B_ptr)" },
+    "Stage 1: Parse Vector Load Operations tl.load",
+    "Parsed high-level block vector loads: a = tl.load(A_ptr) and b = tl.load(B_ptr).",
+    { stage: 1, load: "tl.load" },
     0,
   );
 
   addStep(
     10,
-    "Parse block dot product: c = tl.dot(a, b)",
-    "Parsing Tensor Core matrix multiply operator.",
-    { stage: 1, dot_c: "tl.dot(a, b)" },
+    "Stage 1: Parse Block Matrix Multiplication tl.dot",
+    "Parsed high-level block GEMM matrix multiplication: c = tl.dot(a, b).",
+    { stage: 1, dot: "tl.dot" },
     0,
   );
 
   addStep(
     11,
-    "Parse block store: tl.store(C_ptr, c)",
-    "Parsing 2D block store operator.",
-    { stage: 1, store_c: "tl.store(C_ptr, c)" },
+    "Stage 1: Parse Vector Store Operation tl.store",
+    "Parsed high-level block vector store: tl.store(C_ptr, c).",
+    { stage: 1, store: "tl.store" },
     0,
   );
 
-  const astCode = `@triton.jit\ndef kernel_${opType}(A_ptr, B_ptr, C_ptr):\n    a = tl.load(A_ptr)\n    b = tl.load(B_ptr)\n    c = tl.dot(a, b)\n    tl.store(C_ptr, c)`;
-  pipelineMap["1_python_ast"] = astCode;
-
+  pipelineMap["1_python_ast"] = stage1Code;
   addStep(
     12,
-    "Complete Stage 1: Python AST Parsing",
-    "Successfully built high-level AST representation.",
-    { stage: 1, ast_len: astCode.length },
+    "Stage 1 Output: Generated 1_python_ast IR",
+    `Generated Python AST string for @triton.jit def kernel_${opType}.`,
+    { stage: 1, code_len: stage1Code.length },
     0,
   );
 
-  // Stage 2: Triton-IR
+  // Stage 2: Triton IR (14..18)
+  const stage2Code = `%a = tt.load %A_ptr : tensor<${blockM}x${blockN}xf16>\n%b = tt.load %B_ptr : tensor<${blockM}x${blockN}xf16>\n%c = tt.dot %a, %b : tensor<${blockM}x${blockN}xf16> -> tensor<${blockM}x${blockN}xf32>`;
   addStep(
     14,
-    "Begin Stage 2: Triton-IR High-Level MLIR Dialect Lowering",
-    "Translating Python AST into hardware-agnostic MLIR block tensor operations.",
-    { stage: 2, name: "2_triton_ir" },
+    "Stage 2 Lowering: Lower to High-Level Triton IR (tt Dialect)",
+    `Lowered Python AST to High-Level Triton IR (tt dialect) representing block tensors: tensor<${blockM}x${blockN}xf16>.`,
+    { stage: 2, blockM, blockN },
     1,
   );
 
   addStep(
     15,
-    `Emit tt.load %A_ptr : tensor<${blockM}x${blockN}xf16>`,
-    `MLIR block tensor load for A matrix.`,
-    { stage: 2, tensor_a: `tensor<${blockM}x${blockN}xf16>` },
+    `Stage 2: Type Inference for Tensor Block Shapes tensor<${blockM}x${blockN}xf16>`,
+    `Inferred explicit tensor types and memory strides for tt.load and tt.dot.`,
+    { stage: 2, tensorShape: `${blockM}x${blockN}xf16` },
     1,
   );
 
-  addStep(
-    16,
-    `Emit tt.load %B_ptr : tensor<${blockM}x${blockN}xf16>`,
-    `MLIR block tensor load for B matrix.`,
-    { stage: 2, tensor_b: `tensor<${blockM}x${blockN}xf16>` },
-    1,
-  );
-
-  const tritonIrCode = `%a = tt.load %A_ptr : tensor<${blockM}x${blockN}xf16>\n%b = tt.load %B_ptr : tensor<${blockM}x${blockN}xf16>\n%c = tt.dot %a, %b : tensor<${blockM}x${blockN}xf16> -> tensor<${blockM}x${blockN}xf32>`;
-  pipelineMap["2_triton_ir"] = tritonIrCode;
-
-  addStep(
-    17,
-    `Emit tt.dot %a, %b : tensor<${blockM}x${blockN}xf16> -> tensor<${blockM}x${blockN}xf32>`,
-    `MLIR block matrix multiplication returning float32 accumulator tensor.`,
-    { stage: 2, tensor_c: `tensor<${blockM}x${blockN}xf32>` },
-    1,
-  );
-
+  pipelineMap["2_triton_ir"] = stage2Code;
   addStep(
     18,
-    "Complete Stage 2: Triton-IR Lowering",
-    "Successfully lowered AST to hardware-agnostic Triton MLIR dialect.",
-    { stage: 2, ir_len: tritonIrCode.length },
+    "Stage 2 Output: Generated 2_triton_ir IR",
+    `Generated tt dialect IR string with explicit type annotations: %c = tt.dot %a, %b.`,
+    { stage: 2, code_len: stage2Code.length },
     1,
   );
 
-  // Stage 3: Tritongpu-IR
+  // Measure threads (20, 21)
+  const threadsPerWarp = 32;
   addStep(
     20,
-    "Read threads_per_warp = 32",
-    "NVIDIA GPU warp constant.",
-    { threads_per_warp: 32 },
-    2,
+    "Set GPU Warp Constant: threads_per_warp = 32",
+    "Loaded hardware CUDA warp thread constant: 32 threads per warp.",
+    { threadsPerWarp },
+    1,
   );
 
-  const totalThreads = numWarps * 32;
   addStep(
     21,
-    `Calculate total_threads = num_warps * 32 = ${numWarps} * 32 = ${totalThreads}`,
-    `Total CUDA threads per Cooperative Thread Array (CTA).`,
-    { num_warps: numWarps, total_threads: totalThreads },
-    2,
+    `Calculate Total CUDA Threads: total_threads = ${numWarps} * 32 = ${totalThreads}`,
+    `Evaluated total threads count: ${numWarps} warps * 32 threads/warp = ${totalThreads} CUDA threads.`,
+    { totalThreads },
+    1,
   );
 
+  // Stage 3: TritonGPU IR (22..26)
+  const stage3Code = `#layout = #tritongpu.mma<version=2, warpsPerCTA=[${numWarps}, 1]>\n%c_gpu = tritongpu.mma %a_gpu, %b_gpu {#layout = #layout} : tensor<${blockM}x${blockN}xf32, #layout>`;
   addStep(
     22,
-    "Begin Stage 3: Tritongpu-IR Layout & Warp Allocation Synthesis",
-    "Assigning CTA thread block layouts, warp tensor slices, and shared memory attributes.",
-    { stage: 3, name: "3_tritongpu_ir" },
+    "Stage 3 Lowering: Lower to Target-Specific TritonGPU IR (tritongpu Dialect)",
+    `Applied block layout swizzling & thread layout assignment: #tritongpu.mma<warpsPerCTA=[${numWarps}, 1]>.`,
+    { stage: 3, numWarps },
     2,
   );
 
   addStep(
     23,
-    `Synthesize #layout = #tritongpu.mma<version=2, warpsPerCTA=[${numWarps}, 1]>`,
-    `Synthesizing hardware MMA layout attribute mapping warps to tensor slices.`,
-    { stage: 3, warps_per_cta: `[${numWarps}, 1]` },
+    `Stage 3: Assign Warp Layout Attribute warpsPerCTA=[${numWarps}, 1]`,
+    `Mapped 2D block tensor tile across ${numWarps} GPU warps in CTA.`,
+    { stage: 3, warpsPerCTA: `[${numWarps}, 1]` },
     2,
   );
 
-  addStep(
-    24,
-    `Emit tritongpu.mma %a_gpu, %b_gpu {layout = #layout}`,
-    `GPU-specific MMA operation with hardware layout annotations.`,
-    { stage: 3, mma_version: 2 },
-    2,
-  );
-
-  const tritongpuIrCode = `#layout = #tritongpu.mma<version=2, warpsPerCTA=[${numWarps}, 1]>\n%c_gpu = tritongpu.mma %a_gpu, %b_gpu {layout = #layout} : tensor<${blockM}x${blockN}xf32, #layout>`;
-  pipelineMap["3_tritongpu_ir"] = tritongpuIrCode;
-
+  pipelineMap["3_tritongpu_ir"] = stage3Code;
   addStep(
     26,
-    "Complete Stage 3: Tritongpu-IR Layout Synthesis",
-    "Successfully assigned hardware thread block layout attributes.",
-    { stage: 3, gpu_ir_len: tritongpuIrCode.length },
+    "Stage 3 Output: Generated 3_tritongpu_ir IR",
+    "Generated tritongpu dialect IR containing GPU memory layouts, warp assignments, and Tensor Core layouts.",
+    { stage: 3, code_len: stage3Code.length },
     2,
   );
 
-  // Stage 4: LLVM-IR
+  // Stage 4: LLVM IR (28..31)
+  const stage4Code = `call { float, float, float, float } @llvm.nvvm.mma.m16n8k16.row.col.f32.f32(i32 %a_reg, i32 %b_reg, float %c_accum)`;
   addStep(
     28,
-    "Begin Stage 4: LLVM-IR NVVM Target Intrinsics Lowering",
-    "Lowering GPU dialect operations into LLVM intermediate representation with NVVM target intrinsics.",
-    { stage: 4, name: "4_llvm_ir" },
+    "Stage 4 Lowering: Lower to Target LLVM IR (nvvm Intrinsics)",
+    "Decomposed block tensor operations into scalar/warp register operations and LLVM NVVM intrinsic function calls: @llvm.nvvm.mma.m16n8k16.",
+    { stage: 4 },
     3,
   );
 
   addStep(
     29,
-    "Emit LLVM float4 register return structure for Tensor Core MMA",
-    "Allocating hardware register return tuple.",
-    { stage: 4, struct: "{ float, float, float, float }" },
-    3,
-  );
-
-  const llvmIrCode = `call { float, float, float, float } @llvm.nvvm.mma.m16n8k16.row.col.f32.f32(i32 %a_reg, i32 %b_reg, float %c_accum)`;
-  pipelineMap["4_llvm_ir"] = llvmIrCode;
-
-  addStep(
-    30,
-    "Emit @llvm.nvvm.mma.m16n8k16.row.col.f32.f32(i32 %a_reg, i32 %b_reg, float %c_accum)",
-    "Generated NVVM intrinsic call targeting NVIDIA m16n8k16 Tensor Core hardware instruction.",
+    "Stage 4: Map Tensor Core Intrinsics @llvm.nvvm.mma.m16n8k16",
+    "Selected 16x8x16 row-col Tensor Core GEMM intrinsic function.",
     { stage: 4, intrinsic: "@llvm.nvvm.mma.m16n8k16" },
     3,
   );
 
+  pipelineMap["4_llvm_ir"] = stage4Code;
   addStep(
     31,
-    "Complete Stage 4: LLVM-IR Lowering",
-    "Successfully lowered to LLVM IR with NVVM target intrinsics.",
-    { stage: 4, llvm_len: llvmIrCode.length },
+    "Stage 4 Output: Generated 4_llvm_ir IR",
+    "Generated LLVM IR string targeting NVIDIA NVPTX backend compiler.",
+    { stage: 4, code_len: stage4Code.length },
     3,
   );
 
-  // Stage 5: PTX Assembly
+  // Stage 5: PTX Assembly (33..37)
+  const stage5Code = `// Generated PTX for ${totalThreads} threads (${numWarps} warps)\nmma.sync.aligned.m16n8k16.row.col.f32.f32.f32.f32\n    {%f0, %f1, %f2, %f3}, {%r0, %r1}, {%r2}, {%f0, %f1, %f2, %f3};`;
   addStep(
     33,
-    "Begin Stage 5: NVIDIA PTX Assembly Code Generation",
-    "Emitting native PTX virtual machine assembly for hardware execution.",
-    { stage: 5, name: "5_ptx_assembly" },
+    "Stage 5 Lowering: Emit Final NVIDIA PTX GPU Assembly",
+    `LLVM NVPTX backend compiled LLVM IR into raw NVIDIA PTX GPU Assembly containing mma.sync Tensor Core instructions!`,
+    { stage: 5, totalThreads },
     4,
   );
 
   addStep(
     34,
-    `Emit PTX Header: // Generated PTX for ${totalThreads} threads (${numWarps} warps)`,
-    `Header comment specifying CTA thread count.`,
-    { stage: 5, total_threads: totalThreads, num_warps: numWarps },
+    "Stage 5: Emit Tensor Core Assembly Instruction mma.sync.aligned",
+    `Emitted PTX assembly mma.sync.aligned.m16n8k16 instruction targeting ${totalThreads} CUDA threads.`,
+    { stage: 5, instruction: "mma.sync.aligned" },
     4,
   );
 
-  addStep(
-    35,
-    "Emit mma.sync.aligned.m16n8k16.row.col.f32.f32.f32.f32 hardware instruction",
-    "Generating native Tensor Core synchronous matrix multiply instruction.",
-    { stage: 5, opcode: "mma.sync.aligned.m16n8k16" },
-    4,
-  );
-
-  const ptxCode = `// Generated PTX for ${totalThreads} threads (${numWarps} warps)\nmma.sync.aligned.m16n8k16.row.col.f32.f32.f32.f32\n    {%f0, %f1, %f2, %f3}, {%r0, %r1}, {%r2}, {%f0, %f1, %f2, %f3};`;
-  pipelineMap["5_ptx_assembly"] = ptxCode;
-
-  addStep(
-    36,
-    "Map PTX registers: {%f0..%f3}, {%r0, %r1}, {%r2}",
-    "Binding accumulator and vector registers to PTX instructions.",
-    { stage: 5, registers: "{%f0..3}, {%r0..2}" },
-    4,
-  );
-
+  pipelineMap["5_ptx_assembly"] = stage5Code;
   addStep(
     37,
-    "Complete Stage 5: NVIDIA PTX Assembly Generation",
-    "Successfully emitted target PTX assembly code.",
-    { stage: 5, ptx_len: ptxCode.length },
+    "Stage 5 Output: Generated 5_ptx_assembly Code",
+    `Generated executable PTX assembly string containing mma.sync Tensor Core instructions targeting ${totalThreads} CUDA threads.`,
+    { stage: 5, code_len: stage5Code.length },
     4,
   );
 
+  // Return step (39)
   addStep(
     39,
-    "Return pipeline dictionary containing all 5 lowering stage code strings",
-    `Triton MLIR-to-PTX Compiler lowering pipeline complete. Successfully compiled high-level Python tensor code to native NVIDIA PTX assembly across all 5 MLIR passes.`,
-    { completed: true, total_stages: 5 },
+    "Execution Complete: Return All 5 Compiler Pipeline Stage IRs",
+    `Successfully simulated Triton MLIR-to-PTX compiler pipeline across all 5 lowering stages: Python AST -> Triton IR -> TritonGPU IR -> LLVM IR -> PTX Assembly.`,
+    { numStages: 5, completed: true },
   );
 
   return steps;
 };
 
-export const TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [4, 13, 19, 27, 32, 38],
+const TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_TRIVIA: TriviaMeta = {
+  skipLines: [2, 4, 13, 19, 25, 27, 32, 36, 38],
   distractors: [
-    "pipeline['2_triton_ir'] = 'def cuda_kernel()'",
-    "pipeline['3_tritongpu_ir'] = 'gcc -O3 main.c'",
-    "pipeline['5_ptx_assembly'] = 'mov eax, ebx'",
-    "pipeline['4_llvm_ir'] = 'void main()'",
+    "Stage 1 converts Python to C++ source code",
+    "TritonGPU IR generates CUDA C++ __global__ functions",
+    "LLVM IR produces ARM v8 assembly",
+    "PTX assembly is executed directly by Python interpreter",
   ],
   hints: [
-    { line: 5, hint: "Parse Python syntax into AST dialect representation." },
-    { line: 22, hint: "Lower high-level block tensors into layout-aware Tritongpu-IR dialects." },
-    { line: 35, hint: "Emit native hardware Tensor Core PTX instructions." },
+    { line: 14, hint: "Stage 2: High-Level Triton IR (tt dialect) representing block tensors." },
+    { line: 22, hint: "Stage 3: Target-Specific TritonGPU IR (tritongpu dialect) assigning warp layouts." },
+    { line: 33, hint: "Stage 5: Final NVIDIA PTX Assembly containing mma.sync instructions." },
   ],
   lineExplanations: {
-    1: "Defines triton_mlir_to_ptx_compiler_pipeline_simulator signature with operation_type, tile dimensions, and warp count.",
-    2: "Docstring explaining the 5 MLIR dialect lowering passes of Triton compiler.",
-    3: "Initializes empty pipeline dictionary for storing lowered IR code snippets.",
-    4: "Blank line preceding Stage 1 Python AST parsing.",
-    5: "Starts Stage 1: Python AST parsing pass.",
-    6: "@triton.jit decorator entry line.",
-    7: "Function signature definition kernel_dot(A_ptr, B_ptr, C_ptr).",
-    8: "Loads block tensor a from pointer A_ptr.",
-    9: "Loads block tensor b from pointer B_ptr.",
-    10: "Executes block matrix multiply c = tl.dot(a, b).",
-    11: "Stores output block tensor c to pointer C_ptr.",
-    12: "Completes Stage 1 Python AST parsing.",
-    13: "Blank line preceding Stage 2 Triton-IR lowering.",
-    14: "Starts Stage 2: Triton-IR high-level MLIR dialect lowering.",
-    15: "Emits tt.load for block tensor %a of shape [block_m, block_n] float16.",
-    16: "Emits tt.load for block tensor %b of shape [block_m, block_n] float16.",
-    17: "Emits tt.dot matrix multiply %c of shape [block_m, block_n] float32.",
-    18: "Completes Stage 2 Triton-IR lowering.",
-    19: "Blank line preceding Stage 3 Tritongpu-IR synthesis.",
-    20: "Sets GPU warp size constant threads_per_warp = 32.",
-    21: "Calculates total CTA threads total_threads = num_warps * 32.",
-    22: "Starts Stage 3: Tritongpu-IR layout and warp allocation synthesis.",
-    23: "Synthesizes #tritongpu.mma layout attribute with warpsPerCTA = [num_warps, 1].",
-    24: "Emits tritongpu.mma operation with MMA layout attribute.",
-    25: "Specifies float32 accumulator tensor with MMA layout.",
-    26: "Completes Stage 3 Tritongpu-IR synthesis.",
-    27: "Blank line preceding Stage 4 LLVM-IR lowering.",
-    28: "Starts Stage 4: LLVM-IR lowering with NVVM target intrinsics.",
-    29: "Emits float4 register return structure for Tensor Core mma instruction.",
-    30: "Calls @llvm.nvvm.mma.m16n8k16 intrinsic for hardware matrix multiply.",
-    31: "Completes Stage 4 LLVM-IR lowering.",
-    32: "Blank line preceding Stage 5 PTX assembly generation.",
-    33: "Starts Stage 5: NVIDIA PTX assembly code generation.",
-    34: "Emits PTX header comment specifying thread count and warp count.",
-    35: "Emits native Tensor Core mma.sync.aligned.m16n8k16 hardware instruction.",
-    36: "Maps register operands {%f0..%f3}, {%r0,%r1}, {%r2} to PTX registers.",
-    37: "Completes Stage 5 PTX assembly generation.",
-    38: "Blank line preceding return statement.",
-    39: "Returns pipeline dictionary containing code strings for all 5 MLIR compiler stages.",
+    1: "Defines entry point for triton_mlir_to_ptx_compiler_pipeline_simulator function.",
+    2: "Docstring describing the 5 lowering stages of the Triton MLIR-to-PTX compiler pipeline.",
+    3: "Initializes empty dictionary pipeline to log intermediate representation (IR) strings.",
+    4: "Blank line before Stage 1 Python AST.",
+    5: "Assigns 1_python_ast IR string representing high-level @triton.jit function definition.",
+    6: "@triton.jit decorator tag.",
+    7: "Function signature for kernel_{operation_type}.",
+    8: "High-level block load: a = tl.load(A_ptr).",
+    9: "High-level block load: b = tl.load(B_ptr).",
+    10: "High-level block matrix multiply: c = tl.dot(a, b).",
+    11: "High-level block store: tl.store(C_ptr, c).",
+    12: "Closing parenthesis for Stage 1 string.",
+    13: "Blank line before Stage 2 Triton IR.",
+    14: "Assigns 2_triton_ir IR string representing tt dialect block tensor operations.",
+    15: "tt.load instruction for tensor A: tensor<block_m x block_n x f16>.",
+    16: "tt.load instruction for tensor B: tensor<block_m x block_n x f16>.",
+    17: "tt.dot instruction performing block matrix multiply: tt.dot %a, %b.",
+    18: "Closing parenthesis for Stage 2 string.",
+    19: "Blank line before Stage 3 TritonGPU IR.",
+    20: "Sets GPU warp thread constant threads_per_warp = 32.",
+    21: "Calculates total CUDA threads total_threads = num_warps * 32.",
+    22: "Assigns 3_tritongpu_ir IR string representing tritongpu dialect with explicit warp layouts.",
+    23: "Defines #tritongpu.mma layout attribute with warpsPerCTA=[num_warps, 1].",
+    24: "tritongpu.mma instruction assigned to specific GPU warp layout.",
+    25: "Closing parenthesis for Stage 3 string.",
+    26: "Blank line before Stage 4 LLVM IR.",
+    27: "Assigns 4_llvm_ir IR string representing LLVM IR with NVVM intrinsic calls.",
+    28: "LLVM intrinsic call @llvm.nvvm.mma.m16n8k16 representing low-level Tensor Core operation.",
+    29: "Closing parenthesis for Stage 4 string.",
+    30: "Blank line before Stage 5 PTX Assembly.",
+    31: "Assigns 5_ptx_assembly string representing raw NVIDIA PTX GPU assembly.",
+    32: "PTX assembly comment logging total threads and warp count.",
+    33: "NVIDIA PTX mma.sync Tensor Core matrix multiply instruction.",
+    34: "PTX register operand list: {%f0..}, {%r0..}.",
+    35: "Closing parenthesis for Stage 5 string.",
+    36: "Blank line separating pipeline construction from return statement.",
+    37: "Returns dictionary pipeline containing all 5 compiler stage IR strings.",
+    38: "Docstring continuation tag.",
+    39: "Docstring continuation tag.",
   },
 };
 
-export const tritonMlirToPtxCompilerPipelineSimulator: AlgorithmDefinition<tritonMlirToPtxCompilerPipelineSimulatorInput> = {
-  id: "triton-mlir-to-ptx-compiler-pipeline-simulator",
-  title: "Triton MLIR-to-PTX Compiler Pipeline Simulator",
-  category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
-  difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 9,
-  mlInfraCategory: "ml_hardware_kernels",
-  description: `Master Domain-Specific Compilation in OpenAI Triton: trace the 5-stage MLIR lowering pipeline from high-level Python AST (\`@triton.jit\`) to native NVIDIA PTX Tensor Core machine assembly.
-
-### Why It Exists & What It Solves
-Modern machine learning domain-specific compilers (e.g. OpenAI Triton, PyTorch Inductor, FlashAttention) allow developers to write GPU kernels in high-level Python code (\`@triton.jit\`).
-
-The compiler transforms this code into highly optimized NVIDIA PTX machine assembly through a 5-stage lowering pipeline based on MLIR (Multi-Level Intermediate Representation):
-
-1. **Python AST Parsing**: Extracts tensor block syntax (\`tl.load\`, \`tl.dot\`, \`tl.store\`) into an AST representation.
-2. **Triton-IR Lowering**: Translates code into hardware-agnostic MLIR block tensor operations (\`tt.load\`, \`tt.dot\`).
-3. **Tritongpu-IR Layout Synthesis**: Annotates tensors with GPU hardware layout attributes (\`#tritongpu.blocked\`, \`#tritongpu.mma\`), assigning warps to block tiles.
-4. **LLVM-IR Lowering**: Converts GPU dialects into LLVM-IR using target-specific NVVM intrinsics (\`@llvm.nvvm.mma.m16n8k16\`).
-5. **PTX Code Generation**: Emits native PTX assembly instructions (\`mma.sync.aligned...\`) for hardware Tensor Cores.
-
-### Step-by-Step Intuition
-- **Stage 1 (AST)**: Parse \`@triton.jit def kernel_dot(...)\`.
-- **Stage 2 (Triton-IR)**: Lower to \`%c = tt.dot %a, %b : tensor<64x64xf16> -> tensor<64x64xf32>\`.
-- **Stage 3 (Tritongpu-IR)**: Synthesize \`#layout = #tritongpu.mma<warpsPerCTA=[4, 1]>\`.
-- **Stage 4 (LLVM-IR)**: Lower to \`call @llvm.nvvm.mma.m16n8k16...\`.
-- **Stage 5 (PTX)**: Emit \`mma.sync.aligned.m16n8k16.row.col.f32.f32.f32.f32\`.
-
-### Input Parameters
-- \`operation_type\`: Core operation name (e.g. \`"dot"\`).
-- \`block_m\`: Block tile height (e.g. 64).
-- \`block_n\`: Block tile width (e.g. 64).
-- \`num_warps\`: Number of GPU warps per CTA (e.g. 4).
-
-### Output
-- Returns dictionary containing string representations of the code across all 5 compilation pipeline stages.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(1)$ constant simulation passes.
-- **Space Complexity**: $O(1)$ memory for IR string outputs.`,
-  constraints: ["block_m > 0", "block_n > 0", "num_warps in [1, 2, 4, 8, 16]"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard 64x64 GEMM Dot Compile Pass",
-      inputDisplay: "op = 'dot', block = 64x64, warps = 4",
-      outputDisplay: "5 MLIR stage lowering outputs ending in PTX mma.sync",
-      input: { operation_type: "dot", block_m: 64, block_n: 64, num_warps: 4 },
-      output: "5-Stage IR Dictionary",
-      explanation: "Simulates full lowering pipeline from Python AST to PTX Tensor Core assembly.",
-    },
-    {
-      kind: "complex",
-      title: "Large 128x128 Tile with 8 Warps",
-      inputDisplay: "block_m = 128, block_n = 128, num_warps = 8",
-      outputDisplay: "Tritongpu-IR synthesized with 8 warpsPerCTA",
-      input: { operation_type: "dot", block_m: 128, block_n: 128, num_warps: 8 },
-      output: "Synthesized 8-warp layout IR",
-      explanation: "Allocates 8 GPU warps (256 threads) to process large 128x128 tile blocks.",
-    },
-    {
-      kind: "negative",
-      title: "Small 16x16 Single Warp Compile Pass",
-      inputDisplay: "block_m = 16, block_n = 16, num_warps = 1",
-      outputDisplay: "Single warp MMA PTX code",
-      input: { operation_type: "dot", block_m: 16, block_n: 16, num_warps: 1 },
-      output: "Single warp PTX assembly",
-      explanation: "Generates compact single-warp PTX assembly code for tiny matrix tiles.",
-    },
-  ],
-  code: TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_CODE,
-  timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-  spaceComplexity: "O(1)",
-  complexityAnalysis: {
-    time: "Simulates compiler pipeline transformation passes in O(1) constant steps.",
-    space: "Stores string outputs for the 5 lowering stages in O(1) memory.",
-  },
-  topicGuide: {
-    overview:
-      "The Triton MLIR-to-PTX compiler pipeline automates the generation of high-performance GPU kernels. By abstracting thread block layouts and warp synchronization into MLIR dialects, Triton allows Python developers to achieve CUTLASS-level performance without writing CUDA C++ code.",
-    sections: [
+export const tritonMlirToPtxCompilerPipelineSimulator: AlgorithmDefinition<tritonMlirToPtxCompilerPipelineSimulatorInput> =
+  {
+    id: "tritonMlirToPtxCompilerPipelineSimulator",
+    title: "Triton MLIR-to-PTX 5-Stage Compiler Pipeline Simulator",
+    category: "ml_hardware_kernels",
+    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 8,
+    mlInfraCategory: "ml_hardware_kernels",
+    description:
+      "The Triton MLIR-to-PTX 5-Stage Compiler Pipeline Simulator models the multi-level lowering architecture of **OpenAI Triton (`tritonc`)**. Triton transforms high-level Python block-tensor code (`@triton.jit`) into machine-executable NVIDIA PTX GPU assembly through 5 distinct compiler passes built on **MLIR (Multi-Level Intermediate Representation)** and **LLVM**. Understanding these 5 lowering stages exposes how block-level tile abstractions (`tl.dot`) are lowered into register allocations, warp layouts, and hardware Tensor Core instructions (`mma.sync`).\n\n### Why It Exists\nWriting raw CUDA C++ or PTX assembly for Tensor Cores requires managing complex warp register layouts (`m16n8k16`), shared memory bank swizzling, and barrier synchronization. Triton's MLIR compiler pipeline automates these low-level hardware mappings, compiling Python code directly into PTX assembly that matches or beats hand-written CUDA C++.\n\n### Mathematical Formulation\nThe 5 Lowering Stages of the Triton Compiler Pipeline:\n\n$$1. \\quad \\mathbf{\\text{Python AST}} \\xrightarrow{\\text{AST Parser}} \\text{@triton.jit Python AST} \\quad (\\text{High-Level Block Ops: } \\texttt{tl.dot(a, b)})$$\n\n$$2. \\quad \\mathbf{\\text{Triton IR (tt Dialect)}} \\xrightarrow{\\text{Triton-to-TritonGPU}} \\text{tt.dot } \\%a, \\%b \\quad (\\text{Block Tensor Types: } \\texttt{tensor<128x64xf16>})$$\n\n$$3. \\quad \\mathbf{\\text{TritonGPU IR}} \\xrightarrow{\\text{TritonGPU-to-LLVM}} \\text{tritongpu.mma } \\%a, \\%b \\quad (\\text{Warp Layouts: } \\texttt{\\#tritongpu.mma<warpsPerCTA=[4,1]>})$$\n\n$$4. \\quad \\mathbf{\\text{LLVM IR (NVVM)}} \\xrightarrow{\\text{LLVM NVPTX Backend}} \\text{@llvm.nvvm.mma.m16n8k16} \\quad (\\text{Hardware Intrinsics})$$\n\n$$5. \\quad \\mathbf{\\text{NVIDIA PTX Assembly}} \\xrightarrow{\\text{CUDA Driver JIT}} \\texttt{mma.sync.aligned.m16n8k16} \\quad (\\text{Executable GPU Assembly})$$\n\n### Step-by-Step Intuition\n1. **Stage 1 (Python AST)**: Parse `@triton.jit` Python AST, extracting block load, dot, and store operations.\n2. **Stage 2 (Triton IR / `tt` Dialect)**: Lower Python AST into High-Level Triton MLIR dialect (`tt`). Tensors carry block shapes (`tensor<128x64xf16>`).\n3. **Stage 3 (TritonGPU IR / `tritongpu` Dialect)**: Apply target-specific layout transformations (`tritongpu`). Assign warp layouts (`#tritongpu.mma`), shared memory layouts, and thread ownership.\n4. **Stage 4 (LLVM IR / `nvvm` Dialect)**: Lower block operations into thread-level register loops and NVVM intrinsic calls (`@llvm.nvvm.mma.m16n8k16`).\n5. **Stage 5 (NVIDIA PTX Assembly)**: LLVM NVPTX backend emits hardware-executable PTX assembly containing `mma.sync` Tensor Core instructions.\n\n### Key Trade-Offs & Hardware Execution\n- **Extensible MLIR Dialects**: Decouples high-level algorithm logic (`tt` dialect) from GPU hardware details (`tritongpu` dialect), allowing Triton to target NVIDIA CUDA (PTX), AMD ROCm (GCN), and Intel Xe (SPIR-V) seamlessly.\n- **Zero Overhead**: Lowered PTX code contains zero runtime reflection or Python overhead, executing directly on GPU Streaming Multiprocessors.",
+    constraints: [
+      "operation_type in ['dot', 'add', 'softmax']",
+      "block_m in [16, 32, 64, 128, 256]",
+      "num_warps in [1, 2, 4, 8, 16]",
+    ],
+    examples: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Triton compilation uses progressive dialect lowering. Python AST is lowered to Triton-IR (operating on 2D block tensors), then to Tritongpu-IR (annotating tensors with layout attributes mapping elements to warps and registers: $\\text{layout} = (\\text{warpsPerCTA}, \\text{threadsPerWarp})$), then to LLVM-IR, and finally to PTX assembly.",
-      },
-      {
-        heading: "Systems & Compiler Pipeline Architecture",
-        body: "Traditional CUDA requires manual thread indexing (`threadIdx.x`), shared memory allocation, and `__syncthreads()` synchronization. Triton's MLIR pipeline automates memory swizzling, vectorization, and CTA warp layouts using pass managers, reducing kernel development time from weeks to hours.",
-      },
-      {
-        heading: "Implementation Nuances & Dialect Passes",
-        body: "Key passes include `TritonGPUToLLVM` (lowering MMA layout attributes to hardware `mma.sync` instructions), `CoalescePass` (ensuring contiguous 128-bit memory accesses), and `RemoveLayoutConversions` (eliminating redundant shared memory copies between warps).",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Unsupported tile sizes or unaligned block dimensions trigger compilation failures during layout synthesis. The pipeline ensures block dimensions are powers of 2 and multiples of target MMA hardware shapes (e.g. 16x8x16 for NVIDIA Ampere/Hopper).",
+        kind: "basic",
+        title: "Triton Compiler Lowering Pipeline for GEMM Dot Kernel",
+        inputDisplay: "operation_type = 'dot', block_m = 64, block_n = 64, num_warps = 4",
+        outputDisplay: "5 Compiler Stage IR Snippets (Python AST -> Triton IR -> TritonGPU IR -> LLVM IR -> PTX)",
+        input: DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT,
+        output: "Dictionary with 5 Stage IR strings",
+        explanation: "Simulates the 5 lowering stages of Triton compiler, producing executable PTX assembly with mma.sync Tensor Core instructions targeting 128 CUDA threads.",
       },
     ],
-    keyTerms: [
-      {
-        term: "Triton-IR",
-        definition:
-          "A high-level MLIR dialect representing programs operating on 2D block tensors rather than individual threads.",
-      },
-      {
-        term: "Tritongpu-IR",
-        definition:
-          "A hardware-aware MLIR dialect that encodes layout attributes specifying thread/warp mapping and shared memory layout.",
-      },
-      {
-        term: "PTX Assembly",
-        definition:
-          "NVIDIA Parallel Thread Execution low-level virtual assembly language targeted by NVPTX code generation.",
-      },
-      {
-        term: "MMA Instruction",
-        definition:
-          "Matrix Multiply-Accumulate hardware instruction executed directly on GPU Tensor Cores (e.g., mma.sync).",
-      },
-    ],
-  },
-  trivia: TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT,
-  generateSteps: generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps,
-};
+    code: TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Constant time $O(1)$ to simulate and generate the 5 compiler pipeline IR stage strings.",
+      space: "Constant space $O(1)$ to store the compiler stage output dictionary.",
+    },
+    topicGuide: {
+      overview:
+        "The Triton MLIR-to-PTX 5-Stage Compiler Pipeline Simulator models the multi-level lowering passes of OpenAI Triton from Python AST to NVIDIA PTX assembly.",
+      sections: [
+        {
+          heading: "Core Concept & MLIR Multi-Level Lowering",
+          body: "Triton uses MLIR (Multi-Level Intermediate Representation) to progressively lower Python block code (@triton.jit) through 5 stages into NVIDIA PTX GPU assembly.",
+        },
+        {
+          heading: "Stage 2 vs Stage 3: High-Level vs Target-Specific IR",
+          body: "Stage 2 (Triton IR) represents machine-agnostic block tensors (tensor<128x64xf16>). Stage 3 (TritonGPU IR) assigns specific GPU warp layouts (#tritongpu.mma) and shared memory swizzles.",
+        },
+        {
+          heading: "Stage 4 vs Stage 5: LLVM IR & PTX Emission",
+          body: "Stage 4 decomposes block operations into NVVM intrinsic calls (@llvm.nvvm.mma). Stage 5's LLVM NVPTX backend emits hardware mma.sync PTX assembly instructions.",
+        },
+        {
+          heading: "Cross-Architecture Targetability",
+          body: "Decoupling high-level Triton IR from target GPU dialects allows Triton to compile Python code for NVIDIA CUDA (PTX), AMD ROCm (GCN), and Intel Xe GPUs without code changes.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "MLIR Dialect",
+          definition: "Custom domain-specific intermediate representation pass in MLIR (e.g. tt dialect, tritongpu dialect).",
+        },
+        {
+          term: "Lowering",
+          definition: "Process of transforming high-level compiler abstractions into progressively lower-level machine IR instructions.",
+        },
+        {
+          term: "NVVM Intrinsics",
+          definition: "LLVM compiler intrinsic functions representing low-level NVIDIA GPU hardware operations.",
+        },
+        {
+          term: "PTX Assembly",
+          definition: "NVIDIA Parallel Thread Execution virtual instruction set architecture compiled to native SASS GPU machine code.",
+        },
+      ],
+    },
+    trivia: TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+    defaultInput: DEFAULT_TRITONMLIRTOPTXCOMPILERPIPELINESIMULATOR_INPUT,
+    generateSteps: generateTRITONMLIRTOPTXCOMPILERPIPELINESIMULATORSteps,
+  };
