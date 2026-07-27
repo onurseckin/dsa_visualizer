@@ -8,7 +8,7 @@ import {
 describe("kthLargestElement logic spec", () => {
   it("generates valid steps for default input", () => {
     const steps = generateKthLargestSteps(DEFAULT_KTH_LARGEST_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.primarySnapshot.kind).toBe("array");

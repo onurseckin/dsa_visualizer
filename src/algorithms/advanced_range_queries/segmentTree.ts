@@ -14,7 +14,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A Segment Tree covers an array with nested intervals: each leaf holds one element and each internal node caches the sum of its half-ranges. Because any query range can be assembled from a few of these precomputed intervals, both range-sum queries and point updates run in O(log N) time.",
+    "A **Segment Tree** structures an array into a balanced binary tree of nested intervals where leaves hold individual elements and internal nodes cache interval aggregates. It supports both range queries (e.g., sum, min, max) and point updates in $O(\\log N)$ time per operation.",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {

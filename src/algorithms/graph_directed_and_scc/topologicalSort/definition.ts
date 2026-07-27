@@ -34,81 +34,80 @@ export const DEFAULT_TOPO_SORT_INPUT: TopologicalSortInput = {
 
 const TOPOLOGICAL_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A topological order takes a set of items constrained by must-come-before rules and flattens them into a single sequence that never violates one. Whenever you model those constraints as a directed graph — courses and prerequisites, build targets and their dependencies, tasks and their blockers — the ordering you want is a topological sort of that graph. Kahn's algorithm computes one by counting, for each item, how many prerequisites it is still waiting on, and repeatedly releasing whichever items are waiting on nothing. It only works on a directed acyclic graph, and pleasantly, its failure mode is itself the standard way to detect that a dependency cycle exists.",
+    "Topological Sorting linearly arranges the vertices of a **Directed Acyclic Graph (DAG)** $G = (V, E)$ such that for every directed edge $u \\to v$, vertex $u$ precedes vertex $v$ in the ordering. **Kahn's algorithm** computes a topological sort by tracking in-degrees (incoming edge counts) and processing vertices with zero remaining prerequisites using a **Breadth-First Search (BFS)** queue. It runs in linear $\\mathcal{O}(V + E)$ time and serves as both a task scheduler and a cycle detector.",
   sections: [
     {
+      heading: "Why It Exists & What It Solves",
+      body: "Many real-world problems involve ordered task execution under constraints—such as compiling software packages with build dependencies, planning university course prerequisites, or resolving spreadsheet cell evaluation orders. Topological Sort flattens a complex dependency DAG into a valid sequential execution order.",
+    },
+    {
       heading: "Ready means nothing is pointing at you",
-      body: "The idea is to think in terms of readiness rather than position. An item can be placed next in the sequence exactly when every item that must precede it has already been placed, and you can measure that with a single number: the count of incoming edges still unresolved, called the in-degree. Items whose in-degree is zero right now are free to go in any order, so you keep them in a pool of ready work and pull from it. Placing an item resolves its outgoing constraints, which lowers the in-degree of everything downstream and may promote some of those to ready — so the ordering emerges from a chain reaction rather than from any comparison between items.",
+      body: "A vertex's in-degree $\\text{in\\_degree}[v]$ represents how many unfulfilled prerequisites it must wait for. Vertices with in-degree $0$ have no remaining dependencies and can be scheduled immediately. Kahn's algorithm maintains a queue of ready vertices, removing one at a time and decrementing in-degrees of downstream neighbors.",
     },
     {
-      heading: "How the run actually proceeds",
-      body: "First you sweep the edge list once to build the in-degree count for every vertex, then seed a queue with every vertex whose count is already zero, which are the items with no prerequisites at all. Then you loop: remove a vertex from the queue, append it to the output order, and for each of its outgoing edges decrement the target's in-degree, pushing that target onto the queue the moment its count reaches zero. Nothing is ever revisited, and each edge is examined exactly once — at the moment its source is dequeued — which is why a single pass suffices. When the queue empties, the output holds every vertex you were able to schedule.",
+      heading: "Cycle Detection Mechanism",
+      body: "If a directed graph contains a cycle (e.g., $A \\to B \\to C \\to A$), no vertex in the cycle can ever reach in-degree $0$ because each depends on another cycle member. Consequently, Kahn's queue empties before all $|V|$ vertices are scheduled. If the output order contains fewer than $|V|$ vertices, a cycle is detected and an empty order is returned.",
     },
     {
-      heading: "Why the output is a valid ordering",
-      body: "The invariant is that a vertex is enqueued only after every one of its predecessors has already been appended to the output. That holds at the start, since the seeded vertices have no predecessors, and it is preserved by the decrement step, because a count only reaches zero once each incoming edge has been retired by its source being placed. Since appending happens after enqueueing, every edge in the graph points from an earlier position in the output to a later one, which is precisely the definition of a topological order. Note that the invariant says nothing about uniqueness — whenever the ready pool holds more than one vertex, any choice yields a correct answer, which is why a graph usually has many valid topological orders.",
+      heading: "Step-by-Step Intuition",
+      body: "1. Calculate in-degrees $\\text{in\\_degree}[v]$ for all $|V|$ vertices.\n2. Enqueue all vertices with $\\text{in\\_degree}[v] = 0$.\n3. While queue is non-empty:\n   a. Dequeue vertex $u$ and append $u$ to topological order.\n   b. For each outgoing edge $u \\to v$, decrement $\\text{in\\_degree}[v]$.\n   c. If $\\text{in\\_degree}[v]$ becomes $0$, enqueue $v$.\n4. If order length equals $|V|$, return order; else report cycle.",
     },
     {
-      heading: "Cycles come out for free",
-      body: "If a group of vertices depends on itself in a loop, none of them can ever reach in-degree zero, because each is permanently waiting on another member of the loop. The queue therefore empties while those vertices are still unplaced, and comparing the output length against the vertex count tells you immediately whether the graph was acyclic. This is the reason Kahn's algorithm is routinely used as a cycle detector rather than only as a sorter, in deadlock checks and dependency validation alike. The vertices missing from the output are exactly those trapped in or downstream of a cycle, which is a useful starting point when you have to report which dependencies are circular.",
+      heading: "Trade-offs: Kahn's BFS vs. DFS Topological Sort",
+      body: "Kahn's algorithm uses BFS/in-degrees, making it easy to detect cycles, implement parallel task scheduling (processing ready nodes in level-order batches), and customize tie-breaking via priority queues (e.g., lexicographical topo sort). DFS-based topo sort uses post-order finishing times but requires separate color tracking (white/gray/black) to detect cycles.",
     },
     {
-      heading: "Kahn versus the depth-first variant",
-      body: "The other classic approach runs a depth-first search and prepends each vertex to the result as its exploration finishes, which produces a valid order because a vertex finishes only after everything it reaches has finished. That version is shorter to write and natural when you are already recursing, but it detects cycles by tracking vertices currently on the recursion stack and it hands you the whole order only at the end. Kahn's version is preferable when you want the ordering produced incrementally, when you want to control tie-breaking, or when recursion depth is a concern on a large graph. If you specifically need the lexicographically smallest valid order, swap the queue for a min-heap — an option the depth-first formulation does not give you at all.",
-    },
-    {
-      heading: "What else the ready pool tells you",
-      body: "Because everything currently in the ready pool is mutually independent, draining it one full round at a time partitions the graph into layers, and those layers are exactly the batches you could execute in parallel — the number of rounds is then the length of the critical path. Once you have a topological order you can also run dynamic programming along it in a single pass, which is how longest paths, earliest and latest start times, and reachability counts are computed on a directed acyclic graph. The same ordering makes shortest paths on such a graph trivial and immune to negative weights, since relaxing edges in topological order settles each distance permanently the first time. If the pool ever holds two or more vertices, the order is not unique, and that observation is what you build on to count all valid orderings or to prove one is forced.",
+      heading: "Complexity Analysis",
+      body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Every vertex is enqueued and dequeued exactly once, and every directed edge is traversed once to decrement in-degrees, leading to linear $\\mathcal{O}(V + E)$ overall runtime.\n- **Space**: Adjacency list takes $\\mathcal{O}(V + E)$ memory; in-degree array and queue take $\\mathcal{O}(V)$ space.",
     },
   ],
   keyTerms: [
     {
-      term: "Directed acyclic graph (DAG)",
+      term: "Directed Acyclic Graph (DAG)",
       definition:
-        "A directed graph containing no cycle, so you can never follow edges forward and return to where you started. Exactly these graphs admit a topological order.",
+        "A directed graph with no directed cycles; the only category of graphs that admits a topological ordering.",
     },
     {
       term: "In-degree",
       definition:
-        "The number of edges pointing into a vertex — that is, how many prerequisites it still has. Kahn's algorithm treats a vertex as ready to schedule the moment this count falls to zero.",
+        "The number of directed edges pointing into a vertex, representing its count of unsatisfied dependencies.",
     },
     {
-      term: "Topological order",
+      term: "Topological Order",
       definition:
-        "A linear arrangement of the vertices in which every edge points forward. It is a valid execution schedule for the dependencies the graph encodes.",
+        "A linear sequence of vertices where all directed edge dependencies point strictly from left to right.",
     },
     {
-      term: "Source vertex",
+      term: "Dependency Cycle",
       definition:
-        "A vertex with in-degree zero, depending on nothing. Every non-empty acyclic graph has at least one, which is what guarantees the algorithm can always start.",
-    },
-    {
-      term: "Critical path",
-      definition:
-        "The longest chain of dependencies in the graph, which sets the minimum number of sequential rounds needed even with unlimited parallelism. It equals the number of layers the ready pool passes through.",
+        "A circular dependency loop preventing any member vertex from reaching in-degree zero.",
     },
   ],
 };
 
 const TOPOLOGICAL_SORT_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "deque gives O(1) FIFO operations for the ready-queue, and defaultdict lets the adjacency list auto-create empty lists for nodes with no recorded neighbors yet.",
-    3: "Entry point: takes every node and every directed edge (dependency) and returns a valid linear ordering, or an empty list if none exists.",
-    4: "Every node starts assumed to have zero unresolved prerequisites; the loop below fills in the real counts.",
-    5: "Builds the outgoing adjacency list so that once a node is placed, we can instantly find everything waiting on it.",
-    6: "Walks every edge once to build both the adjacency list and the in-degree counts in a single pass.",
-    7: "Records that v depends on u, so placing u later needs to notify v.",
-    8: "Increments v's prerequisite count for this edge — the number Kahn's algorithm watches to decide when v is finally ready.",
-    10: "Seeds the ready queue with every node that starts with zero prerequisites — the only valid starting points for the ordering.",
-    11: "The output sequence being built, one ready node at a time.",
-    13: "Keeps scheduling as long as some node with no remaining prerequisites is available.",
-    14: "Pulls the next ready node off the front of the queue.",
-    15: "Commits u to the schedule — every prerequisite it ever had is already placed before this line runs.",
-    16: "Looks at everything that depended on u, since placing u just resolved one of their prerequisites.",
-    17: "Decrements v's remaining-prerequisite count now that u — one of its dependencies — has been scheduled.",
-    18: "Checks whether v has just become fully unblocked.",
-    19: "v has no prerequisites left, so it joins the ready queue as a valid next pick.",
-    21: "If every node made it into the order, the schedule is valid; if some are missing, they were stuck waiting on each other in a cycle, so we report failure with an empty list.",
+    1: "Imports deque for O(1) ready-queue operations and defaultdict for adjacency list initialization.",
+    2: "Blank line after module imports.",
+    3: "Defines topological_sort(nodes, edges) function returning linear vertex ordering.",
+    4: "Initializes in_degree table setting count to 0 for every node.",
+    5: "Initializes adjacency list adj for storing directed edges.",
+    6: "Iterates over directed edges (u, v) representing dependency constraints.",
+    7: "Appends neighbor v to adjacency list of source node u.",
+    8: "Increments in_degree count for target node v.",
+    9: "Blank line separating graph initialization from queue creation.",
+    10: "Enqueues all source nodes with in_degree == 0 (no prerequisites).",
+    11: "Initializes empty order list to record scheduled topological sequence.",
+    12: "Blank line separating initialization from BFS processing loop.",
+    13: "Drives main loop while ready queue contains unblocked nodes.",
+    14: "Dequeues next ready node u from front of queue.",
+    15: "Appends node u to the topological output order.",
+    16: "Iterates through all outgoing neighbors v of node u.",
+    17: "Decrements in_degree count of neighbor v as dependency u is now resolved.",
+    18: "Checks if neighbor v has no remaining unresolved prerequisites.",
+    19: "Enqueues neighbor v now that its in_degree has reached 0.",
+    20: "Blank line separating processing loop from cycle check.",
+    21: "Returns order if all nodes were scheduled; returns empty list if cycle prevented full scheduling.",
   },
 };
 
@@ -119,7 +118,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Kahn's algorithm produces a linear ordering of the vertices in a Directed Acyclic Graph (DAG) such that for every edge u -> v, vertex u appears before vertex v. It works by tracking each node's in-degree and repeatedly dequeuing nodes with no remaining prerequisites. This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning.",
+    "Kahn's algorithm produces a linear ordering of the vertices in a **Directed Acyclic Graph (DAG)** $G = (V, E)$ such that for every edge $u \\to v$, vertex $u$ appears before vertex $v$. It works by tracking each node's in-degree $\\text{in\\_degree}[v]$ and repeatedly dequeuing nodes with no remaining prerequisites ($\text{in\\_degree} = 0$). This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning in $\\mathcal{O}(V + E)$ time.",
   constraints: [
     "1 <= V <= 10^4",
     "0 <= E <= 2 * 10^4",

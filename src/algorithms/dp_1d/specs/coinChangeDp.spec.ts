@@ -16,7 +16,7 @@ describe("coinChangeDp algorithm logic spec", () => {
 
   it("generates valid steps for default input", () => {
     const steps = generateCoinChangeSteps(DEFAULT_COIN_CHANGE_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.primarySnapshot.kind).toBe("array");
     if (lastStep.primarySnapshot.kind === "array") {

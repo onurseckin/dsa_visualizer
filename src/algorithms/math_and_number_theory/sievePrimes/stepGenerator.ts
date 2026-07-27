@@ -1,4 +1,4 @@
-import type { AlgorithmStep, ArrayElement } from "../../../types/dsa";
+import type { AlgorithmStep, VectorItem } from "../../../types/dsa";
 
 export interface SieveInput {
   limit: number;
@@ -14,11 +14,37 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   if (limit >= 0) isPrime[0] = false;
   if (limit >= 1) isPrime[1] = false;
 
-  const elements: ArrayElement[] = Array.from({ length: limit + 1 }, (_, k) => ({
-    id: `el-${k}`,
-    value: k,
-    state: k < 2 ? "visited" : "default",
-  }));
+  const getVectorSnapshot = (currentP?: number, activeMultiple?: number) => {
+    const vectors: VectorItem[] = [];
+    for (let k = 0; k <= limit; k++) {
+      let state: "default" | "active" | "compared" | "sorted" | "result" = "default";
+      if (k === currentP) {
+        state = "active";
+      } else if (k === activeMultiple) {
+        state = "compared";
+      } else if (!isPrime[k] && k >= 2) {
+        state = "sorted";
+      } else if (isPrime[k] && k >= 2) {
+        state = "result";
+      }
+
+      vectors.push({
+        id: `num-${k}`,
+        label: `${k}: ${isPrime[k] ? "Prime" : "Composite"}`,
+        x: k * 30,
+        y: isPrime[k] ? 1 : 0,
+        state,
+        subText: k < 2 ? "non-prime" : isPrime[k] ? "T" : "F",
+      });
+    }
+
+    return {
+      kind: "vector" as const,
+      vectors,
+      planeTitle: `Sieve Primality Status Vector (limit = ${limit})`,
+      dimensions: "2d" as const,
+    };
+  };
 
   const getAuxiliaryState = (currentPrimes: number[]) => {
     const isPrimeMap: Record<string, string> = {};
@@ -43,18 +69,14 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
     why: string,
     variables: Record<string, string | number | boolean>,
     currentPrimes: number[] = [],
+    currentP?: number,
+    activeMultiple?: number,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getVectorSnapshot(currentP, activeMultiple),
       auxiliaryState: getAuxiliaryState(currentPrimes),
       variables,
     });
@@ -111,16 +133,17 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
     "We begin with the smallest prime, 2. Each candidate that survives to this point will get to eliminate its own multiples.",
     { p: 2, limit },
     [],
+    2,
   );
 
   for (let p = 2; p * p <= limit; p++) {
-    elements[p].pointers = ["p"];
-
     addStep(
       9,
       `Confirm p² stays in range (${p * p} <= ${limit})`,
       `Every composite up to ${limit} has a factor no larger than its square root, so we only need base primes while p² is in range — and ${p}² = ${p * p} still is.`,
       { p, "p*p": p * p, limit },
+      [],
+      p,
     );
 
     addStep(
@@ -130,32 +153,27 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
         ? `Nothing smaller has crossed ${p} out, so it must be prime — any composite this size would already have been hit by a smaller factor. Time to eliminate its multiples, starting at ${p * p}.`
         : `${p} was already crossed out by a smaller prime factor, so we skip it — its multiples were handled long ago.`,
       { p, "is_prime[p]": isPrime[p] },
+      [],
+      p,
     );
 
     if (isPrime[p]) {
-      elements[p].state = "active";
-
       for (let i = p * p; i <= limit; i += p) {
         const wasPrime = isPrime[i];
         isPrime[i] = false;
 
-        elements[i].state = "visited";
-        elements[i].pointers = [`multiple of ${p}`];
-
         addStep(
           12,
-          `Cross out ${i} as composite`,
+          `Cross out ${i} as composite (multiple of ${p})`,
           wasPrime
             ? `${i} is ${p} × ${i / p}, so it cannot be prime and we mark it False. We started crossing at ${p * p} because smaller multiples of ${p} already fell to smaller primes.`
             : `${i} was already crossed out by a smaller prime factor, so this mark changes nothing — we just move along.`,
           { p, i, "is_prime[i]": false },
+          [],
+          p,
+          i,
         );
-
-        elements[i].pointers = undefined;
       }
-
-      elements[p].state = "sorted";
-      elements[p].pointers = undefined;
     }
 
     addStep(
@@ -163,6 +181,8 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
       `Move on to p = ${p + 1}`,
       `We are done with ${p}, so we advance to the next candidate and let the array tell us whether it survived.`,
       { p: p + 1 },
+      [],
+      p + 1,
     );
   }
 
@@ -184,7 +204,6 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   for (let i = 2; i <= limit; i++) {
     if (isPrime[i]) {
       primes.push(i);
-      elements[i].state = "sorted";
     }
   }
 
@@ -198,3 +217,4 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
   return steps;
 };
+

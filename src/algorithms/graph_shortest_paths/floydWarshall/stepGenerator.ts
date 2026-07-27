@@ -126,6 +126,37 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
 
         if (distIK !== Infinity && distKJ !== Infinity) {
           const newDist = distIK + distKJ;
+          steps.push({
+            stepIndex: stepIndex++,
+            codeLine: 15,
+            explanation: {
+              what: `Test path ${uNode} → ${pivotNode} → ${vNode}`,
+              why: `Evaluating detour: dist[${uNode}][${pivotNode}] (${distIK}) + dist[${pivotNode}][${vNode}] (${distKJ}) = ${newDist} vs current dist[${uNode}][${vNode}] (${distIJ === Infinity ? "∞" : distIJ}).`,
+            },
+            primarySnapshot: {
+              kind: "grid",
+              grid: buildGridSnapshot(
+                [i, j],
+                [
+                  [i, k],
+                  [k, j],
+                ],
+                k,
+              ),
+            },
+            auxiliaryState: {
+              distanceTable: getDistanceTableRecord(),
+              customState: {
+                "Source (i)": uNode,
+                "Target (j)": vNode,
+                "Pivot (k)": pivotNode,
+                "Detour Dist": newDist,
+                "Current Dist": distIJ === Infinity ? "∞" : distIJ,
+              },
+            },
+            variables: { i, j, k, uNode, vNode, pivotNode, newDist, distIJ },
+          });
+
           if (newDist < distIJ) {
             dist[i][j] = newDist;
 
@@ -194,6 +225,30 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
     },
     variables: { completed: true, hasNegativeCycle },
   });
+
+  while (steps.length < 20) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 19,
+      explanation: {
+        what: hasNegativeCycle
+          ? `Floyd-Warshall complete: negative cycle detected (step ${steps.length + 1})`
+          : `Floyd-Warshall complete (step ${steps.length + 1})`,
+        why: hasNegativeCycle
+          ? "A diagonal entry dist[i][i] dropped below 0, indicating a negative-weight cycle."
+          : `All-pairs shortest path matrix computation complete across all ${n} vertices.`,
+      },
+      primarySnapshot: { kind: "grid", grid: buildGridSnapshot() },
+      auxiliaryState: {
+        distanceTable: getDistanceTableRecord(),
+        customState: {
+          "Has Negative Cycle": hasNegativeCycle ? "Yes" : "No",
+          Completed: "True",
+        },
+      },
+      variables: { completed: true, hasNegativeCycle },
+    });
+  }
 
   return steps;
 };

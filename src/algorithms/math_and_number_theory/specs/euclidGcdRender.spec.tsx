@@ -1,17 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
+import { VectorVisualizer } from "../../../components/primitives/VectorVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateEuclidGcdSteps, DEFAULT_EUCLID_GCD_INPUT } from "../euclidGcd";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("euclidGcd React component spec", () => {
-  it("renders ArrayVisualizer with Euclid GCD snapshot", () => {
+  it("renders VectorVisualizer with Euclid GCD snapshot", () => {
     const steps = generateEuclidGcdSteps(DEFAULT_EUCLID_GCD_INPUT);
-    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
 
-    render(<ArrayVisualizer elements={snapshot.elements} title="Euclidean Algorithm (GCD)" />);
+    render(<VectorVisualizer vectors={snapshot.vectors} planeTitle="Euclidean Algorithm (GCD)" />);
 
     expect(screen.getByText("Euclidean Algorithm (GCD)")).toBeInTheDocument();
   });

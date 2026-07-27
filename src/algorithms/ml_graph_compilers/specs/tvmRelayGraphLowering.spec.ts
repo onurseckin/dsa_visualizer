@@ -4,27 +4,33 @@ import {
   generateTvmRelayGraphLoweringSteps,
   tvmRelayGraphLowering,
 } from "../tvmRelayGraphLowering";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("tvmRelayGraphLowering algorithm spec", () => {
-  it("should have correct metadata", () => {
+  it("should have correct metadata and full trivia lineExplanations", () => {
     expect(tvmRelayGraphLowering.id).toBe("tvm-relay-graph-lowering");
     expect(tvmRelayGraphLowering.isMlInfra).toBe(true);
     expect(tvmRelayGraphLowering.mlInfraLevel).toBe(7);
     expect(tvmRelayGraphLowering.categories).toContain("ml_graph_compilers");
     expect(tvmRelayGraphLowering.defaultInput).toEqual(DEFAULT_TVM_RELAY_GRAPH_LOWERING_INPUT);
+
+    const codeLines = tvmRelayGraphLowering.code.trim().split("\n").length;
+    const explanationKeys = Object.keys(tvmRelayGraphLowering.trivia?.lineExplanations || {}).map(Number);
+    expect(explanationKeys.length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(tvmRelayGraphLowering.trivia?.lineExplanations?.[i]).toBeDefined();
+    }
   });
 
-  it("should generate valid algorithm steps and lower Relay IR to TIR", () => {
+  it("should generate >= 20 algorithm steps with matrix snapshots and lower Relay IR to TIR", () => {
     const steps = generateTvmRelayGraphLoweringSteps(DEFAULT_TVM_RELAY_GRAPH_LOWERING_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.complete).toBe(true);
+    expect(lastStep.explanation.what).toContain("Complete");
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBe(1);
-    expect(snap.elements[0].value).toBe("fused_conv2d_bias_relu");
+    const snap = lastStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snap.kind).toBe("matrix");
   });
 });
+

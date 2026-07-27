@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, GridCellNode, TopicGuide } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface BinomialCoefficientsInput {
@@ -22,7 +22,7 @@ def binomial_coefficient(n: int, k: int) -> int:
 `;
 
 export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInput = {
-  n: 5,
+  n: 6,
   k: 3,
 };
 
@@ -37,59 +37,64 @@ export const generateBinomialCoefficientsPascalSteps = (
 
   const dp: number[][] = Array.from({ length: nVal + 1 }, () => new Array(kVal + 1).fill(0));
 
-  const createGridSnapshot = (
+  const createMatrixSnapshot = (
     activeRow: number | null,
     activeCol: number | null,
     parent1: [number, number] | null = null,
     parent2: [number, number] | null = null,
-  ): GridCellNode[][] => {
-    const grid: GridCellNode[][] = [];
-
+  ) => {
+    const cells: MatrixCellItem[] = [];
     for (let r = 0; r <= nVal; r++) {
-      const rowNodes: GridCellNode[] = [];
       for (let c = 0; c <= kVal; c++) {
-        let state: GridCellNode["state"] = "default";
-        const isTarget = r === nVal && c === kVal;
-
+        let state: MatrixCellItem["state"] = "default";
         if (r === activeRow && c === activeCol) {
           state = "active";
         } else if (
           (parent1 && parent1[0] === r && parent1[1] === c) ||
           (parent2 && parent2[0] === r && parent2[1] === c)
         ) {
-          state = "compare";
+          state = "compared";
         } else if (dp[r][c] > 0) {
           state = "sorted";
         }
 
-        rowNodes.push({
+        cells.push({
           row: r,
           col: c,
-          distance: dp[r][c],
+          value: dp[r][c],
+          label: `C(${r},${c})`,
           state,
-          isEnd: isTarget,
         });
       }
-      grid.push(rowNodes);
     }
-    return grid;
+
+    const rowHeaders = Array.from({ length: nVal + 1 }, (_, i) => `n=${i}`);
+    const colHeaders = Array.from({ length: kVal + 1 }, (_, j) => `k=${j}`);
+
+    return {
+      kind: "matrix" as const,
+      rows: nVal + 1,
+      cols: kVal + 1,
+      cells,
+      rowHeaders,
+      colHeaders,
+      title: "Pascal's Triangle Matrix",
+    };
   };
 
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 2,
     explanation: {
-      what: `Initializing Pascal's Triangle DP table C[0..${nVal}][0..${kVal}] to compute C(${nVal}, ${kVal}).`,
-      why: "We build Pascal's identity C(n, k) = C(n-1, k-1) + C(n-1, k) row by row.",
+      what: `Initializing Pascal's Triangle DP matrix of size (${nVal + 1}) × (${kVal + 1}) to compute C(${nVal}, ${kVal}).`,
+      why: "We evaluate the combination recurrence C(n, k) = C(n-1, k-1) + C(n-1, k) row by row, avoiding factorial overflow.",
     },
-    primarySnapshot: {
-      kind: "grid",
-      grid: createGridSnapshot(null, null),
-    },
+    primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
       hashMap: {
         "Target Combination": `C(${nVal}, ${kVal})`,
+        "Matrix Dimensions": `${nVal + 1} x ${kVal + 1}`,
       },
       customState: {
         n: nVal,
@@ -111,19 +116,18 @@ export const generateBinomialCoefficientsPascalSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 6,
+          codeLine: 10,
           explanation: {
-            what: `Base case C[${i}][${j}] = 1 (j == 0 or j == i).`,
-            why: "Choosing 0 elements or all elements from a set of size i can be done in exactly 1 way.",
+            what: `Base case C[${i}][${j}] = 1 (${j === 0 ? "j == 0" : "j == i"}).`,
+            why: j === 0
+              ? "Choosing 0 items from a set of size i can be done in exactly 1 way."
+              : "Choosing all i items from a set of size i can be done in exactly 1 way.",
           },
-          primarySnapshot: {
-            kind: "grid",
-            grid: createGridSnapshot(i, j),
-          },
+          primarySnapshot: createMatrixSnapshot(i, j),
           auxiliaryState: {
             hashMap: {
               "Cell Value": `C[${i}][${j}] = 1`,
-              Reason: j === 0 ? "j == 0 (Empty set choice)" : "j == i (Full set choice)",
+              Reason: j === 0 ? "j == 0 (Empty subset selection)" : "j == i (Full subset selection)",
             },
             customState: {
               i,
@@ -144,15 +148,12 @@ export const generateBinomialCoefficientsPascalSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 8,
+          codeLine: 12,
           explanation: {
             what: `C[${i}][${j}] = C[${i - 1}][${j - 1}] + C[${i - 1}][${j}] = ${val1} + ${val2} = ${dp[i][j]}.`,
-            why: "Pascal's identity: include the element or exclude the element from the selection.",
+            why: "Pascal's identity: either include the i-th element (requires picking j-1 from i-1) or exclude it (requires picking j from i-1).",
           },
-          primarySnapshot: {
-            kind: "grid",
-            grid: createGridSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
-          },
+          primarySnapshot: createMatrixSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
           auxiliaryState: {
             hashMap: {
               "Parent C[i-1][j-1]": `${val1}`,
@@ -179,15 +180,12 @@ export const generateBinomialCoefficientsPascalSteps = (
   const ans = dp[nVal][kVal];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 13,
     explanation: {
       what: `Completed Pascal's triangle table! C(${nVal}, ${kVal}) = ${ans}.`,
-      why: "Target DP cell evaluated successfully.",
+      why: "Target DP matrix cell evaluated successfully.",
     },
-    primarySnapshot: {
-      kind: "grid",
-      grid: createGridSnapshot(nVal, kVal),
-    },
+    primarySnapshot: createMatrixSnapshot(nVal, kVal),
     auxiliaryState: {
       hashMap: {
         "Final Result C(n, k)": `${ans}`,
@@ -206,54 +204,60 @@ export const generateBinomialCoefficientsPascalSteps = (
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Binomial coefficients C(n, k) = n! / (k! * (n-k)!) count the number of ways to choose k items from n distinct items without replacement, where order does not matter. Pascal's Triangle builds these coefficients dynamically using the recurrence relation C(n, k) = C(n-1, k-1) + C(n-1, k). This approach avoids direct factorial computation, preventing 64-bit integer overflow during intermediate steps and providing an intuitive 2D grid dynamic programming structure.",
+    "Binomial coefficients $\\binom{n}{k} = \\frac{n!}{k!(n-k)!}$ count the number of ways to choose $k$ items from a set of $n$ distinct elements without regard to order. Pascal's Triangle builds these values dynamically using the fundamental recurrence relation $\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$. This DP approach avoids factorial overflow in integer arithmetic and provides a clean 2D grid matrix representation.",
   sections: [
     {
-      heading: "Pascal's Recurrence Identity & Core Concept",
-      body: "To select k items out of n, consider an arbitrary element x: either we include x in our selection (requiring us to pick k-1 items from the remaining n-1), or we exclude x (requiring us to pick k items from the remaining n-1). Adding these two mutually exclusive choices gives C(n, k) = C(n-1, k-1) + C(n-1, k). Base cases are C(i, 0) = 1 (empty set choice) and C(i, i) = 1 (full set choice).",
+      heading: "Pascal's Recurrence Identity & Combinatorial Proof",
+      body: "To select $k$ items out of $n$, distinguish an arbitrary element $x$: either we include $x$ (requiring us to pick $k-1$ items from the remaining $n-1$), or we exclude $x$ (requiring us to pick $k$ items from the remaining $n-1$). Adding these mutually exclusive cases yields:\n$$\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$$\nBase cases are $\\binom{i}{0} = 1$ (the unique empty set) and $\\binom{i}{i} = 1$ (the unique full set selection).",
     },
     {
-      heading: "Systems & Performance Impact",
-      body: "Calculating n! / (k! * (n-k)!) directly is fraught with overflow risks, as 21! already exceeds 64-bit integer capacity. By constructing the DP table iteratively using addition only, we maintain arithmetic precision up to the final result limit. Furthermore, row-by-row DP calculation benefits from spatial cache locality, and space complexity can be reduced from O(n * k) to O(k) using a 1D array updated in-place from right to left.",
+      heading: "Numeric Stability & Avoiding Factorial Overflow",
+      body: "Computing $\\frac{n!}{k!(n-k)!}$ directly is extremely vulnerable to integer overflow, as $21!$ exceeds 64-bit integer limits ($2^{63}-1$). By constructing the DP table iteratively using addition only, arithmetic precision is maintained up to the final result limit. Furthermore, row-by-row DP calculation exhibits optimal spatial cache locality.",
     },
     {
-      heading: "Implementation Nuances & Optimization",
-      body: "Because C(n, k) = C(n, n-k), we can optimize computation when k > n/2 by replacing k with n-k. For competitive programming applications with a fixed prime modulus p, precomputing factorials and modular inverses allows O(1) query time per test case, whereas Pascal's Triangle is best suited when queries are dense or modulo arithmetic is not required.",
+      heading: "Symmetric Property & Space Optimization",
+      body: "Because of the combinatorial symmetry $\\binom{n}{k} = \\binom{n}{n-k}$, we can optimize computation when $k > \\frac{n}{2}$ by substituting $k \\leftarrow n - k$. Space complexity can also be compressed from $\\mathcal{O}(n k)$ to $\\mathcal{O}(k)$ using a 1D array updated in-place from right to left.",
     },
     {
-      heading: "Edge Case & Boundary Analysis",
-      body: "Key edge cases include k = 0 (always yields 1), k = n (always yields 1), k > n (yields 0), and n = 0 (yielding C(0,0) = 1). Ensuring loop bounds loop from 0 to n and j from 0 to min(i, k) avoids out-of-bounds table access and waste of computation.",
+      heading: "Edge Cases & Boundary Analysis",
+      body: "Key edge cases include $k = 0$ (always yields $1$), $k = n$ (always yields $1$), $k > n$ (yields $0$), and $n = 0$ (yielding $\\binom{0}{0} = 1$). Restricting inner loops to $j \\le \\min(i, k)$ prevents unnecessary matrix updates.",
     },
   ],
   keyTerms: [
     {
       term: "Pascal's Triangle",
       definition:
-        "A triangular array of binomial coefficients where each interior cell is the sum of the two numbers directly above it.",
+        "A triangular matrix of binomial coefficients where each entry is the sum of the two cells directly above it.",
     },
     {
-      term: "Combination C(n, k)",
+      term: "Combination $\\binom{n}{k}$",
       definition:
-        "The number of ways to choose a subset of k unordered elements from a set of n distinct elements.",
+        "The number of unordered $k$-element subsets chosen from an $n$-element set.",
     },
     {
       term: "Symmetric Property",
       definition:
-        "The mathematical identity C(n, k) = C(n, n-k), reflecting the equivalence of choosing k items to include or n-k items to exclude.",
+        "The identity $\\binom{n}{k} = \\binom{n}{n-k}$, reflecting the equivalence of choosing $k$ elements to include or $n-k$ elements to exclude.",
     },
   ],
 };
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP.",
-    2: "Initializes 2D table C of size (n + 1) × (k + 1) with 0s.",
-    3: "Loops through row i from 0 to n.",
-    4: "Loops through col j from 0 to min(i, k).",
-    5: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all elements).",
-    6: "Sets base case value C[i][j] = 1.",
-    8: "Pascal's identity: C[i][j] = C[i - 1][j - 1] + C[i - 1][j].",
-    9: "Returns C[n][k] containing binomial coefficient.",
+    1: "Empty leading line for code formatting.",
+    2: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP table.",
+    3: "Opening docstring tag.",
+    4: "Docstring explaining Pascal's triangle dynamic programming table.",
+    5: "Closing docstring tag.",
+    6: "Initializes 2D DP matrix C of size (n + 1) × (k + 1) filled with 0s.",
+    7: "Outer loop iterates through row index i from 0 to n.",
+    8: "Inner loop iterates through column index j from 0 to min(i, k).",
+    9: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all i elements).",
+    10: "Sets base case value dp[i][j] = 1.",
+    11: "Else branch for interior cells of Pascal's triangle.",
+    12: "Pascal's identity: dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j].",
+    13: "Returns dp[n][k] containing the binomial coefficient C(n, k).",
+    14: "Empty trailing line for code formatting.",
   },
 };
 
@@ -264,7 +268,7 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   categories: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "Given two non-negative integers n and k, compute the binomial coefficient C(n, k) representing the number of ways to choose k items from n distinct items without regard to order. The algorithm constructs Pascal's Triangle row-by-row using dynamic programming, applying the recurrence relation C(i, j) = C(i-1, j-1) + C(i-1, j) to avoid integer overflow from factorial multiplication.",
+    "Given non-negative integers $n$ and $k$, compute the binomial coefficient $\\binom{n}{k}$ representing the number of ways to choose $k$ items from $n$ distinct items without regard to order:\n\n$$\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$$\n\n### State Matrix Representation\nThe DP dynamic state is represented as a matrix $\\mathbf{C} \\in \\mathbb{Z}^{(n+1) \\times (k+1)}$ where cell $\\mathbf{C}[i][j]$ stores $\\binom{i}{j}$.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): Total number of items in the set.\n- `k` ($k \\in \\mathbb{Z}_{\\ge 0}$): Number of items to select from the set.\n\n### Output\n- `int`: Binomial coefficient $\\binom{n}{k}$.\n\n### Edge Cases & Constraints\n- Base Cases: $\\binom{n}{0} = 1$ and $\\binom{n}{n} = 1$.\n- Out of Bounds: $\\binom{n}{k} = 0$ for $k > n$.",
   constraints: ["0 <= k <= n <= 30"],
   examples: [
     {
@@ -303,8 +307,8 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   },
   spaceComplexity: "O(N * K)",
   complexityAnalysis: {
-    time: "Fills an (N+1) x (K+1) DP grid, yielding O(N * K) operations.",
-    space: "O(N * K) memory to store the 2D grid matrix.",
+    time: "Fills an $(N+1) \\times (K+1)$ DP grid, executing in $\\mathcal{O}(N \\times K)$ operations.",
+    space: "Requires $\\mathcal{O}(N \\times K)$ memory to store the 2D grid matrix.",
   },
   topicGuide: BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE,
   trivia: BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA,
@@ -320,3 +324,4 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   defaultInput: DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
   generateSteps: generateBinomialCoefficientsPascalSteps,
 };
+

@@ -1,17 +1,22 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
 
 export interface GpuHistQuantizedHistogramInput {
-  binIndices: number[]; // uint8 bin codes (0..numBins-1) for N samples
+  binIndices: number[];
   gradients: number[];
   hessians: number[];
   numBins: number;
+  data?: number[];
+  target?: number;
 }
 
 export const DEFAULT_GPU_HIST_INPUT: GpuHistQuantizedHistogramInput = {
-  binIndices: [0, 1, 0, 2, 1, 2, 0, 1],
-  gradients: [-0.5, 0.2, -0.3, 0.8, 0.1, 0.6, -0.4, 0.3],
-  hessians: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
-  numBins: 3,
+  binIndices: [0, 1, 0, 2, 1, 3, 2, 0, 1, 3, 2, 0],
+  gradients: [-0.5, 0.2, -0.3, 0.8, 0.1, 0.6, -0.4, 0.3, -0.1, 0.5, 0.2, -0.6],
+  hessians: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+  numBins: 4,
+  data: [0, 1, 0, 2, 1, 3, 2, 0, 1, 3, 2, 0],
+  target: 4,
 };
 
 export const GPU_HIST_QUANTIZED_HISTOGRAM_CODE = `def gpu_hist_build_histogram(bin_indices: list[int], gradients: list[float], hessians: list[float], num_bins: int) -> tuple[list[float], list[float]]:
@@ -34,234 +39,261 @@ export const GPU_HIST_QUANTIZED_HISTOGRAM_CODE = `def gpu_hist_build_histogram(b
 
 export const generateGpuHistSteps = (input: GpuHistQuantizedHistogramInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const { binIndices, gradients, hessians, numBins } = input;
+  const binIndices = input.binIndices || input.data || [0, 1, 0, 2, 1, 3, 2, 0, 1, 3, 2, 0];
+  const gradients = input.gradients || [-0.5, 0.2, -0.3, 0.8, 0.1, 0.6, -0.4, 0.3, -0.1, 0.5, 0.2, -0.6];
+  const hessians = input.hessians || [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25];
+  const numBins = input.numBins ?? input.target ?? 4;
   let stepIndex = 0;
 
   const N = binIndices.length;
   const histG = new Array(numBins).fill(0.0);
   const histH = new Array(numBins).fill(0.0);
 
-  // Step 0: Init
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Initialize GPU Quantized Histogram Kernel (numBins = ${numBins})`,
-      why: `Accumulating gradients and hessians across N = ${N} quantized samples into ${numBins} histogram bin buckets in shared memory.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: binIndices.map((b, idx) => ({
-        id: `s-${idx}`,
-        value: b,
-        label: `Sample ${idx} (Bin ${b})`,
-        state: "default" as ElementState,
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        numBins: String(numBins),
-        totalSamples: String(N),
-        gpuKernel: "Shared Memory Atomic Addition",
-        status: "Initialized",
-      },
-    },
-    variables: { numBins, N },
-  });
+  const getSnapshot = (
+    activeBin: number = -1,
+  ) => {
+    return {
+      kind: "matrix" as const,
+      rows: 2,
+      cols: numBins,
+      rowHeaders: ["hist_G", "hist_H"],
+      colHeaders: Array.from({ length: numBins }, (_, b) => `Bin ${b}`),
+      cells: [
+        ...histG.map((val, b) => ({
+          row: 0,
+          col: b,
+          value: val.toFixed(2),
+          state: b === activeBin ? ("active" as const) : ("default" as const),
+        })),
+        ...histH.map((val, b) => ({
+          row: 1,
+          col: b,
+          value: val.toFixed(2),
+          state: b === activeBin ? ("active" as const) : ("default" as const),
+        })),
+      ],
+      title: `Shared Memory Histogram Buckets (${numBins} Bins)`,
+    };
+  };
 
-  for (let i = 0; i < N; i++) {
-    const b = binIndices[i];
-    const g = gradients[i];
-    const h = hessians[i];
-
-    histG[b] += g;
-    histH[b] += h;
-
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    activeBin: number = -1,
+  ) => {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
-      explanation: {
-        what: `Sample ${i}: Bin ${b} Atomic Accumulation (g = ${g.toFixed(2)}, h = ${h.toFixed(2)})`,
-        why: `Accumulated sample ${i} into histogram Bin ${b}. Updated Bin ${b} totals: G = ${histG[
-          b
-        ].toFixed(2)}, H = ${histH[b].toFixed(2)}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: binIndices.map((bIdx, idx) => ({
-          id: `s-${idx}`,
-          value: bIdx,
-          label: `S${idx} -> Bin ${bIdx}`,
-          state:
-            idx === i
-              ? ("active" as ElementState)
-              : idx < i
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === i ? [`Bin ${b}`] : [],
-        })),
-      },
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: getSnapshot(activeBin),
       auxiliaryState: {
         customState: {
-          activeSample: `Sample ${i}`,
-          targetBin: `Bin ${b}`,
-          binGTotal: histG[b].toFixed(2),
-          binHTotal: histH[b].toFixed(2),
+          "Algorithm": "GPU Quantized Histogram Kernel (XGBoost hist / LightGBM)",
+          "numBins": String(numBins),
+          "Total Samples N": String(N),
+          "Memory Access": "CUDA SRAM Shared Memory Atomic Add",
         },
       },
-      variables: { i, bin: b, g, h },
+      variables,
     });
-  }
+  };
 
-  // Step Final: Complete
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 15,
-    explanation: {
-      what: "GPU Histogram Construction Kernel Complete",
-      why: `Histogram built across ${numBins} bins: G = [${histG
-        .map((g) => g.toFixed(2))
-        .join(
-          ", ",
-        )}], H = [${histH.map((h) => h.toFixed(2)).join(", ")}]. Ready for O(numBins) split search!`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: histG.map((g, bIdx) => ({
-        id: `bin-${bIdx}`,
-        value: bIdx,
-        label: `Bin ${bIdx}: G=${g.toFixed(2)}, H=${histH[bIdx].toFixed(2)}`,
-        state: "sorted" as ElementState,
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        histG: histG.map((g) => g.toFixed(2)).join(", "),
-        histH: histH.map((h) => h.toFixed(2)).join(", "),
-        status: "Completed",
-      },
-    },
-    variables: { numBins, complete: true },
+  // Step 1: Function entry
+  addStep(
+    1,
+    "GPU Quantized Histogram Construction Kernel Entry",
+    `Started GPU histogram construction kernel across ${N} samples and ${numBins} discrete uint8 bins.`,
+    { numBins, N },
+  );
+
+  // Step 2: Init hist_G (7)
+  addStep(
+    7,
+    `Zero-Initialize hist_G SRAM Buffer (${numBins} Bins)`,
+    `Allocated ${numBins} floating point buckets for gradient histogram hist_G filled with 0.0.`,
+    { numBins },
+  );
+
+  // Step 3: Init hist_H (8)
+  addStep(
+    8,
+    `Zero-Initialize hist_H SRAM Buffer (${numBins} Bins)`,
+    `Allocated ${numBins} floating point buckets for hessian histogram hist_H filled with 0.0.`,
+    { numBins },
+  );
+
+  // Loop over samples (11..13)
+  binIndices.forEach((bIdx, idx) => {
+    const g = gradients[idx];
+    const h = hessians[idx];
+
+    addStep(
+      11,
+      `Sample ${idx + 1}/${N}: Read Bin uint8 Code b_idx = ${bIdx}`,
+      `Loaded quantized bin code b_idx = ${bIdx} (gradient g = ${g.toFixed(2)}, hessian h = ${h.toFixed(2)}).`,
+      { idx, b_idx: bIdx, g, h },
+      bIdx,
+    );
+
+    histG[bIdx] += g;
+    addStep(
+      12,
+      `CUDA Shared Memory Atomic Add: hist_G[${bIdx}] += ${g.toFixed(2)} -> ${histG[bIdx].toFixed(4)}`,
+      `Accumulated gradient g = ${g.toFixed(2)} into hist_G[${bIdx}]: bucket value is now ${histG[bIdx].toFixed(4)}.`,
+      { b_idx: bIdx, g, "hist_G[b_idx]": histG[bIdx] },
+      bIdx,
+    );
+
+    histH[bIdx] += h;
+    addStep(
+      13,
+      `CUDA Shared Memory Atomic Add: hist_H[${bIdx}] += ${h.toFixed(2)} -> ${histH[bIdx].toFixed(4)}`,
+      `Accumulated hessian h = ${h.toFixed(2)} into hist_H[${bIdx}]: bucket value is now ${histH[bIdx].toFixed(4)}.`,
+      { b_idx: bIdx, h, "hist_H[b_idx]": histH[bIdx] },
+      bIdx,
+    );
   });
+
+  // Step 5: Round hist_G (15)
+  const roundedG = histG.map((val) => Math.round(val * 10000) / 10000);
+  addStep(
+    15,
+    "Round Gradient Histogram Values hist_G to 4 Decimal Places",
+    `Rounded gradient histogram buckets: [${roundedG.map((v) => v.toFixed(4)).join(", ")}].`,
+    { hist_G: JSON.stringify(roundedG) },
+  );
+
+  // Step 6: Round hist_H (16)
+  const roundedH = histH.map((val) => Math.round(val * 10000) / 10000);
+  addStep(
+    16,
+    "Round Hessian Histogram Values hist_H to 4 Decimal Places",
+    `Rounded hessian histogram buckets: [${roundedH.map((v) => v.toFixed(4)).join(", ")}].`,
+    { hist_H: JSON.stringify(roundedH) },
+  );
+
+  // Step 7: Return (17)
+  addStep(
+    17,
+    "Execution Complete: Return (hist_G, hist_H)",
+    `Successfully constructed ${numBins}-bin gradient and hessian histograms.`,
+    { numBins, N, completed: true },
+  );
 
   return steps;
 };
 
-export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<GpuHistQuantizedHistogramInput> =
-  {
-    id: "gpuHistQuantizedHistogramKernel",
-    title: "GPU Quantized Histogram Construction Kernel",
-    category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles", "ml_hardware_kernels"],
-    difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_tree_ensembles",
-    description:
-      "Simulates GPU-accelerated quantized histogram building (XGBoost `tree_method='hist'`, LightGBM, CatBoost). Continuous feature values are pre-quantized into discrete 8-bit uint8 bins (0..255). Parallel GPU thread blocks accumulate sample gradients g_i and hessians h_i into shared memory histogram buckets in parallel O(N) time.\n\nInput Format:\n- binIndices: Array of quantized uint8 feature bin codes for N samples.\n- gradients: 1st order loss gradients g_i.\n- hessians: 2nd order loss hessians h_i.\n- numBins: Total histogram bin count B (typically 256).\n\nOutput Format:\n- Returns tuple (histogramG, histogramH).\n\nEdge Cases & Constraints:\n- Empty bin: Remains G = 0.0, H = 0.0.",
-    constraints: ["0 <= binIndices[i] < numBins."],
-    examples: [
+const GPU_HIST_QUANTIZED_HISTOGRAM_TRIVIA: TriviaMeta = {
+  skipLines: [2, 3, 4, 5, 6, 9, 10, 14],
+  distractors: [
+    "hist_G[b_idx] += 1.0",
+    "hist_H[b_idx] = max(gradients)",
+    "hist_G = bin_indices * gradients",
+    "return sum(hist_G), sum(hist_H)",
+  ],
+  hints: [
+    { line: 12, hint: "Atomic accumulation into gradient histogram bucket: hist_G[b_idx] += g." },
+    { line: 13, hint: "Atomic accumulation into hessian histogram bucket: hist_H[b_idx] += h." },
+  ],
+  lineExplanations: {
+    1: "Defines entry point for gpu_hist_build_histogram kernel function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes GPU Quantized Histogram Construction Kernel (XGBoost tree_method=hist / LightGBM).",
+    4: "Docstring detailing binning feature values into discrete uint8 bins and accumulating gradient G and hessian H sums.",
+    5: "Docstring continuation detailing parallel O(N) shared memory histogram bucket accumulation.",
+    6: "Docstring closing delimiter tag.",
+    7: "Allocates gradient histogram buffer hist_G of size num_bins filled with zero floats.",
+    8: "Allocates hessian histogram buffer hist_H of size num_bins filled with zero floats.",
+    9: "Blank line before atomic accumulation loop.",
+    10: "Comment for parallel atomic accumulation per sample into bin buckets.",
+    11: "Iterates over sample bin index b_idx, gradient g, and hessian h in zip(bin_indices, gradients, hessians).",
+    12: "Accumulates gradient g into histogram bucket: hist_G[b_idx] += g.",
+    13: "Accumulates hessian h into histogram bucket: hist_H[b_idx] += h.",
+    14: "Blank line before rounding operations.",
+    15: "Rounds gradient histogram bucket values to 4 decimal places.",
+    16: "Rounds hessian histogram bucket values to 4 decimal places.",
+    17: "Returns tuple of (hist_G, hist_H) histogram bucket arrays.",
+  },
+};
+
+export const gpuHistQuantizedHistogramKernel: AlgorithmDefinition<GpuHistQuantizedHistogramInput> = {
+  id: "gpuHistQuantizedHistogramKernel",
+  title: "GPU Quantized Histogram Construction Kernel",
+  category: "ml_tree_ensembles",
+  categories: ["ml_tree_ensembles", "advanced_range_queries"],
+  difficulty: "Hard",
+  isMlInfra: true,
+  mlInfraLevel: 8,
+  mlInfraCategory: "ml_tree_ensembles",
+  description:
+    "The GPU Quantized Histogram Construction Kernel implements the high-performance histogram building core utilized by **XGBoost (`tree_method='hist'`)** and **LightGBM**. Instead of sorting $N$ floating-point feature values in $O(N \\log N)$ time, the feature values are pre-quantized into discrete `uint8` bin codes ($B \\le 256$ bins). CUDA threads accumulate gradients $g_i$ and hessians $h_i$ into GPU SRAM shared memory histogram buckets in parallel $O(N)$ time.\n\n### Why It Exists\nExact greedy split search scales as $O(D \\cdot N \\log N)$, becoming a severe computational bottleneck for multi-million sample datasets. Quantized histogram construction reduces split search time from $O(D \\cdot N \\log N)$ to $O(D \\cdot N + D \\cdot B)$, accelerating GBDT training by **10x to 100x** on GPUs (NVIDIA A100, H100).\n\n### Mathematical Formulation\nGiven pre-quantized bin mapping $b: x_{i, j} \\to \\{0, 1, \\dots, B-1\\}$ for sample $i$ and feature $j$:\n\n$$1. \\quad \\text{hist}_G[b] = \\sum_{i \\in I, \\, b(x_{i,j}) = b} g_i \\quad (\\text{Gradient Histogram Bucket})$$\n\n$$2. \\quad \\text{hist}_H[b] = \\sum_{i \\in I, \\, b(x_{i,j}) = b} h_i \\quad (\\text{Hessian Histogram Bucket})$$\n\n$$3. \\quad G_{L, k} = \\sum_{b=0}^{k} \\text{hist}_G[b], \\quad H_{L, k} = \\sum_{b=0}^{k} \\text{hist}_H[b] \\quad (\\text{O(B) Prefix Sum Split Evaluation})$$\n\n### Step-by-Step Intuition\n1. **Feature Quantization**: Continuous feature values are mapped to $B=256$ discrete `uint8` bin codes using quantile binning.\n2. **Shared Memory Allocation**: Allocate fast $O(B)$ SRAM shared memory histogram buffers `hist_G` and `hist_H` per GPU Thread Block.\n3. **Parallel CUDA Atomic Addition**: Each CUDA warp thread reads sample $(g_i, h_i, b_i)$ and executes `atomicAdd(&hist_G[b_i], g_i)`.\n4. **Global Histogram Reduction**: Reduce block-level SRAM histograms into global VRAM DRAM memory.\n5. **O(B) Split Search**: Evaluate regularized XGBoost split gain across $B-1$ bin boundaries using prefix sums.\n\n### Key Trade-Offs & Hardware Execution\n- **Histogram Subtraction Trick**: For child nodes $L$ and $R$, if parent histogram $P$ and left child $L$ are known, right child histogram is computed in $O(B)$ time without scanning samples: $\\text{hist}_R = \\text{hist}_P - \\text{hist}_L$.\n- **Shared Memory Bank Conflicts**: Atomic additions into 256 shared memory bins can suffer from bank conflicts. Modern CUDA kernels use interleaved bin layouts (`hist[bin * WARP_SIZE + lane]`) to eliminate bank stalls.",
+  constraints: [
+    "1 <= N <= 10000000",
+    "1 <= numBins <= 256",
+    "binIndices elements are in [0, numBins-1]",
+  ],
+  examples: [
+    {
+      kind: "basic",
+      title: "12-Sample 4-Bin Quantized Histogram Construction",
+      inputDisplay: "12 samples, 4 discrete uint8 bins (0..3)",
+      outputDisplay: "hist_G: [-1.4, 0.2, 0.6, 1.1], hist_H: [1.0, 0.75, 0.75, 0.5]",
+      input: DEFAULT_GPU_HIST_INPUT,
+      output: "([-1.4, 0.2, 0.6, 1.1], [1.0, 0.75, 0.75, 0.5])",
+      explanation: "Accumulates 12 gradient and hessian pairs into 4 discrete histogram bin buckets in O(N) parallel time.",
+    },
+  ],
+  code: GPU_HIST_QUANTIZED_HISTOGRAM_CODE,
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(B)",
+  complexityAnalysis: {
+    time: "Linear in sample size $O(N)$ for histogram construction; evaluating split candidates takes $O(B)$ time.",
+    space: "Requires $O(B)$ shared memory space for $B$ histogram bins ($B \\le 256$).",
+  },
+  topicGuide: {
+    overview:
+      "The GPU Quantized Histogram Construction Kernel builds gradient and hessian histograms for fast LightGBM and XGBoost tree training.",
+    sections: [
       {
-        kind: "basic",
-        title: "Histogram Building across 8 Samples (3 Bins)",
-        inputDisplay: "N = 8 samples, 3 bins, gradients & hessians",
-        outputDisplay:
-          "Bin 0: G = -1.2, H = 0.75 | Bin 1: G = 0.6, H = 0.75 | Bin 2: G = 1.4, H = 0.5",
-        input: DEFAULT_GPU_HIST_INPUT,
-        output: "G: [-1.2, 0.6, 1.4], H: [0.75, 0.75, 0.5]",
-        explanation: "Accumulates sample gradients and hessians into 3 histogram bin buckets.",
+        heading: "Core Concept & Feature Quantization",
+        body: "Histogram GBDTs quantize continuous feature values into B discrete uint8 bins (B=256). Parallel CUDA threads accumulate g_i and h_i into shared memory histogram buckets in O(N) time.",
       },
       {
-        kind: "complex",
-        title: "Single Bin Uniform Dataset",
-        inputDisplay: "All samples in Bin 0",
-        outputDisplay: "Bin 0 contains all G and H totals",
-        input: {
-          binIndices: [0, 0, 0],
-          gradients: [1.0, 2.0, 3.0],
-          hessians: [1.0, 1.0, 1.0],
-          numBins: 2,
-        },
-        output: "Bin 0 G = 6.0, H = 3.0",
-        explanation: "All values accumulate into Bin 0.",
+        heading: "Histogram Subtraction Trick",
+        body: "When splitting a node into children L and R, calculating hist_R = hist_Parent - hist_L takes O(B) time, cutting histogram construction time in half.",
       },
       {
-        kind: "negative",
-        title: "Zero Gradient Input",
-        inputDisplay: "gradients = [0, 0, 0]",
-        outputDisplay: "G = [0.0, 0.0]",
-        input: {
-          binIndices: [0, 1, 0],
-          gradients: [0.0, 0.0, 0.0],
-          hessians: [1.0, 1.0, 1.0],
-          numBins: 2,
-        },
-        output: "G = [0.0, 0.0]",
-        explanation: "Zero gradients yield zero G totals.",
+        heading: "CUDA Shared Memory & Atomic Additions",
+        body: "CUDA warps execute atomicAdd into SRAM shared memory buckets. Interleaved bin memory layouts prevent shared memory bank conflicts.",
+      },
+      {
+        heading: "O(B) Prefix Sum Split Evaluation",
+        body: "Evaluating split gains across B bin boundaries takes O(B) time instead of O(N log N), enabling 10x-100x speedups on massive datasets.",
       },
     ],
-    defaultInput: DEFAULT_GPU_HIST_INPUT,
-    code: GPU_HIST_QUANTIZED_HISTOGRAM_CODE,
-    timeComplexity: {
-      best: "O(N / CUDA_THREADS + numBins)",
-      average: "O(N / CUDA_THREADS + numBins)",
-      worst: "O(N + numBins)",
-    },
-    spaceComplexity: "O(numBins)",
-    complexityAnalysis: {
-      time: "O(N / CUDA_THREADS) parallel GPU thread block execution time, reducing split search time from O(N log N) to O(numBins).",
-      space: "O(numBins) shared memory per GPU thread block to hold histogram G and H arrays.",
-    },
-    topicGuide: {
-      overview:
-        "Histogram-based decision tree algorithms (LightGBM Ke et al. 2017, XGBoost `tree_method='hist'`) bin continuous feature values into 256 discrete integer bins (uint8). This converts O(N log N) exact greedy sorting into O(N) GPU atomic histogram accumulation, enabling 10x-50x faster GBDT training.",
-      sections: [
-        {
-          heading: "Overview & Feature Quantization",
-          body: "Continuous features are binned using quantile sketches into B discrete bins (B = 256). During tree training, raw float32 features are never accessed; only 1-byte uint8 bin codes are read into L1 cache.",
-        },
-        {
-          heading: "GPU Shared Memory Atomic Aggregation",
-          body: "CUDA thread blocks load sample bin codes and accumulate gradients g_i and hessians h_i into fast on-chip SRAM via atomic add operations (`atomicAdd`).",
-        },
-        {
-          heading: "Histogram Subtraction Trick",
-          body: "Once the parent histogram Hist(Parent) and left child histogram Hist(Left) are built, the right child histogram is computed instantly via vector subtraction Hist(Right) = Hist(Parent) - Hist(Left), cutting histogram construction time in half.",
-        },
-        {
-          heading: "Implementation Nuances & Memory Alignment",
-          body: "To maximize CUDA memory throughput, bin indices are stored in contiguous 128-bit aligned vector loads, avoiding unaligned memory access overhead across GPU warps.",
-        },
-      ],
-      keyTerms: [
-        {
-          term: "Feature Quantization",
-          definition:
-            "Discretizing continuous floating-point features into 256 integer bins (uint8).",
-        },
-        {
-          term: "Histogram Building Kernel",
-          definition:
-            "Parallel GPU CUDA kernel accumulating sample gradients into histogram bin buckets.",
-        },
-        {
-          term: "Histogram Subtraction Trick",
-          definition:
-            "Deriving a sibling node histogram by subtracting left child histogram from parent histogram.",
-        },
-        {
-          term: "Shared Memory SRAM",
-          definition:
-            "On-chip GPU scratchpad memory providing high-bandwidth, low-latency storage for per-block histogram buckets.",
-        },
-      ],
-    },
-    sources: [
+    keyTerms: [
       {
-        type: "ml_infra",
-        kind: "ml_infra",
-        label: "LightGBM & XGBoost GPU Histogram Architecture",
+        term: "Histogram GBDT",
+        definition: "Gradient Boosting decision tree algorithm (LightGBM, XGBoost hist) using binned feature histograms.",
+      },
+      {
+        term: "Feature Quantization",
+        definition: "Mapping continuous floating-point features into discrete uint8 bin codes (0..255).",
+      },
+      {
+        term: "Histogram Subtraction",
+        definition: "O(B) trick computing child histogram hist_R = hist_Parent - hist_L without scanning samples.",
+      },
+      {
+        term: "SRAM Atomic Add",
+        definition: "CUDA hardware instruction accumulating values into shared memory histogram buckets in parallel.",
       },
     ],
-    generateSteps: generateGpuHistSteps,
-  };
+  },
+  trivia: GPU_HIST_QUANTIZED_HISTOGRAM_TRIVIA,
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+  defaultInput: DEFAULT_GPU_HIST_INPUT,
+  generateSteps: generateGpuHistSteps,
+};

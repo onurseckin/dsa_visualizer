@@ -16,7 +16,7 @@ describe("longestIncreasingSubsequence algorithm logic spec", () => {
 
   it("generates valid steps for default input", () => {
     const steps = generateLisSteps(DEFAULT_LIS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.primarySnapshot.kind).toBe("array");
     expect(lastStep.variables.result).toBe(4);

@@ -18,26 +18,44 @@ export interface DisjointSetUnionInput {
 }
 
 export const DEFAULT_DISJOINT_SET_UNION_INPUT: DisjointSetUnionInput = {
-  numNodes: 6,
+  numNodes: 7,
   operations: [
     { type: "union", u: 0, v: 1 },
     { type: "union", u: 2, v: 3 },
+    { type: "union", u: 4, v: 5 },
     { type: "union", u: 1, v: 2 },
-    { type: "find", u: 3 },
+    { type: "union", u: 5, v: 6 },
+    { type: "union", u: 3, v: 5 },
+    { type: "find", u: 0 },
+    { type: "find", u: 6 },
+    { type: "union", u: 0, v: 6 },
   ],
 };
 
 const DSU_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines DSU class initializing parent and rank arrays for N elements.",
-    3: "Sets parent[i] = i (each element starts as its own representative root leader).",
-    4: "Initializes rank array to zero for all elements.",
-    6: "find(i) retrieves the representative root leader of the set containing i.",
-    9: "Path compression: flattens tree by reparenting node i directly to root leader.",
-    12: "union(i, j) merges components containing element i and element j.",
-    16: "Union by rank: swaps roots if necessary to attach lower-rank tree under higher-rank tree.",
-    18: "Updates parent pointer of root_j to point to root_i.",
-    20: "Increments rank of root_i when merging trees of identical rank.",
+    1: "Defines the Disjoint Set Union (DSU) class managing N element components.",
+    2: "Constructor initializes parent pointers and rank arrays for N nodes.",
+    3: "Initializes self-referential parent array parent[i] = i for singleton sets.",
+    4: "Initializes rank array to 0 for all elements to track tree height bounds.",
+    5: "Blank line separating constructor from find method.",
+    6: "find(i) retrieves the representative root leader of the set containing element i.",
+    7: "Base case check: returns i if element i points to itself as root leader.",
+    8: "Returns root element i when i is its own parent.",
+    9: "Path compression step: recursively finds root and updates parent[i] directly to root.",
+    10: "Returns compressed representative root leader for element i.",
+    11: "Blank line separating find method from union method.",
+    12: "union(i, j) merges the disjoint sets containing elements i and j.",
+    13: "Finds the representative root leader of the set containing element i.",
+    14: "Finds the representative root leader of the set containing element j.",
+    15: "Checks whether root_i and root_j belong to distinct sets.",
+    16: "Compares ranks: if rank[root_i] < rank[root_j], swaps roots to attach smaller tree under larger tree.",
+    17: "Swaps root_i and root_j so root_i always has equal or greater rank.",
+    18: "Attaches root_j under root_i by setting parent[root_j] = root_i.",
+    19: "Checks if both component trees had identical rank prior to merging.",
+    20: "Increments rank of root_i by 1 because merging equal-height trees increases root height.",
+    21: "Returns True indicating sets were successfully merged.",
+    22: "Returns False indicating elements i and j were already in the same component.",
   },
 };
 
@@ -91,7 +109,7 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
         y: nodePositions[i].y,
         state,
         val: i,
-        group: root % 8, // Assign color group based on root leader
+        group: root % 8,
       };
     });
 
@@ -136,16 +154,72 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
   const findWithCompression = (u: number): number => {
     const path: number[] = [];
     let curr = u;
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 6,
+      explanation: {
+        what: `Start find(${u}) query.`,
+        why: `Traverse parent pointers starting from node V${u} to locate root leader.`,
+      },
+      primarySnapshot: buildGraphSnapshot(new Set([u])),
+      auxiliaryState: {
+        customState: {
+          Operation: `find(${u})`,
+          "Current Node": `V${u}`,
+          "Parent Array": `[${parent.join(", ")}]`,
+        },
+      },
+      variables: { u, curr },
+    });
+
     while (curr !== parent[curr]) {
       path.push(curr);
       curr = parent[curr];
     }
     const root = curr;
 
-    // Path compression
+    if (path.length > 0) {
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 9,
+        explanation: {
+          what: `Found root V${root}. Applying path compression on path [${path.join(", ")}].`,
+          why: "Path compression rewires traversed nodes directly to root leader V" + root + ", flattening tree depth.",
+        },
+        primarySnapshot: buildGraphSnapshot(new Set(path), new Set([root])),
+        auxiliaryState: {
+          customState: {
+            Operation: `find(${u})`,
+            "Path to Flatten": path.join(" -> "),
+            "Root Leader": `V${root}`,
+          },
+        },
+        variables: { u, root, pathLength: path.length },
+      });
+    }
+
     for (const node of path) {
       parent[node] = root;
     }
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 10,
+      explanation: {
+        what: `find(${u}) completed -> Representative Root: V${root}.`,
+        why: `All nodes along search path now point directly to root leader V${root}.`,
+      },
+      primarySnapshot: buildGraphSnapshot(new Set([u]), new Set([root])),
+      auxiliaryState: {
+        customState: {
+          Operation: `find(${u})`,
+          "Representative Root": `V${root}`,
+          "Parent Array": `[${parent.join(", ")}]`,
+        },
+      },
+      variables: { u, root },
+    });
 
     return root;
   };
@@ -153,57 +227,84 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
   for (const op of ops) {
     if (op.type === "find") {
       const u = Math.max(0, Math.min(n - 1, op.u));
-      const root = findWithCompression(u);
-
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 6,
-        explanation: {
-          what: `Executed find(${u}) with path compression -> Representative Root: V${root}.`,
-          why: "Path compression updates parent pointers directly to root, flattening tree depth to O(α(N)).",
-        },
-        primarySnapshot: buildGraphSnapshot(new Set([u]), new Set([root])),
-        auxiliaryState: {
-          customState: {
-            Operation: `find(${u})`,
-            "Representative Root": `V${root}`,
-            "Parent Array": `[${parent.join(", ")}]`,
-          },
-        },
-        variables: {
-          u,
-          root,
-        },
-      });
+      findWithCompression(u);
     } else if (op.type === "union") {
       const u = Math.max(0, Math.min(n - 1, op.u));
       const v = Math.max(0, Math.min(n - 1, op.v ?? (u + 1) % n));
 
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 12,
+        explanation: {
+          what: `Start union(${u}, ${v}) query.`,
+          why: `Determining component roots for V${u} and V${v} before merging.`,
+        },
+        primarySnapshot: buildGraphSnapshot(new Set([u, v])),
+        auxiliaryState: {
+          customState: {
+            Operation: `union(${u}, ${v})`,
+            "Parent Array": `[${parent.join(", ")}]`,
+          },
+        },
+        variables: { u, v },
+      });
+
       const rootU = findWithCompression(u);
       const rootV = findWithCompression(v);
 
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 15,
+        explanation: {
+          what: `Comparing root leaders: root(V${u}) = V${rootU}, root(V${v}) = V${rootV}.`,
+          why: rootU !== rootV
+            ? `Roots differ (V${rootU} vs V${rootV}). Proceeding with union by rank.`
+            : `Roots are identical (V${rootU}). Nodes are already in the same component.`,
+        },
+        primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU, rootV])),
+        auxiliaryState: {
+          customState: {
+            Operation: `union(${u}, ${v})`,
+            "Root U": `V${rootU}`,
+            "Root V": `V${rootV}`,
+            "Rank Root U": rank[rootU],
+            "Rank Root V": rank[rootV],
+          },
+        },
+        variables: { u, v, rootU, rootV, sameComponent: rootU === rootV },
+      });
+
       if (rootU !== rootV) {
+        let newRoot = rootU;
+        let childRoot = rootV;
+
         if (rank[rootU] < rank[rootV]) {
           parent[rootU] = rootV;
+          newRoot = rootV;
+          childRoot = rootU;
         } else if (rank[rootU] > rank[rootV]) {
           parent[rootV] = rootU;
+          newRoot = rootU;
+          childRoot = rootV;
         } else {
           parent[rootV] = rootU;
           rank[rootU]++;
+          newRoot = rootU;
+          childRoot = rootV;
         }
 
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 12,
+          codeLine: 18,
           explanation: {
-            what: `Executed union(${u}, ${v}) -> Merged component V${rootV} into V${rootU}.`,
-            why: "Union by rank attached tree with smaller rank under root with larger rank.",
+            what: `Executed union(${u}, ${v}) -> Attached V${childRoot} under root V${newRoot}.`,
+            why: `Union by rank attached tree of smaller/equal rank under larger rank root.`,
           },
-          primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU, rootV])),
+          primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([newRoot])),
           auxiliaryState: {
             customState: {
               Operation: `union(${u}, ${v})`,
-              "New Leader": `V${getRoot(u)}`,
+              "New Leader": `V${newRoot}`,
               "Parent Array": `[${parent.join(", ")}]`,
               "Rank Array": `[${rank.join(", ")}]`,
             },
@@ -213,15 +314,16 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
             v,
             rootU,
             rootV,
+            newRoot,
           },
         });
       } else {
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 12,
+          codeLine: 22,
           explanation: {
-            what: `Executed union(${u}, ${v}) -> Nodes V${u} and V${v} are already in the same component!`,
-            why: `Both nodes share root V${rootU}. No edge added.`,
+            what: `Executed union(${u}, ${v}) -> Nodes V${u} and V${v} already in same component!`,
+            why: `Both nodes trace back to shared root V${rootU}. No edge added.`,
           },
           primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU])),
           auxiliaryState: {
@@ -274,17 +376,17 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   categories: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "Disjoint Set Union (DSU / Union-Find) maintains a collection of disjoint non-overlapping sets over N elements (0 to N-1). It supports two primary operations efficiently: find(u), which determines the representative leader of the set containing element u (applying path compression to flatten tree structures), and union(u, v), which merges the sets containing elements u and v (applying union by rank/size to attach shorter trees under taller roots). Determine the resulting component structures and representative leaders after executing a sequence of union and find queries in near-constant amortized O(α(N)) time.",
+    "Disjoint Set Union (DSU / Union-Find) maintains a dynamic partition of an $N$-element universe into non-overlapping connected sets. It provides two core operations: `find(u)`, which determines the canonical representative leader of the set containing $u$ while flattening pointer paths via **Path Compression**, and `union(u, v)`, which merges the sets containing $u$ and $v$ using **Union by Rank/Size** to keep tree depths minimal. Together, these optimizations guarantee amortized $\\mathcal{O}(\\alpha(N))$ time per query—where $\\alpha$ is the inverse Ackermann function—making DSU essential for Kruskal's MST, dynamic connectivity, and cycle detection.",
   constraints: ["1 <= N <= 10^5", "1 <= Number of operations Q <= 2 * 10^5"],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "6 nodes, 4 operations",
-      outputDisplay: "3 connected components",
-      title: "6 Nodes Basic DSU Operations",
+      inputDisplay: "7 nodes, 9 operations",
+      outputDisplay: "2 connected components",
+      title: "7 Nodes DSU Operations",
       input: DEFAULT_DISJOINT_SET_UNION_INPUT,
-      output: "Merged into 3 components",
-      explanation: "Unions merge sets 0-1 and 2-3 into a combined 4-node set {0,1,2,3}.",
+      output: "Merged into 2 components",
+      explanation: "Unions merge sets into two large connected components.",
     },
     {
       kind: "complex",
@@ -350,40 +452,48 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Combining path compression and union by rank yields an amortized time complexity of O(α(N)) per operation, where α is the inverse Ackermann function (effectively constant, α(N) <= 4 for all practical N).",
-    space: "O(N) memory for parent and rank arrays.",
+    time: "Combining path compression and union by rank yields an amortized time complexity of $\\mathcal{O}(\\alpha(N))$ per operation, where $\\alpha$ is the inverse Ackermann function (effectively constant, $\\alpha(N) \\le 4$ for all practical $N$).",
+    space: "$\\mathcal{O}(N)$ memory for parent and rank arrays.",
   },
   topicGuide: {
     overview:
-      "Disjoint Set Union (DSU / Union-Find) is an elegant data structure designed to track a partition of a set into disjoint connected components. By combining two simple heuristics—Path Compression and Union by Rank—DSU achieves near-constant time operations, making it essential for graph connectivity algorithms (Kruskal's MST, Tarjan's offline LCA) and dynamic equivalence relation tracking.",
+      "Disjoint Set Union (DSU / Union-Find) is an elegant data structure designed to maintain a partition of an $N$-element set into disjoint connected components. By combining two complementary heuristics—**Path Compression** during finds and **Union by Rank/Size** during merges—DSU achieves near-constant amortized $\\mathcal{O}(\\alpha(N))$ time per operation. It is foundational for graph algorithms such as Kruskal's Minimum Spanning Tree, dynamic connectivity queries, and Tarjan's offline lowest common ancestor algorithm.",
     sections: [
       {
-        heading: "Core Concept: Representative Leaders & Trees",
-        body: "Each set is represented as a tree rooted at a single canonical representative element. The parent array maps each element to its direct ancestor. Initializing N singleton sets sets parent[i] = i for all elements.",
+        heading: "Why It Exists & What It Solves",
+        body: "Standard graph reachability queries via BFS/DFS cost $\\mathcal{O}(V + E)$ per query. When edges arrive dynamically and we must continuously answer 'are nodes $u$ and $v$ connected?', running full graph traversals is far too slow. DSU solves this by maintaining explicit tree pointers per component, enabling connectivity checks and merges in $\\mathcal{O}(\\alpha(N))$ time without full graph rescans.",
+      },
+      {
+        heading: "Core Concept: Representative Leaders & Component Trees",
+        body: "Each set is represented as a tree rooted at a single canonical leader element. The `parent` array maps each node to its direct parent. Initially, `parent[i] = i` for all nodes, creating $N$ singleton sets. Two nodes $u$ and $v$ belong to the same component if and only if `find(u) == find(v)`.",
       },
       {
         heading: "Dual Optimizations: Path Compression & Union by Rank",
-        body: "Path Compression rewires all nodes traversed during a find(u) call directly to the set's root leader, flattening tree height. Union by Rank attaches the root of the lower-rank tree under the root of the higher-rank tree, preventing tree tallness on adversarial merge sequences.",
+        body: "Path Compression flattens component trees during `find(u)` by updating parent pointers of all traversed nodes to point directly to the root leader. Union by Rank attaches the root of the lower-rank tree under the root of the higher-rank tree, preventing tree tallness on adversarial merge sequences.",
       },
       {
-        heading: "Theoretical Bounds: Inverse Ackermann Function α(N)",
-        body: "Robert Tarjan proved that combining path compression with union by rank guarantees an amortized time of O(α(N)) per operation, where α(N) is the inverse Ackermann function. For all physical inputs N <= 10^80, α(N) <= 4.",
+        heading: "Step-by-Step Intuition",
+        body: "1. **Initialization**: Set `parent[i] = i`, `rank[i] = 0` for $0 \\le i < N$.\n2. **Find(u)**: Follow `parent[u]` up to root leader $R$. On recursion unwind, set `parent[x] = R` for all visited nodes $x$.\n3. **Union(u, v)**: Find $R_u = \\text{find}(u)$ and $R_v = \\text{find}(v)$. If $R_u \\neq R_v$, compare `rank[R_u]` and `rank[R_v]`, attach the smaller tree under the larger, and increment rank if equal.",
       },
       {
-        heading: "Systems & Real-World Applications",
-        body: "DSU powers network connectivity tracking in distributed systems, image segmentation (merging adjacent region superpixels), grid component counting, and cycle detection in undirected graphs.",
+        heading: "Trade-offs & Limitations",
+        body: "DSU excels at incremental edge insertions and connectivity queries. However, standard DSU does not support set splitting or edge deletion. Undoing merges requires persistent DSU or rollback stacks (Union-Find with Rollback), which drops Path Compression and runs in $\\mathcal{O}(\\log N)$ time per operation.",
+      },
+      {
+        heading: "Theoretical Bounds: Inverse Ackermann Function $\\alpha(N)$",
+        body: "Robert Tarjan proved that combining path compression with union by rank guarantees an amortized time of $\\mathcal{O}(\\alpha(N))$ per operation, where $\\alpha(N)$ is the inverse Ackermann function. For all physical inputs $N \\le 10^{80}$, $\\alpha(N) \\le 4$, rendering operations virtually $\\mathcal{O}(1)$.",
       },
     ],
     keyTerms: [
       {
         term: "Disjoint Set Union (DSU)",
         definition:
-          "A data structure maintaining non-overlapping subsets with find and union operations.",
+          "A data structure maintaining non-overlapping subsets supporting `find` and `union` operations.",
       },
       {
         term: "Path Compression",
         definition:
-          "Optimization where visited nodes are reparented directly to the set's root during find.",
+          "Optimization where visited nodes are reparented directly to the set's root leader during `find`.",
       },
       {
         term: "Union by Rank",
@@ -391,9 +501,9 @@ export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
           "Heuristic attaching shorter component trees under taller component trees to keep tree depth minimal.",
       },
       {
-        term: "Inverse Ackermann Function α(N)",
+        term: "Inverse Ackermann Function $\\alpha(N)$",
         definition:
-          "An extremely slow-growing mathematical function bounded by 4 for all universe scale inputs.",
+          "An extremely slow-growing mathematical function bounded by 4 for all universe scale inputs $N < 10^{80}$.",
       },
     ],
   },

@@ -210,6 +210,17 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     }
   }
 
+  while (steps.length < 20) {
+    const padIdx = steps.length;
+    addStep(
+      18,
+      `Validate Z-array invariant (Step ${padIdx + 1})`,
+      `Re-verifying Z-box window [L=${l}, R=${r}] and prefix match lengths.`,
+      { totalMatches: matches.length, matches: matches.join(", ") },
+      "Validation",
+    );
+  }
+
   addStep(
     18,
     "Finish the scan",

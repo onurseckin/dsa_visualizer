@@ -27,9 +27,9 @@ describe("countingBits logic spec", () => {
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Right shift");
   });
 
-  it("generates valid steps for default input (n = 5)", () => {
+  it("generates valid steps for default input (n = 15)", () => {
     const steps = generateCountingBitsSteps(DEFAULT_COUNTING_BITS_INPUT);
-    expect(steps.length).toBe(7); // 1 init + 5 loop + 1 finish
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].stepIndex).toBe(0);
 
     // Verify sequential step indices
@@ -41,33 +41,35 @@ describe("countingBits logic spec", () => {
     });
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.auxiliaryState.customState?.result).toBe("[0, 1, 1, 2, 1, 2]");
+    expect(lastStep.auxiliaryState.customState?.result).toBe(
+      "[0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]"
+    );
   });
 
   it("handles edge case n = 0", () => {
     const steps = generateCountingBitsSteps({ n: 0 });
-    expect(steps.length).toBe(2); // init + finish
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.auxiliaryState.customState?.result).toBe("[0]");
   });
 
   it("handles edge case n = 1", () => {
     const steps = generateCountingBitsSteps({ n: 1 });
-    expect(steps.length).toBe(3); // init + i=1 + finish
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.auxiliaryState.customState?.result).toBe("[0, 1]");
   });
 
   it("handles negative n by clamping to 0", () => {
     const steps = generateCountingBitsSteps({ n: -5 });
-    expect(steps.length).toBe(2);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.auxiliaryState.customState?.result).toBe("[0]");
   });
 
-  it("handles missing n in input object defaulting to 5", () => {
+  it("handles missing n in input object defaulting to 15", () => {
     const steps = generateCountingBitsSteps({} as CountingBitsInput);
-    expect(steps.length).toBe(7);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
   });
 
   it("ensures step generator is pure and deterministic", () => {

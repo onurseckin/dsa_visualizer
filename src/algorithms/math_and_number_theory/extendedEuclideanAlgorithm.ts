@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ExtendedEuclideanInput {
@@ -20,8 +20,8 @@ def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
 `;
 
 export const DEFAULT_EXTENDED_EUCLIDEAN_INPUT: ExtendedEuclideanInput = {
-  a: 30,
-  b: 12,
+  a: 987,
+  b: 610,
 };
 
 export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): AlgorithmStep[] => {
@@ -31,41 +31,46 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   const origA = Math.abs(Math.floor(input.a));
   const origB = Math.abs(Math.floor(input.b));
 
-  const createElements = (
-    aVal: number,
-    bVal: number,
-    xVal?: number,
-    yVal?: number,
-    gcdVal?: number,
-  ): ArrayElement[] => {
-    const list: ArrayElement[] = [
-      { id: "a", value: aVal, state: "active", pointers: ["a"] },
-      { id: "b", value: bVal, state: "compare", pointers: ["b"] },
-    ];
-    if (xVal !== undefined) {
-      list.push({ id: "x", value: xVal, state: "sorted", pointers: ["x"] });
-    }
-    if (yVal !== undefined) {
-      list.push({ id: "y", value: yVal, state: "sorted", pointers: ["y"] });
-    }
-    if (gcdVal !== undefined) {
-      list.push({ id: "gcd", value: gcdVal, state: "pivot", pointers: ["gcd"] });
-    }
-    return list;
+  const createMatrixSnapshot = (
+    stackData: { a: number; b: number; q: number; r: number; x?: number; y?: number }[],
+    activeLevelIdx?: number,
+  ) => {
+    const rows = stackData.length + 1;
+    const cells: MatrixCellItem[] = [];
+
+    stackData.forEach((item, r) => {
+      const vals = [item.a, item.b, item.q, item.r, item.x ?? "-", item.y ?? "-"];
+      vals.forEach((val, c) => {
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: `Level ${r}`,
+          state: r === activeLevelIdx ? "active" : item.x !== undefined ? "sorted" : "default",
+        });
+      });
+    });
+
+    return {
+      kind: "matrix" as const,
+      rows: Math.max(1, stackData.length),
+      cols: 6,
+      cells,
+      rowHeaders: stackData.map((_, idx) => `Step ${idx + 1}`),
+      colHeaders: ["a", "b", "q = a//b", "r = a%b", "x", "y"],
+      title: "Extended Euclidean Bézout Coefficient Matrix",
+    };
   };
 
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 2,
     explanation: {
       what: `Starting Extended GCD for a = ${origA}, b = ${origB}.`,
       why: "The goal is to find gcd(a,b) and linear Bezout coefficients x, y such that a*x + b*y = gcd(a,b).",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: createElements(origA, origB),
-    },
+    primarySnapshot: createMatrixSnapshot([{ a: origA, b: origB, q: Math.floor(origA / origB), r: origA % origB }], 0),
     auxiliaryState: {
       hashMap: {
         Inputs: `a = ${origA}, b = ${origB}`,
@@ -82,8 +87,8 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
     },
   });
 
-  // Iterative implementation of Extended Euclidean algorithm to produce steps cleanly
-  const stack: { a: number; b: number; q: number; r: number }[] = [];
+  // Iterative implementation of Extended Euclidean algorithm
+  const stack: { a: number; b: number; q: number; r: number; x?: number; y?: number }[] = [];
   let currentA = origA;
   let currentB = origB;
 
@@ -91,17 +96,17 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
     const q = Math.floor(currentA / currentB);
     const r = currentA % currentB;
 
+    const item = { a: currentA, b: currentB, q, r };
+    stack.push(item);
+
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 4,
+      codeLine: 8,
       explanation: {
         what: `Divide: ${currentA} = ${q} * ${currentB} + ${r}. Recursively solve extended_gcd(${currentB}, ${r}).`,
-        why: "Quotient q = a // b and remainder r = a % b track state for back-substitution.",
+        why: "Quotient q = a // b and remainder r = a % b track state for linear substitution back-tracking.",
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: createElements(currentA, currentB),
-      },
+      primarySnapshot: createMatrixSnapshot(stack, stack.length - 1),
       auxiliaryState: {
         stack: stack.map((s) => `gcd(${s.a}, ${s.b})`),
         customState: {
@@ -119,27 +124,23 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
       },
     });
 
-    stack.push({ a: currentA, b: currentB, q, r });
     currentA = currentB;
     currentB = r;
   }
 
   // Base Case b == 0
-  let gcd = currentA;
+  const gcd = currentA;
   let x = 1;
   let y = 0;
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
+    codeLine: 6,
     explanation: {
       what: `Base case reached: b = 0. gcd = ${gcd}, base coefficients x = 1, y = 0.`,
       why: "Base equation: gcd * 1 + 0 * 0 = gcd.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: createElements(currentA, 0, x, y, gcd),
-    },
+    primarySnapshot: createMatrixSnapshot(stack, stack.length - 1),
     auxiliaryState: {
       hashMap: {
         BaseCase: `gcd(${currentA}, 0) = ${gcd}`,
@@ -159,26 +160,23 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   });
 
   // Unwind stack & compute coefficients
-  while (stack.length > 0) {
-    const top = stack.pop();
-    if (!top) break;
-
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const top = stack[i];
     const prevX = x;
     const prevY = y;
     x = prevY;
     y = prevX - top.q * prevY;
+    top.x = x;
+    top.y = y;
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 6,
+      codeLine: 9,
       explanation: {
         what: `Unwind for level a=${top.a}, b=${top.b}: x = y1 = ${x}, y = x1 - q*y1 = ${prevX} - ${top.q}*${prevY} = ${y}.`,
         why: `Check Bezout identity: ${top.a}*(${x}) + ${top.b}*(${y}) = ${top.a * x + top.b * y} (equals gcd ${gcd}).`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: createElements(top.a, top.b, x, y, gcd),
-      },
+      primarySnapshot: createMatrixSnapshot(stack, i),
       auxiliaryState: {
         hashMap: {
           Level: `a = ${top.a}, b = ${top.b}`,
@@ -207,15 +205,12 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   // Final Step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 11,
     explanation: {
       what: `Finished Extended Euclidean Algorithm! gcd(${origA}, ${origB}) = ${gcd}, x = ${x}, y = ${y}.`,
       why: `Final Bezout Identity verified: ${origA}*(${x}) + ${origB}*(${y}) = ${gcd}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: createElements(origA, origB, x, y, gcd),
-    },
+    primarySnapshot: createMatrixSnapshot(stack, 0),
     auxiliaryState: {
       hashMap: {
         "Final GCD": `${gcd}`,
@@ -241,51 +236,56 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
 
 export const EXTENDED_EUCLIDEAN_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Extended Euclidean Algorithm extends Euclid's classic greatest common divisor algorithm. In addition to computing g = gcd(a, b), it efficiently finds integer Bézout coefficients x and y satisfying Bézout's identity a*x + b*y = g. This structural link between greatest common divisors and linear combinations serves as a fundamental building block of modern cryptography and modular arithmetic.",
+    "The Extended Euclidean Algorithm extends Euclid's greatest common divisor algorithm. In addition to computing $g = \\gcd(a, b)$, it finds integer Bézout coefficients $x, y \\in \\mathbb{Z}$ satisfying Bézout's identity $a x + b y = g$. This identity is the foundational machinery powering modular inverses, linear Diophantine equations, and RSA key generation.",
   sections: [
     {
-      heading: "Bézout's Identity & Recursive Substitution",
-      body: "Bézout's identity states that for any non-zero integers a and b, there exist integers x and y such that a*x + b*y = gcd(a, b). When recursively computing extended_gcd(b, a % b), we obtain coefficients x1 and y1 satisfying b*x1 + (a % b)*y1 = g. Substituting a % b = a - floor(a/b)*b gives a*y1 + b*(x1 - floor(a/b)*y1) = g. Thus, the updated coefficients for level (a, b) are x = y1 and y = x1 - floor(a/b)*y1.",
+      heading: "Bézout's Identity & Structural Induction",
+      body: "Bézout's identity states that for any $a, b \\in \\mathbb{Z}$, there exist integers $x, y$ such that:\n$$a x + b y = \\gcd(a, b)$$\nWhen recursively solving for sub-problem $(b, a \\bmod b)$, we obtain $(x_1, y_1)$ such that $b x_1 + (a \\bmod b) y_1 = g$. Substituting $a \\bmod b = a - \\lfloor a / b \\rfloor b$ gives:\n$$b x_1 + \\left(a - \\lfloor a / b \\rfloor b\\right) y_1 = g \\implies a y_1 + b \\left(x_1 - \\lfloor a / b \\rfloor y_1\\right) = g$$\nThus, the updated coefficients for level $(a, b)$ are $x = y_1$ and $y = x_1 - \\lfloor a / b \\rfloor y_1$.",
     },
     {
-      heading: "Modular Inverses & Linear Diophantine Equations",
-      body: "The primary practical application of the Extended Euclidean Algorithm is finding general modular multiplicative inverses. When a and m are coprime (gcd(a, m) = 1), solving a*x + m*y = 1 modulo m yields a*x ≡ 1 (mod m), so x mod m is the modular inverse of a modulo m. It also solves linear Diophantine equations a*x + b*y = c: integer solutions exist if and only if gcd(a, b) divides c.",
+      heading: "Matrix Formulation of State Transitions",
+      body: "Each division step can be represented as a $2 \\times 2$ matrix operation:\n$$\\begin{pmatrix} a_{k} \\\\ b_{k} \\end{pmatrix} = \\begin{pmatrix} q_k & 1 \\\\ 1 & 0 \\end{pmatrix} \\begin{pmatrix} a_{k+1} \\\\ b_{k+1} \\end{pmatrix}$$\nInverting the matrix transformations across all $n$ steps yields the Bézout matrix $\\mathbf{M} = \\prod_{i=1}^n \\begin{pmatrix} q_i & 1 \\\\ 1 & 0 \\end{pmatrix}^{-1}$, producing the exact linear coefficients $(x, y)$ in $\\mathcal{O}(\\log(\\min(a, b)))$ total steps.",
     },
     {
-      heading: "Systems & Complexity Analysis",
-      body: "Like standard Euclid's GCD, the algorithm runs in O(log(min(a, b))) time because the remainder halves the smaller number at least every two steps. Memory complexity is O(log(min(a, b))) for recursive stack depth or O(1) space when implemented iteratively maintaining 2x2 matrix state transformations.",
+      heading: "Computing Modular Inverses & Solving Diophantine Equations",
+      body: "When $\\gcd(a, m) = 1$, solving $a x + m y = 1$ modulo $m$ yields:\n$$a x \\equiv 1 \\pmod m$$\nSo $x \\bmod m$ is the modular multiplicative inverse $a^{-1} \\bmod m$. Furthermore, the linear Diophantine equation $a x + b y = c$ has integer solutions if and only if $\\gcd(a, b) \\mid c$, with particular solution $(x_0 \\cdot \\frac{c}{g}, y_0 \\cdot \\frac{c}{g})$.",
     },
     {
-      heading: "Implementation Nuances & Edge Cases",
-      body: "Edge cases include b = 0 (base case returning gcd = a, x = 1, y = 0), a = 0, negative inputs, and ensuring x is adjusted to be positive modulo m when computing modular inverses (x_pos = (x % m + m) % m). Input ordering a < b is handled automatically after one division step.",
+      heading: "Complexity & Edge Cases",
+      body: "Base case $b = 0$ returns $(g=a, x=1, y=0)$ since $a \\cdot 1 + 0 \\cdot 0 = a$. Time complexity is $\\mathcal{O}(\\log(\\min(a, b)))$ iterations. Stack memory is $\\mathcal{O}(\\log(\\min(a, b)))$ for recursion or $\\mathcal{O}(1)$ when maintaining dynamic matrix state.",
     },
   ],
   keyTerms: [
     {
       term: "Bézout's Identity",
       definition:
-        "The theorem stating that gcd(a, b) can always be expressed as an integer linear combination a*x + b*y.",
+        "The theorem stating $\\exists x, y \\in \\mathbb{Z}$ such that $a x + b y = \\gcd(a, b)$.",
     },
     {
       term: "Bézout Coefficients",
-      definition: "The integers x and y that satisfy the linear equation a*x + b*y = gcd(a, b).",
+      definition: "The integers $x, y$ that satisfy $a x + b y = \\gcd(a, b)$.",
     },
     {
       term: "Linear Diophantine Equation",
-      definition: "An equation of the form a*x + b*y = c seeking integer solutions x and y.",
+      definition: "An equation $a x + b y = c$ seeking integer solutions $(x, y) \\in \\mathbb{Z}^2$.",
     },
   ],
 };
 
 export const EXTENDED_EUCLIDEAN_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines extended_gcd(a, b) -> tuple[int, int, int]: returns gcd and Bézout coefficients (gcd, x, y).",
-    2: "Base case: when b equals 0.",
-    3: "Returns (a, 1, 0) because a*1 + 0*0 = a.",
-    4: "Recursively calls extended_gcd(b, a % b) to obtain gcd, x1, y1.",
-    5: "Sets x = y1.",
-    6: "Sets y = x1 - (a // b) * y1 to maintain a*x + b*y = gcd.",
-    7: "Returns tuple (gcd, x, y).",
+    1: "Empty leading line for code formatting.",
+    2: "Defines extended_gcd function signature taking integers $a, b$ and returning tuple $(gcd, x, y)$.",
+    3: "Opening docstring tag.",
+    4: "Docstring describing Bézout identity computation.",
+    5: "Closing docstring tag.",
+    6: "Base case check: when divisor $b = 0$.",
+    7: "Returns base tuple $(a, 1, 0)$ since $a \\cdot 1 + 0 \\cdot 0 = a$.",
+    8: "Recursively calls extended_gcd(b, a % b) to obtain sub-problem solution $(gcd, x_1, y_1)$.",
+    9: "Assigns $x = y_1$ based on substitution derivation.",
+    10: "Assigns $y = x_1 - \\lfloor a / b \\rfloor y_1$ to satisfy $a x + b y = gcd$.",
+    11: "Returns computed tuple $(gcd, x, y)$.",
+    12: "Empty trailing line for code formatting.",
   },
 };
 
@@ -296,7 +296,7 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Given two non-negative integers a and b, compute their greatest common divisor gcd(a, b) and determine integer Bézout coefficients x and y satisfying a*x + b*y = gcd(a, b). This algorithm runs in O(log(min(a, b))) time and powers modular inverses and linear Diophantine equation solvers.",
+    "Given non-negative integers $a$ and $b$, compute their greatest common divisor $\\gcd(a, b)$ and integer Bézout coefficients $x, y$ satisfying Bézout's identity:\n\n$$a x + b y = \\gcd(a, b)$$\n\n### State Matrix Representation\nThe stack trace of reduction steps is represented as a state matrix $\\mathbf{M} \\in \\mathbb{Z}^{k \\times 6}$ recording $(a_i, b_i, q_i, r_i, x_i, y_i)$ at each level $i$.\n\n### Input Parameters\n- `a` ($a \\in \\mathbb{Z}_{\\ge 0}$): First non-negative integer.\n- `b` ($b \\in \\mathbb{Z}_{\\ge 0}$): Second non-negative integer.\n\n### Output\n- `tuple (gcd, x, y)`: Greatest common divisor and Bézout coefficients $x, y$.\n\n### Edge Cases & Constraints\n- Base Case: $b = 0$ yields $(a, 1, 0)$.\n- Modular Inverse: $x \\bmod m$ yields $a^{-1} \\bmod m$ when $\\gcd(a, m) = 1$.",
   constraints: ["1 <= a, b <= 10^9"],
   examples: [
     {
@@ -335,8 +335,8 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   },
   spaceComplexity: "O(log(min(a, b)))",
   complexityAnalysis: {
-    time: "Like standard Euclid's GCD, the number of steps decreases logarithmically, running in O(log(min(a, b))) time.",
-    space: "O(log(min(a, b))) call stack memory for recursion back-tracking.",
+    time: "The number of reduction steps is bounded by $2 \\log_2(\\min(a, b))$, executing in $\\mathcal{O}(\\log(\\min(a, b)))$ time.",
+    space: "Requires $\\mathcal{O}(\\log(\\min(a, b)))$ call stack memory for back-tracking Bézout coefficients.",
   },
   topicGuide: EXTENDED_EUCLIDEAN_TOPIC_GUIDE,
   trivia: EXTENDED_EUCLIDEAN_TRIVIA,
@@ -352,3 +352,4 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   defaultInput: DEFAULT_EXTENDED_EUCLIDEAN_INPUT,
   generateSteps: generateExtendedEuclideanSteps,
 };
+

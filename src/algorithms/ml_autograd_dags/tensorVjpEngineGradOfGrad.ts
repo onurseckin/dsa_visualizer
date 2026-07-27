@@ -6,8 +6,7 @@ export interface tensorVjpEngineGradOfGradInput {
   target?: number;
 }
 
-export const TENSORVJPENGINEGRADOFGRAD_CODE = `
-def tensor_vjp_engine_grad_of_grad(vjp_vector, jacobian_matrix):
+export const TENSORVJPENGINEGRADOFGRAD_CODE = `def tensor_vjp_engine_grad_of_grad(vjp_vector, jacobian_matrix):
     """
     Evaluates Vector-Jacobian Product v^T @ J for higher-order double-backward gradients.
     """
@@ -20,8 +19,7 @@ def tensor_vjp_engine_grad_of_grad(vjp_vector, jacobian_matrix):
         for j in range(n):
             output_vjp[j] += v_val * jacobian_matrix[i][j]
 
-    return output_vjp
-`;
+    return output_vjp`;
 
 export const DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT: tensorVjpEngineGradOfGradInput = {
   data: [10, 20, 30, 40, 50],
@@ -34,6 +32,8 @@ export const generateTensorVjpEngineGradOfGradSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const target = input?.target ?? 30;
+
   const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
@@ -46,6 +46,7 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -61,36 +62,84 @@ export const generateTensorVjpEngineGradOfGradSteps = (
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
-          target: String(input?.target ?? 0),
+          target: String(target),
+          ...customState,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Init VJP Engine
   addStep(
     1,
-    "Initialize Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: arrayData.length, target: input?.target ?? 0 },
+    "Initialize Vector-Jacobian Product (VJP) Engine",
+    "Setting up matrix dimensions for higher-order double-backward (grad-of-grad) gradient computation v^T @ J.",
+    { numInputs: arrayData.length, target, phase: "INIT_VJP_ENGINE" },
+    undefined,
+    { status: "INITIALIZING", mode: "DOUBLE_BACKWARD" },
   );
 
-  arrayData.forEach((val, idx) => {
-    const isTarget = val === input?.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
+  // Step 2: Dimensions M and N
+  const m = arrayData.length;
+  const n = arrayData.length;
+
+  addStep(
+    5,
+    `Inspect Matrix Dimensions: m = ${m}, n = ${n}`,
+    `Reading Jacobian matrix dimensions: ${m} output rows x ${n} input columns.`,
+    { m, n, phase: "INSPECT_DIMS" },
+  );
+
+  // Step 3: Allocate output VJP vector
+  const outputVjp: number[] = new Array(n).fill(0.0);
+  addStep(
+    7,
+    "Allocate 1D Output VJP Gradient Vector `output_vjp = [0.0] * n`",
+    "Initializing output gradient vector with zeros to accumulate Vector-Jacobian dot products.",
+    { n, phase: "ALLOC_OUTPUT_VJP" },
+  );
+
+  // Multi-step nested loop for VJP computation
+  arrayData.forEach((val, i) => {
+    const vVal = Number((0.1 * (i + 1)).toFixed(2));
+
+    const stateA: ArrayElement[] = elements.map((el, idx) => {
+      if (idx === i) return { ...el, state: "compare", pointers: [`v[${i}]=${vVal}`] };
+      if (idx < i) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in autograd computation graph.`,
-      { idx, val, isTarget },
-      currentElements,
+      9,
+      `Outer Loop Row ${i}: Fetch Upstream Gradient v_val = ${vVal}`,
+      `Reading upstream gradient component vjp_vector[${i}] = ${vVal} for Jacobian row ${i}.`,
+      { i, v_val: vVal, phase: "FETCH_V_VAL" },
+      stateA,
+      { current_v: String(vVal) },
     );
+
+    arrayData.forEach((jVal, j) => {
+      const jacVal = Number((0.05 * (i + j + 1)).toFixed(3));
+      const prod = Number((vVal * jacVal).toFixed(4));
+      outputVjp[j] = Number((outputVjp[j] + prod).toFixed(4));
+
+      const isTarget = jVal === target;
+      const stateB: ArrayElement[] = elements.map((el, idx) => {
+        if (idx === j) return { ...el, state: isTarget ? "active" : "sorted", value: outputVjp[j], pointers: [`v*J=${prod}`] };
+        if (idx < j) return { ...el, state: "visited" };
+        return el;
+      });
+
+      addStep(
+        12,
+        `VJP Accumulation [i=${i}, j=${j}]: output_vjp[${j}] += ${vVal} * ${jacVal} -> ${outputVjp[j]}`,
+        `Multiplying upstream gradient component by Jacobian entry J[${i}][${j}] = ${jacVal}. Updated output_vjp[${j}] = ${outputVjp[j]}.`,
+        { i, j, vVal, jacVal, prod, updatedVjp: outputVjp[j], phase: "ACCUMULATE_VJP_CELL" },
+        stateB,
+        { [`vjp[${j}]`]: String(outputVjp[j]) },
+      );
+    });
   });
 
   const finalElements: ArrayElement[] = elements.map((el) => ({
@@ -98,11 +147,22 @@ export const generateTensorVjpEngineGradOfGradSteps = (
     state: "sorted",
   }));
 
+  // Step final-1: Return output VJP vector
+  addStep(
+    14,
+    "Return Computed 1D Vector-Jacobian Product Vector `output_vjp`",
+    `VJP computation complete. Output gradient vector v^T @ J evaluated across all ${n} input dimensions.`,
+    { outputVjpLength: outputVjp.length, finalVjpSum: outputVjp.reduce((a, b) => a + b, 0) },
+    finalElements,
+    { final_vjp: `[${outputVjp.join(", ")}]` },
+  );
+
+  // Step final: Complete
   addStep(
     14,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
-    { completed: true },
+    { completed: true, totalSteps: stepIndex },
     finalElements,
   );
 
@@ -110,23 +170,34 @@ export const generateTensorVjpEngineGradOfGradSteps = (
 };
 
 const TENSORVJPENGINEGRADOFGRAD_TRIVIA: TriviaMeta = {
-  skipLines: [],
+  skipLines: [2, 3, 4, 8, 13],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
+    "output_vjp[j] += vjp_vector[j] * jacobian_matrix[j][i]",
   ],
-  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
+  hints: [
+    { line: 5, hint: "Extract matrix row dimension m and column dimension n." },
+    { line: 7, hint: "Allocate output_vjp list initialized to zeros for n columns." },
+    { line: 10, hint: "Fetch upstream gradient scalar v_val = vjp_vector[i]." },
+    { line: 12, hint: "Accumulate product v_val * jacobian_matrix[i][j] into output_vjp[j]." },
+  ],
   lineExplanations: {
-    1: "Defines Vector-Jacobian Product (VJP) engine function.",
-    4: "Gets row count M of Jacobian matrix.",
-    5: "Gets column count N of Jacobian matrix.",
-    6: "Allocates 1D VJP output gradient vector initialized to 0.0.",
-    8: "Iterates through row index i from 0 to M-1.",
-    9: "Fetches upstream gradient scalar v_val = vjp_vector[i].",
-    10: "Iterates through column index j from 0 to N-1.",
-    11: "Accumulates product v_val * jacobian_matrix[i][j] into output_vjp[j].",
-    13: "Returns computed VJP gradient vector.",
+    1: "Defines entry point for tensor_vjp_engine_grad_of_grad Vector-Jacobian Product function.",
+    2: "Docstring opening: describes Vector-Jacobian Product evaluation v^T @ J for double-backward gradients.",
+    3: "Docstring body: evaluates v^T @ J vector-matrix product for higher-order automatic differentiation.",
+    4: "Docstring closing.",
+    5: "Extracts row dimension m (number of scalar outputs) from Jacobian matrix.",
+    6: "Extracts column dimension n (number of scalar inputs) from Jacobian matrix row 0.",
+    7: "Allocates 1D output VJP gradient vector initialized to 0.0 for n columns.",
+    8: "Empty line separating memory allocation from outer row iteration loop.",
+    9: "Iterates through row index i from 0 to m - 1.",
+    10: "Fetches upstream gradient scalar v_val = vjp_vector[i] for output row i.",
+    11: "Iterates through column index j from 0 to n - 1.",
+    12: "Accumulates vector-matrix product entry v_val * jacobian_matrix[i][j] into output_vjp[j].",
+    13: "Empty line before returning computed output VJP gradient vector.",
+    14: "Returns computed 1D output VJP gradient vector containing input parameter derivatives.",
   },
 };
 
@@ -139,8 +210,35 @@ export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradO
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
-  description:
-    "Higher-order automatic differentiation (e.g. computing Hessian-vector products, WGAN gradient penalties, PyTorch torch.autograd.grad with create_graph=True) requires evaluating Vector-Jacobian Products (VJPs) through gradient operations. VJP evaluates v^T @ J, propagating upstream gradient vector v through Jacobian matrix J without constructing full dense M x N Jacobian matrices in memory.\n\nThis algorithm implements Vector-Jacobian Product (VJP) Engine, evaluating vector-matrix multiplication v^T @ J for higher-order double-backward gradient calculations.\n\nInput Format:\n- data: Array representing vector or matrix values.\n- target: Optional target value.\n\nOutput Format:\n- Returns 1D output gradient vector of length N.\n\nEdge Cases & Constraints:\n- Vector length m matching Jacobian row dimension.\n- Sparse or zero-valued Jacobian entries.\n- Single-element 1x1 Jacobian matrices.",
+  description: `### Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients
+
+In higher-order automatic differentiation frameworks (**PyTorch \`create_graph=True\`**, **JAX \`vjp\` / \`jvp\`**, and **Physics-Informed Neural Networks (PINNs)**), computing second-order derivatives (such as Hessian-vector products and WGAN-GP gradient penalties) relies on **Vector-Jacobian Products (VJPs)**.
+
+#### Why It Exists & What It Solves
+Given a vector-valued function $f: \\mathbb{R}^n \\to \\mathbb{R}^m$, its Jacobian matrix $J \\in \\mathbb{R}^{m \\times n}$ contains all $m \\times n$ partial derivatives:
+$$J_{i, j} = \\frac{\\partial f_i}{\\partial x_j}$$
+For deep neural networks with $m, n > 10^6$, storing full dense Jacobian matrices requires terabytes of memory ($m \\times n$ space).
+
+With **Implicit Vector-Jacobian Products ($v^T J$)**:
+- Reverse-mode autograd evaluates the vector-matrix product $v^T J$ directly:
+  $$w_j = \\sum_{i=0}^{m-1} v_i \\cdot J_{i, j}$$
+- Evaluates input parameter gradients $w \\in \\mathbb{R}^n$ without constructing or storing dense $m \\times n$ Jacobian matrices in memory.
+- Enables computing **gradients of gradients** ("grad-of-grad" / double-backward) by executing autograd passes on the backward graph itself.
+
+#### Step-by-Step Mechanism
+1. **Dimension Extraction**: Set $m = \\text{len}(\\text{jacobian\\_matrix})$ and $n = \\text{len}(\\text{jacobian\\_matrix}[0])$.
+2. **Allocate Output Vector**: Initialize \`output_vjp = [0.0] * n\`.
+3. **Nested Matrix Accumulation**:
+   - For row $i \\in [0, m-1]$:
+     - Fetch upstream gradient component $v_{\\text{val}} = v_i$.
+     - For column $j \\in [0, n-1]$:
+       - Accumulate: \`output_vjp[j] += v_val * jacobian_matrix[i][j]\`.
+4. **Return Result**: Return \`output_vjp\`.
+
+#### Complexity & Trade-Offs
+- **Time Complexity**: $\\mathcal{O}(m \\cdot n)$ linear time over non-zero Jacobian elements.
+- **Space Complexity**: $\\mathcal{O}(n)$ memory for 1D output VJP vector.
+- **Trade-Off**: Saves $\\mathcal{O}(m \\cdot n)$ memory by computing implicit vector products, enabling higher-order autograd passes on memory-constrained GPUs.`,
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -172,11 +270,11 @@ export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradO
     },
   ],
   code: TENSORVJPENGINEGRADOFGRAD_CODE,
-  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
-  spaceComplexity: "O(V + E)",
+  timeComplexity: { best: "O(m * n)", average: "O(m * n)", worst: "O(m * n)" },
+  spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "Linear time traversal across graph vertices and edges.",
-    space: "Linear memory allocation for graph adjacency lists.",
+    time: "Matrix-vector multiplication executes in O(m * n) arithmetic steps.",
+    space: "Output VJP memory scales linearly with input dimension n.",
   },
   topicGuide: {
     overview:
@@ -184,19 +282,19 @@ export const tensorVjpEngineGradOfGrad: AlgorithmDefinition<tensorVjpEngineGradO
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, for vector function f: R^N -> R^M with Jacobian J (M x N) and upstream gradient v (1 x M), VJP computes output vector w (1 x N) where w_j = sum_{i=0}^{M-1} v_i * J_{i,j}.",
+        body: "Mathematically, for vector function $f: \\mathbb{R}^n \\to \\mathbb{R}^m$ with Jacobian $J (m \\times n)$ and upstream gradient $v (1 \\times m)$, VJP computes output vector $w (1 \\times n)$ where $w_j = \\sum_{i=0}^{m-1} v_i \\cdot J_{i, j}$.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "Evaluating VJPs implicitly avoids storing O(M * N) dense Jacobian memory, enabling double-backward autograd (grad-of-grad) for physics-informed neural networks (PINNs).",
+        heading: "Practical Applications in ML Systems",
+        body: "Evaluating VJPs implicitly avoids storing $\\mathcal{O}(m \\cdot n)$ dense Jacobian memory, enabling double-backward autograd (grad-of-grad) for physics-informed neural networks (PINNs) and WGAN gradient penalties.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation iterates over row index i, multiplies upstream gradient v_val by row entries J_{i,j}, and accumulates into output_vjp[j].",
+        heading: "Implementation Details & Vector Accumulation",
+        body: "Implementation iterates over row index $i$, multiplies upstream gradient $v_{\\text{val}}$ by row entries $J_{i, j}$, and accumulates into \`output_vjp[j]\`.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes dimension mismatch checks between vector v and matrix J.",
+        heading: "Edge Case Analysis & Dimensions",
+        body: "Edge cases include single-output functions ($m=1$) where VJP reduces to standard gradient vector evaluation.",
       },
     ],
     keyTerms: [

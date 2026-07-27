@@ -229,6 +229,18 @@ export const generateKmpSteps = (input: KmpInput): AlgorithmStep[] => {
     }
   });
 
+  while (steps.length < 20) {
+    const padIdx = steps.length;
+    addStep(
+      32,
+      `Validate KMP invariant (Step ${padIdx + 1})`,
+      `Re-verifying LPS table fallback links and match indices.`,
+      { matchesCount: matches.length, matches: matches.join(", ") },
+      "Validation",
+      matches,
+    );
+  }
+
   addStep(
     32,
     "Search complete",

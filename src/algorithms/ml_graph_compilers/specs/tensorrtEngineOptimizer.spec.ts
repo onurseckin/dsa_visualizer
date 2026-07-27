@@ -4,27 +4,34 @@ import {
   generateTensorrtEngineOptimizerSteps,
   tensorrtEngineOptimizer,
 } from "../tensorrtEngineOptimizer";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("tensorrtEngineOptimizer algorithm spec", () => {
-  it("should have correct metadata", () => {
+  it("should have correct metadata and full trivia lineExplanations", () => {
     expect(tensorrtEngineOptimizer.id).toBe("tensorrt-engine-optimizer");
     expect(tensorrtEngineOptimizer.isMlInfra).toBe(true);
     expect(tensorrtEngineOptimizer.mlInfraLevel).toBe(7);
     expect(tensorrtEngineOptimizer.categories).toContain("ml_graph_compilers");
     expect(tensorrtEngineOptimizer.defaultInput).toEqual(DEFAULT_TENSORRT_ENGINE_OPTIMIZER_INPUT);
+
+    const codeLines = tensorrtEngineOptimizer.code.trim().split("\n").length;
+    const explanationKeys = Object.keys(tensorrtEngineOptimizer.trivia?.lineExplanations || {}).map(Number);
+    expect(explanationKeys.length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(tensorrtEngineOptimizer.trivia?.lineExplanations?.[i]).toBeDefined();
+    }
   });
 
-  it("should generate valid algorithm steps and calculate engine speedup", () => {
+  it("should generate >= 20 algorithm steps with matrix snapshots and calculate engine speedup", () => {
     const steps = generateTensorrtEngineOptimizerSteps(DEFAULT_TENSORRT_ENGINE_OPTIMIZER_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.complete).toBe(true);
+    expect(lastStep.explanation.what).toContain("Complete");
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBeGreaterThan(0);
+    const snap = lastStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snap.kind).toBe("matrix");
     expect(Number(lastStep.variables.speedup)).toBeGreaterThan(1.0);
   });
 });
+

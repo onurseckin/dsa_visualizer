@@ -34,8 +34,8 @@ def lower_bound(arr: list[int], target: int) -> int:
     return left`;
 
 export const DEFAULT_BINARY_SEARCH_1D_INPUT: BinarySearch1dInput = {
-  array: [2, 5, 8, 12, 16, 23, 38, 56, 72, 91],
-  target: 23,
+  array: [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 81, 91, 99],
+  target: 72,
   mode: "exact",
 };
 
@@ -122,20 +122,76 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
   );
 
   if (n === 0) {
-    addStep(14, "Array is empty", "Cannot search in an empty array.", { n: 0, target }, 0, -1);
+    addStep(15, "Array is empty", "Cannot search in an empty array.", { n: 0, target }, 0, -1);
     return steps;
   }
+
+  addStep(
+    2,
+    `Initialize left = 0 and right = ${n - 1}`,
+    `Search range covers indices [0..${n - 1}], total candidate size is ${n}.`,
+    { left: 0, right: n - 1, n },
+    0,
+    n - 1,
+  );
+
+  addStep(
+    3,
+    `Initialize found_idx = -1`,
+    `Default result is set to -1 until an exact match is confirmed.`,
+    { found_idx: -1 },
+    0,
+    n - 1,
+  );
 
   if (mode === "lower_bound") {
     let left = 0;
     let right = n;
+
+    addStep(
+      17,
+      `Initialize Lower Bound Search`,
+      `Finding first index where arr[i] >= ${target} in array of size N = ${n}.`,
+      { n, target, mode },
+      0,
+      n - 1,
+    );
+
+    addStep(
+      18,
+      `Initialize left = 0 and right = ${n}`,
+      `Search range set to half-open interval [0..${n}).`,
+      { left: 0, right: n, n },
+      0,
+      n - 1,
+    );
+
     while (left < right) {
+      addStep(
+        19,
+        `Evaluate lower bound loop condition (left ${left} < right ${right})`,
+        `Active search window spans half-open interval [${left}..${right}).`,
+        { left, right, windowSize: right - left },
+        left,
+        right - 1,
+      );
+
       const mid = Math.floor((left + right) / 2);
       addStep(
         20,
-        `Lower Bound: Mid index ${mid} (val = ${arr[mid]})`,
-        `Comparing arr[mid] (${arr[mid]}) against target ${target}.`,
-        { left, right, mid, val: arr[mid], target },
+        `Compute mid = (${left} + ${right}) // 2 = ${mid}`,
+        `Mid element arr[${mid}] has value ${arr[mid]}.`,
+        { left, right, mid, midVal: arr[mid] },
+        left,
+        right - 1,
+        mid,
+      );
+
+      addStep(
+        21,
+        `Compare arr[${mid}] (${arr[mid]}) < target (${target})`,
+        `Checking if current mid element is strictly smaller than the target value.`,
+        { midVal: arr[mid], target, isSmaller: arr[mid] < target },
         left,
         right - 1,
         mid,
@@ -145,7 +201,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         left = mid + 1;
         addStep(
           22,
-          `arr[mid] < target: Shift left to mid + 1 = ${left}`,
+          `arr[${mid}] < target: Set left = mid + 1 = ${left}`,
           `Target ${target} is strictly greater than arr[${mid}] (${arr[mid]}). Search right half.`,
           { left, right, mid },
           left,
@@ -155,8 +211,8 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         right = mid;
         addStep(
           24,
-          `arr[mid] >= target: Shift right to mid = ${right}`,
-          `Found element >= target. Keep mid in search range by setting right = ${right}.`,
+          `arr[${mid}] >= target: Set right = mid = ${right}`,
+          `Found element >= target. Keep mid in search range by narrowing right bound to ${right}.`,
           { left, right, mid },
           left,
           right - 1,
@@ -181,13 +237,31 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
     let foundIdx = -1;
 
     while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
+      addStep(
+        5,
+        `Check while left (${left}) <= right (${right})`,
+        `Search range contains ${right - left + 1} candidate indices [${left}..${right}].`,
+        { left, right, remainingCandidates: right - left + 1 },
+        left,
+        right,
+      );
 
+      const mid = Math.floor((left + right) / 2);
       addStep(
         6,
-        `Calculate mid index ${mid} (value = ${arr[mid]})`,
-        `Searching range [${left}..${right}]. Checking middle element arr[${mid}] = ${arr[mid]}.`,
+        `Calculate mid index = (${left} + ${right}) // 2 = ${mid} (val = ${arr[mid]})`,
+        `Probing middle element at index ${mid} with value ${arr[mid]}.`,
         { left, right, mid, midValue: arr[mid], target },
+        left,
+        right,
+        mid,
+      );
+
+      addStep(
+        7,
+        `Compare arr[${mid}] (${arr[mid]}) with target (${target})`,
+        `Testing for exact equality: arr[${mid}] == ${target}.`,
+        { mid, midValue: arr[mid], target, match: arr[mid] === target },
         left,
         right,
         mid,
@@ -196,10 +270,20 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       if (arr[mid] === target) {
         foundIdx = mid;
         addStep(
-          7,
-          `Target ${target} found at index ${mid}!`,
-          `arr[${mid}] == ${target}. Exact match located in O(log N) steps.`,
-          { foundIdx: mid, target },
+          8,
+          `Match confirmed: found_idx = ${mid}`,
+          `Target ${target} located at index ${mid}.`,
+          { found_idx: mid },
+          left,
+          right,
+          mid,
+          mid,
+        );
+        addStep(
+          9,
+          `Break out of loop`,
+          `Search completed successfully in logarithmic steps.`,
+          { foundIdx: mid },
           left,
           right,
           mid,
@@ -207,21 +291,39 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         );
         break;
       } else if (arr[mid] < target) {
+        addStep(
+          10,
+          `arr[${mid}] (${arr[mid]}) < target (${target})`,
+          `Target lies strictly to the right of index ${mid}.`,
+          { midVal: arr[mid], target },
+          left,
+          right,
+          mid,
+        );
         left = mid + 1;
         addStep(
           11,
-          `arr[${mid}] (${arr[mid]}) < ${target}: Shift left to ${left}`,
-          `Target lies in upper half. Setting left = mid + 1 = ${left}.`,
+          `Shift left bound to mid + 1 = ${left}`,
+          `Discarded lower half [${left - (mid + 1 - left)}..${mid}]. New search interval is [${left}..${right}].`,
           { left, right, mid },
           left,
           right,
         );
       } else {
+        addStep(
+          12,
+          `arr[${mid}] (${arr[mid]}) > target (${target})`,
+          `Target lies strictly to the left of index ${mid}.`,
+          { midVal: arr[mid], target },
+          left,
+          right,
+          mid,
+        );
         right = mid - 1;
         addStep(
           13,
-          `arr[${mid}] (${arr[mid]}) > ${target}: Shift right to ${right}`,
-          `Target lies in lower half. Setting right = mid - 1 = ${right}.`,
+          `Shift right bound to mid - 1 = ${right}`,
+          `Discarded upper half [${mid}..${right + 1}]. New search interval is [${left}..${right}].`,
           { left, right, mid },
           left,
           right,
@@ -238,6 +340,17 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         left,
         right,
       );
+    } else {
+      addStep(
+        15,
+        `Return matching index ${foundIdx}`,
+        `Binary search finished. Target ${target} was found at index ${foundIdx}.`,
+        { target, result: foundIdx },
+        foundIdx,
+        foundIdx,
+        foundIdx,
+        foundIdx,
+      );
     }
   }
 
@@ -246,63 +359,70 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
 
 export const BINARY_SEARCH_1D_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "1D Binary Search is the fundamental logarithmic search algorithm operating on sorted domains. By repeatedly evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond simple value lookup in sorted arrays, binary search generalizes to monotonic predicate functions (binary search on answer), forms the core scan loop of database B-Tree index lookups, and underpins system primitives like C++ std::lower_bound and std::upper_bound.",
+    "1D Binary Search is the foundational logarithmic search paradigm operating on sorted domains. By evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond value lookup in sorted vectors, binary search generalizes to continuous monotonic predicate functions (binary search on answer), powers B-Tree database indexing, and drives low-latency systems algorithms like std::lower_bound and std::upper_bound.",
   sections: [
     {
-      heading: "Search Space Invariant & Bisecting",
-      body: "The core invariant is that if the target exists in the array, its index must lie within the inclusive range [left, right]. Midpoint calculation mid = left + (right - left) // 2 divides the search space into two equal halves. Comparing arr[mid] with target determines which half retains the target and which half can be discarded permanently.",
+      heading: "Why It Exists & Core Problem Solved",
+      body: "Linear scanning over N elements requires O(N) comparisons, which becomes prohibitively slow for millions or billions of records. When elements are stored in sorted order, binary search leverages monotonic order to cut the search space by half on every iteration, reaching any target in at most log2(N) probes.",
     },
     {
-      heading: "Lower Bound vs Upper Bound Formulations",
-      body: "Exact match binary search stops as soon as arr[mid] == target. Lower bound finds the first index i where arr[i] >= target, maintaining a half-open search space [0, N). Upper bound finds the first index i where arr[i] > target. Lower/upper bounds are critical for counting duplicates in O(log N) time as upper_bound - lower_bound.",
+      heading: "Step-by-Step Intuition & Invariant Maintenance",
+      body: "The central invariant maintains that if target exists, it must reside within the closed interval [left, right]. Midpoint mid = left + (right - left) // 2 splits the interval. Comparing arr[mid] against target reveals which sub-interval retains the target, allowing the other half to be discarded unconditionally without missing valid solutions.",
     },
     {
-      heading: "Overflow Prevention & Integer Arithmetic",
-      body: "Computing mid = (left + right) // 2 can overflow 32-bit signed integers when left + right > 2^31 - 1. Safe implementation uses mid = left + (right - left) // 2. In bitwise manipulation languages, mid = (left + right) >>> 1 is used for unsigned shift.",
+      heading: "Exact vs Lower Bound Formulations",
+      body: "Exact binary search halts as soon as arr[mid] == target. Lower bound searches for the boundary index i where arr[i] >= target, using a half-open interval [0, N). Lower bound and upper bound together enable duplicate counting in O(log N) time as upper_bound - lower_bound.",
     },
     {
-      heading: "Binary Search on Answer (Parametric Search)",
-      body: "When an optimization problem possesses a monotonic decision function f(x) (i.e. f(x) is False for all x < X and True for all x >= X), binary search can find the minimum valid parameter X in O(log(MAX - MIN) * cost(f)) time without explicitly generating an array.",
+      heading: "Trade-offs & Modern Systems Considerations",
+      body: "Binary search requires contiguous memory or random-access indexing alongside sorted data. Random memory jumps across huge arrays can trigger CPU L3 cache misses compared to sequential SIMD vector scans. In high-performance runtimes, midpoint calculations use bitwise unsigned shifts mid = (left + right) >>> 1 or mid = left + ((right - left) >> 1) to prevent integer overflow.",
     },
   ],
   keyTerms: [
     {
-      term: "Search Space",
+      term: "Search Interval",
       definition:
-        "The current range of candidate indices [left, right] that could contain the desired element or boundary point.",
+        "The active sub-range of array indices [left, right] currently guaranteed to contain the target element if present.",
     },
     {
       term: "Lower Bound",
       definition:
-        "The smallest index i in a sorted array such that arr[i] is greater than or equal to the target value.",
+        "The smallest index i in a sorted domain such that arr[i] is greater than or equal to the target value.",
     },
     {
       term: "Parametric Search",
       definition:
-        "Binary searching over a continuous or discrete range of candidate answer values using a monotonic predicate function.",
+        "Binary searching over a discrete or continuous range of answer candidates using a monotonic predicate decision function.",
     },
   ],
 };
 
 export const BINARY_SEARCH_1D_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Declares binary_search_1d: returns index of target in sorted arr, or -1 if absent.",
-    2: "Initializes left and right pointers to span the full array range [0..N-1].",
+    1: "Defines binary_search_1d: returns index of target in sorted arr, or -1 if absent.",
+    2: "Initializes left and right pointers to span the full array range [0..len(arr)-1].",
     3: "Initializes found_idx to -1 as the default result for target not found.",
+    4: "Blank line preceding main search loop.",
     5: "Loops while search range is valid (left <= right).",
     6: "Computes mid index as the floor of (left + right) / 2.",
     7: "Checks if middle element arr[mid] equals target.",
     8: "Stores matching index mid in found_idx.",
     9: "Breaks out of loop upon finding exact match.",
+    10: "Checks if middle element arr[mid] is strictly less than target.",
     11: "Discards left half by setting left = mid + 1 when arr[mid] < target.",
+    12: "Branch handling case when arr[mid] is strictly greater than target.",
     13: "Discards right half by setting right = mid - 1 when arr[mid] > target.",
-    15: "Returns found_idx (-1 if not present).",
-    17: "Declares lower_bound: finds first index where arr[i] >= target.",
+    14: "Blank line ending main search loop.",
+    15: "Returns found_idx (-1 if target was not present).",
+    16: "Blank line separating functions.",
+    17: "Defines lower_bound: finds first index where arr[i] >= target.",
     18: "Initializes left to 0 and right to len(arr) (half-open range [0..N]).",
-    19: "Loops while left < right.",
-    20: "Computes mid index.",
+    19: "Loops while left < right in half-open interval.",
+    20: "Computes mid index using integer floor division.",
+    21: "Checks if arr[mid] is strictly less than target.",
     22: "Sets left = mid + 1 if arr[mid] < target.",
-    24: "Sets right = mid if arr[mid] >= target.",
+    23: "Branch handling case when arr[mid] >= target.",
+    24: "Sets right = mid if arr[mid] >= target to preserve first potential match.",
     25: "Returns left, the first index where arr[i] >= target.",
   },
 };
@@ -313,41 +433,53 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   category: "binary_search",
   categories: ["binary_search"],
   difficulty: "Easy",
-  description: `Locate a target value or find boundary thresholds (\`lower_bound\` / \`upper_bound\`) within a sorted 1D array using binary search in $O(\\log N)$ time.
+  description: `Master 1D Binary Search: locate target values or boundary thresholds (\`lower_bound\` / \`upper_bound\`) in sorted 1D arrays in $O(\\log N)$ time.
 
-### Problem Statement
-Given an array \`array\` sorted in non-decreasing order and an integer \`target\`, search for \`target\` using the halving principle:
-- **\`exact\` mode**: Find any index \`i\` such that \`array[i] == target\`. Returns \`-1\` if not found.
-- **\`lower_bound\` mode**: Find the smallest index \`i\` such that \`array[i] >= target\`. If all elements are less than \`target\`, returns \`array.length\`.
+### Why It Exists & What It Solves
+When searching an unsorted list of $N$ items, finding an element requires a linear scan inspecting up to $N$ items in $O(N)$ time. However, when data is ordered (sorted), binary search replaces brute-force scanning by repeatedly probing the midpoint and discarding half of the remaining items. This reduces the search time from linear to logarithmic $O(\\log N)$, enabling instant lookups even across billions of records.
+
+### Step-by-Step Intuition
+1. **Define the Bounds**: Maintain two pointers \`left\` and \`right\` representing the candidate range \`[left, right]\`.
+2. **Compute Midpoint**: Pick \`mid = left + (right - left) // 2\` to divide the range into two sub-intervals.
+3. **Probe & Evaluate**: Compare \`arr[mid]\` against \`target\`:
+   - If \`arr[mid] == target\`, target is found! Return \`mid\`.
+   - If \`arr[mid] < target\`, target must reside strictly to the right. Update \`left = mid + 1\`.
+   - If \`arr[mid] > target\`, target must reside strictly to the left. Update \`right = mid - 1\`.
+4. **Repeat Until Convergence**: Continue until \`left > right\` (range exhausted) or target is matched.
 
 ### Input Parameters
 - \`array\`: A 1D array of numbers sorted in non-decreasing order.
-- \`target\`: The integer target value to locate.
+- \`target\`: The target integer value to locate.
 - \`mode\` (optional): \`"exact"\` | \`"lower_bound"\` | \`"upper_bound"\`. Defaults to \`"exact"\`.
 
 ### Output
-- Returns the index matching the target or boundary condition, or \`-1\` if not found in \`exact\` mode.
+- Returns the integer index matching the target or boundary condition, or \`-1\` if absent in \`exact\` mode.
+
+### Trade-offs & Complexity
+- **Time Complexity**: $O(\\log N)$ worst/average case, $O(1)$ best case.
+- **Space Complexity**: $O(1)$ auxiliary space using iterative pointers.
+- **Prerequisite**: Input array must be sorted in non-decreasing order ($O(N \\log N)$ pre-sort cost if un-ordered).
 
 ### Edge Cases & Constraints
 - \`1 <= array.length <= 10^5\`
 - \`-10^9 <= array[i], target <= 10^9\`
 - Target smaller than all array elements or larger than all elements.
-- Array with duplicate elements (\`lower_bound\` finds first occurrence).
-- Integer arithmetic overflow prevention when calculating midpoint.`,
+- Array with duplicate values (\`lower_bound\` pinpoints the first occurrence).
+- Overflow-safe midpoint arithmetic preventing 32-bit integer wrapper wrap-around.`,
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {
       kind: "basic",
       title: "Basic Example",
-      inputDisplay: "arr = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91], target = 23, mode = 'exact'",
-      outputDisplay: "Target 23 found at index 5",
+      inputDisplay: "arr = [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 91], target = 63, mode = 'exact'",
+      outputDisplay: "Target 63 found at index 13",
       input: {
-        array: [2, 5, 8, 12, 16, 23, 38, 56, 72, 91],
-        target: 23,
+        array: [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 91],
+        target: 63,
         mode: "exact",
       },
-      output: "Target 23 found at index 5",
-      explanation: "N=10 sorted elements; mid index comparisons locate 23 at index 5 in 3 steps.",
+      output: "Target 63 found at index 13",
+      explanation: "N=16 sorted elements; logarithmic halving probes mid indices to locate 63 at index 13.",
     },
     {
       kind: "complex",
@@ -384,49 +516,11 @@ Given an array \`array\` sorted in non-decreasing order and an integer \`target\
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Each step cuts the remaining search space [left..right] in half. An array of size n is reduced to 1 element in log2(n) steps, running in O(log n) time.",
+    time: "Each comparison cuts the search window [left..right] in half. An array of size N contracts to 1 element in at most log2(N) steps, guaranteeing O(log N) execution time.",
     space:
-      "Uses O(1) auxiliary space as search maintains only left, right, and mid integer pointers.",
+      "Uses strictly O(1) auxiliary space, keeping only scalar integer pointers (left, right, mid).",
   },
-  topicGuide: {
-    overview:
-      "1D Binary Search is the fundamental logarithmic search algorithm operating on sorted domains. By repeatedly evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond simple value lookup in sorted arrays, binary search powers CUDA kernel tensor searches (e.g. PyTorch torch.bucketize), database B-Tree index lookups, and system primitives like C++ std::lower_bound and std::upper_bound.",
-    sections: [
-      {
-        heading: "Search Space Invariant & Bisecting",
-        body: "The core invariant is that if the target exists in the array, its index must lie within the active range [left, right]. Midpoint calculation mid = left + (right - left) // 2 divides the search space into two equal halves. Comparing arr[mid] with target determines which half retains the target and which half can be discarded permanently.",
-      },
-      {
-        heading: "Lower Bound vs Upper Bound Formulations",
-        body: "Exact match binary search stops as soon as arr[mid] == target. Lower bound finds the first index i where arr[i] >= target, maintaining a half-open search space [0, N). Upper bound finds the first index i where arr[i] > target. Lower/upper bounds are critical for counting duplicates in O(log N) time as upper_bound - lower_bound.",
-      },
-      {
-        heading: "Systems & Memory Performance",
-        body: "Because binary search jumps non-sequentially across memory pages, array sizes exceeding CPU L3 cache size may experience cache misses. However, inside fast L1/L2 cache SRAM, binary search performs orders of magnitude faster than linear scans. Bitwise unsigned shift `mid = (left + right) >>> 1` is commonly used in high-performance runtimes to avoid integer overflow.",
-      },
-      {
-        heading: "Binary Search on Answer (Parametric Search)",
-        body: "When an optimization problem possesses a monotonic decision function f(x) (i.e. f(x) is False for all x < X and True for all x >= X), binary search can find the minimum valid parameter X in O(log(MAX - MIN) * cost(f)) time without explicitly generating an array.",
-      },
-    ],
-    keyTerms: [
-      {
-        term: "Search Space",
-        definition:
-          "The current range of candidate indices [left, right] that could contain the desired element or boundary point.",
-      },
-      {
-        term: "Lower Bound",
-        definition:
-          "The smallest index i in a sorted array such that arr[i] is greater than or equal to the target value.",
-      },
-      {
-        term: "Parametric Search",
-        definition:
-          "Binary searching over a continuous or discrete range of candidate answer values using a monotonic predicate function.",
-      },
-    ],
-  },
+  topicGuide: BINARY_SEARCH_1D_TOPIC_GUIDE,
   trivia: BINARY_SEARCH_1D_TRIVIA,
   sources: [
     {

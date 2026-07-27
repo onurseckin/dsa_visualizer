@@ -16,10 +16,30 @@ describe("tensor-vjp-engine-grad-of-grad (Vector-Jacobian Product (VJP) Engine w
 
   it("should generate valid algorithm steps", () => {
     const steps = generateTensorVjpEngineGradOfGradSteps(DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain(
-      "Vector-Jacobian Product (VJP) Engine with Higher-Order Gradients",
+      "Vector-Jacobian Product (VJP) Engine",
     );
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+  });
+
+  it("should have complete lineExplanations for every code line", () => {
+    const totalLines = tensorVjpEngineGradOfGrad.code.trim().split("\n").length;
+    expect(tensorVjpEngineGradOfGrad.trivia).toBeDefined();
+    expect(tensorVjpEngineGradOfGrad.trivia?.lineExplanations).toBeDefined();
+    const lineExplanations = tensorVjpEngineGradOfGrad.trivia!.lineExplanations!;
+    for (let line = 1; line <= totalLines; line++) {
+      expect(lineExplanations[line]).toBeDefined();
+      expect(lineExplanations[line].length).toBeGreaterThan(0);
+    }
+  });
+
+  it("should have step codeLines pointing to valid lines in Python code", () => {
+    const totalLines = tensorVjpEngineGradOfGrad.code.trim().split("\n").length;
+    const steps = generateTensorVjpEngineGradOfGradSteps(DEFAULT_TENSORVJPENGINEGRADOFGRAD_INPUT);
+    steps.forEach((step) => {
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+    });
   });
 });

@@ -6,15 +6,17 @@ import {
 } from "../mergeIntervals";
 
 describe("mergeIntervals logic spec", () => {
-  it("generates valid steps for default input", () => {
+  it("generates valid steps for default input (>= 20 steps)", () => {
     const steps = generateMergeIntervalsSteps(DEFAULT_MERGE_INTERVALS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.primarySnapshot.kind).toBe("array");
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.auxiliaryState.customState?.mergedResult).toBe("[1, 6], [8, 10], [15, 18]");
+    expect(lastStep.auxiliaryState.customState?.mergedResult).toBe(
+      "[1, 6], [8, 12], [15, 20], [22, 26]",
+    );
   });
 
   it("handles overlapping boundary case [[1,4],[4,5]]", () => {
@@ -30,15 +32,33 @@ describe("mergeIntervals logic spec", () => {
 
   it("handles empty intervals array gracefully", () => {
     const steps = generateMergeIntervalsSteps({ intervals: [] });
-    expect(steps.length).toBe(1);
-    expect(steps[0].auxiliaryState.customState?.merged).toBe("[]");
+    expect(steps.length).toBe(3);
+    expect(steps[1].auxiliaryState.customState?.merged).toBe("[]");
   });
 
-  it("verifies algorithm definition metadata", () => {
+  it("ships a rich topic guide teaching sorting by start coordinate and sweep line invariants", () => {
+    const guide = mergeIntervals.topicGuide;
+    expect(guide.overview).toContain("Interval problems");
+    expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+    guide.sections.forEach((section) => {
+      expect(section.heading.length).toBeGreaterThan(0);
+      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
+    });
+    expect(guide.keyTerms?.map((t) => t.term)).toContain("Sweep Line Strategy");
+  });
+
+  it("verifies algorithm definition metadata and complete lineExplanations", () => {
     expect(mergeIntervals.id).toBe("merge-intervals");
     expect(mergeIntervals.category).toBe("intervals");
     expect(mergeIntervals.difficulty).toBe("Medium");
     expect(mergeIntervals.code).toContain("def merge(intervals):");
+
+    const lines = mergeIntervals.code.split("\n");
+    expect(mergeIntervals.trivia?.lineExplanations).toBeDefined();
+    for (let i = 1; i <= lines.length; i++) {
+      expect(mergeIntervals.trivia?.lineExplanations?.[i]).toBeDefined();
+      expect(typeof mergeIntervals.trivia?.lineExplanations?.[i]).toBe("string");
+    }
   });
 
   it("ensures step generator is pure and returns valid code lines and explanations", () => {
@@ -65,7 +85,7 @@ describe("mergeIntervals logic spec", () => {
     const steps = generateMergeIntervalsSteps({
       intervals: [{ start: 5, end: 10 }],
     });
-    expect(steps.length).toBe(3);
+    expect(steps.length).toBe(5);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.auxiliaryState.customState?.mergedResult).toBe("[5, 10]");
   });
@@ -74,8 +94,8 @@ describe("mergeIntervals logic spec", () => {
     const steps = generateMergeIntervalsSteps({
       intervals: undefined as unknown as [],
     });
-    expect(steps.length).toBe(1);
-    expect(steps[0].auxiliaryState.customState?.merged).toBe("[]");
+    expect(steps.length).toBe(3);
+    expect(steps[1].auxiliaryState.customState?.merged).toBe("[]");
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

@@ -1,13 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface virtualMatrixAdditionZeroStrideInput {
-  data: number[];
-  target?: number;
+  matrix: number[][];
+  rowVec: number[];
 }
 
-export const VIRTUALMATRIXADDITIONZEROSTRIDE_CODE = `
-def virtual_matrix_addition_zero_stride(matrix, row_vec):
+export const VIRTUALMATRIXADDITIONZEROSTRIDE_CODE = `def virtual_matrix_addition_zero_stride(matrix, row_vec):
     """
     Adds 1D vector to 2D matrix rows using zero-stride virtual broadcasting.
     """
@@ -22,12 +21,16 @@ def virtual_matrix_addition_zero_stride(matrix, row_vec):
             row_res.append(val)
         result.append(row_res)
 
-    return result
-`;
+    return result`;
 
 export const DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT: virtualMatrixAdditionZeroStrideInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  matrix: [
+    [10, 20, 30],
+    [40, 50, 60],
+    [70, 80, 90],
+    [100, 110, 120],
+  ],
+  rowVec: [1, 2, 3],
 };
 
 export const generateVirtualMatrixAdditionZeroStrideSteps = (
@@ -35,76 +38,180 @@ export const generateVirtualMatrixAdditionZeroStrideSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const { matrix, rowVec } = input;
+  const rows = matrix.length;
+  const cols = rows > 0 ? matrix[0].length : 0;
+  const result: number[][] = [];
+
+  const buildMatrixSnapshot = (
+    activeCell: [number, number] | null,
+    title: string,
+  ) => {
+    const cells: MatrixCellItem[] = [];
+    const [actR, actC] = activeCell ?? [-1, -1];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let state: MatrixCellItem["state"] = "default";
+        let val: string | number = matrix[r][c];
+
+        if (r < result.length && c < (result[r]?.length ?? 0)) {
+          state = "sorted";
+          val = result[r][c];
+        }
+
+        if (r === actR && c === actC) {
+          state = "active";
+          val = `${matrix[r][c]}+${rowVec[c]}`;
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: `+b[${c}](${rowVec[c]})`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix" as const,
+      rows,
+      cols,
+      cells,
+      rowHeaders: Array.from({ length: rows }, (_, i) => `R${i}`),
+      colHeaders: Array.from({ length: cols }, (_, i) => `C${i} (+${rowVec[i]})`),
+      title,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeCell: [number, number] | null = null,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: buildMatrixSnapshot(
+        activeCell,
+        `Zero-Stride Broadcasting Matrix Addition (${rows}x${cols})`,
+      ),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          matrixShape: `${rows}x${cols}`,
+          biasVector: `[${rowVec.join(", ")}]`,
+          computedRows: result.length,
+          resultMatrix: JSON.stringify(result),
         },
       },
       variables,
     });
   };
 
+  // Line 1: Call entry
   addStep(
     1,
-    "Initialize Zero-Stride Broadcasting Matrix Addition",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    `Call virtual_matrix_addition_zero_stride(matrix [${rows}x${cols}], row_vec [${rowVec.join(", ")}])`,
+    `Starting zero-stride virtual broadcasting addition of 1D vector [${rowVec.join(", ")}] across ${rows} matrix rows.`,
+    { rows, cols, bias_len: rowVec.length },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Line 5: rows = len(matrix)
+  addStep(
+    5,
+    `rows = len(matrix) -> ${rows}`,
+    `Determined row count M = ${rows}.`,
+    { rows },
+  );
 
+  // Line 6: cols = len(matrix[0])
+  addStep(
+    6,
+    `cols = len(matrix[0]) -> ${cols}`,
+    `Determined column count N = ${cols}. Vector length matches columns.`,
+    { rows, cols },
+  );
+
+  // Line 7: result = []
+  addStep(
+    7,
+    "result = []",
+    "Initialized empty result matrix array.",
+    { rows, cols },
+  );
+
+  // Loop rows
+  for (let r = 0; r < rows; r++) {
+    // Line 9: Row loop
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in memory layout.`,
-      { idx, val, isTarget },
-      currentElements,
+      9,
+      `Outer loop: r = ${r} of ${rows}`,
+      `Broadcasting bias vector [${rowVec.join(", ")}] into matrix row ${r}.`,
+      { r, rows },
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    const rowRes: number[] = [];
+    // Line 10: row_res = []
+    addStep(
+      10,
+      `row_res = [] (Row ${r})`,
+      `Initialized temporary container for computed row ${r}.`,
+      { r },
+    );
 
+    for (let c = 0; c < cols; c++) {
+      // Line 11: Column loop
+      addStep(
+        11,
+        `Inner loop: c = ${c} (matrix[${r}][${c}] = ${matrix[r][c]}, row_vec[${c}] = ${rowVec[c]})`,
+        `Reading matrix cell (${r}, ${c}) and broadcasted bias at index ${c} (row stride = 0).`,
+        { r, c, "matrix[r][c]": matrix[r][c], "row_vec[c]": rowVec[c] },
+        [r, c],
+      );
+
+      // Line 12: val = matrix[r][c] + row_vec[c]
+      const val = matrix[r][c] + rowVec[c];
+      addStep(
+        12,
+        `val = matrix[${r}][${c}] + row_vec[${c}] -> ${matrix[r][c]} + ${rowVec[c]} = ${val}`,
+        `Computed element addition ${matrix[r][c]} + ${rowVec[c]} = ${val} via zero-stride virtual pointer offset.`,
+        { r, c, val },
+        [r, c],
+      );
+
+      // Line 13: row_res.append(val)
+      rowRes.push(val);
+      addStep(
+        13,
+        `row_res.append(${val})`,
+        `Appended broadcasted sum ${val} to row ${r} results.`,
+        { r, c, val, row_len: rowRes.length },
+        [r, c],
+      );
+    }
+
+    result.push(rowRes);
+    // Line 14: result.append(row_res)
+    addStep(
+      14,
+      `result.append([${rowRes.join(", ")}])`,
+      `Completed broadcast addition for row ${r}. Added row [${rowRes.join(", ")}] to result matrix.`,
+      { r, result_rows: result.length },
+    );
+  }
+
+  // Line 16: Return
   addStep(
     16,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Return result",
+    `Completed zero-stride broadcasting addition for all ${rows} rows. Output shape: ${rows}x${cols}.`,
     { completed: true },
-    finalElements,
   );
 
   return steps;
@@ -113,20 +220,28 @@ export const generateVirtualMatrixAdditionZeroStrideSteps = (
 const VIRTUALMATRIXADDITIONZEROSTRIDE_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "val = matrix[r][c] + row_vec[r]",
+    "result.append(matrix[r] + row_vec)",
+    "row_vec.expand(rows, cols)",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
+  hints: [{ line: 12, hint: "Index row_vec with column index c because row stride is virtually set to 0." }],
   lineExplanations: {
-    1: "Defines zero-stride broadcasting matrix addition function.",
-    4: "Gets matrix row count M.",
-    5: "Gets matrix column count N.",
-    8: "Iterates through matrix row index r.",
-    10: "Iterates through matrix column index c.",
-    11: "Adds matrix element matrix[r][c] and broadcasted vector element row_vec[c].",
-    12: "Appends element sum val to current result row.",
-    14: "Returns computed broadcasted matrix sum.",
+    1: "Defines entry point for zero-stride broadcasting matrix addition.",
+    2: "Docstring opening tag.",
+    3: "Describes adding a 1D vector across 2D matrix rows using virtual zero-stride broadcasting.",
+    4: "Docstring closing tag.",
+    5: "Gets matrix row count M = len(matrix).",
+    6: "Gets matrix column count N = len(matrix[0]).",
+    7: "Initializes result matrix list.",
+    8: "Blank line preceding outer row iteration loop.",
+    9: "Iterates through row index r from 0 to rows - 1.",
+    10: "Initializes temporary row list for row r.",
+    11: "Iterates through column index c from 0 to cols - 1.",
+    12: "Adds matrix element matrix[r][c] and zero-stride broadcasted vector element row_vec[c].",
+    13: "Appends element sum val to current row_res list.",
+    14: "Appends completed row_res list to result matrix.",
+    15: "Blank line preceding return statement.",
+    16: "Returns computed broadcasted matrix sum result.",
   },
 };
 
@@ -141,84 +256,109 @@ export const virtualMatrixAdditionZeroStride: AlgorithmDefinition<virtualMatrixA
     mlInfraLevel: 1,
     mlInfraCategory: "ml_tensor_algebra",
     description:
-      "In deep learning bias addition (e.g. PyTorch Y = X + b in linear layers), a 1D bias vector of shape (N,) is added to every row of an M x N matrix. Rather than copying the 1D bias vector M times to create an M x N matrix, PyTorch uses zero-stride broadcasting: the row stride of the bias tensor is set to 0.\n\nThis algorithm implements Zero-Stride Broadcasting Matrix Addition, performing element-wise addition between a 2D matrix and a broadcasted 1D row vector without memory duplication.\n\nInput Format:\n- data: Array representing matrix or bias values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns M x N matrix containing element-wise sum totals.\n\nEdge Cases & Constraints:\n- Matrix with single row (M = 1).\n- 1D vector length matching matrix column count N.\n- Zero-stride memory address resolution.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "In deep learning models (e.g. PyTorch Linear layers $Y = X W + \\mathbf{b}$, LayerNorm bias offset addition, ResNet residual addition), a 1D bias vector of shape $(N,)$ is added to every row of an $M \\times N$ activation matrix. Naively performing this operation by copying the 1D bias vector $M$ times creates an $M \\times N$ intermediate matrix, wasting DRAM bandwidth and GPU memory allocation. Instead, tensor runtimes (PyTorch ATen, NumPy, Triton) use zero-stride broadcasting: setting the row stride of the 1D vector to 0 (strides $= [0, 1]$). When calculating element memory addresses: $$\\text{Offset}(r, c) = r \\times \\text{stride}_{\\text{row}} + c \\times \\text{stride}_{\\text{col}}$$ setting $\\text{stride}_{\\text{row}} = 0$ reduces $r \\times 0 = 0$, forcing pointer math to read index $c$ regardless of row $r$. This virtually expands the vector to $M \\times N$ without allocating extra physical DRAM memory.",
+    constraints: ["1 <= M, N <= 64", "rowVec.length == N"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Input Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "Processed Memory Layout",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input tensor memory buffer cleanly.",
+        title: "Standard 4x3 Matrix + 1D Bias Vector",
+        inputDisplay: "matrix = 4x3, rowVec = [1, 2, 3]",
+        outputDisplay: "[[11, 22, 33], [41, 52, 63], [71, 82, 93], [101, 112, 123]]",
+        input: {
+          matrix: [
+            [10, 20, 30],
+            [40, 50, 60],
+            [70, 80, 90],
+            [100, 110, 120],
+          ],
+          rowVec: [1, 2, 3],
+        },
+        output: "[[11, 22, 33], [41, 52, 63], [71, 82, 93], [101, 112, 123]]",
+        explanation: "Broadcasted 1D vector [1, 2, 3] to every row without allocating intermediate 4x3 bias copy.",
       },
       {
         kind: "complex",
-        title: "Larger Data Buffer",
-        inputDisplay: "data = [10, 20, 30, 40, 50]",
-        outputDisplay: "Processed Memory Layout",
-        input: { data: [10, 20, 30, 40, 50] },
-        output: "[10, 20, 30, 40, 50]",
-        explanation: "Evaluates larger array with 5 tensor elements.",
+        title: "Negative Bias Offset Addition",
+        inputDisplay: "matrix = [[5, 10], [15, 20]], rowVec = [-5, 10]",
+        outputDisplay: "[[0, 20], [10, 30]]",
+        input: {
+          matrix: [
+            [5, 10],
+            [15, 20],
+          ],
+          rowVec: [-5, 10],
+        },
+        output: "[[0, 20], [10, 30]]",
+        explanation: "Element-wise zero-stride addition supports negative bias vector elements.",
       },
       {
         kind: "negative",
-        title: "Edge Case Execution",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "Processed Memory Layout",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Edge case handling completes safely.",
+        title: "1x1 Matrix Single Element Addition",
+        inputDisplay: "matrix = [[100]], rowVec = [50]",
+        outputDisplay: "[[150]]",
+        input: {
+          matrix: [[100]],
+          rowVec: [50],
+        },
+        output: "[[150]]",
+        explanation: "1x1 matrix adds single bias value correctly.",
       },
     ],
     code: VIRTUALMATRIXADDITIONZEROSTRIDE_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(M * N)", average: "O(M * N)", worst: "O(M * N)" },
+    spaceComplexity: "O(M * N)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(M * N) computes element-wise sum for every cell in M x N matrix.",
+      space: "O(M * N) memory allocated solely for the output result matrix.",
     },
     topicGuide: {
       overview:
-        "Broadcasting allows arithmetic operations on tensors of different shapes without allocating intermediate expanded memory buffers. Setting a dimension's stride to 0 causes pointer calculations to re-read identical scalar values repeatedly without physical memory copy overhead.",
+        "Zero-stride broadcasting is an essential technique in high-performance tensor algebra engines. Setting a dimension's stride to 0 allows tensor execution graphs to virtually expand low-dimensional tensors without performing DRAM memory allocations or eager tensor expansion copies.\n\nIn GPU kernel implementations (CUDA/Triton), zero-stride broadcasting enables warp threads to load bias values once into high-speed L1/SRAM registers and re-use them across hundreds of matrix rows at peak throughput.",
       sections: [
         {
-          heading: "Core Concept & Mathematical Formulation",
-          body: "Mathematically, for matrix A of shape M x N and row vector B of shape N, zero-stride expansion defines virtual tensor B' of shape M x N with strides (s_row=0, s_col=1). Element (r, c) is computed as C[r][c] = A[r][c] + B[c].",
+          heading: "Why It Exists & Theoretical Foundations",
+          body: "Tensor memory address offset calculation follows the strided formula:\n$$\\text{Offset}(i_0, i_1, \\dots, i_{D-1}) = \\sum_{j=0}^{D-1} i_j \\times s_j$$\nIf dimension $j$ is broadcasted from size 1 to size $M$, setting $s_j = 0$ guarantees that $i_j \\times 0 = 0$ regardless of index $i_j$. Mathematically, this enforces virtual equality $B'[r][c] = B[c]$ without writing a single extra byte to memory.",
         },
         {
-          heading: "Systems & Memory Hierarchy Performance",
-          body: "Zero-stride broadcasting saves O(M * N) DRAM allocations. In CUDA kernels, thread blocks read vector B into shared memory (SRAM) once, reusing bias values across all M rows to maximize HBM memory bandwidth.",
+          heading: "What It Solves & Real-World Applications",
+          body: "In PyTorch models, adding a bias vector to an activation matrix ($Y = X + \\mathbf{b}$) occurs in every Linear, Conv2D, and LayerNorm layer. Without zero-stride broadcasting, computing `b.expand(M, N)` would require allocating $M \\times N$ floats in DRAM memory. Zero-stride views eliminate this DRAM memory footprint entirely.",
         },
         {
-          heading: "Implementation Nuances & Data Structures",
-          body: "Implementation iterates over matrix rows r and columns c, computing sum = matrix[r][c] + row_vec[c], appending results to output rows.",
+          heading: "Step-by-Step Intuition & Worked Example",
+          body: "Given matrix $X$ of shape $3 \\times 3$ and bias vector $\\mathbf{b} = [10, 20, 30]$ of shape $(3,)$:\n1. Row 0: $X[0][0]+b[0]=10+10=20, \\dots, X[0][2]+b[2]=30+30=60$.\n2. Row 1: $X[1][0]+b[0]=40+10=50, \\dots, X[1][2]+b[2]=60+30=90$.\n3. Row 2: $X[2][0]+b[0]=70+10=80, \\dots, X[2][2]+b[2]=90+30=120$.\nPointer math reads $b[c]$ for all rows $r$ because $\\text{stride}_{\\text{row}} = 0$.",
         },
         {
-          heading: "Edge Case Analysis & Production Robustness",
-          body: "Edge case analysis includes 1x1 matrices and column vector broadcasting (where column stride is set to 0).",
+          heading: "Trade-offs & Hardware Realities",
+          body: "In GPU architectures (NVIDIA H100 / A100), reading a broadcasted scalar across 32 threads in a warp can cause shared memory register broadcast overhead. High-performance Triton kernels load vector $\\mathbf{b}$ into fast shared memory (SRAM) once per thread block, ensuring all threads read from SRAM without DRAM latency bottlenecks.",
+        },
+        {
+          heading: "Time & Space Complexity Analysis",
+          body: "Time Complexity: $\\mathcal{O}(M \\times N)$ arithmetic additions. Space Complexity: $\\mathcal{O}(M \\times N)$ space for output matrix. Zero auxiliary space allocated for bias expansion.",
         },
       ],
       keyTerms: [
         {
-          term: "Zero-Stride Broadcasting",
-          definition:
-            "Setting a tensor dimension stride to 0 to virtually expand a tensor without memory copy.",
+          term: "Zero-Stride Tensor",
+          definition: "A tensor having a stride of 0 along one or more dimensions, causing index steps along that dimension to re-read identical DRAM addresses.",
+        },
+        {
+          term: "Virtual Broadcasting",
+          definition: "Expanding tensor shape metadata logically without duplicating data elements in physical memory.",
         },
         {
           term: "Bias Addition",
-          definition: "Adding a 1D feature bias vector to every sample row in a batch matrix.",
+          definition: "Adding a 1D learned parameters vector to matrix activation outputs in neural network layers.",
         },
         {
-          term: "Virtual Tensor View",
-          definition:
-            "An expanded logical tensor view sharing physical memory storage with smaller tensors.",
+          term: "HBM Bandwidth",
+          definition: "High-Bandwidth Memory throughput on modern GPUs; zero-stride views conserve HBM bandwidth by preventing redundant DRAM writes.",
         },
       ],
     },
     trivia: VIRTUALMATRIXADDITIONZEROSTRIDE_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
+    sources: [{ kind: "standard", label: "ML Infra Level 1" }],
     defaultInput: DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT,
     generateSteps: generateVirtualMatrixAdditionZeroStrideSteps,
-  };
+};
+
+export default virtualMatrixAdditionZeroStride;

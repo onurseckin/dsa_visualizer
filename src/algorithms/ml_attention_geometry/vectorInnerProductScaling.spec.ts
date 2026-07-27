@@ -3,6 +3,7 @@ import {
   vectorInnerProductScaling,
   DEFAULT_VECTORINNERPRODUCTSCALING_INPUT,
   generateVectorInnerProductScalingSteps,
+  VECTORINNERPRODUCTSCALING_CODE,
 } from "./vectorInnerProductScaling";
 
 describe("vector-inner-product-scaling (Vector Inner Product Scaling)", () => {
@@ -14,10 +15,24 @@ describe("vector-inner-product-scaling (Vector Inner Product Scaling)", () => {
     expect(vectorInnerProductScaling.categories).toContain("ml_attention_geometry");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
     const steps = generateVectorInnerProductScalingSteps(DEFAULT_VECTORINNERPRODUCTSCALING_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Vector Inner Product Scaling");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain("Initialize Vector Inner Product Scaling");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+
+    steps.forEach((step) => {
+      expect(step.primarySnapshot.kind).toBe("matrix");
+    });
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = VECTORINNERPRODUCTSCALING_CODE.trim().split("\n");
+    const lineExplanations = vectorInnerProductScaling.trivia?.lineExplanations || {};
+
+    for (let i = 1; i <= codeLines.length; i++) {
+      expect(lineExplanations[i]).toBeDefined();
+      expect(lineExplanations[i].length).toBeGreaterThan(0);
+    }
   });
 });

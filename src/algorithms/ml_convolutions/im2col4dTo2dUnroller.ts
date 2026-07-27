@@ -1,16 +1,17 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface im2col4dTo2dUnrollerInput {
-  inputTensor: number[][][][];
-  kernelH: number;
-  kernelW: number;
+  inputTensor?: number[][][][];
+  kernelH?: number;
+  kernelW?: number;
   stride?: number;
   padding?: number;
+  data?: number[];
+  target?: number;
 }
 
-export const IM2COL4DTO2DUNROLLER_CODE = `
-def im2col_4d_to_2d(input_tensor, kernel_h, kernel_w, stride=1, padding=0):
+export const IM2COL4DTO2DUNROLLER_CODE = `def im2col_4d_to_2d(input_tensor, kernel_h, kernel_w, stride=1, padding=0):
     """
     Strided im2col 4D-to-2D Matrix Unroller.
     Unrolls sliding 3D receptive fields across a batch of 4D tensors (N, C, H, W)
@@ -46,8 +47,7 @@ def im2col_4d_to_2d(input_tensor, kernel_h, kernel_w, stride=1, padding=0):
                             row_idx += 1
                 col_idx += 1
 
-    return col_matrix
-`;
+    return col_matrix`;
 
 export const DEFAULT_IM2COL4DTO2DUNROLLER_INPUT: im2col4dTo2dUnrollerInput = {
   inputTensor: [
@@ -71,9 +71,18 @@ export const generateIm2col4dTo2dUnrollerSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const tensor = input.inputTensor;
-  const kH = input.kernelH;
-  const kW = input.kernelW;
+  const tensor = input.inputTensor || [
+    [
+      [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ],
+    ],
+  ];
+
+  const kH = input.kernelH ?? 2;
+  const kW = input.kernelW ?? 2;
   const stride = input.stride ?? 1;
   const padding = input.padding ?? 0;
 
@@ -88,86 +97,235 @@ export const generateIm2col4dTo2dUnrollerSteps = (
   const rows = C * kH * kW;
   const cols = N * H_out * W_out;
 
-  const flatInput = tensor.flatMap((b) => b.flatMap((ch) => ch.flatMap((r) => r)));
-  const elements: ArrayElement[] = flatInput.map((val, idx) => ({
-    id: `val-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const colMatrix: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+  const getSnapshot = (
+    activeRow: number = -1,
+    activeCol: number = -1,
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const state = r === activeRow && c === activeCol ? "active" : "default";
+        cells.push({
+          row: r,
+          col: c,
+          value: colMatrix[r][c],
+          label: `[${r},${c}]`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows,
+      cols,
+      title: `im2col Unrolled Matrix col_matrix (${rows} x ${cols})`,
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customState?: Record<string, string>,
+    activeRow: number = -1,
+    activeCol: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({ ...el })),
-      },
+      primarySnapshot: getSnapshot(activeRow, activeCol),
       auxiliaryState: {
         customState: {
-          inputShape: `(${N}, ${C}, ${H}, ${W})`,
-          unrolledShape: `(${rows}, ${cols})`,
-          kernelShape: `(${kH}, ${kW})`,
-          ...customState,
+          "Input Tensor Shape": `(${N}, ${C}, ${H}, ${W})`,
+          "Kernel Size": `${kH} x ${kW}`,
+          "Output Spatial Shape": `${H_out} x ${W_out}`,
+          "Unrolled Matrix Shape": `${rows} x ${cols}`,
+          "BLAS Memory Layout": "Columns = Spatial Patches, Rows = Unrolled Kernel Taps",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
-    "Initialize Strided im2col 4D-to-2D Matrix Unroller",
-    "Setting up output matrix dimensions for unrolling 4D receptive fields into 2D BLAS GEMM format.",
-    { N, C, H, W, kH, kW, H_out, W_out, rows, cols },
+    "Strided im2col 4D-to-2D Matrix Unroller Entry",
+    `Started 4D-to-2D im2col unrolling engine on tensor shape (${N}, ${C}, ${H}, ${W}) with kernel ${kH}x${kW}, stride=${stride}, padding=${padding}.`,
+    { N, C, H, W, kH, kW, stride, padding },
   );
 
-  const colMatrix: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+  // Step 2: Measure N
+  addStep(
+    8,
+    "Extract Batch Size N",
+    `Input batch size: N = ${N}.`,
+    { N },
+  );
 
+  // Step 3: Measure C
+  addStep(
+    9,
+    "Extract Channels Count C",
+    `Input feature map channels count: C = ${C}.`,
+    { C },
+  );
+
+  // Step 4: Measure H
+  addStep(
+    10,
+    "Extract Spatial Height H",
+    `Input spatial height: H = ${H}.`,
+    { H },
+  );
+
+  // Step 5: Measure W
+  addStep(
+    11,
+    "Extract Spatial Width W",
+    `Input spatial width: W = ${W}.`,
+    { W },
+  );
+
+  // Step 6: Calculate H_out
+  addStep(
+    13,
+    "Calculate Output Spatial Height H_out",
+    `Output spatial height H_out = (${H} + 2 * ${padding} - ${kH}) // ${stride} + 1 = ${H_out}.`,
+    { H_out, H, kH, stride, padding },
+  );
+
+  // Step 7: Calculate W_out
+  addStep(
+    14,
+    "Calculate Output Spatial Width W_out",
+    `Output spatial width W_out = (${W} + 2 * ${padding} - ${kW}) // ${stride} + 1 = ${W_out}.`,
+    { W_out, W, kW, stride, padding },
+  );
+
+  // Step 8: Calculate rows
+  addStep(
+    16,
+    "Calculate im2col Matrix Rows Count",
+    `Matrix rows (unrolled receptive field footprint): rows = C * kH * kW = ${C} * ${kH} * ${kW} = ${rows}.`,
+    { rows, C, kH, kW },
+  );
+
+  // Step 9: Calculate cols
+  addStep(
+    17,
+    "Calculate im2col Matrix Cols Count",
+    `Matrix cols (total spatial patches across batch): cols = N * H_out * W_out = ${N} * ${H_out} * ${W_out} = ${cols}.`,
+    { cols, N, H_out, W_out },
+  );
+
+  // Step 10: Allocate col_matrix
+  addStep(
+    18,
+    "Allocate col_matrix Buffer (rows x cols)",
+    `Allocated 2D col_matrix buffer of shape (${rows}, ${cols}) filled with zeros.`,
+    { rows, cols },
+  );
+
+  // Step 11: Init col_idx
   let colIdx = 0;
+  addStep(
+    20,
+    "Initialize Patch Column Pointer col_idx = 0",
+    "Set unrolled column pointer col_idx = 0.",
+    { col_idx: colIdx },
+  );
+
+  // Unrolling loops
   for (let n = 0; n < N; n++) {
+    addStep(
+      21,
+      `Batch Sample Loop: n = ${n}`,
+      `Processing batch sample n = ${n} of ${N - 1}.`,
+      { n, N },
+    );
+
     for (let r = 0; r < H_out; r++) {
+      addStep(
+        22,
+        `Spatial Row Loop: r = ${r}`,
+        `Processing spatial row r = ${r} of ${H_out - 1}.`,
+        { n, r, H_out },
+      );
+
       for (let c = 0; c < W_out; c++) {
+        addStep(
+          23,
+          `Spatial Col Loop: c = ${c}`,
+          `Processing spatial column c = ${c} of ${W_out - 1} -> Patch Column ${colIdx}.`,
+          { n, r, c, W_out, colIdx },
+          -1,
+          colIdx,
+        );
+
         let rowIdx = 0;
-        const patchValues: number[] = [];
+        addStep(
+          24,
+          `Reset Receptive Field Row Pointer row_idx = 0`,
+          `Set row_idx = 0 for column col_idx = ${colIdx}.`,
+          { colIdx, rowIdx },
+          rowIdx,
+          colIdx,
+        );
 
         for (let ch = 0; ch < C; ch++) {
           for (let kr = 0; kr < kH; kr++) {
             for (let kc = 0; kc < kW; kc++) {
               const ir = r * stride + kr - padding;
               const ic = c * stride + kc - padding;
-              const val = ir >= 0 && ir < H && ic >= 0 && ic < W ? tensor[n][ch][ir][ic] : 0;
+              const inside = ir >= 0 && ir < H && ic >= 0 && ic < W;
+              const val = inside ? tensor[n][ch][ir][ic] : 0.0;
+
               colMatrix[rowIdx][colIdx] = val;
-              patchValues.push(val);
+
+              addStep(
+                31,
+                `Write Pixel to Matrix: col_matrix[${rowIdx}][${colIdx}] = ${val}`,
+                `Unrolled pixel tensor[${n}][${ch}][${ir}][${ic}] = ${val} into col_matrix at row ${rowIdx}, column ${colIdx}.`,
+                { n, ch, kr, kc, ir, ic, val, rowIdx, colIdx },
+                rowIdx,
+                colIdx,
+              );
+
               rowIdx++;
+              addStep(
+                34,
+                `Increment Row Pointer: row_idx = ${rowIdx}`,
+                `Advanced row_idx to ${rowIdx}.`,
+                { rowIdx },
+                rowIdx,
+                colIdx,
+              );
             }
           }
         }
 
-        addStep(
-          20,
-          `Unroll patch for batch ${n}, spatial location (${r}, ${c}) -> Column ${colIdx}`,
-          `Extracted receptive field patch vector [${patchValues.join(", ")}] into matrix column ${colIdx}.`,
-          { batch: n, r, c, colIdx, patchValues: patchValues.join(",") },
-          { currentCol: `Col ${colIdx}: [${patchValues.join(", ")}]` },
-        );
-
         colIdx++;
+        addStep(
+          35,
+          `Increment Column Pointer: col_idx = ${colIdx}`,
+          `Advanced patch column pointer col_idx to ${colIdx}.`,
+          { colIdx },
+        );
       }
     }
   }
 
+  // Step final
   addStep(
-    34,
+    37,
     "Execution Complete",
-    `Successfully transformed 4D tensor into ${rows}x${cols} unrolled im2col matrix.`,
+    `Successfully completed 4D-to-2D im2col unrolling. Unrolled matrix shape (${rows}, ${cols}).`,
     { completed: true, rows, cols },
   );
 
@@ -175,29 +333,71 @@ export const generateIm2col4dTo2dUnrollerSteps = (
 };
 
 const IM2COL4DTO2DUNROLLER_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [2, 3, 4, 5, 6, 7, 12, 15, 19, 25, 26, 27, 28, 29, 32, 33, 36],
   distractors: [
     "col_matrix[col_idx][row_idx] = input_tensor[n][ch][ir][ic]",
-    "cols = N * H * W",
-    "if padding != 0: raise Exception('Padding not supported')",
+    "rows = H_out * W_out",
+    "cols = C * kernel_h * kernel_w",
+    "row_idx = r * stride + kr",
   ],
   hints: [
     {
-      line: 20,
-      hint: "Each receptive field patch across (C, kH, kW) forms one column in the unrolled matrix.",
+      line: 16,
+      hint: "Unrolled matrix rows count equals C * kernel_h * kernel_w.",
     },
-    { line: 34, hint: "The unrolled matrix has C * kH * kW rows and N * H_out * W_out columns." },
+    {
+      line: 17,
+      hint: "Unrolled matrix cols count equals N * H_out * W_out.",
+    },
+    {
+      line: 31,
+      hint: "Write input pixel at (n, ch, ir, ic) into col_matrix[row_idx][col_idx].",
+    },
   ],
   lineExplanations: {
-    1: "Entry point for strided im2col 4D-to-2D matrix unroller function.",
-    20: "Inner loop extracting receptive field patches into contiguous matrix column entries.",
-    34: "Returns the 2D im2col matrix ready for GEMM multiplication.",
+    1: "Defines entry point for strided im2col 4D-to-2D matrix unroller function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes strided im2col 4D-to-2D matrix unrolling across a batch of 4D tensors (N, C, H, W).",
+    4: "Docstring continuation detailing unrolled matrix shape (C * kH * kW, N * H_out * W_out).",
+    5: "Docstring note explaining enabling fast matrix multiplication (GEMM) via BLAS/cuBLAS libraries.",
+    6: "Docstring continuation tag.",
+    7: "Docstring closing delimiter tag.",
+    8: "Measures batch size N from input_tensor length.",
+    9: "Measures channels count C from input_tensor channel depth.",
+    10: "Measures input spatial height H.",
+    11: "Measures input spatial width W.",
+    12: "Blank line before output dimension calculation.",
+    13: "Calculates spatial output height H_out using integer division floor.",
+    14: "Calculates spatial output width W_out using integer division floor.",
+    15: "Blank line before unrolled matrix shape calculation.",
+    16: "Calculates matrix rows count rows = C * kernel_h * kernel_w.",
+    17: "Calculates matrix cols count cols = N * H_out * W_out.",
+    18: "Allocates 2D matrix col_matrix of shape rows x cols filled with zero floats.",
+    19: "Blank line before unrolling loops.",
+    20: "Initializes patch column pointer col_idx to zero.",
+    21: "Iterates over batch sample index n from 0 to N - 1.",
+    22: "Iterates over spatial output row coordinate r from 0 to H_out - 1.",
+    23: "Iterates over spatial output column coordinate c from 0 to W_out - 1.",
+    24: "Resets receptive field row pointer row_idx to zero for current patch column.",
+    25: "Iterates over input channel index ch from 0 to C - 1.",
+    26: "Iterates over filter kernel spatial row kr from 0 to kernel_h - 1.",
+    27: "Iterates over filter kernel spatial column kc from 0 to kernel_w - 1.",
+    28: "Calculates spatial image row index ir = r * stride + kr - padding.",
+    29: "Calculates spatial image column index ic = c * stride + kc - padding.",
+    30: "Checks if spatial coordinate (ir, ic) lies within valid image bounds.",
+    31: "Copies image pixel input_tensor[n][ch][ir][ic] into col_matrix[row_idx][col_idx].",
+    32: "Branch executed when coordinate is out of bounds.",
+    33: "Sets col_matrix[row_idx][col_idx] = 0.0 for zero-padding.",
+    34: "Increments receptive field row pointer row_idx by 1.",
+    35: "Increments patch column pointer col_idx by 1.",
+    36: "Blank line separating unrolling loops from return statement.",
+    37: "Returns final unrolled 2D matrix col_matrix.",
   },
 };
 
 export const im2col4dTo2dUnroller: AlgorithmDefinition<im2col4dTo2dUnrollerInput> = {
   id: "im2col4dTo2dUnroller",
-  title: "Strided im2col 4D-to-2D Matrix Unroller",
+  title: "im2col 4D-to-2D Matrix Unroller",
   category: "ml_convolutions",
   categories: ["ml_convolutions", "ml_gemm_roofline"],
   difficulty: "Medium",
@@ -205,84 +405,77 @@ export const im2col4dTo2dUnroller: AlgorithmDefinition<im2col4dTo2dUnrollerInput
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "The im2col (image-to-column) transformation is a fundamental algorithmic step used by modern deep learning frameworks (PyTorch, TensorFlow, cuDNN) to lower N-dimensional spatial convolutions into standard 2D General Matrix Multiplications (GEMM). Given a 4D tensor of shape (N, C, H, W) and kernel dimensions (kH, kW), im2col extracts every sliding receptive field patch and stacks it as a column in a 2D matrix of shape (C * kH * kW, N * H_out * W_out). This enables highly optimized BLAS GEMM kernels (e.g. cuBLAS, OneDNN, GEMlowp) to achieve maximum memory bandwidth and vector unit utilization.\n\nInput Format:\n- inputTensor: 4D array of shape (N, C, H, W).\n- kernelH: Height of convolution filter.\n- kernelW: Width of convolution filter.\n- stride: Sliding window spatial stride.\n- padding: Zero-padding applied to spatial borders.\n\nOutput Format:\n- Returns a 2D unrolled matrix of shape (C * kH * kW, N * H_out * W_out).\n\nEdge Cases & Constraints:\n- Out-of-bound spatial padding: Padded positions are filled with 0.0.\n- Stride > 1: Creates non-overlapping or sparse patch samples.\n- Memory footprint trade-off: Duplicates overlapping spatial pixels, increasing memory footprint by up to (kH * kW)x.",
+    "The `im2col` **4D-to-2D Matrix Unroller** transforms 4D activation tensors $(N, C, H, W)$ into 2D continuous matrices where each column represents a 3D receptive field patch ($C \\cdot K_h \\cdot K_w$ elements) and each row represents a filter weight tap. This 2D unrolled representation allows deep learning compilers to execute 2D convolution via standard BLAS General Matrix Multiplication (`gemm`).\n\n### Why It Exists\nHigh-performance GPU libraries (cuBLAS, Intel MKL) possess heavily tuned GEMM routines that achieve near 100% of peak hardware TFLOPS. Unrolling 4D batches into 2D matrices converts 6D spatial nested loops into a single `gemm()` call.\n\n### Mathematical Formulation\nGiven input tensor $X \\in \\mathbb{R}^{N \\times C \\times H \\times W}$, kernel dimensions $(K_h, K_w)$, stride $S$, and padding $P$, the unrolled 2D matrix dimensions are:\n\n$$\\text{Rows} = C \\cdot K_h \\cdot K_w, \\quad \\text{Cols} = N \\cdot H_{out} \\cdot W_{out}$$\n\n$$\\text{col\\_matrix}[row\\_idx, \\, col\\_idx] = X[n, \\, ch, \\, r \\cdot S + kr - P, \\, c \\cdot S + kc - P]$$\n\n$$\\text{where } row\\_idx = ch \\cdot K_h K_w + kr \\cdot K_w + kc, \\quad col\\_idx = n \\cdot H_{out} W_{out} + r \\cdot W_{out} + c$$\n\n### Step-by-Step Intuition\n1. **Dimension Calculation**: Evaluate unrolled matrix height $\\text{Rows} = C \\cdot K_h \\cdot K_w$ and width $\\text{Cols} = N \\cdot H_{out} \\cdot W_{out}$.\n2. **Patch Extraction Loop**: Loop through each batch sample $n$ and spatial coordinate $(r, c)$.\n3. **Channel-wise Tap Unrolling**: For every channel $ch$ and filter tap $(kr, kc)$, fetch image pixel $X[n, ch, ir, ic]$ or 0.0 if padded.\n4. **Column Matrix Writing**: Write pixel scalar into `col_matrix[row_idx][col_idx]` and advance column pointer.\n\n### Key Trade-Offs & Hardware Execution\n- **Memory Inflation**: Overlapping windows ($S < K$) duplicate pixel entries in memory, expanding RAM usage by $K_h \\cdot K_w$.\n- **GEMM Lowering Alignment**: Columns are aligned for contiguous memory access during matrix multiplication $Y_{2d} = W_{row} \\cdot X_{col}$.",
   constraints: [
-    "1 <= N <= 128",
-    "1 <= C <= 512",
-    "1 <= H, W <= 1024",
-    "1 <= kernelH, kernelW <= 11",
+    "1 <= N <= 64",
+    "1 <= C <= 256",
+    "1 <= H, W <= 512",
+    "1 <= K_h, K_w <= 11",
   ],
   examples: [
     {
       kind: "basic",
-      title: "Single 1x3x3 Image, 2x2 Kernel",
-      inputDisplay: "inputTensor: 1x1x3x3, kernel: 2x2",
-      outputDisplay: "Matrix (4, 4)",
+      title: "Batch N=1, C=1 Image Unrolled to 2D Matrix",
+      inputDisplay: "Tensor (1, 1, 3, 3), Kernel 2x2",
+      outputDisplay: "Unrolled Matrix of shape (4, 4)",
       input: DEFAULT_IM2COL4DTO2DUNROLLER_INPUT,
-      output: "Unrolled Matrix 4x4",
-      explanation: "Extracts four 2x2 receptive fields into 4 columns of height 4.",
+      output: "4x4 unrolled im2col matrix",
+      explanation: "Unrolls 4 spatial 2x2 patches into a 4x4 GEMM matrix.",
     },
   ],
   code: IM2COL4DTO2DUNROLLER_CODE,
   timeComplexity: {
-    best: "O(N * C * H_out * W_out * kH * kW)",
-    average: "O(N * C * H_out * W_out * kH * kW)",
-    worst: "O(N * C * H_out * W_out * kH * kW)",
+    best: "O(N \\cdot C \\cdot K_h \\cdot K_w \\cdot H_{out} \\cdot W_{out})",
+    average: "O(N \\cdot C \\cdot K_h \\cdot K_w \\cdot H_{out} \\cdot W_{out})",
+    worst: "O(N \\cdot C \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
   },
-  spaceComplexity: "O(C * kH * kW * N * H_out * W_out)",
+  spaceComplexity: "O(C \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
   complexityAnalysis: {
-    time: "Linear in total volume of unrolled patch elements copied to column matrix.",
-    space:
-      "Requires allocated memory proportional to (C * kH * kW) * (N * H_out * W_out) for the unrolled matrix.",
+    time: "Linear in total number of unrolled matrix cells $O(C \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})$.",
+    space: "Allocates memory for unrolled col_matrix of size $O(C \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})$.",
   },
   topicGuide: {
     overview:
-      "im2col converts complex 4D tensor convolutions into a simple 2D General Matrix Multiplication (GEMM). By transforming spatial sliding windows into contiguous memory columns, frameworks leverage hardware GEMM accelerators (NVIDIA Tensor Cores, Intel AMX).",
+      "The **im2col 4D-to-2D Matrix Unroller** converts 4D activation tensors into 2D matrices to enable BLAS GEMM execution.",
     sections: [
       {
-        heading: "Overview",
-        body: "Convolution algorithms involve 6 nested loops over batch, output channels, input channels, output rows, output columns, kernel rows, and kernel columns. Directly executing nested loops suffers from poor cache locality and SIMD under-utilization. im2col solves this by reshaping inputs into a 2D matrix X_col.",
+        heading: "1. Core Concept & 4D-to-2D Lowering",
+        body: "im2col reshapes 4D activation tensors $(N, C, H, W)$ into 2D matrices where columns represent unrolled 3D spatial receptive fields ($C \\cdot K_h \\cdot K_w$ elements).",
       },
       {
-        heading: "Core Concepts",
-        body: "1. Receptive Field Extraction: Every (kH x kW) spatial window across C channels is flattened into a 1D column vector of size (C * kH * kW).\n2. Spatial Layout Transformation: Sliding windows across spatial positions (H_out, W_out) and batch elements (N) form columns 0 to (N * H_out * W_out - 1).\n3. GEMM Lowering: Weight tensor (C_out, C, kH, kW) is reshaped to W_row (C_out, C * kH * kW), making Convolution = W_row @ X_col.",
+        heading: "2. Systems & Memory Layout Alignment",
+        body: "Unrolled column matrix `col_matrix` allows 2D convolution to execute as BLAS matrix multiplication: $Y_{2d} = W_{row} \\cdot X_{col}$.",
       },
       {
-        heading: "Systems & Performance Impact",
-        body: "Though im2col replicates overlapping pixels in DRAM, the throughput gained by using heavily optimized GEMM kernels (reaching >90% of peak FLOPS) far outweighs the memory overhead. Modern libraries use implicit im2col (on-the-fly tile unrolling in GPU SRAM) to eliminate the DRAM footprint.",
+        heading: "3. Memory Trade-Offs & Duplication",
+        body: "Duplicating overlapping pixels increases memory footprint by $K_h \\cdot K_w$. In modern engines, implicit GEMM or SRAM tiling is used to mitigate DRAM bandwidth overhead.",
       },
       {
-        heading: "Implementation Nuances",
-        body: "Correct index calculation requires indexing row_idx = ch * (kH * kW) + kr * kW + kc and col_idx = n * (H_out * W_out) + r * W_out + c. Bounds checking handles zero padding without extra branch penalties.",
-      },
-      {
-        heading: "Edge Cases",
-        body: "Zero-padding boundary conditions, stride > 1 skipping, single-pixel 1x1 convolutions (where im2col is a no-op identity matrix transpose), and non-contiguous memory strides.",
+        heading: "4. Edge Case Analysis & Padding Handling",
+        body: "Zero-padding boundaries are handled via bounds checks ($0 \\le ir < H$ and $0 \\le ic < W$) inserting 0.0 for out-of-bounds pixels.",
       },
     ],
     keyTerms: [
       {
         term: "im2col",
-        definition:
-          "Image-to-column lowering transformation for matrix multiplication convolution.",
+        definition: "4D tensor to 2D matrix transformation enabling BLAS GEMM convolution execution.",
       },
       {
-        term: "GEMM",
-        definition: "General Matrix Multiply (C = alpha * A * B + beta * C).",
+        term: "Receptive Field Column",
+        definition: "A single column in unrolled col_matrix containing all C * K_h * K_w elements for a spatial window.",
       },
       {
-        term: "Receptive Field",
-        definition:
-          "Spatial input region processed by a filter kernel to compute one output pixel.",
+        term: "BLAS GEMM",
+        definition: "General Matrix Multiplication library routine used for hardware-accelerated matrix math.",
       },
       {
-        term: "Implicit GEMM",
-        definition:
-          "Performing im2col patch extraction directly inside SRAM during GEMM tile loading.",
+        term: "Spatial Patch Indexing",
+        definition: "Decoding 4D tensor coordinates (n, ch, ir, ic) into 2D matrix indices (row_idx, col_idx).",
       },
     ],
   },
   trivia: IM2COL4DTO2DUNROLLER_TRIVIA,
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
   defaultInput: DEFAULT_IM2COL4DTO2DUNROLLER_INPUT,
   generateSteps: generateIm2col4dTo2dUnrollerSteps,
 };

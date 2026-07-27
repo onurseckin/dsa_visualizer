@@ -77,20 +77,26 @@ const NUMBER_OF_ISLANDS_TOPIC_GUIDE: TopicGuide = {
 const NUMBER_OF_ISLANDS_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "deque supplies O(1) popleft/append, letting each flood-fill BFS run as a cheap FIFO instead of a list with O(n) front-removals.",
+    2: "Blank line separating imports from function definition.",
     3: "Entry point: takes the raw grid of '0'/'1' strings whose connected land components we need to count.",
     4: "Guards the degenerate case of an empty grid or an empty first row before any dimension math is attempted.",
     5: "With no cells at all there can be no islands, so we return immediately.",
+    6: "Blank line separating input validation guard from state initialization.",
     7: "Caches the grid dimensions once, so every bounds check inside the flood fill is just a cheap comparison against these two numbers.",
     8: "Encodes the four orthogonal offsets — the definition of 'connected' this problem uses, so land touching only diagonally is a separate island.",
     9: "Tracks every land cell already claimed by some island's flood, so the outer sweep never starts a second flood on the same island.",
     10: "The running tally of islands found so far — incremented once per BFS launch, never during the flood itself.",
+    11: "Blank line separating counter initialization from getNeighbors helper definition.",
     12: "Helper generator yielding valid, unvisited land neighbors for a given cell.",
     13: "Iterates over the four directional offsets.",
     14: "Computes candidate neighbor row index.",
     15: "Computes candidate neighbor column index.",
     16: "Bounds check: skips coordinates falling outside the grid.",
+    17: "Continues the offset iteration when candidate neighbor coordinates fall outside grid boundaries.",
     18: "Skips water cells or cells already claimed by a flood fill.",
+    19: "Continues the offset iteration when candidate neighbor is water or already claimed by a flood fill.",
     20: "Yields the next valid unvisited land neighbor.",
+    21: "Blank line separating getNeighbors helper from main iteration loop.",
     22: "Outer sweep walks every row in order, guaranteeing every cell in the grid is eventually inspected.",
     23: "Inner sweep walks every column, so together the double loop visits each cell exactly once.",
     24: "A cell only triggers a new island if it's land and hasn't already been claimed by an earlier flood.",
@@ -102,6 +108,7 @@ const NUMBER_OF_ISLANDS_TRIVIA: TriviaMeta = {
     30: "Uses the getNeighbors generator to iterate over all valid unvisited neighbors.",
     31: "Marks the neighbor visited the moment it is discovered to prevent duplicate queueing.",
     32: "Adds the neighbor to the flood's frontier so its own neighbors get explored on a later iteration.",
+    33: "Blank line separating queue traversal from final result return statement.",
     34: "Every land cell has now been claimed by exactly one flood, so the number of floods launched equals the number of islands.",
   },
 };
@@ -113,7 +120,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Given an m x n 2D binary grid grid where '1' represents land and '0' represents water, return the total number of islands present in the grid. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional adjacency; diagonal connections are not considered adjacent). You may assume all four edges of the grid are surrounded by water. To determine the count, iterate through every cell in the grid; whenever an unvisited land cell ('1') is encountered, increment the island count and initiate a Breadth-First Search (BFS) or Depth-First Search (DFS) flood-fill to mark all connected land cells in that component as visited.",
+    "Given an $m \\times n$ 2D binary grid `grid` where `'1'` represents land and `'0'` represents water, return the total number of connected islands. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional adjacency: $(r \\pm 1, c)$ and $(r, c \\pm 1)$). The algorithm sweeps every cell $(r, c)$ in $\\mathcal{O}(m \\times n)$ time and triggers a BFS/DFS flood fill upon encountering an unvisited land cell, marking all connected land cells in that component as visited.",
   constraints: [
     "1 <= m, n <= 300",
     'grid[i][j] is either "0" (water) or "1" (land)',
@@ -178,9 +185,8 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   },
   spaceComplexity: "O(M * N)",
   complexityAnalysis: {
-    time: "The outer sweep touches each of the M * N cells once, and the BFS floods visit each land cell at most once because cells are marked visited the moment they are enqueued. So no matter how many islands there are, every cell is processed a constant number of times, and the total work is O(M * N).",
-    space:
-      "The visited set can end up holding every land cell, and in a grid that is nearly all land the BFS queue can also grow to a large fraction of the cells, so extra memory is O(M * N) in the worst case.",
+    time: "Every cell in the $m \\times n$ grid is visited once by the outer loop, and each land cell is enqueued/dequeued at most once by BFS, taking $\\mathcal{O}(m \\times n)$ time.",
+    space: "The visited lookup set and the BFS queue store at most $\\mathcal{O}(m \\times n)$ cell coordinates in the worst case when the grid is filled with land.",
   },
   topicGuide: NUMBER_OF_ISLANDS_TOPIC_GUIDE,
   trivia: NUMBER_OF_ISLANDS_TRIVIA,

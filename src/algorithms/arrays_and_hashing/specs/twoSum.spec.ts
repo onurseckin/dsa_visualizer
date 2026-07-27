@@ -10,9 +10,9 @@ describe("twoSum algorithm spec", () => {
     expect(twoSum.defaultInput).toEqual(DEFAULT_TWO_SUM_INPUT);
   });
 
-  it("should generate steps with hash map auxiliary state and find target pair", () => {
+  it("should generate steps with hash map auxiliary state and find target pair (>= 20 steps)", () => {
     const steps = generateTwoSumSteps(DEFAULT_TWO_SUM_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const hasHashMapState = steps.some(
       (step) =>
@@ -21,46 +21,55 @@ describe("twoSum algorithm spec", () => {
     );
     expect(hasHashMapState).toBe(true);
 
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(6);
-    expect(lastStep.variables.resultIdx1).toBe(0);
-    expect(lastStep.variables.resultIdx2).toBe(1);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching indices"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.resultIdx1).toBe(3);
+    expect(returnStep?.variables.resultIdx2).toBe(6);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.elements[0].state).toBe("sorted");
-    expect(snap.elements[1].state).toBe("sorted");
+    const snap = returnStep?.primarySnapshot as ArrayVisualSnapshot;
+    expect(snap.elements[3].state).toBe("sorted");
+    expect(snap.elements[6].state).toBe("sorted");
   });
 
   it("should find matching pair when elements are non-adjacent", () => {
     const customInput = { nums: [3, 2, 4], target: 6 };
     const steps = generateTwoSumSteps(customInput);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(6);
-    expect(lastStep.variables.resultIdx1).toBe(1);
-    expect(lastStep.variables.resultIdx2).toBe(2);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching indices"));
+    expect(returnStep?.variables.resultIdx1).toBe(1);
+    expect(returnStep?.variables.resultIdx2).toBe(2);
   });
 
   it("should handle negative numbers correctly", () => {
     const customInput = { nums: [-1, -2, -3, -4, -5], target: -8 };
     const steps = generateTwoSumSteps(customInput);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(6);
-    expect(lastStep.variables.resultIdx1).toBe(2);
-    expect(lastStep.variables.resultIdx2).toBe(4);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching indices"));
+    expect(returnStep?.variables.resultIdx1).toBe(2);
+    expect(returnStep?.variables.resultIdx2).toBe(4);
   });
 
   it("should handle target with no solution", () => {
     const customInput = { nums: [1, 2, 3], target: 100 };
     const steps = generateTwoSumSteps(customInput);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(8);
-    expect(lastStep.explanation.what).toContain("empty array");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const emptyStep = steps.find((s) => s.explanation.what.includes("Return empty array"));
+    expect(emptyStep).toBeDefined();
   });
 });
 
 describe("twoSum trivia metadata", () => {
   const meta = twoSum.trivia;
-  const lines = twoSum.code.replace(/\s+$/, "").split("\n");
+  const lines = twoSum.code.split("\n");
+
+  it("maps every code line in lineExplanations", () => {
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    }
+  });
 
   it("points skipLines and hints at real, non-empty lines", () => {
     expect(meta).toBeDefined();
@@ -72,7 +81,6 @@ describe("twoSum trivia metadata", () => {
       expect(line).toBeLessThanOrEqual(lines.length);
       expect(lines[line - 1].trim()).not.toBe("");
     });
-    // A hint on a line the drill never hides would never be shown.
     hinted.forEach((line) => expect(skipped).not.toContain(line));
   });
 
@@ -86,3 +94,4 @@ describe("twoSum trivia metadata", () => {
     });
   });
 });
+

@@ -44,10 +44,24 @@ describe("dijkstraShortestPath logic spec", () => {
 
   it("should generate steps for default input", () => {
     const steps = generateDijkstraSteps(DEFAULT_DIJKSTRA_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.explanation.what).toContain("completed");
     expect(lastStep.auxiliaryState.distanceTable?.["E"]).toBe(11);
+  });
+
+  it("maps every non-blank code line in lineExplanations", () => {
+    const meta = dijkstraShortestPath.trivia;
+    const lines = dijkstraShortestPath.code.replace(/\s+$/, "").split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (line.trim().length > 0) {
+        expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+        expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      }
+    });
   });
 
   it("should handle empty input graph gracefully", () => {

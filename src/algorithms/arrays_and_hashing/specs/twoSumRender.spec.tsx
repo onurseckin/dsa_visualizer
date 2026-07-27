@@ -30,9 +30,11 @@ describe("TwoSum React Component Spec", () => {
 
     // Problem details render expanded, so the description needs no disclosure click.
     expect(
-      screen.getByText(/Given an array of integers nums and an integer target/i),
+      screen.getByText(/Two Sum determines the/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(twoSum.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Two Sum is the fundamental paradigm shift/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: twoSum.topicGuide.sections[0].heading }),
     ).toBeInTheDocument();
@@ -61,6 +63,6 @@ describe("TwoSum React Component Spec", () => {
       />,
     );
 
-    expect(screen.getAllByText(/Return indices/i)[0]).toBeInTheDocument();
+    expect(screen.getByText(/Verification step|Return matching indices/i)).toBeInTheDocument();
   });
 });

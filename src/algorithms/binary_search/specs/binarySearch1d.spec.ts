@@ -11,9 +11,9 @@ describe("binarySearch1d algorithm spec", () => {
     expect(binarySearch1d.spaceComplexity).toBe("O(1)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate at least 20 steps for default input", () => {
     const steps = generateBinarySearch1dSteps(binarySearch1d.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -22,8 +22,21 @@ describe("binarySearch1d algorithm spec", () => {
     const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toBeDefined();
 
-    const matchStep = steps.find((s) => s.explanation.what.includes("found at index"));
+    const matchStep = steps.find((s) => s.explanation.what.includes("Match confirmed") || s.explanation.what.includes("found at index"));
     expect(matchStep).toBeDefined();
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = binarySearch1d.code.split("\n");
+    const lineExplanations = binarySearch1d.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle lower_bound mode", () => {

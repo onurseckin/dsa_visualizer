@@ -17,84 +17,71 @@ export const DEFAULT_CONVEX_HULL_INPUT: ConvexHullInput = {
 
 const CONVEX_HULL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The convex hull of a set of points is the smallest convex polygon containing all of them, the shape you would get by stretching a rubber band around a scatter of nails and letting it snap tight. Andrew's monotone chain finds it by sorting the points once by x coordinate and then sweeping across them twice, holding a stack of candidate corners and discarding any point that would bend the boundary inward. It is the standard opening move for a wide range of geometric work, because the hull captures the extremal shape of a point set and throws away everything hidden inside it.",
+    "The convex hull of a set of 2D points $S \\subset \\mathbb{R}^2$ is the minimal convex polygon $\\text{Conv}(S)$ containing all points in $S$ — visually corresponding to the shape formed by stretching a rubber band around pins set at each point. Andrew's Monotone Chain algorithm computes the convex hull in $\\mathcal{O}(N \\log N)$ time by sorting points lexicographically and executing two directional stack-based sweeps.",
   sections: [
     {
-      heading: "Turning geometry into a stack problem",
-      body: "Convexity has a purely local characterization: a polygon traversed in one consistent direction is convex exactly when every consecutive triple of vertices turns the same way. That means you never have to reason about the whole shape at once, only about the last two points you kept and the new one in front of you. Sorting by x makes that local check trustworthy, because processing points in a fixed direction guarantees a kept point can only be invalidated by points still ahead, never by ones already behind. So the algorithm collapses into a simple loop: walk the sorted points, and while the last two survivors plus the new point fail the turn test, throw the middle one away.",
+      heading: "Cross Product Orientation Test (Turn Primitive)",
+      body: "Convexity depends entirely on local turn directions. For three ordered 2D points $\\mathbf{o}, \\mathbf{a}, \\mathbf{b} \\in \\mathbb{R}^2$, the 2D cross product scalar represents the signed area of the parallelogram spanned by vectors $\\mathbf{a} - \\mathbf{o}$ and $\\mathbf{b} - \\mathbf{o}$. Positive cross product value indicates a counter-clockwise left turn. Negative cross product value indicates a clockwise right turn, while zero means collinear points.",
     },
     {
-      heading: "The cross product is the turn test",
-      body: "For three points o, a and b, the expression (a.x - o.x)(b.y - o.y) - (a.y - o.y)(b.x - o.x) is the signed area of the parallelogram they span. Its sign is all you need: one sign means the path from o through a to b turns one way, the other sign means it turns the other, and zero means the three points are collinear. There are no angles, no square roots and no trigonometry anywhere, and on integer coordinates the value is computed exactly. That exactness is why the implementation contains no floating-point comparisons at all, and why it stays robust where an angle-sorting approach would wobble on near-degenerate input.",
+      heading: "Monotone Chain Sweeping Architecture",
+      body: "The hull is split into two monotonic chains at the extreme leftmost Pmin and rightmost Pmax points. Lower Chain is formed by a left-to-right sweep across points sorted lexicographically by x and y coordinates. Upper Chain is formed by a right-to-left sweep across the same sorted sequence. Both passes maintain a stack of active hull vertices while popping middle points that fail left turn tests.",
     },
     {
-      heading: "Two chains make a hull",
-      body: "A single left-to-right sweep cannot produce the whole boundary, because the boundary doubles back on itself: the hull consists of a lower chain running from the leftmost point to the rightmost and an upper chain returning along the top. So you sweep the sorted points forward to build the lower chain, then sweep them in reverse with identical logic to build the upper chain. Both chains start and end at the same two extreme points, so each drops its final point before the two are concatenated, otherwise the leftmost and rightmost vertices would appear twice. The concatenation already comes out in boundary order, which is why the result can be handed straight to an area, perimeter or rendering routine.",
+      heading: "Amortized Complexity and Correctness Proof",
+      body: "Every point is pushed onto a stack exactly once per sweep and popped at most once ever. The total work performed across both sweeps is $\\mathcal{O}(N)$ amortized. Sorting $N$ points initially dominates the total time, yielding $\\mathcal{O}(N \\log N)$ overall runtime. Auxiliary memory required for the sorted array and lower and upper hull stacks is $\\mathcal{O}(N)$.",
     },
     {
-      heading: "Why it is correct and why it is fast",
-      body: "The stack invariant is that the points currently held always form a chain whose every consecutive triple turns the correct way, that is, a convex chain. Appending a new point can only violate the invariant at the top of the stack, and popping repairs it, so the invariant survives every single iteration. A discarded point is genuinely not a hull vertex, because it lies on or inside the triangle formed by its two neighbours and the new point, and a point inside such a triangle can never be a corner of the enclosing polygon. The cost argument is amortized rather than per-step: each point is pushed exactly once and popped at most once ever, so both sweeps are linear and the initial sort is the only expensive part.",
-    },
-    {
-      heading: "Degenerate inputs to think about",
-      body: "With fewer than three points there is no polygon to build, and implementations usually just return the input unchanged. Duplicate points and runs of collinear points are where implementations quietly disagree: a strict comparison keeps collinear points sitting on hull edges, while treating a zero cross product as a failure removes them and returns only true corners. Decide deliberately which behaviour you want, because downstream code often cares; an area computation is indifferent, but a vertex count or a rotating-calipers pass may not be. Watch out for screen coordinates too, where y grows downward and therefore inverts the meaning of a left turn, so the algorithm still works but the labels lower and upper trade places.",
-    },
-    {
-      heading: "What the hull unlocks",
-      body: "Convex hulls are rarely the final answer; they are the reduction step that makes the real question easy. The diameter of a point set, its minimum-width strip, and the smallest enclosing rectangle all have their answers on the hull, and rotating calipers extracts them in linear time once the hull exists. Hulls also decide whether two point sets can be separated by a straight line, drive collision detection between shapes, and give the geometric picture of a linear program feasible region. The very same orientation primitive that powers this sweep also underlies segment-intersection tests, polygon area and point-in-polygon queries, so the effort you spend understanding it here pays off across the whole geometry toolkit.",
+      heading: "Downstream Geometric Applications",
+      body: "Computing the convex hull is a standard pre-processing step for major computational geometry algorithms. Rotating Calipers computes polygon diameter, minimum bounding boxes, and maximum distance pairs in $\\mathcal{O}(N)$ time. Collision detection algorithms rely on convex hulls for rapid GJK polygon intersection queries.",
     },
   ],
   keyTerms: [
     {
-      term: "Convex",
+      term: "Convex Polygon",
       definition:
-        "A shape is convex when the straight segment between any two of its points stays entirely inside it. Equivalently, walking its boundary you always turn in the same direction.",
+        "A polygon where the line segment connecting any two internal points lies entirely within the polygon boundary.",
     },
     {
-      term: "Cross product (orientation test)",
+      term: "Cross Product Orientation Test",
       definition:
-        "A single arithmetic expression whose sign tells you whether three points turn left, turn right, or lie on one line. It is the only geometric primitive this algorithm needs.",
+        "The scalar formula $\\text{cross}(\\mathbf{o}, \\mathbf{a}, \\mathbf{b}) = (a_x - o_x)(b_y - o_y) - (a_y - o_y)(b_x - o_x)$ determining turn direction.",
     },
     {
       term: "Lower and upper chain",
       definition:
-        "The two halves of the hull boundary, split at the leftmost and rightmost points. Monotone chain builds them with the same code run forwards and then backwards.",
-    },
-    {
-      term: "Collinear degeneracy",
-      definition:
-        "Three or more points lying on a single line, which makes the cross product exactly zero. Whether those points stay on the hull is a deliberate choice encoded in the comparison operator.",
-    },
-    {
-      term: "Amortized cost",
-      definition:
-        "Reasoning about total work across a whole run rather than the worst single step. Here a point can be popped only once ever, so the inner loop is cheap overall even when one iteration pops many points.",
+        "The two halves of the convex hull boundary split by the extreme x-coordinate endpoints.",
     },
   ],
 };
 
 const CONVEX_HULL_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines the function signature: it takes a list of 2D points and returns the hull's vertices in boundary order.",
-    2: "Caches the point count to decide whether any hull-building is even needed.",
-    3: "Checks if n <= 3.",
-    4: "Short-circuits with the input unchanged when a hull computation would do no useful work.",
-    6: "Sorts points left to right, breaking ties by y, so the lower and upper boundaries can each be built with one directional sweep.",
-    8: "Defines the orientation test used to decide whether three points turn clockwise, counter-clockwise, or lie on one line.",
-    9: "Computes the signed cross product of vectors o->a and o->b; its sign alone reveals the turn direction.",
-    11: "Starts an empty stack that will hold the lower boundary of the hull.",
-    12: "Sweeps left to right through the sorted points to build the lower chain.",
-    13: "Keeps popping while the last two kept points plus the new one fail to turn left.",
-    14: "Discards the middle point of that triple, since a point that dents the boundary inward can't be a true hull vertex.",
-    15: "Accepts the current point as a (provisional) corner of the lower chain.",
-    17: "Starts a second empty stack, this time for the upper boundary.",
-    18: "Sweeps back right to left so the identical turn logic traces the top of the hull.",
-    19: "Applies the same non-left-turn check, now on the reverse sweep.",
-    20: "Removes points that would dent the upper boundary inward.",
-    21: "Keeps the current point as a candidate corner of the upper chain.",
-    23: "Drops the lower chain's last point, which duplicates the upper chain's starting point (the rightmost point).",
-    24: "Drops the upper chain's last point for the same reason, avoiding a duplicated leftmost point.",
-    25: "Concatenates the two chains — already in boundary order — into the final hull polygon.",
+    1: "Defines convex_hull function signature taking list of 2D coordinate tuples.",
+    2: "Stores total point count N.",
+    3: "Checks base case N <= 3.",
+    4: "Returns input points directly if N <= 3 (trivially convex).",
+    5: "Empty line for formatting.",
+    6: "Sorts points lexicographically by x-coordinate, breaking ties by y-coordinate.",
+    7: "Empty line separating sort from helper function.",
+    8: "Defines 2D cross product helper function cross(o, a, b).",
+    9: "Returns signed cross product scalar: (a.x - o.x)*(b.y - o.y) - (a.y - o.y)*(b.x - o.x).",
+    10: "Empty line for formatting.",
+    11: "Initializes lower hull stack.",
+    12: "Iterates left-to-right through sorted points.",
+    13: "Pops points while last two kept points and new point fail to make a strict left turn (cross <= 0).",
+    14: "Discards middle point from lower hull stack.",
+    15: "Pushes current point onto lower hull stack.",
+    16: "Empty line separating lower and upper sweeps.",
+    17: "Initializes upper hull stack.",
+    18: "Iterates right-to-left through reversed sorted points.",
+    19: "Pops points while last two kept points and new point fail to make a strict left turn (cross <= 0).",
+    20: "Discards middle point from upper hull stack.",
+    21: "Pushes current point onto upper hull stack.",
+    22: "Empty line before concatenation.",
+    23: "Drops duplicate endpoint from lower hull stack.",
+    24: "Drops duplicate endpoint from upper hull stack.",
+    25: "Returns concatenated lower + upper hull vertices in counter-clockwise boundary order.",
   },
 };
 
@@ -105,7 +92,7 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   categories: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
-    "Finds the smallest convex polygon enclosing a set of 2D points using Andrew's Monotone Chain algorithm. After sorting the points by x (then y), it sweeps once left-to-right to build the lower boundary and once right-to-left for the upper, using cross-product turn tests to discard any point that would bend the boundary inward.",
+    "Finds the minimal convex polygon enclosing a set of 2D points $S \\subset \\mathbb{R}^2$ using Andrew's Monotone Chain algorithm in $\\mathcal{O}(N \\log N)$ time.\n\n$$\\text{cross}(\\mathbf{o}, \\mathbf{a}, \\mathbf{b}) = (a_x - o_x)(b_y - o_y) - (a_y - o_y)(b_x - o_x)$$\n\n### Graph Snapshot Representation\nThe point set and active hull boundary are rendered on a 2D graph coordinate plane, with active hull edges highlighted.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of 2D points with $x, y$ coordinates.\n\n### Output\n- `Point2D[]`: Vertices of the convex hull in counter-clockwise boundary order.\n\n### Edge Cases & Constraints\n- Base Case: $N \\le 3 \\implies$ return points directly.\n- Collinear Points: Non-extremal points on edges are discarded by $\\text{cross} \\le 0$.",
   constraints: ["1 <= points.length <= 1000", "-1000 <= x, y <= 1000"],
   examples: [
     {
@@ -172,9 +159,8 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "The dominant cost is sorting the points by x (then y), which takes O(N log N) comparisons. The two hull-building sweeps afterward are linear: each point is pushed onto a stack exactly once and can be popped at most once, so both passes together cost O(N). That leaves the sort as the bottleneck, making the whole algorithm O(N log N) in every case.",
-    space:
-      "The sorted copy of the points and the two hull stacks each hold at most all N points, so extra memory grows linearly — O(N).",
+    time: "Sorting points lexicographically takes $\\mathcal{O}(N \\log N)$ comparisons. Both sweeps take $\\mathcal{O}(N)$ amortized time, making total time $\\mathcal{O}(N \\log N)$.",
+    space: "Requires $\\mathcal{O}(N)$ auxiliary memory for the sorted array and lower/upper hull stacks.",
   },
   topicGuide: CONVEX_HULL_TOPIC_GUIDE,
   trivia: CONVEX_HULL_TRIVIA,

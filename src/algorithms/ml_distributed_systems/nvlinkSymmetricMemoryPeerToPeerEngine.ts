@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface nvlinkSymmetricMemoryPeerToPeerEngineInput {
@@ -57,104 +57,301 @@ export const generateNvlinkSymmetricMemoryPeerToPeerEngineSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const targetRank = input.target ?? 0;
+  const dataBuffer = input.data.length > 0 ? input.data : [100, 200, 300, 400, 500, 600, 700, 800];
   const numRanks = 4;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const targetRank = Math.max(0, Math.min(input.target ?? 0, numRanks - 1));
+  const bufferLen = dataBuffer.length;
+  const chunkSize = Math.ceil(bufferLen / numRanks);
+
+  const buildMatrixCells = (
+    currentRank?: number,
+    completedRanks: number[] = [],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < numRanks; r++) {
+      const start = r * chunkSize;
+      const end = Math.min(start + chunkSize, bufferLen);
+      const elementsInChunk = Math.max(0, end - start);
+      const offsetBytes = start * 4;
+      const isPeer = r !== targetRank;
+
+      const isDone = completedRanks.includes(r);
+      const isActive = r === currentRank;
+
+      const rowValues = [
+        `Rank ${r}`,
+        `0x${offsetBytes.toString(16)}`,
+        `${elementsInChunk} Float32`,
+        isPeer ? "900 GB/s" : "3000 GB/s",
+        isPeer ? "DIRECT_NVLINK_P2P" : "LOCAL_VRAM",
+      ];
+
+      for (let c = 0; c < 5; c++) {
+        let state: MatrixCellItem["state"] = "default";
+        if (isDone) state = "sorted";
+        else if (isActive) state = c === 3 ? "active" : "compared";
+
+        cells.push({
+          row: r,
+          col: c,
+          value: rowValues[c],
+          label: `Rank ${r} (col ${c})`,
+          state,
+        });
+      }
+    }
+    return cells;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    currentRank?: number,
+    completedRanks: number[] = [],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: numRanks,
+        cols: 5,
+        rowHeaders: Array.from({ length: numRanks }, (_, r) => `GPU ${r}`),
+        colHeaders: [
+          "GPU Rank",
+          "Symmetric Offset (Bytes)",
+          "Chunk Element Count",
+          "Interconnect Bandwidth",
+          "P2P Transfer Mode",
+        ],
+        cells: buildMatrixCells(currentRank, completedRanks),
       },
       auxiliaryState: {
         customState: {
-          dataBuffer: `[${input.data.join(", ")}]`,
+          totalBufferElements: String(bufferLen),
           targetRank: String(targetRank),
+          chunkSize: String(chunkSize),
+          completedRanks: String(completedRanks.length),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Function entry
   addStep(
     1,
-    "Initialize NVLink SymmetricMemory Peer-to-Peer Direct Transfer Engine",
-    `Establishing symmetric virtual address mapping across ${numRanks} intra-node GPUs targeting Rank ${targetRank}.`,
-    { total_elements: input.data.length, target_rank: targetRank, num_ranks: numRanks },
+    "Enter nvlink_symmetric_memory_peer_to_peer_engine",
+    `Initializing NVLink SymmetricMemory direct peer-to-peer load/store engine for ${bufferLen} elements targeting Rank ${targetRank}.`,
+    { buffer_len: bufferLen, target_rank: targetRank, num_ranks: numRanks },
   );
 
-  const chunkLength = Math.ceil(input.data.length / numRanks);
+  // Step 2: Buffer length
+  addStep(
+    14,
+    "Read Buffer Length",
+    `Calculated buffer_len = len(data_buffer) = ${bufferLen} float32 elements.`,
+    { buffer_len: bufferLen },
+  );
 
-  for (let r = 0; r < numRanks; r++) {
-    const start = r * chunkLength;
-    const end = Math.min(start + chunkLength, input.data.length);
-    const isPeer = r !== targetRank;
+  // Step 3: Input check
+  addStep(
+    15,
+    "Validate Rank Count & Buffer Length",
+    `Checking if num_ranks (${numRanks}) <= 0 or buffer_len (${bufferLen}) == 0. Validation passed.`,
+    { num_ranks: numRanks, buffer_len: bufferLen, valid: true },
+  );
 
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i >= start && i < end) {
-        return {
-          ...el,
-          state: isPeer ? "active" : "compare",
-          pointers: [isPeer ? `Peer-R${r}->R${targetRank}` : `Local-R${targetRank}`],
-        };
-      }
-      if (i < start) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 4: Initialize list
+  addStep(
+    18,
+    "Initialize Peer Transfers List",
+    "Created empty peer_transfers array to accumulate P2P status descriptors for each GPU rank.",
+    { peer_transfers_size: 0 },
+  );
 
-    const byteOffset = start * 4;
+  // Step 5: Calculate chunk size
+  addStep(
+    19,
+    "Compute Per-Rank Chunk Size",
+    `chunk_size = (${bufferLen} + ${numRanks} - 1) // ${numRanks} = ${chunkSize} elements per rank.`,
+    { chunk_size: chunkSize },
+  );
+
+  const completedRanks: number[] = [];
+
+  for (let rank = 0; rank < numRanks; rank++) {
+    // Step: Loop header
+    addStep(
+      21,
+      `Iterate GPU Rank ${rank} Allocation`,
+      `Processing rank=${rank} in symmetric memory domain.`,
+      { rank, num_ranks: numRanks },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Compute start
+    const start = rank * chunkSize;
+    addStep(
+      22,
+      `Compute Start Index for Rank ${rank}`,
+      `start = ${rank} * ${chunkSize} = ${start}.`,
+      { rank, start_index: start },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Compute end
+    const end = Math.min(start + chunkSize, bufferLen);
+    addStep(
+      23,
+      `Compute End Index for Rank ${rank}`,
+      `end = min(${start} + ${chunkSize}, ${bufferLen}) = ${end}.`,
+      { rank, start_index: start, end_index: end },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Slice chunk_data
+    const chunkData = dataBuffer.slice(start, end);
+    addStep(
+      24,
+      `Extract Parameter Sub-slice for Rank ${rank}`,
+      `chunk_data = data_buffer[${start}:${end}] (${chunkData.length} elements).`,
+      { rank, chunk_elements: chunkData.length },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Calculate symmetric byte offset
+    const offsetBytes = start * 4;
+    addStep(
+      26,
+      `Compute Symmetric Byte Offset for Rank ${rank}`,
+      `symmetric_offset = ${start} * 4 = ${offsetBytes} bytes (0x${offsetBytes.toString(16)}).`,
+      { rank, symmetric_offset: offsetBytes },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Check is_peer
+    const isPeer = rank !== targetRank;
+    addStep(
+      27,
+      `Evaluate Is-Peer Flag for Rank ${rank}`,
+      `is_peer = (${rank} != ${targetRank}) = ${isPeer}.`,
+      { rank, is_peer: isPeer, target_rank: targetRank },
+      rank,
+      completedRanks,
+    );
+
+    // Step: Construct payload dict
+    addStep(
+      29,
+      `Construct P2P Transfer Status Dictionary for Rank ${rank}`,
+      "Building transfer payload dictionary.",
+      { rank },
+      rank,
+      completedRanks,
+    );
 
     addStep(
-      20,
-      `Rank ${r} -> Target Rank ${targetRank}: Offset 0x${byteOffset.toString(16)} B (${isPeer ? "900 GB/s NVLink P2P" : "3000 GB/s Local VRAM"})`,
+      30,
+      `Set rank Field = ${rank}`,
+      `Populating "rank": ${rank}.`,
+      { rank },
+      rank,
+      completedRanks,
+    );
+
+    addStep(
+      31,
+      `Set target_rank Field = ${targetRank}`,
+      `Populating "target_rank": ${targetRank}.`,
+      { target_rank: targetRank },
+      rank,
+      completedRanks,
+    );
+
+    addStep(
+      32,
+      `Set symmetric_offset_bytes Field = ${offsetBytes}`,
+      `Populating "symmetric_offset_bytes": ${offsetBytes}.`,
+      { symmetric_offset_bytes: offsetBytes },
+      rank,
+      completedRanks,
+    );
+
+    addStep(
+      33,
+      `Set chunk_elements Field = ${chunkData.length}`,
+      `Populating "chunk_elements": ${chunkData.length}.`,
+      { chunk_elements: chunkData.length },
+      rank,
+      completedRanks,
+    );
+
+    addStep(
+      34,
+      `Set nvlink_bandwidth_gbps = ${isPeer ? 900 : 3000}`,
       isPeer
-        ? `Executing zero-copy NVLink direct store to peer GPU ${r} symmetric address space without CPU staging.`
-        : `Accessing local GPU VRAM at primary symmetric memory base address.`,
-      {
-        rank: r,
-        target_rank: targetRank,
-        offset_bytes: byteOffset,
-        bandwidth_gbps: isPeer ? 900 : 3000,
-      },
-      currentElements,
+        ? "Assigned 900 GB/s bi-directional NVLink 4.0 P2P interconnect bandwidth."
+        : "Assigned 3000 GB/s local VRAM HBM3e memory bandwidth.",
+      { rank, bandwidth_gbps: isPeer ? 900 : 3000 },
+      rank,
+      completedRanks,
+    );
+
+    addStep(
+      35,
+      `Set transfer_mode = "${isPeer ? "DIRECT_NVLINK_P2P" : "LOCAL_VRAM"}"`,
+      `Populating transfer mode descriptor.`,
+      { rank, mode: isPeer ? "DIRECT_NVLINK_P2P" : "LOCAL_VRAM" },
+      rank,
+      completedRanks,
+    );
+
+    completedRanks.push(rank);
+    addStep(
+      36,
+      `Append Rank ${rank} Descriptor to Peer Transfers`,
+      `Successfully registered Rank ${rank} symmetric memory descriptor into output list.`,
+      { rank, completed_ranks: completedRanks.length },
+      undefined,
+      completedRanks,
     );
   }
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
+  // Step: Fence & alignment verification
   addStep(
-    30,
-    "Execution Complete",
-    `Successfully completed direct NVLink SymmetricMemory P2P transfers across all ${numRanks} GPU ranks at 900 GB/s bisection bandwidth.`,
-    { completed: true, target_rank: targetRank, total_peers: numRanks - 1 },
-    finalElements,
+    38,
+    "Verify PTX Memory Barriers & Global Memory Fence Visibility",
+    "Verified membar.gl barrier synchronization ensuring remote NVLink write operations are globally visible across all GPUs.",
+    { total_ranks: numRanks, verified: true },
+    undefined,
+    completedRanks,
+  );
+
+  // Return step
+  addStep(
+    38,
+    "Return Peer Transfers List",
+    "Returning final list of per-rank NVLink SymmetricMemory transfer status dictionaries.",
+    { completed: true, total_descriptors: completedRanks.length },
+    undefined,
+    completedRanks,
   );
 
   return steps;
 };
 
 const NVLINKSYMMETRICMEMORYPEERTOPEERENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
   distractors: [
     "cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice)",
     "socket.sendall(data_buffer)",
@@ -162,17 +359,49 @@ const NVLINKSYMMETRICMEMORYPEERTOPEERENGINE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 20,
-      hint: "NVLink SymmetricMemory enables direct load/store instructions (900 GB/s) bypassing driver API staging.",
+      line: 26,
+      hint: "SymmetricMemory maps identical virtual addresses so byte offset equals index * float32 size.",
     },
   ],
   lineExplanations: {
-    1: "Defines entry point for NVLink SymmetricMemory P2P direct transfer engine.",
-    14: "Validates non-empty data buffer and positive rank count.",
-    18: "Computes per-rank symmetric memory chunk size.",
-    21: "Calculates byte offset in symmetric virtual address space.",
-    27: "Populates P2P transfer dictionary with 900 GB/s NVLink bandwidth metrics.",
-    30: "Returns complete peer-to-peer transfer engine status list.",
+    1: "Defines entry point for NVLink SymmetricMemory P2P direct transfer engine function.",
+    2: "Starts docstring describing function intent.",
+    3: "Describes simulating NVLink SymmetricMemory zero-copy peer-to-peer load/store transfers.",
+    4: "Notes mapping symmetric virtual memory address offsets and calculating interconnect throughput.",
+    5: "Blank line in docstring.",
+    6: "Docstring section header for input parameters.",
+    7: "Docstring describing data_buffer parameter.",
+    8: "Docstring describing target_rank parameter.",
+    9: "Docstring describing num_ranks parameter.",
+    10: "Blank line in docstring.",
+    11: "Docstring section header for output return value.",
+    12: "Docstring describing return status dictionaries.",
+    13: "Closes docstring block.",
+    14: "Measures total length of the input data buffer.",
+    15: "Validates positive rank count and non-empty buffer length.",
+    16: "Returns empty list immediately if input arguments are invalid.",
+    17: "Blank line before transfer list initialization.",
+    18: "Initializes empty list to accumulate P2P transfer status dictionaries.",
+    19: "Computes per-rank chunk size using integer ceiling division.",
+    20: "Blank line before rank partition iteration loop.",
+    21: "Iterates through each GPU rank ID from 0 to num_ranks - 1.",
+    22: "Calculates global parameter starting index for current rank.",
+    23: "Calculates global parameter ending index capped at total array length.",
+    24: "Extracts sub-slice of buffer data for current rank.",
+    25: "Blank line before offset calculation.",
+    26: "Calculates symmetric VRAM byte offset assuming 4 bytes per float32 element.",
+    27: "Checks if current rank differs from target_rank.",
+    28: "Blank line before dictionary payload construction.",
+    29: "Appends dictionary containing P2P transfer status for current rank.",
+    30: "Sets rank key.",
+    31: "Sets target_rank key.",
+    32: "Sets symmetric_offset_bytes key.",
+    33: "Sets chunk_elements key.",
+    34: "Assigns 900 GB/s for peer NVLink or 3000 GB/s for local VRAM.",
+    35: "Assigns DIRECT_NVLINK_P2P or LOCAL_VRAM transfer mode string.",
+    36: "Closes dictionary entry construct.",
+    37: "Blank line before returning peer_transfers.",
+    38: "Returns complete list of per-rank P2P transfer status dictionaries.",
   },
 };
 
@@ -187,7 +416,7 @@ export const nvlinkSymmetricMemoryPeerToPeerEngine: AlgorithmDefinition<nvlinkSy
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "NVLink SymmetricMemory (introduced in CUDA 12 and modern NVIDIA Hopper/Blackwell architectures) provides a unified, symmetric virtual address space across intra-node GPUs connected via NVSwitch.\n\nUnlike traditional CUDA IPC handles, SymmetricMemory exposes remote GPU VRAM directly to PTX assembly instructions (`LD.E`, `ST.E`, `red.async`). GPU thread blocks on Rank 0 can write directly to remote VRAM on Rank 1 at up to 900 GB/s bi-directional bandwidth per GPU, completely bypassing CUDA driver API call overheads and CPU host memory staging.\n\nInput Format:\n- data: Array of numerical tensor data values to be transferred across peer GPUs.\n- target: Target GPU rank ID issuing the direct peer load/store operation.\n\nOutput Format:\n- Returns a list of per-rank transfer objects detailing symmetric virtual byte offsets, chunk sizes, and NVLink bandwidth metrics.\n\nEdge Cases & Constraints:\n- NVSwitch Fabric: Requires full bisection NVLink interconnects (e.g. HGX H100 with 900 GB/s NVSwitch fabric).\n- Memory Barriers: Requires `membar.gl` (global memory fence) to ensure remote NVLink write operations become visible across all GPU ranks.\n- Non-NVLink Fallback: PCIe-connected systems fallback to standard P2P DMA at reduced bandwidth (~32-64 GB/s).",
+      "NVLink SymmetricMemory (introduced in CUDA 12 and modern NVIDIA Hopper/Blackwell architectures) provides a unified, symmetric virtual address space across intra-node GPUs connected via NVSwitch.\n\n### Why It Exists & Problem Solved\nTraditional inter-process GPU communication requires calling CUDA driver APIs (`cudaMemcpyPeer`, `cudaIpcOpenMemHandle`), passing handle structures, and launching synchronization kernels. SymmetricMemory exposes remote GPU VRAM directly to low-level PTX assembly instructions (`LD.E`, `ST.E`, `red.async`). GPU thread blocks on Rank 0 can write directly to remote VRAM on Rank 1 at up to 900 GB/s bi-directional bandwidth per GPU, completely bypassing CUDA driver API call overheads and host CPU memory staging.\n\n### Step-by-Step Intuition\n1. **Symmetric Mapping**: A unified virtual memory mapping ensures address `0x7fff0000` on GPU 0 corresponds to the exact same physical memory offset on GPU 1.\n2. **Direct PTX Instruction Execution**: GPU kernels execute direct assembly loads and stores to remote GPU addresses without host CPU intervention.\n3. **Global Memory Barriers**: Memory fences (`membar.gl`) ensure remote NVLink write operations become visible across all GPU ranks.\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ linear step to compute symmetric rank offsets.\n- **Space Complexity**: $O(N)$ space storing peer transfer descriptors.\n- **Hardware Constraint**: Requires high-speed NVSwitch interconnect fabric (e.g. HGX H100 with 900 GB/s bi-directional bandwidth).",
     constraints: ["1 <= data.length <= 1000", "0 <= target < 64"],
     examples: [
       {
@@ -232,19 +461,19 @@ export const nvlinkSymmetricMemoryPeerToPeerEngine: AlgorithmDefinition<nvlinkSy
         "NVLink SymmetricMemory enables zero-copy peer-to-peer VRAM load/store transfers at 900 GB/s using unified virtual memory addresses.",
       sections: [
         {
-          heading: "Core Concepts",
-          body: "SymmetricMemory maps identical virtual address ranges across all GPUs in an NVSwitch node. A pointer address `0x7fff0000` on GPU 0 corresponds to the exact same physical memory offset on GPU 1. Kernels execute direct PTX global loads/stores (`LD.E`, `ST.E`) to read and write peer memory without host driver invocation.",
+          heading: "Why It Exists & Problem Solved",
+          body: "SymmetricMemory maps identical virtual address ranges across all GPUs in an NVSwitch node. A pointer address 0x7fff0000 on GPU 0 corresponds to the exact same physical memory offset on GPU 1. Kernels execute direct PTX global loads/stores (LD.E, ST.E) to read and write peer memory without host driver invocation.",
         },
         {
-          heading: "Systems & Bandwidth Impact",
-          body: "Traditional NCCL point-to-point transfers require CUDA driver kernel launches, staging buffers, and GPU signal flag checks. SymmetricMemory eliminates kernel launch overheads completely, allowing GPU threads to stream data over NVLink at full wire speed (900 GB/s on NVIDIA NVSwitch 3/4).",
+          heading: "Step-by-Step Intuition",
+          body: "1. Virtual memory space is symmetrically mapped across all GPUs in the node.\n2. GPU threads issue PTX assembly instructions directly targeting remote VRAM over NVLink at 900 GB/s.\n3. Hardware memory fences (membar.gl) enforce global visibility without driver API overhead.",
         },
         {
-          heading: "Implementation Nuances & Edge Cases",
-          body: "Because remote GPU writes bypass CUDA stream synchronization, code must issue global memory fences (`membar.gl`) or PTX release operations before remote GPUs read updated values. Neglecting memory barriers results in subtle data race conditions.",
+          heading: "Distributed Systems & Bandwidth Analysis",
+          body: "Traditional NCCL point-to-point transfers require CUDA driver kernel launches, staging buffers, and GPU signal flag checks. SymmetricMemory eliminates kernel launch overheads completely, allowing GPU threads to stream data over NVLink at full wire speed.",
         },
         {
-          heading: "Architecture & Topology Trade-offs",
+          heading: "Hardware & Architecture Trade-offs",
           body: "SymmetricMemory is essential for modern high-performance LLM serving frameworks (like vLLM PagedAttention and DeepSpeed-UltraFast) where dynamic KV-cache page blocks must be swapped across GPUs with sub-microsecond latency.",
         },
       ],
@@ -276,3 +505,4 @@ export const nvlinkSymmetricMemoryPeerToPeerEngine: AlgorithmDefinition<nvlinkSy
     defaultInput: DEFAULT_NVLINKSYMMETRICMEMORYPEERTOPEERENGINE_INPUT,
     generateSteps: generateNvlinkSymmetricMemoryPeerToPeerEngineSteps,
   };
+

@@ -144,6 +144,25 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     const visited = new Set<string>();
     const path: string[] = [];
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 30,
+      explanation: {
+        what: `Reset visited set for a new DFS augmenting path search from source '${source}'.`,
+        why: "Each round requires a fresh residual graph search to locate available capacity.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: getGraphNodes(source),
+        edges: getGraphEdges(),
+      },
+      auxiliaryState: {
+        visited: [],
+        customState: getFormattedCustomState({ Phase: "DFS Search Start" }),
+      },
+      variables: { currentMaxFlow },
+    });
+
     const findAugmentingPath = (
       u: string,
       target: string,
@@ -151,6 +170,25 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     ): { bottleneck: number; pathNodes: string[] } | null => {
       path.push(u);
       visited.add(u);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 18,
+        explanation: {
+          what: `DFS visiting node '${u}' (current path bottleneck capacity = ${currentFlow === Infinity ? "∞" : currentFlow}).`,
+          why: `Node '${u}' added to current search path.`,
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: getGraphNodes(u, new Set(path), visited),
+          edges: getGraphEdges(),
+        },
+        auxiliaryState: {
+          visited: rawNodes,
+          customState: getFormattedCustomState({ "Current Path": path.join(" → ") }),
+        },
+        variables: { currentNode: u, currentFlow: currentFlow === Infinity ? "inf" : currentFlow },
+      });
 
       if (u === target) {
         return { bottleneck: currentFlow, pathNodes: [...path] };
@@ -187,7 +225,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         },
         auxiliaryState: {
           visited: Array.from(visited),
-          customState: getFormattedCustomState({ Status: "Terminated" }),
+          customState: getFormattedCustomState({ Status: "Terminated", "Final Max Flow": currentMaxFlow }),
         },
         variables: { maxFlow: currentMaxFlow, completed: true },
       });
@@ -220,7 +258,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         edges: getGraphEdges(pathEdges),
       },
       auxiliaryState: {
-        visited: Array.from(visited),
+        visited: rawNodes,
         customState: getFormattedCustomState({
           "Augmenting Path": pathNodes.join(" → "),
           Bottleneck: bottleneck,
@@ -252,7 +290,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 34,
       explanation: {
-        what: `Push ${bottleneck} units along the path`,
+        what: `Push ${bottleneck} units along the path ${pathNodes.join(" → ")}`,
         why: `We add ${bottleneck} to the flow on each forward edge and record the same amount as reverse capacity, so a later path can undo part of this routing if a better one exists. Total flow is now ${currentMaxFlow}.`,
       },
       primarySnapshot: {
@@ -261,6 +299,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         edges: getGraphEdges(pathEdges),
       },
       auxiliaryState: {
+        visited: rawNodes,
         customState: getFormattedCustomState({
           "Last Bottleneck": bottleneck,
           "Total Max Flow": currentMaxFlow,

@@ -14,81 +14,75 @@ export const DEFAULT_FENWICK_INPUT: FenwickTreeInput = {
 
 const FENWICK_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A Fenwick tree, also called a binary indexed tree, is a compact array that keeps running totals of a changing sequence so you can still answer prefix-sum questions almost instantly. It exists to resolve a tension: a precomputed prefix-sum table answers queries in one step but must be rebuilt after every edit, while the raw array is trivial to edit but slow to sum. The Fenwick tree stores partial sums over cleverly chosen blocks so that any prefix is a handful of blocks and any single position belongs to only a handful of blocks. Remarkably, the entire structure is navigated with one bit trick on the index itself.",
+    "A **Fenwick Tree** (also known as a **Binary Indexed Tree**, or **BIT**) is a remarkably space-efficient data structure for maintaining dynamic prefix sums of a sequence. It supports both point updates and prefix sum queries in $O(\\log N)$ time while requiring only $O(N)$ space stored in a single flat array without any pointer overhead. The key innovation relies on bitwise arithmetic—specifically the lowbit operation $i \\& -i$—to partition responsibility ranges and traverse an implicit tree structure.",
   sections: [
     {
-      heading: "The trade-off it resolves",
-      body: "Consider the two obvious ways to answer the question of what the first k elements sum to. You can precompute every prefix sum, which makes queries free but forces you to rewrite the whole tail of that table whenever one element changes. Or you can keep the raw array and add up k values on demand, which makes edits free but queries slow. A Fenwick tree refuses to pick a side: it stores sums over blocks chosen so that any prefix is the disjoint union of a few blocks, and any single position sits inside only a few blocks. That symmetry between the two directions is exactly why both edits and queries stay cheap.",
+      heading: "1. The Range Query vs Point Update Dilemma",
+      body: "When dealing with dynamic range query problems over an array of size $N$:\n\n- **Naive Flat Array**: Point updates take $O(1)$ time, but range sum queries require iterating through elements in $O(N)$ time.\n- **Prefix Sum Array**: Range queries take $O(1)$ time via $P[R] - P[L-1]$, but a single point update requires recomputing all trailing prefix sums in $O(N)$ time.\n- **Fenwick Tree**: Achieves a balanced middle ground, executing both point updates and range queries in $O(\\log N)$ worst-case time with minimal memory overhead.",
     },
     {
-      heading: "The lowbit decides who owns what",
-      body: "Cell i of the tree stores the sum of a block that ends at position i and whose length is i & -i, the value of the lowest set bit of i. So cell 6, binary 110 with lowbit 2, covers positions 5 and 6, while cell 8, binary 1000 with lowbit 8, covers positions 1 through 8. To read a prefix sum up to i you repeatedly strip the lowbit with i -= i & -i, which walks leftward through blocks that tile the range 1 to i exactly once each. To apply a change at position i you repeatedly add the lowbit with i += i & -i, which visits precisely the cells whose blocks contain i. The two loops travel in opposite directions through the same bit structure, which is why each is only four lines long.",
+      heading: "2. Mathematical Foundation: The Lowbit Operator ($i \\& -i$)",
+      body: "In two's complement binary representation, $-i = \\sim i + 1$. The bitwise AND operation $i \\& -i$ isolates the lowest set bit (the least significant 1-bit) of index $i$.\n\n$$\\text{lowbit}(i) = i \\& -i$$\n\nEach 1-based index $i$ stores the sum of a contiguous subsegment of length $\\text{lowbit}(i)$ ending at index $i$, covering the index range:\n\n$$[i - \\text{lowbit}(i) + 1, \\, i]$$\n\nFor example:\n- Index $6$ (binary `110`, $\\text{lowbit}=2$) stores the sum of $2$ elements: $[5, 6]$.\n- Index $8$ (binary `1000`, $\\text{lowbit}=8$) stores the sum of $8$ elements: $[1, 8]$.",
     },
     {
-      heading: "Why the blocks tile perfectly",
-      body: "The invariant is that the blocks you reach by stripping lowbits from i have lengths matching the set bits of i, so together they cover positions 1 through i with no gap and no overlap. Stripping the lowest set bit subtracts the smallest power of two present in i, so every hop consumes one bit and the loop runs once per set bit. Update correctness is the mirror image: the cells reached by adding the lowbit are exactly the blocks that contain position i, so adding the delta to each keeps every stored block sum truthful. Because both walks agree about which block owns which position, a query issued right after an update sees the change exactly once, never twice and never zero times.",
+      heading: "3. Traversal Mechanics: Queries and Updates",
+      body: "The tree structure is traversed implicitly through bitwise mutations:\n\n- **Prefix Query ($1 \\dots K$)**: Start at index $i = K$ and sum $\\text{tree}[i]$. Jump to the preceding non-overlapping responsibility block by stripping the lowest set bit: $i \\leftarrow i - (i \\& -i)$. Repeat until $i = 0$. This visits at most $\\lfloor \\log_2 K \\rfloor + 1$ cells.\n- **Point Update at Index $K$**: Add $\\delta$ to $\\text{tree}[K]$. Ascend to the parent responsibility block that covers position $K$ by adding the lowest set bit: $i \\leftarrow i + (i \\& -i)$. Repeat while $i \\le N$.",
     },
     {
-      heading: "When to reach for it",
-      body: "Choose a Fenwick tree when your aggregate is invertible, such as sums, counts, or XOR, and you need point updates together with prefix or range queries. It is smaller, faster in practice, and far shorter to write than a segment tree, which makes it the default tool for counting inversions, maintaining frequency tables, and order statistics over compressed values. The catch is invertibility: range sums work because you subtract the prefix ending before the left bound, but a range minimum has no subtraction, so a Fenwick tree cannot answer it in general. Once you need non-invertible merges, arbitrary range updates, or descents guided by complicated predicates, move up to a segment tree.",
+      heading: "4. Trade-offs: Fenwick Tree vs Segment Tree",
+      body: "- **Memory**: Fenwick Trees require exactly $N+1$ integers vs $4N$ nodes for a Segment Tree.\n- **Cache Line Efficiency**: Iterating over a flat array using bitwise hops has low cache-miss rate and very small constant factor speed.\n- **Operations**: Fenwick Trees require the aggregate operation to be **invertible** (e.g., addition/subtraction or XOR) for range queries $[L \\dots R]$ using $\\text{query}(R) - \\text{query}(L-1)$. Non-invertible operations like Range Minimum Query (RMQ) require standard Segment Trees.",
     },
     {
-      heading: "Indexing traps and edge cases",
-      body: "The structure is one-indexed, and that is not a stylistic preference: cell 0 has a lowbit of zero, so the update loop would never advance, which is why slot 0 stays permanently unused. That means a user-facing index 0 becomes tree index 1, and a range query must subtract the prefix up to the left bound minus one, short-circuiting to zero when the left bound is already 1. Building by n separate point updates is correct but wasteful; you can instead copy the values in and let each cell push its total into cell i plus its lowbit in a single linear pass. Finally, remember the update takes a delta, not a target value, so assigning a new value means updating by the difference from the old one.",
-    },
-    {
-      heading: "Variations built on the same trick",
-      body: "Because the loops only care about combining block values, you can swap sums for XOR or counts without touching them. Two Fenwick trees side by side extend the structure to range updates with range queries: one holds a linear coefficient and the other a constant, and the pair reconstructs any prefix of the correction. Nesting the idea produces a two-dimensional Fenwick tree, where each cell of the outer tree holds an entire inner tree and rectangle sums on a grid become possible. And by walking bits from the highest downward instead of the lowest, you can binary-search inside the tree for the smallest prefix whose sum reaches a target, turning it into an order-statistics structure.",
+      heading: "5. Interview Pitfalls & Code Mechanics",
+      body: "- **1-Based Indexing Mandatory**: Index $0$ has $\\text{lowbit}(0) = 0 \\& 0 = 0$. Using 0-based indexing leads to infinite loops in $i \\pm (i \\& -i)$. Always offset 0-indexed inputs by $+1$.\n- **Range Updates**: A Fenwick Tree built over a difference array $D[i] = A[i] - A[i-1]$ allows $O(\\log N)$ range updates and $O(\\log N)$ point queries.",
     },
   ],
   keyTerms: [
     {
-      term: "Prefix sum",
+      term: "Prefix Sum",
       definition:
-        "The total of the first k elements of a sequence. Nearly every range question reduces to two prefix sums, since the sum over a window equals the prefix at its right end minus the prefix just before its left end.",
+        "The aggregate sum of array elements from index 1 up to index $K$, computed in $O(\\log N)$ time.",
     },
     {
       term: "Lowbit (i & -i)",
       definition:
-        "The value of the lowest set bit of i, equivalently the largest power of two dividing it. It is both the length of the block that cell i is responsible for and the step size that moves you to the next relevant cell.",
+        "The numerical value of the least significant 1-bit in integer $i$, computed via two's complement bitwise AND.",
     },
     {
-      term: "Responsibility range",
+      term: "Responsibility Block",
       definition:
-        "The contiguous slice of the original array whose sum a given tree cell stores. It always ends at that cell index and contains exactly lowbit many elements.",
+        "The subsegment $[i - (i \\& -i) + 1, i]$ whose element sum is stored inside cell tree[i].",
     },
     {
-      term: "Point update",
+      term: "Invertible Operation",
       definition:
-        "Changing a single position by a delta. In a Fenwick tree the change ripples upward through every cell whose block contains that position.",
-    },
-    {
-      term: "Invertible aggregate",
-      definition:
-        "An operation that has an inverse, like addition paired with subtraction, which is what lets a window answer be assembled from two prefix answers. Minimum and maximum are not invertible, so Fenwick trees do not handle them directly.",
+        "An operation with a mathematical inverse (like addition/subtraction), enabling range query calculation via prefix subtraction.",
     },
   ],
 };
 
 const FENWICK_TREE_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Declares the FenwickTree class — a compact array that answers prefix-sum queries and point updates in O(log n) using bit tricks on the index.",
-    2: "The constructor takes the number of elements the tree will cover.",
-    3: "Allocates size + 1 zeroed cells, one-indexed so index 0 is deliberately unused — it has no set bits, and the update/query hops would never move past it.",
-    5: "Defines update(index, delta): applies a change at one position and ripples it through every cell whose responsibility range covers that position.",
-    6: "Starts the climb at the target index — the position being changed.",
-    7: "Keeps climbing as long as i is still inside the tree array.",
-    8: "Folds delta into tree[i]: this cell's cached block-sum must include the change at the original index.",
-    9: "Adds i's lowbit (i & -i) to jump to the next cell whose block also covers the original index — this bit trick is what keeps the climb to O(log n) cells.",
-    11: "Defines query(index): returns the prefix sum of everything from position 1 up to index.",
-    12: "Starts the running total at zero before folding in any blocks.",
-    13: "Starts the descent at the given index.",
-    14: "Keeps descending while i is still a valid, positive index — this loop also strips one bit per iteration, so it runs O(log n) times.",
-    15: "Adds tree[i]'s cached block-sum into the running total — this cell owns the block ending at i.",
-    16: "Subtracts i's lowbit to move to the previous, disjoint block, guaranteeing no position is ever counted twice.",
-    17: "Returns the accumulated prefix sum once the descent reaches 0.",
-    19: "Defines range_query(left, right): the tree only knows how to answer prefix sums, so any arbitrary range has to be built from two of them.",
-    20: "Computes the range sum as query(right) minus query(left - 1) — subtracting off everything before the window cancels out whatever lies outside [left, right].",
+    1: "Declares the FenwickTree class for efficient O(log N) prefix sums and point updates.",
+    2: "Constructor accepting the size N of the sequence.",
+    3: "Allocates size + 1 zeroed slots for 1-based indexing (slot 0 is unused).",
+    4: "Blank line separating constructor.",
+    5: "Defines update(index, delta) to add delta to element at index.",
+    6: "Initializes loop variable i to the target 1-based update index.",
+    7: "Loops while index i remains within array bounds (i < len(tree)).",
+    8: "Adds delta to the current responsibility block sum at tree[i].",
+    9: "Advances i to parent responsibility block by adding lowest set bit: i += i & -i.",
+    10: "Blank line separating update method.",
+    11: "Defines query(index) returning prefix sum from 1 to index.",
+    12: "Initializes accumulator variable sum_val to 0.",
+    13: "Initializes loop variable i to target query index.",
+    14: "Loops while index i is positive (i > 0).",
+    15: "Accumulates block sum tree[i] into total sum_val.",
+    16: "Jumps to preceding disjoint block by subtracting lowest set bit: i -= i & -i.",
+    17: "Returns computed prefix sum up to index.",
+    18: "Blank line separating query method.",
+    19: "Defines range_query(left, right) to compute sum over interval [left..right].",
+    20: "Returns range sum using prefix subtraction: query(right) - query(left - 1).",
   },
 };
 
@@ -183,3 +177,4 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
 };
 
 export default fenwickTree;
+

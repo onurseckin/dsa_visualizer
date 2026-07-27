@@ -1,15 +1,16 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface loweredConv2dGemmExecutionEngineInput {
-  inputTensor: number[][][][];
-  weights: number[][][][];
+  inputTensor?: number[][][][]; // (N, C_in, H, W)
+  weights?: number[][][][]; // (C_out, C_in, K_h, K_w)
   stride?: number;
   padding?: number;
+  data?: number[];
+  target?: number;
 }
 
-export const LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE = `
-def lowered_conv2d_gemm(input_tensor, weights, stride=1, padding=0):
+export const LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE = `def lowered_conv2d_gemm(input_tensor, weights, stride=1, padding=0):
     """
     Lowered Conv2D GEMM Execution Engine.
     Executes 2D Convolution by lowering weight tensor to W_row (C_out, C_in * kH * kW)
@@ -75,8 +76,7 @@ def lowered_conv2d_gemm(input_tensor, weights, stride=1, padding=0):
                     output[b][co][r][c] = y_2d[co][patch_idx]
                 patch_idx += 1
 
-    return output
-`;
+    return output`;
 
 export const DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT: loweredConv2dGemmExecutionEngineInput =
   {
@@ -113,8 +113,31 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const tensor = input.inputTensor;
-  const weights = input.weights;
+  const inputTensor = input.inputTensor || [
+    [
+      [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ],
+    ],
+  ];
+
+  const weights = input.weights || [
+    [
+      [
+        [1, 0],
+        [0, 1],
+      ],
+    ],
+    [
+      [
+        [0, 1],
+        [1, 0],
+      ],
+    ],
+  ];
+
   const stride = input.stride ?? 1;
   const padding = input.padding ?? 0;
 
@@ -123,9 +146,9 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
   const kH = weights[0][0].length;
   const kW = weights[0][0][0].length;
 
-  const nBatch = tensor.length;
-  const hIn = tensor[0][0].length;
-  const wIn = tensor[0][0][0].length;
+  const nBatch = inputTensor.length;
+  const hIn = inputTensor[0][0].length;
+  const wIn = inputTensor[0][0][0].length;
 
   const hOut = Math.floor((hIn + 2 * padding - kH) / stride) + 1;
   const wOut = Math.floor((wIn + 2 * padding - kW) / stride) + 1;
@@ -133,49 +156,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
   const kLen = cIn * kH * kW;
   const numPatches = nBatch * hOut * wOut;
 
-  const flatInput = tensor.flatMap((b) => b.flatMap((ch) => ch.flatMap((r) => r)));
-  const elements: ArrayElement[] = flatInput.map((val, idx) => ({
-    id: `val-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customState?: Record<string, string>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({ ...el })),
-      },
-      auxiliaryState: {
-        customState: {
-          wRowShape: `(${cOut}, ${kLen})`,
-          xColShape: `(${kLen}, ${numPatches})`,
-          y2dShape: `(${cOut}, ${numPatches})`,
-          outputTensorShape: `(${nBatch}, ${cOut}, ${hOut}, ${wOut})`,
-          ...customState,
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize Lowered Conv2D GEMM Execution Engine",
-    "Setting up matrix shapes for Weight flattening W_row and im2col patch extraction X_col.",
-    { nBatch, cIn, cOut, hIn, wIn, kH, kW, hOut, wOut, kLen, numPatches },
-  );
-
-  // Flatten weights
+  // 1. Flatten weights
   const wRow: number[][] = [];
   for (let co = 0; co < cOut; co++) {
     const row: number[] = [];
@@ -189,15 +170,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     wRow.push(row);
   }
 
-  addStep(
-    15,
-    "Flatten Weights into W_row Matrix",
-    `Flattened ${cOut} kernels of size (${cIn}, ${kH}, ${kW}) into W_row matrix of shape (${cOut}, ${kLen}).`,
-    { cOut, kLen },
-    { wRow: `W_row = [${wRow.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
-  );
-
-  // Unroll X_col
+  // 2. im2col
   const xCol: number[][] = Array.from({ length: kLen }, () => Array(numPatches).fill(0));
   let patchIdx = 0;
   for (let b = 0; b < nBatch; b++) {
@@ -209,7 +182,10 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
             for (let kc = 0; kc < kW; kc++) {
               const ir = r * stride + kr - padding;
               const ic = c * stride + kc - padding;
-              const val = ir >= 0 && ir < hIn && ic >= 0 && ic < wIn ? tensor[b][ci][ir][ic] : 0;
+              const val =
+                ir >= 0 && ir < hIn && ic >= 0 && ic < wIn
+                  ? inputTensor[b][ci][ir][ic]
+                  : 0.0;
               xCol[kIdx][patchIdx] = val;
               kIdx++;
             }
@@ -220,14 +196,7 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     }
   }
 
-  addStep(
-    27,
-    "Unroll Input to X_col Matrix via im2col",
-    `Extracted ${numPatches} receptive field patches into X_col matrix of shape (${kLen}, ${numPatches}).`,
-    { kLen, numPatches },
-  );
-
-  // GEMM Y_2d = W_row @ X_col
+  // 3. GEMM
   const y2d: number[][] = Array.from({ length: cOut }, () => Array(numPatches).fill(0));
   for (let i = 0; i < cOut; i++) {
     for (let j = 0; j < numPatches; j++) {
@@ -239,44 +208,294 @@ export const generateLoweredConv2dGemmExecutionEngineSteps = (
     }
   }
 
+  const getSnapshot = (
+    matrix: number[][],
+    titleStr: string,
+    activeR: number = -1,
+    activeC: number = -1,
+  ): MatrixVisualSnapshot => {
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const state = r === activeR && c === activeC ? "active" : "default";
+        cells.push({
+          row: r,
+          col: c,
+          value: matrix[r][c],
+          label: `[${r},${c}]`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows,
+      cols,
+      title: titleStr,
+      cells,
+    };
+  };
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    matrix: number[][],
+    titleStr: string,
+    activeR: number = -1,
+    activeC: number = -1,
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: getSnapshot(matrix, titleStr, activeR, activeC),
+      auxiliaryState: {
+        customState: {
+          "Execution Stage": titleStr,
+          "Weight Matrix W_row": `${cOut} x ${kLen}`,
+          "im2col Matrix X_col": `${kLen} x ${numPatches}`,
+          "GEMM Output Y_2d": `${cOut} x ${numPatches}`,
+          "4D Output Shape": `(${nBatch}, ${cOut}, ${hOut}, ${wOut})`,
+        },
+      },
+      variables,
+    });
+  };
+
+  // Step 1: Function entry
   addStep(
-    42,
-    "Execute GEMM Matrix Multiply Y_2d = W_row @ X_col",
-    `Computed 2D result matrix Y_2d of shape (${cOut}, ${numPatches}).`,
-    { cOut, numPatches },
-    { y2d: `Y_2d = [${y2d.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
+    1,
+    "Lowered Conv2D GEMM Execution Engine Entry",
+    `Started lowered 2D convolution execution engine using im2col unrolling + BLAS GEMM matrix multiplication.`,
+    { nBatch, cIn, cOut, hIn, wIn, kH, kW, stride, padding },
+    wRow,
+    "1. Weight Matrix W_row (C_out x K_len)",
   );
 
+  // Step 2: Extract weights dimensions
   addStep(
-    51,
+    8,
+    "Extract Filter Kernel Dimensions c_out, c_in, k_h, k_w",
+    `Extracted output channels c_out=${cOut}, input channels c_in=${cIn}, kernel spatial size ${kH}x${kW}.`,
+    { cOut, cIn, kH, kW },
+    wRow,
+    "1. Weight Matrix W_row (C_out x K_len)",
+  );
+
+  // Step 3: Extract input dimensions
+  addStep(
+    12,
+    "Extract Input Tensor Dimensions n_batch, h_in, w_in",
+    `Extracted batch size n_batch=${nBatch}, input spatial resolution ${hIn}x${wIn}.`,
+    { nBatch, hIn, wIn },
+    wRow,
+    "1. Weight Matrix W_row (C_out x K_len)",
+  );
+
+  // Step 4: Calculate spatial output dimensions
+  addStep(
+    15,
+    "Calculate Output Feature Map Dimensions h_out, w_out",
+    `Computed output feature map height h_out=${hOut}, width w_out=${wOut}.`,
+    { hOut, wOut, kLen, numPatches },
+    wRow,
+    "1. Weight Matrix W_row (C_out x K_len)",
+  );
+
+  // Step 5: Flatten weights into W_row
+  for (let co = 0; co < cOut; co++) {
+    addStep(
+      20,
+      `Flatten Filter Kernel co = ${co} into W_row Row ${co}`,
+      `Reshaped 3D weight volume for output channel ${co} into 1D row of length k_len = ${kLen}.`,
+      { co, kLen },
+      wRow,
+      "1. Flattened Weight Matrix W_row",
+      co,
+    );
+  }
+
+  // Step 6: im2col unrolling into X_col
+  addStep(
+    31,
+    "Allocate im2col Matrix X_col (k_len x num_patches)",
+    `Allocated unrolled feature matrix X_col of shape (${kLen}, ${numPatches}).`,
+    { kLen, numPatches },
+    xCol,
+    "2. im2col Unrolled Matrix X_col",
+  );
+
+  let pIdx = 0;
+  for (let b = 0; b < nBatch; b++) {
+    for (let r = 0; r < hOut; r++) {
+      for (let c = 0; c < wOut; c++) {
+        addStep(
+          35,
+          `Unroll Spatial Patch (${r}, ${c}) for Batch ${b} -> Patch Index ${pIdx}`,
+          `Extracted 3D receptive field patch at spatial coordinate (${r}, ${c}) into X_col column ${pIdx}.`,
+          { b, r, c, patchIdx: pIdx },
+          xCol,
+          "2. im2col Unrolled Matrix X_col",
+          -1,
+          pIdx,
+        );
+        pIdx++;
+      }
+    }
+  }
+
+  // Step 7: BLAS GEMM Multiply Y_2d = W_row @ X_col
+  addStep(
+    49,
+    "Execute BLAS GEMM Multiplication: Y_2d = W_row @ X_col",
+    `Multiplying W_row (${cOut}x${kLen}) by X_col (${kLen}x${numPatches}) to compute 2D result matrix Y_2d (${cOut}x${numPatches}).`,
+    { cOut, kLen, numPatches },
+    y2d,
+    "3. BLAS GEMM Multiply Result Y_2d",
+  );
+
+  for (let i = 0; i < cOut; i++) {
+    for (let j = 0; j < numPatches; j++) {
+      addStep(
+        55,
+        `GEMM Output Cell Y_2d[${i}][${j}] = ${y2d[i][j].toFixed(1)}`,
+        `Computed dot product of W_row row ${i} and X_col column ${j} -> ${y2d[i][j].toFixed(1)}.`,
+        { i, j, "y_2d[i][j]": y2d[i][j] },
+        y2d,
+        "3. BLAS GEMM Multiply Result Y_2d",
+        i,
+        j,
+      );
+    }
+  }
+
+  // Step 8: Reshape Y_2d -> 4D Output Tensor
+  const output: number[][][][] = Array.from({ length: nBatch }, () =>
+    Array.from({ length: cOut }, () =>
+      Array.from({ length: hOut }, () => Array(wOut).fill(0)),
+    ),
+  );
+
+  pIdx = 0;
+  for (let b = 0; b < nBatch; b++) {
+    for (let r = 0; r < hOut; r++) {
+      for (let c = 0; c < wOut; c++) {
+        for (let co = 0; co < cOut; co++) {
+          output[b][co][r][c] = y2d[co][pIdx];
+        }
+        pIdx++;
+      }
+    }
+  }
+
+  addStep(
+    68,
     "Reshape Y_2d Matrix to 4D Output Tensor & Complete",
-    `Reshaped Y_2d to 4D output tensor of shape (${nBatch}, ${cOut}, ${hOut}, ${wOut}).`,
-    { completed: true },
+    `Reshaped 2D matrix Y_2d (${cOut}x${numPatches}) back into 4D output tensor of shape (${nBatch}, ${cOut}, ${hOut}, ${wOut}). Lowered GEMM execution clean.`,
+    { completed: true, nBatch, cOut, hOut, wOut },
+    y2d,
+    "4. Final Reshaped 4D Tensor Output",
   );
 
   return steps;
 };
 
 const LOWEREDCONV2DGEMMEXECUTIONENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [2, 3, 4, 5, 6, 7, 10, 11, 13, 14, 16, 17, 19, 21, 23, 24, 28, 29, 48, 58, 67],
   distractors: [
-    "y_2d = w_row + x_col",
-    "output = reshape(y_2d, (N, H_out, W_out, C_out))",
-    "if k_len != num_patches: raise ValueError()",
+    "y_2d = matmul(x_col, w_row)",
+    "w_row.append(weights[co])",
+    "x_col = [[0.0] * k_len for _ in range(num_patches)]",
+    "output[b][co][r][c] = y_2d[pIdx][co]",
   ],
   hints: [
     {
-      line: 15,
-      hint: "Weight tensors are flattened across input channel and kernel spatial dimensions.",
+      line: 20,
+      hint: "Flatten 4D weights into 2D matrix W_row of shape (C_out, C_in * K_h * K_w).",
     },
-    { line: 42, hint: "GEMM computes dot products between weight rows and im2col patch columns." },
+    {
+      line: 31,
+      hint: "Unroll 4D spatial patches into 2D matrix X_col of shape (C_in * K_h * K_w, N * H_out * W_out).",
+    },
+    {
+      line: 49,
+      hint: "Multiply lowered matrices via standard GEMM: Y_2d = W_row @ X_col.",
+    },
   ],
   lineExplanations: {
-    1: "Entry point for lowered Conv2D GEMM execution engine.",
-    15: "Weight matrix flattening phase.",
-    27: "Input patch im2col unrolling phase.",
-    42: "Matrix multiplication execution phase.",
-    51: "Output tensor reconstruction and return.",
+    1: "Defines entry point for Lowered Conv2D GEMM Execution Engine function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes lowering 2D convolution to GEMM matrix multiplication via im2col.",
+    4: "Docstring detailing W_row (C_out, C_in*kH*kW) and X_col (C_in*kH*kW, N*H_out*W_out).",
+    5: "Docstring step detailing GEMM multiplication Y_2d = W_row @ X_col.",
+    6: "Docstring step detailing output 4D tensor reshaping.",
+    7: "Docstring closing delimiter tag.",
+    8: "Measures number of output feature channels c_out from filter weights array length.",
+    9: "Measures number of input feature channels c_in from filter weights channel depth.",
+    10: "Measures filter kernel spatial height k_h and width k_w.",
+    11: "Blank line before input tensor dimension extraction.",
+    12: "Measures batch size n_batch from input tensor array length.",
+    13: "Measures input feature map spatial height h_in and width w_in.",
+    14: "Blank line before output dimension calculation.",
+    15: "Calculates spatial output height h_out using integer division floor.",
+    16: "Calculates spatial output width w_out using integer division floor.",
+    17: "Blank line before Stage 1: Flatten Weights.",
+    18: "Comment for Stage 1: Flatten Weights to W_row (C_out, C_in * k_h * k_w).",
+    19: "Initializes list w_row to store flattened filter weight rows.",
+    20: "Iterates over output feature channel index co from 0 to c_out - 1.",
+    21: "Initializes list row for current filter kernel co.",
+    22: "Iterates over input feature channel index ci from 0 to c_in - 1.",
+    23: "Iterates over filter kernel spatial row kr from 0 to k_h - 1.",
+    24: "Iterates over filter kernel spatial column kc from 0 to k_w - 1.",
+    25: "Appends filter weight scalar weights[co][ci][kr][kc] to current row list.",
+    26: "Appends completed flattened filter row to W_row matrix.",
+    27: "Blank line before Stage 2: im2col Unrolling.",
+    28: "Comment for Stage 2: im2col Unrolling to X_col.",
+    29: "Calculates total flattened kernel tap length k_len = c_in * k_h * k_w.",
+    30: "Calculates total spatial patch count num_patches = n_batch * h_out * w_out.",
+    31: "Allocates unrolled feature matrix x_col of shape (k_len, num_patches) filled with zeros.",
+    32: "Blank line before patch unrolling loop.",
+    33: "Initializes patch column index pointer patch_idx to zero.",
+    34: "Iterates over batch sample index b from 0 to n_batch - 1.",
+    35: "Iterates over spatial output row coordinate r from 0 to h_out - 1.",
+    36: "Iterates over spatial output column coordinate c from 0 to w_out - 1.",
+    37: "Resets kernel tap row index k_idx to zero for current spatial patch.",
+    38: "Iterates over input feature channel index ci from 0 to c_in - 1.",
+    39: "Iterates over filter kernel spatial row kr from 0 to k_h - 1.",
+    40: "Iterates over filter kernel spatial column kc from 0 to k_w - 1.",
+    41: "Calculates spatial input image row index ir = r * stride + kr - padding.",
+    42: "Calculates spatial input image column index ic = c * stride + kc - padding.",
+    43: "Loads input tensor sample if spatial bounds valid, else 0.0 float.",
+    44: "Writes loaded pixel value into x_col at row k_idx and column patch_idx.",
+    45: "Increments kernel tap row index k_idx by 1.",
+    46: "Increments spatial patch column index patch_idx by 1.",
+    47: "Blank line before Stage 3: BLAS GEMM Multiply.",
+    48: "Comment for Stage 3: BLAS GEMM Multiply Y_2d = W_row @ X_col.",
+    49: "Allocates 2D GEMM output result matrix y_2d of shape (c_out, num_patches) filled with zeros.",
+    50: "Iterates over matrix row index i (output channel) from 0 to c_out - 1.",
+    51: "Iterates over matrix column index j (spatial patch) from 0 to num_patches - 1.",
+    52: "Resets dot product accumulator scalar s to 0.0.",
+    53: "Iterates over inner contraction dimension k from 0 to k_len - 1.",
+    54: "Multiplies w_row[i][k] by x_col[k][j] and accumulates into dot product sum s.",
+    55: "Stores computed dot product sum s into y_2d[i][j].",
+    56: "Blank line before Stage 4: Reshape Y_2d.",
+    57: "Comment for Stage 4: Reshape Y_2d -> Output Tensor (N, C_out, H_out, W_out).",
+    58: "Allocates 4D output tensor of shape (n_batch, c_out, h_out, w_out) filled with zeros.",
+    59: "Initializes spatial patch reader index pointer patch_idx to zero.",
+    60: "Iterates over batch sample index b from 0 to n_batch - 1.",
+    61: "Iterates over spatial output row coordinate r from 0 to h_out - 1.",
+    62: "Iterates over spatial output column coordinate c from 0 to w_out - 1.",
+    63: "Iterates over output feature channel index co from 0 to c_out - 1.",
+    64: "Copies 2D GEMM output scalar y_2d[co][patch_idx] into 4D output tensor.",
+    65: "Increments spatial patch reader index patch_idx by 1.",
+    66: "Blank line separating tensor reshaping from return statement.",
+    67: "Returns final 4D output tensor.",
   },
 };
 
@@ -291,78 +510,75 @@ export const loweredConv2dGemmExecutionEngine: AlgorithmDefinition<loweredConv2d
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "Lowered Conv2D GEMM Execution Engine models the end-to-end transformation of a 4D convolution operation into a single matrix multiplication (GEMM). Weight filters of shape (C_out, C_in, kH, kW) are flattened into a 2D matrix W_row of shape (C_out, C_in * kH * kW). Input tensors are transformed via im2col into a matrix X_col of shape (C_in * kH * kW, N * H_out * W_out). The convolution result is obtained by performing Y_2d = W_row @ X_col, followed by reshaping Y_2d into the 4D output tensor (N, C_out, H_out, W_out). This is the exact lowering pipeline used in BLAS-backed convolution engines across PyTorch, Caffe, and ONNX Runtime.\n\nInput Format:\n- inputTensor: 4D input array of shape (N, C_in, H, W).\n- weights: 4D weight filter array of shape (C_out, C_in, kH, kW).\n- stride: Spatial stride integer (default 1).\n- padding: Zero-padding width integer (default 0).\n\nOutput Format:\n- Returns a 4D tensor of shape (N, C_out, H_out, W_out).\n\nEdge Cases & Constraints:\n- Matrix inner dimension match: Inner matrix dimension must equal C_in * kH * kW for both W_row and X_col.\n- Precision & accumulation: High arithmetic intensity makes GEMM throughput hardware-bound; FP16 / BF16 mixed-precision acceleration is commonly applied to GEMM accumulation.",
+      "The **Lowered Conv2D GEMM Execution Engine** lowers 2D spatial convolution into 2D General Matrix Multiplication (GEMM) using `im2col` matrix unrolling. By reshaping 4D filter weight tensors $W \\in \\mathbb{R}^{C_{out} \\times C_{in} \\times K_h \\times K_w}$ into 2D matrix $W_{row} \\in \\mathbb{R}^{C_{out} \\times (C_{in} K_h K_w)}$ and unrolling 4D activation patches into 2D matrix $X_{col} \\in \\mathbb{R}^{(C_{in} K_h K_w) \\times (N H_{out} W_{out})}$, convolution is computed via a single BLAS GEMM call $Y_{2d} = W_{row} \\cdot X_{col}$, followed by a 4D tensor reshape.\n\n### Why It Exists\nDirect nested 6D loops perform non-contiguous memory access and exhibit poor arithmetic intensity. Modern hardware accelerators (Nvidia Tensor Cores, Google TPUs) possess dedicated Systolic Array circuits optimized specifically for dense 2D GEMM. Lowering convolutions to GEMM enables 10x-100x hardware speedups.\n\n### Mathematical Formulation\nGiven input tensor $X \\in \\mathbb{R}^{N \\times C_{in} \\times H \\times W}$, filter weights $W \\in \\mathbb{R}^{C_{out} \\times C_{in} \\times K_h \\times K_w}$, stride $S$, and padding $P$, the 4-stage lowering pipeline is:\n\n$$1. \\quad W_{row} = \\text{Reshape}(W) \\quad \\in \\mathbb{R}^{C_{out} \\times K_{len}}, \\quad \\text{where } K_{len} = C_{in} \\cdot K_h \\cdot K_w$$\n\n$$2. \\quad X_{col} = \\text{im2col}(X) \\quad \\in \\mathbb{R}^{K_{len} \\times N_{patches}}, \\quad \\text{where } N_{patches} = N \\cdot H_{out} \\cdot W_{out}$$\n\n$$3. \\quad Y_{2d} = W_{row} \\cdot X_{col} \\quad \\in \\mathbb{R}^{C_{out} \\times N_{patches}} \\quad (\\text{BLAS GEMM Matrix Multiplication})$$\n\n$$4. \\quad Y = \\text{Reshape}(Y_{2d}) \\quad \\in \\mathbb{R}^{N \\times C_{out} \\times H_{out} \\times W_{out}}$$\n\n### Step-by-Step Intuition\n1. **Weight Lowering**: Flatten each 3D filter volume ($C_{in} \\times K_h \\times K_w$) into a single row vector of length $K_{len}$.\n2. **im2col Unrolling**: Extract every $3D$ receptive field patch ($C_{in} \\times K_h \\times K_w$) across all batch images and spatial positions, stacking them into columns of $X_{col}$.\n3. **BLAS GEMM Execution**: Call highly-optimized BLAS `gemm(W_row, X_col)` to compute all spatial and cross-channel dot products in parallel.\n4. **Tensor Reshaping**: Unpack columns of $Y_{2d}$ back into 4D activation tensor layout $(N, C_{out}, H_{out}, W_{out})$.\n\n### Key Trade-Offs & Hardware Execution\n- **Memory Footprint**: `im2col` duplicates input pixels that belong to overlapping receptive fields ($S < K$), inflating memory usage by a factor of $K_h \\cdot K_w$. High-performance implicit GEMM kernels (e.g. cuDNN Implicit GEMM) compute `im2col` indexing dynamically inside GPU SRAM registers without materializing $X_{col}$ in DRAM.\n- **Systolic Array Efficiency**: Converting convolution into dense matrix multiplication allows hardware to achieve >90% of peak theoretical TFLOPS on Tensor Cores.",
     constraints: [
       "1 <= N <= 64",
-      "1 <= C_in, C_out <= 512",
-      "1 <= H, W <= 512",
-      "1 <= kH, kW <= 11",
+      "1 <= C_in, C_out <= 256",
+      "1 <= H_in, W_in <= 512",
+      "1 <= K_h, K_w <= 11",
     ],
     examples: [
       {
         kind: "basic",
-        title: "1 Batch, 1 Input Channel, 2 Output Channels",
-        inputDisplay: "inputTensor: 1x1x3x3, weights: 2x1x2x2",
-        outputDisplay: "Output: 1x2x2x2",
+        title: "Standard im2col GEMM Conv Execution",
+        inputDisplay: "Input N=1, C_in=1, 3x3, Weights C_out=2, C_in=1, 2x2",
+        outputDisplay: "Output N=1, C_out=2, 2x2 Tensor",
         input: DEFAULT_LOWEREDCONV2DGEMMEXECUTIONENGINE_INPUT,
-        output: "Tensor (1, 2, 2, 2)",
-        explanation: "Lowers weight tensor to (2, 4) and input to (4, 4), computes 2x4 @ 4x4 GEMM.",
+        output: "4D Output Activation Tensor",
+        explanation: "Lowers 3x3 input and 2x2 weights into GEMM matrices W_row (2x4) and X_col (4x4), computing Y_2d (2x4).",
       },
     ],
     code: LOWEREDCONV2DGEMMEXECUTIONENGINE_CODE,
     timeComplexity: {
-      best: "O(C_out * (N * H_out * W_out) * (C_in * kH * kW))",
-      average: "O(C_out * (N * H_out * W_out) * (C_in * kH * kW))",
-      worst: "O(C_out * (N * H_out * W_out) * (C_in * kH * kW))",
+      best: "O(C_{out} \\cdot C_{in} \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
+      average: "O(C_{out} \\cdot C_{in} \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
+      worst: "O(C_{out} \\cdot C_{in} \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
     },
-    spaceComplexity: "O(C_out * C_in * kH * kW + C_in * kH * kW * N * H_out * W_out)",
+    spaceComplexity: "O(C_{in} \\cdot K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})",
     complexityAnalysis: {
-      time: "Matrix multiplication performs 2 * M * N * K FLOPs, where M = C_out, K = C_in * kH * kW, N = Batch * H_out * W_out.",
-      space: "Allocates 2D flattened weight matrix and 2D unrolled im2col matrix in memory.",
+      time: "GEMM multiplication performs $2 \\cdot C_{out} \\cdot K_{len} \\cdot N_{patches}$ floating-point operations.",
+      space: "Requires $O(K_{len} \\cdot N_{patches})$ memory overhead to materialize unrolled im2col matrix $X_{col}$ in DRAM.",
     },
     topicGuide: {
       overview:
-        "Lowered Conv2D GEMM is the cornerstone of deep learning acceleration. By expressing convolutions as BLAS matrix multiplications, machine learning frameworks unlock decades of hardware optimization built into BLAS, MKL, and cuBLAS.",
+        "The **Lowered Conv2D GEMM Execution Engine** converts 2D convolutions into General Matrix Multiplications (GEMM) via im2col unrolling, unlocking hardware Tensor Core acceleration.",
       sections: [
         {
-          heading: "Overview",
-          body: "Direct convolution requires nested loop evaluation over 7 axes. Lowering converts this nested iteration into a single dense matrix multiplication Y_2d = W_row @ X_col, mapping directly to SIMD vector registers and hardware Tensor Cores.",
+          heading: "1. Core Concept & Lowering Architecture",
+          body: "Conv2D lowering transforms 4D spatial convolutions into 2D matrix multiplication: $Y_{2d} = W_{row} \\cdot X_{col}$. $W_{row}$ contains filter weights flattened to shape ($C_{out}, K_{len}$), and $X_{col}$ contains unrolled receptive field patches of shape ($K_{len}, N_{patches}$).",
         },
         {
-          heading: "Core Concepts",
-          body: "1. Weight Flattening: Converts 4D filter tensor (C_out, C_in, kH, kW) into 2D matrix W_row (C_out, C_in * kH * kW).\n2. im2col Unrolling: Converts 4D input tensor (N, C_in, H, W) into 2D matrix X_col (C_in * kH * kW, N * H_out * W_out).\n3. GEMM Product: Computes Y_2d = W_row @ X_col.\n4. Output Reshaping: Maps 2D result Y_2d back to 4D tensor shape (N, C_out, H_out, W_out).",
+          heading: "2. Systems & Tensor Core Acceleration",
+          body: "Hardware accelerators (Nvidia Tensor Cores, Google TPUs) feature fixed $16 \\times 16$ or $8 \\times 8$ matrix multiply units (MMA instructions). Lowering convolutions to GEMM enables compiler auto-tuners (TVM, TensorRT) to map workloads onto Systolic Arrays with maximum memory bandwidth throughput.",
         },
         {
-          heading: "Systems & Performance Impact",
-          body: "GEMM implementations utilize memory hierarchy cache tiling (L1, L2, L3) and vector SIMD instructions (AVX-512, NEON, CUDA MMA). Lowered Conv2D transforms a memory-latency-bound loop into a compute-bound GEMM operation.",
+          heading: "3. Memory Trade-Offs: Explicit vs Implicit GEMM",
+          body: "Explicit `im2col` duplicates overlapping receptive fields, consuming $K_h \\cdot K_w$ times more DRAM memory. Modern deep learning libraries use Implicit GEMM kernels (cuDNN), computing im2col indexing dynamically inside SRAM registers without DRAM memory allocations.",
         },
         {
-          heading: "Implementation Nuances",
-          body: "Cache tile sizes are selected so that sub-tiles of W_row and X_col fit entirely inside L1/L2 data cache. Memory packing routines rearrange non-contiguous unrolled columns into contiguous cache lines before GEMM multiplication.",
-        },
-        {
-          heading: "Edge Cases",
-          body: "Padded spatial boundaries, non-unit strides, 1x1 convolutions (where im2col is a simple memory layout reshape), and odd batch sizes.",
+          heading: "4. Edge Case Analysis & Memory Layouts",
+          body: "Handling strided convolutions, non-zero padding, and batch sizes $N > 1$ requires careful indexing during im2col column extraction to guarantee contiguous BLAS memory alignment.",
         },
       ],
       keyTerms: [
         {
-          term: "Lowered Conv2D",
+          term: "Lowering (im2col)",
           definition:
-            "Convolution operator transformed into standard BLAS GEMM matrix multiplication.",
+            "Transformation reshaping 4D spatial tensors into 2D matrices to enable BLAS GEMM execution.",
         },
         {
           term: "W_row Matrix",
-          definition: "2D flattened representation of 4D filter weights (C_out x C_in * kH * kW).",
+          definition: "Flattened weight matrix of shape (C_out, C_in * K_h * K_w).",
         },
         {
           term: "X_col Matrix",
-          definition: "2D im2col unrolled representation of sliding input patches.",
+          definition:
+            "Unrolled receptive field patch matrix of shape (C_in * K_h * K_w, N * H_out * W_out).",
         },
         {
-          term: "Tensor Cores",
+          term: "Implicit GEMM",
           definition:
-            "Specialized hardware execution units designed for high-throughput matrix multiplication.",
+            "High-performance CUDA kernel evaluating im2col indices on-the-fly in SRAM registers without DRAM duplication.",
         },
       ],
     },

@@ -85,6 +85,8 @@ export { CodePuzzle } from "./molecules/CodePuzzle";
 export type { CodePuzzleProps } from "./molecules/CodePuzzle";
 export { SessionCard, badgeForSession } from "./molecules/SessionCard";
 export type { SessionStats } from "./molecules/SessionCard";
+export { MarkdownRenderer } from "./molecules/MarkdownRenderer";
+export type { MarkdownRendererProps } from "./molecules/MarkdownRenderer";
 
 // Level 3: Organisms
 export { Navbar } from "./organisms/Navbar";

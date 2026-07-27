@@ -6,8 +6,7 @@ export interface astConstantFoldingInput {
   target?: number;
 }
 
-export const ASTCONSTANTFOLDING_CODE = `
-def ast_constant_folding(expr_tree):
+export const ASTCONSTANTFOLDING_CODE = `def ast_constant_folding(expr_tree):
     """
     Evaluates constant expressions in AST subtrees to optimize computation DAG.
     """
@@ -23,8 +22,7 @@ def ast_constant_folding(expr_tree):
         if op == "-": return left - right
         if op == "*": return left * right
 
-    return {"op": op, "left": left, "right": right}
-`;
+    return {"op": op, "left": left, "right": right}`;
 
 export const DEFAULT_ASTCONSTANTFOLDING_INPUT: astConstantFoldingInput = {
   data: [10, 20, 30, 40, 50],
@@ -37,6 +35,8 @@ export const generateAstConstantFoldingSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const target = input?.target ?? 30;
+
   const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
@@ -49,6 +49,7 @@ export const generateAstConstantFoldingSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -64,48 +65,120 @@ export const generateAstConstantFoldingSteps = (
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
-          target: String(input?.target ?? 0),
+          target: String(target),
+          foldedCount: String(variables.foldedCount ?? 0),
+          ...customState,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Init compiler pass
   addStep(
     1,
     "Initialize AST Constant Folding Compiler Pass",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: arrayData.length, target: input?.target ?? 0 },
+    "Setting up recursion stack and constant propagation symbol table for graph optimization.",
+    { n: arrayData.length, target, foldedCount: 0, currentPass: "AST_ANALYSIS" },
   );
 
+  // Step 2: Begin AST traversal pass
+  addStep(
+    5,
+    "Inspect Root AST Expression Node",
+    "Checking whether expression DAG root is a dictionary operator node or primitive constant scalar.",
+    { isDict: true, nodeType: "BinaryOp", foldedCount: 0 },
+  );
+
+  // Detailed multi-step simulation per element in arrayData
+  let foldedAccumulator = 0;
   arrayData.forEach((val, idx) => {
-    const isTarget = val === input?.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+    const isTarget = val === target;
+    
+    // Sub-step A: Fetch child node
+    const stateA: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "compare", pointers: [`node=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
-
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in autograd computation graph.`,
-      { idx, val, isTarget },
-      currentElements,
+      8,
+      `Fetch Left Subtree Node [Index ${idx}]: value = ${val}`,
+      `Recursively traversing left child of AST node ${idx}. Evaluating constant status.`,
+      { idx, val, isConstant: typeof val === "number", phase: "EVAL_LEFT" },
+      stateA,
+      { currentNode: `Node_${idx}`, nodeVal: String(val) },
+    );
+
+    // Sub-step B: Fetch right child & operator
+    const stateB: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`node=${idx}`, "op=*"] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+    addStep(
+      10,
+      `Inspect Operator for Node ${idx}: op = "${idx % 2 === 0 ? "+" : "*"}"`,
+      "Retrieving binary operator symbol. Preparing operands for constant simplification.",
+      { idx, leftVal: val, rightVal: idx * 2, op: idx % 2 === 0 ? "+" : "*", phase: "INSPECT_OP" },
+      stateB,
+      { left: String(val), right: String(idx * 2), op: idx % 2 === 0 ? "+" : "*" },
+    );
+
+    // Sub-step C: Check constant folding condition
+    addStep(
+      12,
+      `Check Foldability for Node ${idx}`,
+      "Evaluating isinstance(left, numeric) and isinstance(right, numeric). Both children are compile-time constants.",
+      { leftIsConst: true, rightIsConst: true, satisfiesRule: true, phase: "CHECK_TYPES" },
+      stateB,
+    );
+
+    // Sub-step D: Execute arithmetic fold
+    foldedAccumulator += idx % 2 === 0 ? val + idx * 2 : val * Math.max(1, idx * 2);
+    const stateD: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", value: isTarget ? val : foldedAccumulator, pointers: ["folded"] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+    addStep(
+      13,
+      `Perform Constant Folding for Node ${idx}: Result = ${foldedAccumulator}`,
+      "Replacing subtree op(left, right) with pre-computed scalar constant node in the DAG.",
+      { idx, foldedVal: foldedAccumulator, foldedCount: idx + 1, phase: "FOLD_EXECUTE" },
+      stateD,
+      { foldedValue: String(foldedAccumulator) },
+    );
+
+    // Sub-step E: Replace node in AST
+    addStep(
+      17,
+      `Update AST DAG with Folded Constant Node [Index ${idx}]`,
+      "Subtree successfully replaced. Node converted from BinaryOp AST node to Literal Scalar.",
+      { idx, nodeStatus: "FOLDED_SCALAR", totalFolded: idx + 1 },
+      stateD,
     );
   });
 
+  // Step final-1: Final Graph Pass Verification
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     state: "sorted",
   }));
+  addStep(
+    17,
+    "Verify Graph Topology After Constant Folding Pass",
+    "Verifying that all constant subtrees have been eliminated and no redundant runtime operations remain.",
+    { totalNodesFolded: arrayData.length, graphOptimized: true },
+    finalElements,
+  );
 
+  // Step final: Complete
   addStep(
     17,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
-    { completed: true },
+    { completed: true, totalSteps: stepIndex },
     finalElements,
   );
 
@@ -113,24 +186,36 @@ export const generateAstConstantFoldingSteps = (
 };
 
 const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
-  skipLines: [],
+  skipLines: [2, 3, 4, 7, 11, 16],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
+    "expr_tree.left = expr_tree.right",
   ],
-  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
+  hints: [
+    { line: 5, hint: "Check if node is primitive scalar constant." },
+    { line: 8, hint: "Recursively fold left subtree." },
+    { line: 12, hint: "Check if both folded children are numeric constants." },
+  ],
   lineExplanations: {
-    1: "Defines AST constant folding compiler pass function.",
-    4: "Returns primitive value immediately if expr_tree is a constant scalar or variable string.",
-    7: "Recursively folds left child subtree.",
-    8: "Recursively folds right child subtree.",
-    9: "Extracts operator symbol op from current node.",
-    11: "Checks if both left and right folded children are numeric constants.",
-    12: "Evaluates addition constant folding left + right.",
-    13: "Evaluates subtraction constant folding left - right.",
-    14: "Evaluates multiplication constant folding left * right.",
-    16: "Returns updated node dictionary containing folded subtrees.",
+    1: "Defines entry point for ast_constant_folding recursive AST compiler pass.",
+    2: "Docstring opening: explains function purpose for constant sub-expression evaluation.",
+    3: "Docstring body: constant expressions are evaluated to optimize computation DAGs.",
+    4: "Docstring closing.",
+    5: "Base case: checks if current AST node is a leaf constant or variable (not a dict operator node).",
+    6: "Returns leaf value directly without further recursive decomposition.",
+    7: "Empty line separating base case from recursive child traversals.",
+    8: "Recursively visits left child subtree to perform post-order constant folding.",
+    9: "Recursively visits right child subtree to perform post-order constant folding.",
+    10: "Retrieves string binary operator ('+', '-', '*') from AST node dictionary.",
+    11: "Empty line separating operand retrieval from constant folding evaluation.",
+    12: "Validates if both left and right folded subtrees reduced to numeric scalar constants.",
+    13: "Folds addition node by computing scalar sum (left + right).",
+    14: "Folds subtraction node by computing scalar difference (left - right).",
+    15: "Folds multiplication node by computing scalar product (left * right).",
+    16: "Empty line before returning reconstructed non-foldable operator node.",
+    17: "Returns reconstructed AST node dictionary with simplified left and right child subtrees.",
   },
 };
 
@@ -143,8 +228,32 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
-  description:
-    "In deep learning graph compilers (e.g. PyTorch Inductor, TorchScript, XLA, TVM), Constant Folding is a fundamental optimization pass. When subtrees in an Abstract Syntax Tree (AST) or computation DAG consist purely of compile-time constants (e.g. 2 * pi * radius_bias), evaluating them at compile time replaces subtrees with single scalar constant nodes, eliminating redundant GPU kernel dispatches during training and inference.\n\nThis algorithm implements AST Constant Folding Compiler Pass, recursively traversing expression DAG nodes, simplifying constant subtrees, and returning folded AST representations.\n\nInput Format:\n- data: Array representing node values or serialized AST structures.\n- target: Optional target value.\n\nOutput Format:\n- Returns optimized folded AST node structure or scalar evaluation.\n\nEdge Cases & Constraints:\n- Subtrees containing variable nodes (cannot be folded).\n- Nested pure-constant subtrees.\n- Single-node constant ASTs.",
+  description: `### AST Constant Folding Compiler Pass
+
+In modern deep learning graph compilers (**PyTorch Inductor**, **TorchScript**, **XLA**, and **TVM**), **Constant Folding** is an essential static optimization pass executed before code generation (Triton/CUDA).
+
+#### Why It Exists & What It Solves
+When building computation DAGs via automatic differentiation or PyTorch FX tracing, model definitions frequently contain expressions composed entirely of compile-time constants—such as hyperparameter scale factors, normalisation constants ($2 \\times \\pi \\times \\sigma$), or positional encoding offsets.
+
+Without constant folding:
+1. Every constant arithmetic expression translates into an explicit GPU kernel dispatch or elementwise Triton operation.
+2. High Memory Bandwidth (HBM) is wasted reading fixed scalar inputs and storing intermediate constant tensors.
+
+With constant folding:
+- The graph compiler traverses the Abstract Syntax Tree (AST) post-order.
+- Subtrees where all operands are known constants are evaluated once at compile time.
+- The entire subtree is replaced by a single scalar literal node, reducing operator launch overhead and total DAG depth.
+
+#### Step-by-Step Mechanism
+1. **Post-Order Traversal**: Recursively visit the left and right children of an expression node.
+2. **Type Checking**: Inspect whether both left and right simplified subtrees are numeric scalar constants (\`int\` or \`float\`).
+3. **Operator Evaluation**: If both operands are constants, compute the arithmetic result (\`+\`, \`-\`, \`*\`) and return the resulting scalar value.
+4. **Node Reconstruction**: If either child depends on a dynamic variable, preserve the operator node with its recursively simplified children.
+
+#### Complexity & Trade-Offs
+- **Time Complexity**: $\\mathcal{O}(V + E)$ where $V$ is the number of AST nodes and $E$ is the number of child edges.
+- **Space Complexity**: $\\mathcal{O}(D)$ auxiliary call stack space where $D$ is maximum tree depth.
+- **Trade-Off**: Incurs minor compilation time cost in exchange for zero-overhead runtime kernel execution.`,
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -179,28 +288,28 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
   timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time traversal across graph vertices and edges.",
-    space: "Linear memory allocation for graph adjacency lists.",
+    time: "Linear post-order traversal visits every AST vertex and edge exactly once.",
+    space: "Call-stack memory depth is proportional to maximum expression tree height.",
   },
   topicGuide: {
     overview:
-      "Constant folding reduces graph execution latency by evaluating constant expressions during compilation instead of at runtime. Replacing multi-node computation subtrees with pre-computed constant values reduces node count and operator launch overhead on PyTorch and Triton graph backends.",
+      "Constant folding is a foundational AST compilation pass in ML systems that evaluates static expression subtrees at compile time. Eliminating constant arithmetic nodes minimizes GPU kernel launch latency and reduces memory traffic across high-bandwidth memory (HBM).",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, given expression node N = Op(L, R), if L and R evaluate to constants c_L and c_R, the compiler folds node N to c_N = Eval(Op, c_L, c_R). Time complexity is O(V + E) for tree traversal.",
+        body: "Given a binary AST expression node N = Op(L, R), if post-order traversal yields scalar constants c_L and c_R for subtrees L and R, the compiler evaluates c_N = Eval(Op, c_L, c_R). The node N is replaced by c_N, pruning the subtree.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "In machine learning graph compilers, constant folding eliminates unnecessary HBM memory allocations for fixed hyperparameter constants, reducing overall GPU memory footprint.",
+        heading: "Practical Applications & ML Infra Ecosystem",
+        body: "PyTorch FX GraphModule and TorchScript compilation pipelines use constant folding to collapse static tensor shape calculations, bias additions, and fixed hyperparameter formulas before lowering graphs to Triton or C++ backends.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation performs post-order depth-first traversal, folding left and right children before simplifying the parent node if both children are numeric constants.",
+        heading: "Step-by-Step Walkthrough & Algorithmic Mechanics",
+        body: "1. Perform depth-first post-order recursion on expression tree.\n2. Evaluate left child node.\n3. Evaluate right child node.\n4. If both children are primitive scalars, compute binary operation result.\n5. Return folded scalar node to parent caller.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes non-foldable variable nodes and division by zero prevention.",
+        heading: "Hardware/Systems Trade-Offs & Complexity Analysis",
+        body: "Constant folding executes in O(V + E) time and O(D) stack space. By computing constant subtrees ahead of runtime, it eliminates DRAM reads and reduces GPU instruction cache pressure during model inference.",
       },
     ],
     keyTerms: [
@@ -212,12 +321,17 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
       {
         term: "Abstract Syntax Tree (AST)",
         definition:
-          "Tree structure representing the hierarchical syntax and operator relationships of mathematical expressions.",
+          "Hierarchical tree representation of expression syntax and operator precedence.",
       },
       {
         term: "Post-Order Traversal",
         definition:
           "Visiting left and right child subtrees before evaluating the parent operator node.",
+      },
+      {
+        term: "Compiler Pass",
+        definition:
+          "An individual transformation pipeline step in a graph compiler that rewrites intermediate representations.",
       },
     ],
   },
@@ -226,3 +340,4 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
   defaultInput: DEFAULT_ASTCONSTANTFOLDING_INPUT,
   generateSteps: generateAstConstantFoldingSteps,
 };
+

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface RelayOpNode {
@@ -87,10 +92,56 @@ export const DEFAULT_TVM_RELAY_GRAPH_LOWERING_INPUT: TvmRelayGraphLoweringInput 
     { id: "r1", op: "nn.conv2d", layout: "NCHW", shape: [1, 64, 56, 56] },
     { id: "r2", op: "nn.bias_add", layout: "NCHW", shape: [1, 64, 56, 56] },
     { id: "r3", op: "relu", layout: "NCHW", shape: [1, 64, 56, 56] },
+    { id: "r4", op: "nn.conv2d", layout: "NCHW", shape: [1, 128, 28, 28] },
+    { id: "r5", op: "nn.bias_add", layout: "NCHW", shape: [1, 128, 28, 28] },
+    { id: "r6", op: "relu", layout: "NCHW", shape: [1, 128, 28, 28] },
+    { id: "r7", op: "nn.dense", layout: "NCHW", shape: [1, 512, 1, 1] },
+    { id: "r8", op: "relu", layout: "NCHW", shape: [1, 512, 1, 1] },
   ],
   targetHardware: "cuda",
   targetLayout: "NCHW8c",
 };
+
+function buildTvmMatrixSnapshot(
+  nodes: RelayOpNode[],
+  currentIndex: number,
+  passName: string,
+): MatrixVisualSnapshot {
+  const colHeaders = ["Idx", "ID", "Operator", "Orig Layout", "Transformed Shape", "Pass Status"];
+  const rows = nodes.length;
+  const cells: MatrixCellItem[] = [];
+
+  nodes.forEach((node, r) => {
+    let state: MatrixCellItem["state"] = "default";
+    let statusText = "Pending";
+
+    if (r < currentIndex) {
+      state = "sorted";
+      statusText = "Processed";
+    } else if (r === currentIndex) {
+      state = "pivot";
+      statusText = "Active Pass";
+    }
+
+    cells.push(
+      { row: r, col: 0, value: r, state },
+      { row: r, col: 1, value: node.id, state },
+      { row: r, col: 2, value: node.op, state },
+      { row: r, col: 3, value: node.layout, state },
+      { row: r, col: 4, value: `[${node.shape.join(",")}]`, state },
+      { row: r, col: 5, value: statusText, state },
+    );
+  });
+
+  return {
+    kind: "matrix",
+    rows,
+    cols: 6,
+    colHeaders,
+    cells,
+    title: `TVM Relay IR Lowering Matrix (${passName})`,
+  };
+}
 
 export const generateTvmRelayGraphLoweringSteps = (
   input: TvmRelayGraphLoweringInput,
@@ -99,37 +150,77 @@ export const generateTvmRelayGraphLoweringSteps = (
   let stepIndex = 0;
 
   const { relayNodes, targetHardware, targetLayout } = input;
+  const n = relayNodes.length;
 
-  const initialElements: ArrayElement[] = relayNodes.map((node, idx) => ({
-    id: `relay-${idx}`,
-    value: node.op,
-    state: "default",
-    pointers: [`${node.layout} [${node.shape.join(",")}]`],
-  }));
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Apache TVM Relay IR Graph Lowering Engine",
-      why: `Target Hardware: ${targetHardware.toUpperCase()}, Target Memory Layout: ${targetLayout}. Processing ${relayNodes.length} Relay expression AST nodes.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: initialElements,
-    },
-    auxiliaryState: {
-      customState: {
-        targetHardware,
-        targetLayout,
-        relayNodeCount: String(relayNodes.length),
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    nodesForSnap: RelayOpNode[],
+    currentIndex: number,
+    passName: string,
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: buildTvmMatrixSnapshot(nodesForSnap, currentIndex, passName),
+      auxiliaryState: {
+        customState: {
+          targetHardware,
+          targetLayout,
+          relayNodeCount: String(n),
+          currentPass: passName,
+        },
       },
-    },
-    variables: { totalNodes: relayNodes.length, targetHardware },
-  });
+      variables,
+    });
+  };
 
-  // Pass 1: Layout transformation
-  const layoutTransformed: RelayOpNode[] = relayNodes.map((node) => {
+  addStep(
+    1,
+    "Initialize Apache TVM Relay IR Lowering Engine",
+    `Target Hardware: ${targetHardware.toUpperCase()}, Target Memory Layout: ${targetLayout}. Processing ${n} Relay expression AST nodes.`,
+    { n, targetHardware, targetLayout },
+    relayNodes,
+    0,
+    "Init",
+  );
+
+  addStep(
+    8,
+    "Initialize Container transformed_nodes",
+    "Creating empty list to store layout-transformed AST nodes.",
+    { n },
+    relayNodes,
+    0,
+    "Init",
+  );
+
+  // Pass 1: Layout Transformation Pass
+  addStep(
+    10,
+    "Start Pass 1: AlterOpLayout Pass",
+    `Transforming NCHW tensors into SIMD-blocked layout ${targetLayout} for vector register alignment.`,
+    { pass: "AlterOpLayout", targetLayout },
+    relayNodes,
+    0,
+    "Pass 1: AlterOpLayout",
+  );
+
+  const layoutTransformed: RelayOpNode[] = [];
+  relayNodes.forEach((node, idx) => {
+    addStep(
+      11,
+      `Inspect Relay Node '${node.id}' (${node.op}) in Pass 1`,
+      `Original layout: ${node.layout}, Original shape: [${node.shape.join(", ")}].`,
+      { idx, node_id: node.id, op: node.op },
+      relayNodes,
+      idx,
+      "Pass 1: AlterOpLayout",
+    );
+
     const copy = { ...node };
     if (node.layout === "NCHW" && targetLayout !== "NCHW") {
       copy.layout = targetLayout;
@@ -139,147 +230,277 @@ export const generateTvmRelayGraphLoweringSteps = (
         sh.push(8);
       }
       copy.shape = sh;
-    }
-    return copy;
-  });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 14,
-    explanation: {
-      what: `Pass 1: AlterOpLayout Pass (NCHW -> ${targetLayout})`,
-      why: `Transformed tensor layout for vectorization. Channel dimension split into sub-blocks [${layoutTransformed[0].shape.join(", ")}].`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: layoutTransformed.map((node, idx) => ({
-        id: `layout-${idx}`,
-        value: node.op,
-        state: "active",
-        pointers: [`${node.layout} [${node.shape.join(",")}]`],
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        pass: "AlterOpLayout",
-        newLayout: targetLayout,
-      },
-    },
-    variables: { pass: "AlterOpLayout", targetLayout },
+      addStep(
+        14,
+        `Transform Layout for Node '${node.id}' to ${targetLayout}`,
+        `Split channel dimension into sub-blocks of 8. New shape: [${copy.shape.join(", ")}].`,
+        { idx, new_layout: targetLayout, new_shape: copy.shape.join(",") },
+        relayNodes,
+        idx,
+        "Pass 1: AlterOpLayout",
+      );
+    }
+    layoutTransformed.push(copy);
+
+    addStep(
+      21,
+      `Append Node '${node.id}' to transformed_nodes`,
+      "Layout transformation applied; stored in transformed_nodes buffer.",
+      { idx, count: layoutTransformed.length },
+      layoutTransformed,
+      idx + 1,
+      "Pass 1: AlterOpLayout",
+    );
   });
 
   // Pass 2: FuseOps Pass
-  const fusedPrimitiveGroups: Array<{ groupId: string; primitiveOp: string; layout: string }> = [];
-  let i = 0;
-  const n = layoutTransformed.length;
+  addStep(
+    23,
+    "Start Pass 2: FuseOps Pass",
+    "Grouping Relay AST expression nodes into primitive function boundaries (kInjective, kFusedConv).",
+    { pass: "FuseOps" },
+    layoutTransformed,
+    0,
+    "Pass 2: FuseOps",
+  );
 
+  const fusedPrimitiveGroups: Array<{
+    groupId: string;
+    primitiveOp: string;
+    nodes: string[];
+    layout: string;
+  }> = [];
+
+  let i = 0;
   while (i < n) {
+    addStep(
+      27,
+      `Pass 2 FuseOps Window Check at i = ${i}`,
+      `Inspecting node ${layoutTransformed[i].id} (${layoutTransformed[i].op}) for primitive fusion.`,
+      { i, op: layoutTransformed[i].op },
+      layoutTransformed,
+      i,
+      "Pass 2: FuseOps",
+    );
+
     if (
       i + 2 < n &&
       layoutTransformed[i].op === "nn.conv2d" &&
       layoutTransformed[i + 1].op === "nn.bias_add" &&
       layoutTransformed[i + 2].op === "relu"
     ) {
-      fusedPrimitiveGroups.push({
+      const group = {
         groupId: `prim_func_${i}`,
         primitiveOp: "fused_conv2d_bias_relu",
+        nodes: [
+          layoutTransformed[i].id,
+          layoutTransformed[i + 1].id,
+          layoutTransformed[i + 2].id,
+        ],
         layout: targetLayout,
-      });
+      };
+      fusedPrimitiveGroups.push(group);
+
+      addStep(
+        33,
+        `Fuse 3-Node Conv Sequence into Primitive Function '${group.groupId}'`,
+        `Fused [${group.nodes.join(", ")}] into monolithic primitive op '${group.primitiveOp}'.`,
+        { i, group_id: group.groupId, prim_op: group.primitiveOp },
+        layoutTransformed,
+        i,
+        "Pass 2: FuseOps",
+      );
+
       i += 3;
+      addStep(
+        38,
+        `Advance Index Pointer i by 3 to ${i}`,
+        "Skipping fused Relay expression nodes.",
+        { i },
+        layoutTransformed,
+        i,
+        "Pass 2: FuseOps",
+      );
     } else {
-      fusedPrimitiveGroups.push({
+      const group = {
         groupId: `prim_func_${i}`,
         primitiveOp: layoutTransformed[i].op,
+        nodes: [layoutTransformed[i].id],
         layout: layoutTransformed[i].layout,
-      });
-      i++;
+      };
+      fusedPrimitiveGroups.push(group);
+
+      addStep(
+        40,
+        `Create Single Primitive Function '${group.groupId}' for '${group.primitiveOp}'`,
+        `Wrapped single Relay op in primitive function boundary.`,
+        { i, group_id: group.groupId, prim_op: group.primitiveOp },
+        layoutTransformed,
+        i,
+        "Pass 2: FuseOps",
+      );
+
+      i += 1;
+      addStep(
+        46,
+        `Advance Index Pointer i to ${i}`,
+        "Moving to next Relay node.",
+        { i },
+        layoutTransformed,
+        i,
+        "Pass 2: FuseOps",
+      );
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 26,
-    explanation: {
-      what: "Pass 2: FuseOps Pass (Relay IR -> Primitive Function AST Groups)",
-      why: `Grouped Relay expression operators into ${fusedPrimitiveGroups.length} primitive function boundary targets for TIR lowering.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: fusedPrimitiveGroups.map((grp, idx) => ({
-        id: `prim-${idx}`,
-        value: grp.primitiveOp,
-        state: "visited",
-        pointers: [grp.groupId],
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        pass: "FuseOps",
-        fusedCount: String(fusedPrimitiveGroups.length),
-      },
-    },
-    variables: { pass: "FuseOps", primitiveGroups: fusedPrimitiveGroups.length },
-  });
-
   // Pass 3: TIR Code Generation
-  const tirStatements = fusedPrimitiveGroups.map((grp) => ({
-    groupId: grp.groupId,
-    primitiveOp: grp.primitiveOp,
-    tirCode:
+  addStep(
+    48,
+    "Start Pass 3: Tensor IR (TIR) Code Generation",
+    `Emitting hardware-bound TIR loop AST for backend '${targetHardware.toUpperCase()}'.`,
+    { pass: "TIR_Codegen", targetHardware },
+    layoutTransformed,
+    n,
+    "Pass 3: TIR Codegen",
+  );
+
+  const tirStatements: Array<{ groupId: string; primitiveOp: string; tirCode: string }> = [];
+
+  fusedPrimitiveGroups.forEach((grp, idx) => {
+    addStep(
+      50,
+      `Emit TIR Code for Group '${grp.groupId}' (${grp.primitiveOp})`,
+      `Generating imperative loop AST for target hardware '${targetHardware}'.`,
+      { idx, groupId: grp.groupId, primOp: grp.primitiveOp },
+      layoutTransformed,
+      n,
+      "Pass 3: TIR Codegen",
+    );
+
+    const tir =
       targetHardware === "cuda"
-        ? `__global__ void ${grp.primitiveOp}_kernel(float* A, float* Out)`
-        : `void ${grp.primitiveOp}_llvm(float* Out)`,
-  }));
+        ? `__global__ void ${grp.primitiveOp}_kernel(float* __restrict__ A, float* __restrict__ Out) { // gridDim, blockDim CUDA TIR }`
+        : `void ${grp.primitiveOp}_llvm(float* Out) { // Vectorized LLVM AVX-512 TIR loop }`;
 
-  const finalElements: ArrayElement[] = tirStatements.map((tir, idx) => ({
-    id: `tir-${idx}`,
-    value: tir.primitiveOp,
-    state: "sorted",
-    pointers: [tir.tirCode.slice(0, 32) + "..."],
-  }));
+    tirStatements.push({
+      groupId: grp.groupId,
+      primitiveOp: grp.primitiveOp,
+      tirCode: tir,
+    });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 45,
-    explanation: {
-      what: `Pass 3: TIR Lowering Complete for ${targetHardware.toUpperCase()} Backend`,
-      why: `Generated low-level Tensor Intermediate Representation (TIR) AST for ${targetHardware.toUpperCase()} execution. Ready for LLVM / nvcc code compilation.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: finalElements,
-    },
-    auxiliaryState: {
-      customState: {
-        targetBackend: targetHardware,
-        tirKernelsGenerated: String(tirStatements.length),
-      },
-    },
-    variables: { complete: true, tirCount: tirStatements.length },
+    addStep(
+      60,
+      `Store TIR Kernel Signature for '${grp.primitiveOp}'`,
+      `TIR AST generated: ${tir.slice(0, 45)}...`,
+      { idx, tir_preview: tir.slice(0, 30) },
+      layoutTransformed,
+      n,
+      "Pass 3: TIR Codegen",
+    );
   });
+
+  addStep(
+    67,
+    "TVM Relay IR Graph Lowering Pass Complete",
+    `Successfully lowered ${n} Relay IR expression nodes into ${tirStatements.length} executable TIR hardware kernels for ${targetHardware.toUpperCase()}.`,
+    { complete: true, totalRelayNodes: n, totalTirKernels: tirStatements.length },
+    layoutTransformed,
+    n,
+    "Final",
+  );
 
   return steps;
 };
 
 const TVM_RELAY_GRAPH_LOWERING_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8],
+  skipLines: [2, 3, 4, 5, 6, 7, 9, 10, 15, 22, 23, 32, 37, 39, 47, 48, 51, 53, 55, 59, 61, 62, 67],
+  distractors: [
+    "transformed['layout'] = 'INVALID'",
+    "tir = 'exit(0)'",
+    "fused_groups.clear()",
+    "shape[1] = shape[1] * 8",
+  ],
   hints: [
     {
       line: 14,
       hint: "Transform tensor layout from NCHW to blocked layout NCHW8c for SIMD alignment.",
     },
     {
-      line: 26,
+      line: 28,
       hint: "Fuse sequence of Relay expression nodes into primitive function boundaries.",
     },
-    { line: 45, hint: "Emit target-specific TIR AST code for LLVM C++ or CUDA kernel execution." },
+    { line: 52, hint: "Emit CUDA __global__ kernel launch TIR statement for GPU backend." },
+    { line: 67, hint: "Return dictionary payload with lowered TIR statements and layout nodes." },
   ],
-  distractors: ["transformed['layout'] = 'INVALID'", "tir = 'exit(0)'", "fused_groups.clear()"],
   lineExplanations: {
-    1: "Defines entry point for TVM Relay IR to TIR lowering compiler.",
-    14: "Executes AlterOpLayout pass converting NCHW tensors into blocked NCHW8c formats.",
-    26: "Executes FuseOps pass grouping Relay expression nodes into primitive functions.",
-    45: "Emits target-specific low-level Tensor IR statements.",
+    1: "Function signature defining lower_relay_to_tir receiving relay_nodes, target_hardware, and target_layout.",
+    2: "Docstring start describing Relay IR to TIR compiler pass pipeline.",
+    3: "Describes progressive optimization passes: layout transformation, op fusion, and TIR codegen.",
+    4: "Describes Pass 1: Layout Transformation (e.g. NCHW -> NCHW8c for vector SIMD).",
+    5: "Describes Pass 2: FuseOps Pass grouping operators into primitive functions.",
+    6: "Describes Pass 3: Target-Specific TIR lowering and schedule binding (LLVM / CUDA).",
+    7: "Docstring close.",
+    8: "Initializes transformed_nodes list for layout-transformed node definitions.",
+    9: "Blank line before Pass 1 loop.",
+    10: "Comment indicating Pass 1: Layout Transformation Pass.",
+    11: "Loop iterating over each node in relay_nodes.",
+    12: "Creates copy dictionary of node.",
+    13: "Checks if node layout is NCHW and target_layout differs from NCHW.",
+    14: "Updates node layout to target_layout.",
+    15: "Comment describing channel dimension splitting into blocked sub-channel layout.",
+    16: "Copies node shape array to list.",
+    17: "Checks if 4D tensor shape has channel dimension divisible by 8.",
+    18: "Divides channel dimension C by 8.",
+    19: "Appends inner sub-block dimension of 8 to shape list.",
+    20: "Assigns transformed shape to node record.",
+    21: "Appends transformed node to transformed_nodes.",
+    22: "Blank line before Pass 2.",
+    23: "Comment indicating Pass 2: FuseOps Pass.",
+    24: "Initializes fused_groups list for primitive function target groups.",
+    25: "Sets loop index i to 0.",
+    26: "Calculates total count n of transformed nodes.",
+    27: "Loop iterating while index i is less than node count n.",
+    28: "Checks if 3-node window matches fused conv2d+bias+relu sequence pattern.",
+    29: "Verifies node i is nn.conv2d.",
+    30: "Verifies node i+1 is nn.bias_add.",
+    31: "Verifies node i+2 is relu.",
+    32: "Opens fused primitive group dictionary payload.",
+    33: "Assigns group identifier prim_func_i.",
+    34: "Sets primitiveOp name to fused_conv2d_bias_relu.",
+    35: "Collects list of constituent node IDs in fused group.",
+    36: "Sets group layout to target_layout.",
+    37: "Closes fused group payload.",
+    38: "Advances index i by 3 to skip fused nodes.",
+    39: "Else branch for single unfused operator node.",
+    40: "Opens single-operator primitive group dictionary.",
+    41: "Assigns group identifier prim_func_i.",
+    42: "Sets primitiveOp to single node op name.",
+    43: "Assigns single node ID to nodes list.",
+    44: "Preserves single node layout.",
+    45: "Closes single primitive group payload.",
+    46: "Advances index i by 1.",
+    47: "Blank line before Pass 3.",
+    48: "Comment indicating Pass 3: Tensor IR (TIR) Code Generation.",
+    49: "Initializes tir_statements list to store emitted TIR AST statements.",
+    50: "Loop iterating over each group in fused_groups.",
+    51: "Checks if target_hardware backend is cuda.",
+    52: "Constructs CUDA __global__ kernel launch TIR signature string.",
+    53: "Else branch for CPU LLVM backend.",
+    54: "Constructs vectorized LLVM AVX-512 TIR function loop signature.",
+    55: "Opens TIR statement dictionary payload.",
+    56: "Sets groupId matching primitive group.",
+    57: "Sets primitiveOp name.",
+    58: "Assigns emitted TIR code string.",
+    59: "Closes TIR statement dictionary.",
+    60: "Appends TIR statement to tir_statements list.",
+    61: "Blank line before final return.",
+    62: "Opens return dictionary payload.",
+    63: "Returns layoutTransformedNodes list.",
+    64: "Returns fusedPrimitiveGroups list.",
+    65: "Returns tirStatements list.",
+    66: "Returns targetHardware string.",
+    67: "Closes return dictionary payload.",
   },
 };
 
@@ -293,19 +514,19 @@ export const tvmRelayGraphLowering: AlgorithmDefinition<TvmRelayGraphLoweringInp
   mlInfraLevel: 7,
   mlInfraCategory: "ml_graph_compilers",
   description:
-    "Apache TVM is an end-to-end open-source machine learning compiler framework. It lowers high-level functional computational graphs (Relay IR) down to low-level Tensor Intermediate Representation (TIR) through progressive compiler passes, including `AlterOpLayout` (converting NCHW tensors to vector-friendly NCHWc layouts), `FuseOps`, and hardware schedule binding for LLVM CPUs, CUDA GPUs, and custom ML accelerators.\n\nInput Format:\n- relayNodes: List of Relay IR expression node metadata objects.\n- targetHardware: String specifying compilation target backend (`'llvm'` or `'cuda'`).\n- targetLayout: Target blocked tensor memory layout string (e.g. `'NCHW8c'`).\n\nOutput Format:\n- Returns dictionary containing `layoutTransformedNodes`, `fusedPrimitiveGroups`, `tirStatements`, and target metadata.\n\nEdge Cases & Constraints:\n- Channel unaligned dimensions: Channels not divisible by block size $8$ or $16$ require padding before `NCHW8c` transformation.\n- Cross-target compilation: Heterogeneous graphs containing CPU host control-flow and GPU compute kernels require graph splitting into target-specific sub-functions.",
+    "Apache TVM is an open-source deep learning compiler framework designed to decouple high-level neural network graphs from low-level hardware target backends. Neural network frameworks represent computations as high-level functional expression DAGs (Relay IR). However, executing Relay IR directly on hardware is inefficient due to unaligned memory layouts and un-fused operator boundaries.\n\n### Mathematical Formulation & Layout Transformations\n1. **Layout Transformation (`AlterOpLayout`)**: Down-casts or reshapes spatial/channel dimensions for vector register alignment. Transforming a standard 4D tensor $X \\in \\mathbb{R}^{B \\times C \\times H \\times W}$ into a 5D blocked layout $X_{\\text{blocked}} \\in \\mathbb{R}^{B \\times \\lfloor C/v \\rfloor \\times H \\times W \\times v}$ (e.g. `NCHW8c` where $v = 8$, or `NCHW16c` where $v = 16$):\n$$C = C_{\\text{outer}} \\cdot v + c_{\\text{inner}}, \\quad v \\in \\{8, 16\\}$$\nThis guarantees that vector load instructions (`_mm256_load_ps` for AVX2 or `_mm512_load_ps` for AVX-512) operate on contiguous 32-byte or 64-byte memory blocks without unaligned penalty: $\\text{Stride}_{c_{\\text{inner}}} = 1$.\n\n2. **Operator Fusion (`FuseOps`)**: Groups fine-grained Relay operators (such as `nn.conv2d`, `nn.bias_add`, and `relu`) into primitive function boundaries (`kInjective`, `kFusedConv`):\n$$Y = \\text{ReLU}(\\text{Conv2D}(X, W) + b)$$\n\n3. **TIR Code Generation & Schedule Binding**: Translates primitive functions into target-specific imperative loop ASTs, emitting vectorized C++ for LLVM CPUs or CUDA `__global__` kernel definitions for NVIDIA GPUs.\n\nInput Format:\n- `relayNodes`: List of Relay IR expression node metadata objects containing `id`, `op`, `layout`, and `shape`.\n- `targetHardware`: String specifying compilation target backend (`'llvm'` or `'cuda'`).\n- `targetLayout`: Target blocked tensor memory layout string (e.g. `'NCHW8c'`).\n\nOutput Format:\n- Returns dictionary containing `layoutTransformedNodes`, `fusedPrimitiveGroups`, `tirStatements`, and target metadata.\n\nEdge Cases & Constraints:\n- Channel unaligned dimensions: Channels not divisible by block size 8 or 16 ($C \\pmod v \\neq 0$) require padding before `NCHW8c` transformation.\n- Cross-target compilation: Heterogeneous graphs containing CPU host control-flow and GPU compute kernels require graph splitting into target-specific sub-functions.",
   constraints: ["1 <= relayNodes.length <= 100", "targetHardware in ['llvm', 'cuda']"],
   examples: [
     {
       kind: "basic",
       title: "Relay IR to CUDA TIR Lowering",
       inputDisplay:
-        "relayNodes=[nn.conv2d, nn.bias_add, relu], targetHardware='cuda', targetLayout='NCHW8c'",
-      outputDisplay: "TIR CUDA Kernel (NCHW8c layout)",
+        "8 Relay nodes: 2 Conv+Bias+Relu blocks + 1 Dense+Relu block, targetHardware='cuda', targetLayout='NCHW8c'",
+      outputDisplay: "3 CUDA TIR Kernels (NCHW8c blocked layout)",
       input: DEFAULT_TVM_RELAY_GRAPH_LOWERING_INPUT,
-      output: "primitive_func fused_conv2d_bias_relu (CUDA TIR)",
+      output: "3 CUDA TIR kernel statements",
       explanation:
-        "Transforms layout to NCHW8c, fuses operators into a primitive group, and emits CUDA TIR kernel code.",
+        "Transforms tensor shapes to NCHW8c, groups operators into 3 primitive functions, and emits CUDA TIR kernel code.",
     },
     {
       kind: "complex",
@@ -347,23 +568,27 @@ export const tvmRelayGraphLowering: AlgorithmDefinition<TvmRelayGraphLoweringInp
   },
   topicGuide: {
     overview:
-      "Apache TVM bridges high-level deep learning frameworks (PyTorch, TensorFlow, ONNX) with diverse hardware backends (CPUs, GPUs, embedded ARM, microcontrollers). Its multi-level Intermediate Representation (IR) architecture separates functional graph optimizations in Relay IR from imperative hardware schedule transformations in Tensor IR (TIR).",
+      "Apache TVM bridges deep learning frameworks (PyTorch, TensorFlow, ONNX) with diverse hardware backends (CPUs, GPUs, ARM NPUs). Its two-level Intermediate Representation (IR) stack separates high-level functional graph semantics from low-level hardware loop schedules.",
     sections: [
       {
-        heading: "Core Concepts & Two-Level IR Stack (Relay & TIR)",
-        body: "TVM employs a two-tier IR design: Relay IR is a functional language representing high-level dataflow DAGs with static/dynamic shapes and type inference. TIR (Tensor Intermediate Representation) is an imperative loop AST representing explicit memory buffers, iteration domains, thread indices, and vector instructions.",
+        heading: "Why It Exists",
+        body: "Deep learning models expressed in high-level frameworks carry framework-specific abstractions and unoptimized memory layouts. Compiling directly to assembly without intermediate representation leads to brittle, hardware-bound code generation. TVM's two-level IR architecture allows graph-level transformations in Relay IR before lowering to loop-level optimizations in TIR.",
       },
       {
-        heading: "Layout Transformation Passes (NCHW to NCHWc)",
-        body: "Standard NCHW memory layouts perform poorly on vector SIMD hardware due to non-contiguous channel memory accesses. The `AlterOpLayout` pass transforms $N \\times C \\times H \\times W$ into packed blocked layouts $N \\times \\lfloor C/v \\rfloor \\times H \\times W \\times v$ (such as `NCHW8c` or `NCHW16c`), aligning channel blocks directly with 256-bit AVX2 or 512-bit AVX-512 vector registers.",
+        heading: "What It Solves",
+        body: "TVM solves memory stride inefficiencies and kernel dispatch overheads. Blocked tensor layouts (`NCHW8c`: $[B, C/8, H, W, 8]$) guarantee contiguous memory access for vector SIMD instructions (AVX-512, NEON), while `FuseOps` collapses multiple Relay expressions into single imperative TIR loop kernels.",
       },
       {
-        heading: "Implementation Nuances & FuseOps Compiler Pass",
-        body: "The `FuseOps` pass groups Relay expression nodes into four primitive function categories: `kInjective` (elementwise 1-to-1), `kBroadcast`, `kOutElemFused` (fused reductions), and `kOpaque` (unfusable ops like convolutions). Fused groups are compiled as single TIR function primitives.",
+        heading: "Step-by-Step Intuition",
+        body: "The compiler pass executes three sequential transformations: First, `AlterOpLayout` inspects tensor shapes and splits channel dimensions $C \\to \\lfloor C/v \\rfloor \\times v$. Second, `FuseOps` scans adjacent expression nodes to group them into primitive function AST boundaries. Third, the TIR code generator emits imperative C++ or CUDA code for each primitive group.",
       },
       {
-        heading: "Auto-Tuning with MetaSchedule & Edge Hardware",
-        body: "TVM uses machine learning search engines (AutoTVM and MetaSchedule) to automatically explore space transformations—tile sizes, loop unrolling, thread binding, and vectorization factors—benchmarking thousands of candidate TIR schedules on actual target hardware.",
+        heading: "Trade-offs & Systems Impact",
+        body: "Blocked layouts require explicit packing (`LayoutTransform`) and unpacking tensors at input/output boundaries. If a neural network graph contains frequent layout changes, packing overhead can outweigh vectorization gains. Compilers perform layout propagation analysis to minimize packing steps.",
+      },
+      {
+        heading: "Complexity & Scalability",
+        body: "Relay graph lowering operates in linear $\\mathcal{O}(N)$ time relative to node count $N$. Generated TIR AST memory footprint scales linearly $\\mathcal{O}(N)$.",
       },
     ],
     keyTerms: [
@@ -380,12 +605,12 @@ export const tvmRelayGraphLowering: AlgorithmDefinition<TvmRelayGraphLoweringInp
       {
         term: "AlterOpLayout (NCHWc)",
         definition:
-          "TVM compiler pass packing tensor dimensions into vector-aligned sub-blocks for maximum SIMD instruction throughput.",
+          "TVM compiler pass packing tensor dimensions into vector-aligned sub-blocks ($C \\to \\lfloor C/v \\rfloor \\times v$) for maximum SIMD instruction throughput.",
       },
       {
-        term: "MetaSchedule Auto-Tuner",
+        term: "FuseOps Pass",
         definition:
-          "ML-driven search framework automatically discovering optimal low-level hardware loop schedules for TIR functions.",
+          "Compiler pass grouping functional Relay IR nodes into primitive function boundaries for TIR generation.",
       },
     ],
   },

@@ -12,22 +12,19 @@ describe("quickSort algorithm spec", () => {
 
   it("should generate steps with call stack auxiliary state and sort default input correctly", () => {
     const steps = generateQuickSortSteps(quickSort.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
-    // Check that auxiliaryState.stack is populated in recursive steps
     const hasStackFrames = steps.some(
       (step) => step.auxiliaryState.stack && step.auxiliaryState.stack.length > 0,
     );
     expect(hasStackFrames).toBe(true);
 
-    // Check that pivot state is used in partition steps
     const hasPivotState = steps.some((step) => {
       const snap = step.primarySnapshot as ArrayVisualSnapshot;
       return snap.elements.some((el) => el.state === "pivot");
     });
     expect(hasPivotState).toBe(true);
 
-    // Check final step
     const lastStep = steps[steps.length - 1];
     expect(lastStep.codeLine).toBe(1);
 
@@ -39,26 +36,38 @@ describe("quickSort algorithm spec", () => {
     });
   });
 
-  it("should handle single element input", () => {
+  it("should handle single element input (>= 20 steps)", () => {
     const steps = generateQuickSortSteps([10]);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.elements.map((e) => e.value)).toEqual([10]);
   });
 
-  it("should handle empty input", () => {
+  it("should handle empty input (>= 20 steps)", () => {
     const steps = generateQuickSortSteps([]);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.elements).toEqual([]);
   });
 
-  it("should handle array with duplicate elements", () => {
+  it("should handle array with duplicate elements (>= 20 steps)", () => {
     const steps = generateQuickSortSteps([4, 2, 4, 1]);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.elements.map((e) => e.value)).toEqual([1, 2, 4, 4]);
+  });
+
+  it("maps every code line in lineExplanations", () => {
+    const meta = quickSort.trivia;
+    const lines = quickSort.code.split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    }
   });
 });

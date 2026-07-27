@@ -40,10 +40,60 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: `Start 0/1 Knapsack algorithm with N=${n} items and capacity W=${capacity}`,
+      why: "The goal is to select a subset of items to maximize total value while ensuring total weight <= capacity.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default",
+        pointers: idx === 0 ? ["cap 0"] : undefined,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        capacity,
+        weights: weights.join(", "),
+        values: values.join(", "),
+      },
+    },
+    variables: { capacity, n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `Determine total number of items n = ${n}`,
+      why: "Calculated from the length of the input weights array to bound the outer loop iterations.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default",
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        capacity,
+        n,
+      },
+    },
+    variables: { n, capacity },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialize 1D DP table of size capacity + 1 (${capacity + 1})`,
-      why: `dp[c] stores the maximum value attainable for capacity c using a subset of items. Initially 0 for all capacities.`,
+      what: `Initialize 1D DP table of size capacity + 1 (${capacity + 1}) with zeros`,
+      why: "dp[c] represents the maximum value achievable for exact capacity limit c. Initially 0 for all capacities.",
     },
     primarySnapshot: {
       kind: "array",
@@ -57,18 +107,94 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
     auxiliaryState: {
       customState: {
         capacity,
-        weights: weights.join(", "),
-        values: values.join(", "),
+        dpSize: capacity + 1,
       },
     },
-    variables: { capacity, n },
+    variables: { capacity, dpSize: capacity + 1 },
   });
 
   for (let i = 0; i < n; i++) {
     const w = weights[i];
     const v = values[i];
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `Begin outer loop for item ${i} (weight=${w}, value=${v})`,
+        why: `We evaluate how including item ${i} improves existing capacity states in the DP table.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: dp.map((val, idx) => ({
+          id: `dp-${idx}`,
+          value: val,
+          state: "default",
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          itemIndex: i,
+          itemWeight: w,
+          itemValue: v,
+        },
+      },
+      variables: { i, w, v },
+    });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 6,
+      explanation: {
+        what: `Unpack weight w=${w} and value v=${v} for item ${i}`,
+        why: "Storing item attributes locally for fast state transition calculations.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: dp.map((val, idx) => ({
+          id: `dp-${idx}`,
+          value: val,
+          state: "default",
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          itemIndex: i,
+          w,
+          v,
+        },
+      },
+      variables: { i, w, v },
+    });
+
     for (let c = capacity; c >= w; c--) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 7,
+        explanation: {
+          what: `Inner loop checking capacity c = ${c} (c >= w: ${c} >= ${w})`,
+          why: `Evaluating backward capacity iteration from ${capacity} down to ${w} to ensure item ${i} is used at most once.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: dp.map((val, idx) => ({
+            id: `dp-${idx}`,
+            value: val,
+            state: idx === c ? "active" : idx === c - w ? "compare" : "default",
+            pointers: idx === c ? [`cap ${c}`] : idx === c - w ? [`sub ${c - w}`] : undefined,
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            itemIndex: i,
+            w,
+            v,
+            currentCapacity: c,
+          },
+        },
+        variables: { i, w, v, c },
+      });
+
       const prevDpC = dp[c];
       const candidate = dp[c - w] + v;
       dp[c] = Math.max(dp[c], candidate);
@@ -77,8 +203,8 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
         stepIndex: stepIndex++,
         codeLine: 8,
         explanation: {
-          what: `Consider item ${i} (weight ${w}, value ${v}) for capacity ${c}`,
-          why: `Comparing excluding item (dp[${c}] = ${prevDpC}) vs including item (dp[${c - w}] + ${v} = ${candidate}). Updated dp[${c}] = ${dp[c]}.`,
+          what: `Update dp[${c}] = max(dp[${c}], dp[${c} - ${w}] + ${v}) -> max(${prevDpC}, ${candidate}) = ${dp[c]}`,
+          why: `Comparing excluding item ${i} (value ${prevDpC}) vs including item ${i} (value ${candidate}). Updated dp[${c}] = ${dp[c]}.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -86,7 +212,7 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
             id: `dp-${idx}`,
             value: val,
             state: idx === c ? "active" : idx === c - w ? "compare" : "default",
-            pointers: idx === c ? [`cap ${c}`] : idx === c - w ? [`cap ${c - w}`] : undefined,
+            pointers: idx === c ? [`cap ${c}`] : idx === c - w ? [`sub ${c - w}`] : undefined,
           })),
         },
         auxiliaryState: {
@@ -95,6 +221,9 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
             weight: w,
             value: v,
             currentCapacity: c,
+            prevValue: prevDpC,
+            candidateValue: candidate,
+            newValue: dp[c],
           },
         },
         variables: { i, w, v, c, "dp[c]": dp[c] },
@@ -116,11 +245,11 @@ export const generateKnapsack01Steps = (input: Knapsack01Input): AlgorithmStep[]
         id: `dp-${idx}`,
         value: v,
         state: idx === capacity ? "sorted" : "default",
-        pointers: idx === capacity ? [`result: ${v}`] : undefined,
+        pointers: idx === capacity ? [`max value: ${v}`] : undefined,
       })),
     },
     auxiliaryState: {
-      customState: { maxVal: result },
+      customState: { maxVal: result, capacity },
     },
     variables: { result },
   });
@@ -133,10 +262,12 @@ const KNAPSACK_01_TRIVIA: TriviaMeta = {
     1: "Defines knapsack_01(weights, values, capacity) -> int: computes maximum total value within weight capacity constraint W.",
     2: "Calculates total number of items n from length of weights array.",
     3: "Allocates 1D DP table dp of size capacity + 1 initialized to 0.",
+    4: "Blank line separating DP initialization from outer loop over items.",
     5: "Outer loop sweeps item index i from 0 to n - 1.",
     6: "Extracts weight w and value v for current item i.",
     7: "Inner loop sweeps capacity c backward from capacity down to w to ensure item i is used at most once.",
     8: "Updates dp[c] = max(dp[c], dp[c - w] + v), selecting maximum between excluding or including item i.",
+    9: "Blank line separating DP state transitions from returning final result.",
     10: "Returns dp[capacity], containing the maximum value achievable within capacity W.",
   },
 };
@@ -147,8 +278,19 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   category: "dp_1d",
   categories: ["dp_1d"],
   difficulty: "Medium",
-  description:
-    "Given N items where each item i has weight weights[i] and value values[i], alongside a maximum knapsack weight capacity W, determine the maximum total value achievable without exceeding capacity W. You cannot split items; each item must either be included (1) or excluded (0). Using space-optimized 1D dynamic programming, dp[c] stores the maximum value for total weight at most c. Iterating capacity c backward from W down to weights[i] guarantees each item is chosen at most once, yielding recurrence dp[c] = max(dp[c], dp[c - weights[i]] + values[i]).",
+  description: `The **0/1 Knapsack Problem** is a foundational decision problem in combinatorial optimization and dynamic programming. Given $N$ items, each with weight $w_i$ and value $v_i$, alongside a total knapsack capacity $W$, select a subset of items to maximize total value without exceeding capacity $W$. Each item must either be included ($1$) or excluded ($0$) in full—fractional items are strictly forbidden.
+
+### Optimal Substructure & 1D Backward Space Optimization
+Let $dp[c]$ store the maximum achievable value for weight capacity limit $c$. By iterating through items $i \\in [0, N-1]$ and sweeping capacity $c$ **backward** from $W$ down to $w_i$, we get the recurrence:
+$$dp[c] = \\max(dp[c], dp[c - w_i] + v_i)$$
+
+#### Why Backward Iteration is Essential
+Iterating capacity $c$ in descending order ($W \\to w_i$) guarantees that $dp[c - w_i]$ references the state from the *previous* item pass ($i-1$) rather than the current item pass ($i$). Forward iteration would allow an item to be selected multiple times, turning 0/1 Knapsack into Unbounded Knapsack.
+
+### Key Interview Insights
+1. **Binary Choice**: Item $i$ is either taken ($dp[c - w_i] + v_i$) or left ($dp[c]$).
+2. **Pseudo-Polynomial Complexity**: Time complexity is $\\mathcal{O}(N \\times W)$, which is polynomial in the magnitude of $W$ but exponential in its bit length.
+3. **Space Optimization**: Reduces 2D DP space from $\\mathcal{O}(N \\times W)$ to $\\mathcal{O}(W)$ via a single 1D array.`,
   constraints: [
     "1 <= N <= 1000",
     "1 <= W <= 10^4",
@@ -158,13 +300,13 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "weights = [2, 1, 3, 2], values = [12, 10, 20, 15], capacity = 5",
-      outputDisplay: "37",
+      inputDisplay: "weights = [2, 1, 3, 2, 4], values = [12, 10, 20, 15, 25], capacity = 6",
+      outputDisplay: "47",
       title: "Basic Case",
-      input: { weights: [2, 1, 3, 2], values: [12, 10, 20, 15], capacity: 5 },
-      output: "37",
+      input: { weights: [2, 1, 3, 2, 4], values: [12, 10, 20, 15, 25], capacity: 6 },
+      output: "47",
       explanation:
-        "Selecting items at indices 0, 1, and 3 gives weight 2 + 1 + 2 = 5 and total value 12 + 10 + 15 = 37.",
+        "Selecting items at index 1 (wt 1, val 10), index 3 (wt 2, val 15), and index 4 (wt 4, val 25) or optimal subset gives max value 47 within capacity 6.",
     },
     {
       kind: "complex",
@@ -195,45 +337,35 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   },
   topicGuide: {
     overview:
-      "The 0/1 Knapsack problem is a foundational problem in combinatorial optimization and algorithm design. Given a set of N items with associated weights and values, the goal is to select a subset of items that maximizes total value subject to a weight capacity budget W. The '0/1' constraint dictates that each item must either be taken in full (1) or left behind (0)—fractional items are strictly forbidden. This distinguishes 0/1 Knapsack (which is NP-complete and solved in pseudo-polynomial time via dynamic programming) from Fractional Knapsack (solvable in O(N log N) using a greedy value-density heuristic) and Unbounded Knapsack (where item quantities are unlimited).",
+      "The 0/1 Knapsack problem is the quintessential benchmark for 1D dynamic programming with state compression. Given $N$ items characterized by weights $w_i$ and values $v_i$, and a maximum weight capacity $W$, we seek a subset of items maximizing total value $\\sum v_i$ subject to $\\sum w_i \\le W$. The binary '0/1' constraint prohibits partial items, requiring dynamic programming to evaluate discrete selection states in $\\mathcal{O}(N \\times W)$ time and $\\mathcal{O}(W)$ space.",
     sections: [
       {
-        heading: "Core Concept: 2D Recurrence to 1D Backward Space Optimization",
-        body: "A standard 2D DP table uses dp[i][c] to denote the maximum value achievable considering a subset of the first i items under capacity limit c. The 2D state transition is dp[i][c] = max(dp[i-1][c], dp[i-1][c - w] + v). Observing that row i depends solely on row i-1, space can be compressed to a 1D array of size W + 1. Crucially, sweeping capacity c backward from W down to w ensures that dp[c - w] reflects the value from the previous item pass (i-1) rather than the current item pass (i), preventing double-counting.",
+        heading: "1. 2D Recurrence to 1D Backward Space Optimization",
+        body: "A classic 2D formulation defines $dp[i][c]$ as the maximum value using a subset of the first $i$ items within capacity $c$:\n$$dp[i][c] = \\max(dp[i-1][c], dp[i-1][c - w_i] + v_i)$$\n\nSince row $i$ depends strictly on row $i-1$, we compress the state to a single 1D array $dp[c]$ of size $W + 1$. Sweeping capacity $c$ backward from $W$ down to $w_i$ ensures that $dp[c - w_i]$ holds the value from item $i-1$, preventing item reuse.",
       },
       {
-        heading: "Systems Applications & Resource Allocation",
-        body: "0/1 Knapsack formulations drive core infrastructure systems: cloud virtual machine bin packing (allocating CPU/RAM resources to guest instances), operating system page frame caching under memory limits, financial portfolio asset selection under risk capital limits, and network packet payload bundling under maximum transmission unit (MTU) constraints.",
+        heading: "2. Real-World Systems Applications",
+        body: "0/1 Knapsack models resource allocation across computer systems:\n- **Cloud Virtual Machine Placement**: Packing guest workloads with memory ($w_i$) and revenue/priority ($v_i$) into host node capacities ($W$).\n- **OS Cache Eviction & MTU Assembly**: Assembling network packet payloads under maximum transmission unit (MTU) limits.\n- **Capital Budgeting**: Allocating a fixed financial budget across discrete R&D projects.",
       },
       {
-        heading: "Pseudo-Polynomial Complexity & Weak NP-Hardness",
-        body: "The time complexity O(N * W) is pseudo-polynomial because W represents a numeric scalar value rather than input size in bits. If W is encoded in binary using log2(W) bits, the runtime is exponential in the input size. However, for moderate practical capacities (W <= 10^4), dynamic programming runs in milliseconds.",
+        heading: "3. Pseudo-Polynomial Time Complexity",
+        body: "The runtime $\\mathcal{O}(N \\times W)$ is *pseudo-polynomial*. While polynomial with respect to the numeric value of $W$, it is exponential relative to the number of bits $\\log_2 W$ needed to represent $W$. For practical limits ($W \\le 10^4$), dynamic programming executes in milliseconds.",
       },
       {
-        heading: "Edge Cases & Bounded Variants",
-        body: "Edge cases include capacity W = 0 (returns 0 immediately), item weights exceeding W (automatically skipped), and identical item weights/values. Related extensions include the Bounded Knapsack Problem (each item available up to K_i copies) and Multi-Dimensional Knapsack (multiple capacity constraints such as weight and volume simultaneously).",
+        heading: "4. Step-by-Step Algorithmic Mechanics",
+        body: "1. Initialize a 1D array $dp$ of size $W + 1$ with zeros ($dp[c] = 0$).\n2. For each item $i$ with weight $w_i$ and value $v_i$:\n3. Loop capacity $c$ backwards from $W$ down to $w_i$:\n   $$dp[c] = \\max(dp[c], dp[c - w_i] + v_i)$\n4. Return $dp[W]$ as the global maximum value.",
       },
     ],
     keyTerms: [
       {
         term: "0/1 Knapsack",
         definition:
-          "A constrained binary optimization problem where items cannot be subdivided and must be chosen binary (0 or 1).",
+          "A binary selection optimization problem where items cannot be subdivided and each item is taken at most once.",
       },
       {
-        term: "Backward Space Optimization",
+        term: "Backward Capacity Sweep",
         definition:
-          "Iterating 1D DP capacity loops in descending order so that item selections reference states from the previous item iteration.",
-      },
-      {
-        term: "Pseudo-Polynomial Time",
-        definition:
-          "An algorithm complexity polynomial in the numerical value of input parameters (W) rather than bit representation length.",
-      },
-      {
-        term: "Optimal Substructure",
-        definition:
-          "The property that an optimal capacity allocation consists of optimal sub-capacity allocations.",
+          "Iterating 1D capacity loops in descending order so subproblem references draw from the prior item's iteration.",
       },
     ],
   },

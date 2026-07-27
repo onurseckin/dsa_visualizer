@@ -1,8 +1,13 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, GridCellNode } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface col2imGradAccumulatorInput {
-  data: number[];
+  d_cols?: number[][];
+  image_shape?: [number, number];
+  kernel_size?: [number, number];
+  stride?: number;
+  padding?: number;
+  data?: number[];
   target?: number;
 }
 
@@ -35,10 +40,19 @@ export const COL2IMGRADACCUMULATOR_CODE = `def col2im_grad_accumulator(d_cols, i
                     k_idx += 1
             col_idx += 1
 
-    return d_image
-`;
+    return d_image`;
 
 export const DEFAULT_COL2IMGRADACCUMULATOR_INPUT: col2imGradAccumulatorInput = {
+  d_cols: [
+    [1.0, 1.0, 1.0, 1.0],
+    [0.5, 0.5, 0.5, 0.5],
+    [0.5, 0.5, 0.5, 0.5],
+    [1.0, 1.0, 1.0, 1.0],
+  ],
+  image_shape: [3, 3],
+  kernel_size: [2, 2],
+  stride: 1,
+  padding: 0,
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
@@ -48,99 +62,293 @@ export const generateCol2imGradAccumulatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const image_shape = input.image_shape || [3, 3];
+  const kernel_size = input.kernel_size || [2, 2];
+  const stride = input.stride ?? 1;
+  const padding = input.padding ?? 0;
+
+  const [h_in, w_in] = image_shape;
+  const [k_h, k_w] = kernel_size;
+
+  const h_out = Math.floor((h_in + 2 * padding - k_h) / stride) + 1;
+  const w_out = Math.floor((w_in + 2 * padding - k_w) / stride) + 1;
+
+  const num_cols = h_out * w_out;
+  const num_k = k_h * k_w;
+
+  const d_cols = input.d_cols || Array.from({ length: num_k }, () => Array(num_cols).fill(1.0));
+
+  const d_image: number[][] = Array.from({ length: h_in }, () => Array(w_in).fill(0));
+
+  const createGrid = (
+    activeIr: number = -1,
+    activeIc: number = -1,
+  ): GridCellNode[][] => {
+    return d_image.map((row, r) =>
+      row.map((val, c) => {
+        let state: "default" | "active" | "compare" | "visited" = "default";
+        if (r === activeIr && c === activeIc) {
+          state = "active";
+        } else if (val > 0) {
+          state = "visited";
+        }
+        return {
+          row: r,
+          col: c,
+          state,
+          distance: val,
+        };
+      }),
+    );
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeIr: number = -1,
+    activeIc: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "grid",
+        grid: createGrid(activeIr, activeIc),
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "Gradient Accumulation Map",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          "Image Shape": `${h_in} x ${w_in}`,
+          "Kernel Shape": `${k_h} x ${k_w}`,
+          "Output Spatial Shape": `${h_out} x ${w_out}`,
+          "d_cols Shape": `${num_k} x ${num_cols}`,
+          "d_image Grid": `[${d_image.map((r) => `[${r.map((v) => v.toFixed(1)).join(", ")}]`).join(", ")}]`,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
     "Initialize col2im Gradient Accumulator",
-    "Setting up execution data structures and spatial gradient accumulation buffers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    `Started col2im spatial gradient accumulation on ${h_in}x${w_in} image tensor from ${num_k}x${num_cols} unrolled column gradient matrix.`,
+    { h_in, w_in, k_h, k_w, h_out, w_out, stride, padding },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      21,
-      `Accumulate patch gradient at index ${idx}: value = ${val}`,
-      `Scattering and summing unrolled patch gradients into spatial image coordinates.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
+  // Step 2: Extract image_shape
   addStep(
-    25,
+    9,
+    "Extract Image Spatial Dimensions",
+    `Original input image spatial dimensions: h_in = ${h_in}, w_in = ${w_in}.`,
+    { h_in, w_in },
+  );
+
+  // Step 3: Extract kernel_size
+  addStep(
+    10,
+    "Extract Kernel Filter Dimensions",
+    `Convolution filter kernel dimensions: k_h = ${k_h}, k_w = ${k_w}.`,
+    { k_h, k_w },
+  );
+
+  // Step 4: Calculate h_out
+  addStep(
+    11,
+    "Calculate Output Height Dimension",
+    `Output feature height h_out = (${h_in} + 2 * ${padding} - ${k_h}) // ${stride} + 1 = ${h_out}.`,
+    { h_out, h_in, k_h, stride, padding },
+  );
+
+  // Step 5: Calculate w_out
+  addStep(
+    12,
+    "Calculate Output Width Dimension",
+    `Output feature width w_out = (${w_in} + 2 * ${padding} - ${k_w}) // ${stride} + 1 = ${w_out}.`,
+    { w_out, w_in, k_w, stride, padding },
+  );
+
+  // Step 6: Allocate d_image
+  addStep(
+    14,
+    "Allocate Image Gradient Buffer d_image",
+    `Created ${h_in}x${w_in} zero-initialized spatial gradient matrix.`,
+    { h_in, w_in },
+  );
+
+  // Step 7: Init col_idx
+  let col_idx = 0;
+  addStep(
+    16,
+    "Initialize Unrolled Column Pointer col_idx = 0",
+    `Set column index pointer col_idx = 0.`,
+    { col_idx },
+  );
+
+  for (let r = 0; r < h_out; r++) {
+    addStep(
+      17,
+      `Outer Output Row Loop: r = ${r}`,
+      `Scanning output feature map row r = ${r} of ${h_out - 1}.`,
+      { r, h_out },
+    );
+
+    for (let c = 0; c < w_out; c++) {
+      addStep(
+        18,
+        `Inner Output Column Loop: c = ${c}`,
+        `Scanning output column c = ${c} (col_idx = ${col_idx}).`,
+        { r, c, col_idx },
+      );
+
+      let k_idx = 0;
+      addStep(
+        19,
+        `Reset Kernel Flattened Tap Index k_idx = 0`,
+        `Initialized kernel tap index k_idx = 0 for column col_idx = ${col_idx}.`,
+        { r, c, col_idx, k_idx },
+      );
+
+      for (let kr = 0; kr < k_h; kr++) {
+        addStep(
+          20,
+          `Kernel Row Loop: kr = ${kr}`,
+          `Scanning kernel row kr = ${kr} of ${k_h - 1}.`,
+          { r, c, kr },
+        );
+
+        for (let kc = 0; kc < k_w; kc++) {
+          addStep(
+            21,
+            `Kernel Col Loop: kc = ${kc}`,
+            `Scanning kernel column kc = ${kc} of ${k_w - 1}.`,
+            { r, c, kr, kc, k_idx },
+          );
+
+          const ir = r * stride + kr - padding;
+          addStep(
+            22,
+            `Map Image Row Index: ir = ${ir}`,
+            `Evaluated ir = ${r} * ${stride} + ${kr} - ${padding} = ${ir}.`,
+            { r, stride, kr, padding, ir },
+          );
+
+          const ic = c * stride + kc - padding;
+          addStep(
+            23,
+            `Map Image Column Index: ic = ${ic}`,
+            `Evaluated ic = ${c} * ${stride} + ${kc} - ${padding} = ${ic}.`,
+            { c, stride, kc, padding, ic },
+          );
+
+          const inside = ir >= 0 && ir < h_in && ic >= 0 && ic < w_in;
+          addStep(
+            24,
+            `Check Boundary: (${ir}, ${ic}) inside image? ${inside}`,
+            `Verified spatial bounds: 0 <= ${ir} < ${h_in} and 0 <= ${ic} < ${w_in} -> ${inside}.`,
+            { ir, ic, h_in, w_in, inside },
+            ir,
+            ic,
+          );
+
+          if (inside) {
+            const gradVal = d_cols[k_idx]?.[col_idx] ?? 0.0;
+            d_image[ir][ic] += gradVal;
+
+            addStep(
+              26,
+              `Accumulate Gradient: d_image[${ir}][${ic}] += d_cols[${k_idx}][${col_idx}] (${gradVal})`,
+              `Accumulated column gradient ${gradVal} into image coordinate (${ir}, ${ic}). Total accumulated gradient: ${d_image[ir][ic].toFixed(1)}.`,
+              { ir, ic, k_idx, col_idx, gradVal, newGradSum: d_image[ir][ic] },
+              ir,
+              ic,
+            );
+          }
+
+          k_idx += 1;
+          addStep(
+            27,
+            `Increment Kernel Tap Index: k_idx = ${k_idx}`,
+            `Advanced k_idx to ${k_idx}.`,
+            { k_idx },
+          );
+        }
+      }
+
+      col_idx += 1;
+      addStep(
+        28,
+        `Increment Column Index: col_idx = ${col_idx}`,
+        `Advanced unrolled column pointer col_idx to ${col_idx}.`,
+        { col_idx },
+      );
+    }
+  }
+
+  // Step final
+  addStep(
+    30,
     "Execution Complete",
-    "Successfully accumulated all column gradients into original image tensor layout.",
-    { completed: true },
-    finalElements,
+    `Finished col2im gradient accumulation across ${h_in}x${w_in} spatial image tensor.`,
+    { completed: true, h_in, w_in },
   );
 
   return steps;
 };
 
 const COL2IMGRADACCUMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 15, 25, 29],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "d_image[ir][ic] = d_cols[k_idx][col_idx]",
+    "col_idx = r * w_out + c",
+    "d_image[ir][ic] *= d_cols[k_idx][col_idx]",
+    "h_out = (h_in - k_h) // stride",
   ],
   hints: [
     {
-      line: 21,
-      hint: "Accumulate gradient values using atomic addition for overlapping receptive fields.",
+      line: 26,
+      hint: "Use += to accumulate gradients because overlapping receptive fields share input pixels.",
+    },
+    {
+      line: 22,
+      hint: "Image row index equation: ir = r * stride + kr - padding.",
     },
   ],
   lineExplanations: {
-    1: "Defines entry point for col2im Gradient Accumulator.",
-    21: "Accumulates unrolled column patch gradients back to spatial coordinates.",
-    25: "Returns spatial activation gradient matrix.",
+    1: "Defines entry point for col2im gradient accumulator function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes gradient accumulation from unrolled column matrix back into 2D image tensor.",
+    4: "Docstring continuation tag.",
+    5: "Docstring parameter detail for d_cols shape (K_h * K_w, H_out * W_out).",
+    6: "Docstring parameter detail for image_shape tuple (H_in, W_in).",
+    7: "Docstring closing delimiter tag.",
+    8: "Blank line before shape extraction.",
+    9: "Unpacks height h_in and width w_in from image_shape tuple.",
+    10: "Unpacks height k_h and width k_w from kernel_size tuple.",
+    11: "Calculates spatial output height h_out using integer division floor.",
+    12: "Calculates spatial output width w_out using integer division floor.",
+    13: "Blank line before gradient image buffer allocation.",
+    14: "Allocates spatial gradient matrix d_image of shape h_in x w_in filled with zero floats.",
+    15: "Blank line before column index initialization.",
+    16: "Initializes unrolled patch column index pointer col_idx to zero.",
+    17: "Iterates over output feature map row index r from 0 to h_out - 1.",
+    18: "Iterates over output feature map column index c from 0 to w_out - 1.",
+    19: "Resets kernel tap index k_idx to zero for current unrolled patch column.",
+    20: "Iterates over convolution kernel row index kr from 0 to k_h - 1.",
+    21: "Iterates over convolution kernel column index kc from 0 to k_w - 1.",
+    22: "Calculates spatial image row index ir = r * stride + kr - padding.",
+    23: "Calculates spatial image column index ic = c * stride + kc - padding.",
+    24: "Checks if spatial coordinate (ir, ic) lies within original input image bounds.",
+    25: "Comment explaining gradient addition for overlapping receptive field positions.",
+    26: "Accumulates patch gradient d_cols[k_idx][col_idx] into image gradient tensor d_image[ir][ic].",
+    27: "Increments kernel tap index k_idx by 1 for next filter weight position.",
+    28: "Increments unrolled column index col_idx by 1 for next output spatial position.",
+    29: "Blank line separating accumulation loops from return statement.",
+    30: "Returns final accumulated 2D spatial image gradient matrix d_image.",
   },
 };
 
@@ -148,95 +356,82 @@ export const col2imGradAccumulator: AlgorithmDefinition<col2imGradAccumulatorInp
   id: "col2imGradAccumulator",
   title: "col2im Gradient Accumulator",
   category: "ml_convolutions",
-  categories: ["ml_convolutions", "ml_hardware_kernels"],
+  categories: ["ml_convolutions", "ml_autograd_dags"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 8,
   mlInfraCategory: "ml_convolutions",
   description:
-    "During the backward pass of a 2D convolution layer in automatic differentiation frameworks (PyTorch, cuDNN, Caffe), the gradient with respect to input activations is computed by taking the output gradient matrix d_out and multiplying by transposed filter weights W^T. This produces an unrolled patch gradient matrix d_cols. The `col2im` accumulator performs the adjoint (transpose) operation of `im2col` by scattering and accumulating overlapping patch gradients back into the original 2D feature map shape.\n\nInput Format:\n- d_cols: Unrolled gradient matrix of shape [K_h * K_w, H_out * W_out].\n- image_shape: Tuple (H_in, W_in) of target activation map.\n- kernel_size: Convolution kernel dimensions (K_h, K_w).\n- stride: Spatial stride step.\n- padding: Zero-padding applied at edges.\n\nOutput Format:\n- d_image: Accumulated spatial activation gradient matrix of shape [H_in, W_in].\n\nEdge Cases & Constraints:\n- Overlapping pixel gradients: Multiple patch entries map to identical input coordinates, requiring atomic addition (`atomicAdd` on GPU).\n- Strided gaps: Pixels skipped by stride > 1 receive zero gradient updates from skipped locations.\n- Padded boundary elements: Gradients falling inside zero-padding regions are discarded.",
-  constraints: ["1 <= H_in, W_in <= 1024", "1 <= K_h, K_w <= H_in, W_in", "stride >= 1"],
+    "The **`col2im`** (column-to-image) transformation is the mathematical transpose (adjoint) of the `im2col` matrix unrolling operation. In automatic differentiation (backpropagation) for 2D convolutions, the gradient w.r.t. input activations $\\frac{\\partial L}{\\partial X}$ is computed by transposing the unrolled GEMM gradient matrix $\\frac{\\partial L}{\\partial X_{col}}$ and accumulating back into spatial image coordinates.\n\n### Why It Exists\nBecause overlapping receptive fields (when stride $S < K$) read the same input activation pixel multiple times during the forward pass, multivariable calculus (the chain rule) dictates that their incoming backpropagated gradients must be **summed** (accumulated via `+=`) at that spatial coordinate.\n\n### Mathematical Formulation\nGiven unrolled gradient matrix $\\frac{\\partial L}{\\partial X_{col}} \\in \\mathbb{R}^{(K_h \\cdot K_w) \\times (H_{out} \\cdot W_{out})}$, spatial image shape $(H_{in}, W_{in})$, and output position indices $(r, c)$, each unrolled column index $col \\in [0, H_{out}W_{out}-1]$ maps to spatial image coordinates:\n\n$$ir = r \\cdot S + kr - P, \\quad ic = c \\cdot S + kc - P$$\n\n$$\\frac{\\partial L}{\\partial X[ir, ic]} += \\frac{\\partial L}{\\partial X_{col}[k_{idx}, col_{idx}]}$$\n\n### Step-by-Step Intuition\n1. **Zero-Buffer Allocation**: Create a zero-initialized gradient matrix $\\nabla X \\in \\mathbb{R}^{H_{in} \\times W_{in}}$.\n2. **Unrolled Column Loop**: Iterate through each unrolled patch column $col_{idx}$ corresponding to output feature pixel $(r, c)$.\n3. **Kernel Tap Mapping**: For each kernel weight tap $k_{idx} = kr \\cdot K_w + kc$, calculate original spatial coordinate $(ir, ic)$.\n4. **Atomic Accumulation**: If $(ir, ic)$ is valid, add $\\nabla X_{col}[k_{idx}, col_{idx}]$ into $\\nabla X[ir, ic]$.\n\n### Key Trade-Offs & Hardware Execution\n- **Atomic GPU Operations**: In parallel CUDA kernels (e.g. PyTorch `col2im_cuda`), multiple thread blocks trying to write to overlapping spatial pixels $(ir, ic)$ cause write conflicts. High-performance kernels use `atomicAdd()` in DRAM or SRAM shared memory to guarantee deterministic gradient accumulation.\n- **Transposed Conv Equivalence**: `col2im` is functionally identical to the spatial scatter phase of transposed convolution.",
+  constraints: [
+    "1 <= H_in, W_in <= 512",
+    "1 <= K_h, K_w <= 11",
+    "1 <= stride <= 8",
+    "padding >= 0",
+  ],
   examples: [
     {
       kind: "basic",
-      title: "2x2 Receptive Field Accumulation",
-      inputDisplay: "d_cols = [4, 9], image_shape = (3, 3), kernel = 2x2",
-      outputDisplay: "d_image = 3x3 matrix with accumulated patch sums",
-      input: { data: [10, 20, 30, 40, 50], target: 30 },
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Scatters 4 column gradients into overlapping 3x3 input activation pixels.",
-    },
-    {
-      kind: "complex",
-      title: "Strided Gradient Accumulation",
-      inputDisplay: "d_cols = [9, 4], image_shape = (5, 5), stride = 2",
-      outputDisplay: "d_image = 5x5 matrix with sparse non-zero updates",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Accumulates gradients at strided steps, leaving skipped pixels untouched.",
-    },
-    {
-      kind: "negative",
-      title: "Boundary Padding Truncation",
-      inputDisplay: "d_cols = [4, 4], image_shape = (2, 2), padding = 1",
-      outputDisplay: "Padding gradients dropped, valid 2x2 accumulated",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Gradients corresponding to padded zero boundary elements are safely discarded.",
+      title: "3x3 Image Gradient Accumulation",
+      inputDisplay: "Image 3x3, Kernel 2x2, Stride 1",
+      outputDisplay: "3x3 Accumulated Gradient Matrix",
+      input: DEFAULT_COL2IMGRADACCUMULATOR_INPUT,
+      output: "3x3 Accumulated Spatial Gradient Matrix",
+      explanation: "Accumulates unrolled 4x4 column gradients back into 3x3 spatial image layout.",
     },
   ],
   code: COL2IMGRADACCUMULATOR_CODE,
   timeComplexity: {
-    best: "O(H_{out} W_{out} K^2)",
-    average: "O(H_{out} W_{out} K^2)",
-    worst: "O(H_{out} W_{out} K^2)",
+    best: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
+    average: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
+    worst: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
   },
-  spaceComplexity: "O(H_{in} W_{in})",
+  spaceComplexity: "O(H_{in} \\cdot W_{in})",
   complexityAnalysis: {
-    time: "Iterates through all unrolled patch gradient entries, taking O(H_{out} W_{out} K^2) additions.",
-    space: "Requires O(H_{in} W_{in}) DRAM memory to hold the accumulated input gradient buffer.",
+    time: "Linear in total number of unrolled matrix elements $O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)$.",
+    space: "Requires $O(H_{in} \\cdot W_{in})$ memory for spatial image gradient storage.",
   },
   topicGuide: {
     overview:
-      "The col2im Gradient Accumulator implements the transpose/adjoint transformation of im2col, accumulating unrolled patch gradients back into 2D spatial feature map shapes during backpropagation.",
+      "The **col2im Gradient Accumulator** transforms unrolled column gradient matrices $\\frac{\\partial L}{\\partial X_{col}}$ back into 2D spatial image gradient tensors $\\frac{\\partial L}{\\partial X}$ during neural network backpropagation.",
     sections: [
       {
-        heading: "Core Concepts & Transpose Adjoint Math",
-        body: "Because im2col is a linear operator y = A*x, its adjoint during automatic differentiation requires evaluating dx = A^T * dy. This means each element dy[kr, kc, r_out, c_out] adds to dx[r_out*stride + kr, c_out*stride + kc]. Because sliding windows overlap, multiple gradient components contribute to a single spatial coordinate.",
+        heading: "1. Core Concept & Multivariable Chain Rule",
+        body: "During convolution backpropagation, input activations $X$ that contribute to multiple sliding windows receive multiple gradient paths. The multivariable chain rule requires summing incoming gradients:\n$$\\frac{\\partial L}{\\partial X[ir, ic]} = \\sum_{\\text{overlapping windows}} \\frac{\\partial L}{\\partial X_{col}[k_{idx}, col_{idx}]}$$",
       },
       {
-        heading: "Systems & Hardware Kernel Performance",
-        body: "On GPUs, col2im requires atomic additions (`atomicAdd`) when threads processing different spatial patches attempt to write to shared spatial memory locations concurrently. To maximize throughput, high-performance C++/CUDA kernels (e.g. cuDNN) use shared memory reduction buffers or tiled warp-level accumulation to reduce DRAM atomic contention.",
+        heading: "2. Systems & Memory Hierarchy Performance",
+        body: "In CUDA kernels, `col2im` presents a scatter-add memory write pattern. Because multiple GPU threads write to adjacent spatial locations concurrently, atomic addition (`atomicAdd`) in L2 cache or SRAM shared memory is required to avoid race conditions.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Strided convolutions leave unvisited gaps in activation space during backpropagation. Padding requires masking out boundary updates so gradients do not leak out of bounds. Multi-channel tensors (NCHW / NHWC) process channels independently in parallel, requiring proper stride offset indexing.",
+        heading: "3. Implementation Nuances & GEMM Adjoints",
+        body: "Forward pass: $Y_{col} = W \\cdot X_{col}$ via `im2col`.\nBackward pass: $\\nabla X_{col} = W^T \\cdot \\nabla Y$, followed by $\\nabla X = \\text{col2im}(\\nabla X_{col})$. This mathematical symmetry grounds modern deep learning autograd engines.",
       },
       {
-        heading: "Edge Cases & Production Safeguards",
-        body: "Edge cases include atomic race conditions, float16 rounding degradation during multi-term addition, and zero-stride broadcasting. Production kernels use float32 accumulation registers even when inputs are stored in float16/bfloat16 precision.",
+        heading: "4. Edge Case Analysis & Production Safeguards",
+        body: "Strided and padded convolutions require exact boundary masking ($0 \\le ir < H_{in}$ and $0 \\le ic < W_{in}$) to drop gradients corresponding to zero-padded border pixels.",
       },
     ],
     keyTerms: [
       {
-        term: "col2im Operator",
+        term: "col2im",
         definition:
-          "Algorithmic reverse of im2col that maps 2D unrolled column gradients back into 2D/3D spatial tensor shapes.",
+          "Column-to-Image spatial gradient reconstruction algorithm accumulating unrolled GEMM matrices back into image tensors.",
       },
       {
-        term: "Adjoint Transformation",
+        term: "Gradient Accumulation (+=)",
         definition:
-          "The mathematical transpose of a linear operator used to compute input gradients during autograd backward pass.",
+          "Summing gradients across overlapping receptive fields required by the multivariable chain rule.",
       },
       {
-        term: "Atomic Accumulation",
+        term: "Adjoint Operation",
         definition:
-          "Thread-safe addition instruction (`atomicAdd`) ensuring correct accumulation when parallel threads update overlapping pixels.",
+          "The linear transpose operation executed during backpropagation to reverse forward matrix unrolling.",
       },
       {
-        term: "Overlapping Gradient Scatter",
+        term: "Atomic Addition",
         definition:
-          "The process of scattering gradient terms from overlapping receptive field patches to shared spatial indices.",
+          "CUDA hardware instruction (atomicAdd) ensuring thread-safe gradient accumulation in GPU memory.",
       },
     ],
   },

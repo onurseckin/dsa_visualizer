@@ -11,6 +11,7 @@ export const DEFAULT_KTH_LARGEST_INPUT: KthLargestInput = {
 const KTH_LARGEST_ELEMENT_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Imports the heap module, which backs every min-heap operation this algorithm relies on.",
+    2: "Blank line separating module import from function definition.",
     3: "Defines the function that returns the Kth largest value from an unsorted array.",
     4: "Starts an empty min-heap that will be capped at size k, holding only the k largest values seen so far.",
     5: "Processes every number exactly once, in a single left-to-right pass.",

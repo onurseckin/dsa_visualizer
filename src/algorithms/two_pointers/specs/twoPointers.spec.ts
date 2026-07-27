@@ -11,50 +11,67 @@ describe("twoPointers algorithm spec", () => {
     expect(twoPointers.spaceComplexity).toBe("O(1)");
   });
 
-  it("should generate valid steps and find target for default input", () => {
+  it("should generate valid steps and find target for default input (>= 20 steps)", () => {
     const steps = generateTwoPointersSteps(twoPointers.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     const snap = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.kind).toBe("array");
 
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.currentSum).toBe(12);
-    expect(lastStep.variables.left).toBe(1);
-    expect(lastStep.variables.right).toBe(3);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return window bounds"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.left).toBe(1);
+    expect(returnStep?.variables.right).toBe(3);
+    expect(returnStep?.variables.currentSum).toBe(12);
   });
 
-  it("should handle empty input array", () => {
+  it("should handle empty input array with >= 20 steps", () => {
     const steps = generateTwoPointersSteps({ array: [], target: 5 });
-    expect(steps.length).toBe(2);
-    expect(steps[1].variables.left).toBe(-1);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return [-1, -1]"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.left).toBe(-1);
   });
 
-  it("should return [-1, -1] when target is not found", () => {
+  it("should return [-1, -1] when target is not found (>= 20 steps)", () => {
     const steps = generateTwoPointersSteps({ array: [1, 2, 3], target: 100 });
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.left).toBe(-1);
-    expect(lastStep.variables.right).toBe(-1);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return [-1, -1]"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.left).toBe(-1);
+    expect(returnStep?.variables.right).toBe(-1);
   });
 
-  it("should handle single element matching target", () => {
+  it("should handle single element matching target (>= 20 steps)", () => {
     const steps = generateTwoPointersSteps({ array: [5], target: 5 });
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.left).toBe(0);
-    expect(lastStep.variables.right).toBe(0);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return window bounds"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.left).toBe(0);
+    expect(returnStep?.variables.right).toBe(0);
   });
 
   it("should shrink window from the left when sum exceeds target", () => {
     const steps = generateTwoPointersSteps({ array: [10, 1, 2], target: 3 });
-    const shrinkStep = steps.find((s) => s.explanation.what.includes("Shrink the window"));
+    const shrinkStep = steps.find((s) => s.explanation.what.includes("Shrink window"));
     expect(shrinkStep).toBeDefined();
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.variables.left).toBe(1);
-    expect(lastStep.variables.right).toBe(2);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return window bounds"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.left).toBe(1);
+    expect(returnStep?.variables.right).toBe(2);
+  });
+
+  it("maps every code line in lineExplanations", () => {
+    const meta = twoPointers.trivia;
+    const lines = twoPointers.code.split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    }
   });
 });

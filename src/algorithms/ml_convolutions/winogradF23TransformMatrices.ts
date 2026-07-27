@@ -1,13 +1,14 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface winogradF23TransformMatricesInput {
-  tile: number[][];
-  kernel: number[][];
+  tile?: number[][];
+  kernel?: number[][];
+  data?: number[];
+  target?: number;
 }
 
-export const WINOGRADF23TRANSFORMMATRICES_CODE = `
-def winograd_f23_transforms(input_tile_4x4, kernel_3x3):
+export const WINOGRADF23TRANSFORMMATRICES_CODE = `def winograd_f23_transforms(input_tile_4x4, kernel_3x3):
     """
     Winograd F(2x2, 3x3) Minimal Filtering Transform Matrices.
     Computes transformed matrices for fast 2D convolution:
@@ -84,51 +85,19 @@ export const generateWinogradF23TransformMatricesSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const tile = input.tile;
-  const kernel = input.kernel;
+  const tile = input.tile || [
+    [1, 2, 1, 0],
+    [0, 1, 2, 1],
+    [2, 1, 0, 1],
+    [1, 0, 1, 2],
+  ];
 
-  const flatTile = tile.flatMap((r) => r);
-  const elements: ArrayElement[] = flatTile.map((val, idx) => ({
-    id: `tile-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const kernel = input.kernel || [
+    [1, 0, 1],
+    [0, 1, 0],
+    [1, 0, 1],
+  ];
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customState?: Record<string, string>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({ ...el })),
-      },
-      auxiliaryState: {
-        customState: {
-          tileSize: "4x4",
-          kernelSize: "3x3",
-          outputTileSize: "2x2",
-          ...customState,
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize Winograd F(2x2, 3x3) Transform Matrices",
-    "Setting up minimal filtering transform matrices B_T (4x4), G (4x3), and A_T (2x4).",
-    { inputRows: 4, inputCols: 4, kernelRows: 3, kernelCols: 3 },
-  );
-
-  // Helper matmul
   const matmul = (M1: number[][], M2: number[][]): number[][] => {
     const r1 = M1.length;
     const c1 = M1[0].length;
@@ -152,7 +121,7 @@ export const generateWinogradF23TransformMatricesSteps = (
     [0.0, -1.0, 1.0, 0.0],
     [0.0, 1.0, 0.0, -1.0],
   ];
-  const B = BT[0].map((_, colIdx) => BT.map((row) => row[colIdx]));
+  const B = BT[0].map((_, colIndex) => BT.map((row) => row[colIndex]));
 
   const G = [
     [1.0, 0.0, 0.0],
@@ -160,81 +129,318 @@ export const generateWinogradF23TransformMatricesSteps = (
     [0.5, -0.5, 0.5],
     [0.0, 0.0, 1.0],
   ];
-  const GT = G[0].map((_, colIdx) => G.map((row) => row[colIdx]));
+  const GT = G[0].map((_, colIndex) => G.map((row) => row[colIndex]));
 
   const AT = [
     [1.0, 1.0, 1.0, 0.0],
     [0.0, 1.0, -1.0, -1.0],
   ];
-  const A = AT[0].map((_, colIdx) => AT.map((row) => row[colIdx]));
+  const A = AT[0].map((_, colIndex) => AT.map((row) => row[colIndex]));
 
-  // Step 1: U = G @ kernel @ GT
-  const U = matmul(matmul(G, kernel), GT);
+  const getSnapshot = (
+    matrix: number[][],
+    titleStr: string,
+    activeR: number = -1,
+    activeC: number = -1,
+  ): MatrixVisualSnapshot => {
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const state = r === activeR && c === activeC ? "active" : "default";
+        cells.push({
+          row: r,
+          col: c,
+          value: matrix[r][c],
+          label: `[${r},${c}]`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows,
+      cols,
+      title: titleStr,
+      cells,
+    };
+  };
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    matrix: number[][],
+    titleStr: string,
+    activeR: number = -1,
+    activeC: number = -1,
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: getSnapshot(matrix, titleStr, activeR, activeC),
+      auxiliaryState: {
+        customState: {
+          "Algorithm": "Winograd F(2x2, 3x3)",
+          "Data Tile": "4x4 Input",
+          "Filter Kernel": "3x3 Weight",
+          "FLOP Reduction": "2.25x (36 mults -> 16 mults)",
+        },
+      },
+      variables,
+    });
+  };
+
+  // Step 1: Entry
   addStep(
-    40,
-    "Transform 3x3 Filter into Winograd Domain U = G @ g @ G_T",
-    "Transformed 3x3 filter kernel into 4x4 Winograd domain matrix U.",
-    { uRows: 4, uCols: 4 },
-    { UMatrix: `U = [${U.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
+    10,
+    "Winograd F(2x2, 3x3) Transform Matrices Entry",
+    "Starting Winograd F(2x2, 3x3) fast convolution transform pipeline.",
+    { tile_rows: tile.length, tile_cols: tile[0].length, k_rows: kernel.length, k_cols: kernel[0].length },
+    tile,
+    "Input Data Tile d (4x4)",
   );
 
-  // Step 2: V = BT @ tile @ B
-  const V = matmul(matmul(BT, tile), B);
+  // Step 2: Define BT
   addStep(
-    43,
-    "Transform 4x4 Data Tile into Winograd Domain V = B_T @ d @ B",
-    "Transformed 4x4 input data tile into 4x4 Winograd domain matrix V.",
-    { vRows: 4, vCols: 4 },
-    { VMatrix: `V = [${V.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
+    21,
+    "Construct Data Transform Matrix B_T (4x4)",
+    "Loaded Winograd data transform transposed matrix B_T.",
+    { B_T_rows: 4, B_T_cols: 4 },
+    BT,
+    "Winograd Data Transform Matrix B_T (4x4)",
   );
 
-  // Step 3: M = U * V
+  // Step 3: Define B
+  addStep(
+    27,
+    "Construct Data Transform Matrix B (4x4)",
+    "Transposed B_T to yield data transform matrix B.",
+    { B_rows: 4, B_cols: 4 },
+    B,
+    "Winograd Data Transform Matrix B (4x4)",
+  );
+
+  // Step 4: Define G
+  addStep(
+    29,
+    "Construct Filter Transform Matrix G (4x3)",
+    "Loaded Winograd filter transform matrix G for 3x3 kernel mapping to 4x4 domain.",
+    { G_rows: 4, G_cols: 3 },
+    G,
+    "Winograd Filter Transform Matrix G (4x3)",
+  );
+
+  // Step 5: Define GT
+  addStep(
+    35,
+    "Construct Filter Transform Matrix G_T (3x4)",
+    "Transposed G to yield filter transform transposed matrix G_T.",
+    { G_T_rows: 3, G_T_cols: 4 },
+    GT,
+    "Winograd Filter Transform Matrix G_T (3x4)",
+  );
+
+  // Step 6: Define AT
+  addStep(
+    37,
+    "Construct Inverse Transform Matrix A_T (2x4)",
+    "Loaded Winograd inverse transform transposed matrix A_T for mapping 4x4 domain back to 2x2 output.",
+    { A_T_rows: 2, A_T_cols: 4 },
+    AT,
+    "Winograd Inverse Transform Matrix A_T (2x4)",
+  );
+
+  // Step 7: Define A
+  addStep(
+    41,
+    "Construct Inverse Transform Matrix A (4x2)",
+    "Transposed A_T to yield inverse transform matrix A.",
+    { A_rows: 4, A_cols: 2 },
+    A,
+    "Winograd Inverse Transform Matrix A (4x2)",
+  );
+
+  // Step 8: Filter transform step 1
+  const G_g = matmul(G, kernel);
+  addStep(
+    53,
+    "Filter Transform Step 1: Compute G @ g (4x3)",
+    "Multiplied filter transform matrix G (4x3) by 3x3 kernel g.",
+    { G_g_rows: 4, G_g_cols: 3 },
+    G_g,
+    "Intermediate Filter Matrix G @ g (4x3)",
+  );
+
+  // Step 9: Filter transform step 2 (U)
+  const U = matmul(G_g, GT);
+  addStep(
+    53,
+    "Filter Transform Step 2: Compute U = (G @ g) @ G_T (4x4)",
+    "Completed 2D filter transform U in Winograd domain.",
+    { U_rows: 4, U_cols: 4 },
+    U,
+    "Transformed Filter Matrix U (4x4)",
+  );
+
+  // Step 10: Data transform step 1
+  const BT_d = matmul(BT, tile);
+  addStep(
+    56,
+    "Data Transform Step 1: Compute B_T @ d (4x4)",
+    "Multiplied data transform matrix B_T (4x4) by 4x4 input data tile d.",
+    { BT_d_rows: 4, BT_d_cols: 4 },
+    BT_d,
+    "Intermediate Data Matrix B_T @ d (4x4)",
+  );
+
+  // Step 11: Data transform step 2 (V)
+  const V = matmul(BT_d, B);
+  addStep(
+    56,
+    "Data Transform Step 2: Compute V = (B_T @ d) @ B (4x4)",
+    "Completed 2D data transform V in Winograd domain.",
+    { V_rows: 4, V_cols: 4 },
+    V,
+    "Transformed Data Matrix V (4x4)",
+  );
+
+  // Step 12: Hadamard product M elementwise (16 individual steps)
   const M: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
       M[i][j] = U[i][j] * V[i][j];
+      addStep(
+        59,
+        `Hadamard Elementwise Product M[${i}][${j}] = U[${i}][${j}] * V[${i}][${j}]`,
+        `Multiplied transformed filter cell U[${i}][${j}] (${U[i][j].toFixed(2)}) by data cell V[${i}][${j}] (${V[i][j].toFixed(2)}) -> ${M[i][j].toFixed(2)}.`,
+        { i, j, "U[i][j]": U[i][j], "V[i][j]": V[i][j], "M[i][j]": M[i][j] },
+        M,
+        "Domain Elementwise Multiplication Matrix M (4x4)",
+        i,
+        j,
+      );
     }
   }
+
+  // Step 13: Inverse transform step 1
+  const AT_M = matmul(AT, M);
   addStep(
-    46,
-    "Elementwise Hadamard Product M = U (*) V",
-    "Computed 16 point-wise scalar multiplications in Winograd domain.",
-    { mElems: 16 },
-    { MMatrix: `M = [${M.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
+    62,
+    "Inverse Transform Step 1: Compute A_T @ M (2x4)",
+    "Multiplied inverse transform matrix A_T (2x4) by domain matrix M (4x4).",
+    { AT_M_rows: 2, AT_M_cols: 4 },
+    AT_M,
+    "Intermediate Inverse Matrix A_T @ M (2x4)",
   );
 
-  // Step 4: Y = AT @ M @ A
-  const Y = matmul(matmul(AT, M), A);
+  // Step 14: Inverse transform step 2 (Y)
+  const Y = matmul(AT_M, A);
   addStep(
-    49,
-    "Inverse Spatial Transform Y = A_T @ M @ A & Complete",
-    "Projected 4x4 Winograd domain matrix back to 2x2 output spatial feature tile.",
-    { completed: true, yRows: 2, yCols: 2 },
-    { YMatrix: `Y = [${Y.map((r) => "[" + r.join(",") + "]").join(", ")}]` },
+    62,
+    "Output Inverse Spatial Transform: Compute Y = (A_T @ M) @ A (2x2)",
+    "Completed inverse Winograd transform, generating 2x2 output convolution spatial activation patch.",
+    { Y_rows: 2, Y_cols: 2, Y_00: Y[0][0], Y_01: Y[0][1], Y_10: Y[1][0], Y_11: Y[1][1] },
+    Y,
+    "Final Winograd Output Patch Y (2x2)",
+  );
+
+  // Final step
+  addStep(
+    64,
+    "Execution Complete: Output Inverse Spatial Transform Verified",
+    "Successfully computed Winograd F(2x2, 3x3) minimal filtering transform. Reduced multiplications from 36 down to 16.",
+    { completed: true, FLOP_reduction: "2.25x" },
+    Y,
+    "Final Winograd Output Patch Y (2x2)",
   );
 
   return steps;
 };
 
 const WINOGRADF23TRANSFORMMATRICES_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["U = kernel @ G", "Y = M @ A", "if tile.shape != (3,3): raise Exception()"],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 28, 36, 42, 51],
+  distractors: [
+    "M = matmul(U, V)",
+    "U = G @ g @ G",
+    "Y = A @ M @ AT",
+    "BT = [[1, 1, 1, 1], [0, 1, 1, 0]]",
+  ],
   hints: [
     {
-      line: 40,
-      hint: "Filter transform matrix G (4x3) expands the 3x3 filter into a 4x4 Winograd domain matrix.",
+      line: 53,
+      hint: "Filter transform matrix formula: U = G @ g @ G_T.",
     },
     {
-      line: 46,
-      hint: "Winograd minimal filtering replaces 36 spatial multiplications with 16 elementwise products.",
+      line: 56,
+      hint: "Data tile transform matrix formula: V = B_T @ d @ B.",
+    },
+    {
+      line: 59,
+      hint: "Winograd domain multiplication is elementwise Hadamard product M = U (*) V.",
     },
   ],
   lineExplanations: {
-    1: "Entry point for Winograd F(2x2, 3x3) transform matrices algorithm.",
-    40: "Filter transformation step U = G @ g @ G_T.",
-    43: "Data tile transformation step V = B_T @ d @ B.",
-    46: "Elementwise Hadamard multiplication step M = U (*) V.",
-    49: "Inverse spatial transformation step Y = A_T @ M @ A and output return.",
+    10: "Defines entry point for Winograd F(2x2, 3x3) minimal filtering transform matrices function.",
+    11: "Docstring opening delimiter tag.",
+    12: "Describes Winograd F(2x2, 3x3) fast 2D convolution algorithm.",
+    13: "Docstring step 1 detailing filter transform U = G @ g @ G_T.",
+    14: "Docstring step 2 detailing data transform V = B_T @ d @ B.",
+    15: "Docstring step 3 detailing Hadamard elementwise product M = U (*) V.",
+    16: "Docstring step 4 detailing inverse transform Y = A_T @ M @ A.",
+    17: "Docstring note highlighting 2.25x FLOP multiplication reduction from 36 down to 16.",
+    18: "Docstring closing delimiter tag.",
+    19: "Comment for F(2x2, 3x3) fixed transform matrices.",
+    21: "Constructs 4x4 data transform transposed matrix B_T.",
+    22: "Row 0 of B_T: [1.0, 0.0, -1.0, 0.0].",
+    23: "Row 1 of B_T: [0.0, 1.0, 1.0, 0.0].",
+    24: "Row 2 of B_T: [0.0, -1.0, 1.0, 0.0].",
+    25: "Row 3 of B_T: [0.0, 1.0, 0.0, -1.0].",
+    26: "Closes B_T matrix definition.",
+    27: "Transposes B_T to form 4x4 data transform matrix B.",
+    28: "Blank line before filter transform matrix definition.",
+    29: "Constructs 4x3 filter transform matrix G.",
+    30: "Row 0 of G: [1.0, 0.0, 0.0].",
+    31: "Row 1 of G: [0.5, 0.5, 0.5].",
+    32: "Row 2 of G: [0.5, -0.5, 0.5].",
+    33: "Row 3 of G: [0.0, 0.0, 1.0].",
+    34: "Closes G matrix definition.",
+    35: "Transposes G to form 3x4 filter transform transposed matrix G_T.",
+    36: "Blank line before inverse transform matrix definition.",
+    37: "Constructs 2x4 inverse transform transposed matrix A_T.",
+    38: "Row 0 of A_T: [1.0, 1.0, 1.0, 0.0].",
+    39: "Row 1 of A_T: [0.0, 1.0, -1.0, -1.0].",
+    40: "Closes A_T matrix definition.",
+    41: "Transposes A_T to form 4x2 inverse transform matrix A.",
+    42: "Blank line before matmul helper function.",
+    43: "Defines helper function matmul for 2D matrix multiplication.",
+    44: "Extracts row and column counts of M1.",
+    45: "Extracts column count of M2.",
+    46: "Allocates result matrix of shape r1 x c2 filled with zeros.",
+    47: "Iterates over row index i from 0 to r1 - 1.",
+    48: "Iterates over column index j from 0 to c2 - 1.",
+    49: "Computes dot product sum of row M1[i] and column M2[:, j].",
+    50: "Returns computed matrix multiplication result res.",
+    51: "Blank line before Step 1 Filter Transform.",
+    52: "Comment for Step 1: Filter transform U = G @ g @ G_T.",
+    53: "Computes 4x4 transformed filter matrix U = G @ kernel_3x3 @ G_T.",
+    54: "Blank line before Step 2 Data Transform.",
+    55: "Comment for Step 2: Data transform V = B_T @ d @ B.",
+    56: "Computes 4x4 transformed data tile matrix V = B_T @ input_tile_4x4 @ B.",
+    57: "Blank line before Step 3 Hadamard Product.",
+    58: "Comment for Step 3: Domain elementwise multiplication M = U (*) V.",
+    59: "Computes 4x4 Hadamard elementwise product matrix M = U (*) V.",
+    60: "Blank line before Step 4 Inverse Transform.",
+    61: "Comment for Step 4: Output inverse transform Y = A_T @ M @ A.",
+    62: "Computes 2x2 final output spatial activation patch Y = A_T @ M @ A.",
+    63: "Blank line separating transform pipeline from return statement.",
+    64: "Returns final 2x2 output convolution spatial patch Y.",
+    65: "Blank line at end of file.",
   },
 };
 
@@ -249,75 +455,69 @@ export const winogradF23TransformMatrices: AlgorithmDefinition<winogradF23Transf
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "Winograd Minimal Filtering F(2x2, 3x3) is a fast domain transformation algorithm that computes a 2x2 output tile using a 3x3 convolution kernel applied to a 4x4 input tile. Standard 2D direct convolution requires 2 * 2 * 3 * 3 = 36 floating-point multiplications per tile. Winograd minimal filtering uses pre-calculated transformation matrices B_T (data transform), G (kernel transform), and A_T (inverse output transform) to reduce the required multiplications down to 4 * 4 = 16. This yields a theoretical 2.25x reduction in multiplications (36 / 16 = 2.25), significantly increasing GEMM arithmetic throughput in modern deep learning accelerators (e.g. cuDNN, ARM Compute Library).\n\nInput Format:\n- tile: 4x4 matrix representing spatial input tile d.\n- kernel: 3x3 matrix representing filter kernel g.\n\nOutput Format:\n- Returns a 2x2 output feature matrix Y.\n\nEdge Cases & Constraints:\n- Exact matrix dimensions: Requires input tile dimension 4x4 and kernel dimension 3x3 for F(2x2, 3x3).\n- Numerical precision trade-off: Constant additions in B_T and G can accumulate floating-point rounding errors in FP16/INT8 precision.",
-    constraints: ["tile shape must be exactly 4x4", "kernel shape must be exactly 3x3"],
+      "Winograd Minimal Filtering F(2x2, 3x3) is a fast algorithm for computing 2D spatial convolutions with $3 \\times 3$ kernels. By mapping spatial $4 \\times 4$ data tiles $d$ and $3 \\times 3$ filter kernels $g$ into a transformed Winograd domain via fixed matrix operators $B_T, G, A_T$, Winograd converts spatial 2D sliding window convolutions into element-wise matrix multiplications (Hadamard products), achieving a **2.25x reduction in floating-point multiplications** (from 36 down to 16 multiplications per $2 \\times 2$ output tile).\n\n### Why It Exists\nIn deep convolutional networks (such as ResNet and VGG), $3 \\times 3$ convolutions account for over 80% of total compute time. Direct spatial sliding window evaluation requires $K_h \\cdot K_w \\cdot H_{out} \\cdot W_{out} = 3 \\cdot 3 \\cdot 2 \\cdot 2 = 36$ scalar multiplications for a $2 \\times 2$ output block. Winograd F(2, 3) computes the exact same $2 \\times 2$ output block with only 16 multiplications, dramatically increasing GPU compute throughput.\n\n### Mathematical Formulation\nWinograd F(2x2, 3x3) operates on $4 \\times 4$ input tiles $d$ and $3 \\times 3$ filter kernels $g$ using fixed transform matrices:\n\n$$U = G \\, g \\, G^T \\quad (4 \\times 4 \\text{ Transformed Filter})$$\n\n$$V = B^T \\, d \\, B \\quad (4 \\times 4 \\text{ Transformed Data Tile})$$\n\n$$M = U \\odot V \\quad (4 \\times 4 \\text{ Elementwise Hadamard Product})$$\n\n$$Y = A^T \\, M \\, A \\quad (2 \\times 2 \\text{ Final Output Spatial Patch})$$\n\nwhere constant transform matrices are:\n\n$$B^T = \\begin{bmatrix} 1 & 0 & -1 & 0 \\\\ 0 & 1 & 1 & 0 \\\\ 0 & -1 & 1 & 0 \\\\ 0 & 1 & 0 & -1 \\end{bmatrix}, \\quad G = \\begin{bmatrix} 1 & 0 & 0 \\\\ 1/2 & 1/2 & 1/2 \\\\ 1/2 & -1/2 & 1/2 \\\\ 0 & 0 & 1 \\end{bmatrix}, \\quad A^T = \\begin{bmatrix} 1 & 1 & 1 & 0 \\\\ 0 & 1 & -1 & -1 \\end{bmatrix}$$\n\n### Step-by-Step Intuition\n1. **Filter Pre-Transformation**: Transform 3x3 filter $g$ into 4x4 domain $U = G g G^T$. In inference engines (TensorRT, cuDNN), filter weights are pre-transformed offline ($O(1)$ runtime cost).\n2. **Tile Extraction**: Extract overlapping 4x4 input data tiles $d$ with stride $S=2$.\n3. **Data Transformation**: Map 4x4 tile $d$ into 4x4 domain $V = B^T d B$ using fast additions/subtractions.\n4. **Hadamard Multiplication**: Perform 16 scalar multiplications $M = U \\odot V$.\n5. **Inverse Transformation**: Convert 4x4 domain matrix $M$ back to $2 \\times 2$ spatial output $Y = A^T M A$.\n\n### Key Trade-Offs & Hardware Execution\n- **Numerical Stability**: Larger Winograd orders (e.g. F(4, 3) or F(6, 3)) suffer from numerical catastrophic cancellation in FP16 precision due to large scale factors in transform matrices. F(2, 3) is widely preferred in production cuDNN for FP16/FP32 stability.\n- **Arithmetic Intensity**: Pre-transforming $U$ offline leaves only 16 multiplications per tile, transforming compute-bound convolutions into memory-bound additions.",
+    constraints: [
+      "Input tile size must be 4x4",
+      "Kernel size must be 3x3",
+      "Output patch size is 2x2",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Standard 4x4 Tile and 3x3 Kernel",
-        inputDisplay: "tile: 4x4, kernel: 3x3",
-        outputDisplay: "Output Tile: 2x2",
+        title: "Standard Winograd F(2x2, 3x3) Execution",
+        inputDisplay: "Tile 4x4, Kernel 3x3",
+        outputDisplay: "Output Y 2x2 matrix",
         input: DEFAULT_WINOGRADF23TRANSFORMMATRICES_INPUT,
-        output: "Matrix 2x2",
-        explanation:
-          "Computes fast Winograd convolution via transform domain matrices B_T, G, and A_T.",
+        output: "2x2 spatial output matrix",
+        explanation: "Transforms 4x4 tile and 3x3 kernel into 16 domain multiplications, producing exact 2x2 output.",
       },
     ],
     code: WINOGRADF23TRANSFORMMATRICES_CODE,
-    timeComplexity: {
-      best: "O(1)",
-      average: "O(1)",
-      worst: "O(1)",
-    },
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
     spaceComplexity: "O(1)",
     complexityAnalysis: {
-      time: "Performs exactly 16 elementwise multiplications and a small fixed set of additions per 2x2 tile.",
-      space: "Constant workspace memory allocation for 4x4 domain transformation matrices U, V, M.",
+      time: "Evaluates 16 domain multiplications and matrix additions for each 2x2 output tile, achieving a 2.25x reduction in scalar multiplications.",
+      space: "Requires O(1) auxiliary space for 4x4 intermediate domain matrices U, V, and M.",
     },
     topicGuide: {
       overview:
-        "Winograd F(2x2, 3x3) minimal filtering reduces floating-point multiplications by 2.25x using algebraic transform matrices B_T, G, and A_T.",
+        "Winograd F(2x2, 3x3) Minimal Filtering reduces floating-point multiplication counts by 2.25x for 3x3 2D spatial convolutions via domain transform operators.",
       sections: [
         {
-          heading: "Overview",
-          body: "Direct convolution for 3x3 filters requires 9 multiplications per output pixel. Shmuel Winograd proved that by mapping input and filter polynomials into a transform domain, 2x2 output tiles can be computed using only 16 multiplications instead of 36.",
+          heading: "Core Concept & Minimal Filtering Theory",
+          body: "Based on Toom-Cook polynomial interpolation, Winograd minimal filtering proves that computing F(m, r) outputs of size m with kernel size r requires m + r - 1 multiplications in 1D, or (m + r - 1)^2 in 2D. For F(2, 3), (2 + 3 - 1)^2 = 16 multiplications instead of 36.",
         },
         {
-          heading: "Core Concepts",
-          body: "1. Filter Transform U = G @ g @ G_T: Maps 3x3 kernel g into 4x4 domain matrix U.\n2. Data Transform V = B_T @ d @ B: Maps 4x4 input tile d into 4x4 domain matrix V.\n3. Hadamard Product M = U (*) V: 16 elementwise scalar multiplications.\n4. Inverse Transform Y = A_T @ M @ A: Maps 4x4 domain matrix M back to 2x2 spatial tile Y.",
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "In modern GPUs (cuDNN, TensorRT), filter weights U = G g G^T are pre-transformed once before inference. During runtime, data tiles V = B_T d B are transformed using fast SIMD additions (without multiplications), maximizing Tensor Core execution efficiency.",
         },
         {
-          heading: "Systems & Performance Impact",
-          body: "In high-throughput deep learning engines (cuDNN, TensorRT), filter transformation U is pre-computed offline prior to inference. The online latency depends only on fast addition transforms and 16 scalar products, yielding up to 2x real-world speedups on 3x3 CNN layers.",
+          heading: "Numerical Precision & Instability Trade-Offs",
+          body: "Winograd transform matrices contain fraction constants (1/2). While F(2, 3) maintains IEEE 754 precision, higher-order Winograd algorithms (e.g. F(6, 3)) incur severe numerical instability in FP16, restricting production adoption to F(2, 3) and F(4, 3).",
         },
         {
-          heading: "Implementation Nuances",
-          body: "B_T and G matrix entries contain simple constants (1, -1, 0.5). Matrix multiplications with B_T and G are implemented as fast add/subtract/shift SIMD instructions without hardware multiplication units.",
-        },
-        {
-          heading: "Edge Cases",
-          body: "Numerical instability for larger Winograd tiles (e.g. F(6x6, 3x3)), zero-padded boundary tiles, and batch multi-channel tensor tiling.",
+          heading: "Edge Cases & Tiling Strategies",
+          body: "Tiling non-divisible spatial feature maps requires edge zero-padding. Boundary tiles overlapping image borders are padded to 4x4 prior to Winograd domain transformation.",
         },
       ],
       keyTerms: [
         {
-          term: "Winograd Algorithm",
+          term: "Winograd Minimal Filtering",
           definition:
-            "Minimal filtering algorithm reducing multiplication FLOP count via polynomial transform domain math.",
+            "Fast convolution algorithm reducing scalar multiplication counts via polynomial domain interpolation.",
         },
         {
-          term: "Hadamard Product",
-          definition: "Elementwise matrix multiplication M = U (*) V.",
+          term: "Hadamard Product (\\odot)",
+          definition: "Element-wise matrix multiplication M_{ij} = U_{ij} \\cdot V_{ij}.",
         },
         {
-          term: "Transform Matrix G",
+          term: "Filter Pre-Transformation",
           definition:
-            "4x3 filter transformation matrix mapping 3x3 kernels into 4x4 Winograd domain.",
+            "Offline computation of U = G g G_T removing filter transformation overhead from runtime execution.",
         },
         {
-          term: "Transform Matrix B_T",
-          definition:
-            "4x4 data transformation matrix mapping 4x4 spatial tiles into 4x4 Winograd domain.",
+          term: "FLOP Reduction Factor",
+          definition: "Multiplication count ratio 36 / 16 = 2.25x for F(2x2, 3x3).",
         },
       ],
     },

@@ -1,13 +1,14 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface antiDiagonalExtractionInput {
   data: number[];
+  rows?: number;
+  cols?: number;
   target?: number;
 }
 
-export const ANTIDIAGONALEXTRACTION_CODE = `
-def anti_diagonal_extraction(matrix):
+export const ANTIDIAGONALEXTRACTION_CODE = `def anti_diagonal_extraction(matrix):
     """
     Extracts anti-diagonals (row + col = k) for wavefront parallel processing.
     """
@@ -22,11 +23,12 @@ def anti_diagonal_extraction(matrix):
             diag.append(matrix[r][c])
         diagonals.append(diag)
 
-    return diagonals
-`;
+    return diagonals`;
 
 export const DEFAULT_ANTIDIAGONALEXTRACTION_INPUT: antiDiagonalExtractionInput = {
-  data: [10, 20, 30, 40, 50],
+  data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  rows: 3,
+  cols: 4,
   target: 30,
 };
 
@@ -35,98 +37,243 @@ export const generateAntiDiagonalExtractionSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const numRows = Math.max(1, input.rows ?? 3);
+  const numCols = Math.max(1, input.cols ?? 4);
+  const totalElements = numRows * numCols;
+  const rawData =
+    input.data && input.data.length >= totalElements
+      ? input.data.slice(0, totalElements)
+      : Array.from({ length: totalElements }, (_, i) => i + 1);
+
+  // Construct 2D array representation
+  const matrix: number[][] = [];
+  for (let r = 0; r < numRows; r++) {
+    matrix.push(rawData.slice(r * numCols, (r + 1) * numCols));
+  }
+
+  const buildCells = (
+    activeDiagK?: number,
+    activeR?: number,
+    activeC?: number,
+    completedK: number[] = [],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const val = matrix[r][c];
+        const cellK = r + c;
+        let state: MatrixCellItem["state"] = "default";
+
+        if (completedK.includes(cellK)) {
+          state = "sorted";
+        } else if (r === activeR && c === activeC) {
+          state = "active";
+        } else if (cellK === activeDiagK) {
+          state = "compared";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: `(${r},${c}) k=${cellK}`,
+          state,
+        });
+      }
+    }
+    return cells;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeDiagK?: number,
+    activeR?: number,
+    activeC?: number,
+    completedK: number[] = [],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: numRows,
+        cols: numCols,
+        cells: buildCells(activeDiagK, activeR, activeC, completedK),
+        rowHeaders: Array.from({ length: numRows }, (_, i) => `Row ${i}`),
+        colHeaders: Array.from({ length: numCols }, (_, i) => `Col ${i}`),
+        title: "Anti-Diagonal Wavefront Matrix",
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          rows: String(numRows),
+          cols: String(numCols),
+          totalDiagonals: String(numRows + numCols - 1),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Init function
   addStep(
     1,
-    "Initialize Anti-Diagonal Matrix Traversal",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Initialize Anti-Diagonal Wavefront Matrix Traversal",
+    "Setting up execution data structures to slice matrix into parallel anti-diagonals (r + c = k).",
+    { rows: numRows, cols: numCols },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 2: Measure rows
+  addStep(
+    5,
+    "Extract Matrix Row Count",
+    `Measured rows = ${numRows}.`,
+    { rows: numRows },
+  );
+
+  // Step 3: Measure cols
+  addStep(
+    6,
+    "Extract Matrix Column Count",
+    `Measured cols = ${numCols}.`,
+    { cols: numCols },
+  );
+
+  // Step 4: Init diagonals list
+  addStep(
+    7,
+    "Initialize Wavefront Diagonals Container",
+    "Created empty list diagonals to accumulate extracted anti-diagonal arrays.",
+    { total_diagonals: numRows + numCols - 1 },
+  );
+
+  const completedK: number[] = [];
+  const maxK = numRows + numCols - 1;
+
+  for (let k = 0; k < maxK; k++) {
+    addStep(
+      9,
+      `Begin Wavefront Diagonal Step k = ${k}`,
+      `Iterating outer loop for anti-diagonal sum k = ${k} (range 0 to ${maxK - 1}).`,
+      { k, max_k: maxK - 1 },
+      k,
+    );
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in memory layout.`,
-      { idx, val, isTarget },
-      currentElements,
+      10,
+      `Initialize Storage for Anti-Diagonal k = ${k}`,
+      `Created empty list diag for wavefront step k = ${k}.`,
+      { k },
+      k,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    const rMin = Math.max(0, k - numCols + 1);
+    const rMax = Math.min(numRows, k + 1);
 
+    for (let r = rMin; r < rMax; r++) {
+      const c = k - r;
+      const val = matrix[r][c];
+
+      addStep(
+        11,
+        `Evaluate Row Index r = ${r} for Diagonal k = ${k}`,
+        `Valid row range for k=${k}: [${rMin}, ${rMax - 1}]. Currently processing row r = ${r}.`,
+        { k, r, r_min: rMin, r_max: rMax - 1 },
+        k,
+        r,
+        c,
+        completedK,
+      );
+
+      addStep(
+        12,
+        `Calculate Column Index c = ${k} - ${r} = ${c}`,
+        `Derived column coordinate c = ${c} (satisfying r + c = ${k}).`,
+        { k, r, c },
+        k,
+        r,
+        c,
+        completedK,
+      );
+
+      addStep(
+        13,
+        `Extract Element matrix[${r}][${c}] = ${val}`,
+        `Appended cell value ${val} at position (${r}, ${c}) into diagonal k = ${k}.`,
+        { k, r, c, val },
+        k,
+        r,
+        c,
+        completedK,
+      );
+    }
+
+    completedK.push(k);
+    addStep(
+      14,
+      `Finalize Wavefront Anti-Diagonal k = ${k}`,
+      `Completed anti-diagonal k = ${k}. Appended array to diagonals container. Total completed: ${completedK.length}/${maxK}.`,
+      { k, completed_diagonals: completedK.length },
+      undefined,
+      undefined,
+      undefined,
+      completedK,
+    );
+  }
+
+  // Return step
   addStep(
     16,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements,
+    "Return Wavefront Anti-Diagonals",
+    `Successfully extracted all ${maxK} parallel anti-diagonals across ${numRows}x${numCols} matrix.`,
+    { completed: true, total_diagonals: maxK },
+    undefined,
+    undefined,
+    undefined,
+    completedK,
   );
 
   return steps;
 };
 
 const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
-  skipLines: [],
+  skipLines: [2, 3, 4],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "for r in range(rows): diag.append(matrix[r][r])",
+    "c = r - k",
+    "for k in range(rows):",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
+  hints: [
+    {
+      line: 11,
+      hint: "The row bounds range(max(0, k - cols + 1), min(rows, k + 1)) restrict iteration strictly to valid grid coordinates.",
+    },
+    {
+      line: 12,
+      hint: "Column index is uniquely calculated as c = k - r because all elements on anti-diagonal k satisfy r + c = k.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines anti-diagonal matrix traversal function.",
-    4: "Extracts row count from input matrix structure.",
-    5: "Extracts column count, defaulting to 0 for empty matrix.",
-    8: "Iterates through total wavefront diagonal steps k from 0 to rows + cols - 2.",
-    10: "Iterates through valid row indices r for current diagonal k.",
-    11: "Calculates column index c = k - r.",
-    12: "Appends matrix[r][c] element to current anti-diagonal list.",
-    15: "Returns collected array of anti-diagonal slices.",
+    1: "Defines entry point for anti-diagonal matrix extraction function.",
+    2: "Starts docstring for anti-diagonal extraction function.",
+    3: "Describes extraction of wavefront parallel anti-diagonals where row + col = k.",
+    4: "Closes docstring for anti-diagonal extraction function.",
+    5: "Measures total row count M in input 2D matrix.",
+    6: "Measures column count N from first row, defaulting to 0 if matrix is empty.",
+    7: "Initializes empty list diagonals to store extracted wavefront anti-diagonal arrays.",
+    8: "Blank line before outer wavefront diagonal loop.",
+    9: "Iterates through diagonal wavefront index k from 0 up to rows + cols - 2.",
+    10: "Initializes empty temporary list diag for elements on current anti-diagonal k.",
+    11: "Iterates row index r over valid bounded range max(0, k - cols + 1) to min(rows, k + 1) - 1.",
+    12: "Calculates column index c = k - r for current anti-diagonal element.",
+    13: "Appends matrix[r][c] scalar value into current anti-diagonal array diag.",
+    14: "Appends collected anti-diagonal array diag to main diagonals list.",
+    15: "Blank line before return statement.",
+    16: "Returns final list of extracted wavefront anti-diagonal arrays.",
   },
 };
 
@@ -140,63 +287,67 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In dynamic programming, dynamic time warping (DTW), sequence alignment, and parallel matrix solvers, dependencies often run along row and column indices such that element (r, c) depends on (r-1, c) and (r, c-1). Consequently, all elements along anti-diagonal slices defined by r + c = k are mutually independent and can be executed concurrently in a single GPU wavefront step.\n\nThis algorithm implements Anti-Diagonal Matrix Traversal, extracting anti-diagonal slices from 2D tensor buffers to enable lock-free parallel execution across GPU thread blocks.\n\nInput Format:\n- data: Array of numerical elements representing a flattened or 2D matrix structure.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns an array of anti-diagonal slices containing elements ordered by wavefront step k.\n\nEdge Cases & Constraints:\n- Rectangular matrices where rows != cols.\n- Single row or single column matrices.\n- Empty input matrix buffers.",
+    "In dynamic programming, dynamic time warping (DTW), sequence alignment, and parallel matrix solvers (such as Floyd-Warshall or Smith-Waterman), dependencies run along row and column indices such that element $(r, c)$ depends on $(r-1, c)$ and $(r, c-1)$. Consequently, all elements along anti-diagonal slices defined by $r + c = k$ are mutually independent and can be executed concurrently in a single GPU wavefront step.\n\nThis algorithm extracts anti-diagonal slices from 2D tensor buffers, grouping matrix elements by wavefront step $k$. Executing entire anti-diagonals concurrently enables lock-free parallel execution across GPU thread blocks without write conflicts.\n\n### Problem Solved & ML Compiler Relevance\nOn GPU SIMT architectures, serial nested loops ($r, c$) introduce massive thread stall cycles when calculating recurrence relations. By transforming matrix iteration into diagonal sweeps ($k = 0, 1, \\dots, M+N-2$), all threads in a CUDA thread block or Triton kernel process cells on diagonal $k$ in parallel before barrier synchronizing (`__syncthreads()`) to move to step $k+1$.\n\n### Step-by-Step Execution\n1. **Dimension Extraction**: Determine rows $M$ and columns $N$.\n2. **Wavefront Loop**: Iterate diagonal index $k$ from $0$ to $M + N - 2$.\n3. **Coordinate Bounding**: Compute valid row range $r \\in [\\max(0, k - N + 1), \\min(M, k + 1))$.\n4. **Column Derivation**: For each valid $r$, derive column coordinate $c = k - r$ and extract $matrix[r][c]$.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Input Case",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "Processed Memory Layout",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Processes standard input tensor memory buffer cleanly.",
+      title: "Standard 3x4 Anti-Diagonal Extraction",
+      inputDisplay: "data = [1..12], rows = 3, cols = 4",
+      outputDisplay: "6 Diagonals: [[1], [2,5], [3,6,9], [4,7,10], [8,11], [12]]",
+      input: { data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], rows: 3, cols: 4 },
+      output: "[[1], [2, 5], [3, 6, 9], [4, 7, 10], [8, 11], [12]]",
+      explanation: "Extracts 6 parallel wavefront anti-diagonals from 3x4 matrix.",
     },
     {
       kind: "complex",
-      title: "Larger Data Buffer",
-      inputDisplay: "data = [10, 20, 30, 40, 50]",
-      outputDisplay: "Processed Memory Layout",
-      input: { data: [10, 20, 30, 40, 50] },
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Evaluates larger array with 5 tensor elements.",
+      title: "Square 3x3 Matrix Traversal",
+      inputDisplay: "data = [10..90], rows = 3, cols = 3",
+      outputDisplay: "5 Diagonals: [[10], [20,40], [30,50,70], [60,80], [90]]",
+      input: { data: [10, 20, 30, 40, 50, 60, 70, 80, 90], rows: 3, cols: 3 },
+      output: "[[10], [20, 40], [30, 50, 70], [60, 80], [90]]",
+      explanation: "Processes 3x3 matrix into 5 wavefront diagonal parallel sets.",
     },
     {
       kind: "negative",
-      title: "Edge Case Execution",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "Processed Memory Layout",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Edge case handling completes safely.",
+      title: "Single Row Matrix Edge Case",
+      inputDisplay: "data = [5, 10, 15, 20], rows = 1, cols = 4",
+      outputDisplay: "4 Diagonals: [[5], [10], [15], [20]]",
+      input: { data: [5, 10, 15, 20], rows: 1, cols: 4 },
+      output: "[[5], [10], [15], [20]]",
+      explanation: "A 1x4 matrix produces 4 single-element anti-diagonals.",
     },
   ],
   code: ANTIDIAGONALEXTRACTION_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(M * N)", average: "O(M * N)", worst: "O(M * N)" },
+  spaceComplexity: "O(M * N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "O(M * N) total operations visiting each matrix element exactly once.",
+    space: "O(M * N) memory storage for output anti-diagonal slices.",
   },
   topicGuide: {
     overview:
-      "Anti-diagonal extraction (also known as wavefront execution or diagonal sweep) is a fundamental pattern for parallelizing dynamic programming algorithms on SIMD/SIMT architectures. By organizing computation into independent diagonal waves (where r + c = constant k), GPU threads execute entire diagonals in parallel without encountering data races or write conflicts.",
+      "Anti-diagonal extraction (also known as wavefront execution or diagonal sweep) is a fundamental pattern for parallelizing dynamic programming algorithms on SIMD/SIMT architectures. By organizing computation into independent diagonal waves (where $r + c = k$), GPU threads execute entire diagonals in parallel without encountering data races or write conflicts.\n\nThis technique is heavily utilized in CUDA implementations of sequence alignment, tensor contraction recurrence algorithms, and dynamic time warping kernels.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, for an M x N matrix, there are M + N - 1 total anti-diagonals indexed by k in [0, M + N - 2]. For a given diagonal index k, valid row indices satisfy r in [max(0, k - N + 1), min(M - 1, k)]. The corresponding column index is uniquely determined by c = k - r.",
+        heading: "Why It Exists & Theoretical Foundations",
+        body: "In recurrence relations like $f(r, c) = g(f(r-1, c), f(r, c-1))$, evaluating cells row-by-row forces strictly serial execution because cell $(r, c)$ depends on its top and left neighbors. However, notice that cell $(r, c)$ depends only on cells with diagonal sum $k-1$. Therefore, all cells sharing the exact same diagonal index $k = r + c$ depend ONLY on cells from step $k-1$ and have ZERO dependencies on each other, enabling complete parallel execution across wavefront $k$.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a memory hierarchy perspective, anti-diagonal accesses do not naturally align with row-major memory layouts. Accessing elements along r + c = k across different rows causes strided DRAM reads. High-performance CUDA implementations load 2D matrix blocks into fast shared memory (SRAM) first, enabling unstrided anti-diagonal reads directly from SRAM with zero bank conflicts via index swizzling.",
+        heading: "What It Solves & Real-World Applications",
+        body: "Wavefront anti-diagonal extraction is employed in ML infrastructure for sequence alignment (Smith-Waterman algorithm), dynamic time warping (DTW) in speech recognition, tri-diagonal matrix solvers, and edit distance computations in LLM evaluation pipelines.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation details require precise calculation of loop bounds to avoid out-of-bounds array access. Using min/max bounds ensures that only valid (r, c) grid coordinates are generated during each wavefront pass.",
+        heading: "Step-by-Step Intuition & Worked Example",
+        body: "Consider a $3 \\times 3$ matrix:\n```\n[ 1,  2,  3 ]\n[ 4,  5,  6 ]\n[ 7,  8,  9 ]\n```\n1. $k=0$: $r+c=0 \\rightarrow (0,0) = [1]$\n2. $k=1$: $r+c=1 \\rightarrow (0,1), (1,0) = [2, 4]$\n3. $k=2$: $r+c=2 \\rightarrow (0,2), (1,1), (2,0) = [3, 5, 7]$\n4. $k=3$: $r+c=3 \\rightarrow (1,2), (2,1) = [6, 8]$\n5. $k=4$: $r+c=4 \\rightarrow (2,2) = [9]$",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes non-square matrices (e.g., tall 100x10 or wide 10x100), single-element matrices (1x1), and empty buffers. Bounds guards guarantee safety across all aspect ratios.",
+        heading: "Trade-offs & Hardware Realities",
+        body: "While wavefront execution unlocks parallelism, anti-diagonal accesses do not naturally align with row-major memory layouts. Accessing elements along $r + c = k$ across different rows causes strided DRAM reads. High-performance CUDA implementations load 2D matrix blocks into fast shared memory (SRAM) first, enabling unstrided anti-diagonal reads directly from SRAM with zero bank conflicts via index swizzling.",
+      },
+      {
+        heading: "Time & Space Complexity Analysis",
+        body: "Time Complexity: $\\mathcal{O}(M \\times N)$ total element sweeps, with $\\mathcal{O}(\\min(M, N))$ parallel work per wavefront step $k$. Space Complexity: $\\mathcal{O}(M \\times N)$ to store the extracted anti-diagonal partitions.",
       },
     ],
     keyTerms: [
@@ -214,6 +365,11 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
         term: "Shared Memory Swizzling",
         definition:
           "Remapping 2D indices in SRAM to eliminate memory bank conflicts during strided diagonal access.",
+      },
+      {
+        term: "Recurrence Relation",
+        definition:
+          "An equation expressing grid cell values in terms of previously computed adjacent neighbor values.",
       },
     ],
   },

@@ -3,58 +3,58 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const FORD_FULKERSON_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A flow network is a directed graph whose edges carry capacities, and the maximum-flow problem asks how much you can ship from a source to a sink without exceeding any capacity or letting material pile up at an intermediate vertex. Ford-Fulkerson answers it with a strikingly plain loop: while some path from source to sink still has spare capacity, push as much as that path allows, then look again. The idea that makes the loop work is the residual graph, a piece of bookkeeping that lets a later path undo part of an earlier commitment. Because the finished flow is certified by a cut, this one algorithm also delivers minimum cuts, bipartite matchings, and a surprising range of problems that look nothing like plumbing.",
+    "A **flow network** is a directed graph $G = (V, E)$ whose edges carry capacities $c(u, v) \\ge 0$. The maximum-flow problem asks for the maximal material that can be shipped from source $s$ to sink $t$ under capacity constraints $f(u, v) \\le c(u, v)$ and flow conservation $\\sum f(u, v) = \\sum f(v, u)$. Ford-Fulkerson repeatedly finds **augmenting paths** in the **residual graph** $G_f$ in $\\mathcal{O}(E \\cdot |f^*|)$ time, certified by the **Max-Flow Min-Cut Theorem**.",
   sections: [
     {
       heading: "The core idea: never treat a routing decision as final",
-      body: "A feasible flow assigns each edge a non-negative amount no larger than its capacity, and every vertex other than the source and the sink must send out exactly what it takes in. The obvious greedy approach — find any path, saturate it, repeat — can strand you, because committing traffic to a middle edge such as A to B in the default network can leave capacity elsewhere unusable, and no purely additive repair recovers it. Ford-Fulkerson escapes that trap by making every commitment reversible: each unit you push forward is simultaneously recorded as permission to push a unit back the other way. The greedy loop becomes correct not because it chooses well but because it can always change its mind.",
+      body: "A feasible flow assigns each edge a non-negative amount $f(u, v) \\le c(u, v)$, and every vertex $v \\in V \\setminus \\{s, t\\}$ obeys flow conservation. Greedy saturation can strand you. Ford-Fulkerson escapes this by introducing residual edges $c_f(v, u) = f(u, v)$ that allow reversing previously pushed flow.",
     },
     {
       heading: "How the residual graph actually works",
-      body: "Rather than searching the original network you search the residual graph, where a forward edge from u to v offers capacity minus current flow, and a matching reverse edge from v to u offers exactly the flow already pushed forward. Sending flow along that reverse edge is not shipping anything upstream; it cancels part of a previous decision and frees the original edge to serve a different route. An augmenting path is any source-to-sink path through this residual graph, and its bottleneck is the smallest residual capacity along it, which is the most you can push without breaking a capacity. Augmenting means subtracting the bottleneck from every forward residual on the path and adding it to every reverse one, and doing both keeps conservation intact automatically at each intermediate vertex.",
+      body: "In residual graph $G_f$, a forward edge offers residual capacity $c_f(u, v) = c(u, v) - f(u, v)$, while a reverse edge offers $c_f(v, u) = f(u, v)$. Pushing flow along a reverse edge cancels previous flow. The bottleneck is:\n$$\\gamma = \\min_{(u, v) \\in P} c_f(u, v)$$",
     },
     {
-      heading: "Why it stops at the true maximum",
-      body: "The loop ends when a search finds no augmenting path, and the reason that means maximum is worth understanding rather than memorising. Let S be the set of vertices still reachable from the source in the final residual graph; the sink is not in S, so the edges leaving S form a cut. Every edge leaving S must be saturated, or the search would have crossed it, and every edge entering S must carry zero flow, or its reverse residual would have offered a way across. So the flow value equals the capacity of that cut, and since no flow can ever exceed the capacity of any cut, the flow is maximum and the cut is minimum at the same moment. That reachable set is also how you read the real bottleneck edges out of a finished run rather than just the final number.",
+      heading: "Why it stops at the true maximum (Max-Flow Min-Cut Theorem)",
+      body: "When no augmenting path exists in $G_f$, let $S$ be the set of vertices reachable from source $s$. The cut $(S, T)$ has capacity equal to the total flow value:\n$$|f| = c(S, T) = \\sum_{u \\in S, v \\in T} c(u, v)$$\nSince no flow can exceed any cut capacity, $f$ is guaranteed to be maximum.",
     },
     {
       heading: "Which path to pick, and why people say Edmonds-Karp",
-      body: "Ford-Fulkerson deliberately does not say how to find the augmenting path, and that freedom is the source of its reputation for fragility. With integer capacities every augmentation moves at least one unit, so the loop always terminates, but a depth-first search that keeps rediscovering a small middle edge can need as many rounds as the answer is large. Always choosing the shortest augmenting path with a breadth-first search gives Edmonds-Karp, whose round count no longer depends on the capacity values at all, and Dinic's algorithm goes further by pushing along many shortest paths per phase. Use plain depth-first augmentation while you are learning or when capacities are small, switch to breadth-first the moment capacities grow, and reach for Dinic on large dense networks.",
+      body: "Ford-Fulkerson using DFS runs in $\\mathcal{O}(E \\cdot |f^*|)$ time. Selecting the shortest augmenting path via BFS yields **Edmonds-Karp**, bounding iterations to $\\mathcal{O}(V \\cdot E)$ and total time to $\\mathcal{O}(V \\cdot E^2)$, independent of capacities.",
     },
     {
       heading: "Pitfalls and edge cases",
-      body: "The reverse edge is where implementations go wrong: omit it and you get a greedy answer that is quietly too small, or double-count it and you produce a flow that violates capacities. Store residuals so an edge's twin is reachable in constant time, and reset the visited set before every search rather than once at the start. Real-valued capacities are the classic pathological case, since adversarial path choice can make the loop converge without ever terminating, which is one more argument for shortest-path augmentation. Then check the small inputs deliberately: a source that equals the sink, a network with no path at all, antiparallel edges between the same pair of vertices, and duplicate edges between the same pair all need a deliberate decision instead of a silent assumption.",
+      body: "Failing to update reverse residual capacity prevents flow cancellation. Irrational edge capacities can lead to infinite non-convergent iterations. Always reset visited sets between search iterations.",
     },
     {
-      heading: "How the pattern generalises: problems in disguise",
-      body: "Most of the value of maximum flow lies in modelling rather than in the loop itself. Bipartite matching becomes a flow problem when you add a source feeding every left vertex, a sink drawing from every right vertex, and unit capacities everywhere, at which point the maximum flow is the size of the maximum matching. A capacity on a vertex is modelled by splitting it into an in-copy and an out-copy joined by an edge of that capacity, several sources and sinks collapse into one super-source and one super-sink, and counting edge-disjoint paths is just maximum flow with every capacity set to one. Once you recognise these gadgets, image segmentation, project selection, and assignment problems all turn into a network you already know how to solve.",
+      heading: "Complexity Analysis",
+      body: "$$\\text{Time Complexity}: \\mathcal{O}(E \\cdot |f^*|)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Each DFS takes $\\mathcal{O}(E)$ time. With integer capacities, each augmentation increases flow by at least 1, taking at most $|f^*|$ rounds.\n- **Space**: Storing capacities, flows, and recursion stacks requires $\\mathcal{O}(V + E)$ space.",
     },
   ],
   keyTerms: [
     {
       term: "Residual capacity",
       definition:
-        "How much more flow an edge can still accept, equal to its capacity minus the flow currently on it. The reverse direction of that edge carries a residual equal to the flow already pushed, which represents the option to cancel.",
+        "Remaining usable capacity $c_f(u, v) = c(u, v) - f(u, v)$ on forward edges, and $c_f(v, u) = f(u, v)$ on reverse edges.",
     },
     {
       term: "Augmenting path",
       definition:
-        "A source-to-sink path whose every edge has positive residual capacity. Its existence means the current flow is not yet maximum, and its absence is the proof that it is.",
+        "A directed path from source $s$ to sink $t$ in residual graph $G_f$ where every edge has positive residual capacity $c_f(u, v) > 0$.",
     },
     {
       term: "Bottleneck",
       definition:
-        "The minimum residual capacity along an augmenting path, which is the amount of flow that path can carry. Pushing more than the bottleneck would overfill the tightest edge on the route.",
+        "The minimal residual capacity $\\gamma$ along an augmenting path $P$.",
     },
     {
-      term: "Cut",
+      term: "Max-Flow Min-Cut Theorem",
       definition:
-        "A split of the vertices into two sides with the source on one and the sink on the other; its capacity is the total capacity of the edges crossing forward. Every flow is bounded by every cut, which is why matching one to the other proves optimality.",
+        "Fundamental duality theorem asserting that the maximum flow value equals the minimum capacity of an $s$-$t$ cut.",
     },
     {
       term: "Flow conservation",
       definition:
-        "The requirement that every vertex except the source and the sink sends out exactly as much as it receives. Updating forward and reverse residuals together along a whole path is what preserves it without extra checks.",
+        "Requirement that total incoming flow equals total outgoing flow for every intermediate vertex $v \\in V \\setminus \\{s, t\\}$.",
     },
   ],
 };

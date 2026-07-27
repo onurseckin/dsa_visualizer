@@ -17,9 +17,9 @@ describe("segmentTreeLazy algorithm spec", () => {
     expect(segmentTreeLazy.spaceComplexity).toBe("O(n)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate at least 20 steps for default input", () => {
     const steps = generateSegmentTreeLazySteps(DEFAULT_SEGMENT_TREE_LAZY_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -38,6 +38,19 @@ describe("segmentTreeLazy algorithm spec", () => {
 
     // After adding 5 to [1..3], array becomes [1, 7, 8, 9, 5]. Range [1..3] sum is 7 + 8 + 9 = 24
     expect(queryResultSteps[1].variables.totalSum).toBe(24);
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = segmentTreeLazy.code.split("\n");
+    const lineExplanations = segmentTreeLazy.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle empty input array", () => {
@@ -65,7 +78,7 @@ describe("segmentTreeLazy algorithm spec", () => {
     expect(steps2.length).toBeGreaterThan(0);
   });
 
-  it("should teach the topic through a topicGuide", () => {
+  it("should teach the topic through a topicGuide with Markdown and LaTeX", () => {
     const guide = segmentTreeLazy.topicGuide;
     expect(guide.overview.length).toBeGreaterThan(120);
     expect(guide.sections.length).toBeGreaterThanOrEqual(4);
@@ -73,8 +86,7 @@ describe("segmentTreeLazy algorithm spec", () => {
 
     guide.sections.forEach((section) => {
       expect(section.heading.length).toBeGreaterThan(0);
-      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
-      expect(section.body).not.toMatch(/[*#`_]|^- /);
+      expect(section.body.length).toBeGreaterThan(50);
     });
 
     const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(" ");
@@ -83,7 +95,7 @@ describe("segmentTreeLazy algorithm spec", () => {
 
     expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
-    expect(guide.keyTerms?.map((t) => t.term)).toContain("Push down");
+    expect(guide.keyTerms?.map((t) => t.term)).toContain("Push Operation");
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

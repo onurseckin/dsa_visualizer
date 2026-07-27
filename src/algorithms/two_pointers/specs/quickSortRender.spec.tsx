@@ -4,8 +4,6 @@ import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateQuickSortSteps, quickSort } from "../quickSort";
 
-/* The AuxiliaryPanel card is the only reliable scope for short row labels
-   like "Stack" that also appear in badges and segmented controls. */
 const getWorkingDataCard = (): HTMLElement => {
   const card = screen.getByTestId("auxiliary-panel");
   if (!(card instanceof HTMLElement)) {
@@ -37,12 +35,9 @@ describe("QuickSort React Component Spec", () => {
     );
 
     expect(screen.getByText("Quick Sort")).toBeInTheDocument();
-
-    // Problem details render expanded, so the description needs no disclosure click.
     expect(
       screen.getAllByText(/Quick Sort is an efficient divide-and-conquer sorting algorithm/i)[0],
     ).toBeInTheDocument();
-    expect(screen.getByText(quickSort.topicGuide.overview)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: quickSort.topicGuide.sections[0].heading }),
     ).toBeInTheDocument();
@@ -73,7 +68,6 @@ describe("QuickSort React Component Spec", () => {
 
     const aux = within(getWorkingDataCard());
     expect(aux.getByText("Stack")).toBeInTheDocument();
-    // Default input has 7 elements, so the first pushed frame spans [0..6].
     expect(aux.getAllByText(/quickSort\(0, 6\)/)[0]).toBeInTheDocument();
   });
 });

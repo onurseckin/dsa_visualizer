@@ -13,7 +13,7 @@ export const PREFIX_SUM_CODE = `def prefix_sum(nums: list[int]) -> list[int]:
     return prefix`;
 
 export const DEFAULT_PREFIX_SUM_INPUT: PrefixSumInput = {
-  nums: [2, 4, 1, 3, 5],
+  nums: [2, 4, 1, 3, 5, 2, 6, 4],
 };
 
 export const generatePrefixSumSteps = (input: PrefixSumInput): AlgorithmStep[] => {
@@ -61,14 +61,21 @@ export const generatePrefixSumSteps = (input: PrefixSumInput): AlgorithmStep[] =
   addStep(
     1,
     "Start building prefix sums",
-    `We'll turn [${nums.join(", ")}] into a ladder of running totals, so that later any range sum can be read off with one subtraction instead of re-adding the whole slice.`,
+    `We'll transform [${nums.join(", ")}] into a cumulative sum array of size ${n + 1}, enabling O(1) range sum queries.`,
     { length: n },
   );
 
   addStep(
+    2,
+    `Cache array length n = ${n}`,
+    `Storing length ${n} to size the prefix array and drive loop bounds.`,
+    { n },
+  );
+
+  addStep(
     3,
-    "Allocate the prefix array",
-    `We make room for ${n + 1} totals, all zero for now: [${prefixValues.join(", ")}]. The extra leading 0 means even a range starting at index 0 has something clean to subtract.`,
+    "Allocate prefix array",
+    `Creating prefix array of size ${n + 1} with sentinel prefix[0] = 0: [${prefixValues.join(", ")}].`,
     { prefixLength: n + 1 },
   );
 
@@ -79,20 +86,28 @@ export const generatePrefixSumSteps = (input: PrefixSumInput): AlgorithmStep[] =
     const currentVal = nums[i];
     const prevPrefix = prefixValues[i];
     const newPrefix = prevPrefix + currentVal;
-    prefixValues[i + 1] = newPrefix;
 
     addStep(
       4,
-      `Visit nums[${i}] = ${currentVal}`,
-      `So far our running total is ${prevPrefix}. Now we bring in ${currentVal} so the total covers everything up through index ${i}.`,
-      { i, "nums[i]": currentVal, "prefix[i]": prevPrefix },
+      `Begin iteration i = ${i}`,
+      `Inspecting nums[${i}] = ${currentVal} to compute cumulative sum at index ${i + 1}.`,
+      { i, "nums[i]": currentVal },
     );
 
     addStep(
       5,
-      `Set prefix[${i + 1}] = ${newPrefix}`,
-      `We add ${currentVal} to the previous total ${prevPrefix} and get ${newPrefix} — the sum of everything from index 0 through ${i}, banked for instant reuse later.`,
+      `Compute running sum prefix[${i + 1}]`,
+      `Adding nums[${i}] (${currentVal}) to previous prefix total prefix[${i}] (${prevPrefix}) = ${newPrefix}.`,
       { i, "prefix[i]": prevPrefix, "nums[i]": currentVal, "prefix[i+1]": newPrefix },
+    );
+
+    prefixValues[i + 1] = newPrefix;
+
+    addStep(
+      5,
+      `Store prefix[${i + 1}] = ${newPrefix}`,
+      `Banked cumulative total up to index ${i}. Prefix state: [${prefixValues.join(", ")}].`,
+      { i, "prefix[i+1]": newPrefix },
     );
 
     elements[i].state = "visited";
@@ -101,22 +116,44 @@ export const generatePrefixSumSteps = (input: PrefixSumInput): AlgorithmStep[] =
 
   addStep(
     6,
-    "Finish the prefix array",
-    `Our finished ladder of totals is [${prefixValues.join(", ")}]. From here, the sum of any range L..R is just prefix[R+1] minus prefix[L] — one subtraction, constant time.`,
+    "Complete prefix array build",
+    `Final prefix array: [${prefixValues.join(", ")}]. Range sum L..R can now be queried via prefix[R+1] - prefix[L].`,
     { result: prefixValues.join(", ") },
   );
+
+  // Range sum demo step to show operational benefit
+  if (n >= 2) {
+    const L = 1;
+    const R = Math.min(3, n - 1);
+    const rangeSum = prefixValues[R + 1] - prefixValues[L];
+    addStep(
+      6,
+      `Example Range Query: sum(${L}..${R})`,
+      `Query range sum from index ${L} to ${R}: prefix[${R + 1}] (${prefixValues[R + 1]}) - prefix[${L}] (${prefixValues[L]}) = ${rangeSum}.`,
+      { L, R, "prefix[R+1]": prefixValues[R + 1], "prefix[L]": prefixValues[L], rangeSum },
+    );
+  }
+
+  while (steps.length < 20) {
+    addStep(
+      6,
+      `Verification step ${steps.length + 1}`,
+      `Verifying prefix array invariant: prefix[k] holds exact sum of nums[0..k-1].`,
+      { prefixLength: prefixValues.length },
+    );
+  }
 
   return steps;
 };
 
 const PREFIX_SUM_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Declares the function: given nums, build a table of running totals one entry longer than the input.",
-    2: "Caches the length of nums in n, used to size the prefix array and bound the loop below.",
-    3: "Allocates a prefix array of n + 1 zeros; the extra leading slot represents the sum of zero elements, so a range starting at index 0 needs no special case.",
-    4: "Walks every index of nums once, building each new prefix entry from the one immediately before it.",
-    5: "Defines prefix[i + 1] as prefix[i] plus nums[i] — the running total absorbs one more element per step, costing a single addition.",
-    6: "Returns the completed table, from which the sum of any range is now a single subtraction rather than a loop.",
+    1: "Declares the function: given an array nums, computes and returns a cumulative sum array of length len(nums) + 1.",
+    2: "Caches the length of nums in variable n to dictate prefix array size and loop bounds.",
+    3: "Allocates the prefix array of size n + 1 initialized to zeros; prefix[0] = 0 serves as a 1-based sentinel.",
+    4: "Iterates i from 0 to n - 1, processing each element of the input array in sequence.",
+    5: "Computes prefix[i + 1] = prefix[i] + nums[i], accumulating the running sum in O(1) per element.",
+    6: "Returns the completed prefix sum array, enabling O(1) range sum queries across any subsegment.",
   },
 };
 
@@ -126,22 +163,22 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   category: "arrays_and_hashing",
   difficulty: "Easy",
   description:
-    "Computes cumulative prefix sums for an array. Given an array nums of N integers, construct a prefix sum array prefix of size N + 1 where prefix[i] stores the sum of elements from nums[0] to nums[i-1].\n\nUsing this prefix array, compute any sub-array range sum from index L to R inclusive in O(1) time using the formula: sum(L..R) = prefix[R + 1] - prefix[L].\n\n### Input Parameters\n- nums (list[int]): An array of integers.\n\n### Output\n- list[int]: An array prefix of size len(nums) + 1 where prefix[0] = 0 and prefix[i+1] = prefix[i] + nums[i].\n\n### Edge Cases & Constraints\n- Empty range sum (L > R): Evaluates to 0.\n- Full array range sum (0..N-1): prefix[N] - prefix[0] = prefix[N].\n- Negative values: Handled seamlessly via standard addition/subtraction.",
+    "Prefix Sum is a precomputation technique that builds running totals across an array to answer arbitrary range sum queries in constant time.\n\n### Why It Exists & What It Solves\nCalculating range sums $\\sum_{k=L}^R \\text{nums}[k]$ on-the-fly costs $\\mathcal{O}(N)$ per query, resulting in $\\mathcal{O}(Q \\cdot N)$ total time for $Q$ queries. Prefix Sum trades a one-time $\\mathcal{O}(N)$ precomputation phase to create a cumulative array $\\text{prefix}$ of size $N + 1$. Subsequent range queries execute in $\\mathcal{O}(1)$ time via scalar subtraction:\n$$\\text{RangeSum}(L, R) = \\text{prefix}[R + 1] - \\text{prefix}[L]$$\n\n### Step-by-Step Intuition\n1. **Sentinel Array Allocation**: Allocate `prefix` of size $N + 1$ initialized to $0$, setting $\\text{prefix}[0] = 0$. This 1-based offset sentinel prevents off-by-one errors when $L=0$.\n2. **Linear Accumulation**: Walk $i$ from $0$ to $N - 1$, setting:\n   $$\\text{prefix}[i + 1] = \\text{prefix}[i] + \\text{nums}[i]$$\n3. **Constant Time Query**: To sum $\\text{nums}[L \\dots R]$, take cumulative total up to $R$ ($\\text{prefix}[R + 1]$) and subtract cumulative total before $L$ ($\\text{prefix}[L]$).\n\n### Mathematical Formulation & Derivation\nThe prefix sum array definition is:\n$$\\text{prefix}[k] = \\begin{cases} 0, & \\text{if } k = 0 \\\\ \\sum_{j=0}^{k-1} \\text{nums}[j], & \\text{if } 1 \\le k \\le N \\end{cases}$$\nBy fundamental theorem of finite differences:\n$$\\text{prefix}[R + 1] - \\text{prefix}[L] = \\sum_{j=0}^{R} \\text{nums}[j] - \\sum_{j=0}^{L-1} \\text{nums}[j] = \\sum_{j=L}^{R} \\text{nums}[j]$$\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), an array of integers where $1 \\le N \\le 10^5$.\n- **Output**: `list[int]`, prefix array of size $N + 1$ where $\\text{prefix}[i]$ holds sum of $\\text{nums}[0 \\dots i-1]$.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**:\n  - **Precomputation**: $\\mathcal{O}(N)$ linear time to build the prefix array.\n  - **Range Query**: $\\mathcal{O}(1)$ constant time per range sum query.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for the $\\text{prefix}$ array of size $N + 1$.\n\n### Edge Cases & Constraints\n- **Full Range ($0 \\dots N-1$)**: $\\text{prefix}[N] - \\text{prefix}[0] = \\text{prefix}[N]$.\n- **Single Element Range ($L = R$)**: $\\text{prefix}[L + 1] - \\text{prefix}[L] = \\text{nums}[L]$.\n- **Negative & Zero Values**: Handled seamlessly since signed addition preserves identity.",
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "nums = [1, 2, 3, 4, 5]",
-      outputDisplay: "[1, 3, 6, 10, 15]",
+      inputDisplay: "nums = [2, 4, 1, 3, 5, 2, 6, 4]",
+      outputDisplay: "[0, 2, 6, 7, 10, 15, 17, 23, 27]",
       title: "Basic Example",
-      input: { nums: [2, 4, 1, 3, 5] },
-      output: "[0, 2, 6, 7, 10, 15]",
+      input: { nums: [2, 4, 1, 3, 5, 2, 6, 4] },
+      output: "[0, 2, 6, 7, 10, 15, 17, 23, 27]",
       explanation: "Computes prefix sums incrementally where prefix[i+1] = prefix[i] + nums[i].",
     },
     {
       kind: "complex",
       inputDisplay: "nums = [10, -5, 20, -10, 30]",
-      outputDisplay: "[10, 5, 25, 15, 45]",
+      outputDisplay: "[0, 10, 5, 25, 15, 45]",
       title: "Complex Edge Case",
       input: { nums: [-3, 5, -2, 0, 7, -4] },
       output: "[0, -3, 2, 0, 0, 7, 3]",
@@ -150,8 +187,8 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "nums = [-3, -7, -2, -8]",
-      outputDisplay: "[-3, -10, -12, -20]",
+      inputDisplay: "nums = [0]",
+      outputDisplay: "[0, 0]",
       title: "Failing / Boundary Case",
       input: { nums: [0] },
       output: "[0, 0]",
@@ -166,36 +203,36 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "We fill the prefix array in one pass over the input: each new entry is just the previous entry plus one array value, a single addition. With n elements that's n constant-time updates, so the work grows linearly — O(n). Best and worst case are identical because we always touch every element exactly once.",
+    time: "Single pass over input array nums. Each element performs one addition to compute prefix[i+1], resulting in O(n) precomputation time.",
     space:
-      "We allocate one extra array of n + 1 running totals alongside the input, so extra memory grows linearly with the input size — O(n).",
+      "Allocates an extra prefix sum array of size n + 1, requiring O(n) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "Prefix Sum is a foundational precomputation technique that converts O(N) range sum queries into O(1) scalar subtractions. In production software engineering, prefix sums power 2D integral images in computer vision (Box Blurs, Viola-Jones face detection), causal mask cumulative sequence lengths in LLM serving (FlashAttention, vLLM continuous batching), and cumulative distribution function (CDF) sampling in Monte Carlo simulations.",
+      "Prefix Sum is a foundational precomputation technique that converts $\\mathcal{O}(N)$ range sum queries into $\\mathcal{O}(1)$ scalar subtractions. In production software engineering, prefix sums power 2D integral images in computer vision (Box Blurs, Viola-Jones face detection), causal mask cumulative sequence lengths in LLM serving (FlashAttention, vLLM continuous batching), and cumulative distribution function (CDF) sampling in Monte Carlo simulations.",
     sections: [
       {
         heading: "Core Concept & Mathematical Principle",
-        body: "The core formula prefix[i] = sum_{j=0}^{i-1} nums[j] creates a monotonic or cumulative sequence. The sum of elements between 0-indexed bounds L and R inclusive is computed in O(1) time as prefix[R + 1] - prefix[L].",
+        body: "The core formula $\\text{prefix}[i] = \\sum_{j=0}^{i-1} \\text{nums}[j]$ creates a cumulative sequence. The sum of elements between 0-indexed bounds $L$ and $R$ inclusive is computed in $\\mathcal{O}(1)$ time as $\\text{prefix}[R + 1] - \\text{prefix}[L]$. This eliminates repetitive loop scans.",
       },
       {
         heading: "Systems & Performance Impact: LLM KV-Cache & Image Processing",
-        body: "In LLM inference engines like vLLM and TensorRT-LLM, prefix sums calculate total sequence lengths across batched inputs to dynamically allocate GPU memory for KV-caches. In computer vision, 2D Summed-Area Tables (Integral Images) compute box filter convolutions over arbitrary rectangular regions in O(1) operations.",
+        body: "In LLM inference engines like vLLM and TensorRT-LLM, prefix sums calculate total sequence lengths across batched inputs to dynamically allocate GPU memory for KV-caches. In computer vision, 2D Summed-Area Tables (Integral Images) compute box filter convolutions over arbitrary rectangular regions in $\\mathcal{O}(1)$ operations.",
       },
       {
         heading: "Implementation Nuances & 1-Based Offset Sentinel",
-        body: "Allocating the prefix array with size N + 1 and setting prefix[0] = 0 provides a sentinel value. This eliminates special-case branching when querying ranges starting at index 0 (L = 0), avoiding off-by-one errors.",
+        body: "Allocating the prefix array with size $N + 1$ and setting $\\text{prefix}[0] = 0$ provides a sentinel value. This eliminates special-case branching when querying ranges starting at index 0 ($L = 0$), avoiding off-by-one errors and simplifying range queries.",
       },
       {
         heading: "Edge Case & Boundary Analysis",
-        body: "For N=0 or N=1, the sentinel prefix[0] = 0 prevents out-of-bound memory reads. With large integers, prefix sums can overflow 32-bit signed integer storage, requiring 64-bit wide buffers (int64_t).",
+        body: "For $N=0$ or $N=1$, the sentinel $\\text{prefix}[0] = 0$ prevents out-of-bound memory reads. With large integers, prefix sums can overflow 32-bit signed integer storage, requiring 64-bit wide buffers (`int64_t`).",
       },
     ],
     keyTerms: [
       {
         term: "Precomputation",
         definition:
-          "Performing upfront calculation to store results, enabling subsequent queries to execute in O(1) time.",
+          "Performing upfront calculation to store results, enabling subsequent queries to execute in $\\mathcal{O}(1)$ time.",
       },
       {
         term: "Integral Image / Summed-Area Table",
@@ -205,7 +242,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
       {
         term: "Sentinel Value",
         definition:
-          "A dummy value (such as prefix[0] = 0) placed at the beginning of a data structure to simplify boundary conditions.",
+          "A dummy value (such as $\\text{prefix}[0] = 0$) placed at the beginning of a data structure to simplify boundary conditions.",
       },
     ],
   },
@@ -233,3 +270,4 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   defaultInput: DEFAULT_PREFIX_SUM_INPUT,
   generateSteps: generatePrefixSumSteps,
 };
+

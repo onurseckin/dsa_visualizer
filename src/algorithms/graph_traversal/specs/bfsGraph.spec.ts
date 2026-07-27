@@ -30,6 +30,11 @@ describe("bfsGraph spec logic", () => {
     }
   });
 
+  it("produces at least 20 steps for default input", () => {
+    const steps = generateBFSGraphSteps(DEFAULT_BFS_INPUT);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+  });
+
   it("handles disconnected graph components", () => {
     const customInput = {
       startNodeId: "A",
@@ -70,6 +75,17 @@ describe("bfsGraph spec logic", () => {
 describe("bfsGraph trivia metadata", () => {
   const meta = bfsGraph.trivia;
   const lines = bfsGraph.code.replace(/\s+$/, "").split("\n");
+
+  it("maps every non-blank code line in lineExplanations", () => {
+    expect(meta?.lineExplanations).toBeDefined();
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (line.trim().length > 0) {
+        expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+        expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      }
+    });
+  });
 
   it("points skipLines and hints at real, non-empty lines", () => {
     expect(meta).toBeDefined();

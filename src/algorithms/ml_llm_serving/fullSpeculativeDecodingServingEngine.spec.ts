@@ -6,7 +6,7 @@ import {
 } from "./fullSpeculativeDecodingServingEngine";
 
 describe("full-speculative-decoding-serving-engine (Full Speculative Decoding Production Serving Engine)", () => {
-  it("should have correct metadata", () => {
+  it("should have correct metadata and full trivia lineExplanations", () => {
     expect(fullSpeculativeDecodingServingEngine.id).toBe(
       "full-speculative-decoding-serving-engine",
     );
@@ -14,16 +14,26 @@ describe("full-speculative-decoding-serving-engine (Full Speculative Decoding Pr
     expect(fullSpeculativeDecodingServingEngine.mlInfraLevel).toBe(12);
     expect(fullSpeculativeDecodingServingEngine.mlInfraCategory).toBe("ml_llm_serving");
     expect(fullSpeculativeDecodingServingEngine.categories).toContain("ml_llm_serving");
+    expect(fullSpeculativeDecodingServingEngine.defaultInput).toEqual(
+      DEFAULT_FULLSPECULATIVEDECODINGSERVINGENGINE_INPUT,
+    );
+
+    const codeLines = fullSpeculativeDecodingServingEngine.code.trim().split("\n").length;
+    const explanationKeys = Object.keys(
+      fullSpeculativeDecodingServingEngine.trivia?.lineExplanations || {},
+    ).map(Number);
+    expect(explanationKeys.length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(fullSpeculativeDecodingServingEngine.trivia?.lineExplanations?.[i]).toBeDefined();
+    }
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate valid algorithm steps and produce >= 20 steps", () => {
     const steps = generateFullSpeculativeDecodingServingEngineSteps(
       DEFAULT_FULLSPECULATIVEDECODINGSERVINGENGINE_INPUT,
     );
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain(
-      "Full Speculative Decoding Production Serving Engine",
-    );
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].codeLine).toBe(1);
+    expect(steps[steps.length - 1].codeLine).toBe(24);
   });
 });

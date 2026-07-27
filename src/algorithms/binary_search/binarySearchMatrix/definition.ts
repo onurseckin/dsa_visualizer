@@ -5,73 +5,57 @@ import { generateBinarySearchMatrixSteps, type BinarySearchMatrixInput } from ".
 
 export const DEFAULT_BINARY_SEARCH_MATRIX_INPUT: BinarySearchMatrixInput = {
   matrix: [
-    [1, 3, 5, 7],
-    [10, 11, 16, 20],
-    [23, 30, 34, 60],
+    [1, 3, 5, 7, 9],
+    [10, 12, 14, 16, 18],
+    [20, 22, 24, 26, 28],
+    [30, 32, 34, 36, 38],
+    [40, 42, 44, 46, 48],
   ],
-  target: 3,
+  target: 34,
 };
 
 const BINARY_SEARCH_MATRIX_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Binary search is not really an array algorithm; it is a technique for any search space you can order so that a single probe tells you which half to throw away. This problem makes that explicit, because the matrix is not a sorted list anywhere in memory, yet its rows are arranged so that reading them one after another would produce one. So you binary search that imaginary list and translate each index back into a grid coordinate on demand. Learning to see the sorted structure a problem only implies, and to search it without ever building it, is the transferable skill here.",
+    "Binary search is not limited to physical 1D arrays; it is a general technique applicable to any search domain that can be conceptually ordered. Search a 2D Matrix exploits this principle by interpreting an m x n grid — where each row is sorted and each row begins above the previous row's end — as a single virtual sorted 1D array. By converting virtual 1D indices (0 to m*n - 1) into 2D grid coordinates on the fly using integer division and modulo, the algorithm searches an m x n matrix in O(log(m * n)) time without spending memory or time to flatten the matrix.",
   sections: [
     {
-      heading: "The flattening idea",
-      body: `The matrix comes with two promises: each row is sorted from left to right, and the first value of every row is greater than the last value of the row above it. Concatenating the rows would therefore give one sorted sequence of m times n numbers, but actually building that sequence would cost time and memory you do not need to spend. Instead you search the index range from zero to m times n minus one as if the sequence existed, converting a flat index into a cell by dividing by the column count for the row and taking the remainder for the column. The division recovers how many complete rows the index passes over and the remainder recovers its offset inside its own row. Nothing is copied, you simply reinterpret what a position means.`,
+      heading: "Why It Exists & The Virtual Flattening Concept",
+      body: "Matrix search problems often tempt developers to perform nested searches: binary search rows first, then columns. However, when the matrix guarantees that matrix[r][0] > matrix[r-1][n-1], the entire grid forms one seamless monotonically increasing sequence of m * n elements. Virtual flattening treats index i as matrix[i // n][i % n], enabling O(log(m * n)) binary search directly.",
     },
     {
-      heading: "How each probe halves the problem",
-      body: `You keep two bounds, low and high, delimiting the flat indices that could still hold the target, and you loop while low has not passed high. Compute the midpoint, read the cell it denotes, and compare that value with the target. A match ends the search; a value that is too small means every index from low through mid is too small as well, so low becomes mid plus one; a value that is too large triggers the mirror move and high becomes mid minus one. Each comparison retires half the remaining candidates, so even a large grid collapses to a single cell in remarkably few reads, and the loop ends either on a match or when the bounds cross.`,
+      heading: "Step-by-Step Coordinate Decomposition",
+      body: "Given virtual 1D midpoint `mid`, row coordinate `row = mid // n` recovers how many complete rows of length n precede `mid`. Column coordinate `col = mid % n` recovers the offset inside that row. The algorithm probes `matrix[row][col]` and contracts `low = mid + 1` or `high = mid - 1` just like standard 1D binary search.",
     },
     {
-      heading: "The invariant, and why termination is not automatic",
-      body: `The invariant is that if the target is present at all, its flat index lies between low and high. Every branch preserves it, because the half being discarded is provably wrong given the sorted order. Correctness also requires the loop to actually finish, and that is where binary search implementations most often break. Pairing the condition that low may equal high with updates of mid plus one and mid minus one guarantees the interval strictly shrinks on every iteration, so it cannot stall; write low equals mid instead and a two-element range will spin forever. It is also worth computing the midpoint as low plus half the gap rather than by adding the bounds, a habit that matters in languages where that sum can overflow.`,
+      heading: "Trade-offs & Alternative Matrix Formulations",
+      body: "Virtual flattening requires strictly sorted row boundaries. If rows are independently sorted but lack global ordering across rows (e.g. LeetCode #240: Search a 2D Matrix II), virtual flattening fails. In that variant, a top-right staircase search running in O(m + n) time or row-by-row binary search running in O(m log n) time must be used instead.",
     },
     {
-      heading: "Why the row-boundary promise matters",
-      body: `The flattening trick is legitimate only because rows are strictly increasing across their boundaries. If each row were sorted but the ranges of different rows could overlap, the concatenation would not be sorted, and this algorithm would return wrong answers on inputs it accepts without complaint. That looser variant needs a different idea entirely: start at the top-right corner and step left when the value is too large or down when it is too small, eliminating a whole column or a whole row per step. Knowing which structural promise you have been given is what selects the algorithm, so read the constraints before reaching for a familiar pattern.`,
-    },
-    {
-      heading: "Pitfalls and edge cases",
-      body: `Guard the degenerate inputs first, because an empty matrix or a matrix whose first row is empty makes the largest flat index negative and the whole index computation meaningless. Use the column count, not the row count, in both the division and the remainder, since swapping them yields plausible-looking coordinates that quietly read the wrong cells on any non-square grid. Remember that this problem only asks for a boolean, so there is no boundary to hunt for; if you instead wanted the insertion position you would run the same loop and return low once it ends. And when duplicates are allowed, a plain binary search finds some occurrence rather than the first, which only matters if the problem asks for a specific one.`,
-    },
-    {
-      heading: "The pattern beyond arrays",
-      body: `The reusable form of binary search is this: define a space of candidates and a predicate that is false up to some point and true from there onward, then find that boundary. The space does not have to be an array, it can be a range of possible answers. Koko Eating Bananas searches over eating speeds, Split Array Largest Sum over possible values of the largest allowed subarray sum, and Median of Two Sorted Arrays over how many elements to take from the first array. In each of those the array-shaped intuition disappears and only the monotone predicate remains, which is the version of binary search worth internalizing; the sorted array, and this flattened matrix, are simply its easiest instances.`,
+      heading: "Edge Cases & Bounds Preservation",
+      body: "Empty matrices (`m == 0` or `n == 0`) must be guarded up front to prevent division-by-zero or negative index calculations. Additionally, integer floor division `mid // n` must consistently use column count `n` (the row length), not row count `m`, to avoid out-of-bounds array access on non-square matrices.",
     },
   ],
   keyTerms: [
     {
-      term: "Monotone search space",
+      term: "Virtual Flattening",
       definition:
-        "Any ordered set of candidates where probing one of them tells you which side the answer must lie on. It is the only thing binary search genuinely requires.",
+        "Mapping a multi-dimensional grid to a single 1D index space using arithmetic index conversion without instantiating extra memory.",
     },
     {
-      term: "Virtual flattening",
+      term: "Monotone Grid Structure",
       definition:
-        "Treating the grid as a sorted list of all its cells without ever building that list, converting a flat index into a row and column with a division and a remainder.",
+        "A 2D layout where row elements and row-to-row boundaries strictly increase, creating a globally sorted sequence.",
     },
     {
-      term: "Search interval",
+      term: "Coordinate Decomposition",
       definition:
-        "The range of flat indices between low and high that could still contain the target. The algorithm promises the answer, if it exists, is inside it.",
-    },
-    {
-      term: "Logarithmic shrink",
-      definition:
-        "The effect of discarding one side of the midpoint each round, which cuts the interval roughly in half per comparison until a single candidate remains.",
-    },
-    {
-      term: "Strictly increasing rows",
-      definition:
-        "The precondition that each row begins above where the previous row ended. It is exactly what makes the flattened reading order sorted.",
+        "Calculating 2D row and column indices from a flat 1D index using `row = mid // cols` and `col = mid % cols`.",
     },
   ],
 };
 
 const BINARY_SEARCH_MATRIX_TRIVIA: TriviaMeta = {
-  skipLines: [1, 17],
+  skipLines: [16, 18],
   distractors: [
     "low, high = 0, m * n",
     "while low < high:",
@@ -98,23 +82,26 @@ const BINARY_SEARCH_MATRIX_TRIVIA: TriviaMeta = {
     },
   ],
   lineExplanations: {
-    1: "Defines search_matrix(matrix, target) -> bool: treats the whole 2D grid as one sorted list and binary searches it without ever building that list.",
-    2: "Guards the degenerate cases — an empty matrix or a matrix whose first row is empty — since the index math below would be meaningless without at least one element.",
-    3: "An empty matrix can't contain the target, so returns False immediately rather than falling through into index arithmetic on a zero-sized grid.",
-    4: "Caches the row count m and column count n — needed to convert between a flat index and its (row, column) coordinate.",
-    5: "Opens the binary search window over the flattened index space: low starts at the first cell, high at the last of the m*n virtual positions.",
-    7: "Loops while the window is non-empty — the same halting condition as a normal binary search, just over virtual indices instead of array indices.",
-    8: "Picks the midpoint of the current window — the next flat index to probe.",
-    9: "Converts the flat index to its row by integer division by the row width n — dividing off complete rows recovers which row the index falls in.",
-    10: "Converts the flat index to its column via the remainder after that division — whatever's left over is the offset within that row.",
-    11: "Reads the actual matrix cell at (row, col) — the value the flattened index was standing in for.",
-    13: "Checks whether the probed value equals the target.",
-    14: "A match ends the search immediately — True, found.",
-    15: "If the probed value is smaller than the target, the target (if present) must live strictly after this position, since the flattened order is fully sorted.",
-    16: "Discards the entire lower half by moving low just past mid — everything at or before mid is now known to be too small.",
-    17: "Introduces the remaining case — the probed value must be greater than the target — since the two prior branches were exhaustive.",
-    18: "Symmetric to the low branch: the probed value was too large, so drops the upper half by pulling high back to just before mid.",
-    20: "The window closed with no match ever found, so the target genuinely isn't anywhere in the matrix — returns False.",
+    1: "Defines search_matrix(matrix, target) -> bool: binary searches a 2D matrix by treating it as a virtual 1D sorted array.",
+    2: "Guards against degenerate inputs (empty matrix or zero-length first row) before performing index calculations.",
+    3: "Returns False immediately when given an empty matrix since target cannot be present.",
+    4: "Stores grid dimensions m (number of rows) and n (number of columns).",
+    5: "Initializes binary search window: low starts at flat index 0, high at m * n - 1.",
+    6: "Blank line preceding main search loop.",
+    7: "Loops while search range is valid (low <= high).",
+    8: "Calculates virtual 1D midpoint index mid = (low + high) // 2.",
+    9: "Converts flat mid index to 2D row index via integer division mid // n.",
+    10: "Converts flat mid index to 2D column index via remainder mid % n.",
+    11: "Fetches cell value mid_val from matrix[row][col].",
+    12: "Blank line preceding comparison logic.",
+    13: "Checks if probed value mid_val equals target.",
+    14: "Returns True immediately upon locating target.",
+    15: "Checks if mid_val is strictly less than target.",
+    16: "Discards lower half of search window by updating low = mid + 1.",
+    17: "Branch handling case when mid_val is strictly greater than target.",
+    18: "Discards upper half of search window by updating high = mid - 1.",
+    19: "Blank line ending main search loop.",
+    20: "Returns False when search range is exhausted without finding target.",
   },
 };
 
@@ -124,8 +111,40 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   category: "binary_search",
   categories: ["binary_search"],
   difficulty: "Medium",
-  description:
-    "Searches for a target value in an m x n integer matrix — each row sorted, rows strictly increasing — by binary searching the grid as one virtual sorted 1D array.",
+  description: `Locate a target value in an $m \\times n$ integer matrix with sorted rows and strictly increasing row transitions in $O(\\log(m \\cdot n))$ time.
+
+### Why It Exists & What It Solves
+Searching a 2D matrix element by element takes $O(m \\cdot n)$ linear time. When each row is sorted and the first element of each row is strictly greater than the last element of the previous row, the entire matrix forms one continuous sorted sequence. Instead of flattening the matrix into a new 1D array ($O(m \\cdot n)$ space/time cost), we can perform binary search on virtual 1D indices, calculating 2D coordinates on demand in $O(1)$ space and $O(\\log(m \\cdot n))$ time.
+
+### Step-by-Step Intuition
+1. **Virtual Index Range**: Map the $m \\times n$ cells to flat indices $0$ to $m \\cdot n - 1$. Set \`low = 0\` and \`high = m * n - 1\`.
+2. **Compute Midpoint**: Calculate 1D midpoint \`mid = (low + high) // 2\`.
+3. **Map to 2D Coordinates**:
+   - \`row = mid // n\` (number of full rows passed)
+   - \`col = mid % n\` (offset within the current row)
+4. **Compare & Branch**:
+   - If \`matrix[row][col] == target\`, return \`True\`.
+   - If \`matrix[row][col] < target\`, set \`low = mid + 1\`.
+   - If \`matrix[row][col] > target\`, set \`high = mid - 1\`.
+
+### Input Parameters
+- \`matrix\`: An $m \\times n$ integer grid where each row is sorted and \`matrix[i][0] > matrix[i-1][n-1]\`.
+- \`target\`: The integer target value to locate.
+
+### Output
+- Returns boolean \`true\` if target exists in matrix, otherwise \`false\`.
+
+### Trade-offs & Complexity
+- **Time Complexity**: $O(\\log(m \\cdot n))$ worst/average case, $O(1)$ best case.
+- **Space Complexity**: $O(1)$ auxiliary space using virtual index mapping.
+- **Requirement**: Matrix must have globally sorted row transitions.
+
+### Edge Cases & Constraints
+- \`m == matrix.length\`, \`n == matrix[i].length\`
+- \`1 <= m, n <= 100\`
+- \`-10^4 <= matrix[i][j], target <= 10^4\`
+- Degenerate empty matrices (\`m == 0\` or \`n == 0\`).
+- Single element matrices ($1 \\times 1$).`,
   constraints: [
     "m == matrix.length",
     "n == matrix[i].length",
@@ -135,23 +154,25 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   examples: [
     {
       kind: "basic",
-      inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 3",
+      inputDisplay: "matrix = [[1, 3, 5, 7, 9], [10, 12, 14, 16, 18], [20, 22, 24, 26, 28], [30, 32, 34, 36, 38], [40, 42, 44, 46, 48]], target = 34",
       outputDisplay: "true",
       title: "Basic Example",
       input: {
         matrix: [
-          [1, 3, 5, 7],
-          [10, 11, 16, 20],
-          [23, 30, 34, 60],
+          [1, 3, 5, 7, 9],
+          [10, 12, 14, 16, 18],
+          [20, 22, 24, 26, 28],
+          [30, 32, 34, 36, 38],
+          [40, 42, 44, 46, 48],
         ],
-        target: 3,
+        target: 34,
       },
       output: "true",
-      explanation: "Target 3 exists at row 0, column 1.",
+      explanation: "5x5 matrix search; flat index 17 maps to row 3, col 2 where 34 is located.",
     },
     {
       kind: "complex",
-      inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 16",
+      inputDisplay: "matrix = [[1, 2, 4, 8], [12, 16, 20, 24], [28, 32, 40, 50], [60, 70, 80, 90]], target = 50",
       outputDisplay: "true",
       title: "Complex Edge Case",
       input: {
@@ -191,9 +212,9 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Every probe compares one cell and throws away half of the remaining virtual list, so the m·n candidates shrink to a single cell in about log₂(m·n) comparisons — O(log(m·n)). The best case is O(1) when the very first midpoint happens to be the target; otherwise the repeated halving carries us to the answer or to an empty range.",
+    time: "Probing virtual midpoint index cuts the remaining m*n elements in half on every step, yielding O(log(m * n)) time complexity.",
     space:
-      "We navigate with just the low, high, and mid indices — no copy of the matrix and no recursion — so extra memory is O(1).",
+      "Uses O(1) auxiliary space by performing virtual 1D-to-2D coordinate transformations without modifying or copying the input matrix.",
   },
   topicGuide: BINARY_SEARCH_MATRIX_TOPIC_GUIDE,
   trivia: BINARY_SEARCH_MATRIX_TRIVIA,

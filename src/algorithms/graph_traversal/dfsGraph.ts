@@ -58,12 +58,14 @@ export const DFS_GRAPH_TRIVIA: TriviaMeta = {
     2: "Initializes a hash set tracking visited nodes to prevent cycles.",
     3: "Pushes the start node onto the stack as the entry point of the search.",
     4: "Initializes the list storing visited nodes in discovery order.",
+    5: "Blank line separating initialization from traversal loop.",
     6: "Loops while there are candidate nodes remaining on the stack.",
     7: "Pops the top node from the stack (LIFO ordering prioritizes deep exploration).",
     8: "Checks if the popped node has already been processed.",
     9: "Marks the current node as visited.",
     10: "Appends the current node to the output traversal sequence.",
     11: "Iterates through all adjacent neighbors of the current node.",
+    12: "Checks if the neighbor has not been visited yet before pushing it onto the stack.",
     13: "Pushes unvisited neighbors onto the stack to explore on subsequent iterations.",
     14: "Returns the final ordered array of visited nodes.",
   },
@@ -149,7 +151,53 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
   });
 
   while (stack.length > 0) {
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 6,
+      explanation: {
+        what: `Checking stack (${stack.length} elements waiting).`,
+        why: "The stack is non-empty, so candidate vertices remain to be explored.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: stack.includes(n.id) ? "in-stack" : visited.has(n.id) ? "visited" : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        stack: [...stack],
+        visited: Array.from(visited),
+        customState: { Order: traversal.join(" -> ") || "[]" },
+      },
+      variables: { stackLength: stack.length },
+    });
+
     const curr = stack.pop()!;
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 7,
+      explanation: {
+        what: `Popped node "${curr}" from top of stack.`,
+        why: "LIFO ordering prioritizes exploring deep along the newest candidate path.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: n.id === curr ? "active" : visited.has(n.id) ? "visited" : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        stack: [...stack],
+        visited: Array.from(visited),
+        customState: { Order: traversal.join(" -> ") || "[]" },
+      },
+      variables: { current: curr },
+    });
 
     if (!visited.has(curr)) {
       visited.add(curr);
@@ -159,21 +207,14 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
         stepIndex: stepIdx++,
         codeLine: 9,
         explanation: {
-          what: `Popped node "${curr}" from stack and marked visited.`,
-          why: "Visited set updated; node appended to DFS traversal order.",
+          what: `Marked node "${curr}" as visited and appended to traversal.`,
+          why: "Visited set updated; node recorded in DFS traversal order.",
         },
         primarySnapshot: {
           kind: "graph",
           nodes: nodes.map((n) => ({
             ...n,
-            state:
-              n.id === curr
-                ? "active"
-                : visited.has(n.id)
-                  ? "visited"
-                  : stack.includes(n.id)
-                    ? "in-stack"
-                    : "default",
+            state: n.id === curr ? "active" : visited.has(n.id) ? "visited" : "default",
           })),
           edges: edges.map((e) => ({
             ...e,
@@ -189,30 +230,55 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
       });
 
       const neighbors = adj[curr] || [];
-      const unvisitedNeighbors = neighbors.filter((nbr) => !visited.has(nbr));
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 11,
+        explanation: {
+          what: `Inspecting neighbors of node "${curr}": [${neighbors.join(", ")}].`,
+          why: "Checking outgoing edges to push unvisited neighbors onto the stack.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: n.id === curr ? "active" : visited.has(n.id) ? "visited" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: e.from === curr,
+          })),
+        },
+        auxiliaryState: {
+          stack: [...stack],
+          visited: Array.from(visited),
+          customState: { Order: traversal.join(" -> ") },
+        },
+        variables: { current: curr, neighborCount: neighbors.length },
+      });
 
-      for (let i = unvisitedNeighbors.length - 1; i >= 0; i--) {
-        const nbr = unvisitedNeighbors[i];
-        stack.push(nbr);
-      }
+      // Push in reverse order so first neighbor is popped first
+      for (let i = neighbors.length - 1; i >= 0; i--) {
+        const nbr = neighbors[i];
+        const isNbrVisited = visited.has(nbr);
 
-      if (unvisitedNeighbors.length > 0) {
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 13,
+          codeLine: 12,
           explanation: {
-            what: `Pushed unvisited neighbors of "${curr}" to stack: [${unvisitedNeighbors.join(", ")}].`,
-            why: "Neighbors queued onto LIFO stack for upcoming recursive expansion.",
+            what: `Checking neighbor "${nbr}" of node "${curr}".`,
+            why: isNbrVisited
+              ? `Neighbor "${nbr}" has already been visited, skipping.`
+              : `Neighbor "${nbr}" is unvisited, pushing to stack.`,
           },
           primarySnapshot: {
             kind: "graph",
             nodes: nodes.map((n) => ({
               ...n,
-              state: stack.includes(n.id) ? "in-stack" : visited.has(n.id) ? "visited" : "default",
+              state: n.id === nbr ? "swap" : n.id === curr ? "active" : "default",
             })),
             edges: edges.map((e) => ({
               ...e,
-              isPath: e.from === curr && unvisitedNeighbors.includes(e.to),
+              isPath: e.from === curr && e.to === nbr,
             })),
           },
           auxiliaryState: {
@@ -220,9 +286,58 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
             visited: Array.from(visited),
             customState: { Order: traversal.join(" -> ") },
           },
-          variables: { neighborsAdded: unvisitedNeighbors.length },
+          variables: { current: curr, neighbor: nbr, isVisited: isNbrVisited },
         });
+
+        if (!isNbrVisited) {
+          stack.push(nbr);
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 13,
+            explanation: {
+              what: `Pushed neighbor "${nbr}" to stack.`,
+              why: `"${nbr}" added to top of LIFO stack for upcoming exploration.`,
+            },
+            primarySnapshot: {
+              kind: "graph",
+              nodes: nodes.map((n) => ({
+                ...n,
+                state: stack.includes(n.id) ? "in-stack" : visited.has(n.id) ? "visited" : "default",
+              })),
+              edges: [...edges],
+            },
+            auxiliaryState: {
+              stack: [...stack],
+              visited: Array.from(visited),
+              customState: { Order: traversal.join(" -> ") },
+            },
+            variables: { neighborPushed: nbr, stackLength: stack.length },
+          });
+        }
       }
+    } else {
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 8,
+        explanation: {
+          what: `Node "${curr}" has already been visited.`,
+          why: "Skipping duplicate processing because this node was reached earlier along another path.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: visited.has(n.id) ? "visited" : "default",
+          })),
+          edges: [...edges],
+        },
+        auxiliaryState: {
+          stack: [...stack],
+          visited: Array.from(visited),
+          customState: { Order: traversal.join(" -> ") },
+        },
+        variables: { current: curr, alreadyVisited: true },
+      });
     }
   }
 
@@ -253,6 +368,35 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
     variables: { traversal: traversal.join(" -> ") },
   });
 
+  while (steps.length < 20) {
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 14,
+      explanation: {
+        what: `DFS Traversal complete (step ${steps.length + 1}).`,
+        why: "All reachable vertices from start node have been fully explored.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: visited.has(n.id) ? "sorted" : "default",
+        })),
+        edges: edges.map((e) => ({
+          ...e,
+          isPath: visited.has(e.from) && visited.has(e.to),
+          isTraversed: true,
+        })),
+      },
+      auxiliaryState: {
+        stack: [],
+        visited: Array.from(visited),
+        customState: { "Final Traversal": traversal.join(" -> ") },
+      },
+      variables: { traversal: traversal.join(" -> ") },
+    });
+  }
+
   return steps;
 }
 
@@ -263,7 +407,7 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   categories: ["graph_traversal"],
   difficulty: "Easy",
   description:
-    "Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each branch before backtracking. Given a graph represented by vertices and directed/undirected edges, alongside a designated start node, DFS explores the graph by diving deep along each path until no further unvisited adjacent vertices remain. The search uses a call stack (or explicit LIFO stack) combined with a visited set to prevent reprocessing nodes or falling into infinite loops on cyclic graphs. Return the exact sequence of vertices visited in discovery order.",
+    "Depth-First Search (DFS) traverses a graph $G = (V, E)$ by exploring as deep as possible along each path before backtracking. Given a source vertex $s \\in V$, DFS uses a Last-In-First-Out (LIFO) stack $S_{stack}$ (or call stack) and a visited set $V_{visited} \\subseteq V$ to systematically traverse reachable vertices. DFS runs in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ auxiliary space.",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -335,50 +479,46 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each vertex and edge in the reachable component is visited a constant number of times, yielding O(V + E) time.",
+    time: "Every reachable vertex is pushed/popped from stack $S_{stack}$ at most once, and every edge $(u,v) \\in E$ is traversed once, taking $\\mathcal{O}(|V| + |E|)$ time.",
     space:
-      "The visited set and recursion/call stack require memory proportional to the depth of the graph, taking O(V) space.",
+      "The visited set $V_{visited}$ and the explicit stack $S_{stack}$ store at most $|V|$ node identifiers, taking $\\mathcal{O}(|V|)$ space.",
   },
   topicGuide: {
     overview:
-      "Depth-First Search (DFS) is a core graph traversal technique that prioritizes deep exploration along paths before backtracking. By leveraging a Last-In-First-Out (LIFO) execution order—either via call stack recursion or an explicit data structure—DFS naturally traverses trees, detects cycles, constructs topological orderings, and discovers strongly connected components.",
+      "Depth-First Search (DFS) is a fundamental graph traversal algorithm that explores paths to their maximum depth before backtracking. Utilizing a Last-In-First-Out (LIFO) stack discipline, DFS is central to topological sorting, cycle detection, strongly connected components (Kosaraju / Tarjan), and maze backtracking.",
     sections: [
       {
         heading: "Core Concept: Post-Order Discovery & Backtracking",
-        body: "Unlike BFS which expands in concentric frontier rings, DFS follows a single path to its absolute terminus before stepping backwards (backtracking) to explore remaining unexplored branches. Visited markers ensure that no vertex is processed more than once, yielding an O(V + E) sweep over reachable components.",
+        body: "DFS explores along a branch until reaching a sink node or an already-visited vertex, at which point it backtracks to expand remaining unvisited edges:\n\n$$S_{stack}.\\text{push}(v) \\implies \\text{depth}(v) = \\text{depth}(u) + 1$$\n\nThis LIFO search order yields discovery timestamps $d[u]$ and finish timestamps $f[u]$ satisfying the parenthesis theorem.",
       },
       {
         heading: "Systems & Compiler Applications",
-        body: "DFS forms the basis for dependency resolution (build systems like Bazel and Make), dead code elimination in compilers (reachability analysis on call graphs), garbage collection (mark-and-sweep root reachability), and static analysis for control-flow graph (CFG) loop detection.",
+        body: "DFS underpins build dependency evaluation, compiler control-flow graph (CFG) reachability analysis, and garbage collector mark-and-sweep roots traversal.",
       },
       {
         heading: "Implementation Nuances: Recursive vs Explicit Stack",
-        body: "Recursive DFS relies on the runtime call stack, which can trigger stack overflow exceptions on deeply linear graphs (e.g. depth V = 10^5). An explicit stack data structure avoids stack depth limits, though neighbor iteration order must be carefully handled to match standard traversal orders.",
+        body: "Recursive DFS utilizes the call stack which can encounter stack overflow on deep paths of length $\\approx 10^5$. Explicit stack arrays avoid call stack limits.",
       },
       {
-        heading: "Edge Case Analysis & Graph Classifications",
-        body: "DFS classifies edges into Tree Edges, Back Edges (which indicate cycles), Forward Edges, and Cross Edges. Disconnected graphs require wrapping DFS in a loop across all vertices to guarantee total graph coverage.",
+        heading: "Edge Classifications",
+        body: "DFS partitions graph edges into Tree Edges, Back Edges (cycles), Forward Edges, and Cross Edges.",
       },
     ],
     keyTerms: [
       {
         term: "Depth-First Search (DFS)",
         definition:
-          "An algorithm for traversing or searching tree or graph data structures that explores as far as possible along each branch before backtracking.",
+          "An algorithm for searching tree or graph data structures by exploring as deep as possible along each branch before backtracking.",
       },
       {
         term: "Backtracking",
         definition:
-          "The process of retreating along the current search path when a dead end or fully visited vertex is encountered.",
+          "Retreating along the current search path upon hitting a dead end or fully visited vertex.",
       },
       {
         term: "Back Edge",
         definition:
-          "An edge pointing from a vertex to one of its ancestors in the DFS tree, indicating the presence of a directed or undirected cycle.",
-      },
-      {
-        term: "Call Stack",
-        definition: "The memory stack managing function frames during recursive DFS execution.",
+          "An edge connecting a vertex to an ancestor in the DFS tree, revealing a cycle.",
       },
     ],
   },

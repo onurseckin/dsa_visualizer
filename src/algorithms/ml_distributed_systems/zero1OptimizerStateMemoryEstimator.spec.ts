@@ -6,20 +6,32 @@ import {
 } from "./zero1OptimizerStateMemoryEstimator";
 
 describe("zero1-optimizer-state-memory-estimator", () => {
-  it("should have correct metadata", () => {
+  it("should have correct metadata and full trivia lineExplanations", () => {
     expect(zero1OptimizerStateMemoryEstimator.id).toBe("zero1-optimizer-state-memory-estimator");
     expect(zero1OptimizerStateMemoryEstimator.isMlInfra).toBe(true);
     expect(zero1OptimizerStateMemoryEstimator.mlInfraLevel).toBe(11);
     expect(zero1OptimizerStateMemoryEstimator.mlInfraCategory).toBe("ml_distributed_systems");
     expect(zero1OptimizerStateMemoryEstimator.categories).toContain("ml_distributed_systems");
+    expect(zero1OptimizerStateMemoryEstimator.defaultInput).toEqual(
+      DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT,
+    );
+
+    const codeLines = zero1OptimizerStateMemoryEstimator.code.trim().split("\n").length;
+    const explanationKeys = Object.keys(
+      zero1OptimizerStateMemoryEstimator.trivia?.lineExplanations || {},
+    ).map(Number);
+    expect(explanationKeys.length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(zero1OptimizerStateMemoryEstimator.trivia?.lineExplanations?.[i]).toBeDefined();
+    }
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate >= 20 algorithm steps", () => {
     const steps = generateZero1OptimizerStateMemoryEstimatorSteps(
       DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT,
     );
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Initialize memory estimator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Return per-GPU footprint");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain("Initialize");
+    expect(steps[steps.length - 1].explanation.what).toContain("Return");
   });
 });

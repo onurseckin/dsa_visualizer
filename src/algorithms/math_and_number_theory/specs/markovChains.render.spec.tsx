@@ -1,20 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import GraphVisualizer from "../../../components/primitives/GraphVisualizer";
+import { VectorVisualizer } from "../../../components/primitives/VectorVisualizer";
 import { generateMarkovChainsSteps, DEFAULT_MARKOV_CHAINS_INPUT } from "../markovChains";
-import type { GraphVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("markovChains React component spec", () => {
-  it("renders GraphVisualizer with generated markov chain snapshot", () => {
+  it("renders VectorVisualizer with generated markov chain snapshot", () => {
     const steps = generateMarkovChainsSteps(DEFAULT_MARKOV_CHAINS_INPUT);
-    const snapshot = steps[0].primarySnapshot as GraphVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
 
     render(
-      <GraphVisualizer
-        nodes={snapshot.nodes}
-        edges={snapshot.edges}
-        title="Markov Chains & Random Walks"
-      />,
+      <VectorVisualizer vectors={snapshot.vectors} planeTitle="Markov Chains & Random Walks" />,
     );
 
     expect(screen.getByText("Markov Chains & Random Walks")).toBeInTheDocument();

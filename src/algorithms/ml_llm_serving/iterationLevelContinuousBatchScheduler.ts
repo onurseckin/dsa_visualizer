@@ -6,8 +6,7 @@ export interface iterationLevelContinuousBatchSchedulerInput {
   max_batch_size: number;
 }
 
-export const ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_CODE = `
-def iteration_level_continuous_batch_scheduler(incoming_requests, max_batch_size=2):
+export const ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_CODE = `def iteration_level_continuous_batch_scheduler(incoming_requests, max_batch_size=2):
     """
     Simulates iteration-level continuous batching (Orca / vLLM).
     At every token generation step (iteration), completed requests are evicted immediately,
@@ -33,8 +32,7 @@ def iteration_level_continuous_batch_scheduler(incoming_requests, max_batch_size
         iterations += 1
         active_batch = [req - 1 for req in active_batch if req - 1 > 0]
 
-    return iterations, batch_snapshots
-`;
+    return iterations, batch_snapshots`;
 
 export const DEFAULT_ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_INPUT: iterationLevelContinuousBatchSchedulerInput =
   {
@@ -48,12 +46,35 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
+  const { incoming_requests, max_batch_size } = input;
+  const queue = [...incoming_requests];
+  let activeBatch: number[] = [];
+  let iterations = 0;
+  const batchSnapshots: number[][] = [];
+
+  const getElements = (): ArrayElement[] => {
+    const activeElements: ArrayElement[] = activeBatch.map((req, idx) => ({
+      id: `active-${idx}`,
+      value: `Active Slot ${idx + 1}: Req (${req} tokens left)`,
+      state: "active" as const,
+      pointers: [`slot_${idx + 1}`],
+    }));
+
+    const queueElements: ArrayElement[] = queue.map((req, idx) => ({
+      id: `queue-${idx}`,
+      value: `Queue Pos ${idx + 1}: Req (${req} tokens)`,
+      state: "default" as const,
+      pointers: idx === 0 ? ["head"] : undefined,
+    }));
+
+    return [...activeElements, ...queueElements];
+  };
+
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements: ArrayElement[],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -61,114 +82,190 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: customElements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: getElements(),
       },
       auxiliaryState: {
         customState: {
-          max_batch_size: String(input.max_batch_size),
+          max_batch_size: String(max_batch_size),
+          active_batch: `[${activeBatch.join(", ")}]`,
+          queue: `[${queue.join(", ")}]`,
+          iterations: String(iterations),
         },
       },
       variables,
     });
   };
 
-  const requestQueue = [...input.incoming_requests];
-  let activeBatch: number[] = [];
-  let totalIterations = 0;
-
-  const getElements = (): ArrayElement[] => {
-    return [
-      ...activeBatch.map((req, idx) => ({
-        id: `active-${idx}`,
-        value: `Req (${req} left)`,
-        state: "active" as const,
-      })),
-      ...requestQueue.map((req, idx) => ({
-        id: `queue-${idx}`,
-        value: `Wait (${req})`,
-        state: "default" as const,
-      })),
-    ];
-  };
-
+  // Step 1: Entry
   addStep(
-    6,
-    "Initialize Continuous Batching",
-    "Prepare the queue of incoming requests.",
-    { total_iterations: totalIterations },
-    getElements(),
+    1,
+    "Enter iteration_level_continuous_batch_scheduler function",
+    "Initializing continuous batching scheduler with queued requests and max batch size capacity.",
+    { max_batch_size, queue_length: queue.length },
   );
 
-  while (requestQueue.length > 0 || activeBatch.length > 0) {
+  // Step 2: init queue
+  addStep(
+    7,
+    `Initialize queue = list(incoming_requests) -> [${queue.join(", ")}]`,
+    "Converted incoming request stream into mutable scheduler queue.",
+    { queue: queue.join(", ") },
+  );
+
+  // Step 3: init active_batch
+  addStep(
+    8,
+    "Initialize active_batch = []",
+    "Empty active batch array representing open GPU execution slots.",
+    { active_batch: "[]" },
+  );
+
+  // Step 4: init iterations
+  addStep(
+    9,
+    "Initialize iterations = 0",
+    "Iteration step counter tracking GPU forward pass execution loops.",
+    { iterations: 0 },
+  );
+
+  // Step 5: init batch_snapshots
+  addStep(
+    10,
+    "Initialize batch_snapshots = []",
+    "Array to store iteration-level batch state history.",
+    { batch_snapshots: "[]" },
+  );
+
+  while (queue.length > 0 || activeBatch.length > 0) {
     addStep(
-      11,
-      "Check active requests and queue",
-      "If there's work left, start a new iteration.",
-      { total_iterations: totalIterations },
-      getElements(),
+      12,
+      `Check outer while loop condition: queue (${queue.length}) or active_batch (${activeBatch.length})`,
+      "Continuing execution while queued or active requests remain.",
+      { queue_len: queue.length, active_len: activeBatch.length },
     );
 
-    let admitted = false;
-    while (activeBatch.length < input.max_batch_size && requestQueue.length > 0) {
-      activeBatch.push(requestQueue.shift()!);
-      admitted = true;
-    }
+    // Inner loop check
+    addStep(
+      14,
+      `Check admission while loop: len(active_batch)=${activeBatch.length} < max_batch_size=${max_batch_size} and queue (${queue.length})`,
+      "Inspecting whether open slots exist in the active batch to admit waiting requests.",
+      { active_len: activeBatch.length, max_batch_size, queue_len: queue.length },
+    );
 
-    if (admitted) {
+    while (activeBatch.length < max_batch_size && queue.length > 0) {
+      const admittedReq = queue.shift()!;
+      activeBatch.push(admittedReq);
       addStep(
-        14,
-        "Admit requests to batch",
-        "Continuous batching doesn't wait for the batch to empty. We fill empty slots immediately.",
-        { total_iterations: totalIterations },
-        getElements(),
+        15,
+        `Admit request (${admittedReq} tokens) from queue -> active_batch = [${activeBatch.join(", ")}]`,
+        `Continuous batching immediately fills freed slot with request of length ${admittedReq} tokens without waiting for batch to empty.`,
+        { admitted_request: admittedReq, active_batch: activeBatch.join(", ") },
       );
     }
 
-    totalIterations++;
-    activeBatch = activeBatch.map((req) => req - 1).filter((req) => req > 0);
-
     addStep(
-      23,
-      "Simulate forward pass",
-      "Generated one token for all active requests.",
-      { total_iterations: totalIterations },
-      getElements(),
+      17,
+      `Check if not active_batch (len = ${activeBatch.length})`,
+      "Verifying active batch is non-empty before executing forward pass step.",
+      { active_len: activeBatch.length },
+    );
+
+    if (activeBatch.length === 0) break;
+
+    batchSnapshots.push([...activeBatch]);
+    addStep(
+      21,
+      `Record snapshot for iteration ${iterations + 1}: [${activeBatch.join(", ")}]`,
+      "Logged active sequence remaining token counts at iteration start.",
+      { iteration: iterations + 1, snapshot: activeBatch.join(", ") },
+    );
+
+    iterations++;
+    addStep(
+      24,
+      `Execute GPU forward pass step: iterations += 1 -> ${iterations}`,
+      `Generated 1 output token for all ${activeBatch.length} active requests simultaneously.`,
+      { iterations },
+    );
+
+    const prevBatch = [...activeBatch];
+    activeBatch = activeBatch.map((req) => req - 1).filter((req) => req > 0);
+    const evictedCount = prevBatch.length - activeBatch.length;
+    addStep(
+      25,
+      `Decrement remaining lengths & evict finished requests -> active_batch = [${activeBatch.join(", ")}]`,
+      evictedCount > 0
+        ? `Evicted ${evictedCount} completed request(s) immediately! Releasing GPU slots and KV cache blocks.`
+        : `Updated remaining token counts: [${activeBatch.join(", ")}].`,
+      { active_batch: activeBatch.join(", "), evicted_count: evictedCount },
     );
   }
 
+  // Final check loop exit
   addStep(
-    26,
-    "Batching Complete",
-    "All requests finished generating tokens.",
-    { total_iterations: totalIterations },
-    getElements(),
+    12,
+    "Outer loop terminates: queue is empty and active_batch is empty",
+    "All incoming requests have completed token generation.",
+    { iterations, queue_len: 0, active_len: 0 },
+  );
+
+  addStep(
+    27,
+    `Return (iterations=${iterations}, batch_snapshots=[${batchSnapshots.map((s) => `[${s.join(",")}]`).join(", ")}])`,
+    `Completed continuous batching simulation in ${iterations} total iteration steps.`,
+    { iterations, snapshot_count: batchSnapshots.length },
   );
 
   return steps;
 };
 
 const ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4],
+  skipLines: [2, 3, 4, 5, 6, 11, 13, 16, 19, 20, 22, 23, 26],
   distractors: [
-    "while request_queue: active_batch.append(request_queue.pop(0))",
-    "active_batch = []",
+    "active_batch = list(incoming_requests)",
+    "while len(active_batch) == max_batch_size:",
+    "iterations += max_batch_size",
+    "active_batch = [req for req in active_batch]",
   ],
-  hints: [{ line: 14, hint: "Continuous batching admits new requests at the iteration level." }],
+  hints: [
+    { line: 14, hint: "Greedy admission loop checks if open slots exist in active_batch." },
+    { line: 25, hint: "Iteration-level eviction removes requests with 0 remaining tokens immediately." },
+  ],
   lineExplanations: {
-    6: "Initialize the state variables.",
-    14: "Greedily admit waiting requests until max_batch_size capacity is hit.",
-    23: "Process one token for all active requests simultaneously.",
-    26: "Return total steps taken.",
+    1: "Function signature for Iteration-Level Continuous Batch Scheduler taking incoming_requests and max_batch_size.",
+    2: "Begin docstring describing Orca / vLLM continuous batching mechanism.",
+    3: "Docstring line explaining token generation step scheduling.",
+    4: "Docstring line detailing immediate eviction of completed requests.",
+    5: "Docstring line detailing greedy admission of waiting requests into open slots.",
+    6: "End docstring.",
+    7: "Initialize scheduler queue list from incoming request generation lengths.",
+    8: "Initialize empty active_batch list representing open GPU execution slots.",
+    9: "Initialize iteration step counter tracking GPU forward pass loops.",
+    10: "Initialize list to log batch state snapshots at each iteration.",
+    11: "Blank line before main scheduling loop.",
+    12: "Loop while requests remain in queue or active batch slots.",
+    13: "Comment explaining greedy admission until max_batch_size capacity is reached.",
+    14: "Check if active batch has open slots and queue contains waiting requests.",
+    15: "Admit head request from queue into active batch immediately.",
+    16: "Blank line before active batch non-empty check.",
+    17: "Check if active batch is empty after admission attempts.",
+    18: "Break loop if no active requests remain.",
+    19: "Blank line before snapshot logging.",
+    20: "Comment explaining snapshot logging at iteration start.",
+    21: "Append copy of current active_batch request state to snapshots list.",
+    22: "Blank line before execution step.",
+    23: "Comment explaining single token generation step and length decrement.",
+    24: "Increment total iteration counter by 1.",
+    25: "Decrement remaining token count for all active requests and immediately evict requests with 0 tokens left.",
+    26: "Blank line before returning results.",
+    27: "Return total iterations and batch snapshots history to caller.",
   },
 };
 
 export const iterationLevelContinuousBatchScheduler: AlgorithmDefinition<iterationLevelContinuousBatchSchedulerInput> =
   {
     id: "iteration-level-continuous-batch-scheduler",
-    title: "Iteration-Level Continuous Batching",
+    title: "Iteration-Level Continuous Batching Scheduler",
     category: "ml_llm_serving",
     categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Hard",
@@ -176,7 +273,7 @@ export const iterationLevelContinuousBatchScheduler: AlgorithmDefinition<iterati
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "Continuous Batching (iteration-level scheduling, as introduced in Orca and vLLM) evaluates request admission and eviction at the granularity of a single forward pass token generation step. In traditional static batching, an inference engine groups N requests into a static batch and waits for the longest sequence to complete before discharging the batch. Short requests finish early but sit idle while wasting GPU memory bandwidth and SM execution cycles.\n\nIteration-Level Continuous Batching resolves this by inspecting batch state at every iteration: whenever a sequence reaches its end-of-sequence (EOS) token or length limit, it is evicted immediately, releasing its slot and KV-cache blocks. New waiting requests from the scheduler queue are admitted into the batch right away, keeping Tensor Core matrix shapes saturated across all steps.\n\nInput Format:\n- incoming_requests: Array of integer generation lengths (tokens remaining) for queued requests.\n- max_batch_size: Maximum allowed parallel requests in active batch.\n\nOutput Format:\n- Returns total iterations executed and batch state history snapshots.\n\nEdge Cases & Constraints:\n- Empty initial queue: Returns 0 iterations immediately.\n- Uniform generation lengths: Degenerates into static batch behavior when all sequences have identical lengths.",
+      "Continuous Batching (iteration-level scheduling, introduced in Orca and vLLM) evaluates request admission and eviction at the granularity of a single forward pass token generation step. In traditional static batching, an inference engine groups $N$ requests into a static batch and waits for the longest sequence to complete before discharging the batch. Short requests finish early but sit idle while wasting GPU memory bandwidth and SM execution cycles.\n\nIteration-Level Continuous Batching resolves this by inspecting batch state at every iteration: whenever a sequence reaches its end-of-sequence (EOS) token or length limit, it is evicted immediately, releasing its slot and KV-cache blocks. New waiting requests from the scheduler queue are admitted into the batch right away, keeping Tensor Core matrix shapes saturated across all steps.\n\n### Analytical Execution Model\nAt each iteration step $t$:\n1. **Eviction Pass**: Active requests with $0$ remaining tokens are removed.\n2. **Admission Pass**: While $|\\text{active\\_batch}| < B_{\\max}$ and queue is non-empty, admit queue head request.\n3. **Forward Pass**: Execute 1 token generation step across active requests: $req_i \\leftarrow req_i - 1$.\n\n### Input Parameters\n- `incoming_requests`: Array of integer generation lengths (tokens remaining) for queued requests.\n- `max_batch_size`: Maximum allowed parallel requests $B_{\\max}$ in active batch.\n\n### Output\n- Returns total iterations executed and batch state history snapshots.",
     constraints: ["1 <= max_batch_size <= 100", "0 <= incoming_requests.length <= 100"],
     examples: [
       {
@@ -213,24 +310,24 @@ export const iterationLevelContinuousBatchScheduler: AlgorithmDefinition<iterati
     timeComplexity: { best: "O(T)", average: "O(T)", worst: "O(T)" },
     spaceComplexity: "O(B)",
     complexityAnalysis: {
-      time: "O(T) where T is the total iteration steps executed. Processes up to B active requests per step.",
-      space: "O(B) auxiliary space for the active batch request queue.",
+      time: "$O(T)$ where $T$ is total iteration steps executed. Processes up to $B_{\\max}$ active requests per step.",
+      space: "$O(B_{\\max})$ auxiliary space for active batch request queue.",
     },
     topicGuide: {
       overview:
         "Continuous Batching (iteration-level scheduling) evaluates request admission and eviction at every token step, maximizing GPU utilization.",
       sections: [
         {
-          heading: "Overview",
-          body: "Static batching in LLM serving suffers from Severe Waste due to sequence length variance. In a static batch of requests with lengths [2, 5, 3], a batch size of 2 will process [2, 5], finishing the first request in 2 steps, but leaving GPU slots idle for 3 steps while waiting for length 5 to finish. Continuous batching evicts finished requests and injects new requests at every iteration step.",
+          heading: "Overview & Production Motivation",
+          body: "Static batching in LLM serving suffers from severe waste due to sequence length variance. In a static batch of requests with lengths $[2, 5, 3]$, a batch size of 2 will process $[2, 5]$, finishing the first request in 2 steps, but leaving GPU slots idle for 3 steps while waiting for length 5 to finish. Continuous batching evicts finished requests and injects new requests at every iteration step.",
         },
         {
-          heading: "Core Concepts",
-          body: "The continuous batch scheduler maintains two primary structures: a Waiting Queue and an Active Batch array of capacity max_batch_size. At step t, the scheduler (1) evicts requests with 0 remaining tokens; (2) admits queue requests into freed slots; (3) executes 1 token forward pass across all active sequences.",
+          heading: "Iteration Scheduler Algorithm",
+          body: "The continuous batch scheduler maintains two primary structures: a Waiting Queue and an Active Batch array of capacity $B_{\\max}$. At step $t$, the scheduler:\n1. Evicts requests with 0 remaining tokens;\n2. Admits queue requests into freed slots;\n3. Executes 1 token forward pass across all active sequences.",
         },
         {
           heading: "Systems & Memory Bandwidth Impact",
-          body: "By keeping the active batch saturated at max_batch_size capacity, continuous batching increases system throughput by 10x-23x over static batching. DRAM memory reads for model parameters are amortized over larger batch matrix shapes in every iteration.",
+          body: "By keeping the active batch saturated at $B_{\\max}$ capacity, continuous batching increases system throughput by 10x-23x over static batching. DRAM memory reads for model parameters are amortized over larger batch matrix shapes in every iteration.",
         },
         {
           heading: "Implementation Nuances & Edge Cases",
@@ -264,3 +361,5 @@ export const iterationLevelContinuousBatchScheduler: AlgorithmDefinition<iterati
     defaultInput: DEFAULT_ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_INPUT,
     generateSteps: generateIterationLevelContinuousBatchSchedulerSteps,
   };
+
+export default iterationLevelContinuousBatchScheduler;

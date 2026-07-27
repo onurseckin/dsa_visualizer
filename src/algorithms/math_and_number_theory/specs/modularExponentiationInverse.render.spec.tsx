@@ -1,23 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
+import { VectorVisualizer } from "../../../components/primitives/VectorVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import {
   generateModularExponentiationInverseSteps,
   DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT,
 } from "../modularExponentiationInverse";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("modularExponentiationInverse React component spec", () => {
-  it("renders ArrayVisualizer with Modular Exponentiation snapshot", () => {
+  it("renders VectorVisualizer with Modular Exponentiation snapshot", () => {
     const steps = generateModularExponentiationInverseSteps(
       DEFAULT_MODULAR_EXPONENTIATION_INVERSE_INPUT,
     );
-    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
 
     render(
-      <ArrayVisualizer elements={snapshot.elements} title="Modular Exponentiation & Inverse" />,
+      <VectorVisualizer vectors={snapshot.vectors} planeTitle="Modular Exponentiation & Inverse" />,
     );
 
     expect(screen.getByText("Modular Exponentiation & Inverse")).toBeInTheDocument();

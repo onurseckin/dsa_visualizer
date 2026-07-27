@@ -370,20 +370,20 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   },
   spaceComplexity: "O(V log k)",
   complexityAnalysis: {
-    time: "Floyd's cycle detection visits at most O(V) nodes. Binary lifting constructs a binary jump table of size V x log(k) and answers k-th successor queries in O(log k) time.",
-    space: "The binary lifting table takes O(V log k) memory.",
+    time: "Floyd's cycle detection visits at most $\\mathcal{O}(V)$ nodes. Binary lifting constructs a binary jump table of size $V \\times \\log(k)$ and answers $k$-th successor queries in $\\mathcal{O}(\\log k)$ time.",
+    space: "The binary lifting table takes $\\mathcal{O}(V \\log k)$ memory.",
   },
   topicGuide: {
     overview:
-      "A functional graph is a directed graph where every vertex has an out-degree of exactly 1. Structural properties of functional graphs guarantee that every connected component consists of directed trees pointing toward a central directed cycle. Querying long paths or cycle properties in functional graphs is efficiently solved using Floyd's Cycle Detection and Binary Lifting.",
+      "A **functional graph** is a directed graph where every vertex has an out-degree of exactly 1. Structural properties of functional graphs guarantee that every connected component consists of directed trees pointing toward a central directed cycle. Querying long paths or cycle properties in functional graphs is efficiently solved using **Floyd's Cycle Detection** and **Binary Lifting**.",
     sections: [
       {
         heading: "Core Concept: Floyd's Tortoise and Hare Cycle Detection",
-        body: "Floyd's algorithm uses two pointers moving at different speeds: Tortoise advances 1 step at a time (t = succ[t]), while Hare advances 2 steps (h = succ[succ[h]]). Since the graph component contains a cycle, the Hare is guaranteed to catch the Tortoise inside the cycle. Resetting Tortoise to the start node and stepping both by 1 isolates the exact cycle entry node.",
+        body: "Floyd's algorithm uses two pointers moving at different speeds: Tortoise advances 1 step at a time ($t = \\text{succ}[t]$), while Hare advances 2 steps ($h = \\text{succ}[\\text{succ}[h]]$). Since the graph component contains a cycle, the Hare is guaranteed to catch the Tortoise inside the cycle. Resetting Tortoise to the start node and stepping both by 1 isolates the exact cycle entry node.",
       },
       {
         heading: "Binary Lifting for Arbitrary Step Queries",
-        body: "To compute the k-th successor succ(x, k) for huge step counts (e.g. k = 10^9), standard linear stepping is too slow. Binary lifting precomputes table[b][x] = 2^b-th successor of x. Decomposing k into its binary bit representation allows jumping k steps in O(log k) table lookups.",
+        body: "To compute the $k$-th successor $\\text{succ}(x, k)$ for huge step counts (e.g. $k = 10^9$), standard linear stepping is too slow. Binary lifting precomputes $\\text{table}[b][x] = 2^b$-th successor of $x$. Decomposing $k$ into its binary bit representation allows jumping $k$ steps in $\\mathcal{O}(\\log k)$ table lookups.",
       },
       {
         heading: "Applications in Pseudorandomness & Cryptography",
@@ -391,7 +391,11 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
       },
       {
         heading: "Edge Cases & Functional Components",
-        body: "Self-loops (succ[x] = x) form 1-cycles. Pure cycle graphs have no incoming tails (all in-degrees = 1). Binary lifting jump tables handle arbitrarily large step counts without stack overflow or infinite loops.",
+        body: "Self-loops ($\\text{succ}[x] = x$) form 1-cycles. Pure cycle graphs have no incoming tails (all in-degrees = 1). Binary lifting jump tables handle arbitrarily large step counts without stack overflow or infinite loops.",
+      },
+      {
+        heading: "Complexity Analysis",
+        body: "$$\\text{Time Complexity}: \\mathcal{O}(V + \\log k)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V \\log k)$$\n- **Cycle Detection**: Floyd's Tortoise and Hare runs in $\\mathcal{O}(V)$ time and $\\mathcal{O}(1)$ space.\n- **Binary Lifting Query**: Precomputes $V \\times \\log k$ table, answering queries in $\\mathcal{O}(\\log k)$ time.",
       },
     ],
     keyTerms: [
@@ -403,12 +407,12 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
       {
         term: "Floyd's Cycle Detection",
         definition:
-          "An O(V) time, O(1) space two-pointer algorithm for detecting cycles in linked structures or functional graphs.",
+          "An $\\mathcal{O}(V)$ time, $\\mathcal{O}(1)$ space two-pointer algorithm for detecting cycles in linked structures or functional graphs.",
       },
       {
         term: "Binary Lifting",
         definition:
-          "A dynamic programming technique precomputing 2^i ancestors or successors to enable O(log k) query traversal.",
+          "A dynamic programming technique precomputing $2^i$ ancestors or successors to enable $\\mathcal{O}(\\log k)$ query traversal.",
       },
       {
         term: "Cycle Entry Node",

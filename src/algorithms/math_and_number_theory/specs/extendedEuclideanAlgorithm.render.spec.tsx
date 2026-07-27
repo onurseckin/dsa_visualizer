@@ -1,20 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
+import { MatrixVisualizer } from "../../../components/primitives/MatrixVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import {
   generateExtendedEuclideanSteps,
   DEFAULT_EXTENDED_EUCLIDEAN_INPUT,
 } from "../extendedEuclideanAlgorithm";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("extendedEuclideanAlgorithm React component spec", () => {
-  it("renders ArrayVisualizer with Extended Euclidean Algorithm snapshot", () => {
+  it("renders MatrixVisualizer with Extended Euclidean Algorithm snapshot", () => {
     const steps = generateExtendedEuclideanSteps(DEFAULT_EXTENDED_EUCLIDEAN_INPUT);
-    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as MatrixVisualSnapshot;
 
-    render(<ArrayVisualizer elements={snapshot.elements} title="Extended Euclidean Algorithm" />);
+    render(
+      <MatrixVisualizer
+        rows={snapshot.rows}
+        cols={snapshot.cols}
+        cells={snapshot.cells}
+        rowHeaders={snapshot.rowHeaders}
+        colHeaders={snapshot.colHeaders}
+        title="Extended Euclidean Algorithm"
+      />,
+    );
 
     expect(screen.getByText("Extended Euclidean Algorithm")).toBeInTheDocument();
   });

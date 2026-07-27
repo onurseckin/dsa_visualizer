@@ -87,51 +87,146 @@ export const generateZero1OptimizerStateMemoryEstimatorSteps = (
   };
 
   addStep(
-    10,
-    "Initialize memory estimator",
-    "Prepare to compute the memory footprint of Adam optimizer states under ZeRO-1.",
-    { parameters: params, gpus },
+    1,
+    "Initialize DeepSpeed ZeRO-1 Memory Estimator",
+    `Configuring estimator for model with ${params.toLocaleString()} parameters across ${gpus} GPUs.`,
+    { parameters: params, num_gpus: gpus, precision_bytes: 2 },
+    [...elements],
+  );
+
+  addStep(
+    18,
+    "Check Number of GPUs Guard (num_gpus <= 0)",
+    `Validating GPU count: ${gpus} >= 1. Guard check passed.`,
+    { num_gpus: gpus, valid: true },
     [...elements],
   );
 
   const bytesPerParam = 12;
   addStep(
-    23,
-    "Define bytes per parameter for Adam",
-    "Adam requires FP32 master weights, momentum, and variance (3 * 4 = 12 bytes per parameter).",
-    { bytes_per_param: bytesPerParam },
+    21,
+    "Define Bytes per Optimizer Parameter (12 Bytes)",
+    "Adam mixed precision requires 4 bytes FP32 master weight + 4 bytes momentum + 4 bytes variance = 12 bytes per parameter.",
+    { bytes_per_optimizer_param: bytesPerParam, fp32_master: 4, momentum: 4, variance: 4 },
     [...elements],
   );
 
-  const totalOptimizerMemory = params * bytesPerParam;
+  const totalOptimizerBytes = params * bytesPerParam;
   addStep(
-    24,
-    "Calculate total optimizer memory",
-    "This is the memory required if we didn't shard the optimizer states.",
-    { total_optimizer_memory: totalOptimizerMemory },
+    22,
+    `Calculate Total Un-sharded Optimizer Memory (${(totalOptimizerBytes / 1e9).toFixed(2)} GB)`,
+    `Total baseline un-sharded Adam optimizer memory: ${params.toLocaleString()} parameters * 12 bytes = ${(totalOptimizerBytes / 1e9).toFixed(2)} GB.`,
+    { parameters: params, bytes_per_param: bytesPerParam, total_optimizer_bytes: totalOptimizerBytes },
     [...elements],
   );
 
-  const perGpuMemory = totalOptimizerMemory / gpus;
+  const perGpuOptimizerBytes = totalOptimizerBytes / gpus;
+  const memorySavedPerGpu = totalOptimizerBytes - perGpuOptimizerBytes;
+
+  addStep(
+    23,
+    `Partition Optimizer Memory Across ${gpus} GPUs (${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB / GPU)`,
+    `ZeRO-1 shards total ${totalOptimizerBytes.toLocaleString()} bytes into ${gpus} equal partitions: ${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB per GPU.`,
+    { num_gpus: gpus, total_optimizer_bytes: totalOptimizerBytes, per_gpu_optimizer_bytes: perGpuOptimizerBytes },
+    [...elements],
+  );
+
+  // Detail step-by-step per GPU rank
+  const displayGpuCount = Math.min(gpus, 8);
+  for (let rank = 0; rank < displayGpuCount; rank++) {
+    const startParam = Math.floor((rank * params) / gpus);
+    const endParam = Math.floor(((rank + 1) * params) / gpus);
+    const rankBytes = (endParam - startParam) * bytesPerParam;
+
+    const rankElements = elements.map((el, idx) => {
+      if (idx === rank) {
+        return {
+          ...el,
+          state: "active" as const,
+          value: `${(rankBytes / 1e9).toFixed(2)} GB`,
+          pointers: [`Rank_${rank}`, `Params ${rank * (100 / gpus)}%`],
+        };
+      }
+      if (idx < rank) {
+        return {
+          ...el,
+          state: "sorted" as const,
+          value: `${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB`,
+        };
+      }
+      return el;
+    });
+
+    addStep(
+      23,
+      `Allocate ZeRO-1 Partition for GPU Rank ${rank}`,
+      `Rank ${rank} stores master weights/momentum/variance for parameters [${startParam.toLocaleString()} .. ${endParam.toLocaleString()}]. Sharded VRAM footprint = ${(rankBytes / 1e9).toFixed(2)} GB.`,
+      { rank, start_param: startParam, end_param: endParam, rank_bytes: rankBytes },
+      rankElements,
+    );
+
+    addStep(
+      23,
+      `Compute VRAM Savings for GPU Rank ${rank}`,
+      `Rank ${rank} saves ${(memorySavedPerGpu / 1e9).toFixed(2)} GB VRAM compared to un-sharded DDP replication.`,
+      { rank, saved_bytes: memorySavedPerGpu },
+      rankElements,
+    );
+  }
+
   const finalElements = elements.map((el) => ({
     ...el,
     state: "sorted" as const,
-    value: `${(perGpuMemory / 1e9).toFixed(2)} GB`,
+    value: `${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB`,
+    pointers: ["ZeRO-1 Sharded"],
   }));
 
   addStep(
     25,
-    "Shard memory across GPUs",
-    "ZeRO-1 divides the optimizer states evenly across all GPUs in the data parallel group.",
-    { per_gpu_memory: perGpuMemory },
+    "Construct Return Memory Footprint Payload",
+    `Assembling memory metrics dictionary: total_optimizer_bytes, per_gpu_optimizer_bytes, and memory_saved_per_gpu.`,
+    {
+      total_optimizer_bytes: totalOptimizerBytes,
+      per_gpu_optimizer_bytes: perGpuOptimizerBytes,
+      memory_saved_per_gpu: memorySavedPerGpu,
+    },
+    finalElements,
+  );
+
+  addStep(
+    26,
+    `Set total_optimizer_bytes = ${(totalOptimizerBytes / 1e9).toFixed(2)} GB`,
+    "Assigning un-sharded baseline optimizer state memory.",
+    { total_optimizer_bytes: totalOptimizerBytes },
     finalElements,
   );
 
   addStep(
     27,
-    "Return per-GPU footprint",
-    "Computation complete.",
-    { per_gpu_memory: perGpuMemory },
+    `Set per_gpu_optimizer_bytes = ${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB`,
+    "Assigning ZeRO-1 sharded per-GPU VRAM requirement.",
+    { per_gpu_optimizer_bytes: perGpuOptimizerBytes },
+    finalElements,
+  );
+
+  addStep(
+    28,
+    `Set memory_saved_per_gpu = ${(memorySavedPerGpu / 1e9).toFixed(2)} GB`,
+    "Assigning calculated per-GPU VRAM memory savings.",
+    { memory_saved_per_gpu: memorySavedPerGpu },
+    finalElements,
+  );
+
+  addStep(
+    29,
+    "Return DeepSpeed ZeRO-1 Memory Footprint Analysis",
+    `Completed ZeRO-1 memory estimation. Reduced per-GPU optimizer VRAM from ${(totalOptimizerBytes / 1e9).toFixed(2)} GB down to ${(perGpuOptimizerBytes / 1e9).toFixed(2)} GB (${(memorySavedPerGpu / 1e9).toFixed(2)} GB saved per GPU).`,
+    {
+      completed: true,
+      total_optimizer_bytes: totalOptimizerBytes,
+      per_gpu_optimizer_bytes: perGpuOptimizerBytes,
+      memory_saved_per_gpu: memorySavedPerGpu,
+    },
     finalElements,
   );
 
@@ -139,15 +234,49 @@ export const generateZero1OptimizerStateMemoryEstimatorSteps = (
 };
 
 const ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7],
-  distractors: ["bytes_per_param = 16", "per_gpu_memory = total_optimizer_memory * gpus"],
-  hints: [{ line: 23, hint: "FP32 Master Weights (4) + Momentum (4) + Variance (4) = 12." }],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20, 24],
+  distractors: [
+    "bytes_per_optimizer_param = 16",
+    "per_gpu_optimizer_bytes = total_optimizer_bytes * num_gpus",
+    "total_optimizer_bytes = parameters * 4",
+    "memory_saved_per_gpu = total_optimizer_bytes / num_gpus",
+  ],
+  hints: [
+    { line: 21, hint: "FP32 Master Weights (4) + Momentum (4) + Variance (4) = 12 bytes per param." },
+    { line: 22, hint: "Total un-sharded optimizer bytes = parameters * bytes_per_optimizer_param." },
+    { line: 23, hint: "Divide total optimizer bytes by num_gpus to compute per-GPU sharded footprint." },
+    { line: 29, hint: "Return dictionary payload with total, per-GPU, and saved memory metrics." },
+  ],
   lineExplanations: {
-    10: "Check for zero GPUs to prevent division by zero.",
-    23: "Define the optimizer state footprint per parameter.",
-    24: "Calculate un-sharded memory requirements.",
-    25: "Divide the footprint evenly across the DP group.",
-    27: "Return the result.",
+    1: "Function signature for estimate_zero1_memory taking parameters, num_gpus, and precision_bytes.",
+    2: "Docstring start describing ZeRO-1 optimizer state partitioning.",
+    3: "Describes memory footprint calculation under DeepSpeed ZeRO-1.",
+    4: "Blank line in docstring.",
+    5: "Describes mixed precision Adam optimizer memory components.",
+    6: "Explains FP16 parameters footprint (2 * Psi bytes).",
+    7: "Explains FP16 gradients footprint (2 * Psi bytes).",
+    8: "Explains FP32 Adam optimizer states footprint (12 * Psi bytes).",
+    9: "Blank line in docstring.",
+    10: "Docstring parameters section header.",
+    11: "Explains parameters argument representing total model parameter count Psi.",
+    12: "Explains num_gpus argument representing Data Parallel world size N.",
+    13: "Explains precision_bytes argument (default 2 for FP16/BF16).",
+    14: "Blank line in docstring.",
+    15: "Docstring returns section header.",
+    16: "Explains return dictionary payload fields.",
+    17: "Docstring close.",
+    18: "Checks guard condition if num_gpus is less than or equal to 0.",
+    19: "Raises ValueError if GPU count is invalid.",
+    20: "Blank line before memory calculations.",
+    21: "Sets bytes_per_optimizer_param to 12 (4 bytes FP32 weight + 4 momentum + 4 variance).",
+    22: "Calculates total_optimizer_bytes by multiplying parameters by 12.",
+    23: "Computes per_gpu_optimizer_bytes by dividing total_optimizer_bytes by num_gpus.",
+    24: "Blank line before returning output payload.",
+    25: "Opens return dictionary payload.",
+    26: "Sets total_optimizer_bytes field in return dictionary.",
+    27: "Sets per_gpu_optimizer_bytes field in return dictionary.",
+    28: "Calculates memory_saved_per_gpu by subtracting per-GPU bytes from total bytes.",
+    29: "Closes return dictionary payload and returns result.",
   },
 };
 
@@ -162,7 +291,7 @@ export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1Optimi
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "Calculates the per-GPU VRAM memory footprint for the Adam optimizer under DeepSpeed ZeRO-1 (Zero Redundancy Optimizer Stage 1: Optimizer State Partitioning).\n\nIn mixed-precision training (FP16/BF16) with parameter count $\\Psi$:\n- Model Weights (FP16): $2\\Psi$ bytes (unsharded on each GPU)\n- Gradients (FP16): $2\\Psi$ bytes (unsharded on each GPU)\n- Adam Optimizer States (FP32): $12\\Psi$ bytes ($4\\Psi$ master weights + $4\\Psi$ momentum + $4\\Psi$ variance)\n\nIn standard Data Parallelism (DDP), every GPU replicates all $16\\Psi$ bytes. Under ZeRO-1, the $12\\Psi$ optimizer states are sharded equally across $N$ GPUs, so each GPU stores only $\\frac{12\\Psi}{N}$ bytes of optimizer memory.\n\nTotal per-GPU memory under ZeRO-1: $M_{\\text{ZeRO-1}} = 4\\Psi + \\frac{12\\Psi}{N}$ bytes.\n\nFor a 1B parameter model ($10^9$) on $N=8$ GPUs:\n- Unsharded Optimizer Memory = $12 \\text{ GB}$\n- ZeRO-1 Sharded Memory per GPU = $12 \\text{ GB} / 8 = 1.5 \\text{ GB}$.\n\nInput Format:\n- parameters: Total parameter count $\\Psi$ of the model.\n- gpus: Total number of GPUs $N$ in the Data Parallel world size.\n\nOutput Format:\n- Returns detailed dictionary with total un-sharded memory, sharded per-GPU memory footprint, and VRAM savings.\n\nEdge Cases & Constraints:\n- Single GPU ($N=1$): Zero sharding benefit; per-GPU optimizer memory remains $12\\Psi$.\n- Extremely Large Models ($\\Psi > 100B$): ZeRO-1 alone may not prevent OOM, requiring ZeRO-2 or ZeRO-3.",
+      "Calculates the per-GPU VRAM memory footprint for the Adam optimizer under DeepSpeed ZeRO-1 (Zero Redundancy Optimizer Stage 1: Optimizer State Partitioning).\n\n### Mathematical Formulation & Memory Sharding\nIn mixed-precision training (FP16/BF16) with model parameter count $\\Psi$:\n- **Model Weights (FP16/BF16)**: $M_{\\text{weights}} = 2\\Psi$ bytes (unsharded on each GPU)\n- **Gradients (FP16/BF16)**: $M_{\\text{grads}} = 2\\Psi$ bytes (unsharded on each GPU)\n- **Adam Optimizer States (FP32)**: $M_{\\text{opt}} = 12\\Psi$ bytes, comprising:\n  $$\\text{FP32 Master Weights: } 4\\Psi, \\quad \\text{Momentum (1st moment): } 4\\Psi, \\quad \\text{Variance (2nd moment): } 4\\Psi$$\n\nIn standard PyTorch Data Parallelism (DDP), every GPU replicates all $16\\Psi$ bytes. Under ZeRO-1, the $12\\Psi$ optimizer states are sharded equally across $N$ GPUs, so each GPU stores only $\\frac{12\\Psi}{N}$ bytes of optimizer memory.\n\nTotal per-GPU memory footprint under ZeRO-1 is:\n$$M_{\\text{ZeRO-1}} = 4\\Psi + \\frac{12\\Psi}{N} \\text{ bytes}$$\nPer-GPU memory savings compared to baseline DDP is:\n$$\\Delta M = 12\\Psi - \\frac{12\\Psi}{N} = 12\\Psi \\left(1 - \\frac{1}{N}\\right) \\text{ bytes}$$\n\nFor a 1B parameter model ($\\Psi = 10^9$) on $N = 8$ GPUs:\n- Baseline Un-sharded Optimizer Memory = $12 \\text{ GB}$\n- ZeRO-1 Sharded Memory per GPU = $\\frac{12 \\text{ GB}}{8} = 1.5 \\text{ GB}$\n- Per-GPU Memory Savings = $12 - 1.5 = 10.5 \\text{ GB}$\n\nInput Format:\n- `parameters`: Total parameter count $\\Psi$ of the model.\n- `gpus`: Total number of GPUs $N$ in the Data Parallel world size.\n\nOutput Format:\n- Returns detailed dictionary with total un-sharded memory, sharded per-GPU memory footprint, and VRAM savings.\n\nEdge Cases & Constraints:\n- Single GPU ($N=1$): Zero sharding benefit; per-GPU optimizer memory remains $12\\Psi$.\n- Extremely Large Models ($\\Psi > 100B$): ZeRO-1 alone may not prevent OOM, requiring ZeRO-2 or ZeRO-3.",
     constraints: ["1 <= parameters <= 10^12", "1 <= gpus <= 1000"],
     examples: [
       {
@@ -210,7 +339,7 @@ export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1Optimi
         },
         {
           heading: "Core Concepts & ZeRO-1 Partitioning",
-          body: "Instead of duplicating the $12\\Psi$ bytes of optimizer state across all $N$ ranks as in standard PyTorch DDP, ZeRO-1 partitions optimizer states so that rank $i$ stores and updates only $1/N$-th of the parameters' optimizer states. After each optimizer step, an All-Gather operation broadcasts the updated FP16 parameters to all ranks.",
+          body: "Instead of duplicating the $12\\Psi$ bytes of optimizer state across all $N$ ranks as in standard PyTorch DDP, ZeRO-1 partitions optimizer states so that rank $i$ stores and updates only $1/N$-th of the parameters' optimizer states: $\\frac{12\\Psi}{N}$. After each optimizer step, an All-Gather operation broadcasts the updated FP16 parameters to all ranks.",
         },
         {
           heading: "Systems & Bandwidth Impact",
@@ -218,7 +347,7 @@ export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1Optimi
         },
         {
           heading: "Implementation Nuances & CPU Offloading",
-          body: "Frameworks like DeepSpeed and PyTorch FSDP extend ZeRO-1 with CPU Offloading (ZeRO-Offload), swapping the $12\\Psi/N$ sharded optimizer states into CPU DRAM via PCIe host-to-device transfers, enabling training of massive models on single-node GPU workstations.",
+          body: "Frameworks like DeepSpeed and PyTorch FSDP extend ZeRO-1 with CPU Offloading (ZeRO-Offload), swapping the $\\frac{12\\Psi}{N}$ sharded optimizer states into CPU DRAM via PCIe host-to-device transfers, enabling training of massive models on single-node GPU workstations.",
         },
       ],
       keyTerms: [
@@ -235,7 +364,7 @@ export const zero1OptimizerStateMemoryEstimator: AlgorithmDefinition<zero1Optimi
         {
           term: "Adam Optimizer Footprint",
           definition:
-            "The 12 bytes per parameter required to store FP32 master weights, momentum (first moment), and variance (second moment).",
+            "The 12 bytes per parameter required to store FP32 master weights ($4\\Psi$), momentum ($4\\Psi$), and variance ($4\\Psi$).",
         },
         {
           term: "ZeRO-Offload",

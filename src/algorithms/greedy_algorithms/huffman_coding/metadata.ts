@@ -3,85 +3,86 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const HUFFMAN_CODING_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Huffman coding is a greedy method for building an optimal prefix-free binary code from nothing but symbol frequencies. It answers the compression question of how many bits each symbol deserves: common symbols get short bit strings, rare ones get long strings, and the resulting total encoded length is provably as small as any per-symbol code can achieve. The technique is worth studying twice over, because it is the cleanest example of a greedy choice that reaches a global optimum, and because the tree it builds is simultaneously the encoder and the decoder.",
+    "Huffman coding is a greedy algorithm for building an optimal prefix-free binary code from character frequencies. It answers the fundamental compression question: how many bits does each symbol deserve? Frequent symbols receive short bit strings, while rare symbols receive longer ones, provably minimizing the total weighted path length $\\sum_{i=1}^K f_i \\cdot d_i$ where $f_i$ is symbol frequency and $d_i$ is code length.",
   sections: [
     {
       heading: "Why a variable-length code must be prefix-free",
-      body: "If every symbol gets the same number of bits, as in fixed-width ASCII, you pay the same price for a vowel that appears constantly as for a symbol that appears once. Giving frequent symbols shorter codes saves space, but it creates an ambiguity problem: if one symbol is 0 and another is 01, a decoder reading 01 cannot tell whether it has finished one symbol or is halfway through another. The fix is the prefix-free property, meaning no code word is a prefix of another, and the elegant way to guarantee it is to place every symbol at a leaf of a binary tree. Label left edges 0 and right edges 1, and the path to each leaf becomes its code word; because leaves have no descendants, no code can be a prefix of another. Decoding then needs no lookahead at all, since you just walk the tree bit by bit and emit a symbol whenever you land on a leaf.",
+      body: "Fixed-width encoding like ASCII costs equal space regardless of character probability. Giving frequent symbols shorter bit codes saves space, but creates ambiguity if one code is a prefix of another. The solution is a prefix-free code, where no code word is a prefix of any other code word. Representing codes as a binary tree where all symbols reside at leaf nodes guarantees the prefix-free property. Traversal from root to leaf generates the exact code for each character.",
     },
     {
-      heading: "The greedy mechanism: always merge the two lightest nodes",
-      body: "You start with one leaf per distinct symbol, weighted by how many times that symbol occurs, and put them all in a min-heap keyed on weight. Then you repeatedly pop the two lightest nodes, create a new internal node whose weight is their sum, attach them as its children, and push that parent back into the heap. With K distinct symbols this takes exactly K minus 1 merges before a single node remains, and that node is the root. Nothing about the symbols themselves guides the process, only weights, so the algorithm is really building a shape rather than choosing codes. A useful way to see the objective is that the total encoded length equals the sum over symbols of frequency times leaf depth, which turns out to equal the sum of the weights of all the internal nodes you created, so every merge adds exactly its own weight to the final cost and merging the lightest pair is the cheapest thing you can do right now.",
+      heading: "The greedy mechanism: repeatedly merge the two lightest nodes",
+      body: "Initialize $K$ leaf nodes weighted by character frequency $f_i$ in a min-heap. At each step, extract the two nodes with smallest frequencies ($w_1, w_2$) from the priority queue. Construct a parent node with weight $w_1 + w_2$, attach the two extracted nodes as children, and push the parent node back into the min-heap. Repeat this process $K - 1$ times until a single root node remains. Total weighted path length equals the sum of weights of all internal nodes created during execution.",
     },
     {
-      heading: "Why the greedy choice is actually optimal",
-      body: "The proof rests on an exchange argument about the two least frequent symbols, call them x and y. In any optimal tree there exist two sibling leaves at maximum depth, and if they are not x and y you can swap x and y into those positions without increasing the cost, because you are moving lower-frequency symbols deeper and higher-frequency symbols shallower. So there is always an optimal tree in which x and y are siblings, which means committing to merging them first loses nothing. Once they are merged, treating the parent as a single symbol of weight equal to their combined frequency gives a strictly smaller instance with K minus 1 symbols, and an optimal tree for that instance expands into an optimal tree for the original because the cost differs by the fixed constant weight of the merged pair. Induction on the number of symbols closes the argument. This is the pattern to remember about greedy proofs: show one local decision is consistent with some optimal solution, then show the remaining problem is a smaller instance of the same problem.",
+      heading: "Why the greedy choice is optimal (Exchange Argument)",
+      body: "Let $x$ and $y$ be the two characters with lowest frequencies in the alphabet. In any optimal tree $T^*$, there exist two sibling leaves at maximum depth $d_{max}$. Swapping $x$ and $y$ with those sibling leaves cannot increase total cost $\\sum f_i d_i$, because lower frequency items move to equal or greater depth. Thus, an optimal tree exists where $x$ and $y$ are lowest-depth siblings. Merging them into a meta-symbol with weight $f_x + f_y$ reduces the problem to an instance with $K - 1$ symbols, establishing optimal substructure by induction.",
     },
     {
-      heading: "When Huffman is the right tool, and when it is not",
-      body: "Reach for Huffman when symbols are drawn from a fixed alphabet with skewed frequencies and you can afford to either scan the data first or ship a frequency table alongside it. It cannot help when frequencies are near-uniform, because a balanced tree is then already optimal and you have gained nothing over fixed-width codes. Its structural limitation is that every code word is a whole number of bits, so a symbol occurring 90 percent of the time still costs a full bit even though its true information content is far less; arithmetic and range coding sidestep that by encoding fractional bits and beat Huffman precisely on such lopsided distributions. Data whose redundancy lies in repetition rather than symbol frequency, like long repeated substrings, is better served by dictionary methods such as LZ77. Real formats combine both ideas, which is why DEFLATE, PNG, and JPEG all run a canonical Huffman stage on top of another transform.",
+      heading: "Entropy and Practical Limits",
+      body: "According to Shannon's source coding theorem, the average code length per symbol $L = \\sum p_i d_i$ satisfies $H(X) \\le L < H(X) + 1$. Here $H(X) = -\\sum p_i \\log_2 p_i$ is the entropy of the source alphabet. Huffman coding achieves an integer-bit optimal code. However, when symbol probabilities are highly skewed, assigning at least 1 bit per symbol incurs overhead compared to arithmetic or range coding.",
     },
     {
-      heading: "Pitfalls and edge cases",
-      body: "The single-symbol input is the classic trap: with one distinct character there are no merges and the lone leaf sits at depth 0, so the natural code is the empty string, which encodes nothing. Implementations must special-case it and hand out a one-bit code instead, which is exactly what happens here when a path comes back empty and becomes the code 0. Ties in weight are common and are broken arbitrarily, so two correct implementations can produce visibly different trees with identical total cost; if you need reproducible output, make the comparator deterministic, for example by breaking ties on symbol order as this implementation does. Remember also that the decoder needs the tree, so the code table itself must be stored or transmitted, and for tiny inputs that overhead can exceed the savings. Finally, with adversarial frequencies resembling Fibonacci numbers the tree degenerates into a near-chain and code lengths grow to about K, which matters if your decoder uses a fixed-width lookup table and needs a length-limited variant instead.",
-    },
-    {
-      heading: "How the pattern generalizes",
-      body: "Strip away the compression story and what remains is a general recipe: repeatedly combine the two cheapest items, paying their sum, until one item is left. That is literally the optimal merge pattern problem for merging sorted files, the minimum cost of joining ropes or sticks end to end, and several scheduling problems where the cost of a combination is the total size involved. Variants tighten the model in useful ways, with the package-merge algorithm producing optimal codes under a maximum code length and other extensions handling letters whose transmission costs differ. It is also instructive to compare it with Kruskal building a minimum spanning tree, since both repeatedly take the globally cheapest available option and both are justified by exchange arguments rather than by search. Recognizing that shape lets you solve a new problem by asking what the two cheapest items are and whether combining them can ever be regretted.",
+      heading: "Pitfalls, Edge Cases, and Real-world Usage",
+      body: "Edge cases include single-character inputs, requiring fallback to assign a 1-bit code `0`. Frequency ties can also occur and are broken arbitrarily without affecting total encoded length. Because the decoder requires the tree topology to decode the bitstream, real-world implementations transmit a compact canonical Huffman code table. Algorithms like DEFLATE combine LZ77 dictionary matching with a final Huffman coding pass.",
     },
   ],
   keyTerms: [
     {
       term: "Prefix-free code",
       definition:
-        "A set of binary code words in which no word is a prefix of any other, so a stream of concatenated code words can be decoded without separators or lookahead. Placing symbols only at the leaves of a binary tree guarantees the property.",
+        "A binary code set where no code word is a prefix of any other. Guaranteed when symbols are assigned exclusively to leaf nodes of a binary tree.",
     },
     {
       term: "Min-heap",
       definition:
-        "A priority queue that always hands you its smallest element and supports insertion, both in logarithmic time. Huffman needs it because after every merge the new parent must take its place among the remaining weights.",
+        "A priority queue supporting $O(\\log K)$ insertions and minimum element extractions, used to efficiently retrieve the two lowest-frequency nodes.",
     },
     {
       term: "Weighted path length",
       definition:
-        "The sum over all symbols of frequency multiplied by leaf depth, which is precisely the number of bits the encoded text occupies. Huffman minimizes this quantity, and it also equals the sum of the weights of all internal nodes.",
+        "The objective value $\\sum_{i=1}^K f_i \\cdot d_i$ representing the total number of bits required to encode the string.",
     },
     {
       term: "Internal node",
       definition:
-        "A node created by a merge, holding no symbol and carrying the combined weight of its two children. Internal nodes exist only to give structure; only leaves are addressable by a code word.",
+        "A non-leaf node created during a merge step, carrying weight $f_{left} + f_{right}$ without bound character data.",
     },
     {
-      term: "Exchange argument",
+      term: "Entropy $H(X)$",
       definition:
-        "A proof technique that transforms any optimal solution into one containing your greedy choice without making it worse. It is what upgrades merging the two rarest symbols from a plausible heuristic to a guaranteed optimum.",
+        "The theoretical lower bound on average bits per symbol, defined as $H(X) = -\\sum_{i=1}^K p_i \\log_2 p_i$.",
     },
   ],
 };
 
 export const HUFFMAN_CODING_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Imports heapq for min-heap operations.",
-    2: "Imports Counter for character frequency counting.",
-    4: "Defines HuffmanNode class representing tree nodes.",
-    5: "Constructor takes char and freq.",
-    6: "Sets self.char.",
-    7: "Sets self.freq.",
-    8: "Sets self.left to None.",
-    9: "Sets self.right to None.",
-    11: "Defines __lt__ comparison for min-heap ordering.",
-    12: "Returns self.freq < other.freq.",
-    14: "Defines build_huffman_tree function.",
-    15: "Tallies character frequencies using Counter.",
-    16: "Creates list of HuffmanNode objects.",
-    17: "Transforms list into min-heap in place.",
-    19: "Loops while heap has more than one node.",
-    20: "Pops lightest node left.",
-    21: "Pops second lightest node right.",
-    22: "Creates merged parent node with combined frequency.",
-    23: "Assigns left child.",
-    24: "Assigns right child.",
-    25: "Pushes merged node back to heap.",
-    27: "Returns root of the Huffman tree.",
+    1: "Imports the `heapq` module for min-heap priority queue operations.",
+    2: "Imports `Counter` from `collections` for tallying character frequencies.",
+    3: "Blank line separator before class definition.",
+    4: "Defines the `HuffmanNode` class representing nodes in the binary tree.",
+    5: "Initializes `HuffmanNode` instance with character label `char` and frequency `freq`.",
+    6: "Sets node character label `self.char` (`None` for internal merge nodes).",
+    7: "Sets node frequency weight `self.freq`.",
+    8: "Initializes `self.left` child pointer to `None`.",
+    9: "Initializes `self.right` child pointer to `None`.",
+    10: "Blank line separator within `HuffmanNode` class.",
+    11: "Defines `<` (`__lt__`) comparison operator for min-heap ordering.",
+    12: "Compares node frequencies `self.freq < other.freq` to order the min-heap.",
+    13: "Blank line separator before `build_huffman_tree` function.",
+    14: "Defines `build_huffman_tree(text)` entry point function.",
+    15: "Tallies character frequencies using `Counter(text)`.",
+    16: "Constructs initial list of leaf `HuffmanNode` instances for each character.",
+    17: "Transforms node list into a valid min-heap in-place in $O(K)$ time.",
+    18: "Blank line separator before greedy loop.",
+    19: "Loops while heap contains more than 1 node (`len(heap) > 1`).",
+    20: "Pops the lowest-frequency node `left` from the min-heap.",
+    21: "Pops the second lowest-frequency node `right` from the min-heap.",
+    22: "Creates new internal node with combined frequency `left.freq + right.freq`.",
+    23: "Assigns `left` child to the new merged internal node.",
+    24: "Assigns `right` child to the new merged internal node.",
+    25: "Pushes the merged internal node back into the min-heap.",
+    26: "Blank line separator after greedy merge loop.",
+    27: "Returns root of the constructed Huffman tree `heap[0]`.",
   },
 };

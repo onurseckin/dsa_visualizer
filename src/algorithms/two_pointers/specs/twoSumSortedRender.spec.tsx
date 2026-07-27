@@ -27,20 +27,19 @@ describe("TwoSumSorted React Component Spec", () => {
     );
 
     expect(screen.getByText("Two Sum II (Sorted)")).toBeInTheDocument();
-
     expect(screen.getAllByText(/Find two numbers in a sorted array/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/converging two-pointer technique/i)[0]).toBeInTheDocument();
   });
 
   it("renders step visualizer with two pointers and match status", () => {
     const steps = generateTwoSumSortedSteps(DEFAULT_TWO_SUM_SORTED_INPUT);
-    const lastStep = steps[steps.length - 1];
+    const matchStep = steps.find((s) => s.explanation.what.includes("Return matching pair")) ?? steps[steps.length - 1];
     const noop = vi.fn();
 
     render(
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["two-sum-sorted"]}
-        currentStep={lastStep}
+        currentStep={matchStep}
         panels={{
           problem: true,
           solution: true,
@@ -54,7 +53,7 @@ describe("TwoSumSorted React Component Spec", () => {
       />,
     );
 
-    expect(screen.getByText(/Return the pair \[0, 6\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/Return matching pair indices \[0, 5\]/i)).toBeInTheDocument();
     expect(screen.getAllByText("MATCH").length).toBeGreaterThan(0);
   });
 });

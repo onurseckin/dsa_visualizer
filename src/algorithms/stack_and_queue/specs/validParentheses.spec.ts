@@ -14,9 +14,9 @@ describe("validParentheses algorithm spec", () => {
     expect(validParentheses.defaultInput).toEqual(DEFAULT_VALID_PARENTHESES_INPUT);
   });
 
-  it("should validate matching balanced brackets correctly", () => {
+  it("should produce >= 20 steps for default input", () => {
     const steps = generateValidParenthesesSteps(DEFAULT_VALID_PARENTHESES_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.primarySnapshot.kind).toBe("array");
@@ -33,6 +33,21 @@ describe("validParentheses algorithm spec", () => {
     expect(lastStep.codeLine).toBe(11);
     expect(lastStep.variables.isValid).toBe(true);
     expect(lastStep.variables.remainingStackSize).toBe(0);
+  });
+
+  it("should map every non-blank code line in lineExplanations", () => {
+    const codeLines = validParentheses.code.split("\n");
+    const lineExplanations = validParentheses.trivia?.lineExplanations || {};
+    const skipLines = validParentheses.trivia?.skipLines || [];
+
+    codeLines.forEach((lineText, idx) => {
+      const lineNum = idx + 1;
+      const isBlank = lineText.trim() === "";
+      if (!isBlank && !skipLines.includes(lineNum)) {
+        expect(lineExplanations[lineNum]).toBeDefined();
+        expect(lineExplanations[lineNum].length).toBeGreaterThan(10);
+      }
+    });
   });
 
   it("should detect mismatch closing bracket", () => {

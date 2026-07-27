@@ -124,25 +124,75 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     const p1 = points[i];
     const p2 = points[nextIdx];
 
-    const crossProduct = p1.x * p2.y - p2.x * p1.y;
-    areaSum += crossProduct;
-
-    const termStr = `(${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}`;
-    terms.push(`Edge ${i}->${nextIdx}: ${termStr}`);
-
     const nodes = getBaseNodes(i, nextIdx);
     const edges = getBaseEdges(i);
 
+    // Line 8: Unpack p1
+    addStep(
+      8,
+      `Select vertex P${i} = (${p1.x}, ${p1.y})`,
+      `Reading start point coordinates for edge ${i}.`,
+      nodes,
+      edges,
+      { "Active Vertex": `P${i} (${p1.x}, ${p1.y})` },
+      terms,
+      { i, x1: p1.x, y1: p1.y, area_sum: areaSum },
+    );
+
+    // Line 9: Unpack p2
+    addStep(
+      9,
+      `Select next vertex P${nextIdx} = (${p2.x}, ${p2.y})`,
+      `Reading end point coordinates for edge ${i} (wrapping index modulo ${n}).`,
+      nodes,
+      edges,
+      { "Next Vertex": `P${nextIdx} (${p2.x}, ${p2.y})` },
+      terms,
+      { i, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, area_sum: areaSum },
+    );
+
+    const term1 = p1.x * p2.y;
+    const term2 = p2.x * p1.y;
+    const crossProduct = term1 - term2;
+
+    // Line 10: Compute cross product
     addStep(
       10,
-      `Cross-multiply edge P${i} -> P${nextIdx}`,
-      `This edge sweeps out a signed trapezoid against the axis worth (${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}, bringing our running sum to ${areaSum}.`,
+      `Cross-multiply: (${p1.x} × ${p2.y}) - (${p2.x} × ${p1.y}) = ${term1} - ${term2} = ${crossProduct}`,
+      `Evaluating 2D cross product for edge P${i} -> P${nextIdx}.`,
       nodes,
       edges,
       {
-        "Edge Processed": `P${i} (${p1.x},${p1.y}) -> P${nextIdx} (${p2.x},${p2.y})`,
+        "Forward Term": `${p1.x} × ${p2.y} = ${term1}`,
+        "Backward Term": `${p2.x} × ${p1.y} = ${term2}`,
         "Cross Product": `${crossProduct}`,
-        "Current area_sum": `${areaSum}`,
+      },
+      terms,
+      {
+        i,
+        x1: p1.x,
+        y1: p1.y,
+        x2: p2.x,
+        y2: p2.y,
+        cross_product: crossProduct,
+        area_sum: areaSum,
+      },
+    );
+
+    areaSum += crossProduct;
+    const termStr = `(${p1.x} * ${p2.y}) - (${p2.x} * ${p1.y}) = ${crossProduct}`;
+    terms.push(`Edge ${i}->${nextIdx}: ${termStr}`);
+
+    // Line 11: Accumulate
+    addStep(
+      11,
+      `Accumulate area_sum += ${crossProduct} -> ${areaSum}`,
+      `Adding edge ${i} signed contribution to running total area_sum.`,
+      nodes,
+      edges,
+      {
+        "Added Value": `${crossProduct}`,
+        "Running area_sum": `${areaSum}`,
       },
       terms,
       {
@@ -176,8 +226,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     13,
-    `Halve the sum: area = ${finalArea}`,
-    `Every edge has been folded in, so the total ${areaSum} is twice the signed area; taking the absolute value and dividing by 2 gives ${finalArea}. One trip around the boundary was all it took — O(n).`,
+    `Halve the sum: area = |${areaSum}| / 2 = ${finalArea}`,
+    `Every edge has been folded in. Halving the absolute running sum yields final polygon area ${finalArea}.`,
     finalNodes,
     finalEdges,
     {

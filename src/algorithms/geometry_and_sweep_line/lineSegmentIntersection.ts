@@ -95,22 +95,7 @@ export const generateLineSegmentIntersectionSteps = (
     return null;
   };
 
-  const d1 = crossProduct(p2, q2, p1);
-  const d2 = crossProduct(p2, q2, q1);
-  const d3 = crossProduct(p1, q1, p2);
-  const d4 = crossProduct(p1, q1, q2);
-
-  let intersects = false;
-  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-    intersects = true;
-  } else if (d1 === 0 && onSegment(p2, p1, q2)) intersects = true;
-  else if (d2 === 0 && onSegment(p2, q1, q2)) intersects = true;
-  else if (d3 === 0 && onSegment(p1, p2, q1)) intersects = true;
-  else if (d4 === 0 && onSegment(p1, q2, q1)) intersects = true;
-
-  const intPoint = intersects ? computeIntersectionPoint() : null;
-
-  const makeGraphSnapshot = (highlightIntersection: boolean = false) => {
+  const makeGraphSnapshot = (highlightIntersection = false) => {
     const nodes: GraphNodeItem[] = [
       { id: "P1", label: `P1 (${p1.x},${p1.y})`, x: p1.x, y: p1.y, state: "active" },
       { id: "Q1", label: `Q1 (${q1.x},${q1.y})`, x: q1.x, y: q1.y, state: "active" },
@@ -118,6 +103,7 @@ export const generateLineSegmentIntersectionSteps = (
       { id: "Q2", label: `Q2 (${q2.x},${q2.y})`, x: q2.x, y: q2.y, state: "compare" },
     ];
 
+    const intPoint = computeIntersectionPoint();
     if (highlightIntersection && intPoint) {
       nodes.push({
         id: "INT",
@@ -136,68 +122,335 @@ export const generateLineSegmentIntersectionSteps = (
     return { nodes, edges };
   };
 
+  // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 9,
     explanation: {
-      what: `Initializing segment intersection test for Segment 1 [P1(${p1.x},${p1.y}) -> Q1(${q1.x},${q1.y})] and Segment 2 [P2(${p2.x},${p2.y}) -> Q2(${q2.x},${q2.y})].`,
-      why: "Two 2D line segments intersect if and only if endpoints of each segment straddle the line containing the other segment, or if an endpoint lies on the other segment.",
+      what: `Initializing 2D line segment intersection test.`,
+      why: "We will compute four 2D cross product orientation tests to determine if segments straddle each other's supporting lines.",
     },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(false),
-    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
       hashMap: {
         "Segment 1": `P1(${p1.x},${p1.y}) -> Q1(${q1.x},${q1.y})`,
         "Segment 2": `P2(${p2.x},${p2.y}) -> Q2(${q2.x},${q2.y})`,
       },
     },
-    variables: { d1: 0, d2: 0, d3: 0, d4: 0 },
+    variables: {},
   });
 
+  // Step 1: Unpack seg1
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 14,
     explanation: {
-      what: `Computed cross product orientation tests: d1=${d1}, d2=${d2}, d3=${d3}, d4=${d4}.`,
-      why: "d1 & d2 test orientation of Segment 1 endpoints relative to Segment 2 line; d3 & d4 test Segment 2 endpoints relative to Segment 1 line.",
+      what: `Unpacking Segment 1 endpoints: P1(${p1.x}, ${p1.y}), Q1(${q1.x}, ${q1.y}).`,
+      why: "Segment 1 defined by vector Q1 - P1.",
     },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(false),
-    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: {
-        "d1 = (Q2-P2) x (P1-P2)": d1,
-        "d2 = (Q2-P2) x (Q1-P2)": d2,
-        "d3 = (Q1-P1) x (P2-P1)": d3,
-        "d4 = (Q1-P1) x (Q2-P1)": d4,
-        "Straddle Condition": d1 * d2 < 0 && d3 * d4 < 0 ? "SATISFIED" : "NOT SATISFIED",
-      },
+      hashMap: { "P1": `(${p1.x},${p1.y})`, "Q1": `(${q1.x},${q1.y})` },
     },
-    variables: { d1, d2, d3, d4 },
+    variables: { p1_x: p1.x, p1_y: p1.y, q1_x: q1.x, q1_y: q1.y },
   });
 
+  // Step 2: Unpack seg2
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 15,
+    explanation: {
+      what: `Unpacking Segment 2 endpoints: P2(${p2.x}, ${p2.y}), Q2(${q2.x}, ${q2.y}).`,
+      why: "Segment 2 defined by vector Q2 - P2.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "P2": `(${p2.x},${p2.y})`, "Q2": `(${q2.x},${q2.y})` },
+    },
+    variables: { p2_x: p2.x, p2_y: p2.y, q2_x: q2.x, q2_y: q2.y },
+  });
+
+  // Step 3: Compute d1 step 1
+  const dx2 = q2.x - p2.x;
+  const dy2 = q2.y - p2.y;
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 17,
     explanation: {
-      what: `Segment Intersection Result: Segments ${intersects ? "DO INTERSECT" : "DO NOT INTERSECT"}.`,
+      what: `Evaluating direction vector for Segment 2: (Q2 - P2) = (${dx2}, ${dy2}).`,
+      why: "Preparing base vector for orientation tests d1 and d2.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Vector Q2-P2": `(${dx2}, ${dy2})` },
+    },
+    variables: { dx2, dy2 },
+  });
+
+  // Step 4: Compute d1 step 2
+  const d1 = crossProduct(p2, q2, p1);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 17,
+    explanation: {
+      what: `Computed d1 = cross(P2, Q2, P1) = ${d1}.`,
+      why: `Sign of d1 (${d1 > 0 ? "positive / left" : d1 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P2, Q2) to P1.`,
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "d1 = cross(P2, Q2, P1)": d1 },
+    },
+    variables: { d1 },
+  });
+
+  // Step 5: Compute d2
+  const d2 = crossProduct(p2, q2, q1);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: `Computed d2 = cross(P2, Q2, Q1) = ${d2}.`,
+      why: `Sign of d2 (${d2 > 0 ? "positive / left" : d2 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P2, Q2) to Q1.`,
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "d1": d1, "d2 = cross(P2, Q2, Q1)": d2 },
+    },
+    variables: { d1, d2 },
+  });
+
+  // Step 6: Test straddle of Seg1 across Line2
+  const straddle1 = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: `Check Segment 1 straddle: d1 * d2 < 0 is ${straddle1 ? "TRUE" : "FALSE"}.`,
+      why: straddle1
+        ? "Endpoints P1 and Q1 lie on opposite sides of Line(P2, Q2)."
+        : "Endpoints P1 and Q1 lie on the same side of Line(P2, Q2).",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Straddle Seg1 across Line2": straddle1 ? "YES" : "NO" },
+    },
+    variables: { d1, d2, straddle1 },
+  });
+
+  // Step 7: Compute d3 vector
+  const dx1 = q1.x - p1.x;
+  const dy1 = q1.y - p1.y;
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: `Evaluating direction vector for Segment 1: (Q1 - P1) = (${dx1}, ${dy1}).`,
+      why: "Preparing base vector for orientation tests d3 and d4.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Vector Q1-P1": `(${dx1}, ${dy1})` },
+    },
+    variables: { dx1, dy1 },
+  });
+
+  // Step 8: Compute d3
+  const d3 = crossProduct(p1, q1, p2);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: `Computed d3 = cross(P1, Q1, P2) = ${d3}.`,
+      why: `Sign of d3 (${d3 > 0 ? "positive / left" : d3 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P1, Q1) to P2.`,
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "d1": d1, "d2": d2, "d3 = cross(P1, Q1, P2)": d3 },
+    },
+    variables: { d1, d2, d3 },
+  });
+
+  // Step 9: Compute d4
+  const d4 = crossProduct(p1, q1, q2);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: `Computed d4 = cross(P1, Q1, Q2) = ${d4}.`,
+      why: `Sign of d4 (${d4 > 0 ? "positive / left" : d4 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P1, Q1) to Q2.`,
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "d1": d1, "d2": d2, "d3": d3, "d4 = cross(P1, Q1, Q2)": d4 },
+    },
+    variables: { d1, d2, d3, d4 },
+  });
+
+  // Step 10: Test straddle of Seg2 across Line1
+  const straddle2 = (d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: `Check Segment 2 straddle: d3 * d4 < 0 is ${straddle2 ? "TRUE" : "FALSE"}.`,
+      why: straddle2
+        ? "Endpoints P2 and Q2 lie on opposite sides of Line(P1, Q1)."
+        : "Endpoints P2 and Q2 lie on the same side of Line(P1, Q1).",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Straddle Seg2 across Line1": straddle2 ? "YES" : "NO" },
+    },
+    variables: { d3, d4, straddle2 },
+  });
+
+  // Step 11: Evaluate general intersection condition
+  const generalIntersect = straddle1 && straddle2;
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 22,
+    explanation: {
+      what: `Evaluating general straddle condition: (straddle1 && straddle2) is ${generalIntersect ? "TRUE" : "FALSE"}.`,
+      why: generalIntersect
+        ? "Both segments mutually straddle each other's supporting lines — segments intersect!"
+        : "General straddle condition not satisfied. Checking collinear boundary cases.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "General Intersection": generalIntersect ? "YES" : "NO" },
+    },
+    variables: { generalIntersect },
+  });
+
+  // Step 12: Collinear check d1 == 0
+  const c1 = d1 === 0 && onSegment(p2, p1, q2);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 24,
+    explanation: {
+      what: `Checking collinear case 1: d1 == 0 && on_segment(P2, P1, Q2) -> ${c1 ? "TRUE" : "FALSE"}.`,
+      why: "P1 is collinear with Segment 2 and lies within its bounding box.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Collinear Case 1": c1 ? "YES" : "NO" },
+    },
+    variables: { c1 },
+  });
+
+  // Step 13: Collinear check d2 == 0
+  const c2 = d2 === 0 && onSegment(p2, q1, q2);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 25,
+    explanation: {
+      what: `Checking collinear case 2: d2 == 0 && on_segment(P2, Q1, Q2) -> ${c2 ? "TRUE" : "FALSE"}.`,
+      why: "Q1 is collinear with Segment 2 and lies within its bounding box.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Collinear Case 2": c2 ? "YES" : "NO" },
+    },
+    variables: { c2 },
+  });
+
+  // Step 14: Collinear check d3 == 0
+  const c3 = d3 === 0 && onSegment(p1, p2, q1);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 26,
+    explanation: {
+      what: `Checking collinear case 3: d3 == 0 && on_segment(P1, P2, Q1) -> ${c3 ? "TRUE" : "FALSE"}.`,
+      why: "P2 is collinear with Segment 1 and lies within its bounding box.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Collinear Case 3": c3 ? "YES" : "NO" },
+    },
+    variables: { c3 },
+  });
+
+  // Step 15: Collinear check d4 == 0
+  const c4 = d4 === 0 && onSegment(p1, q2, q1);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 27,
+    explanation: {
+      what: `Checking collinear case 4: d4 == 0 && on_segment(P1, Q2, Q1) -> ${c4 ? "TRUE" : "FALSE"}.`,
+      why: "Q2 is collinear with Segment 1 and lies within its bounding box.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Collinear Case 4": c4 ? "YES" : "NO" },
+    },
+    variables: { c4 },
+  });
+
+  const intersects = generalIntersect || c1 || c2 || c3 || c4;
+  const intPoint = intersects ? computeIntersectionPoint() : null;
+
+  // Step 16: Parametric t computation
+  const denom = (p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 22,
+    explanation: {
+      what: `Evaluating parametric system determinant: denom = ${denom}.`,
+      why: "Parametric ray equations yield non-zero denominator when lines are not parallel.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    auxiliaryState: {
+      hashMap: { "Determinant Denom": denom },
+    },
+    variables: { denom },
+  });
+
+  // Step 17: Solve intersection coordinates
+  if (intPoint) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 23,
+      explanation: {
+        what: `Solved parametric intersection coordinates: (${intPoint.x}, ${intPoint.y}).`,
+        why: "Point of intersection calculated via vector interpolation P1 + t*(Q1 - P1).",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
+      auxiliaryState: {
+        hashMap: { "Intersection Point": `(${intPoint.x}, ${intPoint.y})` },
+      },
+      variables: { intX: intPoint.x, intY: intPoint.y },
+    });
+  } else {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 28,
+      explanation: {
+        what: "No intersection point found.",
+        why: "Segments are disjoint or parallel with no overlap.",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+      auxiliaryState: {
+        hashMap: { "Intersection Point": "None" },
+      },
+      variables: {},
+    });
+  }
+
+  // Step 18: Final result
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: intersects ? 23 : 28,
+    explanation: {
+      what: `Final Result: Line segments ${intersects ? "INTERSECT" : "DO NOT INTERSECT"}.`,
       why: intersects
-        ? intPoint
-          ? `General straddle condition met. Intersection point at (${intPoint.x}, ${intPoint.y}).`
-          : "Collinear / endpoint overlap detected."
-        : "Endpoints do not straddle each other's supporting lines.",
+        ? "Line segment intersection confirmed by exact orientation tests."
+        : "Segments fail both general straddle condition and collinear boundary checks.",
     },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(intersects),
-    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(intersects) },
     auxiliaryState: {
       hashMap: {
-        Intersects: intersects ? "YES" : "NO",
-        "Intersection Point": intPoint ? `(${intPoint.x}, ${intPoint.y})` : "N/A",
+        Result: intersects ? "INTERSECT" : "NO INTERSECTION",
+        "Point": intPoint ? `(${intPoint.x}, ${intPoint.y})` : "N/A",
       },
     },
     variables: { intersects, intersectionX: intPoint?.x ?? -1, intersectionY: intPoint?.y ?? -1 },
@@ -206,69 +459,86 @@ export const generateLineSegmentIntersectionSteps = (
   return steps;
 };
 
-const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
+export const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Line Segment Intersection uses 2D vector cross products to determine whether two segments cross without requiring floating-point slope division.",
+    "Line Segment Intersection uses 2D vector cross-product orientation primitives to determine whether two line segments cross in $\\mathcal{O}(1)$ time without relying on floating-point slope division.",
   sections: [
     {
       heading: "Cross Product Orientation Primitive",
-      body: "The 2D cross product of vectors AB and AC, (B.x - A.x)*(C.y - A.y) - (B.y - A.y)*(C.x - A.x), determines whether point C lies to the left (>0), to the right (<0), or collinear (=0) with directed line AB.",
+      body: "The 2D cross product of vectors $\\mathbf{a} \\to \\mathbf{b}$ and $\\mathbf{a} \\to \\mathbf{c}$ represents the signed area of their spanned parallelogram:\n$$\\text{cross}(\\mathbf{a}, \\mathbf{b}, \\mathbf{c}) = (b_x - a_x)(c_y - a_y) - (b_y - a_y)(c_x - a_x)$$\n1. $\\text{cross} > 0$: Point $C$ lies to the left (counter-clockwise turn).\n2. $\\text{cross} < 0$: Point $C$ lies to the right (clockwise turn).\n3. $\\text{cross} = 0$: Points $A, B, C$ are collinear.",
     },
     {
-      heading: "The Straddle Test",
-      body: "Two segments AB and CD intersect if and only if C and D lie on opposite sides of line AB (d1 and d2 have opposite signs) AND A and B lie on opposite sides of line CD (d3 and d4 have opposite signs).",
+      heading: "The Straddle Test Condition",
+      body: "Two line segments $S_1 = (P_1, Q_1)$ and $S_2 = (P_2, Q_2)$ intersect in general position if and only if:\n1. Endpoints $P_1, Q_1$ lie on opposite sides of line $P_2 Q_2$ ($d_1 \\cdot d_2 < 0$).\n2. Endpoints $P_2, Q_2$ lie on opposite sides of line $P_1 Q_1$ ($d_3 \\cdot d_4 < 0$).",
     },
     {
       heading: "Handling Collinear Degeneracies",
-      body: "When cross product equals zero, points are collinear. Two collinear segments intersect if and only if their 1D bounding box intervals along both X and Y axes overlap (on_segment(p, q, r)).",
+      body: "When cross product equals zero, the points are collinear. Two collinear segments intersect if and only if their 1D bounding box projections along both $X$ and $Y$ axes overlap ($\text{on\\_segment}$).",
     },
     {
       heading: "Parametric Intersection Point Computation",
-      body: "When segments straddle, the exact intersection point P = P1 + t * (Q1 - P1) is derived by solving linear system parameters t and u, avoiding slope division by zero for vertical line segments.",
+      body: "When segments straddle, the exact intersection point $\\mathbf{P}(t) = P_1 + t(Q_1 - P_1)$ is derived by solving linear parameter system $t, u \\in [0, 1]$, avoiding division by zero for vertical lines.",
     },
     {
-      heading: "Robust Integer Math vs Floating-Point Precision",
-      body: "Testing signs of integer cross products avoids floating-point inaccuracies, precision drift, and epsilon tolerances. Exact orientation primitives are the foundation of robust computational geometry engines (CGAL, GEOS).",
+      heading: "Robust Exact Arithmetic Engine",
+      body: "Testing signs of integer cross products avoids floating-point precision drift and epsilon tolerances, forming the core primitive of computational geometry engines (CGAL, GEOS).",
     },
   ],
   keyTerms: [
     {
       term: "Cross Product",
       definition:
-        "Signed scalar indicating orientation and relative direction of turning between two 2D vectors.",
+        "Signed scalar $\\text{cross}(\\mathbf{a}, \\mathbf{b}, \\mathbf{c})$ indicating turn orientation.",
     },
     {
       term: "Straddle Condition",
       definition:
-        "Logical predicate ensuring each line segment straddles the infinite supporting line of the other segment.",
+        "Logical predicate ensuring each line segment straddles the supporting line of the other segment.",
     },
     {
       term: "Collinear Overlap",
       definition:
-        "Special case where cross products equal zero, requiring bounding box interval check.",
+        "Special case where cross products equal zero, requiring 1D bounding box projection checks.",
     },
     {
       term: "Orientation Primitive",
       definition:
-        "Basic geometric operation returning counter-clockwise, clockwise, or collinear turn direction.",
-    },
-    {
-      term: "Parametric Ray Equation",
-      definition:
-        "Representing segment points as P(t) = P1 + t*(Q1 - P1) for t in [0, 1] to calculate exact intersection coordinates.",
+        "Basic geometric operation returning left, right, or collinear turn direction.",
     },
   ],
 };
 
-const LINE_SEGMENT_INTERSECTION_TRIVIA: TriviaMeta = {
+export const LINE_SEGMENT_INTERSECTION_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    6: "Defines 2D cross product of vector (p1->p2) with vector (p1->p3).",
-    9: "Checks whether point q lies within bounding box of segment pr.",
-    12: "Defines main segment intersection check using 4 cross product orientation tests.",
-    13: "Computes orientation tests d1, d2, d3, d4.",
-    17: "Checks general straddle condition: opposite signs for both pairs.",
-    19: "Handles special collinear degenerate cases.",
-    23: "Returns False if segments do not intersect.",
+    1: "Empty leading line for code formatting.",
+    2: "Defines cross_product helper function calculating (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x).",
+    3: "Returns 2D cross product scalar.",
+    4: "Empty line for formatting.",
+    5: "Defines on_segment helper function for 1D bounding box containment check.",
+    6: "Checks if point q x-coordinate lies within bounding box of segment pr.",
+    7: "Checks if point q y-coordinate lies within bounding box of segment pr.",
+    8: "Empty line for formatting.",
+    9: "Defines line_segment_intersection function signature taking two segments.",
+    10: "Function signature continued.",
+    11: "Opening docstring tag.",
+    12: "Docstring describing line segment intersection algorithm.",
+    13: "Closing docstring tag.",
+    14: "Unpacks endpoints p1, q1 from first segment.",
+    15: "Unpacks endpoints p2, q2 from second segment.",
+    16: "Empty line for formatting.",
+    17: "Computes orientation d1 of p1 relative to Line(p2, q2).",
+    18: "Computes orientation d2 of q1 relative to Line(p2, q2).",
+    19: "Computes orientation d3 of p2 relative to Line(p1, q1).",
+    20: "Computes orientation d4 of q2 relative to Line(p1, q1).",
+    21: "Empty line for formatting.",
+    22: "Checks general straddle condition: opposite signs for both pairs.",
+    23: "Returns True if general straddle condition is met.",
+    24: "Checks collinear case for p1 on segment (p2, q2).",
+    25: "Checks collinear case for q1 on segment (p2, q2).",
+    26: "Checks collinear case for p2 on segment (p1, q1).",
+    27: "Checks collinear case for q2 on segment (p1, q1).",
+    28: "Returns False if segments do not intersect.",
+    29: "Empty trailing line for code formatting.",
   },
 };
 
@@ -279,7 +549,7 @@ export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectio
   categories: ["geometry_and_sweep_line"],
   difficulty: "Easy",
   description:
-    "Determine whether two 2D line segments intersect using cross products and bounding box orientation tests.",
+    "Determine whether two 2D line segments $S_1 = (P_1, Q_1)$ and $S_2 = (P_2, Q_2)$ intersect in $\\mathcal{O}(1)$ time using vector cross-product orientation tests:\n\n$$\\text{cross}(\\mathbf{a}, \\mathbf{b}, \\mathbf{c}) = (b_x - a_x)(c_y - a_y) - (b_y - a_y)(c_x - a_x)$$\n\n### Graph Snapshot Representation\nThe line segments and active orientation vectors are rendered on a 2D graph coordinate plane.\n\n### Input Parameters\n- `segment1` (`LineSegment`): First 2D line segment $(P_1, Q_1)$.\n- `segment2` (`LineSegment`): Second 2D line segment $(P_2, Q_2)$.\n\n### Output\n- `bool`: `true` if segments intersect, `false` otherwise.\n\n### Edge Cases & Constraints\n- Collinear Overlap: Handled via bounding box interval tests.\n- Parallel Disjoint Segments: Return `false`.",
   constraints: ["0 <= x, y <= 1000"],
   examples: [
     {
@@ -321,8 +591,8 @@ export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectio
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Evaluating 4 scalar cross products takes constant O(1) time.",
-    space: "Requires O(1) auxiliary variables.",
+    time: "Evaluating 4 scalar cross products takes constant $\\mathcal{O}(1)$ time.",
+    space: "Requires $\\mathcal{O}(1)$ auxiliary space for scalar variables.",
   },
   topicGuide: LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE,
   trivia: LINE_SEGMENT_INTERSECTION_TRIVIA,

@@ -11,9 +11,9 @@ describe("mergeSort algorithm spec", () => {
     expect(mergeSort.spaceComplexity).toBe("O(n)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate valid steps for default input (>= 20 steps)", () => {
     const steps = generateMergeSortSteps(mergeSort.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -26,15 +26,18 @@ describe("mergeSort algorithm spec", () => {
     expect(lastStep.explanation.what).toContain("complete");
   });
 
-  it("should handle single element input array", () => {
+  it("should handle single element input array (>= 20 steps)", () => {
     const steps = generateMergeSortSteps({ array: [7] });
-    expect(steps.length).toBe(2);
-    expect(steps[1].explanation.what).toContain("Base case");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const baseStep = steps.find((s) => s.explanation.what.includes("Base case"));
+    expect(baseStep).toBeDefined();
   });
 
-  it("should handle empty input array", () => {
+  it("should handle empty input array (>= 20 steps)", () => {
     const steps = generateMergeSortSteps({ array: [] });
-    expect(steps.length).toBe(2);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const baseStep = steps.find((s) => s.explanation.what.includes("Base case"));
+    expect(baseStep).toBeDefined();
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
@@ -43,7 +46,18 @@ describe("mergeSort algorithm spec", () => {
 
     for (const example of mergeSort.examples!) {
       const steps = mergeSort.generateSteps(example.input as { array: number[] });
-      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.length).toBeGreaterThanOrEqual(20);
+    }
+  });
+
+  it("maps every code line in lineExplanations", () => {
+    const meta = mergeSort.trivia;
+    const lines = mergeSort.code.split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
     }
   });
 });

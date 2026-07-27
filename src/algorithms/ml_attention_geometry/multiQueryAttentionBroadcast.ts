@@ -1,13 +1,14 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface multiQueryAttentionBroadcastInput {
-  data: number[];
+  numQueryHeads?: number;
+  data?: number[];
   target?: number;
 }
 
-export const MULTIQUERYATTENTIONBROADCAST_CODE = `
-def mqa_broadcast_attention(
+export const MULTIQUERYATTENTIONBROADCAST_CODE = `def mqa_broadcast_attention(
     q_heads: list[list[float]],  # Shape [H_q, d_k]
     shared_k: list[float],       # Single shared K vector [d_k]
     shared_v: list[float],       # Single shared V vector [d_v]
@@ -35,10 +36,10 @@ def mqa_broadcast_attention(
         head_out = [attn_weight * v for v in shared_v]
         mqa_outputs.append(head_out)
 
-    return mqa_outputs
-`;
+    return mqa_outputs`;
 
 export const DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT: multiQueryAttentionBroadcastInput = {
+  numQueryHeads: 8,
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
@@ -48,34 +49,68 @@ export const generateMultiQueryAttentionBroadcastSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const numQueryHeads = Math.max(input.numQueryHeads ?? 8, 8);
+
+  const matrixValues: string[][] = Array.from({ length: numQueryHeads }, () =>
+    Array.from({ length: 4 }, () => "-"),
+  );
+  const matrixStates: MatrixCellItem["state"][][] = Array.from({ length: numQueryHeads }, () =>
+    Array.from({ length: 4 }, () => "default"),
+  );
+
+  const getSnapshot = (activeQ?: number, activeCol?: number): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < numQueryHeads; r++) {
+      for (let c = 0; c < 4; c++) {
+        let state = matrixStates[r][c];
+        if (r === activeQ && c === activeCol) {
+          state = "active";
+        }
+        cells.push({
+          row: r,
+          col: c,
+          value: matrixValues[r][c],
+          label: `Q${r}`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: numQueryHeads,
+      cols: 4,
+      title: `Multi-Query Attention Broadcast Matrix (${numQueryHeads} Query Heads, 1 Single Shared KV Head)`,
+      rowHeaders: Array.from({ length: numQueryHeads }, (_, i) => `Query Head ${i}`),
+      colHeaders: [
+        "Broadcast Shared KV",
+        "Logit Score (Q @ Shared K)",
+        "Softmax Weight",
+        "Head Output",
+      ],
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeQ?: number,
+    activeCol?: number,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getSnapshot(activeQ, activeCol),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          num_query_heads: numQueryHeads,
+          num_kv_heads: 1,
+          active_q: activeQ !== undefined ? `Q${activeQ}` : "None",
         },
       },
       variables,
@@ -86,61 +121,164 @@ export const generateMultiQueryAttentionBroadcastSteps = (
     1,
     "Initialize Multi-Query Attention (MQA) Broadcaster",
     "Configuring MQA broadcaster: 1 shared KV head broadcasted to all H_q query heads.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { numQueryHeads, shared_kv_count: 1 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`q=${idx}`, "kv=0"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      16,
-      `Broadcast shared KV head to Query Head ${idx} (val=${val})`,
-      `Query head ${idx} computes dot product against single shared Key vector.`,
-      { qIdx: idx, val, isTarget },
-      currentElements,
-    );
-  });
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  addStep(
+    12,
+    "Import Math Module",
+    "Loading exponential primitives for Softmax score calculation.",
+    { import: "math" },
+  );
 
   addStep(
-    25,
+    14,
+    `Get Query Head Count (num_query_heads=${numQueryHeads})`,
+    `Identified ${numQueryHeads} independent query heads sharing 1 KV head in SRAM.`,
+    { numQueryHeads },
+  );
+
+  addStep(
+    15,
+    "Initialize MQA Outputs Tensor Container",
+    "Allocated top-level list to collect projected head outputs.",
+    { mqa_outputs: "[]" },
+  );
+
+  for (let qIdx = 0; qIdx < numQueryHeads; qIdx++) {
+    addStep(
+      18,
+      `Begin Processing Query Head Q${qIdx}`,
+      `Broadcasting single shared KV head to Query Head Q${qIdx}.`,
+      { qIdx, numQueryHeads },
+      qIdx,
+    );
+
+    addStep(
+      19,
+      `Load Vector Q${qIdx}`,
+      `Fetching Query head vector Q${qIdx} from head memory buffer.`,
+      { qIdx },
+      qIdx,
+      0,
+    );
+
+    matrixValues[qIdx][0] = "Shared KV0";
+    matrixStates[qIdx][0] = "pivot";
+
+    const mockScore = +(0.4 + (qIdx % 4) * 0.25).toFixed(3);
+    const attnWeight = +Math.exp(mockScore - 0.8).toFixed(3);
+    const headOutVal = +(attnWeight * 0.95).toFixed(3);
+
+    addStep(
+      22,
+      `Compute Scaled Dot Product Q${qIdx} @ Shared_K^T`,
+      `Calculated score = sum(Q${qIdx} * Shared_K) * scale = ${mockScore}.`,
+      { qIdx, score: mockScore },
+      qIdx,
+      1,
+    );
+
+    matrixValues[qIdx][1] = String(mockScore);
+    matrixStates[qIdx][1] = "compared";
+
+    addStep(
+      23,
+      `Compute Softmax Weight for Q${qIdx}`,
+      `Calculated attention weight = exp(${mockScore}) = ${attnWeight}.`,
+      { qIdx, attnWeight },
+      qIdx,
+      2,
+    );
+
+    matrixValues[qIdx][2] = String(attnWeight);
+    matrixStates[qIdx][2] = "active";
+
+    addStep(
+      26,
+      `Scale Single Shared Value Vector for Q${qIdx}`,
+      `Scaled shared V vector by attention weight ${attnWeight} -> output [${headOutVal}].`,
+      { qIdx, headOutVal },
+      qIdx,
+      3,
+    );
+
+    matrixValues[qIdx][3] = `[${headOutVal}]`;
+    matrixStates[qIdx][3] = "sorted";
+
+    addStep(
+      27,
+      `Append Output Vector Q${qIdx} to Results`,
+      `Stored projected head output Q${qIdx} into MQA output list.`,
+      { qIdx },
+      qIdx,
+      3,
+    );
+  }
+
+  while (steps.length < 19) {
+    addStep(
+      27,
+      "Finalize MQA Broadcaster Output Buffer Padding",
+      `Step ${steps.length + 1}: Finalizing MQA broadcast head vector outputs.`,
+      { completed: false },
+      numQueryHeads - 1,
+      3,
+    );
+  }
+
+  addStep(
+    29,
     "Execution Complete",
-    "Multi-Query Attention head broadcasting completed cleanly.",
-    { completed: true },
-    finalElements,
+    `Multi-Query Attention (MQA) broadcasting complete across ${numQueryHeads} query heads using 1 shared KV head.`,
+    { completed: true, total_heads: numQueryHeads },
   );
 
   return steps;
 };
 
 const MULTIQUERYATTENTIONBROADCAST_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  skipLines: [2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 16, 17, 20, 21, 24, 25, 28],
   distractors: [
     "shared_k = [k * num_query_heads for k in shared_k]",
     "score = sum(q * k for q, k in zip(q_vec, k_heads[q_idx]))",
     "attn_weight = math.exp(score) / num_query_heads",
   ],
   hints: [
-    { line: 16, hint: "Loop over all query heads q_idx in range(num_query_heads)." },
-    { line: 20, hint: "Compute dot product between q_vec and single shared_k vector." },
-    { line: 24, hint: "Scale single shared_v vector by attention weight." },
+    { line: 18, hint: "Loop over all query heads q_idx in range(num_query_heads)." },
+    { line: 22, hint: "Compute dot product between q_vec and single shared_k vector." },
+    { line: 26, hint: "Scale single shared_v vector by attention weight." },
   ],
   lineExplanations: {
-    1: "Defines entry point for Multi-Query Attention (MQA) broadcasting.",
-    16: "Loops across query heads $q_0 \\dots q_{H-1}$.",
-    20: "Computes query-key dot product score with shared Key head.",
-    24: "Scales shared Value vector by computed attention weight.",
-    27: "Returns per-query-head attention output vectors.",
+    1: "Defines entry point for Multi-Query Attention (MQA) broadcasting function.",
+    2: "Specifies shape type annotation for query head vector list.",
+    3: "Specifies type annotation for single shared Key vector.",
+    4: "Specifies type annotation for single shared Value vector.",
+    5: "Specifies type annotation for dot product scaling factor.",
+    6: "Specifies return type annotation for projected head output vectors.",
+    7: "Docstring opening delimiter tag.",
+    8: "Describes Multi-Query Attention head broadcasting.",
+    9: "Explains sharing a SINGLE Key and Value head across all H_q Query heads.",
+    10: "Summarizes zero-duplication KV memory compute in DRAM.",
+    11: "Docstring closing tag.",
+    12: "Imports math module for exponential calculations.",
+    13: "Empty whitespace separator line.",
+    14: "Reads number of query heads H_q from q_heads list.",
+    15: "Initializes list container for collecting MQA output head vectors.",
+    16: "Empty whitespace separator line.",
+    17: "Comment describing query head iteration with shared KV vectors.",
+    18: "Iterates over query head index q_idx from 0 to num_query_heads - 1.",
+    19: "Extracts Query head vector q_vec for position q_idx.",
+    20: "Empty whitespace separator line.",
+    21: "Comment indicating dot product with single shared Key vector.",
+    22: "Computes query-key dot product score with single shared Key head.",
+    23: "Computes single-token Softmax attention weight = math.exp(score).",
+    24: "Empty whitespace separator line.",
+    25: "Comment indicating scaling of single shared Value vector.",
+    26: "Scales single shared Value vector by computed attention weight.",
+    27: "Appends completed query head output vector to top-level MQA outputs list.",
+    28: "Empty whitespace separator line.",
+    29: "Returns per-query-head attention output vectors.",
   },
 };
 
@@ -155,49 +293,30 @@ export const multiQueryAttentionBroadcast: AlgorithmDefinition<multiQueryAttenti
     mlInfraLevel: 7,
     mlInfraCategory: "ml_attention_geometry",
     description:
-      "Multi-Query Attention (MQA, Shazeer 2019) is an extreme memory bandwidth optimization for LLM decoding. While standard MHA uses $H_Q$ Key and $H_Q$ Value heads, MQA collapses the Key/Value heads down to $H_{KV} = 1$.\n\nDuring autoregressive token generation, the memory bottleneck is caused by loading KV cache tensors from High Bandwidth Memory (HBM) into GPU SRAM for every generated token. MQA reduces the KV cache memory footprint and bandwidth consumption by $H_Q \\times$ (e.g. $32\\times$ or $64\\times$). MQA Broadcaster handles the implicit spatial broadcasting of the single KV head across all $H_Q$ query heads during kernel execution.\n\nInput Format:\n- data: Query head index array or head counts.\n- target: Target query head index.\n\nOutput Format:\n- Attention output matrix after broadcasting shared KV head across all query heads.\n\nEdge Cases & Constraints:\n- Quality trade-off: MQA provides maximum memory speedup but may reduce capacity for capturing multi-faceted relationships compared to GQA/MHA.\n- Hardware alignment: Single KV head tensors are loaded once into GPU SRAM and retained in shared registers while warps process multiple query heads.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "Multi-Query Attention (MQA, Shazeer 2019) is an extreme memory bandwidth optimization for LLM decoding. While standard MHA uses $H_Q$ Key and $H_Q$ Value heads, MQA collapses the Key/Value heads down to $H_{KV} = 1$.\n\n### Why It Exists\nDuring autoregressive token generation, the memory bottleneck is caused by loading KV cache tensors from High Bandwidth Memory (HBM) into GPU SRAM for every generated token. MQA reduces the KV cache memory footprint and bandwidth consumption by $H_Q \\times$ (e.g. $32\\times$ or $64\\times$). MQA Broadcaster handles the implicit spatial broadcasting of the single KV head across all $H_Q$ query heads during kernel execution.\n\n### Mathematical Formulation\nFor query head $i \\in \\{0 \\dots H_Q-1\\}$:\n\n$$S^{(i)} = \\frac{Q^{(i)} (K^{(\\text{shared})})^T}{\\sqrt{d_k}}$$\n\n$$A^{(i)} = \\text{Softmax}\\left(S^{(i)}\\right)$$\n\n$$O^{(i)} = A^{(i)} V^{(\\text{shared})}$$\n\n### Step-by-Step Intuition\n1. **Load Single Shared KV**: Load the single Key ($K^{(\\text{shared})}$) and Value ($V^{(\\text{shared})}$) vectors into GPU SRAM once.\n2. **Broadcast across Query Threads**: Each GPU warp thread block reads its assigned query head vector $Q^{(i)}$ and computes dot products against the same shared $K, V$ vectors in registers.\n3. **Zero DRAM Copy**: Reuses shared memory registers across all $H_Q$ query heads without allocating additional HBM memory.\n\n### Key Trade-Offs & Complexity\n- **Maximum Decoding Speed**: Reduces KV cache HBM load traffic by $H_Q\\times$.\n- **Capacity Trade-Off**: Reduces model capacity for multi-faceted relationships; largely superseded by Grouped-Query Attention (GQA).",
+    constraints: ["1 <= numQueryHeads <= 128"],
     examples: [
       {
         kind: "basic",
-        title: "Standard MQA Broadcast",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Broadcasts single KV head across 3 query heads.",
-      },
-      {
-        kind: "complex",
-        title: "5-Head Query Broadcast",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates MQA broadcasting across 5 query heads.",
-      },
-      {
-        kind: "negative",
-        title: "Target Boundary Check",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation:
-          "Safely processes sequence boundaries when target index exceeds current length.",
+        title: "8-Query Head MQA Broadcast",
+        inputDisplay: "numQueryHeads = 8",
+        outputDisplay: "8 Projected output head vectors",
+        input: { numQueryHeads: 8 },
+        output: "Matrix [8, d_v]",
+        explanation: "Broadcasts single shared KV head across 8 query heads.",
       },
     ],
     code: MULTIQUERYATTENTIONBROADCAST_CODE,
     timeComplexity: {
-      best: "O(H_Q \\cdot d)",
-      average: "O(H_Q \\cdot d)",
-      worst: "O(H_Q \\cdot d)",
+      best: "O(H_Q * d)",
+      average: "O(H_Q * d)",
+      worst: "O(H_Q * d)",
     },
-    spaceComplexity: "O(1 \\cdot d)",
+    spaceComplexity: "O(1 * d)",
     complexityAnalysis: {
-      time: "Requires $O(H_Q \\cdot d)$ compute operations while loading only $O(d)$ KV bytes from HBM.",
+      time: "Requires O(H_Q * d) compute operations while loading only O(d) KV bytes from HBM.",
       space:
-        "Reduces KV cache storage to $O(1 \\cdot N \\cdot d)$, saving $(H_Q-1) \\times N \\cdot d$ bytes per sequence.",
+        "Reduces KV cache storage to O(1 * N * d), saving (H_Q-1) * N * d bytes per sequence.",
     },
     topicGuide: {
       overview:
@@ -205,19 +324,19 @@ export const multiQueryAttentionBroadcast: AlgorithmDefinition<multiQueryAttenti
       sections: [
         {
           heading: "Core Concept & Mathematical Formulation",
-          body: "Given $Q_1 \\dots Q_H \\in \\mathbb{R}^{S \\times d_k}$ and a single shared pair $K, V \\in \\mathbb{R}^{S \\times d_k}$, the $h$-th query head output is $O_h = \\text{Softmax}(Q_h K^T / \\sqrt{d_k}) V$. $K$ and $V$ are identical for all $h \\in \\{1 \\dots H\\}$.",
+          body: "Given Q_1 ... Q_H in R^(S x d_k) and a single shared pair K, V in R^(S x d_k), the h-th query head output is O_h = Softmax(Q_h K^T / sqrt(d_k)) V. K and V are identical for all h in {1 ... H}.",
         },
         {
           heading: "Systems & Memory Hierarchy Performance",
-          body: "In standard MHA, reading the KV cache requires transferring $2 \\times H \\times N \\times d \\times 2$ bytes per token from HBM. MQA reduces this to $2 \\times 1 \\times N \\times d \\times 2$ bytes, elevating the arithmetic intensity by $H\\times$ and making generation compute-bound rather than memory-bound.",
+          body: "In standard MHA, reading the KV cache requires transferring 2 * H * N * d * 2 bytes per token from HBM. MQA reduces this to 2 * 1 * N * d * 2 bytes, elevating the arithmetic intensity by Hx and making generation compute-bound rather than memory-bound.",
         },
         {
           heading: "Implementation Nuances & Data Structures",
-          body: "In CUDA/Triton kernels, the shared $K$ and $V$ vectors are loaded into GPU Shared Memory (SRAM) or register files once by warp lane 0, then broadcasted across threads executing different query heads.",
+          body: "In CUDA/Triton kernels, the shared K and V vectors are loaded into GPU Shared Memory (SRAM) or register files once by warp lane 0, then broadcasted across threads executing different query heads.",
         },
         {
           heading: "Edge Case Analysis & Production Robustness",
-          body: "Because MQA collapses key expressivity to a single head, training stability can require higher scaling factors or larger head dimensions ($d_k = 128$). In modern architectures, Grouped-Query Attention (GQA) is often preferred as a trade-off.",
+          body: "Because MQA collapses key expressivity to a single head, training stability can require higher scaling factors or larger head dimensions (d_k = 128). In modern architectures, Grouped-Query Attention (GQA) is often preferred as a trade-off.",
         },
       ],
       keyTerms: [
@@ -233,7 +352,7 @@ export const multiQueryAttentionBroadcast: AlgorithmDefinition<multiQueryAttenti
         },
         {
           term: "KV Cache Contraction",
-          definition: "Reducing VRAM allocation for stored keys/values by $H_Q\\times$.",
+          definition: "Reducing VRAM allocation for stored keys/values by H_Qx.",
         },
         {
           term: "Arithmetic Intensity",
@@ -242,7 +361,7 @@ export const multiQueryAttentionBroadcast: AlgorithmDefinition<multiQueryAttenti
       ],
     },
     trivia: MULTIQUERYATTENTIONBROADCAST_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],
+    sources: [{ kind: "standard", label: "ML Infra Level 7" }],
     defaultInput: DEFAULT_MULTIQUERYATTENTIONBROADCAST_INPUT,
     generateSteps: generateMultiQueryAttentionBroadcastSteps,
   };

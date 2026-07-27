@@ -29,15 +29,33 @@ const WARNSDORFF_TRIVIA: TriviaMeta = {
     1: "Signature: find a knight's tour on an N×N board using Warnsdorff's heuristic.",
     2: "Initialize an N×N board filled with -1 to indicate unvisited squares.",
     3: "Define the 8 standard L-shaped moves a knight can make.",
-    5: "Helper count_onward_moves(r, c) counts unvisited onward moves.",
+    4: "Blank line separating initialization constants from onward move counter helper.",
+    5: "Helper count_onward_moves(r, c) counts unvisited onward moves from candidate square (r, c).",
+    6: "Initialize candidate onward degree counter to 0.",
+    7: "Loop over all 8 knight move offsets (dr, dc).",
+    8: "Calculate candidate target coordinates (nr, nc).",
+    9: "Check if (nr, nc) is within board boundaries and currently unvisited (board[nr][nc] == -1).",
+    10: "Increment candidate onward move counter.",
+    11: "Return calculated onward degree for cell (r, c).",
+    12: "Blank line separating helper function definition from start position initialization.",
     13: "Mark starting square with step 0.",
-    14: "Set current position to (start_r, start_c).",
+    14: "Set current position tracking variables curr_r, curr_c to start coordinates.",
+    15: "Blank line separating start state setup from main step iteration loop.",
     16: "Loop step from 1 up to N*N - 1 to visit remaining squares.",
-    21: "Compute Warnsdorff onward degree for each unvisited move.",
-    24: "If candidates is empty, return False and current board state.",
-    25: "Sort candidates by onward degree ascending (Warnsdorff's rule).",
-    27: "Mark selected square with step number.",
-    30: "Return True and completed board matrix.",
+    17: "Initialize empty candidates list to store tuples of (degree, next_r, next_c).",
+    18: "Loop over all 8 knight move offsets from current position.",
+    19: "Calculate target coordinates (nr, nc) for candidate move.",
+    20: "Verify candidate (nr, nc) is within grid bounds and unvisited.",
+    21: "Compute Warnsdorff onward degree for candidate square by counting its unvisited neighbors.",
+    22: "Append candidate tuple (degree, nr, nc) to candidates list.",
+    23: "Check if candidates list is empty (dead end reached).",
+    24: "If candidates is empty, return False and current incomplete board state.",
+    25: "Sort candidates by onward degree ascending (Warnsdorff's rule: smallest degree first).",
+    26: "Extract target coordinates (next_r, next_c) of top candidate with minimum onward degree.",
+    27: "Mark selected square (next_r, next_c) with step number.",
+    28: "Update current position coordinates (curr_r, curr_c) to (next_r, next_c).",
+    29: "Blank line separating step loop from final return statement.",
+    30: "Return True and completed board matrix indicating full tour success.",
   },
 };
 
@@ -258,7 +276,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   categories: ["backtracking"],
   difficulty: "Medium",
   description:
-    "Given an N×N chessboard and a starting coordinate (startRow, startCol), construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.\n\nWhile brute-force depth-first search exhibits exponential explosion O(8^(N^2)), Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial O(N^2) time without deep backtracking.",
+    "Construct a valid Knight's Tour visiting every square on an N×N chessboard exactly once using Warnsdorff's minimum-degree heuristic.\n\n### Problem Statement\nGiven an $N \\times N$ chessboard and a starting coordinate `(startRow, startCol)`, construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.\n\nWhile brute-force depth-first search exhibits exponential explosion $O(8^{N^2})$, Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial $O(N^2)$ time without deep backtracking.\n\n### Input Parameters\n- `size` (int): Board dimension $N$.\n- `startRow` (int): Starting row coordinate.\n- `startCol` (int): Starting column coordinate.\n\n### Output\n- tuple[bool, list[list[int]]]: Success boolean flag and 2D matrix containing step numbers (0 to $N^2-1$).\n\n### Constraints & Edge Cases\n- `3 <= size <= 8`\n- `0 <= startRow, startCol < size`\n- Small 3x3 boards terminate early as dead ends because no complete tour exists.",
   constraints: ["3 <= size <= 8", "0 <= startRow, startCol < size"],
   examples: [
     {
@@ -386,3 +404,5 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   ],
   defaultInput: DEFAULT_KNIGHTS_TOUR_INPUT,
 };
+
+export default knightsTourWarnsdorff;

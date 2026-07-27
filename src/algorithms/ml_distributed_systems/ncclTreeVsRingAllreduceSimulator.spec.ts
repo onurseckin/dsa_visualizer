@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ncclTreeVsRingAllreduceSimulator,
+  NCCLTREEVSRINGALLREDUCESIMULATOR_CODE,
   DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT,
   generateNcclTreeVsRingAllreduceSimulatorSteps,
 } from "./ncclTreeVsRingAllreduceSimulator";
@@ -14,12 +15,21 @@ describe("nccl-tree-vs-ring-allreduce-simulator (NCCL Tree vs Ring-AllReduce Top
     expect(ncclTreeVsRingAllreduceSimulator.categories).toContain("ml_distributed_systems");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate >= 20 algorithm steps", () => {
     const steps = generateNcclTreeVsRingAllreduceSimulatorSteps(
       DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT,
     );
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("NCCL Tree vs Ring-AllReduce Topology Simulator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain("Import Math Module");
+    expect(steps[steps.length - 1].explanation.what).toBe("Return Topology Evaluation Dictionary");
+  });
+
+  it("should have lineExplanations mapping every code line", () => {
+    const codeLines = NCCLTREEVSRINGALLREDUCESIMULATOR_CODE.trimEnd().split("\n").length;
+    const explanations = ncclTreeVsRingAllreduceSimulator.trivia?.lineExplanations || {};
+    expect(Object.keys(explanations).length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(explanations[i]).toBeDefined();
+    }
   });
 });

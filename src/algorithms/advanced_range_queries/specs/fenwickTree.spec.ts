@@ -11,9 +11,9 @@ describe("fenwickTree algorithm spec", () => {
     expect(fenwickTree.spaceComplexity).toBe("O(n)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate at least 20 steps for default input", () => {
     const steps = generateFenwickTreeSteps(fenwickTree.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -28,6 +28,19 @@ describe("fenwickTree algorithm spec", () => {
     expect(rangeQuerySteps.length).toBe(2);
     expect(rangeQuerySteps[0].variables.rangeSum).toBe(15);
     expect(rangeQuerySteps[1].variables.rangeSum).toBe(20);
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = fenwickTree.code.split("\n");
+    const lineExplanations = fenwickTree.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle point update correctly", () => {
@@ -66,7 +79,7 @@ describe("fenwickTree algorithm spec", () => {
     expect(steps2.length).toBeGreaterThan(0);
   });
 
-  it("should teach the topic through a topicGuide", () => {
+  it("should teach the topic through a topicGuide with Markdown and LaTeX", () => {
     const guide = fenwickTree.topicGuide;
     expect(guide.overview.length).toBeGreaterThan(120);
     expect(guide.sections.length).toBeGreaterThanOrEqual(4);
@@ -74,8 +87,7 @@ describe("fenwickTree algorithm spec", () => {
 
     guide.sections.forEach((section) => {
       expect(section.heading.length).toBeGreaterThan(0);
-      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
-      expect(section.body).not.toMatch(/[*#`_]|^- /);
+      expect(section.body.length).toBeGreaterThan(50);
     });
 
     const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(" ");

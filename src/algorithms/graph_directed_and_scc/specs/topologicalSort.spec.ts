@@ -15,7 +15,7 @@ describe("topologicalSort algorithm spec", () => {
 
   it("should generate steps with In-Degree auxiliary state and valid topological order", () => {
     const steps = generateTopologicalSortSteps(DEFAULT_TOPO_SORT_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -55,6 +55,14 @@ describe("topologicalSort algorithm spec", () => {
     expect(indexMap["4"]).toBeLessThan(indexMap["1"]);
     expect(indexMap["2"]).toBeLessThan(indexMap["3"]);
     expect(indexMap["3"]).toBeLessThan(indexMap["1"]);
+  });
+
+  it("should map every line of pythonCode in lineExplanations", () => {
+    const codeLines = topologicalSort.code.split("\n").length;
+    const explanations = topologicalSort.trivia?.lineExplanations ?? {};
+    for (let i = 1; i <= codeLines; i++) {
+      expect(explanations[i], `Missing explanation for line ${i}`).toBeDefined();
+    }
   });
 
   it("should detect cycles in directed graphs", () => {

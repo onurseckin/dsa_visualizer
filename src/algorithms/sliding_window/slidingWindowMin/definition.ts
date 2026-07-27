@@ -10,77 +10,85 @@ export const DEFAULT_SLIDING_WINDOW_MIN_INPUT: SlidingWindowMinInput = {
 
 const SLIDING_WINDOW_MIN_TOPIC_GUIDE: TopicGuide = {
   overview:
-    'A monotonic deque is a double-ended queue whose contents stay sorted by construction, and it is the standard answer to questions of the form "give me the extreme value of every window". It stores indices rather than values, throws away any candidate that a newer and better one has made irrelevant, and hands you the answer at its front in a single read. What lifts it above a convenience trick is the discarding rule: an element that is larger than a newer element to its right can never again be a window minimum, so deleting it loses nothing at all.',
+    "A monotonic deque is a double-ended queue whose contents stay sorted by construction, enabling instant $O(1)$ access to minimum or maximum values over a sliding window. By storing indices rather than raw values, the algorithm efficiently evicts expired elements from the front while dropping dominated elements from the back. Monotonic deques power streaming telemetry analytics, financial rolling risk indicators, audio signal processing, and network congestion algorithms.",
   sections: [
     {
-      heading: "The insight: newer and smaller beats older and larger",
-      body: `Take two indices i and j with i before j, both inside the same window, where nums[i] is greater than or equal to nums[j]. Every future window that still contains i must also contain j, because windows only slide rightward and j sits further right. In all of those windows nums[j] is at least as good a minimum as nums[i], so nums[i] can never be the answer again and may be deleted the instant you see nums[j]. Apply that rule relentlessly and what survives is exactly the set of indices whose values increase from front to back, which is precisely the set of candidates that could still win some window. That one observation is what replaces the repeated rescanning a naive solution would do.`,
+      heading: "The Core Insight: Newer and Smaller Beats Older and Larger",
+      body: `Consider two indices $i$ and $j$ where $i < j$ both belong to the current window $[i - k + 1, i]$, and $\\text{nums}[i] \\ge \\text{nums}[j]$. Every future window containing index $i$ must also contain index $j$ because windows slide rightward. In all future windows, $\\text{nums}[j]$ is at least as small as $\\text{nums}[i]$ and will survive longer. Therefore, $\\text{nums}[i]$ can never again serve as a window minimum and is safely discarded the moment $\\text{nums}[j]$ is observed. Removing dominated elements preserves a strictly increasing sequence of candidates in the deque.`,
     },
     {
-      heading: "How the deque is maintained",
-      body: `Each new index i triggers three operations in a fixed order. First you evict from the front any index that has fallen out of the window, testing whether the front index is at most i minus k, since a window of size k ending at i begins at i minus k plus one. Second you pop from the back while the value there is greater than or equal to nums[i], which is the domination rule doing its work. Third you append i to the back. Once i has reached index k minus one the window is full, so the front of the deque is by construction the position of the smallest value inside it, and you read that value straight off without touching the rest of the window.`,
+      heading: "Double-Ended Queue Operations & Order Maintenance",
+      body: `For each index $i$, four operations occur sequentially:
+1. **Front Eviction**: Check if the front index $dq[0]$ has expired (i.e. $dq[0] \\le i - k$) and pop it from the front via \`popleft()\`.
+2. **Back Eviction**: Pop indices from the back via \`pop()\` while $\\text{nums}[dq[-1]] \\ge \\text{nums}[i]$ to enforce monotonic ordering.
+3. **Candidate Insertion**: Append index $i$ to the back of the deque.
+4. **Output Generation**: If $i \\ge k - 1$, the front element $\\text{nums}[dq[0]]$ is recorded as the minimum for the current window.`,
     },
     {
-      heading: "Why the front is always the window minimum",
-      body: `Two invariants hold every time you record an answer. Every index in the deque lies inside the current window, which the front eviction guarantees, and the values at those indices increase from front to back, which the back popping guarantees. Together they force the front to be the smallest surviving candidate. The domination argument then closes the gap: everything you deleted was either outside the window or provably worse than something still present, so nothing eligible was ever lost. Convince yourself of the two invariants separately and the correctness of the whole algorithm follows from them without any further reasoning.`,
+      heading: "Why the Front is Guaranteed to be the Window Minimum",
+      body: `Two structural invariants hold continuously:
+1. Every index in the deque lies strictly within the current window $[i - k + 1, i]$.
+2. The values associated with the stored indices strictly increase from front to back: $\\text{nums}[dq[0]] < \\text{nums}[dq[1]] < \\dots < \\text{nums}[dq[-1]]$.
+
+Together, these invariants guarantee that $dq[0]$ contains the index of the smallest element in the current window. All deleted elements were either expired ($dq[0] \\le i - k$) or dominated ($\\text{nums}[dq[-1]] \\ge \\text{nums}[i]$), ensuring no valid candidate is prematurely lost.`,
     },
     {
-      heading: "Why the deque holds indices instead of values",
-      body: `Pushing plain values would make the code shorter, but then you could not tell when a candidate has aged out of the window. An index carries both pieces of information you need: the value through a lookup, and the position for the expiry test. Storing indices also handles duplicates cleanly, because popping on greater-than-or-equal rather than strictly greater removes an equal older twin, which is harmless since the newer twin lives longer and is just as small. If you ever need the window maximum instead of the minimum, flip that one comparison and the front becomes the maximum with nothing else changing.`,
+      heading: "Storing Indices vs Storing Bare Values",
+      body: `Storing indices instead of bare values allows direct position testing ($dq[0] \\le i - k$) to handle window expiry. Furthermore, storing indices handles duplicate values cleanly: popping when $\\text{nums}[dq[-1]] \\ge \\text{nums}[i]$ replaces an older duplicate with a newer duplicate, extending the lifespan of the candidate without altering the minimum value.`,
     },
     {
-      heading: "When to reach for it, and what the alternatives cost",
-      body: `A min-heap can also answer window extremes, but a heap cannot cheaply delete an element that has merely left the window, so you end up carrying stale entries and discarding them lazily at the top, or maintaining a side map of positions. The deque sidesteps all of that because expiry is just a positional test at the front. Rescanning each window outright is fine when k is tiny and becomes hopeless as k grows. Use the deque whenever you need an extreme value over a fixed-size sliding range, and prefer a heap or a balanced multiset when the window is not fixed-size or you need order statistics beyond the extreme, such as a running median.`,
+      heading: "Performance & Complexity Analysis",
+      body: `1. **Naive Rescanning** $O(N \\cdot K)$: Rescans all $K$ elements for every window position. Extremely slow for large $K$.
+2. **Priority Queue / Heap** $O(N \\log K)$: Inserts each element into a min-heap, but stale elements must be lazily deleted from the top, requiring logarithmic time per step.
+3. **Monotonic Deque** $O(N)$: Pushes and pops each index at most once across the entire array, yielding amortized $O(1)$ time per window step and $O(K)$ auxiliary space.
+
+$$\\sum_{i=0}^{N-1} (\\text{push count} + \\text{pop count}) \\le 2N = O(N)$$`,
     },
     {
-      heading: "Pitfalls and sibling problems",
-      body: `The classic off-by-one lives in the expiry test, which compares the front index against i minus k rather than the window start, and in the guard that only begins recording once the window has actually reached size k. Popping with a strict comparison still yields correct minima but leaves useless equal duplicates lying in the deque. Remember also that the deque is a candidate list and not the window itself, so its length tells you nothing about how many elements the window holds. The same machinery, called a monotonic stack when you only ever touch one end, drives Next Greater Element, Daily Temperatures, and Largest Rectangle in Histogram; in every one of them the shared move is deleting candidates that a new arrival has made permanently irrelevant.`,
+      heading: "Practical Engineering Applications & Pitfalls",
+      body: `Off-by-one errors often occur in the expiry check (comparing $dq[0] \\le i - k$ vs $i - k + 1$) or in starting result recording before $i \\ge k - 1$. Monotonic deques are widely used in stock ticker volatility windows, TCP congestion window monitoring, computer vision sliding kernel filters, and time-series anomaly detection.`,
     },
   ],
   keyTerms: [
     {
-      term: "Deque",
+      term: "Monotonic Deque",
       definition:
-        "A double-ended queue that supports pushing and popping at both ends in constant time, which is what lets expiry and domination be handled at opposite ends.",
+        "A double-ended queue whose contents are kept strictly sorted (increasing or decreasing) by popping violating elements prior to insertion.",
     },
     {
-      term: "Monotonic",
+      term: "Domination Principle",
       definition:
-        "The property that the values at the stored indices are ordered. Here they increase from front to back, so the front always holds the minimum.",
+        "The condition where a newer, smaller element renders an older, larger element permanently obsolete for future minimum queries.",
     },
     {
-      term: "Domination",
+      term: "Expiry Check",
       definition:
-        "The relation in which a newer element that is smaller or equal makes an older one permanently useless, because it survives longer in the window and is never worse.",
+        "The front-of-deque check that removes indices that have fallen behind the left boundary of the sliding window (dq[0] <= i - k).",
     },
     {
-      term: "Expiry check",
+      term: "Amortized Complexity",
       definition:
-        "The front-of-deque test that removes indices which have slid past the left edge of the window. It is the reason the deque stores indices rather than bare values.",
-    },
-    {
-      term: "Amortized accounting",
-      definition:
-        "The argument that each index is pushed once and popped at most once, so the total pop work stays bounded even though a single step may pop many entries at once.",
+        "The proof that because each element is pushed once and popped at most once, total operations across N steps are bounded by 2N.",
     },
   ],
 };
 
 const SLIDING_WINDOW_MIN_TRIVIA: TriviaMeta = {
+  skipLines: [2, 6, 10, 13, 15, 18],
   lineExplanations: {
-    1: "Imports deque from the standard library, the double-ended queue that will hold candidate indices and support O(1) pushes and pops at both ends.",
-    3: "Declares the function: given nums and a window size k, return the minimum of every contiguous window of that size.",
-    4: "Initializes the output list that will collect one minimum per window.",
-    5: "Creates an empty deque that stores indices into nums (not values), kept in an order that always exposes the current window's minimum at the front.",
-    7: "Scans i across every index of nums once; each index goes through the same three-step routine below before a result may be recorded.",
-    8: "Checks whether the index at the front of the deque has fallen out of the window — a window of size k ending at i starts at i - k + 1, so anything at or before i - k is stale.",
-    9: "Removes the stale front index with popleft, since it can never be part of the current or any future window.",
-    11: "Checks whether the value at the back of the deque is greater than or equal to nums[i] — if so, that older candidate can never win a window again, since nums[i] is at least as small and will outlive it in the window.",
-    12: "Pops the dominated index off the back, since a newer, at-least-as-small value has just made it irrelevant.",
-    14: "Appends the current index i to the back of the deque, now that everything it would dominate has been cleared out — the deque's values stay increasing from front to back.",
-    16: "Checks whether i has reached at least k - 1, the first index at which a full window of size k exists.",
-    17: "Reads nums[dq[0]] — the front of the deque is guaranteed to be the smallest value still inside the window — and appends it to result without rescanning the window.",
-    19: "Returns the completed list of per-window minimums, one entry for every window the scan passed over.",
+    1: "Imports deque from standard library collections to provide O(1) double-ended push and pop operations.",
+    3: "Defines sliding_window_min(nums, k): accepts an integer list nums and window size k, returning minimums for all windows.",
+    4: "Initializes the result list to collect the minimum element for each window of size k.",
+    5: "Creates an empty deque to maintain candidate indices whose values increase from front to back.",
+    7: "Iterates through array indices i from 0 up to len(nums) - 1.",
+    8: "Checks if the front index of deque dq[0] has fallen out of the window (i.e. dq[0] <= i - k).",
+    9: "Evicts the expired front index using popleft() since it is outside the current window's left boundary.",
+    11: "Loops while deque is non-empty and the value at the back index nums[dq[-1]] is >= current value nums[i].",
+    12: "Pops the back index off the deque because nums[i] is smaller and will outlive it in future windows (Domination Principle).",
+    14: "Appends current index i to the back of the deque to maintain monotonically increasing candidate values.",
+    16: "Checks if the loop index i has reached at least k - 1, marking a full window of size k.",
+    17: "Appends the value at the front of the deque nums[dq[0]] to result, as dq[0] is guaranteed to be the current window minimum.",
+    19: "Returns the completed list of sliding window minimums.",
   },
 };
 
@@ -90,25 +98,61 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   category: "sliding_window",
   categories: ["sliding_window"],
   difficulty: "Hard",
-  description:
-    "Finds the minimum element in every contiguous sliding window of size k in an array nums as the window slides from left to right. By maintaining a monotonic increasing deque of candidate indices, the algorithm computes each window minimum in amortized O(1) time per element (O(N) total).",
+  description: `Finds the minimum element in every contiguous sliding window of size $k$ in an array \`nums\` as the window slides from left to right.
+
+By maintaining a monotonic increasing double-ended queue (deque) of candidate indices, the algorithm computes each window minimum in amortized $O(1)$ time per element ($O(N)$ total).
+
+### Why It Exists & Real-World Relevance
+Tracking rolling minimums or maximums over a fixed window is a fundamental requirement in time-series analysis and system monitoring. Naively checking all $K$ elements in every window takes $O(N \\cdot K)$ time, while min-heaps take $O(N \\log K)$ time. A monotonic deque achieves optimal linear $O(N)$ time.
+
+Real-world applications include:
+- **Financial Risk & Volatility**: Computing rolling minimum asset prices over fixed time windows (e.g., 30-day low).
+- **Streaming Telemetry & Rate Limiting**: Monitoring minimum latency or throughput spikes across sliding time intervals.
+- **Signal & Image Processing**: 1D/2D max/min filter kernels in computer vision (e.g. morphological erosion and dilation).
+- **Network Packet Scheduling**: TCP sliding window congestion control and buffer management.
+
+### How It Works (Step-by-Step Intuition)
+1. Maintain a double-ended queue (\`deque\`) storing indices into \`nums\`.
+2. Iterate index $i$ from $0$ to $N - 1$:
+   - **Expire Front**: If $dq[0] \\le i - k$, pop it from the front via \`popleft()\`. It has slid past the left edge of the window.
+   - **Pop Dominated Back**: While the deque is non-empty and $\\text{nums}[dq[-1]] \\ge \\text{nums}[i]$, pop from the back. Why? Because $\\text{nums}[i]$ is smaller (or equal) and sits further right, so the older, larger elements can never be a minimum again.
+   - **Push Current**: Push index $i$ to the back of the deque.
+   - **Record Minimum**: Once $i \\ge k - 1$ (the window is full), record $\\text{nums}[dq[0]]$ as the minimum for the current window.
+
+$$dq[0] \\le i - k \\implies \\text{popleft}()$$
+$$\\text{nums}[dq[-1]] \\ge \\text{nums}[i] \\implies \\text{pop}()$$
+
+### Input Parameters
+- \`nums\`: An array of integers.
+- \`k\`: An integer representing the sliding window size ($1 \\le k \\le N$).
+
+### Output
+- Returns an array \`result\` containing $N - k + 1$ integers representing the minimum of each sliding window of size $k$.
+
+### Edge Cases & Constraints
+- \`1 <= nums.length <= 10^5\`
+- \`-10^4 <= nums[i] <= 10^4\`
+- \`1 <= k <= nums.length\`
+- $k = 1$: Output array is identical to \`nums\`.
+- $k = N$: Output array contains a single element (the global minimum of \`nums\`).
+- Duplicate values: Preserved correctly by non-strict popping ($\\ge$), replacing older equal values with newer ones.`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4", "1 <= k <= nums.length"],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
-      outputDisplay: "[-1, -3, -3, -3, 3, 3]",
+      inputDisplay: "nums = [4, 2, 12, 11, 5, 8, 3, 9], k = 3",
+      outputDisplay: "[2, 2, 5, 5, 3, 3]",
       title: "Basic Example",
-      input: { nums: [4, 2, 12, 11, 5, 8, 3, 9], k: 3 },
+      input: DEFAULT_SLIDING_WINDOW_MIN_INPUT,
       output: "[2, 2, 5, 5, 3, 3]",
       explanation:
         "The sliding windows of size 3 are [4,2,12]->2, [2,12,11]->2, [12,11,5]->5, [11,5,8]->5, [5,8,3]->3, [8,3,9]->3.",
     },
     {
       kind: "complex",
-      inputDisplay: "nums = [4, 2, 12, 11, -5, 3, 9], k = 4",
-      outputDisplay: "[-5, -5, -5, -5]",
-      title: "Complex Edge Case",
+      inputDisplay: "nums = [9, 7, 5, 3, 1, 2, 4, 6, 8], k = 4",
+      outputDisplay: "[3, 1, 1, 1, 1, 2]",
+      title: "Complex Decreasing-Increasing Sequence",
       input: { nums: [9, 7, 5, 3, 1, 2, 4, 6, 8], k: 4 },
       output: "[3, 1, 1, 1, 1, 2]",
       explanation:
@@ -116,9 +160,9 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "nums = [1], k = 1",
-      outputDisplay: "[1]",
-      title: "Failing / Boundary Case",
+      inputDisplay: "nums = [10, 20, 30, 40], k = 4",
+      outputDisplay: "[10]",
+      title: "Full Window Boundary Case",
       input: { nums: [10, 20, 30, 40], k: 4 },
       output: "[10]",
       explanation: "Window size k equals total length; produces a single window minimum [10].",
@@ -132,9 +176,8 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   },
   spaceComplexity: "O(k)",
   complexityAnalysis: {
-    time: "Although there are loops inside the main scan, every index is pushed onto the deque exactly once and popped at most once — either from the front when it leaves the window or from the back when a smaller value arrives. Charging each pop to the push that created it bounds the total work at about 2n deque operations, so the time is O(n) rather than O(n·k).",
-    space:
-      "The deque only ever holds indices from the current window, so it never grows past k entries — O(k) extra space beyond the output list.",
+    time: "Each index is pushed onto the deque exactly once and popped from the front or back at most once. Total push and pop operations across the entire loop are bounded by $2N$. The amortized time per step is $O(1)$, yielding total runtime complexity of $O(N)$.",
+    space: "The deque stores indices belonging strictly to the active sliding window, so its size never exceeds $K$. Auxiliary space complexity is $O(K)$ excluding the output array.",
   },
   topicGuide: SLIDING_WINDOW_MIN_TOPIC_GUIDE,
   trivia: SLIDING_WINDOW_MIN_TRIVIA,

@@ -21,8 +21,7 @@ export const VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE = `def vllm_paged_attention_k
         else:
             output_scores.append(val % target)
 
-    return output_scores
-`;
+    return output_scores`;
 
 export const DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT: vllmPagedAttentionKernelExecutorInput =
   {
@@ -35,8 +34,12 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+
+  const data = input.data;
+  const target = input.target ?? 30;
+
+  const elements: ArrayElement[] = data.map((val, idx) => ({
+    id: `block-${idx}`,
     value: val,
     state: "default",
   }));
@@ -46,85 +49,178 @@ export const generateVllmPagedAttentionKernelExecutorSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
+    activeIdx: number = -1,
+    pointersMap: Record<number, string[]> = {},
     customElements?: ArrayElement[],
   ) => {
+    const baseElements = customElements || elements;
+    const updatedElements: ArrayElement[] = baseElements.map((el, idx) => {
+      let state: ArrayElement["state"] = el.state;
+      if (activeIdx >= 0 && idx === activeIdx) state = "active";
+      else if (activeIdx >= 0 && idx < activeIdx && state !== "sorted") state = "visited";
+      return {
+        ...el,
+        state,
+        pointers: pointersMap[idx] || el.pointers || undefined,
+      };
+    });
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: updatedElements,
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${data.join(", ")}]`,
+          target: String(target),
+          num_blocks: String(data.length),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry signature line 1
   addStep(
-    9,
-    "Initialize vLLM PagedAttention GPU Kernel Execution Simulator",
-    "Setting up physical block table pointers and warp thread block grid dispatch structures.",
-    { n: input.data.length, target: input.target ?? 0 },
+    1,
+    "Enter vllm_paged_attention_kernel_executor function signature",
+    "Initializing vLLM PagedAttention GPU kernel simulator.",
+    { num_blocks: data.length },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const isWithinTarget = val <= (input.target ?? 30);
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isWithinTarget ? "active" : "compare", pointers: [`block_${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 2: Signature args line 2
+  addStep(
+    2,
+    `Load parameters: data=[${data.join(", ")}], target=${target}`,
+    "Loading input physical block pointers and target scaling threshold.",
+    { target },
+  );
 
+  // Step 3: Signature return type line 3
+  addStep(
+    3,
+    "Specify return type contract: list[int]",
+    "Output tensor buffer will contain computed scaled dot-product attention scores.",
+    { data_len: data.length },
+  );
+
+  // Step 4: Init output_scores line 9
+  addStep(
+    9,
+    "Initialize output_scores = []",
+    "Allocating device SRAM output buffer for attention scores.",
+    { output_scores: "[]" },
+  );
+
+  // Step 5: Loop header line 10
+  addStep(
+    10,
+    `Begin CUDA warp thread loop: for idx, val in enumerate(data)`,
+    `Launching CUDA threads to gather ${data.length} physical KV memory pages.`,
+    { num_blocks: data.length },
+  );
+
+  const outputScores: number[] = [];
+  const currentElements = [...elements];
+
+  data.forEach((val, idx) => {
     addStep(
-      11,
-      `Process element ${idx}: value = ${val}`,
-      `Executing CUDA PagedAttention thread warp gathering KV block ${val} from non-contiguous VRAM.`,
-      { idx, val, isTarget, isWithinTarget },
+      10,
+      `CUDA Warp Thread [${idx}]: Gather physical block #${val}`,
+      `Reading KV tensor page #${val} from non-contiguous VRAM.`,
+      { idx, val, target },
+      idx,
+      { [idx]: [`block_${idx}`, `val=${val}`] },
       currentElements,
     );
+
+    const isWithinTarget = val <= target;
+    addStep(
+      11,
+      `Check condition: val (${val}) <= target (${target}) -> ${isWithinTarget}`,
+      isWithinTarget
+        ? `Page address within target VRAM bound. Direct KV attention fetch.`
+        : `Page address exceeds target bound (${val} > ${target}). Triggering address translation modulo.`,
+      { idx, val, target, isWithinTarget },
+      idx,
+      { [idx]: [isWithinTarget ? "DIRECT_FETCH" : "MODULO_TRANSLATE"] },
+      currentElements,
+    );
+
+    if (isWithinTarget) {
+      outputScores.push(val);
+      currentElements[idx] = {
+        ...currentElements[idx],
+        value: `${val} (Score: ${val})`,
+        state: "sorted",
+      };
+
+      addStep(
+        12,
+        `Append score: output_scores.append(${val})`,
+        `Direct score ${val} stored in output attention buffer.`,
+        { idx, score: val },
+        idx,
+        { [idx]: [`score=${val}`] },
+        currentElements,
+      );
+    } else {
+      const modScore = val % target;
+      outputScores.push(modScore);
+      currentElements[idx] = {
+        ...currentElements[idx],
+        value: `${val} -> ${modScore} (Mod)`,
+        state: "sorted",
+      };
+
+      addStep(
+        14,
+        `Translate & Append score: output_scores.append(${val} % ${target}) -> ${modScore}`,
+        `Translated physical page score: $${val} \\pmod{${target}} = ${modScore}$.`,
+        { idx, val, target, modScore },
+        idx,
+        { [idx]: [`mod_score=${modScore}`] },
+        currentElements,
+      );
+    }
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
+  // Step 6: Return result line 16
   addStep(
     16,
-    "Execution Complete",
-    "Completed vLLM PagedAttention GPU kernel execution. Accumulated scaled dot-product attention values.",
-    { completed: true },
-    finalElements,
+    "Return output_scores from PagedAttention CUDA kernel",
+    `Completed PagedAttention GPU kernel execution. Returned scores [${outputScores.join(", ")}].`,
+    { output_scores: outputScores.join(", ") },
+    -1,
+    {},
+    currentElements,
   );
 
   return steps;
 };
 
 const VLLMPAGEDATTENTIONKERNELEXECUTOR_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8],
-  distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
-  ],
-  hints: [
-    { line: 11, hint: "Gather KV tokens from non-contiguous physical block memory address." },
-  ],
   lineExplanations: {
-    9: "Defines entry point for vLLM PagedAttention GPU Kernel Execution Simulator.",
-    11: "Iterates through physical block table page pointers in CUDA warp threads.",
-    16: "Returns computed attention tensor output buffer.",
+    1: "Function signature line for vllm_paged_attention_kernel_executor.",
+    2: "Parameter definitions for data list and target integer threshold.",
+    3: "Return type hint specifying list[int] output.",
+    4: "Begin docstring describing PagedAttention GPU kernel execution.",
+    5: "Docstring line describing KV page gathering in non-contiguous VRAM.",
+    6: "Docstring line detailing scaled dot-product attention computation.",
+    7: "Docstring line detailing output tensor return.",
+    8: "End docstring.",
+    9: "Initialize empty list output_scores to store computed attention values.",
+    10: "Loop through candidate physical KV block pointers in CUDA warp threads using enumerate(data).",
+    11: "Check if physical block ID val is less than or equal to target threshold.",
+    12: "Append original block value val to output_scores when within target bound.",
+    13: "Else branch when physical block ID exceeds target bound.",
+    14: "Append wrapped block offset value (val % target) to output_scores upon overflow.",
+    15: "Blank line before return statement.",
+    16: "Return computed output_scores attention tensor buffer to caller.",
   },
 };
 
@@ -139,18 +235,18 @@ export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAtte
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "The custom CUDA kernel at the core of vLLM's PagedAttention engine computes scaled dot-product attention directly over non-contiguous physical Key-Value memory blocks. Standard attention kernels expect contiguous tensor layouts in GPU memory (`[batch, seq_len, num_heads, head_dim]`). In contrast, PagedAttention CUDA kernel accepts a `block_tables` pointer matrix, dynamically translating logical token block offsets to physical VRAM addresses (`block_number * block_size + block_offset`) within GPU warp thread groups.\n\nInput Format:\n- `data`: Array of physical block IDs or sequence Query values.\n- `target`: Target block index or scalar attention scaling factor.\n\nOutput Format:\n- Returns output attention score or tensor buffer computed over non-contiguous block tables.\n\nEdge Cases & Constraints:\n- Variable sequence lengths per request in batch evaluated in parallel without dummy padding memory waste.\n- Multiple requests sharing physical blocks (Prompt Caching / Beam Search) execute concurrent read access without race conditions.\n- CUDA warp shared memory (SRAM) tiling optimizes memory bandwidth reuse during key-value lookup.",
+      "The custom CUDA kernel at the core of vLLM's PagedAttention engine computes scaled dot-product attention directly over non-contiguous physical Key-Value memory blocks. Standard attention kernels expect contiguous tensor layouts in GPU memory (`[batch, seq_len, num_heads, head_dim]`). In contrast, PagedAttention CUDA kernel accepts a `block_tables` pointer matrix, dynamically translating logical token block offsets to physical VRAM addresses within GPU warp thread groups.\n\n### Paged Attention Kernel Math\nFor query vector $q$ and physical block ID $P = \\text{BlockTable}[i]$\n$$\\text{Slot}_{\\text{phys}} = P \\cdot B + o$$\n$$\\text{Attention Score} = \\text{Softmax}\\left(\\frac{q \\cdot K[\\text{Slot}_{\\text{phys}}]^T}{\\sqrt{d_k}}\\right) V[\\text{Slot}_{\\text{phys}}]$$\n\nInput Format:\n- `data`: Array of physical block IDs or sequence Query values.\n- `target`: Target block index or scalar attention scaling factor.\n\nOutput Format:\n- Returns output attention score or tensor buffer computed over non-contiguous block tables.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
+        title: "16 KV Blocks Paged Attention Kernel Launch",
+        inputDisplay: "16 physical KV blocks, target bound = 30",
+        outputDisplay: "Attention score tensor buffer returned",
+        input: DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT,
+        output: "Attention scores vector returned",
         explanation:
-          "CUDA kernel warps gather KV pages [10, 20, 30] and compute scaled dot-product attention.",
+          "CUDA kernel warps gather KV pages across 16 blocks and compute scaled dot-product attention.",
       },
       {
         kind: "complex",
@@ -162,22 +258,13 @@ export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAtte
         explanation:
           "Block ID 50 exceeds target physical bound 30; address translator wraps page index to 20.",
       },
-      {
-        kind: "negative",
-        title: "High Address Range",
-        inputDisplay: "data = [40, 50, 60], target = 30",
-        outputDisplay: "[10, 20, 0]",
-        input: { data: [40, 50, 60], target: 30 },
-        output: "[10, 20, 0]",
-        explanation: "High block IDs wrapped via physical address translation modulo target 30.",
-      },
     ],
     code: VLLMPAGEDATTENTIONKERNELEXECUTOR_CODE,
     timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "O(N) runtime per CUDA thread block gathering KV tokens across N physical blocks.",
-      space: "O(N) memory allocation for output attention tensor buffer.",
+      time: "$O(N)$ runtime per CUDA thread block gathering KV tokens across $N$ physical blocks.",
+      space: "$O(N)$ memory allocation for output attention tensor buffer.",
     },
     topicGuide: {
       overview:
@@ -189,7 +276,7 @@ export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAtte
         },
         {
           heading: "2. Core Concepts & Algorithmic Design",
-          body: "The PagedAttention kernel receives three key device pointers: (1) Query tensor $Q$, (2) Physical KV block repository tensor $K_\\text{cache}, V_\\text{cache}$, and (3) 2D Block Table matrix `block_tables[batch_idx][logical_block_idx]`. Within the CUDA grid, each thread warp processes a sequence's query, reading physical block IDs from `block_tables` and fetching KV vectors from address `physical_block_number * block_size + token_offset` into SRAM shared memory.",
+          body: "The PagedAttention kernel receives three key device pointers:\n1. Query tensor $Q$;\n2. Physical KV block repository tensor $K_\\text{cache}, V_\\text{cache}$;\n3. 2D Block Table matrix `block_tables[batch_idx][logical_block_idx]`.\nWithin the CUDA grid, each thread warp processes a sequence's query, reading physical block IDs from `block_tables` and fetching KV vectors from address $P \\cdot B + o$ into SRAM shared memory.",
         },
         {
           heading: "3. Systems & Memory Bandwidth Impact",
@@ -235,3 +322,5 @@ export const vllmPagedAttentionKernelExecutor: AlgorithmDefinition<vllmPagedAtte
     defaultInput: DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT,
     generateSteps: generateVllmPagedAttentionKernelExecutorSteps,
   };
+
+export default vllmPagedAttentionKernelExecutor;

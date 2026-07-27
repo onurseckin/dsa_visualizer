@@ -11,7 +11,7 @@ describe("kruskalMst algorithm spec", () => {
 
   it("should generate steps with DSU parent array auxiliary state", () => {
     const steps = generateKruskalSteps(DEFAULT_KRUSKAL_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const hasDsuParentHashMap = steps.some(
       (s) =>
@@ -26,19 +26,27 @@ describe("kruskalMst algorithm spec", () => {
     if (snap.kind === "graph") {
       const pathEdges = snap.edges.filter((e) => e.isPath);
 
-      // Default graph has 4 nodes (A, B, C, D) -> MST must have 3 edges (V-1)
-      expect(pathEdges.length).toBe(3);
+      // Default graph has 6 nodes (A, B, C, D, E, F) -> MST must have 5 edges (V-1)
+      expect(pathEdges.length).toBe(5);
     }
 
     // Minimum weight calculation for default input:
-    // A-B(1), B-C(2), C-D(3) -> total weight 6
-    expect(lastStep.variables.totalMstWeight).toBe(6);
+    // A-B(1), B-C(2), C-E(3), B-D(5), D-F(7) -> total weight 18
+    expect(lastStep.variables.totalMstWeight).toBe(18);
+  });
+
+  it("should map every line of pythonCode in lineExplanations", () => {
+    const codeLines = kruskalMst.code.split("\n").length;
+    const explanations = kruskalMst.trivia?.lineExplanations ?? {};
+    for (let i = 1; i <= codeLines; i++) {
+      expect(explanations[i], `Missing explanation for line ${i}`).toBeDefined();
+    }
   });
 
   it("should skip cycle-forming edges", () => {
     const steps = generateKruskalSteps(DEFAULT_KRUSKAL_INPUT);
     const hasSkippedStep = steps.some(
-      (s) => s.explanation.what.includes("Union rejected") || s.variables.skipped === true,
+      (s) => s.explanation.what.includes("Skip edge") || s.variables.skipped === true,
     );
     expect(hasSkippedStep).toBe(true);
   });

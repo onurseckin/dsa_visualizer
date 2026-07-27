@@ -1,13 +1,18 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
 
 export interface LoglossGradientHessianCalculatorInput {
-  yTrue: number[]; // binary target 0 or 1
-  rawPredictions: number[]; // log-odds predictions margin margin z_i
+  yTrue: number[];
+  rawPredictions: number[];
+  data?: number[];
+  target?: number;
 }
 
 export const DEFAULT_LOGLOSS_GRAD_HESS_INPUT: LoglossGradientHessianCalculatorInput = {
-  yTrue: [1, 0, 1, 0],
-  rawPredictions: [0.0, 0.0, 1.5, -1.5],
+  yTrue: [1, 0, 1, 0, 1, 1, 0, 0, 1, 0],
+  rawPredictions: [0.0, 0.5, 1.2, -0.8, -1.5, 2.0, -0.4, 0.8, 1.1, -1.2],
+  data: [1, 0, 1, 0, 1, 1, 0, 0, 1, 0],
+  target: 0,
 };
 
 export const LOGLOSS_GRADIENT_HESSIAN_CODE = `import math
@@ -38,237 +43,385 @@ export const generateLoglossGradHessSteps = (
   input: LoglossGradientHessianCalculatorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const { yTrue, rawPredictions } = input;
+  const yTrue = input.yTrue || input.data || [1, 0, 1, 0, 1, 1, 0, 0, 1, 0];
+  const rawPredictions = input.rawPredictions || [0.0, 0.5, 1.2, -0.8, -1.5, 2.0, -0.4, 0.8, 1.1, -1.2];
   let stepIndex = 0;
+  const n = yTrue.length;
 
   const sigmoid = (z: number) => 1.0 / (1.0 + Math.exp(-z));
 
-  // Step 0: Init
+  // Step 1: Import math
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 1,
     explanation: {
-      what: "Initialize Logistic Loss Gradient & Hessian Calculator",
-      why: `Calculating 1st order gradients g_i = p_i - y_i and 2nd order hessians h_i = p_i(1-p_i) for ${yTrue.length} binary samples.`,
+      what: "Import Python math Module",
+      why: "Imports math module for exponential function math.exp(-z).",
     },
     primarySnapshot: {
       kind: "array",
       elements: yTrue.map((y, idx) => ({
         id: `s-${idx}`,
         value: y,
-        label: `S${idx} (y=${y}, z=${rawPredictions[idx]})`,
+        label: `y=${y}, z=${rawPredictions[idx]}`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: { customState: { "Module": "math" } },
+    variables: { imported: true },
+  });
+
+  // Step 2: Function entry
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: "Initialize Logistic Loss Gradient & Hessian Calculator",
+      why: `Computing 1st order gradients g_i = p_i - y_i and 2nd order hessians h_i = p_i(1-p_i) across ${n} binary target samples.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: yTrue.map((y, idx) => ({
+        id: `s-${idx}`,
+        value: y,
+        label: `y=${y}, z=${rawPredictions[idx]}`,
         state: "default" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
-        totalSamples: String(yTrue.length),
-        lossFunction: "Binary Logistic Loss",
-        status: "Initialized",
+        "Total Samples N": String(n),
+        "Loss Function": "Binary Cross-Entropy (Logloss)",
+        "Status": "Function Entry",
       },
     },
-    variables: { sampleCount: yTrue.length },
+    variables: { totalSamples: n },
+  });
+
+  // Step 3: Allocate gradients
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 13,
+    explanation: {
+      what: "Allocate empty gradients [] list",
+      why: "Initializes list to store 1st-order gradients g_i = p_i - y_i.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: yTrue.map((y, idx) => ({ id: `s-${idx}`, value: y, label: `y=${y}`, state: "default" as ElementState })),
+    },
+    auxiliaryState: { customState: { "Gradients List": "[]" } },
+    variables: { gradientsCount: 0 },
+  });
+
+  // Step 4: Allocate hessians
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 14,
+    explanation: {
+      what: "Allocate empty hessians [] list",
+      why: "Initializes list to store 2nd-order hessians h_i = p_i * (1 - p_i).",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: yTrue.map((y, idx) => ({ id: `s-${idx}`, value: y, label: `y=${y}`, state: "default" as ElementState })),
+    },
+    auxiliaryState: { customState: { "Hessians List": "[]" } },
+    variables: { hessiansCount: 0 },
   });
 
   const gradients: number[] = [];
   const hessians: number[] = [];
 
-  for (let i = 0; i < yTrue.length; i++) {
-    const y = yTrue[i];
-    const z = rawPredictions[i];
-    const p = sigmoid(z);
-    const g = p - y;
-    const h = Math.max(1e-6, p * (1.0 - p));
+  yTrue.forEach((y, idx) => {
+    const z = rawPredictions[idx];
 
-    gradients.push(g);
-    hessians.push(h);
-
+    // Sub-step A: Zip loop header
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 14,
+      codeLine: 16,
       explanation: {
-        what: `Sample S${i}: z = ${z.toFixed(2)} -> p = sigmoid(z) = ${p.toFixed(4)}`,
-        why: `Gradient g_${i} = p - y = ${p.toFixed(4)} - ${y} = ${g.toFixed(
-          4,
-        )}. Hessian h_${i} = p(1-p) = ${h.toFixed(4)}.`,
+        what: `Sample ${idx + 1}/${n}: Process Target y = ${y}, Margin z = ${z}`,
+        why: `Loading sample index ${idx} with binary target y = ${y} and raw prediction margin z = ${z}.`,
       },
       primarySnapshot: {
         kind: "array",
-        elements: yTrue.map((val, idx) => ({
-          id: `s-${idx}`,
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
           value: val,
-          label: `S${idx} (g=${idx <= i ? gradients[idx].toFixed(2) : "?"})`,
-          state:
-            idx === i
-              ? ("active" as ElementState)
-              : idx < i
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === i ? [`g=${g.toFixed(3)}, h=${h.toFixed(3)}`] : [],
+          label: `y=${val}`,
+          state: i === idx ? ("active" as ElementState) : i < idx ? ("visited" as ElementState) : ("default" as ElementState),
         })),
       },
       auxiliaryState: {
         customState: {
-          activeSample: `S${i}`,
-          targetY: String(y),
-          rawPredictionZ: z.toFixed(2),
-          probabilityP: p.toFixed(4),
-          gradientG: g.toFixed(4),
-          hessianH: h.toFixed(4),
+          "Current Sample": `Index ${idx} (y=${y}, z=${z})`,
         },
       },
-      variables: {
-        i,
-        z,
-        p: Math.round(p * 10000) / 10000,
-        g: Math.round(g * 10000) / 10000,
-        h: Math.round(h * 10000) / 10000,
-      },
+      variables: { idx, y, z },
     });
-  }
 
-  // Step Final: Complete
+    // Sub-step B: Compute sigmoid p
+    const p = sigmoid(z);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 17,
+      explanation: {
+        what: `Evaluate Probability: p = sigmoid(${z}) = ${p.toFixed(4)}`,
+        why: `Evaluated logistic sigmoid p = 1 / (1 + exp(-${z})) = ${p.toFixed(4)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
+          value: val,
+          label: `p=${p.toFixed(2)}`,
+          state: i === idx ? ("compare" as ElementState) : i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "Predicted Probability p": p.toFixed(4) } },
+      variables: { z, p },
+    });
+
+    // Sub-step C: Compute gradient g
+    const g = p - y;
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 18,
+      explanation: {
+        what: `Evaluate Gradient: g = p - y = ${p.toFixed(4)} - ${y} = ${g.toFixed(4)}`,
+        why: `Evaluated 1st-order loss derivative g = p - y = ${g.toFixed(4)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
+          value: val,
+          label: `g=${g.toFixed(2)}`,
+          state: i === idx ? ("compare" as ElementState) : i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "1st Order Gradient g": g.toFixed(4) } },
+      variables: { p, y, g },
+    });
+
+    // Sub-step D: Compute hessian h
+    const rawH = p * (1.0 - p);
+    const h = Math.max(1e-6, rawH);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 19,
+      explanation: {
+        what: `Evaluate Hessian: h = max(1e-6, p * (1 - p)) = ${h.toFixed(4)}`,
+        why: `Evaluated 2nd-order loss derivative h = ${p.toFixed(4)} * (1 - ${p.toFixed(4)}) = ${h.toFixed(4)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
+          value: val,
+          label: `h=${h.toFixed(2)}`,
+          state: i === idx ? ("compare" as ElementState) : i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "2nd Order Hessian h": h.toFixed(4) } },
+      variables: { p, h },
+    });
+
+    // Sub-step E: Append rounded g
+    const roundedG = Math.round(g * 10000) / 10000;
+    gradients.push(roundedG);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 20,
+      explanation: {
+        what: `Append Gradient g = ${roundedG} to gradients`,
+        why: `Recorded rounded gradient ${roundedG} in gradients array.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
+          value: val,
+          label: `g=${roundedG}`,
+          state: i <= idx ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "Gradients List": `[${gradients.join(", ")}]` } },
+      variables: { roundedG, gradientsCount: gradients.length },
+    });
+
+    // Sub-step F: Append rounded h
+    const roundedH = Math.round(h * 10000) / 10000;
+    hessians.push(roundedH);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `Append Hessian h = ${roundedH} to hessians`,
+        why: `Recorded rounded hessian ${roundedH} in hessians array.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: yTrue.map((val, i) => ({
+          id: `s-${i}`,
+          value: val,
+          label: `h=${roundedH}`,
+          state: i <= idx ? ("sorted" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "Hessians List": `[${hessians.join(", ")}]` } },
+      variables: { roundedH, hessiansCount: hessians.length },
+    });
+  });
+
+  // Final step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 23,
     explanation: {
-      what: "Logistic Loss Gradient & Hessian Computation Complete",
-      why: `Gradients: [${gradients.map((g) => g.toFixed(3)).join(", ")}], Hessians: [${hessians
-        .map((h) => h.toFixed(3))
-        .join(", ")}]. Ready for XGBoost split search!`,
+      what: "Execution Complete: Return (gradients, hessians)",
+      why: `Successfully calculated ${n} gradient and hessian pairs for binary logistic loss.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: gradients.map((g, idx) => ({
-        id: `res-${idx}`,
-        value: Math.round(g * 100),
-        label: `S${idx}: g=${g.toFixed(2)}, h=${hessians[idx].toFixed(2)}`,
+      elements: yTrue.map((val, i) => ({
+        id: `s-${i}`,
+        value: val,
+        label: `g=${gradients[i]}, h=${hessians[i]}`,
         state: "sorted" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
-        gradients: gradients.map((g) => g.toFixed(3)).join(", "),
-        hessians: hessians.map((h) => h.toFixed(3)).join(", "),
-        status: "Completed",
+        "Computed Gradients": `[${gradients.join(", ")}]`,
+        "Computed Hessians": `[${hessians.join(", ")}]`,
+        "Total Samples N": String(n),
       },
     },
-    variables: { sampleCount: gradients.length, complete: true },
+    variables: { gradientsCount: gradients.length, hessiansCount: hessians.length, completed: true },
   });
 
   return steps;
 };
 
+const LOGLOSS_GRADIENT_HESSIAN_TRIVIA: TriviaMeta = {
+  skipLines: [2, 5, 7, 8, 9, 10, 11, 12, 15, 22],
+  distractors: [
+    "g = y - p",
+    "h = p * p",
+    "g = sigmoid(z) - 1.0",
+    "h = p * (1.0 + p)",
+  ],
+  hints: [
+    { line: 4, hint: "Sigmoid activation formula: 1.0 / (1.0 + math.exp(-z))." },
+    { line: 18, hint: "Binary Logistic Loss 1st order gradient: g_i = p_i - y_i." },
+    { line: 19, hint: "Binary Logistic Loss 2nd order hessian: h_i = p_i * (1.0 - p_i)." },
+  ],
+  lineExplanations: {
+    1: "Imports Python math module for exponential math.exp().",
+    2: "Blank line before sigmoid helper definition.",
+    3: "Defines sigmoid helper function converting log-odds prediction z to probability p.",
+    4: "Evaluates and returns logistic sigmoid: 1.0 / (1.0 + math.exp(-z)).",
+    5: "Blank line before main loss gradient function definition.",
+    6: "Defines entry point for compute_logloss_gradients_hessians function.",
+    7: "Docstring opening delimiter tag.",
+    8: "Describes calculation of 1st order gradients g_i and 2nd order hessians h_i for Binary Logistic Loss.",
+    9: "Docstring loss formula: L(y, z) = - [y * log(p) + (1 - y) * log(1 - p)] where p = sigmoid(z).",
+    10: "Docstring gradient formula: g_i = p_i - y_i.",
+    11: "Docstring hessian formula: h_i = p_i * (1 - p_i).",
+    12: "Docstring closing delimiter tag.",
+    13: "Initializes empty list gradients to store 1st-order loss derivatives.",
+    14: "Initializes empty list hessians to store 2nd-order loss derivatives.",
+    15: "Blank line before sample zip iteration loop.",
+    16: "Iterates over binary target y and prediction margin z in zip(y_true, raw_predictions).",
+    17: "Calculates predicted probability p = sigmoid(z).",
+    18: "Calculates 1st-order gradient derivative g = p - y.",
+    19: "Calculates 2nd-order hessian derivative h = max(1e-6, p * (1.0 - p)).",
+    20: "Appends rounded gradient g to gradients list.",
+    21: "Appends rounded hessian h to hessians list.",
+    22: "Blank line separating sample loop from return statement.",
+    23: "Returns tuple of (gradients, hessians) lists.",
+  },
+};
+
 export const loglossGradientHessianCalculator: AlgorithmDefinition<LoglossGradientHessianCalculatorInput> =
   {
     id: "loglossGradientHessianCalculator",
-    title: "Logistic Loss Gradient & Hessian Calculator",
+    title: "Binary Logistic Loss Gradient & Hessian Calculator",
     category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles"],
+    categories: ["ml_tree_ensembles", "advanced_range_queries"],
     difficulty: "Medium",
     isMlInfra: true,
-    mlInfraLevel: 5,
+    mlInfraLevel: 8,
     mlInfraCategory: "ml_tree_ensembles",
     description:
-      "Computes 1st order gradients g_i = dL/dz_i and 2nd order Hessians h_i = d^2 L / d z_i^2 for Binary Logistic Loss L(y, z) = - [y log(p) + (1-y) log(1-p)] in XGBoost and GBDT ensembles. For sigmoid probability p = 1 / (1 + exp(-z)), the gradient simplifies to g_i = p_i - y_i and Hessian simplifies to h_i = p_i (1 - p_i).\n\nInput Format:\n- yTrue: Binary ground truth targets (0 or 1).\n- rawPredictions: Raw log-odds margin predictions z_i.\n\nOutput Format:\n- Returns tuple (gradientsList, hessiansList).\n\nEdge Cases & Constraints:\n- Extreme raw prediction z -> +/-inf: Hessian is clamped to min value 1e-6 to avoid zero division in split gain formulas.",
-    constraints: ["yTrue and rawPredictions must have matching length N."],
+      "The Binary Logistic Loss Gradient & Hessian Calculator evaluates 1st-order gradients $g_i$ and 2nd-order hessians $h_i$ for Binary Cross-Entropy (Logloss) in Gradient Boosted Decision Trees (**XGBoost**, **LightGBM**, **CatBoost**). Given true binary targets $y_i \\in \\{0, 1\\}$ and current ensemble log-odds margin predictions $z_i \\in \\mathbb{R}$, this algorithm computes exact point-wise derivatives used by Newton-Raphson tree split search.\n\n### Why It Exists\nGradient Boosting algorithms optimize loss functions $\\mathcal{L}(y, z)$ by growing decision trees on pseudo-residuals. For Binary Cross-Entropy, 2nd-order Taylor expansions require both the first derivative $g_i = \\frac{\\partial \\mathcal{L}}{\\partial z_i}$ and second derivative $h_i = \\frac{\\partial^2 \\mathcal{L}}{\\partial z_i^2}$.\n\n### Mathematical Formulation\nFor binary target $y_i \\in \\{0, 1\\}$, raw prediction margin $z_i$, and predicted probability $p_i = \\sigma(z_i) = \\frac{1}{1 + e^{-z_i}}$:\n\n$$1. \\quad \\mathcal{L}(y_i, z_i) = - \\left[ y_i \\ln(p_i) + (1 - y_i) \\ln(1 - p_i) \\right] \\quad (\\text{Binary Cross-Entropy})$$\n\n$$2. \\quad g_i = \\frac{\\partial \\mathcal{L}}{\\partial z_i} = p_i - y_i \\quad (\\text{1st-Order Gradient Residual})$$\n\n$$3. \\quad h_i = \\frac{\\partial^2 \\mathcal{L}}{\\partial z_i^2} = p_i (1 - p_i) \\quad (\\text{2nd-Order Hessian Curvature})$$\n\nNotice that $0 < h_i \\le 0.25$. Max hessian $h_i = 0.25$ occurs at $p_i = 0.5$.\n\n### Step-by-Step Intuition\n1. **Sigmoid Probability Mapping**: Map continuous margin $z_i \\to p_i = \\frac{1}{1 + e^{-z_i}} \\in (0, 1)$.\n2. **Residual Gradient Calculation**: Subtract binary target $y_i$ from $p_i$: $g_i = p_i - y_i$. If $p_i > y_i$, $g_i > 0$ (prediction too high); if $p_i < y_i$, $g_i < 0$ (prediction too low).\n3. **Hessian Curvature Calculation**: Evaluate Variance-like curvature $h_i = p_i (1 - p_i)$. Clamp $h_i \\ge 10^{-6}$ to prevent division by zero.\n4. **Accumulation for Tree Search**: Store $g_i, h_i$ pairs to build tree split histograms.\n\n### Key Trade-Offs & Hardware Execution\n- **Vectorized SIMD Math**: Exponential math operations $e^{-z_i}$ are evaluated using SIMD vector instructions (AVX-512 `_mm512_exp_ps` or CUDA `__expf`).\n- **Numerical Floor (Clipping)**: Extremely confident predictions ($p_i \\approx 0$ or $p_i \\approx 1$) yield $h_i \\to 0$. Clamping $h_i \\ge 10^{-6}$ avoids division-by-zero errors in leaf weight formula $w^* = -G / (H + \\lambda)$.",
+    constraints: [
+      "1 <= N <= 1000000",
+      "yTrue elements are 0 or 1",
+      "rawPredictions elements are finite floats",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Logistic Gradients for 4 Samples at Margin z = 0.0",
-        inputDisplay: "yTrue = [1, 0, 1, 0], rawPredictions = [0.0, 0.0, 1.5, -1.5]",
-        outputDisplay: "g = [-0.5, 0.5, -0.182, 0.182], h = [0.25, 0.25, 0.149, 0.149]",
+        title: "10-Sample Binary Logloss Derivative Computation",
+        inputDisplay: "yTrue = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0], rawPredictions = [0.0, 0.5, 1.2, -0.8, -1.5, 2.0, -0.4, 0.8, 1.1, -1.2]",
+        outputDisplay: "Gradients g = [-0.5, 0.6225, -0.2315, 0.31, ...], Hessians h = [0.25, 0.235, 0.1779, 0.2139, ...]",
         input: DEFAULT_LOGLOSS_GRAD_HESS_INPUT,
-        output: "g: [-0.5, 0.5, ...], h: [0.25, 0.25, ...]",
-        explanation: "At z = 0.0, p = 0.5 -> g = 0.5 - 1 = -0.5, h = 0.5 * 0.5 = 0.25.",
-      },
-      {
-        kind: "complex",
-        title: "High Confidence Prediction (z = 5.0)",
-        inputDisplay: "y = 1, z = 5.0 (p ~ 0.993)",
-        outputDisplay: "g ~ -0.0067, h ~ 0.0066",
-        input: {
-          yTrue: [1],
-          rawPredictions: [5.0],
-        },
-        output: "g = -0.0067, h = 0.0066",
-        explanation: "High confidence correct prediction produces small gradient and hessian.",
-      },
-      {
-        kind: "negative",
-        title: "Wrong High Confidence Prediction (z = -5.0 for y = 1)",
-        inputDisplay: "y = 1, z = -5.0 (p ~ 0.0067)",
-        outputDisplay: "g ~ -0.9933, h ~ 0.0066",
-        input: {
-          yTrue: [1],
-          rawPredictions: [-5.0],
-        },
-        output: "g = -0.9933",
-        explanation: "Large error produces maximum gradient magnitude g ~ -0.9933.",
+        output: "([gradients], [hessians])",
+        explanation: "Evaluates exact 1st-order gradients g_i = p_i - y_i and 2nd-order hessians h_i = p_i(1-p_i) across 10 samples.",
       },
     ],
-    defaultInput: DEFAULT_LOGLOSS_GRAD_HESS_INPUT,
     code: LOGLOSS_GRADIENT_HESSIAN_CODE,
-    timeComplexity: {
-      best: "O(N)",
-      average: "O(N)",
-      worst: "O(N)",
-    },
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "O(N) single pass time across N samples.",
-      space: "O(N) auxiliary space to store output gradient and hessian arrays.",
+      time: "Requires a single pass over $N$ samples, performing $O(N)$ sigmoid, gradient, and hessian evaluations.",
+      space: "Requires $O(N)$ memory to store gradient and hessian output arrays.",
     },
     topicGuide: {
       overview:
-        "XGBoost (Chen & Guestrin 2016) reformulates gradient boosting via a 2nd order Taylor expansion of the loss function. Computing analytical 1st gradients g_i and 2nd hessians h_i allows XGBoost to support any custom differentiable loss function.",
+        "The Binary Logistic Loss Gradient & Hessian Calculator evaluates 1st-order gradients and 2nd-order hessians for Binary Cross-Entropy in GBDTs.",
       sections: [
         {
-          heading: "Overview & Taylor Expansion",
-          body: "Loss approximation L^{(t)} approx sum_{i=1}^N [ L(y_i, hat{y}^{(t-1)}) + g_i f_t(x_i) + 0.5 h_i f_t(x_i)^2 ]. Omitting constants leaves objective sum [ g_i f_t(x_i) + 0.5 h_i f_t(x_i)^2 ] + Omega(f_t).",
+          heading: "Core Concept & Binary Cross-Entropy Derivatives",
+          body: "Logloss derivative w.r.t margin z yields gradient g_i = p_i - y_i and hessian h_i = p_i * (1 - p_i), where p_i = sigmoid(z_i).",
         },
         {
-          heading: "Logistic Loss Derivatives",
-          body: "For binary cross-entropy loss L = - [ y log(p) + (1-y) log(1-p) ] with logit link z = log(p / (1-p)), 1st derivative is g = p - y and 2nd derivative is h = p(1-p).",
+          heading: "Role of Hessian Curvature in XGBoost Split Search",
+          body: "Hessians h_i represent the curvature of the loss surface. In XGBoost split gain and leaf weight formulas, H = sum(h_i) acts as sample weight scaling.",
         },
         {
-          heading: "Hessian Clamping & Numerical Stability",
-          body: "When probability p approaches 0 or 1, Hessian h = p(1-p) approaches 0. Systems enforce a lower bound `h = max(1e-6, h)` to prevent division by zero in leaf weight calculations w = -G / (H + lambda).",
+          heading: "Numerical Stability & Hessian Floor Clamping",
+          body: "When predictions become highly confident (p_i -> 0 or 1), hessian h_i -> 0. Clamping h_i >= 1e-6 prevents division by zero in leaf weight w* = -G / (H + lambda).",
         },
         {
-          heading: "Implementation Nuances & Vectorization",
-          body: "In high-throughput ML pipelines, sigmoid activation and derivative evaluations are vectorised using SIMD/CUDA instructions (e.g. `vpexpandd` / AVX-512) for parallel execution.",
+          heading: "SIMD Vectorization & Fast Exp",
+          body: "Production GBDT engines (LightGBM, CatBoost) compute sigmoid activations using AVX-512 or CUDA GPU kernels, processing 16-64 samples per instruction.",
         },
       ],
       keyTerms: [
         {
-          term: "Gradient (g_i)",
-          definition:
-            "1st derivative of loss function with respect to current raw model prediction.",
+          term: "Logloss (Binary Cross-Entropy)",
+          definition: "Loss function -[y log(p) + (1-y) log(1-p)] for binary classification.",
         },
         {
-          term: "Hessian (h_i)",
-          definition:
-            "2nd derivative of loss function acting as a curvature weight in GBDT leaf optimization.",
+          term: "Gradient Residual (g_i)",
+          definition: "1st-order derivative g_i = p_i - y_i measuring directional prediction error.",
         },
         {
-          term: "Second-Order Boosting",
-          definition:
-            "Optimization technique using both 1st and 2nd derivatives (Newton-Raphson step) to accelerate convergence.",
+          term: "Hessian Curvature (h_i)",
+          definition: "2nd-order derivative h_i = p_i (1 - p_i) measuring loss surface curvature.",
         },
         {
-          term: "Hessian Lower Bound",
-          definition:
-            "Floor value applied to Hessian h_i preventing numerical division overflow in downstream split score calculations.",
+          term: "Margin Prediction (z_i)",
+          definition: "Un-transformed continuous log-odds prediction output of GBDT tree ensemble.",
         },
       ],
     },
-    sources: [
-      {
-        type: "ml_infra",
-        kind: "ml_infra",
-        label: "XGBoost 2nd Order Boosting Theory (Chen & Guestrin 2016)",
-      },
-    ],
+    trivia: LOGLOSS_GRADIENT_HESSIAN_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+    defaultInput: DEFAULT_LOGLOSS_GRAD_HESS_INPUT,
     generateSteps: generateLoglossGradHessSteps,
   };

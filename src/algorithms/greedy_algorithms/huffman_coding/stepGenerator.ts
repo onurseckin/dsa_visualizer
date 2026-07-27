@@ -154,8 +154,69 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
   };
 
   while (heap.length > 1) {
+    // Step: While loop condition check
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 19,
+      explanation: {
+        what: `Check heap size (${heap.length} > 1)`,
+        why: "While more than one subtree remains, pop the two lightest nodes and combine them into a single parent.",
+      },
+      primarySnapshot: {
+        kind: "tree",
+        ...buildVisualNodes([]),
+      },
+      auxiliaryState: {
+        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
+        customState: { heapSize: heap.length, status: "Checking loop condition" },
+      },
+      variables: { heapSize: heap.length },
+    });
+
     const left = heap.shift()!;
+
+    // Step: Heappop left
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 20,
+      explanation: {
+        what: `Pop lightest node left: ${left.char ? `'${left.char}'` : left.id} (freq ${left.freq})`,
+        why: "Remove the minimum element from the min-heap to become the left child of the new parent node.",
+      },
+      primarySnapshot: {
+        kind: "tree",
+        ...buildVisualNodes([left.id]),
+      },
+      auxiliaryState: {
+        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
+        customState: { poppedLeft: `${left.char || left.id}:${left.freq}` },
+      },
+      variables: { leftFreq: left.freq },
+    });
+
     const right = heap.shift()!;
+
+    // Step: Heappop right
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `Pop second lightest node right: ${right.char ? `'${right.char}'` : right.id} (freq ${right.freq})`,
+        why: "Remove the second minimum element to become the right child of the new parent node.",
+      },
+      primarySnapshot: {
+        kind: "tree",
+        ...buildVisualNodes([left.id, right.id]),
+      },
+      auxiliaryState: {
+        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
+        customState: {
+          poppedLeft: `${left.char || left.id}:${left.freq}`,
+          poppedRight: `${right.char || right.id}:${right.freq}`,
+        },
+      },
+      variables: { leftFreq: left.freq, rightFreq: right.freq },
+    });
 
     nodeCounter++;
     const parentId = `merged-${nodeCounter}`;
@@ -169,23 +230,23 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
 
     allNodes.set(parentId, mergedNode);
 
+    // Step: Merged node created
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 20,
+      codeLine: 22,
       explanation: {
-        what: `Pop ${left.char ? `'${left.char}'` : left.id} (${left.freq}) and ${right.char ? `'${right.char}'` : right.id} (${right.freq})`,
-        why: `We always merge the two least frequent nodes first — here that means weights ${left.freq} and ${right.freq}. Pushing the rarest symbols deepest is exactly what keeps the average code length as short as possible.`,
+        what: `Create parent node combining frequencies: ${left.freq} + ${right.freq} = ${mergedNode.freq}`,
+        why: "The new internal node holds no character and carries the sum of its children's frequencies.",
       },
       primarySnapshot: {
         kind: "tree",
-        ...buildVisualNodes([left.id, right.id]),
+        ...buildVisualNodes([parentId]),
       },
       auxiliaryState: {
         queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
         customState: {
-          poppedLeft: `${left.char || left.id}:${left.freq}`,
-          poppedRight: `${right.char || right.id}:${right.freq}`,
-          mergedFreq: mergedNode.freq,
+          mergedParent: `${parentId}:${mergedNode.freq}`,
+          combinedFreq: mergedNode.freq,
         },
       },
       variables: {
@@ -198,12 +259,13 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     heap.push(mergedNode);
     heap.sort((a, b) => a.freq - b.freq || (a.char || "").localeCompare(b.char || ""));
 
+    // Step: Push merged back to heap
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 25,
       explanation: {
-        what: `Reinsert merged node weighing ${mergedNode.freq}`,
-        why: `The new parent carries ${left.freq} + ${right.freq} = ${mergedNode.freq} and goes back into the heap, where it competes like any other node. We repeat this until a single root remains.`,
+        what: `Push merged parent (freq ${mergedNode.freq}) back to min-heap`,
+        why: "Reinsert the merged subtree into the priority queue so it can compete for future merges.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -211,7 +273,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       },
       auxiliaryState: {
         queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: { heapSize: heap.length },
+        customState: { heapSize: heap.length, status: "Reinserted merged parent" },
       },
       variables: { heapSize: heap.length },
     });

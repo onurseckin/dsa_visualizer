@@ -16,6 +16,7 @@ const Z_ALGORITHM_TRIVIA: TriviaMeta = {
     4: "Allocate the Z-array, one entry per position in s; z[i] will record how long a copy of s's own prefix starts at position i.",
     5: "The Z-box: the interval of the most recently found match against the prefix, which lets later positions reuse work instead of recomputing it from scratch.",
     6: "Collects the text indices where the pattern was found.",
+    7: "Blank line before starting the Z-array main calculation loop.",
     8: "Compute a Z-value for every position except index 0, which trivially matches the whole prefix and carries no useful information.",
     9: "Check whether position i falls inside the window of characters already known to mirror the prefix.",
     10: "Reuse the previously computed Z-value from the mirrored position inside the prefix, capped at how much of the window is left — this is the shortcut that keeps the whole algorithm linear.",

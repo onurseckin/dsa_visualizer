@@ -16,8 +16,28 @@ describe("recipe-indegree-kahn-bfs (Kahn's BFS Topological Sort)", () => {
 
   it("should generate valid algorithm steps", () => {
     const steps = generateRecipeIndegreeKahnBfsSteps(DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Kahn's BFS Topological Sort");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain("Kahn's BFS Topological Sort Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+  });
+
+  it("should have complete lineExplanations for every code line", () => {
+    const totalLines = recipeIndegreeKahnBfs.code.trim().split("\n").length;
+    expect(recipeIndegreeKahnBfs.trivia).toBeDefined();
+    expect(recipeIndegreeKahnBfs.trivia?.lineExplanations).toBeDefined();
+    const lineExplanations = recipeIndegreeKahnBfs.trivia!.lineExplanations!;
+    for (let line = 1; line <= totalLines; line++) {
+      expect(lineExplanations[line]).toBeDefined();
+      expect(lineExplanations[line].length).toBeGreaterThan(0);
+    }
+  });
+
+  it("should have step codeLines pointing to valid lines in Python code", () => {
+    const totalLines = recipeIndegreeKahnBfs.code.trim().split("\n").length;
+    const steps = generateRecipeIndegreeKahnBfsSteps(DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT);
+    steps.forEach((step) => {
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(totalLines);
+    });
   });
 });

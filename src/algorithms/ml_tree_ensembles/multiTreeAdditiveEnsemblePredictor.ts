@@ -1,15 +1,20 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
 
 export interface MultiTreeAdditiveEnsemblePredictorInput {
   baseScore: number;
   learningRate: number;
-  treeLeafValues: number[]; // Leaf value output per tree for target sample
+  treeLeafValues: number[];
+  data?: number[];
+  target?: number;
 }
 
 export const DEFAULT_MULTI_TREE_ADDITIVE_INPUT: MultiTreeAdditiveEnsemblePredictorInput = {
   baseScore: 0.0,
   learningRate: 0.1,
-  treeLeafValues: [1.5, -0.8, 0.4, 0.2],
+  treeLeafValues: [1.5, -0.8, 0.4, 0.2, -0.5, 0.6, 0.3, -0.4, 0.5, 0.1, -0.2, 0.4],
+  data: [1.5, -0.8, 0.4, 0.2, -0.5, 0.6, 0.3, -0.4, 0.5, 0.1, -0.2, 0.4],
+  target: 0,
 };
 
 export const MULTI_TREE_ADDITIVE_PREDICTOR_CODE = `import math
@@ -37,231 +42,356 @@ export const generateMultiTreeAdditiveSteps = (
   input: MultiTreeAdditiveEnsemblePredictorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const { baseScore, learningRate, treeLeafValues } = input;
+  const baseScore = input.baseScore ?? 0.0;
+  const learningRate = input.learningRate ?? 0.1;
+  const treeLeafValues = input.treeLeafValues || input.data || [1.5, -0.8, 0.4, 0.2, -0.5, 0.6, 0.3, -0.4, 0.5, 0.1, -0.2, 0.4];
   let stepIndex = 0;
+  const numTrees = treeLeafValues.length;
 
   const sigmoid = (z: number) => 1.0 / (1.0 + Math.exp(-z));
 
-  // Step 0: Init
+  // Step 1: Import math
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 1,
     explanation: {
-      what: "Initialize GBDT Multi-Tree Additive Ensemble Predictor",
-      why: `Base margin score = ${baseScore}, learning rate eta = ${learningRate}. Summing predictions across K = ${treeLeafValues.length} trees.`,
+      what: "Import Python math Module",
+      why: "Imports math module for exponential function math.exp(-z).",
     },
     primarySnapshot: {
       kind: "array",
       elements: treeLeafValues.map((val, idx) => ({
         id: `tree-${idx}`,
         value: Math.round(val * 10),
-        label: `Tree ${idx + 1}: f(x) = ${val}`,
+        label: `Tree ${idx + 1}: f=${val}`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: { customState: { "Module": "math" } },
+    variables: { imported: true },
+  });
+
+  // Step 2: Function entry
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: "Initialize GBDT Multi-Tree Additive Ensemble Predictor",
+      why: `Base score = ${baseScore}, learning rate eta = ${learningRate}. Combining predictions across K = ${numTrees} trees.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: treeLeafValues.map((val, idx) => ({
+        id: `tree-${idx}`,
+        value: Math.round(val * 10),
+        label: `Tree ${idx + 1}: ${val}`,
         state: "default" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
-        baseScore: String(baseScore),
-        learningRate: String(learningRate),
-        totalTrees: String(treeLeafValues.length),
-        status: "Initialized",
+        "Base Score": String(baseScore),
+        "Learning Rate eta": String(learningRate),
+        "Total Trees K": String(numTrees),
+        "Status": "Function Entry",
       },
     },
-    variables: { baseScore, learningRate, numTrees: treeLeafValues.length },
+    variables: { baseScore, learningRate, numTrees },
   });
 
+  // Step 3: Init cumulative_margins
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 12,
+    explanation: {
+      what: "Allocate Empty cumulative_margins [] List",
+      why: "Initializes list to record step-by-step margin accumulation after each boosting tree.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: treeLeafValues.map((val, idx) => ({ id: `tree-${idx}`, value: Math.round(val * 10), label: `Tree ${idx + 1}: ${val}`, state: "default" as ElementState })),
+    },
+    auxiliaryState: { customState: { "Cumulative Margins": "[]" } },
+    variables: { marginsCount: 0 },
+  });
+
+  // Step 4: Init curr_margin
   let currMargin = baseScore;
-  const marginHistory: number[] = [];
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 13,
+    explanation: {
+      what: `Initialize Margin Prediction: curr_margin = base_score (${baseScore})`,
+      why: `Set initial margin prior curr_margin = ${baseScore}. Prior probability = ${sigmoid(baseScore).toFixed(4)}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: treeLeafValues.map((val, idx) => ({ id: `tree-${idx}`, value: Math.round(val * 10), label: `Tree ${idx + 1}: ${val}`, state: "default" as ElementState })),
+    },
+    auxiliaryState: {
+      customState: {
+        "curr_margin": currMargin.toFixed(4),
+        "curr_prob": sigmoid(currMargin).toFixed(4),
+      },
+    },
+    variables: { currMargin },
+  });
 
-  for (let k = 0; k < treeLeafValues.length; k++) {
-    const leafVal = treeLeafValues[k];
-    const contribution = learningRate * leafVal;
-    currMargin += contribution;
-    marginHistory.push(currMargin);
+  const cumulativeMargins: number[] = [];
 
+  // Loop over trees (15..17)
+  treeLeafValues.forEach((leafVal, k) => {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 15,
       explanation: {
-        what: `Tree ${k + 1} Accumulation: f_${k + 1}(x) = ${leafVal} (Contribution = eta * f = ${contribution.toFixed(
-          3,
-        )})`,
-        why: `Updated cumulative raw prediction margin z = ${currMargin.toFixed(4)}.`,
+        what: `Tree ${k + 1}/${numTrees}: Fetch Leaf Prediction f_${k + 1}(x) = ${leafVal}`,
+        why: `Loading leaf output weight f_${k + 1}(x) = ${leafVal} from boosting tree ${k + 1}.`,
       },
       primarySnapshot: {
         kind: "array",
-        elements: treeLeafValues.map((v, idx) => ({
-          id: `tree-${idx}`,
-          value: Math.round(v * 10),
-          label: `Tree ${idx + 1} (${idx <= k ? marginHistory[idx].toFixed(2) : "?"})`,
-          state:
-            idx === k
-              ? ("active" as ElementState)
-              : idx < k
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === k ? [`+ ${contribution.toFixed(3)}`] : [],
+        elements: treeLeafValues.map((val, i) => ({
+          id: `tree-${i}`,
+          value: Math.round(val * 10),
+          label: `Tree ${i + 1}: ${val}`,
+          state: i === k ? ("active" as ElementState) : i < k ? ("visited" as ElementState) : ("default" as ElementState),
         })),
       },
       auxiliaryState: {
         customState: {
-          activeTree: `Tree ${k + 1}`,
-          leafValue: String(leafVal),
-          shrunkContribution: contribution.toFixed(3),
-          cumulativeMargin: currMargin.toFixed(4),
+          "Current Tree": `Tree ${k + 1}`,
+          "Tree Output f(x)": String(leafVal),
+          "Shrinkage Step": `${learningRate} * ${leafVal} = ${(learningRate * leafVal).toFixed(4)}`,
         },
       },
-      variables: { k: k + 1, leafVal, currMargin: Math.round(currMargin * 10000) / 10000 },
+      variables: { k, leafVal },
     });
-  }
 
-  // Step Final: Probability Conversion
-  const finalProb = sigmoid(currMargin);
+    const updateStep = learningRate * leafVal;
+    currMargin += updateStep;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `Update Margin: curr_margin += ${learningRate} * ${leafVal} -> ${currMargin.toFixed(4)}`,
+        why: `Added shrunk tree update: curr_margin is now ${currMargin.toFixed(4)}. Current probability = ${sigmoid(currMargin).toFixed(4)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: treeLeafValues.map((val, i) => ({
+          id: `tree-${i}`,
+          value: Math.round(val * 10),
+          label: `Tree ${i + 1}: ${val}`,
+          state: i === k ? ("compare" as ElementState) : i < k ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          "Accumulated Margin": currMargin.toFixed(4),
+          "Probability p": sigmoid(currMargin).toFixed(4),
+        },
+      },
+      variables: { updateStep, currMargin },
+    });
+
+    const roundedMargin = Math.round(currMargin * 10000) / 10000;
+    cumulativeMargins.push(roundedMargin);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 17,
+      explanation: {
+        what: `Record Cumulative Margin ${roundedMargin} after Tree ${k + 1}`,
+        why: `Appended ${roundedMargin} to cumulative_margins array.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: treeLeafValues.map((val, i) => ({
+          id: `tree-${i}`,
+          value: Math.round(val * 10),
+          label: `z=${cumulativeMargins[i] ?? val}`,
+          state: i <= k ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: { customState: { "Cumulative Margins": `[${cumulativeMargins.join(", ")}]` } },
+      variables: { roundedMargin, count: cumulativeMargins.length },
+    });
+  });
+
+  // Final probability (19)
+  const finalProb = Math.round(sigmoid(currMargin) * 10000) / 10000;
+  const finalMargin = Math.round(currMargin * 10000) / 10000;
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 19,
     explanation: {
-      what: `Additive Prediction Complete: Final Probability = ${finalProb.toFixed(4)}`,
-      why: `Final margin z = ${currMargin.toFixed(4)}. Sigmoid conversion p = 1 / (1 + exp(-z)) = ${finalProb.toFixed(
-        4,
-      )}.`,
+      what: `Compute Final Sigmoid Classification Probability: p = ${finalProb}`,
+      why: `Evaluated final classification probability p = sigmoid(${finalMargin}) = 1 / (1 + exp(-${finalMargin})) = ${finalProb}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: marginHistory.map((m, idx) => ({
-        id: `tree-${idx}`,
-        value: Math.round(m * 10),
-        label: `Tree ${idx + 1}: z=${m.toFixed(2)}`,
+      elements: treeLeafValues.map((val, i) => ({
+        id: `tree-${i}`,
+        value: Math.round(val * 10),
+        label: `z=${cumulativeMargins[i]}`,
         state: "sorted" as ElementState,
-        pointers: idx === marginHistory.length - 1 ? [`Final Prob: ${finalProb.toFixed(4)}`] : [],
       })),
     },
     auxiliaryState: {
       customState: {
-        finalMargin: currMargin.toFixed(4),
-        finalProbability: finalProb.toFixed(4),
-        status: "Completed",
+        "Final Raw Margin z": String(finalMargin),
+        "Final Probability p": String(finalProb),
+        "Binary Class": finalProb >= 0.5 ? "Class 1 (Positive)" : "Class 0 (Negative)",
       },
     },
-    variables: {
-      finalMargin: currMargin,
-      finalProb: Math.round(finalProb * 10000) / 10000,
-      complete: true,
+    variables: { finalMargin, finalProb },
+  });
+
+  // Return step (20)
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: `Execution Complete: Return (margin=${finalMargin}, prob=${finalProb}, cumulative_margins)`,
+      why: `Successfully computed GBDT additive prediction across ${numTrees} trees. Final raw margin = ${finalMargin}, Sigmoid probability = ${finalProb}.`,
     },
+    primarySnapshot: {
+      kind: "array",
+      elements: treeLeafValues.map((val, i) => ({
+        id: `tree-${i}`,
+        value: Math.round(val * 10),
+        label: `p=${finalProb}`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        "Final Raw Margin z": String(finalMargin),
+        "Final Probability p": String(finalProb),
+        "Total Trees K": String(numTrees),
+      },
+    },
+    variables: { finalMargin, finalProb, completed: true },
   });
 
   return steps;
 };
 
+const MULTI_TREE_ADDITIVE_PREDICTOR_TRIVIA: TriviaMeta = {
+  skipLines: [2, 5, 7, 8, 9, 10, 11, 14, 18],
+  distractors: [
+    "curr_margin += leaf_val / learning_rate",
+    "final_prob = curr_margin * learning_rate",
+    "curr_margin = sum(tree_leaf_values)",
+    "return final_prob, curr_margin",
+  ],
+  hints: [
+    { line: 16, hint: "GBDT additive expansion equation: curr_margin += learning_rate * leaf_val." },
+    { line: 19, hint: "Final classification probability: sigmoid(curr_margin)." },
+  ],
+  lineExplanations: {
+    1: "Imports Python math module for exponential function math.exp(-z).",
+    2: "Blank line before sigmoid helper definition.",
+    3: "Defines sigmoid helper function converting raw margin z to probability p.",
+    4: "Evaluates and returns logistic sigmoid: 1.0 / (1.0 + math.exp(-z)).",
+    5: "Blank line before main additive predictor function definition.",
+    6: "Defines entry point for multi_tree_additive_predict function.",
+    7: "Docstring opening delimiter tag.",
+    8: "Describes Gradient Boosted Decision Tree (GBDT) Additive Ensemble Predictor.",
+    9: "Docstring additive formula: y_hat_margin = base_score + learning_rate * sum(f_k(x)) across K trees.",
+    10: "Docstring continuation detailing cumulative margin predictions and final sigmoid probability.",
+    11: "Docstring closing delimiter tag.",
+    12: "Initializes empty list cumulative_margins to record step-by-step margin progress.",
+    13: "Initializes curr_margin = base_score prior value.",
+    14: "Blank line before tree boosting loop.",
+    15: "Iterates over tree index k and leaf output weight leaf_val in enumerate(tree_leaf_values).",
+    16: "Accumulates shrunk tree prediction into margin: curr_margin += learning_rate * leaf_val.",
+    17: "Appends rounded curr_margin to cumulative_margins list.",
+    18: "Blank line separating boosting loop from final probability transform.",
+    19: "Transforms final raw margin to classification probability final_prob = round(sigmoid(curr_margin), 4).",
+    20: "Returns tuple of (curr_margin, final_prob, cumulative_margins).",
+  },
+};
+
 export const multiTreeAdditiveEnsemblePredictor: AlgorithmDefinition<MultiTreeAdditiveEnsemblePredictorInput> =
   {
     id: "multiTreeAdditiveEnsemblePredictor",
-    title: "Multi-Tree Additive Ensemble Predictor (GBDT)",
+    title: "GBDT Multi-Tree Additive Ensemble Predictor",
     category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles"],
+    categories: ["ml_tree_ensembles", "advanced_range_queries"],
     difficulty: "Medium",
     isMlInfra: true,
-    mlInfraLevel: 5,
+    mlInfraLevel: 8,
     mlInfraCategory: "ml_tree_ensembles",
     description:
-      "Computes additive ensemble predictions for Gradient Boosted Decision Trees (GBDT / XGBoost / LightGBM). Combines predictions across K trees via margin summation z_i = base_score + learning_rate * sum_{k=1}^K f_k(x_i), applying sigmoid transformation for classification probability.\n\nInput Format:\n- baseScore: Initial global model prediction margin.\n- learningRate: Shrinkage parameter eta (0.0 < eta <= 1.0).\n- treeLeafValues: Array of scalar leaf output values from K trees for target sample.\n\nOutput Format:\n- Returns tuple (finalMargin, finalProbability, cumulativeMarginHistory).\n\nEdge Cases & Constraints:\n- Empty tree list: Returns baseScore.",
-    constraints: ["0.0 < learningRate <= 1.0."],
+      "The GBDT Multi-Tree Additive Ensemble Predictor implements the forward additive prediction engine used by **Gradient Boosted Decision Trees (XGBoost, LightGBM, CatBoost, Scikit-Learn GradientBoosting)**. Rather than taking a simple majority vote (like Random Forests), GBDT models construct predictions as a linear combination of $K$ weak decision trees, applying shrinkage (learning rate $\\eta$) to each tree's leaf prediction value.\n\n### Why It Exists\nGradient Boosting formulates ensemble learning as gradient descent in function space. Each new tree $f_k(x)$ fits the negative gradient residuals of the pre-existing ensemble $F_{k-1}(x)$. Shrinkage $\\eta \\in (0.1, 0.01)$ prevents early trees from dominating predictions.\n\n### Mathematical Formulation\nFor a GBDT model with base score prior $F_0(x) = \\text{base\\_score}$, learning rate $\\eta$, and $K$ trees with leaf prediction values $f_k(x)$:\n\n$$1. \\quad z_K(x) = F_0(x) + \\eta \\sum_{k=1}^{K} f_k(x) \\quad (\\text{Cumulative Raw Log-Odds Margin})$$\n\n$$2. \\quad \\hat{y}_{prob} = \\sigma(z_K(x)) = \\frac{1}{1 + e^{-z_K(x)}} \\quad (\\text{Binary Classification Probability})$$\n\n$$3. \\quad \\hat{y}_{reg} = z_K(x) \\quad (\\text{Regression Prediction})$$\n\n### Step-by-Step Intuition\n1. **Base Prior Initialization**: Start with raw margin prior $z_0 = \\text{base\\_score}$ (e.g. $z_0 = 0.0 \\to p_0 = 0.5$).\n2. **Sequential Tree Accumulation**: For each boosting tree $k=1 \\dots K$, evaluate leaf prediction weight $f_k(x)$.\n3. **Shrinkage Update**: Add shrunk tree output to margin: $z_k = z_{k-1} + \\eta \\cdot f_k(x)$.\n4. **Sigmoid Probability Transform**: Apply logistic sigmoid function $\\sigma(z_K)$ to convert log-odds margin into probability $\\hat{y}_{prob} \\in (0, 1)$.\n\n### Key Trade-Offs & Hardware Execution\n- **Learning Rate Shrinkage ($\\eta$)**: Smaller $\\eta$ requires more trees $K$ but yields significantly better test generalization (dampening overfitting).\n- **High-Throughput SIMD Inference**: Tree ensemble inference engines (Treelite, Hummingbird, ONNX Runtime) compile $K$ trees into vectorized SIMD instructions (`vaddps`, `vmulps`), executing 1,000 trees in $< 50$ microseconds.",
+    constraints: [
+      "1 <= K <= 10000",
+      "0.0001 <= learningRate <= 1.0",
+      "treeLeafValues elements are finite floats",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "4-Tree GBDT Additive Ensemble Prediction",
-        inputDisplay: "baseScore = 0.0, eta = 0.1, 4 tree leaves",
-        outputDisplay: "Final Margin: 0.13, Final Probability: 0.5325",
+        title: "12-Tree GBDT Additive Ensemble Prediction (eta = 0.1)",
+        inputDisplay: "Base Score = 0.0, eta = 0.1, 12 Tree Leaf Values",
+        outputDisplay: "Final Margin z = 0.25, Final Probability p = 0.5622",
         input: DEFAULT_MULTI_TREE_ADDITIVE_INPUT,
-        output: "Margin 0.13, Prob 0.5325",
-        explanation: "Sums 0.1 * (1.5 - 0.8 + 0.4 + 0.2) = 0.13 -> sigmoid(0.13) = 0.5325.",
-      },
-      {
-        kind: "complex",
-        title: "High Negative Margin (Probability near 0)",
-        inputDisplay: "treeLeafValues = [-10, -10]",
-        outputDisplay: "Final Margin: -2.0, Probability: 0.1192",
-        input: {
-          baseScore: 0.0,
-          learningRate: 0.1,
-          treeLeafValues: [-10.0, -10.0],
-        },
-        output: "Prob 0.1192",
-        explanation: "Negative tree outputs pull prediction margin to -2.0.",
-      },
-      {
-        kind: "negative",
-        title: "Zero Learning Rate",
-        inputDisplay: "learningRate = 0.0",
-        outputDisplay: "Margin remains baseScore 0.0 (Prob 0.5)",
-        input: {
-          baseScore: 0.0,
-          learningRate: 0.0,
-          treeLeafValues: [5.0, 5.0],
-        },
-        output: "Margin 0.0",
-        explanation: "Zero shrinkage blocks tree contributions.",
+        output: "(0.25, 0.5622, [cumulative_margins])",
+        explanation: "Accumulates 12 shrunk tree outputs (eta=0.1) onto base score 0.0, yielding final margin 0.25 and probability 0.5622.",
       },
     ],
-    defaultInput: DEFAULT_MULTI_TREE_ADDITIVE_INPUT,
     code: MULTI_TREE_ADDITIVE_PREDICTOR_CODE,
-    timeComplexity: {
-      best: "O(K)",
-      average: "O(K)",
-      worst: "O(K)",
-    },
+    timeComplexity: { best: "O(K)", average: "O(K)", worst: "O(K)" },
     spaceComplexity: "O(K)",
     complexityAnalysis: {
-      time: "O(K) linear time summation across K decision trees.",
-      space: "O(K) auxiliary space to record cumulative margin history.",
+      time: "Linear in the number of boosting trees $K$, taking $O(K)$ addition and multiplication operations.",
+      space: "Requires $O(K)$ memory to store cumulative margin predictions.",
     },
     topicGuide: {
       overview:
-        "Gradient Boosted Decision Trees (Friedman 2001) construct models additively F_K(x) = sum_{k=1}^K eta f_k(x). During inference, a test sample routes through K trees simultaneously, accumulating leaf weights into a final margin prediction.",
+        "The GBDT Multi-Tree Additive Ensemble Predictor combines predictions across K boosting trees with learning rate shrinkage.",
       sections: [
         {
-          heading: "Overview & Shrinkage (Learning Rate)",
-          body: "Shrinkage parameter eta scales the contribution of each newly added tree f_k(x), preventing early trees from dominating the model and reducing overfitting.",
+          heading: "Core Concept & Additive Expansion",
+          body: "GBDT builds predictions additively: z_K(x) = base_score + eta * sum(f_k(x)). Each tree f_k(x) predicts leaf weight updates scaled by learning rate eta.",
         },
         {
-          heading: "Classification vs Regression Prediction",
-          body: "Regression outputs raw margin z directly. Classification applies link function p = sigmoid(z) = 1 / (1 + exp(-z)).",
+          heading: "Role of Learning Rate Shrinkage (Eta)",
+          body: "Learning rate eta in (0.01, 0.1) shrinks each tree's contribution, acting as an L2 regularizer in function space to prevent overfitting.",
         },
         {
-          heading: "Systems & SIMD Batch Vectorization",
-          body: "Production inference engines (Treelite, XGBoost C++ Predictor) compile decision tree structures into SIMD assembly or C code, evaluating batch queries across CPU threads.",
+          heading: "Classification vs Regression Output Formats",
+          body: "For regression, final prediction is raw margin z_K. For binary classification, sigmoid prob = 1 / (1 + exp(-z_K)) maps margin to [0, 1] probability.",
         },
         {
-          heading: "Implementation Nuances & Edge Cases",
-          body: "When treeLeafValues array is empty (K = 0), the predictor returns baseScore as the raw margin and sigmoid(baseScore) as the classification probability.",
+          heading: "High-Throughput SIMD Tree Compilation",
+          body: "Production systems (Treelite, TVM) compile tree ensembles into flat C/CUDA code, unrolling loops to run thousands of trees per millisecond.",
         },
       ],
       keyTerms: [
         {
           term: "Additive Model",
-          definition:
-            "Ensemble model where final prediction is the weighted sum of individual tree outputs.",
+          definition: "Ensemble model building predictions as sum of K weak base learner trees.",
         },
         {
-          term: "Shrinkage (eta)",
-          definition:
-            "Learning rate parameter scaling down tree predictions to improve ensemble generalization.",
+          term: "Learning Rate Shrinkage (Eta)",
+          definition: "Scaling factor eta applied to each tree's prediction to dampen overfitting.",
         },
         {
-          term: "Margin Prediction",
-          definition:
-            "Unbounded linear sum z before transformation by sigmoid/exponential link functions.",
+          term: "Log-Odds Margin (z)",
+          definition: "Continuous un-transformed output sum z_K = base_score + eta * sum(f_k(x)).",
         },
         {
-          term: "Base Score",
-          definition:
-            "Initial baseline prediction value (e.g. 0.0 or log-odds of prior label probability) before adding tree outputs.",
+          term: "Sigmoid Activation",
+          definition: "Probability transform 1 / (1 + exp(-z)) converting margin z into probability [0, 1].",
         },
       ],
     },
-    sources: [
-      { type: "ml_infra", kind: "ml_infra", label: "Gradient Boosting Machines (Friedman 2001)" },
-    ],
+    trivia: MULTI_TREE_ADDITIVE_PREDICTOR_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+    defaultInput: DEFAULT_MULTI_TREE_ADDITIVE_INPUT,
     generateSteps: generateMultiTreeAdditiveSteps,
   };

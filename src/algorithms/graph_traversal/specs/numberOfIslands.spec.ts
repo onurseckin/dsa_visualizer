@@ -10,13 +10,27 @@ describe("numberOfIslands algorithm logic spec", () => {
     expect(numberOfIslands.id).toBe("number-of-islands");
     expect(numberOfIslands.category).toBe("graph_traversal");
     const steps = generateNumberOfIslandsSteps(DEFAULT_NUMBER_OF_ISLANDS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.primarySnapshot.kind).toBe("grid");
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.totalIslands).toBe(3);
+  });
+
+  it("maps every non-blank code line in lineExplanations", () => {
+    const meta = numberOfIslands.trivia;
+    const lines = numberOfIslands.code.replace(/\s+$/, "").split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (line.trim().length > 0) {
+        expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+        expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      }
+    });
   });
 
   it("correctly counts 1 single large island", () => {

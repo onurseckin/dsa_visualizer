@@ -6,6 +6,7 @@ import {
   continuousBatchingScheduler,
   generateContinuousBatchingSteps,
 } from "../continuousBatchingScheduler";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("continuousBatchingScheduler (Level 10 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
@@ -24,15 +25,37 @@ describe("continuousBatchingScheduler (Level 10 ML Infra)", () => {
     expect(continuousBatchingScheduler.defaultInput).toEqual(DEFAULT_CONTINUOUS_BATCHING_INPUT);
   });
 
-  it("generates steps for default input", () => {
+  it("generates valid steps for default input (>= 20 steps, matrix snapshot)", () => {
     const steps = generateContinuousBatchingSteps(DEFAULT_CONTINUOUS_BATCHING_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     for (let i = 0; i < steps.length; i++) {
       expect(steps[i].stepIndex).toBe(i);
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+    }
+
+    const firstSnap = steps[0].primarySnapshot as MatrixVisualSnapshot;
+    expect(firstSnap.kind).toBe("matrix");
+    expect(firstSnap.rows).toBe(4);
+    expect(firstSnap.cols).toBe(5);
+
+    const codeLines = continuousBatchingScheduler.code.split("\n");
+    steps.forEach((step) => {
+      expect(step.codeLine).toBeGreaterThanOrEqual(1);
+      expect(step.codeLine).toBeLessThanOrEqual(codeLines.length);
+    });
+  });
+
+  it("should have complete trivia lineExplanations for every code line", () => {
+    const codeLines = continuousBatchingScheduler.code.split("\n");
+    const lineExplanations = continuousBatchingScheduler.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    for (let lineNum = 1; lineNum <= codeLines.length; lineNum++) {
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
     }
   });
 

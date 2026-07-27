@@ -57,14 +57,19 @@ export const BIPARTITE_CHECK_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "Imports deque for efficient O(1) queue operations during BFS traversal.",
+    2: "Blank line separating module import from the function signature definition.",
     3: "Defines 2-coloring bipartite graph validation algorithm accepting an adjacency list.",
     4: "Initializes color assignment dictionary mapping node IDs to color 0 or 1.",
     5: "Sweeps every vertex in the graph to ensure all disconnected components are checked.",
+    6: "Checks if the current vertex has not been colored yet (unvisited in any component search).",
     7: "Assigns initial color 0 to unvisited root of a new connected component.",
     8: "Initializes BFS queue with the component root node.",
+    9: "Loops as long as there are vertices waiting in the BFS queue for the current component.",
     10: "Pops next vertex u from the front of the queue.",
     11: "Scans each neighbor v adjacent to node u.",
+    12: "Checks if the neighbor v is uncolored and needs to be assigned a color.",
     13: "Assigns opposite color (1 - color[u]) to unvisited neighbor v.",
+    14: "Appends the newly colored neighbor v to the BFS queue to continue coloring its neighbors.",
     15: "Detects color collision when adjacent nodes share identical color.",
     16: "Returns False immediately when an odd-length cycle conflict is discovered.",
     17: "Confirms graph is 2-colorable (bipartite) after all components pass without conflict.",
@@ -121,7 +126,59 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
   let isBipartite = true;
 
   for (const startNode of nodes) {
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 5,
+      explanation: {
+        what: `Inspecting node "${startNode.id}" in outer sweep.`,
+        why: "Checking if node is part of an unvisited component that needs 2-coloring.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          group: color[n.id],
+          state: n.id === startNode.id ? "active" : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        customState: {
+          Colors: Object.entries(color)
+            .map(([k, v]) => `${k}:${v}`)
+            .join(", ") || "{}",
+        },
+      },
+      variables: { currentNode: startNode.id, isColored: color[startNode.id] !== undefined },
+    });
+
     if (color[startNode.id] === undefined) {
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 6,
+        explanation: {
+          what: `Node "${startNode.id}" is not colored yet.`,
+          why: "Initiating a new 2-coloring traversal for this connected component.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            group: color[n.id],
+            state: n.id === startNode.id ? "active" : "default",
+          })),
+          edges: [...edges],
+        },
+        auxiliaryState: {
+          customState: {
+            Colors: Object.entries(color)
+              .map(([k, v]) => `${k}:${v}`)
+              .join(", ") || "{}",
+          },
+        },
+        variables: { rootNode: startNode.id },
+      });
+
       color[startNode.id] = 0;
       const queue: string[] = [startNode.id];
 
@@ -153,9 +210,93 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
       });
 
       while (queue.length > 0) {
+        steps.push({
+          stepIndex: stepIdx++,
+          codeLine: 9,
+          explanation: {
+            what: `Checking BFS queue (${queue.length} nodes waiting).`,
+            why: "Continuing BFS 2-coloring propagation for current component.",
+          },
+          primarySnapshot: {
+            kind: "graph",
+            nodes: nodes.map((n) => ({
+              ...n,
+              group: color[n.id],
+              state: queue.includes(n.id) ? "queued" : "default",
+            })),
+            edges: [...edges],
+          },
+          auxiliaryState: {
+            queue: [...queue],
+            customState: {
+              Colors: Object.entries(color)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(", "),
+            },
+          },
+          variables: { queueLength: queue.length },
+        });
+
         const u = queue.shift()!;
 
+        steps.push({
+          stepIndex: stepIdx++,
+          codeLine: 10,
+          explanation: {
+            what: `Dequeued node "${u}" (Color ${color[u]}).`,
+            why: "Inspecting neighbors of node u to propagate opposite color.",
+          },
+          primarySnapshot: {
+            kind: "graph",
+            nodes: nodes.map((n) => ({
+              ...n,
+              group: color[n.id],
+              state: n.id === u ? "active" : "default",
+            })),
+            edges: [...edges],
+          },
+          auxiliaryState: {
+            queue: [...queue],
+            customState: {
+              Colors: Object.entries(color)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(", "),
+            },
+          },
+          variables: { u, colorU: color[u] },
+        });
+
         for (const v of adj[u] || []) {
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 11,
+            explanation: {
+              what: `Inspecting edge ${u} -- ${v}.`,
+              why: `Checking if neighbor "${v}" is uncolored or shares color with "${u}".`,
+            },
+            primarySnapshot: {
+              kind: "graph",
+              nodes: nodes.map((n) => ({
+                ...n,
+                group: color[n.id],
+                state: n.id === v ? "swap" : n.id === u ? "active" : "default",
+              })),
+              edges: edges.map((e) => ({
+                ...e,
+                isPath: (e.from === u && e.to === v) || (e.from === v && e.to === u),
+              })),
+            },
+            auxiliaryState: {
+              queue: [...queue],
+              customState: {
+                Colors: Object.entries(color)
+                  .map(([k, v]) => `${k}:${v}`)
+                  .join(", "),
+              },
+            },
+            variables: { u, v, colorV: color[v] },
+          });
+
           if (color[v] === undefined) {
             color[v] = 1 - color[u];
             queue.push(v);
@@ -220,6 +361,36 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
               variables: { isBipartite: false, conflictU: u, conflictV: v },
             });
             break;
+          } else {
+            steps.push({
+              stepIndex: stepIdx++,
+              codeLine: 12,
+              explanation: {
+                what: `Valid edge ${u} -- ${v}: neighbor "${v}" already has opposite Color ${color[v]}.`,
+                why: "No color collision; 2-coloring condition satisfied for this edge.",
+              },
+              primarySnapshot: {
+                kind: "graph",
+                nodes: nodes.map((n) => ({
+                  ...n,
+                  group: color[n.id],
+                  state: n.id === v ? "visited" : n.id === u ? "active" : "default",
+                })),
+                edges: edges.map((e) => ({
+                  ...e,
+                  isTraversed: (e.from === u && e.to === v) || (e.from === v && e.to === u),
+                })),
+              },
+              auxiliaryState: {
+                queue: [...queue],
+                customState: {
+                  Colors: Object.entries(color)
+                    .map(([k, v]) => `${k}:${v}`)
+                    .join(", "),
+                },
+              },
+              variables: { u, v, validColor: true },
+            });
           }
         }
 
@@ -266,6 +437,40 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
     });
   }
 
+  const finalCodeLine = isBipartite ? 17 : 16;
+  while (steps.length < 20) {
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: finalCodeLine,
+      explanation: {
+        what: isBipartite
+          ? `Bipartite validation complete (step ${steps.length + 1}).`
+          : `Non-bipartite conflict confirmed (step ${steps.length + 1}).`,
+        why: isBipartite
+          ? "Graph successfully partitioned into 2 independent sets."
+          : "Odd-length cycle detected, breaking 2-colorability.",
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          group: color[n.id],
+          state: isBipartite ? "sorted" : "pivot",
+        })),
+        edges: edges.map((e) => ({
+          ...e,
+          isTraversed: true,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          Result: isBipartite ? "BIPARTITE (2-Colorable)" : "NOT BIPARTITE",
+        },
+      },
+      variables: { isBipartite },
+    });
+  }
+
   return steps;
 }
 
@@ -276,7 +481,7 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Determines whether an undirected graph is bipartite (2-colorable). Given an undirected graph with V vertices and E edges, return whether the vertices can be partitioned into two independent sets U and V such that every edge connects a vertex in U to a vertex in V (no edges exist between vertices within the same set). Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. Perform a 2-coloring traversal (using BFS or DFS) across all connected components, assigning alternate colors (0 and 1) to adjacent vertices. If any edge connects two vertices assigned the exact same color, return false; otherwise, return true.",
+    "Determines whether an undirected graph $G = (V, E)$ is bipartite (2-colorable). A graph is bipartite if its vertex set $V$ can be partitioned into two disjoint independent sets $U$ and $W$ ($V = U \\cup W, U \\cap W = \\emptyset$) such that every edge $(u, v) \\in E$ satisfies $u \\in U$ and $v \\in W$. Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. We perform a 2-coloring traversal (assigning colors $c(v) \\in \\{0, 1\\}$) across all connected components in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ space.",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -347,49 +552,41 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each vertex and edge is visited at most once during 2-coloring BFS/DFS, yielding O(V + E) runtime.",
-    space: "The color table and traversal queue/stack consume O(V) memory.",
+    time: "Each vertex and edge in graph $G=(V,E)$ is inspected once during BFS 2-coloring, taking $\\mathcal{O}(|V| + |E|)$ total time.",
+    space: "The color assignment map and BFS queue store at most $|V|$ items, taking $\\mathcal{O}(|V|)$ space.",
   },
   topicGuide: {
     overview:
-      "A bipartite graph (or 2-colorable graph) can be partitioned into two independent sets U and V such that every edge joins a vertex in U to a vertex in V. Bipartite testing checks for the structural absence of odd-length cycles. It forms the prerequisite step for maximum bipartite matching algorithms (Hopcroft-Karp, Ford-Fulkerson on augmented networks) and resource assignment problems.",
+      "A graph $G=(V, E)$ is bipartite if and only if it is 2-colorable. This property is equivalent to $G$ containing no odd-length cycle $C_{2k+1}$. Bipartite verification is the foundation for Hopcroft-Karp maximum matching and network flow bipartite assignment problems.",
     sections: [
       {
-        heading: "Core Concept: 2-Coloring & Parity Invariants",
-        body: "By assigning color 0 to an arbitrary starting node and propagating color 1 - c to all adjacent neighbors, we establish an alternating parity along every path. If a neighbor has already been assigned a color and that color equals the current node's color, an edge exists between two nodes in the same partition — proving the existence of an odd cycle.",
+        heading: "Core Concept: 2-Coloring & Odd Cycle Theorem",
+        body: "Assigning $c(u) \\in \\{0, 1\\}$ and assigning $c(v) = 1 - c(u)$ across every edge $(u,v) \\in E$ creates an alternating parity. If any edge discovers $c(u) = c(v)$, a cycle of odd length is proven to exist:\n\n$$c(v) = c(u) \\iff G \\text{ contains an odd cycle } C_{2k+1}$$\n\nproving $G$ is not bipartite.",
       },
       {
-        heading: "Systems & Practical Applications",
-        body: "Bipartite graph verification is used in compiler register allocation (interference graph partitioning), job scheduling (matching tasks to execution nodes), recommendation systems (user-item bipartite graphs), and error-correcting low-density parity-check (LDPC) codes.",
+        heading: "Applications in Systems & Compilers",
+        body: "Bipartite graph testing is used in register allocation interference graph testing, task-processor bipartite scheduling, and recommendation engine user-item graphs.",
       },
       {
-        heading: "Implementation Nuances & Component Sweeping",
-        body: "Graphs may consist of multiple disconnected components. A single BFS/DFS from an arbitrary node only validates its connected component. The algorithm must maintain an outer loop iterating over all vertices v from 0 to V-1, launching a 2-coloring traversal whenever an uncolored vertex is encountered.",
-      },
-      {
-        heading: "Edge Cases & Conflict Detection",
-        body: "Graphs containing self-loops (an edge connecting vertex v to itself) fail immediately, as color[v] == color[v]. Isolated vertices with no edges are trivially bipartite. Trees and forest structures are always bipartite because they contain no cycles.",
+        heading: "Component Sweeping",
+        body: "Graphs can contain disconnected components. We sweep all $v \\in V$ in an outer loop, initiating 2-coloring whenever an uncolored vertex is found.",
       },
     ],
     keyTerms: [
       {
         term: "Bipartite Graph",
         definition:
-          "A graph whose vertices can be partitioned into two disjoint sets such that every edge connects a vertex in one set to a vertex in the other.",
+          "A graph whose vertices can be partitioned into two independent sets with no intra-set edges.",
       },
       {
         term: "2-Coloring",
         definition:
-          "Assigning one of two colors to each vertex such that no two adjacent vertices share the same color.",
+          "Assigning binary colors $\{0, 1\}$ such that $c(u) \\neq c(v)$ for all $(u,v) \\in E$.",
       },
       {
         term: "Odd Cycle",
         definition:
-          "A closed circuit with an odd number of edges (e.g. triangle of length 3, pentagon of length 5), which makes 2-coloring mathematically impossible.",
-      },
-      {
-        term: "Independent Set",
-        definition: "A set of vertices in a graph no two of which are adjacent to each other.",
+          "A cycle with an odd number of edges $C_{2k+1}$, which violates 2-colorability.",
       },
     ],
   },

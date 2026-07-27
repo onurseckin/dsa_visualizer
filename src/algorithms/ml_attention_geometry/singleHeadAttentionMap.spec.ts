@@ -3,6 +3,7 @@ import {
   singleHeadAttentionMap,
   DEFAULT_SINGLEHEADATTENTIONMAP_INPUT,
   generateSingleHeadAttentionMapSteps,
+  SINGLEHEADATTENTIONMAP_CODE,
 } from "./singleHeadAttentionMap";
 
 describe("single-head-attention-map (Single-Head Attention Map Generator)", () => {
@@ -14,10 +15,26 @@ describe("single-head-attention-map (Single-Head Attention Map Generator)", () =
     expect(singleHeadAttentionMap.categories).toContain("ml_attention_geometry");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
     const steps = generateSingleHeadAttentionMapSteps(DEFAULT_SINGLEHEADATTENTIONMAP_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("Initialize attention map");
-    expect(steps[steps.length - 1].explanation.what).toBe("Attention Complete");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain(
+      "Initialize Single-Head Attention Map Generator",
+    );
+    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+
+    steps.forEach((step) => {
+      expect(step.primarySnapshot.kind).toBe("matrix");
+    });
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = SINGLEHEADATTENTIONMAP_CODE.trim().split("\n");
+    const lineExplanations = singleHeadAttentionMap.trivia?.lineExplanations || {};
+
+    for (let i = 1; i <= codeLines.length; i++) {
+      expect(lineExplanations[i]).toBeDefined();
+      expect(lineExplanations[i].length).toBeGreaterThan(0);
+    }
   });
 });

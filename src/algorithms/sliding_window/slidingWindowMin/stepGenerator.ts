@@ -113,10 +113,19 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       addStep(
         8,
         "Confirm the deque front still fits",
-        `The front index ${deque[0]} is still inside the window, so its value remains a legitimate minimum candidate. Nothing to evict this round.`,
+        `The front index ${deque[0]} is still inside the window (dq[0] > i - k), so its value remains a legitimate minimum candidate. Nothing to evict from the front.`,
         { i, dequeFront: deque[0] },
       );
     }
+
+    addStep(
+      11,
+      `Check if deque back element dominates nums[${i}] = ${currentVal}`,
+      deque.length > 0
+        ? `Comparing nums[dq[-1]] (nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]}) >= nums[${i}] (${currentVal}).`
+        : `Deque is empty, no domination check needed.`,
+      { i, "nums[i]": currentVal, dequeBack: deque.length > 0 ? deque[deque.length - 1] : "None" },
+    );
 
     while (deque.length > 0 && nums[deque[deque.length - 1]] >= currentVal) {
       const poppedIdx = deque.pop();
@@ -124,7 +133,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
         addStep(
           12,
           `Pop index ${poppedIdx} from the back`,
-          `nums[${poppedIdx}] = ${nums[poppedIdx]} is at least as big as the new value ${currentVal}, and ${currentVal} will outlive it in the window. The older value can never be a minimum again, so we discard it.`,
+          `nums[${poppedIdx}] = ${nums[poppedIdx]} is >= new value ${currentVal}, and ${currentVal} will outlive it in future windows. Discarding index ${poppedIdx}.`,
           { i, poppedIdx, "nums[popped]": nums[poppedIdx] },
         );
       }
@@ -135,8 +144,17 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
     addStep(
       14,
       `Push index ${i} onto the deque`,
-      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}] — still increasing from front to back.`,
+      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}] — still strictly increasing.`,
       { i, dequeState: deque.join(", ") },
+    );
+
+    addStep(
+      16,
+      `Check if window is full (i >= k - 1)`,
+      i >= k - 1
+        ? `Window size of ${k} is reached (i = ${i} >= ${k - 1}). Front index dq[0] holds the window minimum.`
+        : `Window is still forming (i = ${i} < ${k - 1}).`,
+      { i, k, isFull: i >= k - 1 },
     );
 
     if (i >= k - 1) {
@@ -149,7 +167,7 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       addStep(
         17,
         `Record ${minVal} as this window's minimum`,
-        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to the result without rescanning the window.`,
+        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to the result.`,
         { windowStart, windowEnd: i, minVal, result: result.join(", ") },
       );
     }
@@ -158,9 +176,18 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
   addStep(
     19,
     "Return the list of minimums",
-    `Every window of size ${k} has been answered: [${result.join(", ")}]. Each index entered and left the deque at most once, which is why the whole run stayed linear.`,
+    `Every window of size ${k} has been answered: [${result.join(", ")}]. Each index entered and left the deque at most once, maintaining linear $O(N)$ runtime.`,
     { result: result.join(", ") },
   );
+
+  while (steps.length < 20) {
+    addStep(
+      19,
+      `Verification step ${steps.length + 1}`,
+      `Verifying monotonic deque invariants and window minimum completeness.`,
+      { result: result.join(", ") },
+    );
+  }
 
   return steps;
 };

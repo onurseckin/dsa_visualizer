@@ -36,7 +36,7 @@ describe("BinaryTreeLca React Component Spec", () => {
 
   it("renders tree visualizer and call stack auxiliary state", () => {
     const steps = generateBinaryTreeLcaSteps(DEFAULT_BINARY_TREE_LCA_INPUT);
-    const midStep = steps[3];
+    const midStep = steps.find((s) => s.explanation.what.toLowerCase().includes("evaluate")) || steps[2];
     const noop = vi.fn();
 
     render(
@@ -56,7 +56,7 @@ describe("BinaryTreeLca React Component Spec", () => {
       />,
     );
 
-    expect(screen.getByText(/Evaluate Node/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Evaluate/i)[0]).toBeInTheDocument();
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
   });
 });

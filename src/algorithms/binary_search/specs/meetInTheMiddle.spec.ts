@@ -11,9 +11,9 @@ describe("meetInTheMiddle algorithm spec", () => {
     expect(meetInTheMiddle.spaceComplexity).toContain("2^(n/2)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate at least 20 steps for default input", () => {
     const steps = generateMeetInTheMiddleSteps(meetInTheMiddle.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -22,8 +22,21 @@ describe("meetInTheMiddle algorithm spec", () => {
     const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toBeDefined();
 
-    const matchStep = steps.find((s) => s.explanation.what.includes("Found matching pair"));
+    const matchStep = steps.find((s) => s.explanation.what.includes("Return True") || s.explanation.what.includes("Found subset pair"));
     expect(matchStep).toBeDefined();
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = meetInTheMiddle.code.split("\n");
+    const lineExplanations = meetInTheMiddle.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle unmatched target", () => {

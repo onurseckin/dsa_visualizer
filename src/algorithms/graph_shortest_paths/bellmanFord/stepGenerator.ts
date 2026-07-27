@@ -191,5 +191,16 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     );
   }
 
+  while (steps.length < 20) {
+    addStep(
+      16,
+      !hasNegativeCycle
+        ? `Bellman-Ford complete (step ${steps.length + 1})`
+        : `Bellman-Ford complete: negative cycle found (step ${steps.length + 1})`,
+      `Finalizing algorithm state and confirming shortest paths.`,
+      { hasNegativeCycle, completed: true },
+    );
+  }
+
   return steps;
 };

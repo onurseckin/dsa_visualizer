@@ -1,23 +1,30 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import GridVisualizer from "../../../components/primitives/GridVisualizer";
+import { MatrixVisualizer } from "../../../components/primitives/MatrixVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import {
   generateBinomialCoefficientsPascalSteps,
   DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
 } from "../binomialCoefficientsPascal";
-import type { GridVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("binomialCoefficientsPascal React component spec", () => {
-  it("renders GridVisualizer with Binomial Coefficients snapshot", () => {
+  it("renders MatrixVisualizer with Binomial Coefficients snapshot", () => {
     const steps = generateBinomialCoefficientsPascalSteps(
       DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
     );
-    const snapshot = steps[0].primarySnapshot as GridVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as MatrixVisualSnapshot;
 
     render(
-      <GridVisualizer grid={snapshot.grid} title="Binomial Coefficients (Pascal's Triangle)" />,
+      <MatrixVisualizer
+        rows={snapshot.rows}
+        cols={snapshot.cols}
+        cells={snapshot.cells}
+        rowHeaders={snapshot.rowHeaders}
+        colHeaders={snapshot.colHeaders}
+        title="Binomial Coefficients (Pascal's Triangle)"
+      />,
     );
 
     expect(screen.getByText("Binomial Coefficients (Pascal's Triangle)")).toBeInTheDocument();

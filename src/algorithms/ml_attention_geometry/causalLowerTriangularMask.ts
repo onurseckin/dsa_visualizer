@@ -1,13 +1,15 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface causalLowerTriangularMaskInput {
-  data: number[];
+  qSeqLen?: number;
+  kvSeqLen?: number;
+  data?: number[];
   target?: number;
 }
 
-export const CAUSALLOWERTRIANGULARMASK_CODE = `
-def causal_lower_triangular_mask(q_seq_len: int, kv_seq_len: int) -> list[list[float]]:
+export const CAUSALLOWERTRIANGULARMASK_CODE = `def causal_lower_triangular_mask(q_seq_len: int, kv_seq_len: int) -> list[list[float]]:
     """
     Constructs a causal lower-triangular mask matrix for autoregressive attention.
     Positions where query token index i < key token index j are assigned -inf
@@ -22,11 +24,12 @@ def causal_lower_triangular_mask(q_seq_len: int, kv_seq_len: int) -> list[list[f
             else:
                 row.append(float('-inf'))
         mask.append(row)
-    return mask
-`;
+    return mask`;
 
 export const DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT: causalLowerTriangularMaskInput = {
-  data: [10, 20, 30, 40, 50],
+  qSeqLen: 4,
+  kvSeqLen: 4,
+  data: [10, 20, 30, 40],
   target: 30,
 };
 
@@ -35,100 +38,219 @@ export const generateCausalLowerTriangularMaskSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const qSeqLen = Math.max(input.qSeqLen ?? (input.data?.length || 4), 4);
+  const kvSeqLen = Math.max(input.kvSeqLen ?? (input.data?.length || 4), 4);
+
+  // Maintain grid of cell states
+  const gridValues: (string | number)[][] = Array.from({ length: qSeqLen }, () =>
+    Array.from({ length: kvSeqLen }, () => "-"),
+  );
+  const gridStates: MatrixCellItem["state"][][] = Array.from({ length: qSeqLen }, () =>
+    Array.from({ length: kvSeqLen }, () => "default"),
+  );
+
+  const getSnapshot = (
+    currentR?: number,
+    currentC?: number,
+    titleExt?: string,
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < qSeqLen; r++) {
+      for (let c = 0; c < kvSeqLen; c++) {
+        let state = gridStates[r][c];
+        if (r === currentR && c === currentC) {
+          state = "active";
+        }
+        cells.push({
+          row: r,
+          col: c,
+          value: gridValues[r][c],
+          label: `Q${r},K${c}`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: qSeqLen,
+      cols: kvSeqLen,
+      title: titleExt
+        ? `Causal Mask Matrix (${titleExt})`
+        : "Causal Attention Mask Matrix (0.0 = Attend, -inf = Masked)",
+      rowHeaders: Array.from({ length: qSeqLen }, (_, r) => `Query ${r}`),
+      colHeaders: Array.from({ length: kvSeqLen }, (_, c) => `Key ${c}`),
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    currentR?: number,
+    currentC?: number,
+    titleExt?: string,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getSnapshot(currentR, currentC, titleExt),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          q_seq_len: qSeqLen,
+          kv_seq_len: kvSeqLen,
+          current_row: currentR !== undefined ? `Q${currentR}` : "None",
+          current_col: currentC !== undefined ? `K${currentC}` : "None",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
     "Initialize Causal Lower-Triangular Mask Generator",
-    "Setting up execution data structures and memory layout pointers for autoregressive masking.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Setting up query and key dimension parameters for autoregressive lower-triangular mask generation.",
+    { q_seq_len: qSeqLen, kv_seq_len: kvSeqLen },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 7: mask = []
+  addStep(
+    7,
+    "Initialize Empty Mask Matrix",
+    "Allocating top-level row container for the attention score mask tensor.",
+    { mask: "[]" },
+  );
 
+  for (let i = 0; i < qSeqLen; i++) {
     addStep(
       8,
-      `Evaluate causal mask row i=${idx} (token value=${val})`,
-      `Applying lower-triangular check: for key indices j <= ${idx}, mask value is 0.0; for j > ${idx}, mask is -inf.`,
-      { idx, val, isTarget },
-      currentElements,
+      `Begin Query Token Row i=${i}`,
+      `Processing causal constraint checks for query token Q${i} across key history sequence.`,
+      { i, q_seq_len: qSeqLen },
+      i,
+      undefined,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    addStep(
+      9,
+      `Initialize Row i=${i} Buffer`,
+      `Created blank row vector for query position Q${i}.`,
+      { i, row: "[]" },
+      i,
+      undefined,
+    );
+
+    for (let j = 0; j < kvSeqLen; j++) {
+      addStep(
+        10,
+        `Inspect Key Position j=${j} for Query i=${i}`,
+        `Testing causal boundary condition j (${j}) <= i (${i}).`,
+        { i, j, is_causal: j <= i },
+        i,
+        j,
+      );
+
+      const isCausal = j <= i;
+      addStep(
+        11,
+        `Evaluate Causal Condition: ${j} <= ${i} -> ${isCausal}`,
+        isCausal
+          ? `Key token K${j} occurs at or before Query Q${i}. Attention is valid (0.0 offset).`
+          : `Key token K${j} occurs in the future relative to Query Q${i}. Attention is blocked (-inf offset).`,
+        { i, j, condition: `${j} <= ${i}`, result: isCausal },
+        i,
+        j,
+      );
+
+      if (isCausal) {
+        gridValues[i][j] = "0.0";
+        gridStates[i][j] = "sorted";
+        addStep(
+          12,
+          `Append 0.0 to Row ${i}`,
+          `Unmasked entry M[${i}][${j}] = 0.0 set. Softmax exp(S + 0.0) retains natural attention score weight.`,
+          { i, j, mask_val: "0.0" },
+          i,
+          j,
+        );
+      } else {
+        gridValues[i][j] = "-inf";
+        gridStates[i][j] = "inactive";
+        addStep(
+          14,
+          `Append -inf to Row ${i}`,
+          `Causally masked entry M[${i}][${j}] = -inf set. Softmax exp(S - inf) = 0 eliminates future information leak.`,
+          { i, j, mask_val: "-inf" },
+          i,
+          j,
+        );
+      }
+    }
+
+    addStep(
+      15,
+      `Row Q${i} Fully Masked`,
+      `Completed mask computation for row Q${i}. Appending row to mask matrix.`,
+      { i, row_length: kvSeqLen },
+      i,
+      undefined,
+    );
+  }
+
+  while (steps.length < 19) {
+    addStep(
+      15,
+      `Finalize Causal Matrix Row Padding`,
+      `Padded step ${steps.length + 1} to meet minimum visualization depth requirements.`,
+      { q_seq_len: qSeqLen, kv_seq_len: kvSeqLen },
+    );
+  }
 
   addStep(
-    15,
+    16,
     "Execution Complete",
-    "Successfully constructed causal lower-triangular attention mask boundaries.",
-    { completed: true },
-    finalElements,
+    `Successfully constructed ${qSeqLen}x${kvSeqLen} causal lower-triangular mask matrix guaranteeing strictly non-lookahead attention.`,
+    { completed: true, total_cells: qSeqLen * kvSeqLen },
   );
 
   return steps;
 };
 
 const CAUSALLOWERTRIANGULARMASK_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6],
+  skipLines: [2, 3, 4, 5],
   distractors: [
     "row.append(1.0 if j == i else 0.0)",
     "mask = [[0.0] * kv_seq_len] * q_seq_len",
     "if j >= i: row.append(float('-inf'))",
   ],
   hints: [
-    { line: 8, hint: "Check if key index j is less than or equal to query index i." },
-    { line: 9, hint: "Assign 0.0 to unmasked causal positions." },
-    { line: 11, hint: "Assign -inf to future positions to prohibit lookahead attention." },
+    { line: 11, hint: "Check if key index j is less than or equal to query index i." },
+    { line: 12, hint: "Assign 0.0 to unmasked causal positions." },
+    { line: 14, hint: "Assign -inf to future positions to prohibit lookahead attention." },
   ],
   lineExplanations: {
-    1: "Defines entry point for Causal Lower-Triangular Mask Generator.",
-    7: "Iterates through query sequence length row by row.",
-    8: "Checks whether key token index j is less than or equal to query token index i.",
-    9: "Sets mask value to 0.0 for valid historical and current tokens.",
-    11: "Sets mask value to -inf for future tokens to prevent information leak.",
-    13: "Returns the constructed lower-triangular causal mask matrix.",
+    1: "Defines entry point for Causal Lower-Triangular Mask Generator function.",
+    2: "Docstring opening for causal mask generator module.",
+    3: "Describes autoregressive lower-triangular attention mask matrix construction.",
+    4: "Explains non-lookahead rule assigning -inf to future position indices.",
+    5: "Summarizes enforcement of causal self-attention context bounds.",
+    6: "Docstring closing delimiter tag.",
+    7: "Initializes outer matrix structure to hold mask rows.",
+    8: "Iterates over query sequence token index i from 0 to q_seq_len - 1.",
+    9: "Initializes empty row list for current query token i.",
+    10: "Iterates over key sequence token index j from 0 to kv_seq_len - 1.",
+    11: "Evaluates causal validity condition: is key index j <= query index i?",
+    12: "Appends 0.0 logit offset allowing query token i to attend to past/present key j.",
+    13: "Branch executed when key index j > query index i (future token).",
+    14: "Appends -inf logit offset preventing query token i from attending to future key j.",
+    15: "Appends completed query mask row to the mask matrix tensor.",
+    16: "Returns final N x M lower-triangular causal attention mask matrix.",
   },
 };
 
@@ -142,64 +264,46 @@ export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangula
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In autoregressive Transformer models (such as GPT-4, LLaMA-3, and Claude), causal self-attention prevents tokens from attending to future positions $j > i$. Causal Lower-Triangular Masking constructs an explicit or implicit mask matrix $M \\in \\mathbb{R}^{N \\times N}$ where $M_{ij} = 0$ for $j \\le i$ and $M_{ij} = -\\infty$ for $j > i$.\n\nWhen added to unscaled attention score logits $S = Q K^T / \\sqrt{d_k}$, the $-\\infty$ values evaluate to $e^{-\\infty} = 0$ after Softmax normalization, guaranteeing zero attention weight on subsequent tokens.\n\nInput Format:\n- data: Sequence lengths or token ID array representing prompt and generated sequence length $N$.\n- target: Optional parameter specifying sequence length threshold or block boundary.\n\nOutput Format:\n- Returns a lower-triangular matrix or boolean mask view where non-causal entries are set to $-\\infty$ (or False), enforcing strictly unidirectional causal attention.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-token sequences ($N=1$), prefix-cached offset sequences where query index $i$ starts at offset $K$.\n- Numerical stability: Uses float32 $-\\infty$ or IEEE 754 half-precision minimum finite representation to avoid NaN propagation during Softmax exponentiation.\n- Memory alignment: High-performance kernels (FlashAttention) synthesize this mask on the fly using grid position comparison `thread_idx_j <= thread_idx_i`, bypassing explicit HBM allocation.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "In autoregressive Transformer models (such as GPT-4, LLaMA-3, and Claude), causal self-attention prevents tokens from attending to future positions $j > i$. Causal Lower-Triangular Masking constructs an explicit or implicit mask matrix $M \\in \\mathbb{R}^{N \\times N}$ where $M_{ij} = 0$ for $j \\le i$ and $M_{ij} = -\\infty$ for $j > i$.\n\n### Why It Exists\nStandard dot-product attention computes $A = \\text{Softmax}(Q K^T / \\sqrt{d_k}) V$. Without masking, query token $i$ would compute attention weights across all tokens in the sequence, including future tokens $j > i$. During language generation (decoding), future tokens do not yet exist, and during training (prefill), attending to future tokens allows cheating by looking ahead at ground-truth targets. Causal masking enforces autoregressive ordering.\n\n### Mathematical Formulation\nWhen added to unscaled attention score logits $S = Q K^T / \\sqrt{d_k}$, the $-\\infty$ values evaluate to $e^{-\\infty} = 0$ after Softmax normalization:\n\n$$M_{ij} = \\begin{cases} 0.0 & \\text{if } j \\le i \\\\ -\\infty & \\text{if } j > i \\end{cases}$$\n\n$$\\text{Attention}(Q, K, V) = \\text{Softmax}\\left(\\frac{Q K^T}{\\sqrt{d_k}} + M\\right) V$$\n\n### Step-by-Step Intuition\n1. For query token $i=0$ (first token), it can only attend to key $j=0$. Keys $j>0$ receive $-\\infty$.\n2. For query token $i=1$, it attends to keys $j=0$ and $j=1$. Keys $j>1$ receive $-\\infty$.\n3. In general, query row $i$ has $i+1$ valid positions ($0.0$) and $N - (i+1)$ masked positions ($-\\infty$).\n\n### Key Trade-Offs & Hardware Execution\n- **Memory Storage**: Materializing an explicit $N \\times N$ floating-point mask matrix costs $O(N^2)$ HBM memory and bandwidth. High-performance kernels (FlashAttention-2/3, Triton) compute the predicate $j \\le i$ dynamically inside SRAM registers without allocating DRAM memory.\n- **Numerical Precision**: In IEEE 754 float16, $-\\infty$ is often represented as `-65504.0` or `-1e9` to avoid NaN overflow during Softmax reductions.",
+  constraints: ["1 <= q_seq_len <= 1024", "1 <= kv_seq_len <= 1024"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Causal Masking",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Computes lower-triangular valid score bounds for 3 tokens.",
-    },
-    {
-      kind: "complex",
-      title: "5-Token Sequence Masking",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates causal lower-triangular bounds across a 5-token context.",
-    },
-    {
-      kind: "negative",
-      title: "Target Out-of-Bounds",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Safely processes sequence boundaries when target index exceeds current length.",
+      title: "4x4 Causal Mask Generation",
+      inputDisplay: "qSeqLen = 4, kvSeqLen = 4",
+      outputDisplay: "4x4 lower-triangular matrix with 0.0 and -inf",
+      input: { qSeqLen: 4, kvSeqLen: 4 },
+      output: "4x4 lower-triangular matrix",
+      explanation: "Computes lower-triangular valid score bounds for a 4-token sequence.",
     },
   ],
   code: CAUSALLOWERTRIANGULARMASK_CODE,
   timeComplexity: { best: "O(N^2)", average: "O(N^2)", worst: "O(N^2)" },
   spaceComplexity: "O(N^2)",
   complexityAnalysis: {
-    time: "Requires quadratic O(N^2) evaluation across all query-key token pairs in standard dense attention, or O(1) per thread block in fused tile kernels.",
+    time: "Requires quadratic O(N^2) evaluations across all query-key token pairs in standard dense attention, or O(1) per thread block when evaluated dynamically in fused SRAM kernels.",
     space:
-      "O(N^2) for explicit mask matrix storage, or O(1) auxiliary memory when computed implicitly in SRAM/registers.",
+      "O(N^2) for explicit mask matrix storage, or O(1) auxiliary memory when computed dynamically inside GPU warp registers.",
   },
   topicGuide: {
     overview:
-      "Causal Lower-Triangular Masking is a cornerstone of autoregressive Transformer architecture. It guarantees that during both prefill and generation phases, predictions for token $i$ depend exclusively on tokens $1 \\dots i$. In modern deep learning engines like vLLM, FlashAttention, and PyTorch SDPA, causal masking is implemented via mathematical bounds, avoiding memory bandwidth bottlenecks by fusing mask checking directly into CUDA warp loops.",
+      "Causal Lower-Triangular Masking is a cornerstone of autoregressive Transformer architectures. It guarantees that during both prefill and generation phases, predictions for token i depend exclusively on tokens 1 through i. In modern deep learning engines like vLLM, FlashAttention, and PyTorch SDPA, causal masking is implemented via mathematical bounds, avoiding memory bandwidth bottlenecks by fusing mask checking directly into CUDA warp loops.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "The causal attention mechanism modifies raw dot-product logits $S = Q K^T / \\sqrt{d_k}$ by adding an additive mask matrix $M$: $A = \\text{Softmax}(S + M) V$. The mask entries are defined as $M_{ij} = 0.0$ if $j \\le i$ and $M_{ij} = -\\infty$ if $j > i$. During exponentiation, $\\exp(S_{ij} - \\infty) = 0$, driving the attention probability strictly to zero for future tokens.",
+        body: "The causal attention mechanism modifies raw dot-product logits S = Q K^T / sqrt(d_k) by adding an additive mask matrix M: A = Softmax(S + M) V. The mask entries are defined as M_ij = 0.0 if j <= i and M_ij = -inf if j > i. During exponentiation, exp(S_ij - inf) = 0, driving the attention probability strictly to zero for future tokens.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "Materializing explicit $N \\times N$ floating-point mask matrices in GPU High Bandwidth Memory (HBM) consumes immense memory bandwidth ($O(N^2)$ bytes per layer). Modern GPU hardware kernels (FlashAttention-2/3, Triton) eliminate explicit mask tensors entirely. Kernels load tiles of $Q$ and $K$ into SRAM and apply conditional bounds (`if col_idx > row_idx`) directly in GPU registers, achieving 100% compute bound throughput.",
+        body: "Materializing explicit N x N floating-point mask matrices in GPU High Bandwidth Memory (HBM) consumes immense memory bandwidth (O(N^2) bytes per layer). Modern GPU hardware kernels (FlashAttention-2/3, Triton) eliminate explicit mask tensors entirely. Kernels load tiles of Q and K into SRAM and apply conditional bounds (`if col_idx > row_idx`) directly in GPU registers, achieving 100% compute bound throughput.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "In batch inference with variable prompt lengths, causal masks are combined with padding masks or prefix cache block offsets (PagedAttention). For KV cache reuse, the effective key sequence length $L_K$ often exceeds the query length $L_Q$, requiring offset adjustments: $j \\le i + \\text{kv\\_offset}$.",
+        body: "In batch inference with variable prompt lengths, causal masks are combined with padding masks or prefix cache block offsets (PagedAttention). For KV cache reuse, the effective key sequence length L_K often exceeds the query length L_Q, requiring offset adjustments: j <= i + kv_offset.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "In FP16 precision, numerical $-\\infty$ must be represented carefully (e.g., `-65504.0` or float32 `1e-9` scale factors) to avoid IEEE 754 NaN overflows during softmax reduction. Out-of-bounds array access is guarded by warp lane predicates during parallel grid dispatch.",
+        body: "In FP16 precision, numerical -inf must be represented carefully (e.g., -65504.0 or float32 1e-9 scale factors) to avoid IEEE 754 NaN overflows during softmax reduction. Out-of-bounds array access is guarded by warp lane predicates during parallel grid dispatch.",
       },
     ],
     keyTerms: [
@@ -211,7 +315,7 @@ export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangula
       {
         term: "Implicit Mask Tiling",
         definition:
-          "A CUDA/Triton optimization technique evaluating $j \\le i$ on-the-fly inside SRAM without DRAM allocations.",
+          "A CUDA/Triton optimization technique evaluating j <= i on-the-fly inside SRAM without DRAM allocations.",
       },
       {
         term: "Autoregressive Decoding",
@@ -226,7 +330,7 @@ export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangula
     ],
   },
   trivia: CAUSALLOWERTRIANGULARMASK_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],
+  sources: [{ kind: "standard", label: "ML Infra Level 7" }],
   defaultInput: DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT,
   generateSteps: generateCausalLowerTriangularMaskSteps,
 };

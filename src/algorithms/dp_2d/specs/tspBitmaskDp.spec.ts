@@ -16,7 +16,7 @@ describe("tspBitmaskDp algorithm logic spec", () => {
 
   it("generates valid steps for default input (4 cities)", () => {
     const steps = generateTspBitmaskDpSteps(DEFAULT_TSP_BITMASK_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.primarySnapshot.kind).toBe("graph");
     expect(lastStep.variables.result).toBe(80);

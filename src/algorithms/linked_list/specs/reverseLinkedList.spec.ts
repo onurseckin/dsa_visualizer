@@ -14,9 +14,9 @@ describe("reverseLinkedList algorithm spec", () => {
     expect(reverseLinkedList.defaultInput).toEqual(DEFAULT_REVERSE_LINKED_LIST_INPUT);
   });
 
-  it("should generate steps and reverse default linked list input", () => {
+  it("should generate at least 20 steps and reverse default linked list input", () => {
     const steps = generateReverseLinkedListSteps(DEFAULT_REVERSE_LINKED_LIST_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -24,15 +24,28 @@ describe("reverseLinkedList algorithm spec", () => {
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.codeLine).toBe(9);
-    expect(lastStep.variables.newHead).toBe(5);
+    expect(lastStep.variables.newHead).toBe(6);
 
     expect(lastStep.primarySnapshot.kind).toBe("array");
     if (lastStep.primarySnapshot.kind === "array") {
-      expect(lastStep.primarySnapshot.elements).toHaveLength(5);
+      expect(lastStep.primarySnapshot.elements).toHaveLength(6);
       lastStep.primarySnapshot.elements.forEach((el) => {
         expect(el.state).toBe("sorted");
       });
     }
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = reverseLinkedList.code.split("\n");
+    const lineExplanations = reverseLinkedList.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle single element linked list", () => {

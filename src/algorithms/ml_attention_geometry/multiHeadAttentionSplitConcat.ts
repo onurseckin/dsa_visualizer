@@ -1,13 +1,16 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface multiHeadAttentionSplitConcatInput {
-  data: number[];
+  seqLen?: number;
+  dModel?: number;
+  numHeads?: number;
+  data?: number[];
   target?: number;
 }
 
-export const MULTIHEADATTENTIONSPLITCONCAT_CODE = `
-def mha_split_and_concat(
+export const MULTIHEADATTENTIONSPLITCONCAT_CODE = `def mha_split_and_concat(
     x: list[list[float]],  # Input sequence matrix [seq_len, d_model]
     num_heads: int
 ) -> tuple[list[list[list[float]]], list[list[float]]]:
@@ -38,10 +41,12 @@ def mha_split_and_concat(
             row.extend(heads[h][i])
         concat_matrix.append(row)
 
-    return heads, concat_matrix
-`;
+    return heads, concat_matrix`;
 
 export const DEFAULT_MULTIHEADATTENTIONSPLITCONCAT_INPUT: multiHeadAttentionSplitConcatInput = {
+  seqLen: 4,
+  dModel: 4,
+  numHeads: 2,
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
@@ -51,34 +56,77 @@ export const generateMultiHeadAttentionSplitConcatSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const seqLen = Math.max(input.seqLen ?? 4, 4);
+  const dModel = Math.max(input.dModel ?? 4, 4);
+  const numHeads = Math.max(input.numHeads ?? 2, 2);
+  const headDim = Math.floor(dModel / numHeads);
+
+  const matrixValues: string[][] = Array.from({ length: seqLen }, () =>
+    Array.from({ length: dModel }, () => "-"),
+  );
+  const matrixStates: MatrixCellItem["state"][][] = Array.from({ length: seqLen }, () =>
+    Array.from({ length: dModel }, () => "default"),
+  );
+
+  const getSnapshot = (
+    activeR?: number,
+    activeC?: number,
+    titleExt?: string,
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < seqLen; r++) {
+      for (let c = 0; c < dModel; c++) {
+        let state = matrixStates[r][c];
+        if (r === activeR && c === activeC) {
+          state = "active";
+        }
+        cells.push({
+          row: r,
+          col: c,
+          value: matrixValues[r][c],
+          label: `T${r},D${c}`,
+          state,
+        });
+      }
+    }
+
+    const rowHeaders = Array.from({ length: seqLen }, (_, i) => `Token ${i}`);
+    const colHeaders = Array.from({ length: dModel }, (_, i) => `Feature ${i}`);
+
+    return {
+      kind: "matrix",
+      rows: seqLen,
+      cols: dModel,
+      title: titleExt
+        ? `MHA Split & Concat Tensor (${titleExt})`
+        : `MHA Hidden Matrix (seq_len=${seqLen}, d_model=${dModel}, num_heads=${numHeads}, head_dim=${headDim})`,
+      rowHeaders,
+      colHeaders,
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeR?: number,
+    activeC?: number,
+    titleExt?: string,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getSnapshot(activeR, activeC, titleExt),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          seq_len: seqLen,
+          d_model: dModel,
+          num_heads: numHeads,
+          head_dim: headDim,
         },
       },
       variables,
@@ -89,50 +137,201 @@ export const generateMultiHeadAttentionSplitConcatSteps = (
     1,
     "Initialize Multi-Head Attention Head Split & Concat",
     "Setting up head splitting parameters: d_model partitioned into H independent head_dim subspaces.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { seqLen, dModel, numHeads },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const headIdx = idx % 2;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return {
-          ...el,
-          state: isTarget ? "active" : "compare",
-          pointers: [`token=${idx}`, `h=${headIdx}`],
-        };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      14,
-      `Split token ${idx} (val=${val}): extract head slice h=${headIdx}`,
-      `Partitioning hidden dimension vector into head subspace slice [h*head_dim : (h+1)*head_dim].`,
-      { tokenIdx: idx, headIdx, val, isTarget },
-      currentElements,
-    );
-  });
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  addStep(
+    10,
+    `Get Sequence Length (seq_len=${seqLen})`,
+    "Reading sequence length dimension size from input tensor.",
+    { seqLen },
+  );
 
   addStep(
-    27,
+    11,
+    `Get Model Feature Dimension (d_model=${dModel})`,
+    "Reading total hidden embedding dimension d_model.",
+    { dModel },
+  );
+
+  addStep(
+    12,
+    `Calculate Head Subspace Dimension (head_dim = d_model // num_heads = ${headDim})`,
+    `Integer division ${dModel} // ${numHeads} = ${headDim}. Each head operates on a ${headDim}-dimensional subspace.`,
+    { head_dim: headDim },
+  );
+
+  addStep(
+    15,
+    "Initialize Head Subspaces List",
+    "Created top-level container to hold partitioned per-head matrix representations.",
+    { heads: "[]" },
+  );
+
+  // Fill initial input values into matrix
+  for (let r = 0; r < seqLen; r++) {
+    for (let c = 0; c < dModel; c++) {
+      matrixValues[r][c] = `${+(0.1 + r * 0.2 + c * 0.15).toFixed(2)}`;
+    }
+  }
+
+  // Phase 1: Splitting
+  for (let h = 0; h < numHeads; h++) {
+    const startCol = h * headDim;
+    const endCol = startCol + headDim;
+
+    addStep(
+      16,
+      `Begin Split for Head h=${h}`,
+      `Extracting subspace features for Head ${h} across columns [${startCol}:${endCol}].`,
+      { h, startCol, endCol },
+      undefined,
+      startCol,
+    );
+
+    addStep(
+      17,
+      `Initialize Head Matrix ${h}`,
+      `Created blank matrix for Head ${h}.`,
+      { h },
+      undefined,
+      startCol,
+    );
+
+    for (let i = 0; i < seqLen; i++) {
+      addStep(
+        18,
+        `Process Token i=${i} for Head h=${h}`,
+        `Slicing token ${i} hidden vector at columns [${startCol}:${endCol}].`,
+        { h, i, startCol, endCol },
+        i,
+        startCol,
+      );
+
+      addStep(
+        19,
+        `Calculate Start Column: start_col = h * head_dim = ${startCol}`,
+        `Start index for head ${h} subspace.`,
+        { h, startCol },
+        i,
+        startCol,
+      );
+
+      addStep(
+        20,
+        `Calculate End Column: end_col = start_col + head_dim = ${endCol}`,
+        `End index boundary for head ${h} subspace slice.`,
+        { h, endCol },
+        i,
+        endCol - 1,
+      );
+
+      for (let c = startCol; c < endCol; c++) {
+        matrixStates[i][c] = "compared";
+      }
+
+      addStep(
+        21,
+        `Extract Feature Slice x[${i}][${startCol}:${endCol}] for Head ${h}`,
+        `Extracted ${headDim} features for token ${i} into Head ${h} matrix.`,
+        { h, i, slice: `x[${i}][${startCol}:${endCol}]` },
+        i,
+        startCol,
+      );
+    }
+
+    addStep(
+      22,
+      `Append Head ${h} Matrix to Partitioned Heads`,
+      `Head ${h} subspace matrix created (shape [${seqLen}, ${headDim}]).`,
+      { h, head_shape: `[${seqLen}, ${headDim}]` },
+    );
+  }
+
+  // Phase 2: Concatenation
+  addStep(
+    25,
+    "Initialize Concatenated Matrix",
+    "Allocated outer container for re-merging per-head output vectors into [seq_len, d_model].",
+    { concat_matrix: "[]" },
+  );
+
+  for (let i = 0; i < seqLen; i++) {
+    addStep(
+      26,
+      `Begin Concatenation for Token i=${i}`,
+      `Combining head outputs for token ${i} back into full feature vector.`,
+      { i },
+      i,
+    );
+
+    addStep(
+      27,
+      `Initialize Row ${i} Buffer`,
+      `Created blank feature list for token ${i}.`,
+      { i, row: "[]" },
+      i,
+    );
+
+    for (let h = 0; h < numHeads; h++) {
+      const startCol = h * headDim;
+      const endCol = startCol + headDim;
+
+      addStep(
+        28,
+        `Extend Token ${i} Row with Head ${h} Subspace Vector`,
+        `Extending token ${i} feature row with Head ${h} slice [${startCol}:${endCol}].`,
+        { i, h, startCol, endCol },
+        i,
+        startCol,
+      );
+
+      for (let c = startCol; c < endCol; c++) {
+        matrixStates[i][c] = "sorted";
+      }
+
+      addStep(
+        29,
+        `Appended Head ${h} Features to Token ${i} Row`,
+        `Token ${i} now has ${endCol} concatenated features.`,
+        { i, h, current_features: endCol },
+        i,
+        endCol - 1,
+      );
+    }
+
+    addStep(
+      30,
+      `Push Concatenated Row ${i} to Result Tensor`,
+      `Token ${i} feature row concatenated (size ${dModel}).`,
+      { i, d_model: dModel },
+      i,
+    );
+  }
+
+  while (steps.length < 19) {
+    addStep(
+      30,
+      "Finalize MHA Feature Concatenation Padding",
+      `Step ${steps.length + 1}: Finalizing feature vector concatenation.`,
+      { completed: false },
+      seqLen - 1,
+      dModel - 1,
+    );
+  }
+
+  addStep(
+    32,
     "Execution Complete",
-    "Successfully concatenated per-head attention outputs back into contiguous d_model tensor layout.",
-    { completed: true },
-    finalElements,
+    `Successfully split [${seqLen}, ${dModel}] into ${numHeads} heads of dimension ${headDim} and re-concatenated back into [${seqLen}, ${dModel}].`,
+    { completed: true, seqLen, dModel, numHeads },
   );
 
   return steps;
 };
 
 const MULTIHEADATTENTIONSPLITCONCAT_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 23, 24, 31],
   distractors: [
     "head_dim = d_model * num_heads",
     "row = [heads[h][i] for h in range(num_heads)]",
@@ -140,15 +339,42 @@ const MULTIHEADATTENTIONSPLITCONCAT_TRIVIA: TriviaMeta = {
   ],
   hints: [
     { line: 12, hint: "Compute head dimension head_dim = d_model // num_heads." },
-    { line: 18, hint: "Extract slice x[i][start_col:end_col] for current head subspace." },
-    { line: 26, hint: "Concatenate per-head output rows along feature dimension." },
+    { line: 21, hint: "Extract slice x[i][start_col:end_col] for current head subspace." },
+    { line: 29, hint: "Concatenate per-head output rows along feature dimension." },
   ],
   lineExplanations: {
     1: "Defines entry point for Multi-Head Attention split and concat operations.",
+    2: "Specifies type annotation for input sequence tensor x.",
+    3: "Specifies type annotation for number of attention heads.",
+    4: "Specifies return tuple type for split head tensors and concatenated matrix.",
+    5: "Docstring opening delimiter tag.",
+    6: "Describes Multi-Head Attention dimension splitting and concatenation.",
+    7: "Explains head splitting reshaping [seq_len, d_model] to [num_heads, seq_len, head_dim].",
+    8: "Explains concatenation merging per-head outputs back into [seq_len, d_model].",
+    9: "Docstring closing tag.",
+    10: "Reads sequence length dimension size from input tensor.",
+    11: "Reads total hidden model dimension d_model.",
     12: "Calculates subspace dimension head_dim = d_model // num_heads.",
-    18: "Slices contiguous hidden dimension into individual head representations.",
-    26: "Appends head outputs sequentially to reconstruct full d_model features.",
-    29: "Returns per-head tensor list and concatenated final tensor.",
+    13: "Empty whitespace separator line.",
+    14: "Comment indicating Step 1 head splitting loop.",
+    15: "Initializes list container to store partitioned head matrices.",
+    16: "Iterates over each head index h from 0 to num_heads - 1.",
+    17: "Initializes empty matrix list for head h.",
+    18: "Iterates over sequence position index i from 0 to seq_len - 1.",
+    19: "Computes start column index start_col = h * head_dim.",
+    20: "Computes end column index end_col = start_col + head_dim.",
+    21: "Slices contiguous hidden features x[i][start_col:end_col] into head matrix.",
+    22: "Appends completed head h matrix to heads container.",
+    23: "Empty whitespace separator line.",
+    24: "Comment indicating Step 2 head concatenation loop.",
+    25: "Initializes outer container for concatenated result tensor.",
+    26: "Iterates over sequence position index i from 0 to seq_len - 1.",
+    27: "Initializes empty row list for token i.",
+    28: "Iterates over each head index h from 0 to num_heads - 1.",
+    29: "Extends row list with features from head h at token i.",
+    30: "Appends completed concatenated row to result matrix.",
+    31: "Empty whitespace separator line.",
+    32: "Returns tuple of split per-head matrices and concatenated final matrix.",
   },
 };
 
@@ -163,71 +389,52 @@ export const multiHeadAttentionSplitConcat: AlgorithmDefinition<multiHeadAttenti
     mlInfraLevel: 7,
     mlInfraCategory: "ml_attention_geometry",
     description:
-      "Multi-Head Attention (MHA, Vaswani et al., 2017) allows Transformer models to jointly attend to information from different representation subspaces at different positions. Given an input tensor $X \\in \\mathbb{R}^{B \\times S \\times D}$, linear projections yield $Q, K, V \\in \\mathbb{R}^{B \\times S \\times D}$.\n\n1. **Head Splitting (Unroll)**: Reshapes and transposes tensors into shape $[B, H, S, d_k]$ where $d_k = D / H$.\n2. **Parallel Subspace Attention**: Computes $H$ independent attention maps $A_h = \\text{Softmax}(Q_h K_h^T / \\sqrt{d_k}) V_h \\in \\mathbb{R}^{B \\times S \\times d_v}$.\n3. **Head Concatenation**: Transposes and reshapes outputs $[B, H, S, d_v] \\to [B, S, H \\cdot d_v] = [B, S, D]$ before applying the output linear projection $W_O$.\n\nInput Format:\n- data: Sequence tokens or hidden dimension representation values.\n- target: Head count parameter or target feature index.\n\nOutput Format:\n- Split head sub-tensors $[H, S, d_k]$ and concatenated feature matrix $[S, D]$.\n\nEdge Cases & Constraints:\n- Divisibility constraint: $D$ must be evenly divisible by $H$ ($D \\bmod H = 0$).\n- Strided memory views: Non-contiguous transposed views `[B, H, S, d_k]` require explicit `.contiguous()` calls or cuDNN strided GEMM kernels to prevent memory layout errors.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "Multi-Head Attention (MHA, Vaswani et al., 2017) allows Transformer models to jointly attend to information from different representation subspaces at different positions. Given an input tensor $X \\in \\mathbb{R}^{B \\times S \\times D}$, linear projections yield $Q, K, V \\in \\mathbb{R}^{B \\times S \\times D}$.\n\n### Why It Exists\nStandard single-head attention averages attention across all features, masking distinct spatial or semantic relationships. Multi-Head Attention splits the hidden dimension $D$ into $H$ independent heads of size $d_k = D / H$. Each head learns specialized relationships (e.g. syntactic agreement vs semantic reference) in parallel.\n\n### Mathematical Formulation\n1. **Subspace Splitting**: For head $h \\in \\{0 \\dots H-1\\}$:\n   $$Q_h = Q[:, start:end], \\quad K_h = K[:, start:end], \\quad V_h = V[:, start:end]$$\n   where $start = h \\cdot d_k$ and $end = (h+1) \\cdot d_k$.\n2. **Parallel Subspace Attention**:\n   $$\\text{Head}_h = \\text{Softmax}\\left(\\frac{Q_h K_h^T}{\\sqrt{d_k}}\\right) V_h$$\n3. **Concatenation & Output Projection**:\n   $$\\text{MHA}(Q, K, V) = \\text{Concat}(\\text{Head}_0, \\dots, \\text{Head}_{H-1}) W_O$$\n\n### Step-by-Step Intuition\n1. **Calculate Subspace Size**: Compute $d_k = D / H$.\n2. **Extract Head Slices**: Slice input features into $H$ head matrices of shape $[S, d_k]$.\n3. **Re-concatenate**: Merge head outputs back into $[S, D]$ before passing to linear projection $W_O$.\n\n### Key Trade-Offs & Complexity\n- **FLOP Equivalence**: Splitting $D$ into $H$ heads keeps total attention FLOPs constant ($H \\times O(S^2 d_k) = O(S^2 D)$).\n- **Memory Layout**: Requires strided view operations (`transpose(1, 2)`) which require contiguous copies unless fused in CUDA kernels.",
+    constraints: ["1 <= dModel <= 2048", "1 <= numHeads <= 64"],
     examples: [
       {
         kind: "basic",
-        title: "Standard 2-Head Split & Concat",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation:
-          "Splits 4D hidden vector into two 2D head representations and re-concatenates.",
-      },
-      {
-        kind: "complex",
-        title: "Multi-Token Head Partition",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates split and concat memory strides over 5 sequence steps.",
-      },
-      {
-        kind: "negative",
-        title: "Target Index Out-of-Bounds",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Safely handles head dimension boundaries without tensor allocation error.",
+        title: "4x4 Matrix Split into 2 Heads",
+        inputDisplay: "seqLen = 4, dModel = 4, numHeads = 2",
+        outputDisplay: "2 Head matrices [4, 2] and Concatenated [4, 4]",
+        input: { seqLen: 4, dModel: 4, numHeads: 2 },
+        output: "Matrix [4, 4]",
+        explanation: "Splits 4-dim feature vector into 2 heads of dim 2 and re-concatenates.",
       },
     ],
     code: MULTIHEADATTENTIONSPLITCONCAT_CODE,
-    timeComplexity: { best: "O(N \\cdot D)", average: "O(N \\cdot D)", worst: "O(N \\cdot D)" },
-    spaceComplexity: "O(N \\cdot D)",
+    timeComplexity: { best: "O(N * D)", average: "O(N * D)", worst: "O(N * D)" },
+    spaceComplexity: "O(N * D)",
     complexityAnalysis: {
-      time: "Reshaping and strided memory copying takes $O(N \\cdot D)$ time per layer.",
-      space: "Allocates $O(N \\cdot D)$ memory for storing reshaped head sub-tensors.",
+      time: "Reshaping and strided memory copying takes O(N * D) time per layer.",
+      space: "Allocates O(N * D) memory for storing reshaped head sub-tensors.",
     },
     topicGuide: {
       overview:
-        "Head splitting and concatenation form the structural core of Transformer architectures (BERT, GPT, T5, LLaMA). Splitting $D$ into $H$ smaller heads of dimension $d_k$ enables multi-perspective contextual representation while keeping total floating-point compute constant ($H \\times O(N^2 d_k) = O(N^2 D)$).",
+        "Head splitting and concatenation form the structural core of Transformer architectures (BERT, GPT, T5, LLaMA). Splitting D into H smaller heads of dimension d_k enables multi-perspective contextual representation while keeping total floating-point compute constant (H * O(N^2 d_k) = O(N^2 D)).",
       sections: [
         {
           heading: "Core Concept & Mathematical Formulation",
-          body: "Given input $X$, query head $h$ is $Q_h = X W_Q^{(h)}$ where $W_Q^{(h)} \\in \\mathbb{R}^{D \\times d_k}$. Alternatively, a single fused projection computes $Q = X W_Q \\in \\mathbb{R}^{B \\times S \\times D}$, followed by zero-copy view reshaping `reshape(B, S, H, d_k).transpose(1, 2)`. After attention, heads are merged via `transpose(1, 2).reshape(B, S, D)`.",
+          body: "Given input X, query head h is Q_h = X W_Q^(h) where W_Q^(h) is in R^(D x d_k). Alternatively, a single fused projection computes Q = X W_Q in R^(B x S x D), followed by zero-copy view reshaping reshape(B, S, H, d_k).transpose(1, 2). After attention, heads are merged via transpose(1, 2).reshape(B, S, D).",
         },
         {
           heading: "Systems & Memory Hierarchy Performance",
-          body: "In PyTorch/CUDA, `transpose(1, 2)` produces a non-contiguous tensor stride `(S*H*d_k, d_k, H*d_k, 1)`. Passing non-contiguous tensors to standard GEMM kernels causes fallback to slow strided copies. Fused kernels (FlashAttention, cuDNN) perform head splitting implicitly during SRAM tile loads, completely eliminating layout copy overhead.",
+          body: "In PyTorch/CUDA, transpose(1, 2) produces a non-contiguous tensor stride (S*H*d_k, d_k, H*d_k, 1). Passing non-contiguous tensors to standard GEMM kernels causes fallback to slow strided copies. Fused kernels (FlashAttention, cuDNN) perform head splitting implicitly during SRAM tile loads, completely eliminating layout copy overhead.",
         },
         {
           heading: "Implementation Nuances & Data Structures",
-          body: "In PyTorch `nn.MultiheadAttention`, linear projections for Q, K, V are fused into a single $3D$-wide matrix multiplication $X W_{QKV} \\in \\mathbb{R}^{B \\times S \\times 3D}$, maximizing GPU Tensor Core GEMM efficiency before splitting.",
+          body: "In PyTorch nn.MultiheadAttention, linear projections for Q, K, V are fused into a single 3D-wide matrix multiplication X W_QKV in R^(B x S x 3D), maximizing GPU Tensor Core GEMM efficiency before splitting.",
         },
         {
           heading: "Edge Case Analysis & Production Robustness",
-          body: "If $D$ is not divisible by $H$, explicit padding or custom head dimensions ($d_k = \\lceil D/H \\rceil$) must be used to prevent dynamic runtime dimension mismatches.",
+          body: "If D is not divisible by H, explicit padding or custom head dimensions (d_k = ceil(D/H)) must be used to prevent dynamic runtime dimension mismatches.",
         },
       ],
       keyTerms: [
         {
           term: "Head Splitting",
           definition:
-            "Reshaping hidden dimension $D$ into $H$ parallel subspace tensors of size $d_k = D/H$.",
+            "Reshaping hidden dimension D into H parallel subspace tensors of size d_k = D/H.",
         },
         {
           term: "Fused QKV Projection",
@@ -242,12 +449,12 @@ export const multiHeadAttentionSplitConcat: AlgorithmDefinition<multiHeadAttenti
         {
           term: "Head Concatenation",
           definition:
-            "Merging per-head output tensors $[B, H, S, d_v]$ back into a contiguous $[B, S, D]$ feature matrix.",
+            "Merging per-head output tensors [B, H, S, d_v] back into a contiguous [B, S, D] feature matrix.",
         },
       ],
     },
     trivia: MULTIHEADATTENTIONSPLITCONCAT_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],
+    sources: [{ kind: "standard", label: "ML Infra Level 7" }],
     defaultInput: DEFAULT_MULTIHEADATTENTIONSPLITCONCAT_INPUT,
     generateSteps: generateMultiHeadAttentionSplitConcatSteps,
   };

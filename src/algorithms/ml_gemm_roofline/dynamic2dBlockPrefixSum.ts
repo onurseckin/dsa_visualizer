@@ -1,30 +1,35 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface dynamic2dBlockPrefixSumInput {
-  data: number[];
+  matrix?: number[][];
+  blockSize?: number;
+  data?: number[];
   target?: number;
 }
 
-export const DYNAMIC2DBLOCKPREFIXSUM_CODE = `
-def dynamic_2d_block_prefix_sum(matrix, block_size=2):
+export const DYNAMIC2DBLOCKPREFIXSUM_CODE = `def dynamic_2d_block_prefix_sum(matrix, block_size=2):
     """
     Computes 2D prefix sum using block-level reductions and intra-block scans.
     """
     rows, cols = len(matrix), len(matrix[0])
     prefix = [[0] * cols for _ in range(rows)]
-
     for r in range(rows):
         row_sum = 0
         for c in range(cols):
             row_sum += matrix[r][c]
             above = prefix[r-1][c] if r > 0 else 0
             prefix[r][c] = row_sum + above
-
-    return prefix
-`;
+    return prefix`;
 
 export const DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT: dynamic2dBlockPrefixSumInput = {
+  matrix: [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16],
+  ],
+  blockSize: 2,
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
@@ -34,76 +39,198 @@ export const generateDynamic2dBlockPrefixSumSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const matrix =
+    input.matrix && input.matrix.length > 0
+      ? input.matrix
+      : [
+          [1, 2, 3, 4],
+          [5, 6, 7, 8],
+          [9, 10, 11, 12],
+          [13, 14, 15, 16],
+        ];
+
+  const blockSize = Math.max(input.blockSize ?? 2, 1);
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+
+  const prefix: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+  const getMatrixSnapshot = (
+    currentR?: number,
+    currentC?: number,
+    phase: string = "init",
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const isCurrent = r === currentR && c === currentC;
+        const isAbove = currentR !== undefined && currentC !== undefined && r === currentR - 1 && c === currentC;
+        const isComputed =
+          currentR !== undefined && (r < currentR || (r === currentR && c <= (currentC ?? -1)));
+
+        let state: MatrixCellItem["state"] = "default";
+        if (isCurrent) {
+          state = "active";
+        } else if (isAbove) {
+          state = "compared";
+        } else if (isComputed || phase === "complete") {
+          state = "sorted";
+        }
+
+        const valDisplay = isComputed || phase === "complete" ? prefix[r][c] : matrix[r][c];
+
+        cells.push({
+          row: r,
+          col: c,
+          value: valDisplay,
+          label: `P[${r},${c}]`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows,
+      cols,
+      title: `2D Prefix Sum Matrix (${rows}x${cols}, BlockSize=${blockSize})`,
+      rowHeaders: Array.from({ length: rows }, (_, idx) => `Row ${idx}`),
+      colHeaders: Array.from({ length: cols }, (_, idx) => `Col ${idx}`),
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    currentR?: number,
+    currentC?: number,
+    phase: string = "init",
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getMatrixSnapshot(currentR, currentC, phase),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          rows: String(rows),
+          cols: String(cols),
+          blockSize: String(blockSize),
+          matrix: JSON.stringify(matrix),
+          prefix: JSON.stringify(prefix),
         },
       },
       variables,
     });
   };
 
+  // Line 1: Setup
   addStep(
     1,
     "Initialize Block-Tiled 2D Prefix Sum Engine",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    `Configured ${rows}x${cols} input matrix for 2D cumulative prefix calculation with block size ${blockSize}.`,
+    { rows, cols, block_size: blockSize },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in memory layout.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
+  // Line 5: Read dimensions
   addStep(
-    15,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    5,
+    "Read Matrix Dimensions",
+    `Matrix has ${rows} rows and ${cols} columns.`,
+    { rows, cols },
+  );
+
+  // Line 6: Allocate prefix matrix
+  addStep(
+    6,
+    "Allocate 2D Prefix Sum Matrix",
+    `Allocated ${rows}x${cols} prefix matrix initialized to zeroes.`,
+    { rows, cols },
+  );
+
+  // Lines 7-12: 2D prefix computation loops
+  for (let r = 0; r < rows; r++) {
+    addStep(
+      7,
+      `Begin Row r=${r}`,
+      `Iterating across row ${r} of matrix.`,
+      { r },
+      r,
+      undefined,
+      "row_start",
+    );
+
+    let rowSum = 0;
+    addStep(
+      8,
+      `Initialize Running Row Sum Accumulator (row_sum = 0)`,
+      `Reset running row sum accumulator for row ${r}.`,
+      { r, row_sum: rowSum },
+      r,
+      undefined,
+      "row_sum_init",
+    );
+
+    for (let c = 0; c < cols; c++) {
+      addStep(
+        9,
+        `Iterate Column c=${c}`,
+        `Processing element matrix[${r}][${c}] = ${matrix[r][c]}.`,
+        { r, c, val: matrix[r][c] },
+        r,
+        c,
+        "col_iter",
+      );
+
+      rowSum += matrix[r][c];
+      addStep(
+        10,
+        `Accumulate Row Sum: row_sum += matrix[${r}][${c}] (${rowSum})`,
+        `Added matrix[${r}][${c}] (${matrix[r][c]}) to running row accumulator. row_sum = ${rowSum}.`,
+        { r, c, val: matrix[r][c], row_sum: rowSum },
+        r,
+        c,
+        "row_sum_add",
+      );
+
+      const above = r > 0 ? prefix[r - 1][c] : 0;
+      addStep(
+        11,
+        `Fetch Prefix Above: prefix[${r - 1}][${c}] = ${above}`,
+        `Fetched cumulative carry-in sum from row above (${r > 0 ? `prefix[${r - 1}][${c}]` : "boundary 0"}).`,
+        { r, c, above },
+        r,
+        c,
+        "fetch_above",
+      );
+
+      prefix[r][c] = rowSum + above;
+      addStep(
+        12,
+        `Store Prefix Entry: prefix[${r}][${c}] = row_sum + above (${prefix[r][c]})`,
+        `Stored cumulative 2D prefix sum value ${prefix[r][c]} at position (${r}, ${c}).`,
+        { r, c, row_sum: rowSum, above, prefix_val: prefix[r][c] },
+        r,
+        c,
+        "store_prefix",
+      );
+    }
+  }
+
+  // Line 13: Return
+  addStep(
+    13,
+    "2D Prefix Sum Complete",
+    "Successfully computed 2D cumulative prefix matrix.",
     { completed: true },
-    finalElements,
+    undefined,
+    undefined,
+    "complete",
   );
 
   return steps;
@@ -112,22 +239,28 @@ export const generateDynamic2dBlockPrefixSumSteps = (
 const DYNAMIC2DBLOCKPREFIXSUM_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "prefix[r][c] = matrix[r][c] + prefix[r-1][c-1]  # Missing 2D inclusion-exclusion terms",
+    "row_sum = matrix[r][c]  # Resetting row accumulator instead of summing",
+    "return matrix[::-1]",
   ],
-  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
+  hints: [
+    { line: 10, hint: "Maintain running row accumulator row_sum across consecutive columns." },
+    { line: 12, hint: "Add carry-in sum from preceding row above to compute 2D prefix sum entry." },
+  ],
   lineExplanations: {
-    1: "Defines block-tiled 2D prefix sum engine function.",
-    4: "Gets matrix row count M and column count N.",
-    5: "Allocates M x N prefix sum result matrix initialized to 0.",
-    7: "Iterates through matrix row index r.",
-    8: "Initializes running row sum accumulator to 0.",
-    9: "Iterates through matrix column index c.",
-    10: "Adds matrix[r][c] to running row sum accumulator.",
-    11: "Fetches prefix value from row above prefix[r-1][c] if r > 0.",
-    12: "Computes prefix[r][c] = row_sum + above.",
-    14: "Returns computed 2D prefix sum cumulative matrix.",
+    1: "Defines dynamic_2d_block_prefix_sum function taking matrix and block_size parameters.",
+    2: "Starts docstring detailing 2D prefix sum calculation via block reductions.",
+    3: "Explains computing row-wise reductions combined with column carry-in propagation.",
+    4: "Closes function docstring.",
+    5: "Gets row count rows and column count cols of input matrix.",
+    6: "Allocates rows x cols prefix matrix initialized to zeroes.",
+    7: "Iterates through row indices r from 0 to rows - 1.",
+    8: "Initializes running row sum accumulator row_sum to 0 for current row.",
+    9: "Iterates through column indices c from 0 to cols - 1.",
+    10: "Adds input scalar matrix[r][c] to running row accumulator row_sum.",
+    11: "Fetches prefix value from preceding row above (prefix[r-1][c]) if r > 0, else 0.",
+    12: "Stores cumulative 2D prefix value: prefix[r][c] = row_sum + above.",
+    13: "Returns computed 2D cumulative prefix matrix.",
   },
 };
 
@@ -140,78 +273,92 @@ export const dynamic2dBlockPrefixSum: AlgorithmDefinition<dynamic2dBlockPrefixSu
   isMlInfra: true,
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
-  description:
-    "Parallel 2D prefix sums (integral images) on GPUs require partitioning large matrices into thread block tiles. Each CUDA thread block computes local intra-block prefix scans in SRAM before propagating block-level carry-in sums across grid boundaries.\n\nThis algorithm implements Block-Tiled 2D Prefix Sum Engine, performing row-wise accumulation combined with column carry-in propagation to compute a 2D cumulative prefix matrix.\n\nInput Format:\n- data: Array representing matrix elements.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns 2D prefix sum cumulative matrix.\n\nEdge Cases & Constraints:\n- Single-row or single-column matrices.\n- Block sizes larger than matrix dimensions.\n- Zero or negative values in input matrix.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+  description: `2D Prefix Sums (also known as Integral Images or Summed-Area Tables) enable $\\mathcal{O}(1)$ constant-time queries for submatrix bounding box sums. They are widely used in Computer Vision, Convolutional Neural Network feature mapping, and GPU data parallel primitives.
+
+On GPUs, computing a 2D prefix sum over large matrices requires partitioning the grid into thread blocks. Each thread block computes intra-block prefix scans in on-chip SRAM before performing a global inter-block scan pass to propagate carry-in sums across block boundaries. The inclusion-exclusion formula for submatrix sum in $[r_1..r_2, c_1..c_2]$ is:
+$$\\text{Sum} = P[r_2][c_2] - P[r_1-1][c_2] - P[r_2][c_1-1] + P[r_1-1][c_1-1]$$
+
+This algorithm simulates a Block-Tiled 2D Prefix Sum Engine step-by-step, visualizing row-wise accumulation, column carry-in propagation from preceding rows, and matrix snapshot generation.`,
+  constraints: ["1 <= rows, cols <= 64", "1 <= blockSize <= 16"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Execution",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      title: "Standard 4x4 2D Prefix Sum",
+      inputDisplay: "Matrix (4x4), BlockSize = 2",
+      outputDisplay: "4x4 Cumulative Prefix Matrix Generated",
       input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
-      output: "[10, 20, 30]",
-      explanation: "Standard execution pass.",
+      output: "4x4 Cumulative Prefix Matrix Generated",
+      explanation: "Computes 2D prefix sums by combining horizontal row scans with vertical carry-in propagation.",
     },
     {
       kind: "complex",
-      title: "Complex Execution",
-      inputDisplay: "data = [10, 20, 30, 40, 50]",
-      outputDisplay: "[10, 20, 30, 40, 50]",
-      input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Evaluates workload performance boundaries.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: DEFAULT_DYNAMIC2DBLOCKPREFIXSUM_INPUT,
-      output: "[5, 10, 15]",
-      explanation: "Edge case execution completes safely.",
+      title: "3x3 Identity Grid",
+      inputDisplay: "Matrix (3x3 Ones), BlockSize = 2",
+      outputDisplay: "Prefix Matrix [[1,2,3],[2,4,6],[3,6,9]]",
+      input: {
+        matrix: [
+          [1, 1, 1],
+          [1, 1, 1],
+          [1, 1, 1],
+        ],
+        blockSize: 2,
+      },
+      output: "Prefix Matrix [[1,2,3],[2,4,6],[3,6,9]]",
+      explanation: "Evaluates exact submatrix area sums for a uniform 3x3 grid.",
     },
   ],
   code: DYNAMIC2DBLOCKPREFIXSUM_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(M * N)", average: "O(M * N)", worst: "O(M * N)" },
+  spaceComplexity: "O(M * N)",
   complexityAnalysis: {
-    time: "Execution time complexity pass across input elements.",
-    space: "Memory allocation space for result structures.",
+    time: "Requires O(M * N) linear time to compute 2D prefix entries across M rows and N columns.",
+    space: "O(M * N) space to store the output cumulative prefix sum matrix.",
   },
   topicGuide: {
     overview:
-      "Block-tiled prefix sums enable parallel scan execution across thousands of GPU cores. By splitting matrices into 2D tiles, thread blocks scan local tiles independently before executing a global block-level prefix pass to distribute carry sums.",
+      "2D Prefix Sums (Summed-Area Tables) allow calculating the sum of elements in any arbitrary rectangular submatrix in $\\mathcal{O}(1)$ constant time, regardless of bounding box dimensions. Parallel implementations partition work across GPU thread blocks, using shared memory scan algorithms (e.g. Blelloch / Hillis-Steele scans).",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, 2D prefix sum entry P[r][c] = sum_{i=0}^r sum_{j=0}^c M[i][j]. Recurrence relation is P[r][c] = M[r][c] + P[r-1][c] + P[r][c-1] - P[r-1][c-1].",
+        heading: "Why It Exists & Theoretical Foundations",
+        body: "Mathematically, the 2D prefix sum entry $P[r][c]$ represents the sum of all matrix elements in rectangle $[0..r, 0..c]$:\n$$P[r][c] = \\sum_{i=0}^r \\sum_{j=0}^c M[i][j]$$\nThe recurrence relation is $P[r][c] = M[r][c] + P[r-1][c] + P[r][c-1] - P[r-1][c-1]$. Querying any submatrix sum between top-left $(r_1, c_1)$ and bottom-right $(r_2, c_2)$ takes constant time:\n$$\\text{Sum} = P[r_2][c_2] - P[r_1-1][c_2] - P[r_2][c_1-1] + P[r_1-1][c_1-1]$$",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "Parallel scan algorithms (Blelloch scan) in shared memory compute intra-block prefix sums in O(log N) parallel steps per block, drastically outperforming serial CPU scans.",
+        heading: "What It Solves & Real-World Applications",
+        body: "2D prefix sums solve performance bottlenecks in box filter blurring, Viola-Jones object detection, attention map subgrid pooling, spatial feature extraction, and GPU ray-tracing spatial acceleration.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation maintains running row sums while accumulating values from preceding row prefix entries above.",
+        heading: "Step-by-Step Intuition & Worked Example",
+        body: "Given row 0 `[1, 2, 3, 4]` and row 1 `[5, 6, 7, 8]`:\n1. Row 0 running row sums: `[1, 3, 6, 10]`. Prefix Row 0 = `[1, 3, 6, 10]`.\n2. Row 1 running row sums: `[5, 11, 18, 26]`.\n3. Adding Prefix Row 0 above yields Prefix Row 1 = `[5+1=6, 11+3=14, 18+6=24, 26+10=36]`.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes boundary row r = 0 and column c = 0 guards.",
+        heading: "Trade-offs & Hardware Realities",
+        body: "Parallel GPU 2D prefix scans require two-pass execution: Pass 1 computes local intra-block prefix scans within SRAM; Pass 2 performs a global block carry-in distribution. While CPU scans execute serially in $\\mathcal{O}(M \\times N)$ steps, GPU parallel scans execute in $\\mathcal{O}(\\log(M \\times N))$ parallel time steps.",
+      },
+      {
+        heading: "Time & Space Complexity Analysis",
+        body: "Time Complexity: $\\mathcal{O}(M \\times N)$ total addition operations. Query Complexity: $\\mathcal{O}(1)$ constant time per submatrix bounding box sum. Space Complexity: $\\mathcal{O}(M \\times N)$ auxiliary memory for the prefix matrix.",
       },
     ],
     keyTerms: [
       {
-        term: "Block-Tiled Scan",
-        definition: "Partitioning data arrays into tiles processed by independent thread blocks.",
+        term: "Integral Image / Summed-Area Table",
+        definition:
+          "Data structure storing cumulative 2D prefix sums for instant bounding box area queries.",
       },
       {
         term: "Carry-In Sum",
-        definition: "The cumulative offset passed from preceding block tiles to downstream tiles.",
+        definition:
+          "The cumulative offset value passed from preceding thread blocks or rows into downstream scans.",
       },
       {
-        term: "Parallel Scan",
-        definition: "Algorithm computing prefix sums in logarithmic time on parallel processors.",
+        term: "Inclusion-Exclusion Principle",
+        definition:
+          "Mathematical formula adding top-left and subtracting overlapping bounds to query submatrix sums.",
+      },
+      {
+        term: "Blelloch Parallel Scan",
+        definition:
+          "Work-efficient work-parallel algorithm executing scan trees in O(N) operations.",
       },
     ],
   },

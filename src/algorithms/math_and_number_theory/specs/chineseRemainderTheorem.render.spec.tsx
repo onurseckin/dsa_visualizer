@@ -1,20 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import ArrayVisualizer from "../../../components/primitives/ArrayVisualizer";
+import { MatrixVisualizer } from "../../../components/primitives/MatrixVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import {
   generateChineseRemainderSteps,
   DEFAULT_CHINESE_REMAINDER_INPUT,
 } from "../chineseRemainderTheorem";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("chineseRemainderTheorem React component spec", () => {
-  it("renders ArrayVisualizer with Chinese Remainder Theorem snapshot", () => {
+  it("renders MatrixVisualizer with Chinese Remainder Theorem snapshot", () => {
     const steps = generateChineseRemainderSteps(DEFAULT_CHINESE_REMAINDER_INPUT);
-    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as MatrixVisualSnapshot;
 
-    render(<ArrayVisualizer elements={snapshot.elements} title="Chinese Remainder Theorem" />);
+    render(
+      <MatrixVisualizer
+        rows={snapshot.rows}
+        cols={snapshot.cols}
+        cells={snapshot.cells}
+        rowHeaders={snapshot.rowHeaders}
+        colHeaders={snapshot.colHeaders}
+        title="Chinese Remainder Theorem"
+      />,
+    );
 
     expect(screen.getByText("Chinese Remainder Theorem")).toBeInTheDocument();
   });

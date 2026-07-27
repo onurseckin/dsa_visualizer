@@ -11,21 +11,38 @@ describe("nimGame algorithm logic spec", () => {
     expect(nimGame.defaultInput).toEqual(DEFAULT_NIM_INPUT);
   });
 
-  it("should ship a topic guide teaching the Nim-sum and Grundy values", () => {
+  it("should teach the topic through a topicGuide with Markdown and LaTeX", () => {
     const guide = nimGame.topicGuide;
+    expect(guide.overview.length).toBeGreaterThan(120);
     expect(guide.overview).toContain("Nim-sum");
     expect(guide.sections.length).toBeGreaterThanOrEqual(4);
     expect(guide.sections.length).toBeLessThanOrEqual(6);
     guide.sections.forEach((section) => {
       expect(section.heading.length).toBeGreaterThan(0);
-      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
+      expect(section.body.length).toBeGreaterThan(50);
     });
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Grundy value");
+
+    const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(" ");
+    expect(allText).toContain("$");
   });
 
-  it("should generate valid steps and calculate XOR sum for default input [3, 4, 5]", () => {
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = nimGame.code.split("\n");
+    const lineExplanations = nimGame.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should generate at least 20 steps and calculate XOR sum for default input [3, 4, 5]", () => {
     const steps = generateNimGameSteps(DEFAULT_NIM_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);

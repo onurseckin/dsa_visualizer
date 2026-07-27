@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface fp16ModelMemoryFootprintCalculatorInput {
@@ -57,99 +57,288 @@ export const generateFp16ModelMemoryFootprintCalculatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const layerCounts = input.data.length > 0 ? input.data : [1000000, 2000000, 3000000, 4000000];
+  const totalParams = layerCounts.reduce((a, b) => a + b, 0);
 
-  const totalParams = input.data.reduce((a, b) => a + b, 0);
+  const tiers = [
+    { name: "FP16 Parameters", multiplier: 2, key: "fp16_params" },
+    { name: "FP16 Gradients", multiplier: 2, key: "fp16_grads" },
+    { name: "FP32 Master Weights", multiplier: 4, key: "fp32_master" },
+    { name: "FP32 Adam Momentum (m)", multiplier: 4, key: "adam_m" },
+    { name: "FP32 Adam Variance (v)", multiplier: 4, key: "adam_v" },
+  ];
+
+  const buildMatrixCells = (
+    activeTierIdx?: number,
+    completedTierIndices: number[] = [],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+    const totalBytes = totalParams * 16;
+
+    for (let r = 0; r < tiers.length; r++) {
+      const tier = tiers[r];
+      const tierBytes = totalParams * tier.multiplier;
+      const tierMB = (tierBytes / (1024 * 1024)).toFixed(2);
+      const tierGB = (tierBytes / (1024 ** 3)).toFixed(4);
+      const pct = totalBytes > 0 ? ((tierBytes / totalBytes) * 100).toFixed(1) + "%" : "0%";
+
+      const isDone = completedTierIndices.includes(r);
+      const isActive = r === activeTierIdx;
+
+      const rowValues = [tier.name, `${tier.multiplier} Bytes`, `${tierMB} MB`, `${tierGB} GB`, pct];
+
+      for (let c = 0; c < 5; c++) {
+        let state: MatrixCellItem["state"] = "default";
+        if (isDone) state = "sorted";
+        else if (isActive) state = "active";
+
+        cells.push({
+          row: r,
+          col: c,
+          value: rowValues[c],
+          label: `${tier.name} (col ${c})`,
+          state,
+        });
+      }
+    }
+    return cells;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeTierIdx?: number,
+    completedTierIndices: number[] = [],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: tiers.length,
+        cols: 5,
+        rowHeaders: tiers.map((t) => t.name),
+        colHeaders: ["Tier Component", "Bytes / Param", "Allocation (MB)", "Allocation (GB)", "% Total VRAM"],
+        cells: buildMatrixCells(activeTierIdx, completedTierIndices),
       },
       auxiliaryState: {
         customState: {
-          layerParams: `[${input.data.join(", ")}]`,
           totalParams: String(totalParams),
+          totalStaticGB: ( (totalParams * 16) / (1024 ** 3) ).toFixed(3),
+          bytesPerParam: "16 Bytes",
+          activeTier: activeTierIdx !== undefined ? tiers[activeTierIdx].name : "None",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
-    "Initialize Mixed-Precision 16-Psi Model Memory Calculator",
-    "Aggregating parameter counts across all model layers to compute 16-Psi memory allocations.",
-    { total_layers: input.data.length, total_params: totalParams },
+    "Enter fp16_model_memory_footprint_calculator",
+    `Initializing 16-Psi static memory footprint calculation for model with ${layerCounts.length} layers.`,
+    { layer_count: layerCounts.length, optimizer: "adam" },
   );
 
-  let runningSum = 0;
-  input.data.forEach((val, idx) => {
-    runningSum += val;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`Layer-${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
+  // Step 2: Summing layer params
+  let runningParams = 0;
+  for (let l = 0; l < layerCounts.length; l++) {
+    runningParams += layerCounts[l];
     addStep(
-      15,
-      `Layer ${idx}: ${val} parameters -> Running Total: ${runningSum}`,
-      `Accumulating ${val} parameters from layer ${idx} for baseline calculation.`,
-      { layer_idx: idx, layer_params: val, running_total: runningSum },
-      currentElements,
+      21,
+      `Layer ${l}: Accumulate ${layerCounts[l]} Parameters`,
+      `Accumulated layer ${l} parameter count into total_params running sum (${runningParams} params).`,
+      { layer: l, layer_params: layerCounts[l], running_params: runningParams },
     );
-  });
-
-  const fp16ParamsMB = (totalParams * 2) / (1024 * 1024);
-  const fp16GradsMB = (totalParams * 2) / (1024 * 1024);
-  const fp32MasterMB = (totalParams * 4) / (1024 * 1024);
-  const adamStatesMB = (totalParams * 8) / (1024 * 1024);
-  const totalStaticGB = (totalParams * 16) / (1024 * 1024 * 1024);
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  }
 
   addStep(
+    21,
+    "Compute Total Parameters Sum",
+    `Calculated total_params = sum(layer_param_counts) = ${totalParams} parameters.`,
+    { total_params: totalParams },
+  );
+
+  addStep(
+    22,
+    "Validate Total Parameters > 0",
+    `Checking if total_params (${totalParams}) <= 0. Validation passed.`,
+    { total_params: totalParams, valid: true },
+  );
+
+  const completedTiers: number[] = [];
+
+  // Step: FP16 Params (2 Bytes)
+  const fp16ParamsBytes = totalParams * 2;
+  addStep(
+    25,
+    "Compute FP16 Model Parameters Memory (2-Psi)",
+    `fp16_params_bytes = ${totalParams} * 2 = ${fp16ParamsBytes} bytes (${(fp16ParamsBytes / (1024 * 1024)).toFixed(2)} MB).`,
+    { fp16_params_bytes: fp16ParamsBytes },
+    0,
+    completedTiers,
+  );
+  completedTiers.push(0);
+
+  // Step: FP16 Gradients (2 Bytes)
+  const fp16GradsBytes = totalParams * 2;
+  addStep(
+    26,
+    "Compute FP16 Gradients Memory (2-Psi)",
+    `fp16_grads_bytes = ${totalParams} * 2 = ${fp16GradsBytes} bytes (${(fp16GradsBytes / (1024 * 1024)).toFixed(2)} MB).`,
+    { fp16_grads_bytes: fp16GradsBytes },
+    1,
+    completedTiers,
+  );
+  completedTiers.push(1);
+
+  // Step: FP32 Master Params (4 Bytes)
+  const fp32MasterBytes = totalParams * 4;
+  addStep(
+    27,
+    "Compute FP32 Master Parameters Memory (4-Psi)",
+    `fp32_master_params_bytes = ${totalParams} * 4 = ${fp32MasterBytes} bytes (${(fp32MasterBytes / (1024 * 1024)).toFixed(2)} MB).`,
+    { fp32_master_bytes: fp32MasterBytes },
+    2,
+    completedTiers,
+  );
+  completedTiers.push(2);
+
+  // Step: Check optimizer
+  addStep(
+    29,
+    "Check Optimizer Type ('adam')",
+    "Evaluating if optimizer_type.lower() == 'adam'. Verified Adam optimizer (requires 8B per param).",
+    { optimizer_type: "adam", requires_8b: true },
+    3,
+    completedTiers,
+  );
+
+  // Step: Adam Momentum m (4 Bytes)
+  addStep(
     30,
-    "Execution Complete",
-    `16-Psi Memory Breakdown: FP16 Params=${fp16ParamsMB.toFixed(1)}MB, Grads=${fp16GradsMB.toFixed(1)}MB, FP32 Master=${fp32MasterMB.toFixed(1)}MB, Adam States=${adamStatesMB.toFixed(1)}MB. Total Static VRAM=${totalStaticGB.toFixed(3)}GB.`,
-    {
-      completed: true,
-      total_params: totalParams,
-      fp16_params_mb: Math.round(fp16ParamsMB),
-      fp16_grads_mb: Math.round(fp16GradsMB),
-      fp32_master_mb: Math.round(fp32MasterMB),
-      adam_states_mb: Math.round(adamStatesMB),
-      total_static_gb: parseFloat(totalStaticGB.toFixed(3)),
-    },
-    finalElements,
+    "Compute Adam First-Moment (m) Vector Memory (4-Psi)",
+    `Adam first moment m requires 4 bytes per param = ${totalParams * 4} bytes.`,
+    { adam_m_bytes: totalParams * 4 },
+    3,
+    completedTiers,
+  );
+  completedTiers.push(3);
+
+  // Step: Adam Variance v (4 Bytes)
+  addStep(
+    30,
+    "Compute Adam Second-Moment Variance (v) Vector Memory (4-Psi)",
+    `Adam second moment v requires 4 bytes per param = ${totalParams * 4} bytes. Total optimizer states = 8-Psi bytes.`,
+    { adam_v_bytes: totalParams * 4, total_optimizer_bytes: totalParams * 8 },
+    4,
+    completedTiers,
+  );
+  completedTiers.push(4);
+
+  // Step: Sum total static bytes
+  const totalStaticBytes = totalParams * 16;
+  addStep(
+    34,
+    "Sum Total Static Memory Bytes (16-Psi Formula)",
+    `total_static_bytes = 2B (params) + 2B (grads) + 4B (master) + 8B (adam) = 16 * ${totalParams} = ${totalStaticBytes} bytes.`,
+    { total_static_bytes: totalStaticBytes },
+    undefined,
+    completedTiers,
+  );
+
+  // Step-by-step return dictionary construction
+  addStep(
+    38,
+    "Begin Constructing Return Dictionary",
+    "Populating static memory footprint dictionary payload.",
+    { total_params: totalParams },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    39,
+    "Set total_params = " + totalParams,
+    `Assigning "total_params": ${totalParams}.`,
+    { total_params: totalParams },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    40,
+    `Set fp16_params_mb = ${(fp16ParamsBytes / (1024 * 1024)).toFixed(2)} MB`,
+    "Converting FP16 parameters bytes to MB.",
+    { fp16_params_mb: fp16ParamsBytes / (1024 * 1024) },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    41,
+    `Set fp16_grads_mb = ${(fp16GradsBytes / (1024 * 1024)).toFixed(2)} MB`,
+    "Converting FP16 gradients bytes to MB.",
+    { fp16_grads_mb: fp16GradsBytes / (1024 * 1024) },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    42,
+    `Set fp32_master_mb = ${(fp32MasterBytes / (1024 * 1024)).toFixed(2)} MB`,
+    "Converting FP32 master weights bytes to MB.",
+    { fp32_master_mb: fp32MasterBytes / (1024 * 1024) },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    43,
+    `Set optimizer_states_mb = ${((totalParams * 8) / (1024 * 1024)).toFixed(2)} MB`,
+    "Converting Adam optimizer states bytes to MB.",
+    { optimizer_states_mb: (totalParams * 8) / (1024 * 1024) },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    44,
+    `Set total_static_gb = ${(totalStaticBytes / (1024 ** 3)).toFixed(4)} GB`,
+    "Converting total static bytes to Gigabytes (GB).",
+    { total_static_gb: totalStaticBytes / (1024 ** 3) },
+    undefined,
+    completedTiers,
+  );
+
+  addStep(
+    45,
+    "Set bytes_per_parameter = 16",
+    "Confirmed exact 16-Psi multiplier for FP16 mixed-precision training.",
+    { bytes_per_parameter: 16 },
+    undefined,
+    completedTiers,
+  );
+
+  // Return step
+  addStep(
+    46,
+    "Return Static Memory Footprint Dictionary",
+    `Successfully calculated static VRAM footprint of ${(totalStaticBytes / (1024 ** 3)).toFixed(3)} GB (16 Bytes/Parameter).`,
+    { completed: true, total_gb: totalStaticBytes / (1024 ** 3) },
+    undefined,
+    completedTiers,
   );
 
   return steps;
 };
 
 const FP16MODELMEMORYFOOTPRINTCALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   distractors: [
     "total_memory = total_params * 2  # Only FP16 params needed",
     "torch.cuda.empty_cache()",
@@ -157,18 +346,49 @@ const FP16MODELMEMORYFOOTPRINTCALCULATOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 15,
+      line: 25,
       hint: "FP16 training static memory requires 16 bytes per parameter (2B params + 2B grads + 4B master + 8B Adam).",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for FP16 mixed-precision model memory footprint calculator.",
-    14: "Sums parameter counts across all model layers.",
-    18: "Computes 2B per parameter for FP16 weights.",
-    19: "Computes 2B per parameter for FP16 gradients.",
-    20: "Computes 4B per parameter for FP32 master weights.",
-    23: "Computes 8B per parameter for Adam optimizer states (first & second momentum).",
-    30: "Returns complete memory breakdown dictionary in MB and GB.",
+    2: "Starts docstring detailing FP16 static VRAM calculation.",
+    3: "Describes calculating static memory footprint for FP16 mixed-precision LLM training.",
+    4: "Details 16-Psi breakdown: 2B params + 2B grads + 4B master + 8B Adam states.",
+    5: "Blank line in docstring.",
+    6: "Docstring section header for input arguments.",
+    7: "Docstring describing layer_param_counts parameter list.",
+    8: "Docstring describing optimizer_type parameter.",
+    9: "Blank line in docstring.",
+    10: "Docstring section header for return value.",
+    11: "Docstring describing memory allocation dictionary in MB and GB.",
+    12: "Closes docstring block.",
+    13: "Sums parameter counts across all model layers to find total_params.",
+    14: "Validates positive total parameter count.",
+    15: "Returns zero memory dictionary if total_params <= 0.",
+    16: "Blank line before memory calculations.",
+    17: "Computes 2 bytes per parameter for FP16 model weights.",
+    18: "Computes 2 bytes per parameter for FP16 gradients.",
+    19: "Computes 4 bytes per parameter for FP32 master weights.",
+    20: "Blank line before optimizer condition.",
+    21: "Checks if optimizer is Adam.",
+    22: "Assigns 8 bytes per parameter for Adam optimizer states (4B momentum + 4B variance).",
+    23: "Else block for non-Adam optimizers.",
+    24: "Assigns 4 bytes per parameter for momentum optimizers.",
+    25: "Blank line before summing total static bytes.",
+    26: "Starts tuple addition of static memory component bytes.",
+    27: "Adds FP16 params, FP16 grads, FP32 master params, and optimizer states.",
+    28: "Closes total_static_bytes summation expression.",
+    29: "Blank line before return dictionary construction.",
+    30: "Starts dictionary construction for memory breakdown results.",
+    31: "Includes total_params key.",
+    32: "Converts FP16 parameters bytes to Megabytes.",
+    33: "Converts FP16 gradients bytes to Megabytes.",
+    34: "Converts FP32 master parameters bytes to Megabytes.",
+    35: "Converts optimizer states bytes to Megabytes.",
+    36: "Converts total static bytes to Gigabytes (GB).",
+    37: "Calculates bytes_per_parameter integer ratio.",
+    38: "Closes return dictionary construct.",
   },
 };
 
@@ -183,7 +403,7 @@ export const fp16ModelMemoryFootprintCalculator: AlgorithmDefinition<fp16ModelMe
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "Mixed-Precision FP16/BF16 training using the Adam optimizer requires tracking static memory allocations per parameter $\\Psi$:\n1. FP16 Model Parameters ($2\\Psi$ bytes)\n2. FP16 Gradients ($2\\Psi$ bytes)\n3. FP32 Master Parameters ($4\\Psi$ bytes)\n4. FP32 Adam Optimizer States: Momentum $m$ ($4\\Psi$ bytes) + Variance $v$ ($4\\Psi$ bytes)\n\nThis yields the standard $16\\Psi$ bytes static VRAM footprint equation for mixed-precision LLM training.\n\nInput Format:\n- data: Array of parameter counts per layer or block (e.g. `[1000000, 2000000]`).\n- target: Expected bytes per parameter multiplier (default `16`).\n\nOutput Format:\n- Returns detailed memory allocations (in MB and GB) for parameters, gradients, FP32 master weights, and optimizer momentum/variance.\n\nEdge Cases & Constraints:\n- Master weight precision: FP32 master weights are required in FP16 training to prevent underflow during optimizer parameter updates.\n- BF16 vs FP16: BF16 shares the exact same 16-byte multiplier as FP16 under Adam.\n- ZeRO Sharding: ZeRO-1 shards optimizer states ($8\\Psi / N$), ZeRO-2 shards gradients ($2\\Psi / N$), ZeRO-3 shards parameters ($2\\Psi / N$).",
+      "Mixed-Precision FP16/BF16 training using the Adam optimizer requires tracking static memory allocations per parameter $\\Psi$:\n\n### Why It Exists & Problem Solved\nModern LLMs cannot be trained directly in pure FP32 due to massive GPU VRAM consumption. While computing matrix multiplications (GEMMs) in FP16 cuts tensor math execution time by 2x-4x on Tensor Cores, updating FP16 weights directly with small gradients causes numerical underflow to zero. Mixed-precision training solves this by maintaining high-precision FP32 master weights and optimizer states while executing forward and backward passes in FP16.\n\n### Step-by-Step Intuition\n1. **FP16 Model Weights ($2\\Psi$ bytes)**: Active weights used in forward pass GEMMs.\n2. **FP16 Gradients ($2\\Psi$ bytes)**: Backpropagated gradients computed during backward pass.\n3. **FP32 Master Weights ($4\\Psi$ bytes)**: High-precision weight copies updated by the optimizer.\n4. **FP32 Adam States ($8\\Psi$ bytes)**: $4\\Psi$ bytes for first-moment momentum ($m$) + $4\\Psi$ bytes for second-moment variance ($v$).\n5. **Total Footprint**: $2\\Psi + 2\\Psi + 4\\Psi + 8\\Psi = 16\\Psi$ bytes per parameter!\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ linear step over layer parameter array.\n- **Space Complexity**: $O(1)$ scalar memory computation.\n- **VRAM Constraint**: A 7B parameter model requires $7 \\times 10^9 \\times 16 = 112$ GB static VRAM, exceeding single 80GB H100 capacity and requiring ZeRO memory sharding.",
     constraints: ["1 <= data.length <= 100", "1 <= data[i] <= 10^10"],
     examples: [
       {
@@ -228,20 +448,20 @@ export const fp16ModelMemoryFootprintCalculator: AlgorithmDefinition<fp16ModelMe
         "Mixed-Precision FP16 training requires 16 bytes of static GPU VRAM per parameter (2B FP16 params + 2B FP16 grads + 4B FP32 master params + 8B Adam states).",
       sections: [
         {
-          heading: "Core Concepts",
-          body: "FP16 Tensor Cores compute GEMMs at 2x throughput of FP32. However, directly updating FP16 weights with small gradient learning rates causes underflow to zero due to FP16's limited 10-bit mantissa. Mixed-precision maintains an FP32 master copy of weights. The Adam optimizer updates FP32 master weights using FP32 momentum ($m$) and variance ($v$) states, which are then cast back to FP16 for the next forward pass.",
+          heading: "Why It Exists & Problem Solved",
+          body: "FP16 Tensor Cores compute GEMMs at 2x throughput of FP32. However, directly updating FP16 weights with small gradient learning rates causes underflow to zero due to FP16's limited 10-bit mantissa. Mixed-precision maintains an FP32 master copy of weights. The Adam optimizer updates FP32 master weights using FP32 momentum (m) and variance (v) states, which are then cast back to FP16 for the next forward pass.",
         },
         {
-          heading: "Systems & Bandwidth Impact",
-          body: "A 7B parameter LLM requires $7 \\times 10^9 \\times 16 = 112$ GB of VRAM just for static model states during training (excluding activation memory). This exceeds the 80GB VRAM capacity of an NVIDIA H100 GPU, necessitating memory optimization techniques like ZeRO-1/2/3 parameter sharding, activation checkpointing, or 8-bit optimizers.",
+          heading: "Step-by-Step Intuition",
+          body: "1. Model weights are stored in FP16 (2 bytes/param) for fast forward pass computation.\n2. Backpropagation computes FP16 gradients (2 bytes/param).\n3. Adam optimizer reads FP32 master parameters (4 bytes/param) and updates first/second moment vectors (8 bytes/param).\n4. Total static memory per parameter = 2 + 2 + 4 + 8 = 16 bytes.",
         },
         {
-          heading: "Implementation Nuances & Edge Cases",
-          body: "Activation memory (storing intermediate hidden layer tensors for backward pass gradient computation) is dynamic and scales with batch size $\\times$ sequence length. While static memory is fixed at $16\\Psi$, activation memory often doubles peak VRAM requirements unless FlashAttention and activation checkpointing are enabled.",
+          heading: "Distributed Systems & Bandwidth Analysis",
+          body: "A 7B parameter LLM requires 112 GB of VRAM just for static model states during training. Because single GPUs (80GB H100) cannot hold this, techniques like ZeRO-1 (sharding 8B Adam states), ZeRO-2 (sharding 2B grads + 8B states), and ZeRO-3 (sharding all 16B states) partition memory across GPUs.",
         },
         {
-          heading: "Architecture & Topology Trade-offs",
-          body: "Switching from FP16 to BF16 (Bfloat16) retains the same 16-byte multiplier, but eliminates loss scaling requirements because BF16 shares FP32's 8-bit exponent range. Quantized optimizers (e.g. BitsAndBytes 8-bit Adam) reduce optimizer states from $8\\Psi$ to $2\\Psi$, shrinking static footprint to $10\\Psi$.",
+          heading: "Hardware & Architecture Trade-offs",
+          body: "Switching from FP16 to BF16 (Bfloat16) retains the exact same 16-byte multiplier, but eliminates loss scaling requirements because BF16 shares FP32's 8-bit exponent range. Quantized optimizers (e.g. 8-bit Adam) shrink optimizer states from 8 bytes to 2 bytes per param.",
         },
       ],
       keyTerms: [
@@ -272,3 +492,4 @@ export const fp16ModelMemoryFootprintCalculator: AlgorithmDefinition<fp16ModelMe
     defaultInput: DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT,
     generateSteps: generateFp16ModelMemoryFootprintCalculatorSteps,
   };
+
