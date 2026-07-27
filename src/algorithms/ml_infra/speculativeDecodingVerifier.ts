@@ -176,6 +176,22 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     { gamma, draftTokens: draftTokens.slice(0, gamma).join(", ") },
   );
 
+  addStep(
+    7,
+    `Initialize accepted_tokens = []`,
+    `Output sequence accumulator. Will receive either draft tokens (if accepted) or recovery tokens (if rejected) on each iteration.`,
+    -1,
+    { gamma, accepted_tokens_count: 0 },
+  );
+
+  addStep(
+    10,
+    `Begin Rejection Sampling Loop: for i in range(${gamma})`,
+    `Verifying ${gamma} draft tokens one by one. Each token runs in O(1) vs O(N) for sequential decoding.`,
+    -1,
+    { gamma },
+  );
+
   let rejected = false;
 
   for (let i = 0; i < gamma; i++) {
@@ -184,13 +200,21 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     const pT = targetProbabilities[i];
     const ratio = pD > 0 ? pT / pD : 1.0;
 
+    addStep(
+      16,
+      `Compute acceptance_ratio for token #${i} (val=${token})`,
+      `p_d = ${pD.toFixed(4)}, p_t = ${pT.toFixed(4)}. acceptance_ratio = p_t / p_d = ${ratio.toFixed(4)}.`,
+      i,
+      { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(4) },
+    );
+
     if (ratio >= 1.0 || 0.5 < ratio) {
       acceptedTokens.push(token);
       elements[i].state = "sorted";
       addStep(
-        12,
+        20,
         `Draft Token #${i} (Val: ${token}) Accepted`,
-        `Target probability (${pT}) >= Draft probability (${pD}). Ratio: ${ratio.toFixed(2)}. Token accepted into final output sequence.`,
+        `acceptance_ratio ${ratio.toFixed(4)} >= 1.0 or > 0.5. accepted_tokens.append(${token}). Token accepted into final output sequence.`,
         i,
         { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(2) },
       );
@@ -200,9 +224,9 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
       elements[i].state = "swap";
       rejected = true;
       addStep(
-        16,
-        `Draft Token #${i} (Val: ${token}) Rejected`,
-        `Target probability (${pT}) < Draft probability (${pD}). Ratio: ${ratio.toFixed(2)}. Draft sequence truncated; sampled recovery token (${recoveryToken}) from target distribution.`,
+        23,
+        `Draft Token #${i} (Val: ${token}) Rejected — recovery_token = ${recoveryToken}`,
+        `acceptance_ratio ${ratio.toFixed(4)} < 0.5. Draft sequence truncated at position ${i}; sampled recovery token ${recoveryToken} from target distribution.`,
         i,
         {
           tokenIndex: i,
@@ -219,8 +243,8 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
 
   if (!rejected) {
     addStep(
-      22,
-      "All Draft Tokens Verified & Accepted",
+      27,
+      "Return accepted_tokens — All Draft Tokens Verified & Accepted",
       `Target model validated all ${gamma} draft tokens in 1 single forward pass. Achieved maximum ${gamma}x generation speedup.`,
       gamma - 1,
       { totalAccepted: acceptedTokens.length, speedup: `${acceptedTokens.length}x` },
