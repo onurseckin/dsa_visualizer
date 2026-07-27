@@ -116,6 +116,68 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m, p, mod },
   });
 
+  // L2-L5: docstring
+  for (const [line, text_] of [
+    [2, `"""` ] as const,
+    [3, "Finds all occurrences of pattern in text using Polynomial Rolling Hash."] as const,
+    [4, "Returns 0-based starting indices."] as const,
+    [5, `"""` ] as const,
+  ]) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: line,
+      explanation: {
+        what: text_,
+        why: "Docstring documents the contract: algorithm name, return type, and purpose.",
+      },
+      primarySnapshot: { kind: "array", elements: makeElements() },
+      auxiliaryState: { hashMap: { Text: text, Pattern: pattern } },
+      variables: { n, m },
+    });
+  }
+
+  // L6: unpack lengths
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `n, m = len(text), len(pattern)  →  n=${n}, m=${m}`,
+      why: "Caching the two lengths avoids repeated len() calls in the hot loops.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { n, m } },
+    variables: { n, m },
+  });
+
+  // L7: guard condition
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Guard: m > n or m == 0  →  ${m > n || m === 0 ? "true — early exit" : "false — proceed"}`,
+      why: "If pattern is longer than text or empty no match is possible; skip all O(N) work.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { n, m, guard: m > n || m === 0 } },
+    variables: { n, m, guard: m > n || m === 0 },
+  });
+
+  if (m > n || m === 0) {
+    // L8: early return branch
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 8,
+      explanation: {
+        what: "return []  — pattern cannot appear in text",
+        why: "Short-circuit avoids allocating O(N) hash tables when no match is possible.",
+      },
+      primarySnapshot: { kind: "array", elements: makeElements() },
+      auxiliaryState: { hashMap: { result: "[]" } },
+      variables: { matchCount: 0 },
+    });
+  }
+
+  // L11: allocate prefix hash + power tables
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 11,
@@ -136,17 +198,57 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m },
   });
 
+  // L12: pow_p allocation
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 12,
+    explanation: {
+      what: `pow_p = [1] * (${n + 1})  — prime power table initialised to 1s`,
+      why: "pow_p[i] will hold p^i % mod; starting at 1 (p^0 = 1) lets each step multiply by p.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { "pow_p[0]": 1 } },
+    variables: { n },
+  });
+
+  // L13: prefix hash loop — add header step once before the loop body steps
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 13,
+    explanation: {
+      what: `for i in range(${n}):  — iterate over every character index of text`,
+      why: "Each iteration extends the prefix hash and prime power tables by one position.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { "loop range": `0..${n - 1}` } },
+    variables: { n },
+  });
+
   // Precompute and step through text prefix hashes
   for (let i = 0; i < n; i++) {
     const charVal = text.charCodeAt(i) - 96;
     hashVals[i + 1] = (hashVals[i] * p + charVal) % mod;
     powP[i + 1] = (powP[i] * p) % mod;
 
+    // L14: char_val computation
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 14,
+      explanation: {
+        what: `char_val = ord(text[${i}]) - ord('a') + 1  →  '${text[i]}' = ${charVal}`,
+        why: "1-indexed mapping ('a'→1…'z'→26) avoids a leading-zero hash ambiguity.",
+      },
+      primarySnapshot: { kind: "array", elements: makeElements(undefined, [], i) },
+      auxiliaryState: { hashMap: { i, char: text[i], charVal } },
+      variables: { i, char: text[i], charVal },
+    });
+
+    // L15: h[i+1] update
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 15,
       explanation: {
-        what: `Precompute prefix hash h[${i + 1}] for text[0..${i}] ("${text.substring(0, i + 1)}"): char '${text[i]}' (${charVal}) -> h = ${hashVals[i + 1]}`,
+        what: `Precompute prefix hash h[${i + 1}] for text[0..${i}] ("${text.substring(0, i + 1)}"): char '${text[i]}' (${charVal}) → h = ${hashVals[i + 1]}`,
         why: `Formula: h[${i + 1}] = (h[${i}] * ${p} + ${charVal}) % ${mod} = ${hashVals[i + 1]}.`,
       },
       primarySnapshot: {
@@ -161,7 +263,46 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
       },
       variables: { i, char: text[i], charVal, "h[i+1]": hashVals[i + 1] },
     });
+
+    // L16: pow_p[i+1] update
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `pow_p[${i + 1}] = (pow_p[${i}] * ${p}) % mod  →  ${powP[i + 1]}`,
+        why: "Precomputing prime powers avoids recomputation in each O(1) substring hash query.",
+      },
+      primarySnapshot: { kind: "array", elements: makeElements(undefined, [], i) },
+      auxiliaryState: { hashMap: { [`pow_p[${i + 1}]`]: powP[i + 1] } },
+      variables: { i, "pow_p[i+1]": powP[i + 1] },
+    });
   }
+
+  // L19: pattern_hash init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: "pattern_hash = 0  — initialise accumulator before rolling over pattern characters",
+      why: "Zeroing before the loop ensures no leftover value contaminates the first multiplication.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { pattern_hash: 0 } },
+    variables: { patternHash: 0 },
+  });
+
+  // L20: pattern hash loop header
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: `for ch in pattern:  — iterate over each of the ${m} pattern characters`,
+      why: "Builds the target hash value to compare against each text window.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { pattern, m } },
+    variables: { m },
+  });
 
   // Precompute and step through pattern hash
   let patternHash = 0;
@@ -169,11 +310,25 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     const charVal = pattern.charCodeAt(i) - 96;
     patternHash = (patternHash * p + charVal) % mod;
 
+    // L21: char_val for pattern character
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `char_val = ord('${pattern[i]}') - ord('a') + 1  →  ${charVal}`,
+        why: "Same 1-indexed mapping as for text characters to keep hash formulas consistent.",
+      },
+      primarySnapshot: { kind: "array", elements: makeElements() },
+      auxiliaryState: { hashMap: { ch: pattern[i], charVal } },
+      variables: { i, char: pattern[i], charVal },
+    });
+
+    // L22: pattern_hash rolling update
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 22,
       explanation: {
-        what: `Compute pattern hash prefix for pattern[0..${i}] ("${pattern.substring(0, i + 1)}"): char '${pattern[i]}' -> hash = ${patternHash}`,
+        what: `Compute pattern hash prefix for pattern[0..${i}] ("${pattern.substring(0, i + 1)}"): char '${pattern[i]}' → hash = ${patternHash}`,
         why: `Rolling formula accumulates character values: pattern_hash = ${patternHash}.`,
       },
       primarySnapshot: {
@@ -195,23 +350,73 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     return val;
   };
 
+  // L25: define query_hash helper
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 25,
+    explanation: {
+      what: "def query_hash(l, r) → int:  — define O(1) substring hash helper",
+      why: "Encapsulating the formula keeps the main loop readable and avoids repeated expression duplication.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { helper: "query_hash(l, r)" } },
+    variables: { n, m },
+  });
+
+  // L26: query_hash body
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 26,
+    explanation: {
+      what: "return (h[r+1] - (h[l] * pow_p[r-l+1]) % mod + mod) % mod",
+      why: "Adding mod before final % mod prevents negative results from subtraction in modular arithmetic.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { formula: "(h[r+1] - h[l]*pow_p[r-l+1] + mod) % mod" } },
+    variables: { n, m },
+  });
+
   const matches: number[] = [];
+
+  // L28: initialise matches list
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 28,
+    explanation: {
+      what: "matches = []  — initialise result list",
+      why: "Collects every 0-based starting index where the pattern was found.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { matches: "[]" } },
+    variables: { matchCount: 0 },
+  });
+
+  // L29: main search loop header
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 29,
+    explanation: {
+      what: `for i in range(${n - m + 1}):  — slide window over ${n - m + 1} positions`,
+      why: "Each window starting at i is evaluated with a single O(1) hash comparison.",
+    },
+    primarySnapshot: { kind: "array", elements: makeElements() },
+    auxiliaryState: { hashMap: { windows: n - m + 1 } },
+    variables: { n, m },
+  });
 
   if (m <= n) {
     for (let i = 0; i <= n - m; i++) {
       const subHash = queryHash(i, i + m - 1);
-      const isMatch = subHash === patternHash && text.substring(i, i + m) === pattern;
+      const hashMatches = subHash === patternHash;
+      const isMatch = hashMatches && text.substring(i, i + m) === pattern;
 
-      if (isMatch) {
-        matches.push(i);
-      }
-
+      // L30: hash comparison
       steps.push({
         stepIndex: stepIndex++,
         codeLine: 30,
         explanation: {
           what: `Evaluate window text[${i}..${i + m - 1}] ("${text.substring(i, i + m)}"): Substring Hash = ${subHash}`,
-          why: `Comparing against patternHash (${patternHash}): ${isMatch ? "MATCH FOUND at index " + i : "No match"}.`,
+          why: `Comparing against patternHash (${patternHash}): ${hashMatches ? "hashes match — verify string" : "No match"}.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -222,12 +427,63 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
             Window: `[${i}..${i + m - 1}] "${text.substring(i, i + m)}"`,
             "Substring Hash": subHash,
             "Pattern Hash": patternHash,
-            "Match Status": isMatch ? `MATCH AT INDEX ${i}` : "No match",
+            "Hash Match": hashMatches ? "YES" : "NO",
             "Found Matches": matches.join(", ") || "None",
           },
         },
-        variables: { i, subHash, isMatch },
+        variables: { i, subHash, hashMatches },
       });
+
+      if (hashMatches) {
+        // L32: collision check
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 32,
+          explanation: {
+            what: `if text[${i}:${i + m}] == pattern  →  "${text.substring(i, i + m)}" == "${pattern}"  →  ${isMatch}`,
+            why: "String comparison guards against hash collisions; expected near-zero rate with a good modulus.",
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: makeElements({ l: i, r: i + m - 1 }, matches),
+          },
+          auxiliaryState: {
+            hashMap: {
+              Substring: text.substring(i, i + m),
+              Pattern: pattern,
+              Equal: isMatch ? "YES — match confirmed" : "NO — hash collision",
+            },
+          },
+          variables: { i, isMatch },
+        });
+
+        if (isMatch) {
+          matches.push(i);
+
+          // L33: record match
+          steps.push({
+            stepIndex: stepIndex++,
+            codeLine: 33,
+            explanation: {
+              what: `matches.append(${i})  — confirmed match at index ${i}`,
+              why: "Index appended only after the string comparison eliminates any collision risk.",
+            },
+            primarySnapshot: {
+              kind: "array",
+              elements: makeElements({ l: i, r: i + m - 1 }, matches),
+            },
+            auxiliaryState: {
+              hashMap: {
+                "New Match": i,
+                "All Matches": matches.join(", "),
+              },
+            },
+            variables: { i, matches: [...matches] },
+          });
+        }
+      } else {
+        // isMatch was computed earlier but the branch above handles it; keep consistent state
+      }
     }
   }
 
