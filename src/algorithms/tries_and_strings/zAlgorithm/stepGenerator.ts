@@ -14,18 +14,32 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   const m = pattern.length;
   const tLen = text.length;
 
-  if (m === 0 || tLen === 0 || m > tLen) {
+  // Python line 1: def z_algorithm(text, pattern)
+  const addEmptyStep = (codeLine: number, what: string, why: string, variables: Record<string, string | number | boolean>) => {
     steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: {
-        what: "Handle an empty or invalid input",
-        why: "The pattern is empty, longer than the text, or the text is empty — no match is possible, so we finish immediately with zero matches.",
-      },
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
       primarySnapshot: { kind: "array", elements: [] },
       auxiliaryState: { customState: { text, pattern, matches: "None" } },
-      variables: { text, pattern, matchesCount: 0 },
+      variables,
     });
+  };
+
+  addEmptyStep(
+    1,
+    "Enter z_algorithm",
+    `We receive text "${text}" (length ${tLen}) and pattern "${pattern}" (length ${m}). The Z-algorithm will build one concatenated string and compute prefix-match lengths in a single linear pass.`,
+    { text, pattern, tLen, m },
+  );
+
+  if (m === 0 || tLen === 0 || m > tLen) {
+    addEmptyStep(
+      2,
+      "Handle an empty or invalid input",
+      "The pattern is empty, longer than the text, or the text is empty — no match is possible, so we finish immediately with zero matches.",
+      { text, pattern, matchesCount: 0 },
+    );
     return steps;
   }
 
@@ -114,6 +128,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     });
   };
 
+  // Python line 2: s = pattern + "$" + text
   addStep(
     2,
     'Build S = pattern + "$" + text',
@@ -122,6 +137,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     "Initialization",
   );
 
+  // Python line 5: l, r = 0, 0
   addStep(
     5,
     "Set up the Z-array and window",
@@ -130,6 +146,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     "Initialization",
   );
 
+  // Python line 8: for i in range(1, n)
   for (let i = 1; i < n; i++) {
     addStep(
       8,
@@ -140,6 +157,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       i,
     );
 
+    // Python line 9: if i <= r
     if (i <= r) {
       const k = i - l;
       const rem = r - i + 1;
@@ -154,6 +172,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       );
     }
 
+    // Python line 11: while i + z[i] < n and s[z[i]] == s[i + z[i]]
     while (i + z[i] < n && s[z[i]] === s[i + z[i]]) {
       addStep(
         11,
@@ -181,6 +200,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       );
     }
 
+    // Python line 13: if i + z[i] - 1 > r
     if (i + z[i] - 1 > r) {
       const oldL = l;
       const oldR = r;
@@ -196,6 +216,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       );
     }
 
+    // Python line 17: matches.append(i - m - 1)
     if (i > m && z[i] === m) {
       const textMatchIdx = i - m - 1;
       matches.push(textMatchIdx);
@@ -221,9 +242,10 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
     );
   }
 
+  // Python line 18: return matches
   addStep(
     18,
-    "Finish the scan",
+    "Return matches",
     `Every position now has its Z-value, and we found ${matches.length} match(es) at text index(es): ${matches.length > 0 ? matches.join(", ") : "None"}. Because the window's right edge only ever moves forward, the whole scan stayed linear — O(n + m).`,
     { totalMatches: matches.length, matches: matches.join(", ") },
     "Complete",

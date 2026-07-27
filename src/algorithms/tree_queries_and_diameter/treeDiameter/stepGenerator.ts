@@ -73,9 +73,10 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     });
   };
 
+  // Python line 1: def tree_diameter(n, adj, start_node=1)
   addStep(
     1,
-    "Set up the two-DFS diameter search",
+    "Enter tree_diameter",
     "We want the longest path anywhere in this tree. The trick we lean on: a DFS from any node always lands on one true endpoint of that longest path, so two well-aimed DFS passes are all we need.",
   );
 
@@ -88,15 +89,11 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     visitedSet.add(u);
     callStack.push(`DFS1(${nodeMap.get(u)?.val ?? u}, dist=${dist})`);
 
-    if (dist > maxDistA) {
-      maxDistA = dist;
-      farthestNodeA = u;
-    }
-
+    // Python line 3: max_node, max_dist = node, dist  (initialise return candidates)
     addStep(
       3,
-      `DFS 1: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
-      `Node ${nodeMap.get(u)?.val ?? u} sits ${dist} edges from our starting point. The farthest we've seen so far is ${maxDistA} edges, at node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} — if a deeper branch turns up, the record moves with it.`,
+      `DFS 1: initialise max_node = ${nodeMap.get(u)?.val ?? u}, max_dist = ${dist}`,
+      `On entry the best candidate we know of from this subtree is the node itself at distance ${dist}. We'll update if any child goes deeper.`,
       u,
       farthestNodeA,
       undefined,
@@ -109,8 +106,14 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       },
     );
 
+    if (dist > maxDistA) {
+      maxDistA = dist;
+      farthestNodeA = u;
+    }
+
     const neighbors = adj.get(u) || [];
     for (const v of neighbors) {
+      // Python line 5: if neighbor != parent
       if (v !== parent) {
         addStep(
           5,
@@ -129,9 +132,10 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     callStack.pop();
   };
 
+  // Python line 11: node_a, _ = dfs(start_node, None, 0)
   addStep(
     11,
-    `DFS 1: start from node ${nodeMap.get(rootId)?.val ?? rootId}`,
+    `DFS 1: call dfs(start_node=${nodeMap.get(rootId)?.val ?? rootId}, None, 0)`,
     "The first pass starts anywhere — we use the root — and simply asks which node lies farthest away. That farthest node is guaranteed to be one end of the diameter.",
     rootId,
   );
@@ -140,7 +144,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
 
   addStep(
     11,
-    `DFS 1 done: endpoint A is node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
+    `DFS 1 done: node_a = ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
     `Nothing lies farther from the root than node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}, at ${maxDistA} edges — so it must be one endpoint of the diameter. Now we measure from there.`,
     undefined,
     farthestNodeA,
@@ -160,16 +164,11 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     const newPath = [...currentPath, u];
     callStack.push(`DFS2(${nodeMap.get(u)?.val ?? u}, dist=${dist})`);
 
-    if (dist > diameter) {
-      diameter = dist;
-      farthestNodeB = u;
-      diameterPathNodes = newPath;
-    }
-
+    // Python line 3: max_node, max_dist = node, dist  (initialise return candidates)
     addStep(
       3,
-      `DFS 2: visit node ${nodeMap.get(u)?.val ?? u} at distance ${dist}`,
-      `From endpoint A, node ${nodeMap.get(u)?.val ?? u} is ${dist} edges away. Our longest path so far runs ${diameter} edges, ending at node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}.`,
+      `DFS 2: initialise max_node = ${nodeMap.get(u)?.val ?? u}, max_dist = ${dist}`,
+      `On entry the best candidate from this subtree is the node itself at distance ${dist} from endpoint A. We update if a deeper branch is found.`,
       u,
       farthestNodeA,
       farthestNodeB,
@@ -182,8 +181,15 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       },
     );
 
+    if (dist > diameter) {
+      diameter = dist;
+      farthestNodeB = u;
+      diameterPathNodes = newPath;
+    }
+
     const neighbors = adj.get(u) || [];
     for (const v of neighbors) {
+      // Python line 5: if neighbor != parent
       if (v !== parent) {
         addStep(
           5,
@@ -202,9 +208,10 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     callStack.pop();
   };
 
+  // Python line 12: node_b, diameter = dfs(node_a, None, 0)
   addStep(
     12,
-    `DFS 2: start from endpoint A, node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}`,
+    `DFS 2: call dfs(node_a=${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA}, None, 0)`,
     `Measuring from a known endpoint changes everything: the node farthest from A is the diameter's other endpoint, and the distance between them is the diameter itself.`,
     farthestNodeA,
     farthestNodeA,
@@ -216,7 +223,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
 
   addStep(
     12,
-    `DFS 2 done: endpoint B is node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}`,
+    `DFS 2 done: node_b = ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}, diameter = ${diameter}`,
     `Node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}, at ${diameter} edges from A, is as far as anything gets — so A and B are the two ends of the longest path in the tree.`,
     undefined,
     farthestNodeA,
@@ -231,9 +238,10 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
 
   const pathVals = diameterPathNodes.map((id) => nodeMap.get(id)?.val ?? id).join(" -> ");
 
+  // Python line 13: return node_a, node_b, diameter
   addStep(
     13,
-    `The diameter is ${diameter}`,
+    `Return node_a, node_b, diameter = ${diameter}`,
     `The longest path runs ${pathVals}, spanning ${diameter} edges between node ${nodeMap.get(farthestNodeA)?.val ?? farthestNodeA} and node ${nodeMap.get(farthestNodeB)?.val ?? farthestNodeB}. Two linear DFS passes were all it took — O(V + E) overall.`,
     undefined,
     farthestNodeA,
