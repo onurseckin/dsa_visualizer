@@ -6,15 +6,16 @@ export interface CatalanNumbersInput {
 }
 
 export const PYTHON_CATALAN_NUMBERS_CODE = `
-def python_catalan_numbers(input_array):
+def catalan_number(n: int) -> int:
     """
-    Implementation of python_catalan_numbers.
+    Computes the n-th Catalan number using dynamic programming recurrence.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    C = [0] * (n + 1)
+    C[0] = 1
+    for i in range(1, n + 1):
+        for j in range(i):
+            C[i] += C[j] * C[i - 1 - j]
+    return C[n]
 `;
 
 export const DEFAULT_CATALAN_NUMBERS_INPUT: CatalanNumbersInput = {
@@ -207,26 +208,40 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
 
 export const CATALAN_NUMBERS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Catalan numbers C_n form a sequence of natural numbers with numerous application in combinatorics. The n-th Catalan number is given by C_n = (1 / (n + 1)) * (2n choose n) = sum_{j=0}^{n-1} C_j * C_{n-1-j}.",
+    "Catalan numbers C_n form one of the most celebrated integer sequences in combinatorics, enumerating over 66 distinct categories of geometric and structural objects. The n-th Catalan number is given by C_n = (1 / (n + 1)) * (2n choose n) and satisfies the dynamic programming convolution recurrence C_n = sum_{j=0}^{n-1} C_j * C_{n-1-j} with base case C_0 = 1.",
   sections: [
     {
-      heading: "Combinatorial Applications",
-      body: "Catalan numbers count: 1) Number of correct bracket expressions with n pairs of parentheses, 2) Number of full binary trees with n+1 leaves, 3) Number of monotonic grid paths from (0,0) to (n,n) not crossing the diagonal (Dyck paths), 4) Number of triangulations of a convex polygon with n+2 sides.",
+      heading: "Combinatorial Applications & Equivalence",
+      body: "Catalan numbers count: 1) Number of valid well-formed bracket sequences with n pairs of parentheses, 2) Number of distinct full binary trees with n internal nodes (or n+1 leaves), 3) Number of monotonic grid paths from (0,0) to (n,n) that stay on or below the diagonal (Dyck paths), 4) Number of non-crossing triangulations of a convex polygon with n+2 vertices, and 5) Number of non-crossing handshakes among 2n people around a table.",
     },
     {
-      heading: "Recurrence Relation",
-      body: "The recurrence C_n = sum_{j=0}^{n-1} C_j * C_{n-1-j} splits structures of size n into two independent substructures of sizes j and n-1-j.",
+      heading: "Recurrence Relation & Partitioning",
+      body: "The recurrence C_i = sum_{j=0}^{i-1} C_j * C_{i-1-j} reflects a fundamental structural partition: to construct an object of size i, we fix a root/boundary element and divide the remaining i-1 components into a left substructure of size j (having C_j possibilities) and a right substructure of size i-1-j (having C_{i-1-j} possibilities).",
+    },
+    {
+      heading: "Systems & Performance Impact",
+      body: "Evaluating Catalan numbers via dynamic programming takes O(n^2) time and O(n) space. While closed-form computation C_n = C(2n, n) / (n + 1) runs in O(n) using modular inverse arithmetic, DP convolution is essential when modulo operations are unavailable or intermediate subproblem counts are required.",
+    },
+    {
+      heading: "Edge Cases & Growth Analysis",
+      body: "Catalan numbers grow asymptotically as 4^n / (n^(3/2) * sqrt(pi)). For 32-bit integers, C_n overflows at n = 20; for 64-bit integers, C_n overflows at n = 36. Edge cases include n = 0 (yielding C_0 = 1 for the empty structure) and n = 1 (yielding C_1 = 1).",
     },
   ],
   keyTerms: [
     {
       term: "Dyck Path",
       definition:
-        "Grid path from (0,0) to (n,n) taking right and up steps that stays on or below the main diagonal.",
+        "A staircase grid path from (0,0) to (n,n) taking right and up steps that never crosses above the main diagonal.",
     },
     {
-      term: "Catalan Sequence",
-      definition: "First few terms are 1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862...",
+      term: "Catalan Recurrence",
+      definition:
+        "The quadratic convolution identity C_n = sum_{j=0}^{n-1} C_j * C_{n-1-j} used to compute Catalan numbers via dynamic programming.",
+    },
+    {
+      term: "Full Binary Tree",
+      definition:
+        "A binary tree where every node has either zero or two children; the count of full binary trees with n+1 leaves is C_n.",
     },
   ],
 };
@@ -250,7 +265,7 @@ export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Calculates the n-th Catalan number C_n using dynamic programming recurrence in O(n^2) time. Catalan numbers count balanced parentheses, binary tree structures, and non-crossing grid paths.",
+    "Calculates the n-th Catalan number C_n using dynamic programming recurrence in O(n^2) time. Catalan numbers count valid bracket expressions, binary tree structures, non-crossing polygon triangulations, and Dyck paths.",
   constraints: ["0 <= n <= 25"],
   examples: [
     {

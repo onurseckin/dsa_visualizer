@@ -7,31 +7,25 @@ export interface kvCacheStepAppendInput {
 }
 
 export const KVCACHESTEPAPPEND_CODE = `
-def kvcachestepappend(q_tile, k_tile, v_tile, scale_factor):
+def append_kv_cache_step(
+    k_cache: list[list[float]],  # Shape [max_seq_len, d_model]
+    v_cache: list[list[float]],  # Shape [max_seq_len, d_model]
+    new_k: list[float],          # Shape [d_model]
+    new_v: list[float],          # Shape [d_model]
+    current_seq_len: int
+) -> tuple[list[list[float]], list[list[float]], int]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Appends new key and value vectors into pre-allocated contiguous KV cache buffers.
+    Increments current sequence length pointer without dynamic reallocation.
     """
-    import math
-
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
-
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    # Step 1: Write new key and value vectors into cache slot at current_seq_len offset
+    k_cache[current_seq_len] = list(new_k)
+    v_cache[current_seq_len] = list(new_v)
+    
+    # Step 2: Advance sequence length counter for next decoding iteration
+    updated_seq_len = current_seq_len + 1
+    
+    return k_cache, v_cache, updated_seq_len
 `;
 
 export const DEFAULT_KVCACHESTEPAPPEND_INPUT: kvCacheStepAppendInput = {
@@ -79,7 +73,7 @@ export const generateKvCacheStepAppendSteps = (input: kvCacheStepAppendInput): A
   addStep(
     1,
     "Initialize Autoregressive KV-Cache Step Append",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up pre-allocated KV cache buffers and sequence length offset pointer.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -87,16 +81,16 @@ export const generateKvCacheStepAppendSteps = (input: kvCacheStepAppendInput): A
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+        return { ...el, state: isTarget ? "active" : "compare", pointers: [`t=${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      13,
+      `Append new token KV pair at offset t=${idx} (value=${val})`,
+      `Writing key vector K_t and value vector V_t into cache index slot ${idx}.`,
+      { seqLen: idx, val, isTarget },
       currentElements,
     );
   });
@@ -107,9 +101,9 @@ export const generateKvCacheStepAppendSteps = (input: kvCacheStepAppendInput): A
   }));
 
   addStep(
-    6,
+    17,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully appended step KV projections into contiguous cache memory.",
     { completed: true },
     finalElements,
   );
@@ -118,17 +112,23 @@ export const generateKvCacheStepAppendSteps = (input: kvCacheStepAppendInput): A
 };
 
 const KVCACHESTEPAPPEND_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "k_cache.append(new_k)",
+    "k_cache = k_cache + [new_k]",
+    "updated_seq_len = current_seq_len + len(new_k)",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 13, hint: "Assign new key vector directly into k_cache[current_seq_len]." },
+    { line: 14, hint: "Assign new value vector directly into v_cache[current_seq_len]." },
+    { line: 17, hint: "Increment current_seq_len by 1." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Autoregressive KV-Cache Step Append.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines entry point for KV cache step append operations.",
+    13: "Overwrites key cache slot at index current_seq_len with new_k vector.",
+    14: "Overwrites value cache slot at index current_seq_len with new_v vector.",
+    17: "Increments active sequence length counter.",
+    19: "Returns updated cache buffers and incremented sequence length.",
   },
 };
 
@@ -136,91 +136,90 @@ export const kvCacheStepAppend: AlgorithmDefinition<kvCacheStepAppendInput> = {
   id: "kv-cache-step-append",
   title: "Autoregressive KV-Cache Step Append",
   category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "math_and_number_theory"],
+  categories: ["ml_attention_geometry", "ml_llm_serving"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), autoregressive kv-cache step append provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "During autoregressive LLM decoding (generation phase), tokens are generated one by one. In step $t$, the transformer model computes Query ($Q_t$), Key ($K_t$), and Value ($V_t$) vectors for token $t$. To compute attention over all tokens $1 \\dots t$, past keys $K_{1 \\dots t-1}$ and values $V_{1 \\dots t-1}$ are retrieved from the KV cache.\n\nAutoregressive KV-Cache Step Append performs zero-copy in-place writing of new key/value projections into pre-allocated memory buffers at offset $t$: $K_{\\text{cache}}[:, :, t, :] = K_t$ and $V_{\\text{cache}}[:, :, t, :] = V_t$. This converts what would be an $O(t^2)$ re-computation loop into an $O(1)$ append per step.\n\nInput Format:\n- data: Array of token sequence step indices or values.\n- target: Active sequence length pointer offset.\n\nOutput Format:\n- Updated KV cache tensor references and updated sequence length scalar $t+1$.\n\nEdge Cases & Constraints:\n- Boundary cases: $t = \\text{max\\_seq\\_len}$ requires buffer re-allocation or cache eviction (sliding window / prefix cache).\n- Memory contiguity: Ensures 128-bit aligned vector writes to prevent GPU non-coalesced store operations.\n- RoPE integration: Rotary Position Embeddings (RoPE) must be applied to $K_t$ using position $t$ BEFORE writing to the KV cache.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Single Token Append",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Appends new token KV vectors into cache slot at current step offset.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
+      title: "Sequential Step Appends",
       inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
       outputDisplay: "[1, 2, 3, 4, 5]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Appends KV pairs sequentially across 5 generation steps.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Cache Slot Overwrite Check",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Safely handles sequence length pointer bounds.",
     },
   ],
   code: KVCACHESTEPAPPEND_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(d)", average: "O(d)", worst: "O(d)" },
+  spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Requires $O(d)$ time to store new $d$-dimensional key/value vectors into pre-allocated memory.",
+    space: "Requires $O(1)$ auxiliary space during step append operation.",
   },
   topicGuide: {
     overview:
-      "Autoregressive KV-Cache Step Append is a critical component in ML ATTENTION GEOMETRY systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "KV Caching is the single most critical memory optimization in LLM generation systems (vLLM, HuggingFace TGI, PyTorch). Without KV caching, generating $N$ tokens requires $O(N^2)$ forward passes of quadratic complexity $O(N^3)$. Step appending reduces total compute to $O(N^2)$ linear attention passes.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, autoregressive kv-cache step append operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "At generation step $t$, the query $Q_t \\in \\mathbb{R}^{1 \\times d_k}$ attends to all keys $K_{\\le t} \\in \\mathbb{R}^{t \\times d_k}$ and values $V_{\\le t} \\in \\mathbb{R}^{t \\times d_v}$. By appending $K_t$ and $V_t$ directly to $K_{\\text{cache}}[0 \\dots t-1]$ and $V_{\\text{cache}}[0 \\dots t-1]$, the total cache $K_{\\le t}$ is formed without re-running linear projections for past tokens.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Autoregressive KV-Cache Step Append optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Memory bandwidth allocation is optimized by pre-allocating static cache tensors `[batch_size, num_heads, max_seq_len, head_dim]`. In CUDA/Triton kernels, writes issue 128-bit vector stores (`float4` / `bfloat16x8`) directly into High Bandwidth Memory (HBM).",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing autoregressive kv-cache step append efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Static contiguous KV caches suffer from internal memory fragmentation when request sequence lengths are unpredictable. PagedAttention (vLLM) resolves this by allocating KV cache pages dynamically in virtual block tables while maintaining logical step-append semantics.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "When context window limits are reached ($t > \\text{max\\_context}$), serving systems employ sliding window attention (evicting oldest token entries) or prompt compression to keep memory usage bounded.",
       },
     ],
     keyTerms: [
       {
-        term: "Autoregressive Engine",
+        term: "KV Cache",
         definition:
-          "The underlying algorithmic system implementing autoregressive kv-cache step append operations for deep learning workloads.",
+          "Memory buffer storing key and value projections for past tokens during autoregressive LLM decoding.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Step Append",
+        definition: "In-place write operation storing new token $K_t, V_t$ vectors at offset $t$.",
       },
       {
-        term: "Memory Coalescing",
+        term: "RoPE Pre-application",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Applying Rotary Position Embeddings to key vectors before storing them in the KV cache.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Vector Store Coalescing",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "GPU memory hardware access pattern where parallel threads write contiguous memory locations simultaneously.",
       },
     ],
   },

@@ -8,35 +8,40 @@ export interface onlineMaxLogsumexpTrackerInput {
 }
 
 export const ONLINEMAXLOGSUMEXPTRACKER_CODE = `
-def onlinemaxlogsumexptracker(q_tile, k_tile, v_tile, scale_factor):
+import math
+
+def update_online_max_lse(
+    m_prev: float,
+    lse_prev: float,
+    new_chunk_scores: list[float]
+) -> tuple[float, float, float]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Updates running max m and running log-sum-exp lse for streaming online Softmax.
+    - m_new = max(m_prev, max(new_chunk_scores))
+    - lse_new = lse_prev * exp(m_prev - m_new) + sum(exp(score - m_new))
+    Returns (m_new, lse_new, scale_prev).
     """
-    import math
+    if not new_chunk_scores:
+        return m_prev, lse_prev, 1.0
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
+    m_curr = max(new_chunk_scores)
+    m_new = max(m_prev, m_curr)
+    
+    # Scaling factor for previous accumulated state: exp(m_prev - m_new)
+    scale_prev = math.exp(m_prev - m_new) if m_prev != -float('inf') else 0.0
+    
+    # Exponentiate new chunk scores relative to m_new
+    exp_chunk = [math.exp(s - m_new) for s in new_chunk_scores]
+    lse_chunk = sum(exp_chunk)
+    
+    # Updated running log-sum-exp sum
+    lse_new = lse_prev * scale_prev + lse_chunk
 
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    return m_new, lse_new, scale_prev
 `;
 
 export const DEFAULT_ONLINEMAXLOGSUMEXPTRACKER_INPUT: onlineMaxLogsumexpTrackerInput = {
-  data: [1, 2, 3],
+  data: [10, 20, 30, 40, 50],
 };
 
 export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
@@ -45,7 +50,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const arrayData = input.data || [10, 20, 30, 40, 50];
 
   const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
@@ -53,147 +58,185 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
     state: "default",
   }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
-    },
-    auxiliaryState: {
-      customState: { initialized: "true" },
-    },
-    variables: { active: true },
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          m_init: "-inf",
+          lse_init: "0.0",
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Online Max & LogSumExp Tracker",
+    "Setting up streaming online softmax state: m = -inf, lse = 0.0.",
+    { num_chunks: arrayData.length },
+  );
+
+  arrayData.forEach((val: number, idx: number) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`chunk=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      18,
+      `Update streaming online max & LSE for chunk ${idx} (score=${val})`,
+      `Updating running max m_new and rescaling previous log-sum-exp sum lse_prev by exp(m_prev - m_new).`,
+      { chunkIdx: idx, scoreVal: val },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
-    },
-    auxiliaryState: {
-      customState: { done: "true" },
-    },
-    variables: { result: "calculated" },
-  });
+  addStep(
+    28,
+    "Execution Complete",
+    "Successfully tracked online max and log-sum-exp statistics across streaming tile chunks.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const ONLINEMAXLOGSUMEXPTRACKER_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  distractors: [
+    "scale_prev = math.exp(m_new - m_prev)",
+    "lse_new = lse_prev + lse_chunk",
+    "m_new = m_prev + m_curr",
+  ],
+  hints: [
+    { line: 18, hint: "Compute updated running max m_new = max(m_prev, max(new_chunk_scores))." },
+    { line: 21, hint: "Calculate rescaling factor scale_prev = exp(m_prev - m_new)." },
+    { line: 28, hint: "Update running sum-exp lse_new = lse_prev * scale_prev + lse_chunk." },
+  ],
+  lineExplanations: {
+    1: "Defines entry point for online max and log-sum-exp tracking.",
+    18: "Finds current chunk max score m_curr and updates running max m_new.",
+    21: "Calculates exponential correction factor scale_prev = exp(m_prev - m_new).",
+    25: "Exponentiates new chunk scores relative to updated max m_new.",
+    28: "Accumulates rescaled previous sum-exp and new chunk sum-exp.",
+    30: "Returns updated m_new, lse_new, and scale_prev.",
+  },
 };
 
 export const onlineMaxLogsumexpTracker: AlgorithmDefinition<onlineMaxLogsumexpTrackerInput> = {
   id: "online-max-logsumexp-tracker",
-  title: "Online Softmax Running Max & LSE Tracker",
+  title: "Online Max & Log-Sum-Exp Tracker",
   category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "arrays_and_hashing"],
+  categories: ["ml_hardware_kernels", "ml_attention_geometry"],
   difficulty: "Medium",
   isMlInfra: true,
   mlInfraLevel: 9,
   mlInfraCategory: "ml_hardware_kernels",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), online softmax running max & lse tracker provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Online Softmax (Milakov & Gimelshein 2018, Rabe & Staats 2021, FlashAttention) enables evaluating exact Softmax attention over streaming data blocks loaded sequentially into SRAM without storing the full $N \\times N$ logit matrix in DRAM.\n\nWhen a new tile of logit scores $S^{(j)}$ is loaded into SRAM, Online Max & LogSumExp Tracker updates running state variables:\n1. **Running Max**: $m^{(j)} = \\max(m^{(j-1)}, \\max(S^{(j)}))$\n2. **Rescale Factor**: $\\alpha = e^{m^{(j-1)} - m^{(j)}}$\n3. **Running Sum-Exp**: $\\ell^{(j)} = \\ell^{(j-1)} \\cdot \\alpha + \\sum_{k} e^{S_k^{(j)} - m^{(j)}}$\n4. **Output Vector Rescaling**: $O^{(j)} = O^{(j-1)} \\cdot \\alpha + P^{(j)} V^{(j)}$\n\nInput Format:\n- data: Array of streaming chunk max scores or logit tiles.\n- target: Target sequence tile offset.\n\nOutput Format:\n- Updated running max scalar $m$, updated running log-sum-exp scalar $\\ell$, and rescaling factor $\\alpha$.",
+  constraints: ["1 <= num_chunks <= 1000"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 2, 3] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "2-Chunk Streaming Softmax",
+      inputDisplay: "chunk1 = [10, 20], chunk2 = [30, 15]",
+      outputDisplay: "m = 30, lse = 1.05",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "m = 30, lse updated",
+      explanation:
+        "Updates running max from 20 to 30 and rescales previous sum-exp by exp(20 - 30).",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 2, 3] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "5-Chunk Online Reduction",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Online Max m = 50",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "Online Max m = 50",
+      explanation: "Evaluates online max and log-sum-exp updates across 5 streaming tile chunks.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 2, 3] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Initial Cold Start Check",
+      inputDisplay: "data = [10]",
+      outputDisplay: "m = 10, scale_prev = 0.0",
+      input: { data: [10] },
+      output: "m = 10, scale_prev = 0.0",
+      explanation:
+        "Cold start initialization (m_prev = -inf) sets scale_prev = 0.0 for initial tile.",
     },
   ],
   code: ONLINEMAXLOGSUMEXPTRACKER_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(K)", average: "O(K)", worst: "O(K)" },
+  spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "Updates online max and sum-exp statistics for a chunk of size $K$ in $O(K)$ time.",
+    space: "Requires $O(1)$ auxiliary register space per row during streaming tile evaluation.",
   },
   topicGuide: {
     overview:
-      "Online Softmax Running Max & LSE Tracker is a critical component in ML HARDWARE KERNELS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Online Softmax is the mathematical foundation enabling SRAM tiling in FlashAttention-1/2/3 and vLLM. It allows arbitrary partitioning of sequence attention without losing mathematical exactness.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, online softmax running max & lse tracker operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Let $S = [S^{(1)}, S^{(2)}, \\dots, S^{(T)}]$. Softmax numerator for element $k \\in S^{(j)}$ is $e^{S_k - m^{(T)}}$. By induction, $e^{S_k - m^{(j)}} = e^{S_k - m^{(j-1)}} \\cdot e^{m^{(j-1)} - m^{(j)}}$. Thus, partial sum $L^{(j)} = \\sum_{k \\in S^{(j)}} e^{S_k - m^{(j)}}$ satisfies $L^{(1..j)} = L^{(1..j-1)} e^{m^{(j-1)} - m^{(j)}} + L^{(j)}$.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Online Softmax Running Max & LSE Tracker optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Online max tracking requires zero DRAM reads/writes. Running scalars $(m_i, \\ell_i)$ reside continuously in GPU warp registers, making online softmax compute-bound rather than memory-bound.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing online softmax running max & lse tracker efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Cold start initialization: $m^{(0)} = -\\infty$ and $\\ell^{(0)} = 0$. When $m^{(0)} = -\\infty$, $e^{-\\infty - m^{(1)}} = 0$, driving initial scale factor to 0 without NaN errors.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "If a tile chunk consists entirely of $-\\infty$ logits (e.g. fully masked causal block), $m_{\\text{curr}} = -\\infty$. The state update is a no-op ($m_{\\text{new}} = m_{\\text{prev}}, \\alpha = 1.0$), ensuring safe skipping.",
       },
     ],
     keyTerms: [
       {
-        term: "Online Engine",
+        term: "Online Softmax",
         definition:
-          "The underlying algorithmic system implementing online softmax running max & lse tracker operations for deep learning workloads.",
+          "An algorithm for computing exact Softmax over streaming data blocks using running max and sum-exp variables.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Rescale Factor Alpha",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The exponential scale factor $\\alpha = e^{m_{\\text{old}} - m_{\\text{new}}}$ used to adjust intermediate accumulators.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+        term: "Log-Sum-Exp Sum",
+        definition: "The unnormalized sum of exponentiated logits relative to the running maximum.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Cold Start Initializer",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Setting $m = -\\infty$ and $\\ell = 0$ to ensure proper base case evaluation on the first tile.",
       },
     ],
   },

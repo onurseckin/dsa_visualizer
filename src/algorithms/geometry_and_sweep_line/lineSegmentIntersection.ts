@@ -23,15 +23,33 @@ export interface LineSegmentIntersectionInput {
 }
 
 export const PYTHON_LINE_SEGMENT_INTERSECTION_CODE = `
-def python_line_segment_intersection(input_array):
+def cross_product(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> float:
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+def on_segment(p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]) -> bool:
+    return (q[0] >= min(p[0], r[0]) and q[0] <= max(p[0], r[0]) and
+            q[1] >= min(p[1], r[1]) and q[1] <= max(p[1], r[1]))
+
+def line_segment_intersection(seg1: tuple[tuple[float, float], tuple[float, float]],
+                               seg2: tuple[tuple[float, float], tuple[float, float]]) -> bool:
     """
-    Implementation of python_line_segment_intersection.
+    Determines if two line segments seg1=(p1, q1) and seg2=(p2, q2) intersect.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    p1, q1 = seg1
+    p2, q2 = seg2
+
+    d1 = cross_product(p2, q2, p1)
+    d2 = cross_product(p2, q2, q1)
+    d3 = cross_product(p1, q1, p2)
+    d4 = cross_product(p1, q1, q2)
+
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+        return True
+    if d1 == 0 and on_segment(p2, p1, q2): return True
+    if d2 == 0 and on_segment(p2, q1, q2): return True
+    if d3 == 0 and on_segment(p1, p2, q1): return True
+    if d4 == 0 and on_segment(p1, q2, q1): return True
+    return False
 `;
 
 export const DEFAULT_LINE_SEGMENT_INTERSECTION_INPUT: LineSegmentIntersectionInput = {

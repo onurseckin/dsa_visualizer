@@ -19,13 +19,14 @@ const PERMUTATIONS_TRIVIA: TriviaMeta = {
     7: "Append current permutation copy to result list.",
     10: "Iterate over all elements to pick the next position.",
     11: "If element is already used in current branch, skip it.",
-    12: "Mark element as used.",
-    13: "Append element to current_perm.",
-    14: "Recurse to choose next position element.",
-    15: "Pop element from current_perm.",
-    16: "Unmark used[i] to backtrack for sibling choices.",
-    18: "Start recursion with empty initial permutation.",
-    19: "Return all generated permutations.",
+    12: "Skip used element.",
+    13: "Mark element as used in boolean tracking array.",
+    14: "Append element to current_perm.",
+    15: "Recurse into next decision level.",
+    16: "Pop element from current_perm to un-choose.",
+    17: "Unmark used[i] to backtrack for sibling choices.",
+    19: "Start recursion with empty initial permutation.",
+    20: "Return all generated permutations.",
   },
 };
 
@@ -111,7 +112,7 @@ export const generateGeneratingPermutationsSteps = (
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 13,
+        codeLine: 14,
         explanation: {
           what: `Picked element ${nums[i]} at position ${currPerm.length - 1}.`,
           why: `Element ${nums[i]} was not yet used in current branch.`,
@@ -136,7 +137,7 @@ export const generateGeneratingPermutationsSteps = (
 
       steps.push({
         stepIndex: stepIdx++,
-        codeLine: 15,
+        codeLine: 16,
         explanation: {
           what: `Backtracked: removed ${nums[i]} from position ${currPerm.length}.`,
           why: "Un-choosing element to explore alternative sibling choices.",
@@ -160,7 +161,7 @@ export const generateGeneratingPermutationsSteps = (
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 19,
+    codeLine: 20,
     explanation: {
       what: `Permutation generation complete! Generated all ${allPermutations.length} permutations.`,
       why: "Systematically explored all decision paths of the permutation tree.",
@@ -196,49 +197,61 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   categories: ["backtracking"],
   difficulty: "Medium",
   description:
-    "Generates all N! distinct orderings (permutations) of an input array of distinct elements using recursive depth-first search with backtracking. At each position in the permutation, every unused element is tried in turn.",
-  constraints: ["1 <= N <= 8"],
+    "Given an array nums of distinct integers, return all possible permutations (distinct orderings) of the array in any order.\n\nA permutation is an arrangement of all elements into a specific sequence. Using depth-first search with recursive backtracking, elements are selected position by position while maintaining a boolean visited array to avoid duplicate element picks in a single branch.",
+  constraints: [
+    "1 <= nums.length <= 8",
+    "-10 <= nums[i] <= 10",
+    "All elements of nums are unique.",
+  ],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "[1, 2, 3]",
+      inputDisplay: "nums = [1, 2, 3]",
       outputDisplay: "6 permutations",
       title: "3 Elements Permutations",
       input: DEFAULT_GENERATING_PERMUTATIONS_INPUT,
-      output: "6 distinct orderings: [1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]",
-      explanation: "3 elements produce 3! = 6 distinct permutations.",
+      output: "[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]",
+      explanation: "3 distinct elements produce 3! = 6 distinct orderings.",
     },
     {
       kind: "complex",
-      inputDisplay: "[1, 2, 3, 4]",
+      inputDisplay: "nums = [1, 2, 3, 4]",
       outputDisplay: "24 permutations",
       title: "4 Elements Permutations",
       input: { elements: [1, 2, 3, 4] },
       output: "24 distinct orderings",
-      explanation: "4 elements produce 4! = 24 distinct permutations.",
+      explanation: "4 distinct elements produce 4! = 24 distinct orderings.",
     },
     {
       kind: "negative",
-      inputDisplay: "[1]",
-      outputDisplay: "1 permutation ([1])",
+      inputDisplay: "nums = [1]",
+      outputDisplay: "[[1]]",
       title: "Single Element Array",
       input: { elements: [1] },
       output: "[[1]]",
-      explanation: "1 element array has exactly 1 permutation: [1].",
+      explanation: "1 element array has exactly 1 permutation: [[1]].",
     },
   ],
-  code: `
-def generating_permutations(input_elements):
-    """
-    Generating Permutations
-    Implementation of Generating Permutations.
-    """
-    processed_output = []
-    for idx, element in enumerate(input_elements):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        processed_output.append((idx, val))
-    return processed_output
-`,
+  code: `def permute(nums: list[int]) -> list[list[int]]:
+    result = []
+    used = [False] * len(nums)
+
+    def backtrack(current_perm: list[int]):
+        if len(current_perm) == len(nums):
+            result.append(current_perm.copy())
+            return
+
+        for i in range(len(nums)):
+            if used[i]:
+                continue
+            used[i] = True
+            current_perm.append(nums[i])
+            backtrack(current_perm)
+            current_perm.pop()
+            used[i] = False
+
+    backtrack([])
+    return result`,
   timeComplexity: {
     best: "O(N * N!)",
     average: "O(N * N!)",
@@ -246,28 +259,50 @@ def generating_permutations(input_elements):
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Generating N! permutations where building each permutation of length N takes O(N) copy operations yields O(N * N!) total time.",
+    time: "Generating N! permutations where building and copying each permutation of length N takes O(N) work yields O(N * N!) total operations.",
     space:
       "O(N) stack memory required for recursion of depth N plus the boolean used tracking array.",
   },
   topicGuide: {
     overview:
-      "Generating permutations explores every possible ordering of elements. Backtracking tracks used elements across the search tree, building each permutation step-by-step.",
+      "Generating permutations is the canonical example of depth-first search over non-overlapping choices. The algorithm systematically constructs all N! arrangements by picking un-chosen elements at each depth level. In systems engineering, permutation search arises in query optimization in relational engines, hardware instruction reordering for VLIW microarchitectures, and high-dimensional parameter sweep evaluations.",
     sections: [
       {
-        heading: "Permutation Tree",
-        body: "The search tree branches by N choices at root, N-1 at depth 1, ..., down to 1 choice at depth N-1, yielding N! total paths.",
+        heading: "Permutation Tree Geometry",
+        body: "The search tree branches by N choices at root level 0, N-1 choices at level 1, down to 1 choice at level N-1. The tree has N! leaf nodes at depth N, representing all complete linear orderings.",
+      },
+      {
+        heading: "State Management & Backtracking Invariants",
+        body: "Rather than copying intermediate lists at every recursive call, backtracking maintains a single mutable current_perm list and a boolean used array. Reversing state changes (pop and un-marking used[i]) during recursion unwinding ensures zero extra allocation during search tree traversal.",
+      },
+      {
+        heading: "Systems & Compiler Applications",
+        body: "Instruction schedulers in compilers (such as LLVM backend target passes) evaluate localized basic block instruction permutations to minimize pipeline stalls and CPU register spill overhead. Similarly, query planners evaluate join-order permutations when cost-based optimizers search for minimal disk I/O query execution trees.",
+      },
+      {
+        heading: "Handling Duplicate Inputs (Permutations II)",
+        body: "When input elements contain duplicates, generating unique permutations requires sorting the array first and enforcing a skip guard: if nums[i] == nums[i-1] and not used[i-1], skip index i to avoid duplicate branch trees.",
       },
     ],
     keyTerms: [
       {
         term: "Permutation",
-        definition: "An arrangement of all members of a set into a specific linear order.",
+        definition: "An arrangement of all members of a set into a specific linear sequence.",
       },
       {
-        term: "Backtracking Guard",
+        term: "Backtracking Invariant",
         definition:
-          "A boolean array tracking used elements to prevent duplicate element selection within a single branch.",
+          "The property that state mutations performed during tree descent are completely restored before returning to a parent node.",
+      },
+      {
+        term: "State Space Tree",
+        definition:
+          "A conceptual tree where each node represents a partial candidate sequence and leaves represent completed permutations.",
+      },
+      {
+        term: "In-place Swap Permutation",
+        definition:
+          "An alternative Heap's algorithm formulation that generates permutations by swapping elements directly inside the target array without boolean tracking masks.",
       },
     ],
   },

@@ -7,27 +7,28 @@ export interface recipeIndegreeKahnBfsInput {
 }
 
 export const RECIPEINDEGREEKAHNBFS_CODE = `
-def recipeindegreekahnbfs(graph_nodes, adjacency_map):
+def recipe_indegree_kahn_bfs(num_nodes, edges):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Computes topological order using Kahn's BFS queue-based in-degree reduction algorithm.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    in_degree = [0] * num_nodes
+    adj = [[] for _ in range(num_nodes)]
+    for u, v in edges:
+        adj[u].append(v)
+        in_degree[v] += 1
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    queue = [i for i in range(num_nodes) if in_degree[i] == 0]
+    topo_order = []
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    while queue:
+        u = queue.pop(0)
+        topo_order.append(u)
+        for v in adj[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                queue.append(v)
 
-    return topological_order
+    return topo_order
 `;
 
 export const DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT: recipeIndegreeKahnBfsInput = {
@@ -40,7 +41,8 @@ export const generateRecipeIndegreeKahnBfsSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +68,8 @@ export const generateRecipeIndegreeKahnBfsSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +80,11 @@ export const generateRecipeIndegreeKahnBfsSteps = (
     1,
     "Initialize Kahn's BFS Topological Sort",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +95,7 @@ export const generateRecipeIndegreeKahnBfsSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +107,9 @@ export const generateRecipeIndegreeKahnBfsSteps = (
   }));
 
   addStep(
-    6,
+    22,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +118,27 @@ export const generateRecipeIndegreeKahnBfsSteps = (
 };
 
 const RECIPEINDEGREEKAHNBFS_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Kahn's BFS Topological Sort.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines Kahn's BFS topological sort function.",
+    4: "Allocates in_degree array initialized to 0 for num_nodes nodes.",
+    5: "Allocates adjacency list adj for graph edges.",
+    6: "Populates adjacency list and increments target in-degree counts in_degree[v].",
+    9: "Enqueues root nodes with in_degree == 0 into BFS queue.",
+    10: "Initializes topological ordering output list topo_order.",
+    12: "Executes BFS queue loop while queue is non-empty.",
+    13: "Pops current zero in-degree node u from queue.",
+    14: "Appends node u to topological order output list.",
+    15: "Iterates through outgoing neighbor nodes v of u.",
+    16: "Decrements in-degree count in_degree[v].",
+    17: "Enqueues neighbor v when in_degree[v] reaches 0.",
+    19: "Returns completed topological node sequence.",
   },
 };
 
@@ -141,103 +152,84 @@ export const recipeIndegreeKahnBfs: AlgorithmDefinition<recipeIndegreeKahnBfsInp
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), kahn's bfs topological sort provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: {
-    id: 2115,
-    url: "https://leetcode.com/problems/find-all-possible-recipes-from-given-supplies/",
-  },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 2115,
-      title: "Find All Possible Recipes from Given Supplies",
-      url: "https://leetcode.com/problems/find-all-possible-recipes-from-given-supplies/",
-    },
-  ],
+    "Topological sorting is the essential algorithm for scheduling autograd graph execution (e.g., PyTorch forward/backward pass, LeetCode 210 Course Schedule II). Kahn's BFS algorithm calculates in-degrees for all nodes, enqueues root nodes with in-degree 0, and iteratively pops queue nodes while decrementing neighbor in-degrees to build a linear topological execution order.\n\nThis algorithm implements Kahn's BFS Topological Sort, executing in-degree reduction BFS traversal to compute valid topological node sequences.\n\nInput Format:\n- data: Array representing graph node/edge definitions.\n- target: Optional target value.\n\nOutput Format:\n- Returns array of node IDs in valid topological execution order.\n\nEdge Cases & Constraints:\n- Graph containing cycles (Kahn's algorithm detects cycle when result length != num_nodes).\n- Disconnected graph components.\n- Linear chain graph (single topological path).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: RECIPEINDEGREEKAHNBFS_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Kahn's BFS Topological Sort is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Kahn's algorithm processes nodes layer-by-layer as their dependency prerequisites are satisfied. If the final topological list length is less than total nodes, the graph contains a circular dependency cycle.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, kahn's bfs topological sort operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, topological sort orders vertices V such that for every directed edge (u, v) in E, u precedes v in the linear order. Kahn's algorithm runs in O(V + E) time and O(V) space.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Kahn's BFS Topological Sort optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In PyTorch autograd compilers, topological ordering guarantees that all forward inputs to an operator node are computed before the node executes.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing kahn's bfs topological sort efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation computes in-degrees, enqueues in_degree == 0 nodes, pops queue, appends to topo_order, decrements neighbor in-degrees, and enqueues newly freed nodes.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes cycle detection when len(topo_order) < num_nodes.",
       },
     ],
     keyTerms: [
       {
-        term: "Kahn's Engine",
+        term: "Topological Order",
         definition:
-          "The underlying algorithmic system implementing kahn's bfs topological sort operations for deep learning workloads.",
+          "A linear ordering of DAG nodes such that directed edges point exclusively from left to right.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Kahn's Algorithm",
+        definition: "BFS topological sorting algorithm using in-degree reduction queues.",
       },
       {
-        term: "Memory Coalescing",
+        term: "In-Degree Reduction",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Decrementing neighbor in-degree counters as parent dependency nodes are processed.",
       },
     ],
   },
   trivia: RECIPEINDEGREEKAHNBFS_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_RECIPEINDEGREEKAHNBFS_INPUT,
   generateSteps: generateRecipeIndegreeKahnBfsSteps,
 };

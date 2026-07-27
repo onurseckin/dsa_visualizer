@@ -7,31 +7,22 @@ export interface antiDiagonalExtractionInput {
 }
 
 export const ANTIDIAGONALEXTRACTION_CODE = `
-def antidiagonalextraction(tensor_shape, strides, memory_buffer):
+def anti_diagonal_extraction(matrix):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Extracts anti-diagonals (row + col = k) for wavefront parallel processing.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    rows = len(matrix)
+    cols = len(matrix[0]) if rows > 0 else 0
+    diagonals = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for k in range(rows + cols - 1):
+        diag = []
+        for r in range(max(0, k - cols + 1), min(rows, k + 1)):
+            c = k - r
+            diag.append(matrix[r][c])
+        diagonals.append(diag)
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return diagonals
 `;
 
 export const DEFAULT_ANTIDIAGONALEXTRACTION_INPUT: antiDiagonalExtractionInput = {
@@ -97,7 +88,7 @@ export const generateAntiDiagonalExtractionSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +100,7 @@ export const generateAntiDiagonalExtractionSteps = (
   }));
 
   addStep(
-    6,
+    16,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +111,22 @@ export const generateAntiDiagonalExtractionSteps = (
 };
 
 const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Anti-Diagonal Matrix Traversal.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines anti-diagonal matrix traversal function.",
+    4: "Extracts row count from input matrix structure.",
+    5: "Extracts column count, defaulting to 0 for empty matrix.",
+    8: "Iterates through total wavefront diagonal steps k from 0 to rows + cols - 2.",
+    10: "Iterates through valid row indices r for current diagonal k.",
+    11: "Calculates column index c = k - r.",
+    12: "Appends matrix[r][c] element to current anti-diagonal list.",
+    15: "Returns collected array of anti-diagonal slices.",
   },
 };
 
@@ -144,45 +140,35 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), anti-diagonal matrix traversal provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 498, url: "https://leetcode.com/problems/diagonal-traverse/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 498,
-      title: "Diagonal Traverse",
-      url: "https://leetcode.com/problems/diagonal-traverse/",
-    },
-  ],
+    "In dynamic programming, dynamic time warping (DTW), sequence alignment, and parallel matrix solvers, dependencies often run along row and column indices such that element (r, c) depends on (r-1, c) and (r, c-1). Consequently, all elements along anti-diagonal slices defined by r + c = k are mutually independent and can be executed concurrently in a single GPU wavefront step.\n\nThis algorithm implements Anti-Diagonal Matrix Traversal, extracting anti-diagonal slices from 2D tensor buffers to enable lock-free parallel execution across GPU thread blocks.\n\nInput Format:\n- data: Array of numerical elements representing a flattened or 2D matrix structure.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns an array of anti-diagonal slices containing elements ordered by wavefront step k.\n\nEdge Cases & Constraints:\n- Rectangular matrices where rows != cols.\n- Single row or single column matrices.\n- Empty input matrix buffers.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ANTIDIAGONALEXTRACTION_CODE,
@@ -194,50 +180,45 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
   },
   topicGuide: {
     overview:
-      "Anti-Diagonal Matrix Traversal is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Anti-diagonal extraction (also known as wavefront execution or diagonal sweep) is a fundamental pattern for parallelizing dynamic programming algorithms on SIMD/SIMT architectures. By organizing computation into independent diagonal waves (where r + c = constant k), GPU threads execute entire diagonals in parallel without encountering data races or write conflicts.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, anti-diagonal matrix traversal operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for an M x N matrix, there are M + N - 1 total anti-diagonals indexed by k in [0, M + N - 2]. For a given diagonal index k, valid row indices satisfy r in [max(0, k - N + 1), min(M - 1, k)]. The corresponding column index is uniquely determined by c = k - r.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Anti-Diagonal Matrix Traversal optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "From a memory hierarchy perspective, anti-diagonal accesses do not naturally align with row-major memory layouts. Accessing elements along r + c = k across different rows causes strided DRAM reads. High-performance CUDA implementations load 2D matrix blocks into fast shared memory (SRAM) first, enabling unstrided anti-diagonal reads directly from SRAM with zero bank conflicts via index swizzling.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing anti-diagonal matrix traversal efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation details require precise calculation of loop bounds to avoid out-of-bounds array access. Using min/max bounds ensures that only valid (r, c) grid coordinates are generated during each wavefront pass.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes non-square matrices (e.g., tall 100x10 or wide 10x100), single-element matrices (1x1), and empty buffers. Bounds guards guarantee safety across all aspect ratios.",
       },
     ],
     keyTerms: [
       {
-        term: "Anti-Diagonal Engine",
+        term: "Wavefront Execution",
         definition:
-          "The underlying algorithmic system implementing anti-diagonal matrix traversal operations for deep learning workloads.",
+          "Parallel processing pattern where independent diagonal computation steps advance sequentially through a matrix.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Anti-Diagonal Index",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The sum k = r + c identifying all matrix cells lying on the same diagonal slice.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Shared Memory Swizzling",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Remapping 2D indices in SRAM to eliminate memory bank conflicts during strided diagonal access.",
       },
     ],
   },
   trivia: ANTIDIAGONALEXTRACTION_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
   defaultInput: DEFAULT_ANTIDIAGONALEXTRACTION_INPUT,
   generateSteps: generateAntiDiagonalExtractionSteps,
 };

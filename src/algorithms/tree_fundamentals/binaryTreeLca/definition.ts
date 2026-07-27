@@ -130,7 +130,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   },
   topicGuide: {
     overview:
-      "The lowest common ancestor of two nodes is the deepest node that has both of them somewhere in its subtree — geometrically, the point where the two root-to-node paths stop being the same path and diverge. The technique that finds it is bottom-up post-order recursion: instead of computing paths and comparing them, every node asks its two children one question, waits for both answers, and combines them into the answer it hands to its own parent. Learning to design a recursive tree function around what it returns upward, rather than around what it does on the way down, unlocks a whole family of tree problems that look unrelated on the surface.",
+      "The lowest common ancestor of two nodes is the deepest node that has both of them somewhere in its subtree — geometrically, the point where the two root-to-node paths stop being the same path and diverge.\n\nIn real-life production systems, LCA resolution is critical across infrastructure software: Git version control uses LCA (`git merge-base`) to find the common ancestor commit when merging two branches; compilers and static analyzers locate the nearest enclosing scope for variable symbol resolution in Abstract Syntax Trees (ASTs); Linux cgroups memory hierarchy managers resolve resource limits across nested control groups; and PyTorch dynamic autograd engine identifies bifurcation nodes in computation graphs during backpropagation. Bottom-up post-order recursion evaluates subtrees independently and bubbles results upward in $O(N)$ time.",
     sections: [
       {
         heading: "The one question every node answers",

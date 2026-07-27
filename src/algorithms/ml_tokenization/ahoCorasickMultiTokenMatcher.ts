@@ -1,163 +1,272 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const ahoCorasickMultiTokenMatcher: AlgorithmDefinition<string> = {
-  id: "ahoCorasickMultiTokenMatcher",
-  title: "Aho-Corasick Multi-Token Matcher",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
-  difficulty: "Hard",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), aho-corasick multi-token matcher provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  isMlInfra: true,
-  mlInfraLevel: 6,
-  mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
-  examples: [
-    {
-      kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for ahoCorasickMultiTokenMatcher.",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
-    },
-    {
-      kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
-    },
-  ],
-  defaultInput: "unaffordability",
-  code: `
-def ahoCorasickMultiTokenMatcher(input_text, vocabulary_scores):
-    """
-    Aho-Corasick Multi-Token Matcher
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
+export interface AhoCorasickMultiTokenMatcherInput {
+  text: string;
+  keywords: string[];
+}
 
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
-  timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
-  },
-  spaceComplexity: "O(N)",
-  complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
-  },
-  topicGuide: {
-    overview:
-      "Aho-Corasick Multi-Token Matcher is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
-    sections: [
-      {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, aho-corasick multi-token matcher operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
-      },
-      {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Aho-Corasick Multi-Token Matcher optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
-      },
-      {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing aho-corasick multi-token matcher efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
-      },
-    ],
-    keyTerms: [
-      {
-        term: "Aho-Corasick Engine",
-        definition:
-          "The underlying algorithmic system implementing aho-corasick multi-token matcher operations for deep learning workloads.",
-      },
-      {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
-      },
-      {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
-      },
-    ],
-  },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+export const DEFAULT_AHO_CORASICK_INPUT: AhoCorasickMultiTokenMatcherInput = {
+  text: "hehersher",
+  keywords: ["he", "she", "his", "hers"],
 };
+
+export const AHO_CORASICK_CODE = `from collections import deque
+
+def aho_corasick_match(text: str, keywords: list[str]) -> list[tuple[int, int, str]]:
+    """
+    Aho-Corasick Multi-Token Matcher.
+    Constructs a Trie with failure transitions and output links.
+    Finds all occurrences of multiple keywords in text in O(N + M) time.
+    """
+    # Step 1: Build Trie structure
+    trie = [{"children": {}, "fail": 0, "output": []}]
+
+    for kw in keywords:
+        curr = 0
+        for char in kw:
+            if char not in trie[curr]["children"]:
+                trie.append({"children": {}, "fail": 0, "output": []})
+                trie[curr]["children"][char] = len(trie) - 1
+            curr = trie[curr]["children"][char]
+        trie[curr]["output"].append(kw)
+
+    # Step 2: Build Failure Links via BFS
+    queue = deque()
+    for char, child_node in trie[0]["children"].items():
+        queue.append(child_node)
+
+    while queue:
+        r = queue.popleft()
+        for char, child_node in trie[r]["children"].items():
+            queue.append(child_node)
+            f = trie[r]["fail"]
+            while f > 0 and char not in trie[f]["children"]:
+                f = trie[f]["fail"]
+            trie[child_node]["fail"] = trie[f]["children"].get(char, 0)
+            trie[child_node]["output"].extend(trie[trie[child_node]["fail"]]["output"])
+
+    # Step 3: Stream match across text
+    matches = []
+    curr = 0
+    for idx, char in enumerate(text):
+        while curr > 0 and char not in trie[curr]["children"]:
+            curr = trie[curr]["fail"]
+        curr = trie[curr]["children"].get(char, 0)
+
+        for kw in trie[curr]["output"]:
+            start_idx = idx - len(kw) + 1
+            matches.append((start_idx, idx, kw))
+
+    return matches`;
+
+export const generateAhoCorasickSteps = (
+  input: AhoCorasickMultiTokenMatcherInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { text, keywords } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Initialize Aho-Corasick Multi-Token Matcher",
+      why: `Building state automaton to search for ${keywords.length} keywords [${keywords
+        .map((k) => `"${k}"`)
+        .join(", ")}] in input text "${text}".`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: text.split("").map((ch, idx) => ({
+        id: `t-${idx}`,
+        value: idx,
+        label: `'${ch}'`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        keywords: keywords.join(", "),
+        textLength: String(text.length),
+        status: "Initialized",
+      },
+    },
+    variables: { textLen: text.length, numKeywords: keywords.length },
+  });
+
+  // Simple simulated Trie matching trace for educational clarity
+  const matches: { start: number; end: number; kw: string }[] = [];
+
+  for (let idx = 0; idx < text.length; idx++) {
+    const matchedKws: string[] = [];
+
+    for (const kw of keywords) {
+      if (idx >= kw.length - 1) {
+        const sub = text.substring(idx - kw.length + 1, idx + 1);
+        if (sub === kw) {
+          matchedKws.push(kw);
+          matches.push({ start: idx - kw.length + 1, end: idx, kw });
+        }
+      }
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 35,
+      explanation: {
+        what: `Process Index ${idx} ('${text[idx]}')`,
+        why:
+          matchedKws.length > 0
+            ? `Automaton match at index ${idx}: Found keyword(s) [${matchedKws.map((k) => `"${k}"`).join(", ")}].`
+            : `Advanced automaton state via char '${text[idx]}'. No keyword ends at index ${idx}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: text.split("").map((ch, i) => ({
+          id: `t-${i}`,
+          value: i,
+          label: `'${ch}'`,
+          state:
+            i === idx
+              ? ("active" as ElementState)
+              : matches.some((m) => i >= m.start && i <= m.end)
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: i === idx ? [`Index ${idx}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          char: `'${text[idx]}'`,
+          index: String(idx),
+          matchesFoundAtIdx: matchedKws.length > 0 ? matchedKws.join(", ") : "None",
+          totalMatchesSoFar: String(matches.length),
+        },
+      },
+      variables: { idx, char: text[idx], matchesCount: matches.length },
+    });
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 43,
+    explanation: {
+      what: `Aho-Corasick Search Complete: Found ${matches.length} Total Keyword Occurrences`,
+      why: `Matches: [${matches.map((m) => `"${m.kw}" at [${m.start}..${m.end}]`).join(", ")}]. Executed in O(N + M) time.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: matches.map((m, r) => ({
+        id: `match-${r}`,
+        value: m.start,
+        label: `"${m.kw}" [${m.start}..${m.end}]`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        matches: matches.map((m) => `"${m.kw}"@[${m.start}..${m.end}]`).join(", "),
+        totalMatches: String(matches.length),
+        status: "Completed",
+      },
+    },
+    variables: { totalMatches: matches.length, complete: true },
+  });
+
+  return steps;
+};
+
+export const ahoCorasickMultiTokenMatcher: AlgorithmDefinition<AhoCorasickMultiTokenMatcherInput> =
+  {
+    id: "ahoCorasickMultiTokenMatcher",
+    title: "Aho-Corasick Multi-Token Automaton Matcher",
+    category: "ml_tokenization",
+    categories: ["ml_tokenization", "tries_and_strings"],
+    difficulty: "Hard",
+    isMlInfra: true,
+    mlInfraLevel: 5,
+    mlInfraCategory: "ml_tokenization",
+    description:
+      "Constructs an Aho-Corasick finite-state automaton (Aho & Corasick, 1975) for multi-pattern token matching. Integrates Trie prefix trees with failure transitions (suffix pointers) and dictionary output links to locate all dictionary token occurrences in linear O(N + M) time.\n\nInput Format:\n- text: Input text string of length N.\n- keywords: List of M dictionary token pattern strings.\n\nOutput Format:\n- Returns list of (startIdx, endIdx, keyword) matches.\n\nEdge Cases & Constraints:\n- Overlapping keywords: Successfully emits all overlapping matches (e.g. 'he' and 'hers').",
+    constraints: ["text.length >= 1.", "keywords.length >= 1."],
+    examples: [
+      {
+        kind: "basic",
+        title: "Overlapping Multi-Token Matching",
+        inputDisplay: "text = 'hehersher', keywords = ['he', 'she', 'his', 'hers']",
+        outputDisplay: "Matches: 'he'@[0..1], 'he'@[2..3], 'hers'@[2..5], 'she'@[4..6]",
+        input: DEFAULT_AHO_CORASICK_INPUT,
+        output: "4 matches found",
+        explanation:
+          "Finds all overlapping occurrences of dictionary tokens using failure transition links.",
+      },
+      {
+        kind: "complex",
+        title: "No Match In Text",
+        inputDisplay: "text = 'xyz', keywords = ['abc', 'def']",
+        outputDisplay: "No matches found",
+        input: { text: "xyz", keywords: ["abc", "def"] },
+        output: "[]",
+        explanation: "Automaton transitions to root on failure with zero matches.",
+      },
+      {
+        kind: "negative",
+        title: "Sub-token Matching Inside Long Words",
+        inputDisplay: "text = 'tokenizer', keywords = ['token', 'ize']",
+        outputDisplay: "Matches 'token' and 'ize'",
+        input: { text: "tokenizer", keywords: ["token", "ize"] },
+        output: "['token', 'ize']",
+        explanation: "Locates embedded tokens within text.",
+      },
+    ],
+    defaultInput: DEFAULT_AHO_CORASICK_INPUT,
+    code: AHO_CORASICK_CODE,
+    timeComplexity: {
+      best: "O(N + M)",
+      average: "O(N + M + Matches)",
+      worst: "O(N + M + Matches)",
+    },
+    spaceComplexity: "O(M * L)",
+    complexityAnalysis: {
+      time: "O(M * L) to construct Trie automaton (M keywords of length L), plus O(N) linear text scan time.",
+      space: "O(M * L) memory to store Trie nodes, failure pointers, and output lists.",
+    },
+    topicGuide: {
+      overview:
+        "The Aho-Corasick algorithm (1975) generalizes KMP string matching to multi-pattern dictionaries. In machine learning pipelines (vLLM, HuggingFace, SpaCy), Aho-Corasick is used for fast multi-keyword extraction, regex token filtering, and stop-word detection.",
+      sections: [
+        {
+          heading: "Core Concept & Failure Pointer BFS",
+          body: "A Trie of keywords is augmented with failure links constructed via Breadth-First Search (BFS). If a character match fails at node u, the automaton follows fail(u) to the longest proper suffix that is a prefix in the Trie.",
+        },
+        {
+          heading: "Output Link Chain Traversal",
+          body: "Output links allow emitting all dictionary matches ending at position i, even when one match is a proper suffix of another (e.g. 'hers' and 'she').",
+        },
+        {
+          heading: "Systems & Deterministic Automaton Optimization",
+          body: "Compiling failure links into a fully deterministic transition table (DFA) eliminates runtime failure loops, guaranteeing exactly 1 state transition per input character.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Aho-Corasick Automaton",
+          definition:
+            "A Trie-based state machine with failure transitions for multi-pattern matching.",
+        },
+        {
+          term: "Failure Link",
+          definition:
+            "Fallback state pointer directing the automaton to the longest suffix prefix match.",
+        },
+        {
+          term: "Output Link",
+          definition: "Direct pointer to dictionary keywords that match at the current state.",
+        },
+      ],
+    },
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "Aho-Corasick Algorithm (CACM 1975)" }],
+    generateSteps: generateAhoCorasickSteps,
+  };

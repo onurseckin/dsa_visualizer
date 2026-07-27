@@ -7,27 +7,19 @@ export interface asStridedTensorViewEngineInput {
 }
 
 export const ASSTRIDEDTENSORVIEWENGINE_CODE = `
-def asstridedtensorviewengine(tensor_shape, strides, memory_buffer):
+def as_strided_tensor_view_engine(memory_buffer, shape, strides, storage_offset=0):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Calculates zero-copy strided tensor element access and checks contiguity.
     """
-    rows, cols = tensor_shape
+    rows, cols = shape
     r_stride, c_stride = strides
     flat_offsets = []
 
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
+    is_contiguous = (c_stride == 1 and r_stride == cols)
 
     for r in range(rows):
         for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
+            offset = storage_offset + r * r_stride + c * c_stride
             val = memory_buffer[offset] if offset < len(memory_buffer) else 0
             flat_offsets.append((r, c, offset, val))
 
@@ -97,7 +89,7 @@ export const generateAsStridedTensorViewEngineSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +101,7 @@ export const generateAsStridedTensorViewEngineSteps = (
   }));
 
   addStep(
-    6,
+    17,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +112,23 @@ export const generateAsStridedTensorViewEngineSteps = (
 };
 
 const ASSTRIDEDTENSORVIEWENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for PyTorch ATen `as_strided` Zero-Copy View Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines ATen as_strided view engine entry point.",
+    4: "Unpacks target row and column dimensions from shape tuple.",
+    5: "Unpacks row and column stride step sizes.",
+    8: "Verifies row-major C-contiguity: column stride is 1 and row stride equals column count.",
+    10: "Iterates through row dimensions.",
+    11: "Iterates through column dimensions.",
+    12: "Computes 1D physical offset = storage_offset + r * r_stride + c * c_stride.",
+    13: "Fetches value from memory buffer or returns 0 if out of bounds.",
+    16: "Returns contiguity status and array of physical offset mapping tuples.",
   },
 };
 
@@ -144,35 +142,35 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), pytorch aten `as_strided` zero-copy view engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In PyTorch's ATen C++ core and deep learning runtime engines, tensor views (e.g., permute, transpose, slice, expand) do not allocate new memory or copy underlying scalar buffers. Instead, they invoke torch.as_strided(), reinterpreting physical 1D memory buffers using custom shape dimensions and stride vectors.\n\nThis algorithm implements PyTorch ATen as_strided Zero-Copy View Engine, mapping 2D multi-dimensional coordinate spaces into physical 1D flat memory offsets while verifying row-major (C-style) memory contiguity.\n\nInput Format:\n- data: 1D flat memory buffer array representing physical storage.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns contiguity boolean flag and mapped physical offset tuples (r, c, offset, val).\n\nEdge Cases & Constraints:\n- Non-contiguous views (e.g., transposed tensors with swapped strides).\n- Zero-stride broadcasting (stride = 0 for expanded dimensions).\n- Storage offsets shifting the starting element pointer.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ASSTRIDEDTENSORVIEWENGINE_CODE,
@@ -184,45 +182,40 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
   },
   topicGuide: {
     overview:
-      "PyTorch ATen `as_strided` Zero-Copy View Engine is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "PyTorch's tensor architecture decouples logical tensor views from physical data storage (StorageImpl). Multiple Tensors can point to identical underlying CPU/GPU memory allocations with different shapes, strides, and offsets. Understanding as_strided mechanics is vital for analyzing PyTorch performance, avoiding unnecessary tensor.contiguous() copies, and optimizing Triton GPU kernels.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, pytorch aten `as_strided` zero-copy view engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, given an N-dimensional tensor with shape (d_0, d_1, ..., d_k) and strides (s_0, s_1, ..., s_k), the physical 1D memory address of logical element (i_0, i_1, ..., i_k) is computed as Offset = StorageOffset + sum(i_j * s_j). A tensor is C-contiguous if s_k = 1 and s_j = s_{j+1} * d_{j+1} for all j.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. PyTorch ATen `as_strided` Zero-Copy View Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Zero-copy tensor views eliminate DRAM memory allocations, achieving instantaneous O(1) performance regardless of tensor volume (e.g., reshaping a 10GB tensor takes <1 microsecond). However, operating on non-contiguous strided views can degrade downstream GPU kernel throughput due to non-coalesced memory access patterns during matrix multiplication.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing pytorch aten `as_strided` zero-copy view engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation requires mapping multidimensional loops to 1D offset equations while checking bounds against memory buffer limits. Storage offsets allow slicing tensors without modifying underlying storage allocations.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes zero strides (broadcasting single scalars across dimensions), negative strides (flipping tensors), and overlapping memory views. Production engines validate stride sanity to prevent illegal memory reads.",
       },
     ],
     keyTerms: [
       {
-        term: "PyTorch Engine",
+        term: "as_strided",
         definition:
-          "The underlying algorithmic system implementing pytorch aten `as_strided` zero-copy view engine operations for deep learning workloads.",
+          "PyTorch ATen low-level API creating arbitrary zero-copy tensor views using explicit shape and stride parameters.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Memory Stride",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The physical memory step size (number of scalars) required to advance one position along a logical dimension.",
       },
       {
-        term: "Memory Coalescing",
+        term: "C-Contiguity",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Memory layout where adjacent logical elements along the last dimension are stored in adjacent physical memory addresses.",
       },
     ],
   },

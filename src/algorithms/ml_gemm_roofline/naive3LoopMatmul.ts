@@ -7,31 +7,20 @@ export interface naive3LoopMatmulInput {
 }
 
 export const NAIVE3LOOPMATMUL_CODE = `
-def naive3loopmatmul(tensor_shape, strides, memory_buffer):
+def naive_3_loop_matmul(matrix_a, matrix_b):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes un-tiled triply-nested loop matrix multiplication C = A @ B.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    m, k_dim = len(matrix_a), len(matrix_a[0])
+    n = len(matrix_b[0])
+    matrix_c = [[0] * n for _ in range(m)]
 
-    is_contiguous = True
-    expected_stride = 1
+    for i in range(m):
+        for j in range(n):
+            for k in range(k_dim):
+                matrix_c[i][j] += matrix_a[i][k] * matrix_b[k][j]
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return matrix_c
 `;
 
 export const DEFAULT_NAIVE3LOOPMATMUL_INPUT: naive3LoopMatmulInput = {
@@ -95,7 +84,7 @@ export const generateNaive3LoopMatmulSteps = (input: naive3LoopMatmulInput): Alg
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -107,7 +96,7 @@ export const generateNaive3LoopMatmulSteps = (input: naive3LoopMatmulInput): Alg
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -118,17 +107,23 @@ export const generateNaive3LoopMatmulSteps = (input: naive3LoopMatmulInput): Alg
 };
 
 const NAIVE3LOOPMATMUL_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Naive Triply-Nested Loop GEMM O(N^3).",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines naive triply-nested loop GEMM function.",
+    4: "Gets rows M and inner dimension K of matrix A.",
+    5: "Gets columns N of matrix B.",
+    6: "Allocates M x N output matrix C initialized to zero.",
+    8: "Outer loop i iterates through output rows.",
+    9: "Middle loop j iterates through output columns.",
+    10: "Inner loop k iterates through contraction dimension.",
+    11: "Accumulates product matrix_a[i][k] * matrix_b[k][j] into matrix_c[i][j].",
+    13: "Returns computed matrix product matrix_c.",
   },
 };
 
@@ -142,85 +137,78 @@ export const naive3LoopMatmul: AlgorithmDefinition<naive3LoopMatmulInput> = {
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), naive triply-nested loop gemm o(n^3) provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "The classical triply-nested loop algorithm evaluates matrix multiplication C = A @ B by iterating index loops i (rows), j (columns), and k (contraction). While mathematically straightforward, naive 3-loop matmul suffers from non-strided column memory reads on matrix B, leading to severe CPU/GPU cache line evictions and sub-optimal performance.\n\nThis algorithm implements Naive Triply-Nested Loop GEMM O(N^3), executing baseline un-tiled matrix multiplication.\n\nInput Format:\n- data: Array representing matrix data.\n- target: Optional target value.\n\nOutput Format:\n- Returns M x N matrix product C.\n\nEdge Cases & Constraints:\n- Non-square matrix dimensions (M != N != K).\n- 1x1 single-element matrices.\n- Large matrix sizes causing O(N^3) execution slowdown.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_NAIVE3LOOPMATMUL_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_NAIVE3LOOPMATMUL_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_NAIVE3LOOPMATMUL_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: NAIVE3LOOPMATMUL_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Naive Triply-Nested Loop GEMM O(N^3) is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Naive triply-nested loop matmul is the baseline definition of matrix multiplication. Examining its memory access pattern highlights why cache tiling and memory swizzling are essential for high-performance computing.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, naive triply-nested loop gemm o(n^3) operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for M x K matrix A and K x N matrix B, output entry C_{i,j} = sum_{k=0}^{K-1} A_{i,k} * B_{k,j}. Total scalar operations are 2 * M * N * K FLOPs.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Naive Triply-Nested Loop GEMM O(N^3) optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In row-major memory order, inner loop access B_{k,j} steps down matrix B columns with stride N. As K increases, B_{k,j} reads jump across memory cache lines, resulting in low cache reuse and low FLOPS throughput.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing naive triply-nested loop gemm o(n^3) efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation allocates output matrix C of shape M x N, loops over i, j, k, and accumulates scalar element products.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes non-matching matrix dimensions (K_a != K_b).",
       },
     ],
     keyTerms: [
       {
-        term: "Naive Engine",
-        definition:
-          "The underlying algorithmic system implementing naive triply-nested loop gemm o(n^3) operations for deep learning workloads.",
+        term: "Triply-Nested Loop",
+        definition: "The standard 3-loop structure (i, j, k) evaluating matrix multiplication.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Contraction Index (k)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The shared inner index multiplied and summed over during matrix multiplication.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Non-Strided Column Access",
+        definition: "Reading matrix elements vertically down columns in row-major memory layouts.",
       },
     ],
   },

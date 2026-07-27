@@ -31,17 +31,32 @@ export const DEFAULT_PRIM_MST_INPUT: PrimMstInput = {
   ],
 };
 
-export const PYTHON_PRIM_MST_CODE = `
-def python_prim_mst(input_array):
-    """
-    Implementation of python_prim_mst.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_PRIM_MST_CODE = `import heapq
+
+def prim_mst(num_nodes, edges):
+    adj = {i: [] for i in range(num_nodes)}
+    for u, v, w in edges:
+        adj[u].append((w, v))
+        adj[v].append((w, u))
+        
+    visited = [False] * num_nodes
+    pq = [(0, 0)]
+    total_weight = 0
+    nodes_visited = 0
+    
+    while pq and nodes_visited < num_nodes:
+        w, u = heapq.heappop(pq)
+        if visited[u]:
+            continue
+        visited[u] = True
+        total_weight += w
+        nodes_visited += 1
+        
+        for weight, neighbor in adj[u]:
+            if not visited[neighbor]:
+                heapq.heappush(pq, (weight, neighbor))
+                
+    return total_weight if nodes_visited == num_nodes else -1`;
 
 export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
   const numNodes = Math.max(1, input?.numNodes ?? DEFAULT_PRIM_MST_INPUT.numNodes);

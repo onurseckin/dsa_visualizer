@@ -195,7 +195,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
-    "Bubble Sort is a simple comparison-based sorting algorithm: it sweeps through the array repeatedly, swapping adjacent neighbours that are out of order, so each sweep floats the largest remaining value to the end.",
+    "Bubble Sort is a simple comparison-based sorting algorithm: it repeatedly iterates through the list, comparing adjacent elements and swapping them if they are out of order.\n\n### Input Parameters\n- arr (list[int]): An un-sorted array of integers.\n\n### Output\n- list[int]: The array sorted in non-decreasing order.\n\n### Edge Cases & Constraints\n- Arrays of size 1 or 0 are already sorted.\n- Already-sorted arrays complete in O(N) time with early exit flag.\n- Duplicate elements maintain their relative order (stable sort).",
   constraints: ["1 <= arr.length <= 10^3", "-10^4 <= arr[i] <= 10^4"],
   examples: [
     {
@@ -240,58 +240,40 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   },
   topicGuide: {
     overview:
-      "Bubble Sort is the simplest correct sorting algorithm, and its real value is as a lens on what sorting actually requires. It works entirely through local repair: it only ever compares neighbours and only ever swaps neighbours, yet repeated local repair provably produces a globally sorted array. Studying it gives you a concrete feel for inversions, in-place mutation, stability, and adaptivity — the vocabulary you need to reason about every faster sort that follows. You will rarely ship it, but you will keep using the ideas it makes visible.",
+      "Bubble Sort is the fundamental comparison-based sorting algorithm operating via adjacent swaps. While inefficient for large N (O(N^2) average/worst-case), its simplicity makes it ideal for studying inversion counts, stability guarantees, and adjacent memory accesses. In real-world systems, small-scale adjacent sorting patterns appear in hardware graphics pipelines and low-overhead microcontrollers.",
     sections: [
       {
-        heading: "The core idea: fix neighbours and let order emerge",
-        body: "The algorithm never looks at the array as a whole; it only ever asks whether one adjacent pair is in the wrong relative order and swaps if so. The insight is that an unsorted array must contain at least one adjacent pair that is out of order, so as long disorder remains there is always a swap available to make. Each swap removes exactly one inversion, and since a sorted array is precisely an array with zero inversions, this local rule cannot get stuck short of the answer. The name comes from the visible side effect: within a single sweep the largest value encountered keeps winning its comparisons and rides all the way to the end of the pass, like a bubble surfacing.",
+        heading: "Core Concept & Adjacent Inversion Repair",
+        body: "The algorithm repeatedly compares adjacent elements arr[j] and arr[j+1]. If arr[j] > arr[j+1], they are swapped, eliminating one inversion. With each pass i, the largest remaining element bubbles up to its final destination at index N - i - 1.",
       },
       {
-        heading: "How the passes and the shrinking boundary work",
-        body: "The outer loop counts passes and the inner loop walks the still-unsorted prefix, comparing arr[j] with arr[j + 1] and swapping when the left value is larger. The inner bound is n minus i minus 1 rather than n minus 1 because after i passes the last i positions already hold the i largest values in final order, so re-scanning them would be wasted work. That shrinking boundary is what makes later passes progressively cheaper and is the difference between a correct implementation and one that just happens to work. Everything happens in place through swaps, so at no point does a second array exist.",
+        heading: "Systems & Performance Impact: Memory Locality & SIMD",
+        body: "Because Bubble Sort accesses array elements sequentially (arr[j], arr[j+1]), it exhibits high CPU cache line spatial locality compared to tree-based or heap-based sorts. However, its high total swap count creates branch mispredictions and write amplification on modern flash/NVMe controllers.",
       },
       {
-        heading: "Why it is correct: the sorted-suffix invariant",
-        body: "The invariant is that after i complete passes, the final i positions of the array contain the i largest elements, each already in its correct final slot. That holds because a full sweep carries the maximum of the unsorted region to the right end of that region: whenever the running maximum meets a smaller neighbour it wins the comparison and moves forward, and it never loses one. Since each pass extends the sorted suffix by exactly one element, after n minus 1 passes only a single element can remain unplaced, and by elimination it must already be the smallest. Termination is guaranteed by the inversion count, which strictly decreases with every swap and can never go below zero.",
+        heading: "Implementation Nuances & Stability",
+        body: "Bubble Sort is a stable sorting algorithm because equal elements are never swapped (comparison is strictly arr[j] > arr[j+1]). Using a swapped boolean flag allows the algorithm to detect sorted arrays early and exit in O(N) best-case time.",
       },
       {
-        heading: "When it is defensible, and what to use instead",
-        body: "Bubble Sort is a fine choice for teaching, for tiny fixed-size arrays where clarity beats speed, and for arrays you know are almost sorted, because with the early-exit flag it detects sortedness in a single clean sweep. For anything else it loses badly: insertion sort does the same adaptive job with far fewer element writes, merge sort gives predictable performance with stability, and quick sort wins in practice on large in-memory data. If a nearly-sorted input is your real workload, insertion sort is the honest version of what bubble sort is trying to be. The one property worth remembering is that it is stable, so it will not reorder records that compare equal.",
-      },
-      {
-        heading: "Pitfalls and edge cases",
-        body: 'Forgetting the early-exit flag is the most common omission, and it costs you the entire best case: without a "did anything swap" check, an already-sorted array still grinds through every pass. Getting the inner bound wrong is the other frequent bug, since dropping the minus i re-scans placed elements, and dropping the minus 1 reads one slot past the end. Comparing with a strict greater-than rather than greater-or-equal is what keeps the sort stable, so relaxing that comparison quietly breaks equal-key ordering. Arrays of length zero or one need no special case, because both loops simply never execute, and duplicates need no handling at all since equal neighbours are left alone.',
-      },
-      {
-        heading: "How it connects to the rest of sorting",
-        body: "Bubble Sort sits with selection sort and insertion sort as the three quadratic comparison sorts, and the contrast between them is instructive: selection sort searches for the extreme then places it once, insertion sort grows a sorted prefix by shifting, and bubble sort only ever swaps neighbours. Cocktail-shaker sort alternates sweep direction to move small values left faster, and comb sort generalises the neighbour gap from one to a shrinking sequence, which is precisely the leap that makes shell sort subquadratic. Because every swap fixes exactly one inversion, bubble sort performs a number of swaps equal to the array inversion count, which makes it the canonical way to measure how unsorted a sequence really is. The broader takeaway is that no comparison sort escapes the n log n barrier, and the fast ones earn their speed by comparing distant elements rather than only neighbours.",
+        heading: "Edge Case Analysis",
+        body: "For N <= 1, zero passes are executed. Reverse-sorted arrays represent the absolute worst case requiring N*(N-1)/2 swaps. Already-sorted arrays require N-1 comparisons and 0 swaps when early-exit optimization is active.",
       },
     ],
     keyTerms: [
       {
         term: "Inversion",
         definition:
-          "A pair of positions whose values are in the wrong relative order. The number of inversions measures how far an array is from sorted, and each adjacent swap removes exactly one.",
+          "A pair of indices (i, j) such that i < j but arr[i] > arr[j]. Bubble Sort resolves exactly one adjacent inversion per swap.",
       },
       {
-        term: "Pass",
+        term: "Stable Sort",
         definition:
-          "One full sweep of the inner loop across the unsorted region. Each pass places at least one more element in its final position.",
+          "A sorting algorithm that preserves the relative order of elements with equal keys.",
       },
       {
-        term: "In-place",
+        term: "Adaptive Algorithm",
         definition:
-          "Rearranging the input array itself using only a constant amount of extra memory. Bubble Sort qualifies because it stores nothing beyond loop counters and a swap temporary.",
-      },
-      {
-        term: "Stable sort",
-        definition:
-          "A sort that preserves the original relative order of elements that compare equal. Bubble Sort is stable as long as it swaps only on a strict inequality.",
-      },
-      {
-        term: "Adaptive sort",
-        definition:
-          "A sort that runs faster on input that is already partially ordered. The early-exit flag is what makes Bubble Sort adaptive, letting a sorted array finish in one pass.",
+          "An algorithm whose runtime improves (e.g. down to O(N)) when the input is already partially sorted.",
       },
     ],
   },

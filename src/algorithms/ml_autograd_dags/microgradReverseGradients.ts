@@ -6,41 +6,49 @@ export interface microgradReverseGradientsInput {
   target?: number;
 }
 
-export const MICROGRADREVERSEGRADIENTS_CODE = `
-def microgradreversegradients(graph_nodes, adjacency_map):
+export const MICROGRADREVERSEGRADIENTSS_CODE = `
+def micrograd_reverse_gradients(nodes, edges):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Topologically sorts computation DAG and triggers reverse-mode gradient propagation.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    topo = []
+    visited = set()
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    def build_topo(v):
+        if v not in visited:
+            visited.add(v)
+            for child in edges.get(v, []):
+                build_topo(child)
+            topo.append(v)
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    for node in nodes:
+        build_topo(node)
 
-    return topological_order
+    gradients = {v: 0.0 for v in nodes}
+    if topo:
+        gradients[topo[-1]] = 1.0
+
+    for v in reversed(topo):
+        g = gradients[v]
+        for child in edges.get(v, []):
+            gradients[child] += g
+
+    return gradients
 `;
 
 export const DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT: microgradReverseGradientsInput = {
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
+export const DEFAULT_MICROGRADREVERSEGRADIENTSS_INPUT = DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT;
 
 export const generateMicrogradReverseGradientsSteps = (
   input: microgradReverseGradientsInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +74,8 @@ export const generateMicrogradReverseGradientsSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +86,11 @@ export const generateMicrogradReverseGradientsSteps = (
     1,
     "Initialize Micrograd Reverse-Mode Automatic Differentiation",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +101,7 @@ export const generateMicrogradReverseGradientsSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +113,9 @@ export const generateMicrogradReverseGradientsSteps = (
   }));
 
   addStep(
-    6,
+    27,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -116,18 +123,27 @@ export const generateMicrogradReverseGradientsSteps = (
   return steps;
 };
 
-const MICROGRADREVERSEGRADIENTS_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+const MICROGRADREVERSEGRADIENTSS_TRIVIA: TriviaMeta = {
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Micrograd Reverse-Mode Automatic Differentiation.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines Micrograd reverse-mode automatic differentiation function.",
+    4: "Initializes topological sort list topo.",
+    5: "Initializes visited node set.",
+    7: "Defines post-order DFS helper function build_topo.",
+    9: "Visits unvisited child nodes recursively.",
+    11: "Appends node v to topo list after visiting all children.",
+    16: "Initializes gradients dictionary for all nodes to 0.0.",
+    18: "Sets output loss node gradient (topo[-1]) to 1.0.",
+    20: "Iterates through nodes v in reverse topological order.",
+    21: "Fetches accumulated gradient g for node v.",
+    23: "Propagates gradient g to child nodes: gradients[child] += g.",
+    25: "Returns dictionary of computed node loss gradients.",
   },
 };
 
@@ -136,95 +152,90 @@ export const microgradReverseGradients: AlgorithmDefinition<microgradReverseGrad
   title: "Micrograd Reverse-Mode Automatic Differentiation",
   category: "ml_autograd_dags",
   categories: ["ml_autograd_dags", "graph_traversal"],
-  difficulty: "Medium",
+  difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), micrograd reverse-mode automatic differentiation provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Reverse-mode automatic differentiation (backpropagation) computes gradients of a loss output scalar with respect to all leaf input weights in O(N) time. The algorithm topologically sorts computation DAG nodes, sets loss gradient dL/dL = 1.0, and iterates through nodes in reverse topological order, calling local backward functions to accumulate gradients into child nodes.\n\nThis algorithm implements Micrograd Reverse-Mode Automatic Differentiation, building reverse topological ordering and executing backward chain rule gradient propagation.\n\nInput Format:\n- data: Array representing node/edge graph data.\n- target: Optional target value.\n\nOutput Format:\n- Returns dictionary mapping node IDs to computed loss gradients.\n\nEdge Cases & Constraints:\n- Single-node graph (gradient = 1.0).\n- Diamond-shaped DAGs (verifying multivariable chain rule sum).\n- Disconnected graph components.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
-  code: MICROGRADREVERSEGRADIENTS_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  code: MICROGRADREVERSEGRADIENTSS_CODE,
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Micrograd Reverse-Mode Automatic Differentiation is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Reverse-mode autograd (backpropagation) is the core algorithm powering PyTorch torch.autograd.backward() and Micrograd value.backward(). Topologically sorting nodes guarantees that a node's total upstream gradient is fully accumulated before propagating gradients to its children.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, micrograd reverse-mode automatic differentiation operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, reverse mode evaluates dL/dx for all nodes x in O(|V| + |E|) time regardless of input parameter count. This enables training deep neural networks with millions of parameters in a single backward pass.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Micrograd Reverse-Mode Automatic Differentiation optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Without topological sorting, propagating gradients out-of-order yields incomplete intermediate gradients, producing incorrect final weight derivatives.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing micrograd reverse-mode automatic differentiation efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation builds topological ordering via post-order DFS, initializes loss gradient to 1.0, and steps backward through topo list accumulating gradients to children.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes diamond DAG structures (where node output branches to multiple paths).",
       },
     ],
     keyTerms: [
       {
-        term: "Micrograd Engine",
+        term: "Reverse Topological Order",
         definition:
-          "The underlying algorithmic system implementing micrograd reverse-mode automatic differentiation operations for deep learning workloads.",
+          "Ordering graph nodes such that parent nodes are evaluated before child nodes during backward pass.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Backpropagation",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Propagating loss gradients backwards through a computation DAG using the chain rule.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Multivariable Accumulation",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Summing gradients from multiple downstream paths to compute total partial derivative.",
       },
     ],
   },
-  trivia: MICROGRADREVERSEGRADIENTS_TRIVIA,
+  trivia: MICROGRADREVERSEGRADIENTSS_TRIVIA,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
-  defaultInput: DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT,
+  defaultInput: DEFAULT_MICROGRADREVERSEGRADIENTSS_INPUT,
   generateSteps: generateMicrogradReverseGradientsSteps,
 };

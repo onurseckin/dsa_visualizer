@@ -7,15 +7,18 @@ export interface BinomialCoefficientsInput {
 }
 
 export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `
-def python_binomial_coefficients_pascal(input_array):
+def binomial_coefficient(n: int, k: int) -> int:
     """
-    Implementation of python_binomial_coefficients_pascal.
+    Computes C(n, k) using Pascal's Triangle DP table.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    dp = [[0] * (k + 1) for _ in range(n + 1)]
+    for i in range(n + 1):
+        for j in range(min(i, k) + 1):
+            if j == 0 or j == i:
+                dp[i][j] = 1
+            else:
+                dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j]
+    return dp[n][k]
 `;
 
 export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInput = {
@@ -203,26 +206,40 @@ export const generateBinomialCoefficientsPascalSteps = (
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Binomial coefficients C(n, k) = n! / (k! * (n-k)!) count the number of ways to choose k items from n items without replacement. Pascal's Triangle builds these coefficients dynamically using C(n, k) = C(n-1, k-1) + C(n-1, k).",
+    "Binomial coefficients C(n, k) = n! / (k! * (n-k)!) count the number of ways to choose k items from n distinct items without replacement, where order does not matter. Pascal's Triangle builds these coefficients dynamically using the recurrence relation C(n, k) = C(n-1, k-1) + C(n-1, k). This approach avoids direct factorial computation, preventing 64-bit integer overflow during intermediate steps and providing an intuitive 2D grid dynamic programming structure.",
   sections: [
     {
-      heading: "Pascal's Recurrence Identity",
-      body: "To pick k elements out of n, consider an arbitrary n-th element: either we select it (requiring k-1 choices from remaining n-1) or exclude it (requiring k choices from remaining n-1). Thus C(n,k) = C(n-1,k-1) + C(n-1,k).",
+      heading: "Pascal's Recurrence Identity & Core Concept",
+      body: "To select k items out of n, consider an arbitrary element x: either we include x in our selection (requiring us to pick k-1 items from the remaining n-1), or we exclude x (requiring us to pick k items from the remaining n-1). Adding these two mutually exclusive choices gives C(n, k) = C(n-1, k-1) + C(n-1, k). Base cases are C(i, 0) = 1 (empty set choice) and C(i, i) = 1 (full set choice).",
     },
     {
-      heading: "Overflow Prevention",
-      body: "Using dynamic programming avoids calculating huge factorials like n! directly, preventing integer overflow in intermediate steps.",
+      heading: "Systems & Performance Impact",
+      body: "Calculating n! / (k! * (n-k)!) directly is fraught with overflow risks, as 21! already exceeds 64-bit integer capacity. By constructing the DP table iteratively using addition only, we maintain arithmetic precision up to the final result limit. Furthermore, row-by-row DP calculation benefits from spatial cache locality, and space complexity can be reduced from O(n * k) to O(k) using a 1D array updated in-place from right to left.",
+    },
+    {
+      heading: "Implementation Nuances & Optimization",
+      body: "Because C(n, k) = C(n, n-k), we can optimize computation when k > n/2 by replacing k with n-k. For competitive programming applications with a fixed prime modulus p, precomputing factorials and modular inverses allows O(1) query time per test case, whereas Pascal's Triangle is best suited when queries are dense or modulo arithmetic is not required.",
+    },
+    {
+      heading: "Edge Case & Boundary Analysis",
+      body: "Key edge cases include k = 0 (always yields 1), k = n (always yields 1), k > n (yields 0), and n = 0 (yielding C(0,0) = 1). Ensuring loop bounds loop from 0 to n and j from 0 to min(i, k) avoids out-of-bounds table access and waste of computation.",
     },
   ],
   keyTerms: [
     {
       term: "Pascal's Triangle",
       definition:
-        "A triangular array of binomial coefficients where each number is the sum of the two directly above it.",
+        "A triangular array of binomial coefficients where each interior cell is the sum of the two numbers directly above it.",
     },
     {
-      term: "Combinations C(n, k)",
-      definition: "Number of ways to choose a subset of k elements from a set of n elements.",
+      term: "Combination C(n, k)",
+      definition:
+        "The number of ways to choose a subset of k unordered elements from a set of n distinct elements.",
+    },
+    {
+      term: "Symmetric Property",
+      definition:
+        "The mathematical identity C(n, k) = C(n, n-k), reflecting the equivalence of choosing k items to include or n-k items to exclude.",
     },
   ],
 };
@@ -247,7 +264,7 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   categories: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "Computes binomial coefficients C(n, k) by constructing Pascal's Triangle via dynamic programming in O(n * k) time.",
+    "Given two non-negative integers n and k, compute the binomial coefficient C(n, k) representing the number of ways to choose k items from n distinct items without regard to order. The algorithm constructs Pascal's Triangle row-by-row using dynamic programming, applying the recurrence relation C(i, j) = C(i-1, j-1) + C(i-1, j) to avoid integer overflow from factorial multiplication.",
   constraints: ["0 <= k <= n <= 30"],
   examples: [
     {

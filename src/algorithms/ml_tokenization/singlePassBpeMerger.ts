@@ -1,163 +1,274 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const singlePassBpeMerger: AlgorithmDefinition<string> = {
+export interface SinglePassBpeMergerInput {
+  tokens: string[];
+  pairToMerge: [string, string];
+}
+
+export const DEFAULT_SINGLE_PASS_BPE_MERGER_INPUT: SinglePassBpeMergerInput = {
+  tokens: ["n", "e", "w", "e", "s", "t"],
+  pairToMerge: ["e", "s"],
+};
+
+export const SINGLE_PASS_BPE_MERGER_CODE = `def single_pass_bpe_merge(tokens: list[str], pair_to_merge: tuple[str, str]) -> list[str]:
+    """
+    Executes a single pass BPE merge operation across a list of token strings.
+    Replaces all non-overlapping occurrences of adjacent pair (A, B) with merged token 'AB'.
+    """
+    p1, p2 = pair_to_merge
+    merged_tokens = []
+    i = 0
+
+    while i < len(tokens):
+        if i < len(tokens) - 1 and tokens[i] == p1 and tokens[i + 1] == p2:
+            merged_tokens.append(p1 + p2)
+            i += 2
+        else:
+            merged_tokens.append(tokens[i])
+            i += 1
+
+    return merged_tokens`;
+
+export const generateSinglePassBpeMergerSteps = (
+  input: SinglePassBpeMergerInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { tokens, pairToMerge } = input;
+  let stepIndex = 0;
+
+  const [p1, p2] = pairToMerge;
+  const targetPairStr = `("${p1}", "${p2}")`;
+  const mergedSymbol = `${p1}${p2}`;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize Single-Pass BPE Merger for Pair ${targetPairStr}`,
+      why: `Scanning ${tokens.length} tokens [${tokens.map((t) => `"${t}"`).join(", ")}] to merge occurrences of adjacent pair ${targetPairStr} into "${mergedSymbol}".`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: tokens.map((tok, idx) => ({
+        id: `tok-${idx}`,
+        value: idx,
+        label: `"${tok}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        pairToMerge: targetPairStr,
+        targetMergedSymbol: `"${mergedSymbol}"`,
+        tokenCount: String(tokens.length),
+        status: "Initialized",
+      },
+    },
+    variables: { p1, p2, tokenCount: tokens.length },
+  });
+
+  const mergedTokens: string[] = [];
+  let i = 0;
+
+  while (i < tokens.length) {
+    if (i < tokens.length - 1 && tokens[i] === p1 && tokens[i + 1] === p2) {
+      mergedTokens.push(mergedSymbol);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 12,
+        explanation: {
+          what: `Match & Merge Pair at Index ${i} and ${i + 1}: ("${tokens[i]}", "${tokens[i + 1]}") -> "${mergedSymbol}"`,
+          why: `Found target pair ${targetPairStr} at positions [${i}, ${i + 1}]. Replaced with combined token "${mergedSymbol}".`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: tokens.map((tok, idx) => ({
+            id: `tok-${idx}`,
+            value: idx,
+            label: `"${tok}"`,
+            state:
+              idx === i || idx === i + 1
+                ? ("active" as ElementState)
+                : idx < i
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+            pointers: idx === i ? [`Merged into "${mergedSymbol}"`] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            mergedPair: targetPairStr,
+            newSymbol: `"${mergedSymbol}"`,
+            outputSoFar: mergedTokens.map((t) => `"${t}"`).join(", "),
+          },
+        },
+        variables: { i, mergedSymbol },
+      });
+
+      i += 2;
+    } else {
+      mergedTokens.push(tokens[i]);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 15,
+        explanation: {
+          what: `Pass Token at Index ${i}: "${tokens[i]}"`,
+          why: `Adjacent pair ("${tokens[i]}", "${tokens[i + 1] ?? ""}") does not match ${targetPairStr}. Passing token through unchanged.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: tokens.map((tok, idx) => ({
+            id: `tok-${idx}`,
+            value: idx,
+            label: `"${tok}"`,
+            state:
+              idx === i
+                ? ("highlighted" as ElementState)
+                : idx < i
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            passedToken: `"${tokens[i]}"`,
+            outputSoFar: mergedTokens.map((t) => `"${t}"`).join(", "),
+          },
+        },
+        variables: { i, token: tokens[i] },
+      });
+
+      i += 1;
+    }
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: `Single-Pass BPE Merge Complete: Result [${mergedTokens.map((t) => `"${t}"`).join(", ")}]`,
+      why: `Reduced token sequence from ${tokens.length} to ${mergedTokens.length} tokens.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: mergedTokens.map((tok, rank) => ({
+        id: `res-${rank}`,
+        value: rank,
+        label: `"${tok}"`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        mergedOutput: mergedTokens.map((t) => `"${t}"`).join(" + "),
+        originalCount: String(tokens.length),
+        mergedCount: String(mergedTokens.length),
+        status: "Completed",
+      },
+    },
+    variables: { initialCount: tokens.length, finalCount: mergedTokens.length, complete: true },
+  });
+
+  return steps;
+};
+
+export const singlePassBpeMerger: AlgorithmDefinition<SinglePassBpeMergerInput> = {
   id: "singlePassBpeMerger",
-  title: "Single-Pass BPE Merger",
+  title: "Single-Pass BPE Token Merger",
   category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
+  categories: ["ml_tokenization"],
   difficulty: "Easy",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), single-pass bpe merger provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
   isMlInfra: true,
-  mlInfraLevel: 6,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
+  description:
+    "Executes a single-pass BPE pair substitution pass over a token sequence. Replaces all non-overlapping occurrences of adjacent token symbol pair (A, B) with combined subword token 'AB' in linear O(N) time.\n\nInput Format:\n- tokens: Array of initial token strings.\n- pairToMerge: Tuple [p1, p2] representing target adjacent pair.\n\nOutput Format:\n- Returns array of merged token strings.\n\nEdge Cases & Constraints:\n- Overlapping triplets (A, A, A) with pair (A, A): Left-to-right non-overlapping merge produces ('AA', 'A').",
+  constraints: ["tokens.length >= 1."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for singlePassBpeMerger.",
+      title: "Merge ('e', 's') in 'newest'",
+      inputDisplay: "tokens = ['n', 'e', 'w', 'e', 's', 't'], pair = ['e', 's']",
+      outputDisplay: "Result: ['n', 'e', 'w', 'es', 't']",
+      input: DEFAULT_SINGLE_PASS_BPE_MERGER_INPUT,
+      output: "['n', 'e', 'w', 'es', 't']",
+      explanation: "Replaces adjacent 'e' and 's' at indices 3 and 4 with merged token 'es'.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Multiple Non-Overlapping Matches",
+      inputDisplay: "tokens = ['a', 'b', 'x', 'a', 'b'], pair = ['a', 'b']",
+      outputDisplay: "Result: ['ab', 'x', 'ab']",
+      input: {
+        tokens: ["a", "b", "x", "a", "b"],
+        pairToMerge: ["a", "b"],
+      },
+      output: "['ab', 'x', 'ab']",
+      explanation: "Merges both occurrences of ('a', 'b') in single pass.",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "No Match Present",
+      inputDisplay: "tokens = ['a', 'b'], pair = ['x', 'y']",
+      outputDisplay: "Result: ['a', 'b']",
+      input: {
+        tokens: ["a", "b"],
+        pairToMerge: ["x", "y"],
+      },
+      output: "['a', 'b']",
+      explanation: "Returns original tokens unmodified.",
     },
   ],
-  defaultInput: "unaffordability",
-  code: `
-def singlePassBpeMerger(input_text, vocabulary_scores):
-    """
-    Single-Pass BPE Merger
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
-
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
+  defaultInput: DEFAULT_SINGLE_PASS_BPE_MERGER_INPUT,
+  code: SINGLE_PASS_BPE_MERGER_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(N)",
+    average: "O(N)",
+    worst: "O(N)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(N) linear time scan across N tokens.",
+    space: "O(N) auxiliary space to construct merged token output list.",
   },
   topicGuide: {
     overview:
-      "Single-Pass BPE Merger is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Single-pass pair merging is the inner loop primitive executed during both BPE vocabulary training and classical BPE inference tokenization (Sennrich 2016).",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, single-pass bpe merger operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Non-Overlapping Semantics",
+        body: "Scans left to right. When adjacent tokens match pairToMerge [p1, p2], they are replaced by p1+p2 and index pointer advances by 2 to prevent overlapping re-merging.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Single-Pass BPE Merger optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & In-Place Linked List Implementations",
+        body: "In production C++ tokenizers, words are represented as doubly-linked lists of symbols so pair merges take O(1) pointer updates.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing single-pass bpe merger efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "BPE Training Loop Integration",
+        body: "BPE vocabulary trainers execute single-pass merges for the top pair at each iteration step.",
       },
     ],
     keyTerms: [
       {
-        term: "Single-Pass Engine",
+        term: "BPE Merge Pass",
         definition:
-          "The underlying algorithmic system implementing single-pass bpe merger operations for deep learning workloads.",
+          "Single linear scan substituting occurrences of a specific symbol pair with a unified token.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Non-Overlapping Merge",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Ensuring merged tokens do not consume overlapping characters in a single pass.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Doubly-Linked Symbol Chain",
+        definition: "Data structure enabling O(1) symbol deletion and insertion during BPE merges.",
       },
     ],
   },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "BPE Subword Merging (Sennrich 2016)" }],
+  generateSteps: generateSinglePassBpeMergerSteps,
 };

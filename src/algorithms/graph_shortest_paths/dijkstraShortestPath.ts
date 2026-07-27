@@ -13,17 +13,27 @@ export interface DijkstraInput {
   startNode: string;
 }
 
-export const DIJKSTRA_CODE = `
-def dijkstra(input_array):
-    """
-    Implementation of dijkstra.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const DIJKSTRA_CODE = `import heapq
+
+def dijkstra(graph, start_node):
+    dist = {node: float('inf') for node in graph}
+    dist[start_node] = 0
+    pq = [(0, start_node)]
+    visited = set()
+    
+    while pq:
+        d, u = heapq.heappop(pq)
+        if u in visited:
+            continue
+        visited.add(u)
+        
+        for neighbor, weight in graph[u]:
+            new_dist = d + weight
+            if new_dist < dist[neighbor]:
+                dist[neighbor] = new_dist
+                heapq.heappush(pq, (new_dist, neighbor))
+                
+    return dist`;
 
 export const DEFAULT_DIJKSTRA_INPUT: DijkstraInput = {
   nodes: ["A", "B", "C", "D", "E"],

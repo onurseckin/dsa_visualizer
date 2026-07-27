@@ -7,27 +7,23 @@ export interface astConstantFoldingInput {
 }
 
 export const ASTCONSTANTFOLDING_CODE = `
-def astconstantfolding(graph_nodes, adjacency_map):
+def ast_constant_folding(expr_tree):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Evaluates constant expressions in AST subtrees to optimize computation DAG.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    if not isinstance(expr_tree, dict):
+        return expr_tree
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    left = ast_constant_folding(expr_tree.get("left"))
+    right = ast_constant_folding(expr_tree.get("right"))
+    op = expr_tree.get("op")
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        if op == "+": return left + right
+        if op == "-": return left - right
+        if op == "*": return left * right
 
-    return topological_order
+    return {"op": op, "left": left, "right": right}
 `;
 
 export const DEFAULT_ASTCONSTANTFOLDING_INPUT: astConstantFoldingInput = {
@@ -40,7 +36,8 @@ export const generateAstConstantFoldingSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +63,8 @@ export const generateAstConstantFoldingSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +75,11 @@ export const generateAstConstantFoldingSteps = (
     1,
     "Initialize AST Constant Folding Compiler Pass",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +90,7 @@ export const generateAstConstantFoldingSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +102,9 @@ export const generateAstConstantFoldingSteps = (
   }));
 
   addStep(
-    6,
+    17,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +113,24 @@ export const generateAstConstantFoldingSteps = (
 };
 
 const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for AST Constant Folding Compiler Pass.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines AST constant folding compiler pass function.",
+    4: "Returns primitive value immediately if expr_tree is a constant scalar or variable string.",
+    7: "Recursively folds left child subtree.",
+    8: "Recursively folds right child subtree.",
+    9: "Extracts operator symbol op from current node.",
+    11: "Checks if both left and right folded children are numeric constants.",
+    12: "Evaluates addition constant folding left + right.",
+    13: "Evaluates subtraction constant folding left - right.",
+    14: "Evaluates multiplication constant folding left * right.",
+    16: "Returns updated node dictionary containing folded subtrees.",
   },
 };
 
@@ -141,85 +144,80 @@ export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = 
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), ast constant folding compiler pass provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In deep learning graph compilers (e.g. PyTorch Inductor, TorchScript, XLA, TVM), Constant Folding is a fundamental optimization pass. When subtrees in an Abstract Syntax Tree (AST) or computation DAG consist purely of compile-time constants (e.g. 2 * pi * radius_bias), evaluating them at compile time replaces subtrees with single scalar constant nodes, eliminating redundant GPU kernel dispatches during training and inference.\n\nThis algorithm implements AST Constant Folding Compiler Pass, recursively traversing expression DAG nodes, simplifying constant subtrees, and returning folded AST representations.\n\nInput Format:\n- data: Array representing node values or serialized AST structures.\n- target: Optional target value.\n\nOutput Format:\n- Returns optimized folded AST node structure or scalar evaluation.\n\nEdge Cases & Constraints:\n- Subtrees containing variable nodes (cannot be folded).\n- Nested pure-constant subtrees.\n- Single-node constant ASTs.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ASTCONSTANTFOLDING_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "AST Constant Folding Compiler Pass is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Constant folding reduces graph execution latency by evaluating constant expressions during compilation instead of at runtime. Replacing multi-node computation subtrees with pre-computed constant values reduces node count and operator launch overhead on PyTorch and Triton graph backends.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, ast constant folding compiler pass operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, given expression node N = Op(L, R), if L and R evaluate to constants c_L and c_R, the compiler folds node N to c_N = Eval(Op, c_L, c_R). Time complexity is O(V + E) for tree traversal.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. AST Constant Folding Compiler Pass optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In machine learning graph compilers, constant folding eliminates unnecessary HBM memory allocations for fixed hyperparameter constants, reducing overall GPU memory footprint.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing ast constant folding compiler pass efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation performs post-order depth-first traversal, folding left and right children before simplifying the parent node if both children are numeric constants.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes non-foldable variable nodes and division by zero prevention.",
       },
     ],
     keyTerms: [
       {
-        term: "AST Engine",
+        term: "Constant Folding",
         definition:
-          "The underlying algorithmic system implementing ast constant folding compiler pass operations for deep learning workloads.",
+          "Compiler optimization replacing constant sub-expressions with pre-computed scalar values during graph compilation.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Abstract Syntax Tree (AST)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Tree structure representing the hierarchical syntax and operator relationships of mathematical expressions.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Post-Order Traversal",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Visiting left and right child subtrees before evaluating the parent operator node.",
       },
     ],
   },

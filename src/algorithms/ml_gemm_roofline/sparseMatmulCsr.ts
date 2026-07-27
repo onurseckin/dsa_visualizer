@@ -7,31 +7,24 @@ export interface sparseMatmulCsrInput {
 }
 
 export const SPARSEMATMULCSR_CODE = `
-def sparsematmulcsr(tensor_shape, strides, memory_buffer):
+def sparse_matmul_csr(values, col_indices, row_ptr, vector):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes SpMV sparse matrix-vector product y = A_csr @ x.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    num_rows = len(row_ptr) - 1
+    result = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for r in range(num_rows):
+        row_start = row_ptr[r]
+        row_end = row_ptr[r + 1]
+        dot = 0
+        for i in range(row_start, row_end):
+            val = values[i]
+            col = col_indices[i]
+            dot += val * vector[col]
+        result.append(dot)
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return result
 `;
 
 export const DEFAULT_SPARSEMATMULCSR_INPUT: sparseMatmulCsrInput = {
@@ -95,7 +88,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -107,7 +100,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
   }));
 
   addStep(
-    6,
+    18,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -118,17 +111,27 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
 };
 
 const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Sparse Matrix Multiplication (CSR Format).",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines SpMV sparse matrix-vector multiplication function in CSR format.",
+    4: "Gets matrix row count M = len(row_ptr) - 1.",
+    5: "Initializes output result vector y.",
+    7: "Iterates through row index r from 0 to M-1.",
+    8: "Extracts row non-zero start pointer row_start = row_ptr[r].",
+    9: "Extracts row non-zero end pointer row_end = row_ptr[r+1].",
+    10: "Initializes row dot product accumulator to 0.",
+    11: "Iterates through non-zero element index i from row_start to row_end - 1.",
+    12: "Fetches non-zero scalar value val = values[i].",
+    13: "Fetches column index col = col_indices[i].",
+    14: "Accumulates val * vector[col] product into dot.",
+    15: "Appends computed row dot product to output result vector.",
+    17: "Returns computed SpMV result vector.",
   },
 };
 
@@ -137,90 +140,83 @@ export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
   title: "Sparse Matrix Multiplication (CSR Format)",
   category: "ml_gemm_roofline",
   categories: ["ml_gemm_roofline", "arrays_and_hashing"],
-  difficulty: "Medium",
+  difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), sparse matrix multiplication (csr format) provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In Graph Neural Networks (GNNs, e.g., PyTorch Geometric, DGL) and pruned sparse ML models, matrices contain mostly zeros (>90% sparsity). Compressed Sparse Row (CSR) format compresses M x N sparse matrices into 3 compact 1D vectors: values (non-zero entries), col_indices (column indices of non-zero entries), and row_ptr (pointers to row start/end offsets).\n\nThis algorithm implements Sparse Matrix Multiplication (CSR Format), evaluating SpMV vector dot products using CSR index vectors.\n\nInput Format:\n- data: Array representing CSR arrays or vector inputs.\n- target: Optional target value.\n\nOutput Format:\n- Returns 1D result vector y of length M.\n\nEdge Cases & Constraints:\n- Empty rows in sparse matrix (row_start == row_end, output entry is 0).\n- Fully dense matrix stored in CSR format.\n- Single non-zero element sparse matrices.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_SPARSEMATMULCSR_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_SPARSEMATMULCSR_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_SPARSEMATMULCSR_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: SPARSEMATMULCSR_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "Sparse Matrix Multiplication (CSR Format) is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "CSR (Compressed Sparse Row) representation eliminates zero-value multiplications, reducing memory footprint from O(M * N) down to O(NNZ + M), where NNZ is total non-zero elements. SpMV executes in O(NNZ) time.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, sparse matrix multiplication (csr format) operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, CSR format defines: values array of size NNZ, col_indices array of size NNZ, and row_ptr array of size M+1 where row r stores non-zero entries at index range [row_ptr[r] .. row_ptr[r+1]-1]. Row result y_r = sum_{i=row_ptr[r]}^{row_ptr[r+1]-1} values[i] * vector[col_indices[i]].",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Sparse Matrix Multiplication (CSR Format) optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "SpMV kernels on GPUs suffer from irregular memory access patterns because col_indices[i] causes indirect memory reads from vector x, resulting in non-coalesced DRAM accesses.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing sparse matrix multiplication (csr format) efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation iterates through rows r, extracts non-zero index range [row_start .. row_end], multiplies values[i] by vector[col_indices[i]], and appends row totals.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes empty rows where row_start == row_end, yielding dot product 0 without looping.",
       },
     ],
     keyTerms: [
       {
-        term: "Sparse Engine",
+        term: "CSR Format",
         definition:
-          "The underlying algorithmic system implementing sparse matrix multiplication (csr format) operations for deep learning workloads.",
+          "Compressed Sparse Row matrix representation storing non-zero values, column indices, and row offset pointers.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "SpMV Kernel",
+        definition: "Sparse Matrix-Vector Multiplication computing y = A_sparse * x.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Non-Zero Count (NNZ)",
+        definition: "The total count of non-zero scalar entries stored in a sparse matrix.",
       },
     ],
   },

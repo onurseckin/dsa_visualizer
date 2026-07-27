@@ -12,20 +12,38 @@ export interface DeBruijnSequenceInput {
   alphabet?: string[];
 }
 
-export const DE_BRUIJN_CODE = `
-def de_bruijn(input_array):
-    """
-    Implementation of de_bruijn.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const DE_BRUIJN_CODE = `def de_bruijn(k, n):
+    alphabet = [str(i) for i in range(k)]
+    starting_node = "0" * (n - 1) if n > 1 else ""
+    adj = {}
+    
+    def generate_nodes(curr):
+        if len(curr) == n - 1:
+            adj[curr] = [curr[1:] + c for c in alphabet]
+            return
+        for c in alphabet:
+            generate_nodes(curr + c)
+            
+    generate_nodes("")
+    stack = [starting_node]
+    circuit = []
+    
+    while stack:
+        u = stack[-1]
+        if u in adj and adj[u]:
+            v = adj[u].pop()
+            stack.append(v)
+        else:
+            circuit.append(stack.pop())
+            
+    sequence = circuit[-1] if circuit else ""
+    for node in reversed(circuit[:-1]):
+        sequence += node[-1] if n > 1 else node
+        
+    return sequence`;
 
 export const DE_BRUIJN_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [4, 5],
   distractors: [
     "adj[node].append(node + char)",
     "stack.pop(0)",
@@ -38,25 +56,27 @@ export const DE_BRUIJN_TRIVIA: TriviaMeta = {
       hint: "De Bruijn graph nodes represent prefixes of length n-1 over an alphabet of size k.",
     },
     {
-      line: 7,
+      line: 8,
       hint: "Directed edges transition from node u to u[1:] + c, labeled with character c.",
     },
     {
-      line: 13,
+      line: 17,
       hint: "Hierholzer's Eulerian circuit algorithm traverses every edge in the De Bruijn graph exactly once.",
     },
     {
-      line: 21,
+      line: 25,
       hint: "Extracting the symbol of each node in the Eulerian path constructs the minimal cyclic sequence of length k^n.",
     },
   ],
   lineExplanations: {
     1: "Defines the generator for a De Bruijn sequence B(k, n) of length k^n.",
-    3: "Constructs all k^(n-1) nodes representing state prefixes of length n - 1.",
-    7: "Builds out-edges by appending each alphabet symbol c to the suffix of the current node.",
-    10: "Starts Hierholzer's traversal at the initial all-zeroes prefix.",
-    13: "Drives the post-order Eulerian circuit traversal with an explicit stack.",
-    21: "Concatenates the trailing symbol of each circuit node in reverse order to form the De Bruijn sequence.",
+    2: "Builds the alphabet of size k (e.g. ['0', '1']).",
+    3: "Initializes starting node of length n - 1.",
+    6: "Recursively constructs all k^(n-1) nodes representing state prefixes.",
+    8: "Builds out-edges by appending each alphabet symbol c to the suffix of the current node.",
+    14: "Starts Hierholzer's traversal at the initial all-zeroes prefix.",
+    17: "Drives the post-order Eulerian circuit traversal with an explicit LIFO stack.",
+    25: "Concatenates the trailing symbol of each circuit node in reverse order to form the De Bruijn sequence.",
   },
 };
 

@@ -15,15 +15,42 @@ export interface SqrtDecompositionInput {
 }
 
 export const SQRT_DECOMPOSITION_CODE = `
-def sqrt_decomposition(input_array):
+import math
+
+class SqrtDecomposition:
     """
-    Implementation of sqrt_decomposition.
+    SQRT Decomposition maintaining block sums for O(1) point updates and O(sqrt N) range queries.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    def __init__(self, arr: list[int]):
+        self.arr = list(arr)
+        self.n = len(arr)
+        self.block_size = max(1, int(math.isqrt(self.n))) if self.n > 0 else 1
+        num_blocks = math.ceil(self.n / self.block_size) if self.n > 0 else 0
+        self.blocks = [0] * num_blocks
+        for i in range(self.n):
+            self.blocks[i // self.block_size] += self.arr[i]
+
+    def update(self, idx: int, val: int):
+        b_idx = idx // self.block_size
+        diff = val - self.arr[idx]
+        self.arr[idx] = val
+        self.blocks[b_idx] += diff
+
+    def query(self, left: int, right: int) -> int:
+        b_left = left // self.block_size
+        b_right = right // self.block_size
+        total = 0
+        if b_left == b_right:
+            for i in range(left, right + 1):
+                total += self.arr[i]
+        else:
+            for i in range(left, (b_left + 1) * self.block_size):
+                total += self.arr[i]
+            for b in range(b_left + 1, b_right):
+                total += self.blocks[b]
+            for i in range(b_right * self.block_size, right + 1):
+                total += self.arr[i]
+        return total
 `;
 
 export const DEFAULT_SQRT_DECOMPOSITION_INPUT: SqrtDecompositionInput = {

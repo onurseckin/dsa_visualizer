@@ -1,204 +1,267 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export interface varianceReductionSplitInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface VarianceReductionSplitInput {
+  targets: number[]; // continuous regression target y_i
+  splitIndex: number; // split boundary index
 }
 
-export const VARIANCEREDUCTIONSPLIT_CODE = `
-def variancereductionsplit(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
-
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_VARIANCEREDUCTIONSPLIT_INPUT: varianceReductionSplitInput = {
-  data: [1, 2, 3],
+export const DEFAULT_VARIANCE_REDUCTION_INPUT: VarianceReductionSplitInput = {
+  targets: [1.0, 1.2, 1.1, 10.0, 10.2, 9.8],
+  splitIndex: 2, // Left = [1.0, 1.2, 1.1], Right = [10.0, 10.2, 9.8]
 };
 
-export const generateVARIANCEREDUCTIONSPLITSteps = (
-  input: varianceReductionSplitInput,
+export const VARIANCE_REDUCTION_SPLIT_CODE = `def compute_variance(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    mean_val = sum(values) / len(values)
+    return sum((x - mean_val) ** 2 for x in values) / len(values)
+
+def variance_reduction_split(targets: list[float], split_index: int) -> tuple[float, float, float, float]:
+    """
+    Computes Variance Reduction split score for regression decision trees.
+    Variance Reduction = Var(Parent) - (N_left / N) * Var(Left) - (N_right / N) * Var(Right).
+    """
+    left = targets[:split_index + 1]
+    right = targets[split_index + 1:]
+
+    parent_var = compute_variance(targets)
+    left_var = compute_variance(left)
+    right_var = compute_variance(right)
+
+    n = len(targets)
+    n_left = len(left)
+    n_right = len(right)
+
+    weighted_child_var = (n_left / n) * left_var + (n_right / n) * right_var
+    variance_reduction = parent_var - weighted_child_var
+
+    return parent_var, left_var, right_var, round(variance_reduction, 4)`;
+
+export const generateVarianceReductionSteps = (
+  input: VarianceReductionSplitInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
+  const { targets, splitIndex } = input;
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const calcVar = (vals: number[]) => {
+    if (vals.length === 0) return 0.0;
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    return vals.reduce((acc, x) => acc + (x - mean) ** 2, 0) / vals.length;
+  };
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const parentVar = calcVar(targets);
+  const left = targets.slice(0, splitIndex + 1);
+  const right = targets.slice(splitIndex + 1);
 
+  const leftVar = calcVar(left);
+  const rightVar = calcVar(right);
+
+  const n = targets.length;
+  const weightedChildVar = (left.length / n) * leftVar + (right.length / n) * rightVar;
+  const varianceReduction = parentVar - weightedChildVar;
+
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    codeLine: 7,
+    explanation: {
+      what: "Initialize Variance Reduction Split Evaluator (Regression Tree)",
+      why: `Evaluating continuous regression targets [${targets.join(
+        ", ",
+      )}] for binary split at index ${splitIndex}.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        parentVar: parentVar.toFixed(4),
+        totalSamples: String(targets.length),
+        splitIndex: String(splitIndex),
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { parentVar: Math.round(parentVar * 10000) / 10000, totalSamples: targets.length },
   });
 
+  // Step 1: Compute Child Variances
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    codeLine: 16,
+    explanation: {
+      what: `Compute Left & Right Child Variances: Var(Left) = ${leftVar.toFixed(
+        4,
+      )}, Var(Right) = ${rightVar.toFixed(4)}`,
+      why: `Left child (${left.length} samples [${left.join(",")}]), Right child (${right.length} samples [${right.join(",")}]).`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: idx <= splitIndex ? ("active" as ElementState) : ("visited" as ElementState),
+        pointers:
+          idx === splitIndex
+            ? [`Left Var ${leftVar.toFixed(2)}`]
+            : idx === splitIndex + 1
+              ? [`Right Var ${rightVar.toFixed(2)}`]
+              : [],
+      })),
     },
     auxiliaryState: {
-      customState: { computing: "true" },
+      customState: {
+        parentVar: parentVar.toFixed(4),
+        leftVar: leftVar.toFixed(4),
+        rightVar: rightVar.toFixed(4),
+        weightedChildVar: weightedChildVar.toFixed(4),
+        varianceReduction: varianceReduction.toFixed(4),
+      },
     },
-    variables: { step: 1 },
+    variables: {
+      leftVar: Math.round(leftVar * 10000) / 10000,
+      rightVar: Math.round(rightVar * 10000) / 10000,
+      varianceReduction: Math.round(varianceReduction * 10000) / 10000,
+    },
   });
 
+  // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 20,
+    explanation: {
+      what: `Variance Reduction Split Evaluation Complete: Reduction = ${varianceReduction.toFixed(
+        4,
+      )}`,
+      why: `Variance Reduction = ${parentVar.toFixed(4)} - ${weightedChildVar.toFixed(
+        4,
+      )} = ${varianceReduction.toFixed(4)}. Substantially reduced target variance!`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "sorted" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        varianceReduction: varianceReduction.toFixed(4),
+        status: "Completed",
+      },
     },
-    variables: { result: "calculated" },
+    variables: { varianceReduction: Math.round(varianceReduction * 10000) / 10000, complete: true },
   });
 
   return steps;
 };
 
-const VARIANCEREDUCTIONSPLIT_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
-};
-
-export const varianceReductionSplit: AlgorithmDefinition<varianceReductionSplitInput> = {
-  id: "variance-reduction-split",
-  title: "Regression Variance Reduction Splitter",
+export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitInput> = {
+  id: "varianceReductionSplit",
+  title: "Variance Reduction Split Evaluator (Regression Tree)",
   category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "tree_fundamentals"],
-  difficulty: "Medium",
+  categories: ["ml_tree_ensembles"],
+  difficulty: "Easy",
   isMlInfra: true,
-  mlInfraLevel: 9,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), regression variance reduction splitter provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Computes Variance Reduction for continuous target regression tree splits (CART / DecisionTreeRegressor). Variance Reduction measures the decrease in target variance: VR = Var(Parent) - [ (N_left / N) Var(Left) + (N_right / N) Var(Right) ]. Maxizing variance reduction groups similar numerical targets into identical child nodes.\n\nInput Format:\n- targets: Continuous target vector y_i.\n- splitIndex: Split partition boundary index.\n\nOutput Format:\n- Returns tuple (parentVar, leftVar, rightVar, varianceReduction).\n\nEdge Cases & Constraints:\n- Constant target values: Zero variance (Var = 0.0).",
+  constraints: ["0 <= splitIndex < targets.length - 1."],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 2, 3] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Split Separating Low and High Targets",
+      inputDisplay: "targets = [1.0, 1.2, 1.1, 10.0, 10.2, 9.8], splitIndex = 2",
+      outputDisplay: "Parent Var: 19.34, Left Var: 0.0067, Right Var: 0.0267, VR: 19.32",
+      input: DEFAULT_VARIANCE_REDUCTION_INPUT,
+      output: "Variance Reduction = 19.32",
+      explanation:
+        "Separates low targets [1.0, 1.2, 1.1] from high targets [10.0, 10.2, 9.8], reducing variance from 19.34 down to ~0.01.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 2, 3] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "Mixed Ineffective Split",
+      inputDisplay: "targets = [1.0, 10.0, 1.0, 10.0], splitIndex = 1",
+      outputDisplay: "VR = 0.0000",
+      input: {
+        targets: [1.0, 10.0, 1.0, 10.0],
+        splitIndex: 1,
+      },
+      output: "VR = 0.0000",
+      explanation: "Split fails to reduce variance as children maintain identical distributions.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 2, 3] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Constant Targets",
+      inputDisplay: "targets = [5.0, 5.0, 5.0]",
+      outputDisplay: "Parent Var = 0.0",
+      input: {
+        targets: [5.0, 5.0, 5.0],
+        splitIndex: 0,
+      },
+      output: "VR = 0.0000",
+      explanation: "Zero initial variance yields zero variance reduction.",
     },
   ],
-  code: VARIANCEREDUCTIONSPLIT_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  defaultInput: DEFAULT_VARIANCE_REDUCTION_INPUT,
+  code: VARIANCE_REDUCTION_SPLIT_CODE,
+  timeComplexity: {
+    best: "O(N)",
+    average: "O(N)",
+    worst: "O(N)",
+  },
+  spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "O(N) linear time scan across N sample targets.",
+    space: "O(1) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "Regression Variance Reduction Splitter is a critical component in ML TREE ENSEMBLES systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Variance Reduction is the regression equivalent of Gini Impurity reduction. Regression trees (DecisionTreeRegressor, GradientBoostingRegressor) evaluate candidate split thresholds to minimize mean squared error (MSE) or variance in child nodes.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, regression variance reduction splitter operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Mean Squared Error (MSE)",
+        body: "Minimizing child node MSE is mathematically equivalent to maximizing Variance Reduction VR = Var(Parent) - [ (N_L/N) Var(Left) + (N_R/N) Var(Right) ].",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Regression Variance Reduction Splitter optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Optimal Leaf Prediction",
+        body: "For a regression leaf containing samples S_j, the optimal scalar prediction value that minimizes MSE is the sample arithmetic mean c_j = (1 / |S_j|) sum_{i in S_j} y_i.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing regression variance reduction splitter efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Incremental Running Sum Computation",
+        body: "By maintaining running sums sum(y) and sum(y^2), child variances Var = (sum(y^2) / n) - (sum(y) / n)^2 can be evaluated in O(1) time per split point.",
       },
     ],
     keyTerms: [
       {
-        term: "Regression Engine",
+        term: "Variance Reduction",
         definition:
-          "The underlying algorithmic system implementing regression variance reduction splitter operations for deep learning workloads.",
+          "Metric quantifying the decrease in target label variance achieved by a decision tree split.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Regression Tree",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Decision tree model predicting continuous numerical values rather than discrete class labels.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Mean Squared Error (MSE)",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Loss metric measuring average squared difference between true targets and predicted leaf means.",
       },
     ],
   },
-  trivia: VARIANCEREDUCTIONSPLIT_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_VARIANCEREDUCTIONSPLIT_INPUT,
-  generateSteps: generateVARIANCEREDUCTIONSPLITSteps,
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "CART Regression Trees (Breiman et al. 1984)" },
+  ],
+  generateSteps: generateVarianceReductionSteps,
 };

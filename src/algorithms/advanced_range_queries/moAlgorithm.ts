@@ -12,15 +12,37 @@ export interface MoAlgorithmInput {
 }
 
 export const MO_ALGORITHM_CODE = `
-def mo_algorithm(input_array):
+import math
+
+def mo_algorithm(arr: list[int], queries: list[tuple[int, int]]) -> list[int]:
     """
-    Implementation of mo_algorithm.
+    Offline range query processing using Mo's Algorithm with Hilbert/Block sorting.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    n = len(arr)
+    q = len(queries)
+    if n == 0 or q == 0:
+        return []
+    block_size = max(1, int(math.isqrt(n)))
+    indexed_queries = [(l, r, i) for i, (l, r) in enumerate(queries)]
+    indexed_queries.sort(key=lambda x: (x[0] // block_size, x[1] if (x[0] // block_size) % 2 == 0 else -x[1]))
+
+    ans = [0] * q
+    curr_l, curr_r, curr_sum = 0, -1, 0
+    for l, r, idx in indexed_queries:
+        while curr_l > l:
+            curr_l -= 1
+            curr_sum += arr[curr_l]
+        while curr_r < r:
+            curr_r += 1
+            curr_sum += arr[curr_r]
+        while curr_l < l:
+            curr_sum -= arr[curr_l]
+            curr_l += 1
+        while curr_r > r:
+            curr_sum -= arr[curr_r]
+            curr_r -= 1
+        ans[idx] = curr_sum
+    return ans
 `;
 
 export const DEFAULT_MO_ALGORITHM_INPUT: MoAlgorithmInput = {

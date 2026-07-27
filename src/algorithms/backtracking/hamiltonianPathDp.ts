@@ -203,8 +203,12 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   categories: ["backtracking"],
   difficulty: "Hard",
   description:
-    "A Hamiltonian Path is a path in an undirected or directed graph that visits every vertex exactly once. This algorithm computes whether a Hamiltonian Path or Circuit exists using Bitmask Dynamic Programming, reducing the brute-force O(N!) factorial search to O(2^N * N^2) time.",
-  constraints: ["1 <= N <= 12", "0 <= E <= N*(N-1)/2"],
+    "Given an undirected graph with N vertices (labeled 0 to N-1) and a list of edges, determine whether there exists a Hamiltonian Path (a path visiting every vertex exactly once) or a Hamiltonian Circuit (a Hamiltonian Path that forms a closed loop returning to the start vertex).\n\nWhile brute-force depth-first search requires O(N!) factorial search time, Bitmask Dynamic Programming optimizes the exploration to O(2^N * N^2) by using bitwise integer representations as DP table state indices.",
+  constraints: [
+    "1 <= numNodes <= 12",
+    "0 <= edges.length <= numNodes * (numNodes - 1) / 2",
+    "0 <= u, v < numNodes with u != v",
+  ],
   examples: [
     {
       kind: "basic",
@@ -281,26 +285,49 @@ def hamiltonian_path_dp(n: int, edges: list[tuple[int, int]]) -> bool:
   },
   spaceComplexity: "O(2^N * N)",
   complexityAnalysis: {
-    time: "Bitmask DP iterates over 2^N subset masks, checking transitions across N nodes and their neighbors (N), yielding O(2^N * N^2) overall time.",
+    time: "Bitmask DP iterates over 2^N subset masks, checking transitions across N nodes and their neighbors (up to N), yielding O(2^N * N^2) overall execution time.",
     space: "O(2^N * N) memory to store boolean reachability states for each (mask, endNode) pair.",
   },
   topicGuide: {
     overview:
-      "Finding a Hamiltonian path is NP-complete. Dynamic Programming using bitwise bitmasks allows holding intermediate state (visited subset bitmask, current endpoint), speeding up search over plain recursion.",
+      "Finding a Hamiltonian Path is one of Karp's 21 classic NP-complete problems. While recursive backtracking requires exponential factorial time O(N!), Dynamic Programming using bitmask representation (the Held-Karp algorithm paradigm) compresses intermediate subproblem state to run in O(2^N * N^2). Practical systems applications include robotic coverage path planning, printed circuit board (PCB) trace routing, and DNA sequence assembly.",
     sections: [
       {
         heading: "Bitmask State Representation",
-        body: "Integer mask bit i represents whether node i has been visited (1) or not (0). dp[mask][u] stores whether subset mask can end at node u.",
+        body: "Integer mask bit i represents whether vertex i has been visited (1) or not (0). State dp[mask][u] is True if and only if there exists a valid simple path visiting exactly the subset of vertices indicated by mask and ending at vertex u.",
+      },
+      {
+        heading: "DP Transitions & Bitwise Operations",
+        body: "To extend a path ending at node u with mask mask to an unvisited neighbor v, verify that (mask & (1 << v)) == 0. The next state becomes dp[mask | (1 << v)][v] = True. Bitwise shifts and OR operations execute in single-cycle CPU instructions, maximizing cache locality and register throughput.",
+      },
+      {
+        heading: "Systems Applications & TSP",
+        body: "In VLSI microchip fabrication and CNC toolhead path optimization, minimizing movement costs while visiting specified coordinates reduces mechanical wear. Adding edge weights transforms Hamiltonian Path DP into the Traveling Salesperson Problem (TSP), where dp[mask][u] tracks the minimum path cost.",
+      },
+      {
+        heading: "Memory Footprint & Optimization Limits",
+        body: "For N = 20, 2^20 * 20 booleans requires approximately 20 MB RAM, making Bitmask DP highly practical. However, for N > 30, memory limits necessitate heuristic search methods such as Lin-Kernighan, A* search, or integer linear programming (ILP) branch-and-cut solvers.",
       },
     ],
     keyTerms: [
       {
         term: "Hamiltonian Path",
-        definition: "A path in a graph visiting every vertex exactly once.",
+        definition: "A simple path in a graph that visits every vertex exactly once.",
       },
       {
         term: "Bitmask DP",
-        definition: "Using bitwise integer representations as DP states for subset subproblems.",
+        definition:
+          "Using binary bit representation of integers to index dynamic programming subproblem subsets.",
+      },
+      {
+        term: "Held-Karp Algorithm",
+        definition:
+          "A dynamic programming algorithm that solves the Traveling Salesperson Problem / Hamiltonian Path in exponential O(2^N * N^2) time.",
+      },
+      {
+        term: "NP-Completeness",
+        definition:
+          "The class of decision problems for which no polynomial-time algorithm is known, but solutions can be verified in polynomial time.",
       },
     ],
   },

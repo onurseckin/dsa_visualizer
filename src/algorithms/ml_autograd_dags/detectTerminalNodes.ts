@@ -7,27 +7,16 @@ export interface detectTerminalNodesInput {
 }
 
 export const DETECTTERMINALNODES_CODE = `
-def detectterminalnodes(graph_nodes, adjacency_map):
+def detect_terminal_nodes(num_nodes, edges):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Finds leaf sink nodes with out-degree 0 in autograd computation graph.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    out_degree = [0] * num_nodes
+    for u, v in edges:
+        out_degree[u] += 1
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
-
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
-
-    return topological_order
+    terminal_nodes = [i for i in range(num_nodes) if out_degree[i] == 0]
+    return terminal_nodes
 `;
 
 export const DEFAULT_DETECTTERMINALNODES_INPUT: detectTerminalNodesInput = {
@@ -40,7 +29,8 @@ export const generateDetectTerminalNodesSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +56,8 @@ export const generateDetectTerminalNodesSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +68,11 @@ export const generateDetectTerminalNodesSteps = (
     1,
     "Initialize Detect Terminal Leaf Nodes in DAG",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +83,7 @@ export const generateDetectTerminalNodesSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +95,9 @@ export const generateDetectTerminalNodesSteps = (
   }));
 
   addStep(
-    6,
+    10,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +106,20 @@ export const generateDetectTerminalNodesSteps = (
 };
 
 const DETECTTERMINALNODES_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Detect Terminal Leaf Nodes in DAG.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines terminal node detection function.",
+    4: "Allocates out_degree array initialized to 0 for num_nodes nodes.",
+    5: "Iterates through directed edges (u, v).",
+    6: "Increments out-degree count out_degree[u] for source node u.",
+    8: "Extracts all node IDs i where out_degree[i] == 0.",
+    9: "Returns list of detected terminal sink node IDs.",
   },
 };
 
@@ -141,100 +133,83 @@ export const detectTerminalNodes: AlgorithmDefinition<detectTerminalNodesInput> 
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), detect terminal leaf nodes in dag provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 802, url: "https://leetcode.com/problems/find-eventual-safe-states/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 802,
-      title: "Find Eventual Safe States",
-      url: "https://leetcode.com/problems/find-eventual-safe-states/",
-    },
-  ],
+    "In autograd engines, loss output nodes and terminal leaf nodes have an out-degree of 0 (no outgoing dependency edges). Identifying terminal nodes determines where backward gradient propagation must begin (e.g. dL/dL = 1.0).\n\nThis algorithm implements Detect Terminal Leaf Nodes in DAG, counting outgoing node degree counts and extracting all sink nodes with out-degree 0.\n\nInput Format:\n- data: Array representing node/edge definitions.\n- target: Optional target value.\n\nOutput Format:\n- Returns array of terminal sink node IDs.\n\nEdge Cases & Constraints:\n- Graph with single node (out-degree = 0, is terminal).\n- Multiple terminal loss nodes (multi-task learning).\n- Graph with no terminal nodes (invalid, contains cycles).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: DETECTTERMINALNODES_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Detect Terminal Leaf Nodes in DAG is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Terminal nodes (sinks) in a computation DAG represent final output scalar loss tensors. Autograd engines initialize backward gradient passes from terminal nodes by assigning upstream gradient 1.0.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, detect terminal leaf nodes in dag operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, a node v in G = (V, E) is a terminal node iff OutDegree(v) = |{ u in V : (v, u) in E }| == 0. Time complexity is O(V + E).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Detect Terminal Leaf Nodes in DAG optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Terminal node detection is used in PyTorch autograd graph pruning to prune unused intermediate computation subtrees.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing detect terminal leaf nodes in dag efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation computes out-degree counts for all nodes by iterating through directed edges, filtering nodes with out_degree[i] == 0.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes isolated nodes (in-degree=0, out-degree=0).",
       },
     ],
     keyTerms: [
       {
-        term: "Detect Engine",
-        definition:
-          "The underlying algorithmic system implementing detect terminal leaf nodes in dag operations for deep learning workloads.",
+        term: "Terminal Node (Sink)",
+        definition: "A graph node with out-degree 0 having no outgoing edges to downstream nodes.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Out-Degree",
+        definition: "The total number of directed edges originating from a node.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Loss Output Node",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The final scalar node in a neural network computation graph whose value is minimized.",
       },
     ],
   },
   trivia: DETECTTERMINALNODES_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_DETECTTERMINALNODES_INPUT,
   generateSteps: generateDetectTerminalNodesSteps,
 };

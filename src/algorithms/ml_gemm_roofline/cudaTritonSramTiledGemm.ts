@@ -7,31 +7,21 @@ export interface cudaTritonSramTiledGemmInput {
 }
 
 export const CUDATRITONSRAMTILEDGEMM_CODE = `
-def cudatritonsramtiledgemm(tensor_shape, strides, memory_buffer):
+def cuda_triton_sram_tiled_gemm(matrix_a, matrix_b, tile_k=2):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes block-tiled GEMM in SRAM iterating over K-dimension blocks.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    m, k_dim = len(matrix_a), len(matrix_a[0])
+    n = len(matrix_b[0])
+    matrix_c = [[0] * n for _ in range(m)]
 
-    is_contiguous = True
-    expected_stride = 1
+    for k_start in range(0, k_dim, tile_k):
+        for r in range(m):
+            for c in range(n):
+                for k in range(k_start, min(k_dim, k_start + tile_k)):
+                    matrix_c[r][c] += matrix_a[r][k] * matrix_b[k][c]
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return matrix_c
 `;
 
 export const DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT: cudaTritonSramTiledGemmInput = {
@@ -97,7 +87,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,24 @@ export const generateCudaTritonSramTiledGemmSteps = (
 };
 
 const CUDATRITONSRAMTILEDGEMM_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for CUDA/Triton SRAM Tiled GEMM Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines CUDA/Triton SRAM tiled GEMM engine function.",
+    4: "Gets rows M and inner dimension K of matrix A.",
+    5: "Gets columns N of matrix B.",
+    6: "Allocates M x N output matrix C initialized to zero.",
+    8: "Iterates through K-dimension contraction tiles starting at k_start with step tile_k.",
+    9: "Iterates through row index r.",
+    10: "Iterates through column index c.",
+    11: "Iterates through K offset indices within current tile block.",
+    12: "Accumulates partial product matrix_a[r][k] * matrix_b[k][c] into matrix_c[r][c].",
+    14: "Returns completed matrix product matrix_c.",
   },
 };
 
@@ -144,85 +141,79 @@ export const cudaTritonSramTiledGemm: AlgorithmDefinition<cudaTritonSramTiledGem
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), cuda/triton sram tiled gemm engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Matrix multiplication (GEMM C = A @ B) is the primary compute workload in deep learning training and inference. Naive 3-loop GEMM yields poor memory bandwidth utilization because matrix entries are evicted from cache before being reused. Block-tiling GEMM partitions matrices A and B into SRAM-sized sub-blocks along the K contraction dimension.\n\nThis algorithm implements CUDA/Triton SRAM Tiled GEMM Engine, iterating over K-dimension tile blocks and accumulating partial matrix products in high-speed SRAM registers.\n\nInput Format:\n- data: Array representing matrix element values.\n- target: Optional scalar target value.\n\nOutput Format:\n- Returns computed M x N output matrix product.\n\nEdge Cases & Constraints:\n- K-dimension not evenly divisible by tile size tile_k.\n- Non-square matrix dimensions (M != N != K).\n- Single-element 1x1 matrix multiplies.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Execution",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
+      input: DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT,
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Complex Execution",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "[10, 20, 30, 40, 50]",
+      input: DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT,
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates workload performance boundaries.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
+      input: DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT,
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case execution completes safely.",
     },
   ],
   code: CUDATRITONSRAMTILEDGEMM_CODE,
   timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Execution time complexity pass across input elements.",
+    space: "Memory allocation space for result structures.",
   },
   topicGuide: {
     overview:
-      "CUDA/Triton SRAM Tiled GEMM Engine is a critical component in ML GEMM ROOFLINE systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "SRAM tiled GEMM is the cornerstone of CUDA C++ and OpenAI Triton matmul kernels. By partitioning A (BLOCK_M x BLOCK_K) and B (BLOCK_K x BLOCK_N) into fast shared memory, each element loaded from HBM is reused BLOCK_N or BLOCK_M times, shifting execution from memory-bound to compute-bound.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, cuda/triton sram tiled gemm engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, C_{i,j} = sum_{k=0}^{K-1} A_{i,k} * B_{k,j} is decomposed into tile sum over K: C_{i,j} = sum_{t=0}^{K/BLOCK_K - 1} (sum_{k in Tile_t} A_{i,k} * B_{k,j}).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. CUDA/Triton SRAM Tiled GEMM Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Arithmetic Intensity increases from O(1) in naive matmul to O(BLOCK_SIZE) in tiled matmul. On NVIDIA H100 Tensor Cores, tiling enables peak FP16 performance of up to 2000 TFLOPS.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing cuda/triton sram tiled gemm engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation loops over K tile blocks (k_start), loading tile sub-matrices into SRAM, multiplying sub-blocks, and accumulating partial products into output matrix C.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes boundary handling when K is not a multiple of tile_k using min(k_dim, k_start + tile_k) guards.",
       },
     ],
     keyTerms: [
       {
-        term: "CUDA/Triton Engine",
+        term: "Block Tiling",
         definition:
-          "The underlying algorithmic system implementing cuda/triton sram tiled gemm engine operations for deep learning workloads.",
+          "Decomposing large matrices into smaller sub-matrix blocks sized to fit on-chip SRAM.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Contraction Dimension (K)",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The shared inner dimension multiplied and summed over during matrix multiplication.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Partial Product Accumulation",
+        definition: "Iteratively adding tile dot products into accumulator registers.",
       },
     ],
   },

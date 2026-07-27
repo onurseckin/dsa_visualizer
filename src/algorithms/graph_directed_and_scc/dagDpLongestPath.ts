@@ -11,20 +11,45 @@ export interface DagDpLongestPathInput {
   edges: GraphEdgeItem[];
 }
 
-export const DAG_DP_CODE = `
-def dag_dp(input_array):
-    """
-    Implementation of dag_dp.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const DAG_DP_CODE = `from collections import deque
+
+def dag_longest_path(nodes, edges):
+    adj = {node: [] for node in nodes}
+    in_degree = {node: 0 for node in nodes}
+    for u, v, w in edges:
+        adj[u].append((v, w))
+        in_degree[v] += 1
+        
+    queue = deque([node for node in nodes if in_degree[node] == 0])
+    topo_order = []
+    while queue:
+        u = queue.popleft()
+        topo_order.append(u)
+        for v, w in adj[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                queue.append(v)
+                
+    dp = {node: 0 for node in nodes}
+    parent = {node: None for node in nodes}
+    for u in topo_order:
+        for v, w in adj[u]:
+            if dp[u] + w > dp[v]:
+                dp[v] = dp[u] + w
+                parent[v] = u
+                
+    max_node = max(nodes, key=lambda n: dp[n])
+    path = []
+    curr = max_node
+    while curr is not None:
+        path.append(curr)
+        curr = parent[curr]
+    path.reverse()
+    
+    return dp[max_node], path`;
 
 export const DAG_DP_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [1, 2],
   distractors: [
     "if dp[u] + w < dp[v]: dp[v] = dp[u] + w",
     "queue.pop()",
@@ -33,7 +58,7 @@ export const DAG_DP_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 8,
+      line: 9,
       hint: "Topological sorting processes nodes in an order where all incoming dependencies precede target nodes.",
     },
     {
@@ -45,17 +70,19 @@ export const DAG_DP_TRIVIA: TriviaMeta = {
       hint: "Relax edges u -> v: if dp[u] + weight > dp[v], update dp[v] and track predecessor.",
     },
     {
-      line: 27,
+      line: 26,
       hint: "The maximum value in the DP table yields the longest path length in the DAG.",
     },
   ],
   lineExplanations: {
-    1: "Defines the DAG longest path dynamic programming algorithm.",
-    8: "Initializes Kahn's queue with in-degree 0 source vertices.",
-    10: "Builds a valid topological ordering of the DAG.",
+    1: "Imports deque for Kahn's topological sort queue.",
+    3: "Defines the DAG longest path dynamic programming algorithm.",
+    9: "Initializes Kahn's queue with in-degree 0 source vertices.",
+    11: "Builds a valid topological ordering of the DAG.",
     18: "Initializes DP distance array dp[u] = 0 and parent pointers for path reconstruction.",
-    21: "Iterates over vertices in topological order to relax outgoing directed edges.",
-    27: "Identifies the node with maximum DP score and reconstructs the longest path.",
+    20: "Iterates over vertices in topological order to relax outgoing directed edges.",
+    22: "Updates dp[v] if a longer path ending at node v is found via node u.",
+    26: "Identifies the node with maximum DP score and reconstructs the longest path.",
   },
 };
 

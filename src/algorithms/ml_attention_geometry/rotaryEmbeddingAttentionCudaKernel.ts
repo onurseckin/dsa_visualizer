@@ -7,31 +7,58 @@ export interface rotaryEmbeddingAttentionCudaKernelInput {
 }
 
 export const ROTARYEMBEDDINGATTENTIONCUDAKERNEL_CODE = `
-def rotaryembeddingattentioncudakernel(q_tile, k_tile, v_tile, scale_factor):
+import math
+
+def fused_rope_attention_kernel(
+    q_tile: list[list[float]],  # Shape [Br, d_k] un-rotated query tile
+    k_tile: list[list[float]],  # Shape [Bc, d_k] un-rotated key tile
+    q_pos_start: int,
+    k_pos_start: int,
+    scale: float
+) -> list[list[float]]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Simulates a fused RoPE + Attention CUDA warp kernel.
+    Fuses 2D complex plane RoPE rotation directly in SRAM registers
+    before computing scaled dot-product attention scores S = (R_m Q) @ (R_n K)^T.
     """
-    import math
+    Br = len(q_tile)
+    Bc = len(k_tile)
+    d = len(q_tile[0])
+    
+    scores = []
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
+    for r in range(Br):
+        m = q_pos_start + r
+        q_raw = q_tile[r]
+        
+        # 1. In-register RoPE transformation for query vector
+        q_rot = [0.0] * d
+        for i in range(0, d, 2):
+            freq = 1.0 / (10000.0 ** (i / d))
+            cos_val, sin_val = math.cos(m * freq), math.sin(m * freq)
+            q_rot[i] = q_raw[i] * cos_val - q_raw[i+1] * sin_val
+            q_rot[i+1] = q_raw[i] * sin_val + q_raw[i+1] * cos_val
+            
+        row_scores = []
+        for c in range(Bc):
+            n = k_pos_start + c
+            k_raw = k_tile[c]
+            
+            # 2. In-register RoPE transformation for key vector
+            k_rot = [0.0] * d
+            for i in range(0, d, 2):
+                freq = 1.0 / (10000.0 ** (i / d))
+                cos_val, sin_val = math.cos(n * freq), math.sin(n * freq)
+                k_rot[i] = k_raw[i] * cos_val - k_raw[i+1] * sin_val
+                k_rot[i+1] = k_raw[i] * sin_val + k_raw[i+1] * cos_val
+                
+            # 3. Multiply rotated vectors: s_rc = <q_rot, k_rot> * scale
+            s_rc = sum(qr * kr for qr, kr in zip(q_rot, k_rot)) * scale
+            row_scores.append(s_rc)
+            
+        scores.append(row_scores)
 
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    return scores
 `;
 
 export const DEFAULT_ROTARYEMBEDDINGATTENTIONCUDAKERNEL_INPUT: rotaryEmbeddingAttentionCudaKernelInput =
@@ -82,7 +109,7 @@ export const generateRotaryEmbeddingAttentionCudaKernelSteps = (
   addStep(
     1,
     "Initialize Fused RoPE & Attention CUDA Kernel Simulator",
-    "Setting up execution data structures and memory layout pointers.",
+    "Configuring GPU SRAM thread tile execution: fusing RoPE rotations into dot-product loop.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -90,16 +117,20 @@ export const generateRotaryEmbeddingAttentionCudaKernelSteps = (
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+        return {
+          ...el,
+          state: isTarget ? "active" : "compare",
+          pointers: [`r=${idx}`, `m=${idx}`],
+        };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      28,
+      `Execute warp thread tile r=${idx} (val=${val}): apply in-register RoPE to q_tile[${idx}]`,
+      `Fusing 2D Givens rotations directly in SRAM registers before Tensor Core GEMM matrix multiply.`,
+      { rowIdx: idx, pos: idx, val, isTarget },
       currentElements,
     );
   });
@@ -110,9 +141,9 @@ export const generateRotaryEmbeddingAttentionCudaKernelSteps = (
   }));
 
   addStep(
-    6,
+    48,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully computed fused RoPE attention score matrix without HBM roundtrips.",
     { completed: true },
     finalElements,
   );
@@ -121,17 +152,23 @@ export const generateRotaryEmbeddingAttentionCudaKernelSteps = (
 };
 
 const ROTARYEMBEDDINGATTENTIONCUDAKERNEL_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "q_rot = q_raw + m",
+    "s_rc = sum(q_raw * k_raw) * scale",
+    "k_rot[i] = k_raw[i] * sin_val",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 26, hint: "Apply in-register 2D complex plane rotation to query vector q_raw." },
+    { line: 39, hint: "Apply in-register 2D complex plane rotation to key vector k_raw." },
+    { line: 43, hint: "Compute dot product <q_rot, k_rot> directly in register accumulator." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Fused RoPE & Attention CUDA Kernel Simulator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines entry point for fused RoPE & attention CUDA kernel simulation.",
+    26: "Computes 2D complex plane rotation for query vector in SRAM registers.",
+    39: "Computes 2D complex plane rotation for key vector in SRAM registers.",
+    43: "Multiplies rotated vectors to produce scaled attention score s_rc.",
+    48: "Returns computed attention score matrix tile.",
   },
 };
 
@@ -140,66 +177,97 @@ export const rotaryEmbeddingAttentionCudaKernel: AlgorithmDefinition<rotaryEmbed
     id: "rotary-embedding-attention-cuda-kernel",
     title: "Fused RoPE & Attention CUDA Kernel Simulator",
     category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "math_and_number_theory"],
+    categories: ["ml_attention_geometry", "ml_hardware_kernels"],
     difficulty: "Hard",
     isMlInfra: true,
     mlInfraLevel: 7,
     mlInfraCategory: "ml_attention_geometry",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), fused rope & attention cuda kernel simulator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "In standard deep learning frameworks, applying Rotary Position Embeddings (RoPE) as an independent PyTorch operator requires reading un-rotated $Q$ and $K$ tensors from High Bandwidth Memory (HBM), performing elementwise rotations, and writing rotated tensors back to HBM. FlashAttention and Triton eliminate this intermediate DRAM roundtrip by fusing RoPE directly into the attention tile loading loop.\n\nFused RoPE & Attention CUDA Kernel loads raw un-rotated $Q$ and $K$ tiles into GPU Shared Memory (SRAM) and applies 2D Givens rotations $\\tilde{Q}_m = R_m Q_m$ and $\\tilde{K}_n = R_n K_n$ directly inside GPU registers before invoking Tensor Core MMA (Matrix Multiply-Accumulate) instructions:\n$$S_{m,n} = \\frac{1}{\\sqrt{d_k}} \\langle R_m Q_m, R_n K_n \\rangle$$\n\nInput Format:\n- data: Sequence token tile dimensions or values.\n- target: Target block position threshold.\n\nOutput Format:\n- Attention score matrix tile $S \\in \\mathbb{R}^{B_r \\times B_c}$ computed directly from fused in-register rotations.\n\nEdge Cases & Constraints:\n- Memory bandwidth savings: Saves $4 \\times N \\cdot d \\times 2$ bytes of DRAM transfers per Transformer layer.\n- Kernel register pressure: Holding cosine/sine precomputations alongside Q/K SRAM tiles increases register utilization per thread, requiring careful thread block tuning (e.g. 128 threads/block) to avoid register spilling.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
+        title: "Fused RoPE Tile Execution",
         inputDisplay: "data = [10, 20, 30], target = 30",
         outputDisplay: "[10, 20, 30]",
         input: { data: [10, 20, 30], target: 30 },
         output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        explanation: "Fuses 2D complex plane RoPE rotations into SRAM attention score calculation.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
+        title: "Multi-Row Tile Fusion",
         inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
         outputDisplay: "[1, 2, 3, 4, 5]",
         input: { data: [1, 2, 3, 4, 5], target: 4 },
         output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        explanation: "Evaluates fused RoPE attention score matrix generation over a 5-row tile.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
+        title: "Target Bounds Check",
         inputDisplay: "data = [5, 10, 15], target = 99",
         outputDisplay: "[5, 10, 15]",
         input: { data: [5, 10, 15], target: 99 },
         output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        explanation:
+          "Safely handles sequence tile boundaries under warp execution predicate guards.",
       },
     ],
     code: ROTARYEMBEDDINGATTENTIONCUDAKERNEL_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: {
+      best: "O(B_r \\cdot B_c \\cdot d)",
+      average: "O(B_r \\cdot B_c \\cdot d)",
+      worst: "O(B_r \\cdot B_c \\cdot d)",
+    },
+    spaceComplexity: "O(B_r \\cdot d + B_c \\cdot d)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Computes fused tile attention in $O(B_r \\cdot B_c \\cdot d)$ operations with zero DRAM bandwidth overhead for intermediate RoPE tensors.",
+      space:
+        "Allocates $O((B_r + B_c) \\cdot d)$ space in fast GPU SRAM for holding $Q$ and $K$ tile buffers.",
     },
     topicGuide: {
-      overview: "Fusing RoPE into attention kernels eliminates intermediate memory writes.",
+      overview:
+        "Fused RoPE Attention kernels (FlashAttention-2, vLLM Triton kernels) represent standard practice in modern LLM training and inference systems. By performing positional rotation in registers immediately prior to dot-product accumulation, system throughput is increased by up to 20-30%.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Fuses 2D RoPE rotation directly into SRAM QK product calculation.",
+          heading: "Core Concept & Mathematical Formulation",
+          body: "For thread block processing query tile $Q \\in \\mathbb{R}^{B_r \\times d}$ at starting position $m$ and key tile $K \\in \\mathbb{R}^{B_c \\times d}$ at position $n$, the kernel computes $S_{r,c} = \\frac{1}{\\sqrt{d}} \\sum_{i=0}^{d/2-1} \\left( R_{m+r, i} q_{r, 2i:2i+2} \\right)^T \\left( R_{n+c, i} k_{c, 2i:2i+2} \\right)$.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "Executing RoPE in registers eliminates 2 global DRAM memory reads and 2 global DRAM memory writes per head. The arithmetic intensity of the tile loading phase increases, transforming a memory-bound operator into a compute-bound operation running on GPU Tensor Cores.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "In Triton, fused RoPE is implemented via Python decorators `@triton.jit` using vector pointers `tl.load(Q_ptr + offsets)`. RoPE rotation is expressed as `q_rot = q * cos + rotate_half(q) * sin` operating over 128-bit vector registers.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "When sequence lengths are not multiples of block size $B_r$ or $B_c$, boundary masks (`mask = row_offsets[:, None] < seqlen`) prevent out-of-bounds memory accesses during tile loads.",
         },
       ],
       keyTerms: [
         {
-          term: "Fused RoPE",
-          definition: "Applying rotary rotation inside SRAM attention inner loops.",
+          term: "Kernel Fusion",
+          definition:
+            "Combining multiple sequential tensor operators into a single GPU kernel pass to eliminate DRAM roundtrips.",
+        },
+        {
+          term: "Register Memory",
+          definition:
+            "Ultra-fast on-chip GPU storage accessible in 1 clock cycle with zero memory bus latency.",
+        },
+        {
+          term: "Warp Synchronization",
+          definition:
+            "Coordinated thread execution within a 32-thread GPU warp executing SIMT instructions.",
+        },
+        {
+          term: "SRAM Tiling",
+          definition:
+            "Partitioning large global memory matrices into small sub-blocks loaded into shared memory.",
         },
       ],
     },

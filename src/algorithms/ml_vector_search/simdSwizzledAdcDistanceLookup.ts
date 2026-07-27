@@ -1,134 +1,255 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface SimdSwizzledAdcDistanceLookupInput {
-  vectors: number[][];
-  target?: number[];
+  queryLut: number[][]; // M subvectors -> 16 quantized centroids (4-bit PQ)
+  quantizedCodes: number[][]; // Batch of vectors, each represented as M 4-bit nibbles
 }
+
+export const DEFAULT_SIMD_SWIZZLED_ADC_INPUT: SimdSwizzledAdcDistanceLookupInput = {
+  queryLut: [
+    [0.1, 0.5, 1.2, 0.3, 0.8, 1.0, 0.4, 0.9, 0.2, 0.6, 1.1, 0.7, 1.3, 0.0, 1.4, 1.5],
+    [0.2, 0.4, 0.1, 0.9, 0.7, 0.3, 0.8, 0.5, 1.0, 1.2, 0.6, 1.1, 0.0, 1.3, 1.4, 1.5],
+  ],
+  quantizedCodes: [
+    [0, 2],
+    [3, 1],
+    [5, 4],
+    [1, 0],
+  ],
+};
+
+export const SIMD_SWIZZLED_ADC_CODE = `def simd_swizzled_adc_lookup(query_lut: list[list[float]], quantized_codes: list[list[int]]) -> list[float]:
+    """
+    SIMD-accelerated ADC Look-Up Table distance evaluation.
+    Simulates hardware AVX-512 / ARM Neon 4-bit nibble shuffle lookups (pshufb).
+    Processes batches of quantized subvector codes using swizzled L1 registers.
+    """
+    accumulated_distances = []
+
+    for vec_idx, codes in enumerate(quantized_codes):
+        total_dist = 0.0
+        for m, sub_code in enumerate(codes):
+            # SIMD byte shuffle lookup: LUT[m][sub_code]
+            dist_val = query_lut[m][sub_code]
+            total_dist += dist_val
+
+        accumulated_distances.append(round(total_dist, 4))
+
+    return accumulated_distances`;
+
+export const generateSimdSwizzledAdcSteps = (
+  input: SimdSwizzledAdcDistanceLookupInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { queryLut, quantizedCodes } = input;
+  let stepIndex = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Initialize SIMD Swizzled ADC Distance Lookup Kernel",
+      why: `Evaluating batch of ${quantizedCodes.length} vectors over M = ${queryLut.length} 4-bit PQ subvector codebooks via SIMD register shuffles.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: quantizedCodes.map((codes, idx) => ({
+        id: `v-${idx}`,
+        value: idx,
+        label: `Vector ${idx} codes:[${codes.join(",")}]`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        numSubvectors: String(queryLut.length),
+        batchSize: String(quantizedCodes.length),
+        simdMode: "AVX-512 pshufb SIMD Lane",
+        status: "Initialized",
+      },
+    },
+    variables: { batchSize: quantizedCodes.length, numSubvectors: queryLut.length },
+  });
+
+  const accumulatedDists: number[] = [];
+
+  for (let vIdx = 0; vIdx < quantizedCodes.length; vIdx++) {
+    const codes = quantizedCodes[vIdx];
+    let totalDist = 0;
+    const lookupDetails: string[] = [];
+
+    for (let m = 0; m < codes.length; m++) {
+      const nibbleCode = codes[m];
+      const distVal = queryLut[m][nibbleCode];
+      totalDist += distVal;
+      lookupDetails.push(`LUT[${m}][${nibbleCode}] (${distVal.toFixed(2)})`);
+    }
+
+    accumulatedDists.push(totalDist);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 12,
+      explanation: {
+        what: `SIMD Shuffle Lookup for Vector ${vIdx} (codes: [${codes.join(", ")}])`,
+        why: `Hardware register shuffle sum: ${lookupDetails.join(" + ")} = ${totalDist.toFixed(
+          3,
+        )}. Performed in parallel SIMD lanes.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: quantizedCodes.map((_, idx) => ({
+          id: `v-${idx}`,
+          value: idx === vIdx ? Math.round(totalDist * 100) : idx,
+          label: `Vector ${idx} (${idx <= vIdx ? accumulatedDists[idx].toFixed(2) : "?"})`,
+          state:
+            idx === vIdx
+              ? ("active" as ElementState)
+              : idx < vIdx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === vIdx ? [`dist=${totalDist.toFixed(2)}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          activeVector: `Vector ${vIdx}`,
+          codes: `[${codes.join(", ")}]`,
+          simdLookupDetails: lookupDetails.join(" + "),
+          accumulatedDistance: totalDist.toFixed(3),
+        },
+      },
+      variables: { vIdx, totalDist: Math.round(totalDist * 100) / 100 },
+    });
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: "SIMD Swizzled ADC Lookup Complete for Batch",
+      why: `Batch accumulated distances: [${accumulatedDists
+        .map((d) => d.toFixed(3))
+        .join(", ")}]. Ultra-fast SIMD throughput achieved.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: accumulatedDists.map((d, idx) => ({
+        id: `res-${idx}`,
+        value: Math.round(d * 100),
+        label: `Vector ${idx}: ${d.toFixed(3)}`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        batchDistances: accumulatedDists.map((d) => d.toFixed(3)).join(", "),
+        status: "Completed",
+      },
+    },
+    variables: { batchSize: quantizedCodes.length, complete: true },
+  });
+
+  return steps;
+};
 
 export const simdSwizzledAdcDistanceLookup: AlgorithmDefinition<SimdSwizzledAdcDistanceLookupInput> =
   {
     id: "simdSwizzledAdcDistanceLookup",
-    title: "Q16: SIMD Swizzled ADC Distance Lookup",
+    title: "SIMD Swizzled ADC Distance Lookup",
     category: "ml_vector_search",
-    categories: ["ml_vector_search", "binary_search"],
+    categories: ["ml_vector_search", "ml_hardware_kernels"],
     difficulty: "Hard",
     isMlInfra: true,
     mlInfraLevel: 5,
     mlInfraCategory: "ml_vector_search",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q16: simd swizzled adc distance lookup provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: [
-      "Vectors must have matching dimensions.",
-      "Input size typically constrained for visualization purposes.",
-    ],
+      "SIMD-accelerated Asymmetric Distance Computation (ADC) using swizzled 4-bit Product Quantization (PQ) codebooks. By fitting 16 sub-centroid distance values into 128-bit SIMD registers, hardware shuffle instructions (`pshufb` on x86, `vtbl` on ARM Neon) perform 16 parallel subvector distance lookups per CPU instruction cycle.\n\nInput Format:\n- queryLut: Precomputed distance Look-Up Table for M subvectors, each with 16 sub-centroids.\n- quantizedCodes: Batch of vectors stored as M 4-bit nibbles.\n\nOutput Format:\n- Returns array of float distances for input vector batch.\n\nEdge Cases & Constraints:\n- 4-bit quantization limits sub-centroid count K_sub to 16 per subvector.",
+    constraints: ["queryLut[m].length == 16 for 4-bit PQ swizzling."],
     examples: [
       {
         kind: "basic",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: {} as unknown as SimdSwizzledAdcDistanceLookupInput, // Will need actual data but cast to any
-        output: "Basic Success",
-        explanation: "A simple clear basic example for simdSwizzledAdcDistanceLookup.",
+        title: "SIMD Shuffle Lookup over 4 Vectors",
+        inputDisplay: "2 subvectors, 4-bit PQ codes, batch of 4 vectors",
+        outputDisplay: "Distances: [0.30, 0.70, 1.70, 0.60]",
+        input: DEFAULT_SIMD_SWIZZLED_ADC_INPUT,
+        output: "[0.30, 0.70, 1.70, 0.60]",
+        explanation: "Evaluates nibble code lookups via swizzled register shuffle operations.",
       },
       {
         kind: "complex",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: {} as unknown as SimdSwizzledAdcDistanceLookupInput,
-        output: "Complex Success",
-        explanation: "A more intricate scenario with multiple elements.",
+        title: "Zero Code Distance Match",
+        inputDisplay: "quantizedCodes = [[0, 0]]",
+        outputDisplay: "Distance: 0.30",
+        input: {
+          ...DEFAULT_SIMD_SWIZZLED_ADC_INPUT,
+          quantizedCodes: [[0, 0]],
+        },
+        output: "[0.30]",
+        explanation: "LUT[0][0] + LUT[1][0] = 0.1 + 0.2 = 0.30.",
       },
       {
         kind: "negative",
-        inputDisplay: "Empty Input",
-        outputDisplay: "Empty Output",
-        input: {} as unknown as SimdSwizzledAdcDistanceLookupInput,
-        output: "Empty",
-        explanation: "Handling empty or invalid edge cases.",
+        title: "Max Nibble Code Match (15, 15)",
+        inputDisplay: "quantizedCodes = [[15, 15]]",
+        outputDisplay: "Distance: 3.00",
+        input: {
+          ...DEFAULT_SIMD_SWIZZLED_ADC_INPUT,
+          quantizedCodes: [[15, 15]],
+        },
+        output: "[3.00]",
+        explanation: "LUT[0][15] + LUT[1][15] = 1.5 + 1.5 = 3.00.",
       },
     ],
-    defaultInput: {} as unknown as SimdSwizzledAdcDistanceLookupInput,
-    code: `
-def simdSwizzledAdcDistanceLookup(query_vector, database_embeddings, top_k=3):
-    """
-    Q16: SIMD Swizzled ADC Distance Lookup
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+    defaultInput: DEFAULT_SIMD_SWIZZLED_ADC_INPUT,
+    code: SIMD_SWIZZLED_ADC_CODE,
     timeComplexity: {
-      best: "O(1)",
-      average: "O(N log N)",
-      worst: "O(N^2)",
+      best: "O(N * M / SIMD_WIDTH)",
+      average: "O(N * M / SIMD_WIDTH)",
+      worst: "O(N * M / SIMD_WIDTH)",
     },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Time complexity heavily depends on the input size N.",
-      space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+      time: "O(N * M / SIMD_WIDTH) floating-point SIMD throughput, delivering 10-16x speedup over scalar LUT lookups.",
+      space: "O(N) memory to hold batch output distances.",
     },
     topicGuide: {
       overview:
-        "Comprehensive guide to simdSwizzledAdcDistanceLookup in machine learning infrastructure.",
+        "Modern vector engines (FAISS FastScan, ScaNN) leverage 4-bit PQ (K_sub = 16) specifically because 16 floating-point (or int8) distance values fit into a single 128-bit SIMD register (XMM). Using byte shuffle instructions (`_mm_shuffle_epi8` / `pshufb`), 16 lookup table operations execute in 1 instruction cycle.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "The simdSwizzledAdcDistanceLookup algorithm is a foundational component.",
+          heading: "Core Concept & Hardware Swizzling",
+          body: "Standard memory lookups cause L1 cache thrashing due to non-contiguous table offsets. Swizzling rearranges LUT matrices into SIMD register layouts so `pshufb` can treat vector byte codes as register shuffle indices.",
         },
         {
-          heading: "Mathematical Foundation",
-          body: "It relies on well-established principles for its operation.",
+          heading: "Systems & Throughput Impact",
+          body: "FAISS FastScan achieves 500k+ QPS on single CPU cores by streaming 4-bit PQ byte codes straight through AVX-512 SIMD pipelines.",
+        },
+        {
+          heading: "Implementation Nuances & Nibble Packing",
+          body: "Two 4-bit codes are packed into a single uint8 byte. High and low nibbles are unpacked using bitwise masks `byte & 0x0F` and `(byte >> 4) & 0x0F`.",
         },
       ],
       keyTerms: [
-        { term: "Node", definition: "A single unit of data or point in space." },
-        { term: "Edge", definition: "A connection or transition between nodes." },
+        {
+          term: "pshufb (Parallel Byte Shuffle)",
+          definition:
+            "x86 SIMD instruction that shuffles bytes in a destination register based on indices in a control register.",
+        },
+        {
+          term: "4-bit PQ (FastScan)",
+          definition:
+            "Product Quantization using 16 centroids per subvector to fit into SIMD register tables.",
+        },
+        {
+          term: "Register Swizzling",
+          definition:
+            "Transposing and interleaving lookup data to enable parallel SIMD lane lookups.",
+        },
       ],
     },
-    generateSteps: (_input: SimdSwizzledAdcDistanceLookupInput) => {
-      const steps: AlgorithmStep[] = [];
-
-      steps.push({
-        stepIndex: 0,
-        codeLine: 1,
-        explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-        primarySnapshot: { kind: "array", elements: [] },
-        auxiliaryState: { customState: { phase: "init" } },
-        variables: { i: 0 },
-      });
-
-      steps.push({
-        stepIndex: 1,
-        codeLine: 4,
-        explanation: { what: "Iterate over elements", why: "Processing each element" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      steps.push({
-        stepIndex: 2,
-        codeLine: 6,
-        explanation: { what: "Finish execution", why: "All elements processed" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      return steps;
-    },
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "FAISS FastScan SIMD Architecture" }],
+    generateSteps: generateSimdSwizzledAdcSteps,
   };

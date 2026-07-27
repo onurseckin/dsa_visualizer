@@ -33,10 +33,10 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
+    codeLine: 2,
     explanation: {
-      what: `Create dp table of ${amount + 1} slots`,
-      why: 'dp[i] will hold the fewest coins that make amount i. Making 0 costs zero coins, so dp[0] = 0; every other slot starts at infinity, meaning "we have not found a way to make this amount yet".',
+      what: `Initialize DP table of size ${amount + 1}`,
+      why: `dp[i] stores the minimum coins needed to form target amount i. dp[0] = 0 (0 coins to make amount 0), while all other slots are initialized to infinity.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -65,8 +65,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
           stepIndex: stepIndex++,
           codeLine: 8,
           explanation: {
-            what: `Try coin ${coin} for amount ${i}`,
-            why: `If we spend coin ${coin}, we land on the already-solved amount ${i - coin}, which would cost dp[${i - coin}] + 1 = ${candidate === Infinity ? "∞" : candidate} coins in total. We keep the better of that and our current ${prevVal === Infinity ? "∞" : prevVal}, so dp[${i}] is now ${dp[i] === Infinity ? "∞" : dp[i]}.`,
+            what: `Consider coin ${coin} for amount ${i}`,
+            why: `Checking transition dp[${i}] = min(dp[${i}], dp[${i - coin}] + 1). Previous cost: ${prevVal === Infinity ? "∞" : prevVal}, candidate: ${candidate === Infinity ? "∞" : candidate}. Updated dp[${i}] = ${dp[i] === Infinity ? "∞" : dp[i]}.`,
           },
           primarySnapshot: {
             kind: "array",
@@ -97,8 +97,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
     stepIndex: stepIndex++,
     codeLine: 10,
     explanation: {
-      what: `Read the answer from dp[${amount}]`,
-      why: `${result === -1 ? `No combination of these coins can reach ${amount}, so dp[${amount}] stayed at infinity and we return -1.` : `We built every amount from already-optimal smaller amounts, so dp[${amount}] = ${result} is the true minimum.`} Filling one table entry per amount, once per coin, is all the work this took.`,
+      what: `Final result dp[${amount}] = ${result}`,
+      why: `${result === -1 ? `No combination of given coins can sum to target amount ${amount}. Returning -1.` : `Minimum coins needed to form amount ${amount} is ${result}.`}`,
     },
     primarySnapshot: {
       kind: "array",
@@ -120,14 +120,14 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
 
 const COIN_CHANGE_DP_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines coin_change(coins, amount) -> int: builds a table of best-known answers for every amount from 0 up to the target.",
-    2: 'Allocates dp with amount + 1 slots, each initialized to infinity, meaning "no combination found yet" — infinity is a safe sentinel because any real answer is smaller, so min() just works with no special-casing.',
-    3: "Sets the base case: making amount 0 costs zero coins, since the empty selection trivially reaches it, and every other entry ultimately depends on this one.",
-    5: "Sweeps amounts upward from 1 to amount, guaranteeing that whenever dp[i] is computed, every smaller amount i - coin has already been finalized.",
-    6: 'For each amount i, tries every denomination as a candidate for "the last coin used" — taking the minimum over all these choices is what makes greedy unnecessary.',
-    7: "Only considers a coin if spending it doesn't overshoot past zero — i - coin must stay within the table's valid range.",
-    8: 'Relaxes dp[i] to the smaller of its current value and dp[i - coin] + 1 — "pay this coin, then solve the remainder optimally" — accumulating the true minimum across every coin choice for this amount.',
-    10: "Returns dp[amount], unless it's still infinity — meaning no combination of coins ever reached the target — in which case -1 signals that it's unreachable.",
+    1: "Defines coin_change(coins, amount) -> int: computes minimum coins required to make total amount.",
+    2: "Allocates dp table of size amount + 1 initialized to float('inf') representing uncomputed amounts.",
+    3: "Base case: dp[0] = 0 because 0 coins are required to form amount 0.",
+    5: "Outer loop sweeps target amount i from 1 to target amount.",
+    6: "Inner loop considers each coin denomination in coins.",
+    7: "Guards against negative indices by ensuring i - coin >= 0.",
+    8: "Updates dp[i] = min(dp[i], dp[i - coin] + 1) using optimal substructure.",
+    10: "Returns dp[amount] if reachable; otherwise returns -1.",
   },
 };
 
@@ -135,10 +135,16 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   id: "coin-change-dp",
   title: "Coin Change Minimum Coins (Dynamic Programming)",
   category: "dp_1d",
+  categories: ["dp_1d"],
   difficulty: "Medium",
   description:
-    "Finds the fewest number of coins needed to make up a given target amount using 1D dynamic programming tabulation. If that amount of money cannot be made up by any combination of the coins, returns -1. You may assume that you have an infinite number of each kind of coin.",
-  constraints: ["1 <= coins.length <= 12", "1 <= coins[i] <= 10^4", "0 <= amount <= 10^4"],
+    "You are given an integer array coins representing coins of different denominations and an integer amount representing a total amount of money. Return the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return -1. You may assume that you have an infinite number of each kind of coin. This problem exhibits optimal substructure: to compute the minimum coins for amount i, evaluate min(dp[i - coin] + 1) over all coins where i >= coin.",
+  constraints: [
+    "1 <= coins.length <= 12",
+    "1 <= coins[i] <= 2^31 - 1",
+    "0 <= amount <= 10^4",
+    "All elements in coins are unique positive integers",
+  ],
   examples: [
     {
       kind: "basic",
@@ -148,7 +154,7 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
       input: { coins: [1, 3, 4], amount: 6 },
       output: "2",
       explanation:
-        "Optimal combination is 3 + 3 = 6 (2 coins). Greedy choice (4 + 1 + 1) would yield 3 coins, showing why DP optimal substructure is necessary.",
+        "Optimal combination is 3 + 3 = 6 (2 coins). A greedy strategy (4 + 1 + 1) would yield 3 coins, demonstrating why dynamic programming is necessary.",
     },
     {
       kind: "complex",
@@ -158,7 +164,7 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
       input: { coins: [2, 5, 10, 12], amount: 15 },
       output: "2",
       explanation:
-        "Combination of 10 + 5 = 15 uses 2 coins. Picking the largest coin 12 requires 12 + 2 + ... which fails to make 15.",
+        "Optimal combination 10 + 5 = 15 uses 2 coins. Taking the largest coin 12 leads to suboptimal coin counts.",
     },
     {
       kind: "negative",
@@ -175,64 +181,50 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   timeComplexity: { best: "O(N * amount)", average: "O(N * amount)", worst: "O(N * amount)" },
   spaceComplexity: "O(amount)",
   complexityAnalysis: {
-    time: "The dp table has amount + 1 entries, and to fill each entry we try every one of the N coin denominations. That nested loop performs N × amount constant-time transitions, giving O(N × amount). The cost is the same in every case because we always fill the entire table before reading the answer.",
-    space:
-      "The dp array is the only structure that grows: one entry for every amount from 0 up to the target, so extra memory is O(amount).",
+    time: "The dp table has amount + 1 entries. For each entry, we evaluate all N coin denominations. Filling the table takes O(N * amount) total time.",
+    space: "Requires a 1D DP table of size amount + 1, taking O(amount) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "Coin change with unlimited coins is the doorway to one-dimensional dynamic programming: you want the fewest coins that sum to a target, and because the denominations are arbitrary, intuition borrowed from a cash register does not apply. The technique is to define one number per subproblem — the best answer for every amount from zero up to the target — and build the table upward so each entry is computed only from entries already finished. It works because the optimal way to make an amount necessarily contains the optimal way to make whatever is left after you remove one coin. Once that structure is visible you will recognise it across a whole family of problems where a single index captures the entire state.",
+      "The Coin Change problem (LeetCode #322) is the quintessential 1D dynamic programming benchmark. Given an array of coin denominations and a target amount, the goal is to find the minimum number of coins needed to sum to that amount, assuming an unlimited supply of each coin denomination. Unlike currency systems with canonical denominations (such as US coins {1, 5, 10, 25} where a greedy approach succeeds), arbitrary coin systems break greedy assumptions. For instance, with coins {1, 3, 4} and target 6, greedy picks 4 + 1 + 1 (3 coins), whereas the optimal choice is 3 + 3 (2 coins). Dynamic programming systematically evaluates subproblems using the recurrence relation dp[i] = min_{c in coins}(dp[i - c] + 1) with base case dp[0] = 0.",
     sections: [
       {
-        heading: "The core idea: one number per amount",
-        body: "Every dynamic program starts with a precise statement of what a table entry means, and here dp of a is the minimum number of coins that add up to exactly a. The entry dp of zero is zero, because the empty handful of coins makes nothing, and that base case is the only value you get for free. Every other entry starts at infinity, a sentinel meaning no combination has been found yet that survives comparison without any special-case branching. Being pedantic about the definition pays off later: because an entry means exactly a rather than at most a, you never have to wonder whether an unspent remainder is allowed.",
+        heading: "Core Concept: Optimal Substructure & 1D Tabulation",
+        body: "Define dp[i] as the minimum number of coins needed to make amount i. Because each coin can be used multiple times (unbounded knapsack property), the optimal solution for amount i is constructed by taking one coin c and adding it to the optimal solution for amount i - c. By sweeping i from 1 to amount, every smaller subproblem is finalized before it is referenced, guaranteeing exact optimal substructure.",
       },
       {
-        heading: "How the transition works, and why greedy fails",
-        body: "To fill dp of a you consider every denomination c that is no larger than a and ask what would happen if the last coin you laid down were c. The remaining amount is a minus c, which you have already solved, so the candidate cost is dp of a minus c plus one; take the smallest candidate across all denominations and the entry is final, because some coin must be last and you tried them all. This is exactly where the greedy rule of taking the largest coin that fits breaks down. With denominations of one, three, and four, greedy builds six as four plus one plus one for three coins, while the table finds three plus three for two — greedy commits to a local choice, whereas the transition lets already-optimal subresults decide.",
+        heading: "Systems & Performance Impact: Memory Allocators & Token Budgets",
+        body: "Unbounded coin change dynamic programming models real-world resource allocation problems. In operating system memory allocators (e.g., jemalloc, tcmalloc), slab sizes must be combined to fulfill requested allocation sizes with minimum chunk overhead. In LLM serving engines (such as vLLM or Hugging Face TGI), block-paging algorithms partition KV-cache memory requests using minimum block combinations. Hardware compilers use similar 1D DP passes for instruction slot packing under register constraints.",
       },
       {
-        heading: "Why the upward sweep is correct",
-        body: "The invariant is that when the loop arrives at amount a, every entry from zero through a minus one already holds its true optimum. That holds because a minus c is strictly smaller than a for every positive denomination, so the transition only ever reads finished entries and never one still under construction. Order therefore carries real meaning: sweep amounts upward, and if you put the coin loop on the outside you must still walk amounts upward on the inside so that reusing a denomination many times stays legal. Sweeping amounts downward is not a bug but a different problem — that is the bounded knapsack where each item may be used once — and mixing up those two directions is the most common source of wrong answers in this family.",
+        heading: "Implementation Nuances: Sentinels & Integer Overflow",
+        body: "In Python, float('inf') serves as an ideal sentinel because float('inf') + 1 remains float('inf'), making min() comparisons clean. In statically typed languages (C++, Java, Rust), initializing DP elements to INT_MAX requires caution: adding 1 to INT_MAX causes integer overflow into negative numbers. A standard practice is initializing to amount + 1, since the maximum possible coins for amount is amount (using all 1-value coins).",
       },
       {
-        heading: "Reading the answer and handling unreachable targets",
-        body: "When the sweep ends, dp of the target is the answer, and an infinity there means precisely what it says: no multiset of these denominations sums to the target, so you report minus one. That test belongs at the very end and nowhere else, because an intermediate infinity is completely normal — with denominations of three and four, dp of one and dp of two are legitimately unreachable while dp of six is not. If you use a large integer instead of true infinity, guard against overflow before adding one to it, which is why comparing against the sentinel first is the safer habit. When you need the actual coins rather than just the count, store the winning denomination beside each entry and walk backwards from the target, subtracting as you go.",
-      },
-      {
-        heading: "When to reach for a one-dimensional table",
-        body: "This shape fits whenever the state you need is a single number and every transition moves to a strictly smaller value of it, which is why climbing stairs, house robber, word break, and longest increasing subsequence all look like variations on the same code. If the supply of each coin were limited, or you had both a weight budget and a value to maximise, one index would no longer describe the state and you would be writing a two-dimensional knapsack instead. Memoised recursion computes the same values and is often easier to derive from the recurrence, but the bottom-up table avoids deep call stacks and makes the sweep order explicit. Prefer the table once you trust the recurrence; prefer recursion while you are still discovering it.",
-      },
-      {
-        heading: "How the pattern generalises",
-        body: "Changing just the combining operation changes the problem while the skeleton stands still. Swap the minimum for a sum and the same table counts how many ways each amount can be formed, and in that variant the loop nesting decides whether you count unordered combinations or ordered sequences, so the order you found harmless here suddenly matters. Swap it for a boolean or and you get subset-sum feasibility; swap it for a maximum and you get the best value achievable under a budget. The transferable lesson is that a table definition, a base case, a transition, and a sweep order are four independent decisions, and once you make each one deliberately the rest of one-dimensional dynamic programming becomes routine.",
+        heading: "Edge Case Analysis & Reconstructive Traceback",
+        body: "Edge cases include target amount 0 (returns 0 immediately), single coin denomination larger than amount (returns -1), and unreachable amounts (returns -1 when dp[amount] stays sentinel). To reconstruct the actual coins used rather than just counting them, maintain a parent array parent[i] recording the winning coin c that minimized dp[i].",
       },
     ],
     keyTerms: [
       {
-        term: "Tabulation",
+        term: "Unbounded Knapsack",
         definition:
-          "Filling a dynamic-programming table bottom-up with loops, from the base case toward the target. It contrasts with memoisation, which starts at the target and recurses downward, caching results on the way.",
+          "A category of dynamic programming problems where items (coins) can be reused an unlimited number of times.",
       },
       {
-        term: "State",
+        term: "Optimal Substructure",
         definition:
-          "The information that fully identifies a subproblem. Here it is one number, the amount still to be made, which is what makes the table one-dimensional.",
+          "The property that an optimal global solution contains within it optimal solutions to smaller subproblems.",
       },
       {
-        term: "Transition",
+        term: "Sentinel Value",
         definition:
-          "The rule that computes one entry from smaller entries. For coin change it tries every denomination as the last coin placed and keeps the cheapest resulting total.",
+          "A special placeholder value (e.g., float('inf') or amount + 1) used to denote unreached or impossible state configurations.",
       },
       {
-        term: "Optimal substructure",
+        term: "1D Tabulation",
         definition:
-          "The property that an optimal solution is built from optimal solutions to its subproblems. Without it, reusing a stored subresult would be unsound and the table would give wrong answers.",
-      },
-      {
-        term: "Unbounded knapsack",
-        definition:
-          "The item-selection family where each item may be taken any number of times, which is what coin change is. The unbounded case is recognisable by its inner loop running upward so a single denomination can be reused within one entry chain.",
+          "Bottom-up dynamic programming using a 1D array filled sequentially from base cases to the final answer.",
       },
     ],
   },

@@ -11,17 +11,17 @@ export interface IntervalSchedulingInput {
   intervals: IntervalItem[];
 }
 
-export const PYTHON_INTERVAL_SCHEDULING_CODE = `
-def python_interval_scheduling(input_array):
-    """
-    Implementation of python_interval_scheduling.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_INTERVAL_SCHEDULING_CODE = `def interval_scheduling(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    sorted_intervals = sorted(intervals, key=lambda x: x[1])
+    selected = []
+    last_end = float("-inf")
+
+    for start, end in sorted_intervals:
+        if start >= last_end:
+            selected.append((start, end))
+            last_end = end
+
+    return selected`;
 
 export const DEFAULT_INTERVAL_SCHEDULING_INPUT: IntervalSchedulingInput = {
   intervals: [
@@ -239,25 +239,44 @@ export const generateIntervalSchedulingSteps = (
 
 export const INTERVAL_SCHEDULING_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Interval Scheduling is a classic greedy problem where we are given a set of intervals (requests) with start and end times, and must select a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.",
+    "Interval Scheduling (also known as the Activity Selection Problem) asks us to select the maximum possible number of mutually non-overlapping intervals from a collection of time requests. The algorithm greedily chooses intervals by earliest finish time (EFT), which provably maximizes the number of scheduled activities. Systems applications span operating system task scheduling, satellite ground-station communication windows, and GPU kernel stream queuing.",
   sections: [
     {
-      heading: "Greedy Strategy Rationale",
-      body: "Sorting by finish time ensures that at each decision step, we pick the job that frees up the resource at the earliest possible moment, leaving maximum remaining time for subsequent jobs.",
+      heading: "Greedy Strategy: Earliest Finish Time (EFT)",
+      body: "By sorting intervals by their end time in ascending order, each step greedily selects the job that finishes earliest. Freeing up shared resources at the earliest possible moment preserves maximum continuous time for all remaining candidates.",
     },
     {
-      heading: "Optimality Proof",
-      body: "Using an 'exchange argument', suppose an optimal solution OPT differs from greedy selection G. In the first differing interval, G's choice ends no later than OPT's choice. Substituting G's choice into OPT retains feasibility, proving greedy is optimal.",
+      heading: "Exchange Argument Proof of Optimality",
+      body: "Let G = {g_1, g_2, ..., g_k} be the greedy schedule sorted by finish time, and OPT = {o_1, o_2, ..., o_m} be an optimal schedule. By induction, for any step i, the finish time of g_i is less than or equal to the finish time of o_i (finish(g_i) <= finish(o_i)). Thus, g_i can replace o_i in OPT without violating compatibility, proving |G| = |OPT|.",
+    },
+    {
+      heading: "Counter-Examples for Flawed Heuristics",
+      body: "Other plausible greedy criteria fail: 1) Shortest Duration First fails for [1, 4], [3, 5], [4, 7] where shortest [3, 5] yields 1 job instead of 2 ([1, 4] and [4, 7]). 2) Earliest Start Time First fails for [1, 10], [2, 3], [4, 5]. 3) Fewest Overlaps First fails in worst-case graphs.",
+    },
+    {
+      heading: "Boundary Conditions & Endpoint Sharing",
+      body: "In standard interval scheduling, intervals [1, 4] and [4, 7] are compatible because task 2 begins exactly when task 1 ends (start_2 >= end_1). If strict inequality is required (start_2 > end_1), adjusting the check condition preserves the exact same algorithm structure.",
     },
   ],
   keyTerms: [
     {
       term: "Earliest Finish Time (EFT)",
-      definition: "Greedy choice criterion of selecting the interval that ends first.",
+      definition:
+        "The greedy choice heuristic that selects the interval with the smallest ending coordinate.",
     },
     {
       term: "Mutual Compatibility",
-      definition: "Two intervals [s1, e1] and [s2, e2] are compatible if s2 >= e1 or s1 >= e2.",
+      definition: "The property where no two selected intervals overlap in time.",
+    },
+    {
+      term: "Exchange Argument",
+      definition:
+        "A mathematical proof technique showing a greedy choice can systematically replace any alternative choice in an optimal solution without degrading quality.",
+    },
+    {
+      term: "Activity Selection",
+      definition:
+        "The canonical algorithm problem of maximizing non-overlapping time interval allocations on a single shared resource.",
     },
   ],
 };
@@ -283,7 +302,7 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
   categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "Given a set of intervals each with a start and end time, select the maximum number of mutually compatible intervals. The greedy choice of sorting intervals by finish time guarantees an optimal schedule.",
+    "Given a collection of intervals each defined by a start time and end time, find a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.\n\nTwo intervals are compatible if they do not overlap in time. Greedily selecting intervals in ascending order of finish time (Earliest Finish Time) guarantees an optimal schedule.",
   constraints: ["1 <= intervals.length <= 10^5", "0 <= start < end <= 10^9"],
   examples: [
     {
@@ -345,7 +364,7 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Sorting N intervals by finish time takes O(N log N) time. The subsequent single linear scan takes O(N) time. Thus total time is O(N log N).",
+    time: "Sorting N intervals by finish time takes O(N log N) time. The subsequent linear sweep pass takes O(N) time, yielding O(N log N) total execution time.",
     space: "O(N) memory to store the sorted array and output list of selected intervals.",
   },
   topicGuide: INTERVAL_SCHEDULING_TOPIC_GUIDE,

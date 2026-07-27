@@ -7,31 +7,21 @@ export interface rotateImageFlatBufferInput {
 }
 
 export const ROTATEIMAGEFLATBUFFER_CODE = `
-def rotateimageflatbuffer(tensor_shape, strides, memory_buffer):
+def rotate_image_flat_buffer(matrix):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Rotates an N x N 2D tensor 90 degrees clockwise in-place.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    n = len(matrix)
 
-    is_contiguous = True
-    expected_stride = 1
+    for r in range(n // 2):
+        for c in range(r, n - r - 1):
+            temp = matrix[r][c]
+            matrix[r][c] = matrix[n - 1 - c][r]
+            matrix[n - 1 - c][r] = matrix[n - 1 - r][n - 1 - c]
+            matrix[n - 1 - r][n - 1 - c] = matrix[c][n - 1 - r]
+            matrix[c][n - 1 - r] = temp
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return matrix
 `;
 
 export const DEFAULT_ROTATEIMAGEFLATBUFFER_INPUT: rotateImageFlatBufferInput = {
@@ -97,7 +87,7 @@ export const generateRotateImageFlatBufferSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +99,7 @@ export const generateRotateImageFlatBufferSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +110,24 @@ export const generateRotateImageFlatBufferSteps = (
 };
 
 const ROTATEIMAGEFLATBUFFER_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Rotate 2D Tensor 90 Degrees in Flat Memory.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 90-degree square matrix rotation function.",
+    4: "Gets matrix dimension N.",
+    6: "Iterates through outer ring layers r from 0 to N//2 - 1.",
+    7: "Iterates through element offsets c within current ring layer.",
+    8: "Saves top-left element matrix[r][c] into temporary variable.",
+    9: "Copies bottom-left matrix[n-1-c][r] into top-left matrix[r][c].",
+    10: "Copies bottom-right matrix[n-1-r][n-1-c] into bottom-left.",
+    11: "Copies top-right matrix[c][n-1-r] into bottom-right.",
+    12: "Assigns temporary top-left value into top-right position.",
+    14: "Returns rotated in-place matrix.",
   },
 };
 
@@ -144,45 +141,35 @@ export const rotateImageFlatBuffer: AlgorithmDefinition<rotateImageFlatBufferInp
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), rotate 2d tensor 90 degrees in flat memory provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 48,
-      title: "Rotate Image",
-      url: "https://leetcode.com/problems/rotate-image/",
-    },
-  ],
+    "Image data augmentation pipelines (e.g. PyTorch torchvision.transforms, OpenCV, TensorRT vision preprocessing) perform 90-degree tensor rotations on image batches. Rotating an N x N matrix in-place without auxiliary buffer allocations optimizes memory footprint and minimizes GPU DRAM allocation overhead.\n\nThis algorithm implements Rotate 2D Tensor 90 Degrees in Flat Memory, performing 4-way cyclic element swaps across concentric square rings to rotate an N x N matrix 90 degrees clockwise in O(1) extra space.\n\nInput Format:\n- data: Array representing matrix values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns rotated N x N matrix buffer.\n\nEdge Cases & Constraints:\n- 1x1 matrix (no-op).\n- Even vs odd matrix dimensions N (center element handling).\n- Non-square input matrix safety validation.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ROTATEIMAGEFLATBUFFER_CODE,
@@ -194,50 +181,43 @@ export const rotateImageFlatBuffer: AlgorithmDefinition<rotateImageFlatBufferInp
   },
   topicGuide: {
     overview:
-      "Rotate 2D Tensor 90 Degrees in Flat Memory is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "In-place matrix rotation processes concentric square rings from the outermost perimeter inward to the center. Each ring rotation moves groups of 4 elements in a cycle: top -> right -> bottom -> left -> top.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, rotate 2d tensor 90 degrees in flat memory operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, rotating element at (r, c) 90 degrees clockwise maps it to target position (c, N - 1 - r). The 4-way cycle consists of: (r, c) -> (c, N - 1 - r) -> (N - 1 - r, N - 1 - c) -> (N - 1 - c, r) -> (r, c).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Rotate 2D Tensor 90 Degrees in Flat Memory optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "In-place rotation requires O(N^2) time and O(1) auxiliary space, avoiding a second N x N matrix allocation. For GPU memory architectures, performing ring swaps in shared memory avoids DRAM allocation latency.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing rotate 2d tensor 90 degrees in flat memory efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation loops over ring layers r from 0 to N//2 - 1, and column offsets c from r to N - r - 2, executing 4-way variable swaps using a single temporary scalar variable.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge cases include N = 1 (loop body skipped, matrix unchanged) and odd N where central element (N//2, N//2) remains stationary.",
       },
     ],
     keyTerms: [
       {
-        term: "Rotate Engine",
-        definition:
-          "The underlying algorithmic system implementing rotate 2d tensor 90 degrees in flat memory operations for deep learning workloads.",
+        term: "In-Place Rotation",
+        definition: "Rotating matrix elements without allocating auxiliary buffer storage.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "Concentric Ring Swapping",
+        definition: "Processing outer matrix perimeters inward towards the center layer by layer.",
       },
       {
-        term: "Memory Coalescing",
+        term: "4-Way Cyclic Permutation",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Swapping 4 corner/edge elements simultaneously in a clockwise rotational cycle.",
       },
     ],
   },
   trivia: ROTATEIMAGEFLATBUFFER_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
   defaultInput: DEFAULT_ROTATEIMAGEFLATBUFFER_INPUT,
   generateSteps: generateRotateImageFlatBufferSteps,
 };

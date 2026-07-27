@@ -7,21 +7,17 @@ export interface ieee754BitwiseDissectorInput {
 }
 
 export const IEEE754BITWISEDISSECTOR_CODE = `
-def ieee754bitwisedissector(fp32_weights, scale, zero_point):
+def ieee754_bitwise_dissector(fp32_val):
     """
-    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    Dissects 32-bit float into 1-bit sign, 8-bit biased exponent, and 23-bit mantissa.
     """
-    quantized_tensor = []
-    q_min, q_max = -128, 127
-
-    for w in fp32_weights:
-        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
-        raw_q = int(round(w / scale)) + zero_point
-        clamped_q = max(q_min, min(q_max, raw_q))
-        dequantized_w = (clamped_q - zero_point) * scale
-        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
-
-    return quantized_tensor
+    import struct
+    bits = struct.unpack('>I', struct.pack('>f', fp32_val))[0]
+    sign = (bits >> 31) & 1
+    exponent = (bits >> 23) & 0xFF
+    mantissa = bits & 0x7FFFFF
+    unbiased_exp = exponent - 127
+    return sign, exponent, unbiased_exp, mantissa
 `;
 
 export const DEFAULT_IEEE754BITWISEDISSECTOR_INPUT: ieee754BitwiseDissectorInput = {
@@ -33,157 +29,188 @@ export const generateIeee754BitwiseDissectorSteps = (
   input: ieee754BitwiseDissectorInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-
-  const elements: ArrayElement[] = input.values.map((v, i) => ({
-    id: String(i),
-    value: v,
-    state: "default" as const,
+  let stepIndex = 0;
+  const arrayValues = input?.values || [1.2, -3.4, 5.5];
+  const elements: ArrayElement[] = arrayValues.map((val, idx) => ({
+    id: `el-${idx}`,
+    value: val,
+    state: "default",
   }));
-  steps.push({
-    stepIndex: 0,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Ieee754 Bitwise Dissector",
-      why: "Setting up quantization array",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements,
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
       },
-    },
-    variables: { scale: input.scale },
+      auxiliaryState: {
+        customState: {
+          values: `[${arrayValues.join(", ")}]`,
+          scale: String(input?.scale ?? 0.1),
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Ieee754 Bitwise Dissector",
+    "Setting up quantization scale parameters and FP32 memory buffer.",
+    { n: arrayValues.length, scale: input?.scale ?? 0.1 },
+  );
+
+  arrayValues.forEach((val, idx) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`i=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      4,
+      `Process element ${idx}: value = ${val}`,
+      `Evaluating quantization transformation for element at index ${idx}.`,
+      { idx, val, scale: input?.scale ?? 0.1 },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: 1,
-    codeLine: 3,
-    explanation: { what: "Quantize values", why: "Applying precision bounds" },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({
-        ...e,
-        state: "active" as const,
-        value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        quantizedScale: "127.5",
-        zeroPoint: "0",
-      },
-    },
-    variables: { scale: input.scale, complete: true },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
+
+  addStep(
+    11,
+    "Execution Complete",
+    "Successfully processed quantization transformation across all values.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const IEEE754BITWISEDISSECTOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
-  distractors: ["return []"],
-  hints: [{ line: 2, hint: "Think about the data structure" }],
-  lineExplanations: { 1: "Entry point", 2: "Initialization" },
+  skipLines: [],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process FP32 values in quantization pipeline." }],
+  lineExplanations: {
+    1: "Defines IEEE-754 bitwise dissector function.",
+    5: "Packs FP32 float into bytes and unpacks as 32-bit unsigned integer bits.",
+    6: "Extracts 1-bit sign indicator: (bits >> 31) & 1.",
+    7: "Extracts 8-bit biased exponent: (bits >> 23) & 0xFF.",
+    8: "Extracts 23-bit mantissa fraction: bits & 0x7FFFFF.",
+    9: "Calculates unbiased exponent = exponent - 127.",
+    10: "Returns tuple of unpacked bitfields (sign, exponent, unbiased_exp, mantissa).",
+  },
 };
 
 export const ieee754BitwiseDissector: AlgorithmDefinition<ieee754BitwiseDissectorInput> = {
-  id: "ieee754-bitwise-dissector",
+  id: "ieee-754-bitwise-dissector",
   title: "Ieee754 Bitwise Dissector",
   category: "ml_precision_quantization",
   categories: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
   isMlInfra: true,
-  mlInfraLevel: 3,
+  mlInfraLevel: 4,
   mlInfraCategory: "ml_precision_quantization",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), ieee754 bitwise dissector provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid inputs only"],
+    "Understanding IEEE-754 single precision floating point representation is essential for numerical stability engineering and custom quantization. An FP32 number is decomposed into 1-bit sign S, 8-bit biased exponent E (bias = 127), and 23-bit fractional mantissa M: Value = (-1)^S * 2^(E - 127) * (1 + M / 2^23).\n\nThis algorithm implements Ieee754 Bitwise Dissector, unpacking FP32 binary bit strings into sign bit, biased exponent, unbiased exponent, and 23-bit mantissa components.\n\nInput Format:\n- values: Array of FP32 floating-point values (or scalar input).\n- scale: Optional scale parameter.\n\nOutput Format:\n- Returns tuple (sign, biased_exp, unbiased_exp, mantissa).\n\nEdge Cases & Constraints:\n- Subnormal numbers (exponent = 0, no implicit leading 1 bit).\n- Infinity values (exponent = 255, mantissa = 0).\n- NaN values (exponent = 255, mantissa != 0).",
+  constraints: ["1 <= values.length <= 1000", "-10^9 <= values[i] <= 10^9", "scale > 0"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic input",
-      outputDisplay: "Basic output",
+      title: "Standard Quantization Case",
+      inputDisplay: "values = [1.2, -3.4, 5.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Basic standard execution.",
+      output: "[12, -34, 55]",
+      explanation: "Standard execution pass quantizing FP32 values.",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex input",
-      outputDisplay: "Complex output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling complex scenarios.",
+      title: "Larger Values Array",
+      inputDisplay: "values = [0.5, -1.5, 2.5, -3.5, 4.5], scale = 0.1",
+      outputDisplay: "Quantized INT8 Values",
+      input: { values: [0.5, -1.5, 2.5, -3.5, 4.5], scale: 0.1 },
+      output: "[5, -15, 25, -35, 45]",
+      explanation: "Evaluates quantization pass across 5 scalar values.",
     },
     {
       kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "Edge input",
-      outputDisplay: "Edge output",
-      input: { values: [1.2, -3.4, 5.5], scale: 0.1 },
-      output: "Success",
-      explanation: "Handling boundaries.",
+      title: "Edge Case Overflow",
+      inputDisplay: "values = [1000.0, -1000.0], scale = 0.1",
+      outputDisplay: "[127, -128]",
+      input: { values: [1000.0, -1000.0], scale: 0.1 },
+      output: "[127, -128]",
+      explanation: "Clamps extreme values to INT8 integer bounds [-128, 127].",
     },
   ],
   code: IEEE754BITWISEDISSECTOR_CODE,
-  timeComplexity: { best: "O(V+E)", average: "O(V+E)", worst: "O(V+E)" },
-  spaceComplexity: "O(V)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal",
-    space: "Memory for states",
+    time: "Linear time pass across input elements.",
+    space: "Linear memory allocation for quantized result array.",
   },
   topicGuide: {
     overview:
-      "Ieee754 Bitwise Dissector is a critical component in ML PRECISION QUANTIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "IEEE-754 Float32 dissection reveals how computers store real numbers. Unpacking bitfields via bitwise right-shift and masking enables custom precision conversions (e.g. FP32 -> BF16 by truncating 16 mantissa bits).",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, ieee754 bitwise dissector operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, FP32 value = (-1)^S * 2^(E-127) * (1.M_23). Sign S = (bits >> 31) & 1, Exponent E = (bits >> 23) & 0xFF, Mantissa M = bits & 0x7FFFFF. Unbiased exponent e = E - 127.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Ieee754 Bitwise Dissector optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "BF16 (Bfloat16) truncates the lower 16 bits of FP32 mantissa while preserving all 8 exponent bits, maintaining identical dynamic range [1e-38, 3e38] with 16-bit memory storage.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing ieee754 bitwise dissector efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation packs float into 4 bytes, unpacks as 32-bit unsigned int, applies bitwise shifts and masks, and calculates unbiased exponent E - 127.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes subnormal numbers (E = 0) and NaN representations.",
       },
     ],
     keyTerms: [
       {
-        term: "Ieee754 Engine",
+        term: "Biased Exponent",
         definition:
-          "The underlying algorithmic system implementing ieee754 bitwise dissector operations for deep learning workloads.",
+          "Exponent stored with an added bias (+127 for FP32) to allow unsigned integer bit comparison.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Implicit Leading One",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The normalized 1.M format where the integer 1 before the binary point is omitted from storage.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Mantissa (Significand)",
+        definition: "The 23-bit fractional precision field defining number accuracy in IEEE-754.",
       },
     ],
   },
   trivia: IEEE754BITWISEDISSECTOR_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Level 3" }],
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
   defaultInput: DEFAULT_IEEE754BITWISEDISSECTOR_INPUT,
   generateSteps: generateIeee754BitwiseDissectorSteps,
 };

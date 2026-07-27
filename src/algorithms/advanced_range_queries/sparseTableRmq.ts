@@ -12,15 +12,30 @@ export interface SparseTableRmqInput {
 }
 
 export const SPARSE_TABLE_RMQ_CODE = `
-def sparse_table_rmq(input_array):
+import math
+
+class SparseTableRMQ:
     """
-    Implementation of sparse_table_rmq.
+    Sparse Table for Range Minimum Query (RMQ) with O(N log N) build and O(1) query time.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    def __init__(self, arr: list[int]):
+        self.n = len(arr)
+        if self.n == 0:
+            return
+        self.k = math.floor(math.log2(self.n)) + 1
+        self.st = [[0] * self.k for _ in range(self.n)]
+        for i in range(self.n):
+            self.st[i][0] = arr[i]
+        for j in range(1, self.k):
+            length = 1 << j
+            half = 1 << (j - 1)
+            for i in range(self.n - length + 1):
+                self.st[i][j] = min(self.st[i][j - 1], self.st[i + half][j - 1])
+
+    def query(self, left: int, right: int) -> int:
+        length = right - left + 1
+        k = math.floor(math.log2(length))
+        return min(self.st[left][k], self.st[right - (1 << k) + 1][k])
 `;
 
 export const DEFAULT_SPARSE_TABLE_RMQ_INPUT: SparseTableRmqInput = {

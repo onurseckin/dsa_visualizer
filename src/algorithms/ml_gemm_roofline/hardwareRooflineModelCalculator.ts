@@ -9,31 +9,15 @@ export interface hardwareRooflineModelCalculatorInput {
 }
 
 export const HARDWAREROOFLINEMODELCALCULATOR_CODE = `
-def hardwarerooflinemodelcalculator(tensor_shape, strides, memory_buffer):
+def hardware_roofline_model_calculator(flops, bytes_transferred, peak_gflops, peak_bw_gbs):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Calculates Berkeley Roofline Model operational intensity and performance bounds.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
-
-    is_contiguous = True
-    expected_stride = 1
-
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    ai = flops / bytes_transferred if bytes_transferred > 0 else float('inf')
+    ridge_point = peak_gflops / peak_bw_gbs
+    is_compute_bound = ai >= ridge_point
+    max_gflops = min(peak_gflops, ai * peak_bw_gbs)
+    return ai, ridge_point, is_compute_bound, max_gflops
 `;
 
 export const DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT: hardwareRooflineModelCalculatorInput = {
@@ -78,7 +62,7 @@ export const generateHardwareRooflineModelCalculatorSteps = (
   };
 
   addStep(
-    5,
+    1,
     "Initialize Roofline Calculation",
     "Starting calculation of Arithmetic Intensity vs Machine Balance.",
     { flops: input.flops, bytes: input.bytes },
@@ -88,7 +72,7 @@ export const generateHardwareRooflineModelCalculatorSteps = (
   elements[0] = { ...elements[0], value: ai, state: "active" };
 
   addStep(
-    9,
+    4,
     "Calculate Arithmetic Intensity (AI)",
     `AI = FLOPs / bytes = ${input.flops} / ${input.bytes} = ${ai}`,
     { ai },
@@ -99,7 +83,7 @@ export const generateHardwareRooflineModelCalculatorSteps = (
   elements[1] = { ...elements[1], value: machineBalance, state: "compare" };
 
   addStep(
-    12,
+    5,
     "Calculate Machine Balance (Ridge Point)",
     `Balance = Peak GFLOPS / Peak BW = ${input.peakGflops} / ${input.peakBandwidthGBs} = ${machineBalance}`,
     { machineBalance },
@@ -111,7 +95,7 @@ export const generateHardwareRooflineModelCalculatorSteps = (
   elements[1] = { ...elements[1], state: isComputeBound ? "default" : "sorted" };
 
   addStep(
-    14,
+    6,
     "Compare AI and Machine Balance",
     isComputeBound
       ? `AI (${ai}) >= Balance (${machineBalance}), so kernel is Compute-Bound.`
@@ -125,11 +109,19 @@ export const generateHardwareRooflineModelCalculatorSteps = (
 
 const HARDWAREROOFLINEMODELCALCULATOR_TRIVIA: TriviaMeta = {
   skipLines: [],
-  distractors: ["ai = bytes / flops", "machine_balance = peak_bw / peak_gflops"],
-  hints: [{ line: 9, hint: "Arithmetic Intensity is operations per byte." }],
+  distractors: [
+    "result.append(item * 2)",
+    "return result[::-1]",
+    "if len(input_data) == 0: return -1",
+  ],
+  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
   lineExplanations: {
-    9: "Calculates the kernel's operational intensity.",
-    12: "Calculates hardware's inflection point.",
+    1: "Defines Berkeley hardware roofline model calculator function.",
+    4: "Calculates Arithmetic Intensity AI = flops / bytes_transferred.",
+    5: "Calculates Machine Balance Ridge Point = peak_gflops / peak_bw_gbs.",
+    6: "Determines if workload is Compute-Bound (AI >= Ridge Point).",
+    7: "Calculates maximum attainable performance ceiling = min(peak_gflops, ai * peak_bw_gbs).",
+    8: "Returns AI, ridge point, compute-bound flag, and maximum GFLOPS ceiling.",
   },
 };
 
@@ -144,65 +136,80 @@ export const hardwareRooflineModelCalculator: AlgorithmDefinition<hardwareRoofli
     mlInfraLevel: 2,
     mlInfraCategory: "ml_gemm_roofline",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), berkeley hardware roofline model calculator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "The Berkeley Roofline Model provides an intuitive performance bound model for analyzing machine learning algorithms on GPU/CPU hardware. By comparing Operational Intensity (FLOPs / Byte) against Machine Balance (Peak GFLOPS / Peak Memory Bandwidth GB/s), the model determines whether a workload is Memory-Bandwidth Bound or Compute-Bound.\n\nThis algorithm implements Berkeley Hardware Roofline Model Calculator, evaluating operational intensity, computing ridge point inflection threshold, and classifying execution bottleneck bounds.\n\nInput Format:\n- flops: Total floating-point operations performed.\n- bytes: Total memory bytes transferred from DRAM.\n- peakGflops: Peak hardware compute performance in GFLOPS.\n- peakBandwidthGBs: Peak hardware memory bandwidth in GB/s.\n\nOutput Format:\n- Returns operational intensity (AI), ridge point, compute-bound boolean flag, and maximum attainable GFLOPS.\n\nEdge Cases & Constraints:\n- Zero bytes transferred (infinite arithmetic intensity, strictly compute bound).\n- High memory bandwidth systems (e.g. HBM3 with 3 TB/s).\n- Low arithmetic intensity workloads (e.g. vector addition, element-wise ReLU).",
     constraints: ["flops >= 0", "bytes >= 1", "peakGflops > 0", "peakBandwidthGBs > 0"],
     examples: [
       {
         kind: "basic",
-        title: "Compute Bound Kernel",
-        inputDisplay: "flops=1000, bytes=100, peakGflops=50, peakBW=10",
+        title: "Standard Execution",
+        inputDisplay: "flops=1000, bytes=500, peakGflops=100, peakBW=50",
         outputDisplay: "Compute-Bound",
-        input: { flops: 1000, bytes: 100, peakGflops: 50, peakBandwidthGBs: 10 },
+        input: DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
         output: "Compute-Bound",
-        explanation: "AI (10) >= Machine Balance (5), kernel is compute-bound.",
+        explanation: "Standard execution pass.",
       },
       {
         kind: "complex",
-        title: "Memory Bound Kernel",
+        title: "Complex Execution",
         inputDisplay: "flops=500, bytes=500, peakGflops=100, peakBW=10",
         outputDisplay: "Memory-Bound",
-        input: { flops: 500, bytes: 500, peakGflops: 100, peakBandwidthGBs: 10 },
+        input: DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
         output: "Memory-Bound",
-        explanation: "AI (1) < Machine Balance (10), kernel is memory-bound.",
+        explanation: "Evaluates workload performance boundaries.",
       },
       {
         kind: "negative",
-        title: "Zero Bytes Transferred",
+        title: "Edge Case",
         inputDisplay: "flops=100, bytes=0, peakGflops=100, peakBW=50",
         outputDisplay: "Compute-Bound",
-        input: { flops: 100, bytes: 0, peakGflops: 100, peakBandwidthGBs: 50 },
+        input: DEFAULT_HARDWAREROOFLINEMODELCALCULATOR_INPUT,
         output: "Compute-Bound",
-        explanation: "Zero bytes means infinite AI, always compute-bound.",
+        explanation: "Edge case execution completes safely.",
       },
     ],
     code: HARDWAREROOFLINEMODELCALCULATOR_CODE,
-    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-    spaceComplexity: "O(1)",
+    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Constant time math operations.",
-      space: "Constant memory for variables.",
+      time: "Execution time complexity pass across input elements.",
+      space: "Memory allocation space for result structures.",
     },
     topicGuide: {
       overview:
-        "Roofline models classify kernels as Memory-Bound vs Compute-Bound based on theoretical hardware peaks.",
+        "The Roofline Model maps performance (GFLOPS) as a function of Arithmetic Intensity I = FLOPs / Byte. The 'roofline' consists of two ceilings: a memory bandwidth ceiling (Performance = I * Bandwidth) and a compute ceiling (Performance = Peak GFLOPS). The intersection point is the Ridge Point (Machine Balance).",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Calculates Arithmetic Intensity (FLOPs/byte) and compares against Machine Balance.",
+          heading: "Core Concept & Mathematical Formulation",
+          body: "Mathematically, Operational Intensity AI = FLOPs / Bytes. Machine Balance R = Peak_GFLOPS / Peak_BW. If AI >= R, maximum performance is capped by Peak_GFLOPS (Compute-Bound). If AI < R, maximum performance is capped by AI * Peak_BW (Memory-Bound).",
         },
         {
-          heading: "Systems Impact",
-          body: "Identifies whether optimization should focus on memory access or computation.",
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "On an NVIDIA H100 GPU (1979 TFLOPS FP16 Tensor Core, 3.35 TB/s HBM3), Ridge Point R = 1979 / 3.35 = 590 FLOPs/Byte. Workloads like GEMM with large batch sizes exceed 590 FLOPs/Byte and hit compute peak, while batch-1 LLM generation (~1 FLOP/Byte) is heavily memory-bound.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "Implementation computes operational intensity AI, calculates machine balance ridge point, compares AI against ridge point, and calculates ceiling performance.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "Edge case analysis includes zero byte transfers and zero peak bandwidth values.",
         },
       ],
       keyTerms: [
         {
           term: "Arithmetic Intensity",
-          definition: "Ratio of FLOPs executed per byte transferred from DRAM.",
+          definition:
+            "The ratio of floating-point operations executed per byte of data read/written from main memory.",
         },
         {
-          term: "Machine Balance",
-          definition: "Ridge point where kernel transitions from memory-bound to compute-bound.",
+          term: "Ridge Point",
+          definition:
+            "The hardware inflection point (Peak FLOPs / Peak BW) separating memory-bound from compute-bound regimes.",
+        },
+        {
+          term: "Memory Bandwidth Bound",
+          definition:
+            "Execution regime where processor compute units stall waiting for data transfers from DRAM.",
         },
       ],
     },

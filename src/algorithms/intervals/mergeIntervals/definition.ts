@@ -33,6 +33,7 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   id: "merge-intervals",
   title: "Merge Intervals",
   category: "intervals",
+  categories: ["intervals"],
   difficulty: "Medium",
   description:
     "Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals. Intervals are sorted by start time, allowing overlap detection via a single linear scan.",

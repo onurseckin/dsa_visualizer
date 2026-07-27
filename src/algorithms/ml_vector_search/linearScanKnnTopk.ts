@@ -1,159 +1,342 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface LinearScanKnnTopkInput {
-  vectors: number[][];
-  target?: number[];
+  query: number[];
+  database: number[][];
+  k: number;
 }
+
+export const DEFAULT_LINEAR_SCAN_KNN_INPUT: LinearScanKnnTopkInput = {
+  query: [1.0, 1.0],
+  database: [
+    [0.1, 0.2],
+    [0.9, 1.1],
+    [5.0, 5.0],
+    [1.0, 0.8],
+    [2.0, 2.0],
+  ],
+  k: 2,
+};
+
+export const LINEAR_SCAN_KNN_CODE = `import heapq
+import math
+
+def l2_distance(v1: list[float], v2: list[float]) -> float:
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
+
+def linear_scan_knn_topk(query: list[float], database: list[list[float]], k: int) -> list[tuple[float, int]]:
+    """
+    Exact K-Nearest Neighbor (kNN) search via brute-force linear scan.
+    Maintains a max-heap of size K to store the K smallest distance candidates in O(N log K) time.
+    """
+    # max-heap stores (-distance, vector_id)
+    max_heap = []
+
+    for idx, vec in enumerate(database):
+        dist = l2_distance(query, vec)
+        if len(max_heap) < k:
+            heapq.heappush(max_heap, (-dist, idx))
+        elif dist < -max_heap[0][0]:
+            heapq.heapreplace(max_heap, (-dist, idx))
+
+    top_k = [(-dist, idx) for dist, idx in max_heap]
+    top_k.sort(key=lambda x: x[0])
+    return top_k`;
+
+export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { query, database, k } = input;
+  let stepIndex = 0;
+
+  const l2Dist = (v1: number[], v2: number[]) =>
+    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Initialize Exact Linear Scan kNN Search Engine (K = ${k})`,
+      why: `Searching for K = ${k} nearest neighbors to query [${query.join(
+        ", ",
+      )}] across ${database.length} database vectors.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: database.map((v, idx) => ({
+        id: `v-${idx}`,
+        value: idx,
+        label: `V${idx} [${v.join(",")}]`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        query: `[${query.join(", ")}]`,
+        k: String(k),
+        heap: "[]",
+        status: "Initialized",
+      },
+    },
+    variables: { k, databaseSize: database.length },
+  });
+
+  const topHeap: { dist: number; idx: number }[] = [];
+
+  for (let i = 0; i < database.length; i++) {
+    const vec = database[i];
+    const dist = l2Dist(query, vec);
+    const maxDistInHeap = topHeap.length > 0 ? Math.max(...topHeap.map((h) => h.dist)) : Infinity;
+
+    if (topHeap.length < k) {
+      topHeap.push({ dist, idx: i });
+      topHeap.sort((a, b) => b.dist - a.dist);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 14,
+        explanation: {
+          what: `Scan Vector V${i} [${vec.join(", ")}] (dist=${dist.toFixed(3)}) -> Added to Heap`,
+          why: `Heap size (${topHeap.length}) < K (${k}). Inserted candidate into top-K heap.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: database.map((v, idx) => ({
+            id: `v-${idx}`,
+            value: idx,
+            label: `V${idx} (d=${idx <= i ? l2Dist(query, v).toFixed(2) : "?"})`,
+            state:
+              idx === i
+                ? ("active" as ElementState)
+                : topHeap.some((h) => h.idx === idx)
+                  ? ("sorted" as ElementState)
+                  : ("visited" as ElementState),
+            pointers: idx === i ? [`In Heap (dist=${dist.toFixed(2)})`] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            scanned: `V${i}`,
+            dist: dist.toFixed(3),
+            action: "Inserted into heap",
+            topKHeap: topHeap.map((h) => `V${h.idx}:${h.dist.toFixed(2)}`).join(", "),
+          },
+        },
+        variables: { i, dist: Math.round(dist * 100) / 100 },
+      });
+    } else if (dist < maxDistInHeap) {
+      const evicted = topHeap.shift()!; // remove max
+      topHeap.push({ dist, idx: i });
+      topHeap.sort((a, b) => b.dist - a.dist);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `Scan Vector V${i} (dist=${dist.toFixed(3)}) -> Replaced Worst Candidate V${evicted.idx}`,
+          why: `Distance ${dist.toFixed(3)} < worst heap distance ${evicted.dist.toFixed(
+            3,
+          )}. Evicted V${evicted.idx} from top-K heap.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: database.map((_, idx) => ({
+            id: `v-${idx}`,
+            value: idx,
+            label: `V${idx}`,
+            state:
+              idx === i
+                ? ("active" as ElementState)
+                : topHeap.some((h) => h.idx === idx)
+                  ? ("sorted" as ElementState)
+                  : ("visited" as ElementState),
+            pointers: idx === i ? ["Replaced Worst"] : idx === evicted.idx ? ["Evicted"] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            scanned: `V${i}`,
+            evicted: `V${evicted.idx} (${evicted.dist.toFixed(2)})`,
+            newMinDist: dist.toFixed(3),
+            topKHeap: topHeap.map((h) => `V${h.idx}:${h.dist.toFixed(2)}`).join(", "),
+          },
+        },
+        variables: { i, dist: Math.round(dist * 100) / 100, evictedIdx: evicted.idx },
+      });
+    } else {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 12,
+        explanation: {
+          what: `Scan Vector V${i} (dist=${dist.toFixed(3)}) -> Discarded`,
+          why: `Distance ${dist.toFixed(3)} >= worst heap candidate distance (${maxDistInHeap.toFixed(
+            3,
+          )}). Discarded.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: database.map((_, idx) => ({
+            id: `v-${idx}`,
+            value: idx,
+            label: `V${idx}`,
+            state:
+              idx === i
+                ? ("visited" as ElementState)
+                : topHeap.some((h) => h.idx === idx)
+                  ? ("sorted" as ElementState)
+                  : ("default" as ElementState),
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            scanned: `V${i}`,
+            dist: dist.toFixed(3),
+            action: "Discarded",
+          },
+        },
+        variables: { i, dist: Math.round(dist * 100) / 100 },
+      });
+    }
+  }
+
+  // Step Final: Sorted
+  topHeap.sort((a, b) => a.dist - b.dist);
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: `Exact Linear Scan kNN Complete: Retained Top K = ${k} Nearest Neighbors`,
+      why: `Final top-K ranking: ${topHeap
+        .map((h, r) => `#${r + 1}: V${h.idx} (dist=${h.dist.toFixed(3)})`)
+        .join(", ")}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: topHeap.map((h, rank) => ({
+        id: `v-${h.idx}`,
+        value: h.idx,
+        label: `Rank ${rank + 1}: V${h.idx} (dist=${h.dist.toFixed(3)})`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("active" as ElementState),
+        pointers: rank === 0 ? ["#1 Nearest"] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        topKNeighbors: topHeap.map((h) => `V${h.idx}`).join(", "),
+        distances: topHeap.map((h) => h.dist.toFixed(3)).join(", "),
+        status: "Completed",
+      },
+    },
+    variables: { topIdx: topHeap[0]?.idx, complete: true },
+  });
+
+  return steps;
+};
 
 export const linearScanKnnTopk: AlgorithmDefinition<LinearScanKnnTopkInput> = {
   id: "linearScanKnnTopk",
-  title: "Q3: Top-K Elements Using Min-Heap (KNN)",
+  title: "Linear Scan Exact K-Nearest Neighbors (kNN Top-K)",
   category: "ml_vector_search",
-  categories: ["ml_vector_search", "binary_search"],
+  categories: ["ml_vector_search"],
   difficulty: "Easy",
   isMlInfra: true,
   mlInfraLevel: 5,
   mlInfraCategory: "ml_vector_search",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q3: top-k elements using min-heap (knn) provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: [
-    "Vectors must have matching dimensions.",
-    "Input size typically constrained for visualization purposes.",
-  ],
+    "Executes brute-force exact K-Nearest Neighbor (kNN) search across N database vectors. Evaluates pairwise distances sequentially and uses a max-heap of capacity K to track top candidates in O(N log K) total time. Provides 100% ground-truth recall for benchmarking approximate search indexes.\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- database: Array of N database embedding vectors.\n- k: Number of top nearest neighbors K to retrieve.\n\nOutput Format:\n- Returns sorted list of (distance, vectorIndex) of size K.\n\nEdge Cases & Constraints:\n- K >= N: Returns all N database vectors sorted by distance.",
+  constraints: ["1 <= k <= database.length.", "All vectors must have identical dimension D."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: {} as unknown as LinearScanKnnTopkInput, // Will need actual data but cast to any
-      output: "Basic Success",
-      explanation: "A simple clear basic example for linearScanKnnTopk.",
+      title: "Top K = 2 Nearest Neighbor Scan",
+      inputDisplay: "query = [1.0, 1.0], 5 database vectors, K = 2",
+      outputDisplay: "Top 2: V1 (dist=0.141), V3 (dist=0.200)",
+      input: DEFAULT_LINEAR_SCAN_KNN_INPUT,
+      output: "[V1, V3]",
+      explanation: "Finds the 2 closest vectors V1 and V3 using max-heap bounded by K = 2.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: {} as unknown as LinearScanKnnTopkInput,
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Exact Matching Candidate",
+      inputDisplay: "query matches exact database element V3",
+      outputDisplay: "V3 distance = 0.0000",
+      input: {
+        query: [1.0, 0.8],
+        database: [
+          [0.1, 0.2],
+          [0.9, 1.1],
+          [1.0, 0.8],
+        ],
+        k: 1,
+      },
+      output: "[V3]",
+      explanation: "Finds exact match V3 at distance 0.0.",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: {} as unknown as LinearScanKnnTopkInput,
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "K Exceeding Database Size (K = 10, N = 2)",
+      inputDisplay: "K = 10, N = 2",
+      outputDisplay: "Returns all N = 2 vectors",
+      input: {
+        query: [0.0, 0.0],
+        database: [
+          [1.0, 1.0],
+          [2.0, 2.0],
+        ],
+        k: 10,
+      },
+      output: "[V0, V1]",
+      explanation: "Bounded by database size N = 2.",
     },
   ],
-  defaultInput: {} as unknown as LinearScanKnnTopkInput,
-  code: `
-def linearScanKnnTopk(query_vector, database_embeddings, top_k=3):
-    """
-    Q3: Top-K Elements Using Min-Heap (KNN)
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+  defaultInput: DEFAULT_LINEAR_SCAN_KNN_INPUT,
+  code: LINEAR_SCAN_KNN_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(N * D + N log K)",
+    average: "O(N * D + N log K)",
+    worst: "O(N * D + N log K)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(K)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(N * D) for distance calculations plus O(N log K) for max-heap pushes and pops across N database vectors.",
+    space: "O(K) auxiliary space to maintain top-K priority queue.",
   },
   topicGuide: {
     overview:
-      "Q3: Top-K Elements Using Min-Heap (KNN) is a critical component in ML VECTOR SEARCH systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Brute-force linear scan is the exact gold standard against which all Approximate Nearest Neighbor (ANN) index algorithms (HNSW, IVF-PQ, LSH) are evaluated. When N is small (N < 10,000) or vector dimension is very low, brute-force GPU GEMM linear scan outperforms indexed graph traversals due to 100% memory bandwidth saturation and zero index overhead.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, q3: top-k elements using min-heap (knn) operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Priority Queue Mechanics",
+        body: "Maintaining a max-heap of size K stores the current K closest distances. If a new candidate has a distance smaller than the heap max root, the max root is popped and replaced in O(log K) time.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Q3: Top-K Elements Using Min-Heap (KNN) optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Systems & GPU Batch Acceleration",
+        body: "On GPUs, brute-force kNN evaluates batch matrix multiplications Q * X^T on Tensor Cores, followed by parallel radix sort / top-K reduction kernels (CUDA CUB `BlockRadixSort`).",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing q3: top-k elements using min-heap (knn) efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Recall Benchmark Ground Truth",
+        body: "Evaluating ANN index quality requires calculating Recall@K = |ANN_topK intersect Exact_topK| / K. Linear scan produces the ground truth denominator.",
       },
     ],
     keyTerms: [
       {
-        term: "Q3: Engine",
+        term: "Brute-Force Scan",
         definition:
-          "The underlying algorithmic system implementing q3: top-k elements using min-heap (knn) operations for deep learning workloads.",
+          "Evaluating distance against every single vector in the database without indexing.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Recall@K",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Fraction of true exact K-nearest neighbors retrieved by an approximate search index.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Max-Heap Top-K Reduction",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Bounded priority queue technique maintaining the smallest K items seen so far.",
       },
     ],
   },
-  generateSteps: (_input: LinearScanKnnTopkInput) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "Exact kNN Benchmark Ground Truth" }],
+  generateSteps: generateLinearScanKnnSteps,
 };

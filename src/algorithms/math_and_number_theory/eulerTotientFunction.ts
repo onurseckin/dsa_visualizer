@@ -6,15 +6,22 @@ export interface EulerTotientInput {
 }
 
 export const PYTHON_EULER_TOTIENT_CODE = `
-def python_euler_totient(input_array):
+def euler_totient(n: int) -> int:
     """
-    Implementation of python_euler_totient.
+    Computes Euler's Totient function phi(n) in O(sqrt(n)) time.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    result = n
+    temp = n
+    p = 2
+    while p * p <= temp:
+        if temp % p == 0:
+            while temp % p == 0:
+                temp //= p
+            result -= result // p
+        p += 1
+    if temp > 1:
+        result -= result // temp
+    return result
 `;
 
 export const DEFAULT_EULER_TOTIENT_INPUT: EulerTotientInput = {
@@ -253,25 +260,40 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
 
 export const EULER_TOTIENT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Euler's Totient function φ(n) counts the number of positive integers up to n that are relatively prime (coprime) to n. It plays a central role in number theory and RSA cryptography.",
+    "Euler's Totient function φ(n) (also known as Euler's phi function) counts the number of positive integers k in the range 1 <= k <= n that are coprime to n (i.e. gcd(k, n) = 1). It plays a fundamental role in modular arithmetic, Group Theory (order of multiplicative groups (Z/nZ)*), and asymmetric RSA cryptography.",
   sections: [
     {
-      heading: "Euler's Product Formula",
-      body: "φ(n) = n * prod_{p | n} (1 - 1/p), where the product is over all distinct prime factors p dividing n.",
+      heading: "Euler's Product Formula & Derivation",
+      body: "Euler's product formula states φ(n) = n * prod_{p | n} (1 - 1/p), where the product is taken over all distinct prime factors p of n. By prime factorization n = p1^k1 * p2^k2 * ... * pr^kr and using the multiplicative property of totient functions for coprime numbers, for any prime power φ(p^k) = p^k - p^(k-1) = p^k * (1 - 1/p). Multiplying across all prime factors yields the product formula.",
     },
     {
-      heading: "Key Properties",
-      body: "If p is prime, φ(p) = p - 1. If a and b are coprime, φ(a*b) = φ(a) * φ(b) (multiplicative function property).",
+      heading: "Systems & Cryptographic Significance",
+      body: "Euler's Totient function is the backbone of RSA public-key encryption. In RSA, one selects two large secret primes p and q and computes n = p*q. The totient φ(n) = (p-1)*(q-1) defines the secret order of the multiplicative group modulo n, allowing the public encryption exponent e and private decryption exponent d to satisfy e*d ≡ 1 (mod φ(n)). Knowing φ(n) is computationally equivalent to factoring n.",
+    },
+    {
+      heading: "Implementation & Factorization Sweeps",
+      body: "To compute φ(n) for a single value n, trial division sweeps prime candidates p up to sqrt(n). Whenever p divides temp, all occurrences of p are divided out and result is updated via integer subtraction: result -= result // p (equivalent to multiplying by 1 - 1/p). If temp > 1 after the loop, the remaining temp is itself a prime factor, requiring one final subtraction. To compute φ(n) for all numbers up to N, a modified Sieve of Eratosthenes computes the totient array in O(N log log N) time.",
+    },
+    {
+      heading: "Key Identities & Edge Cases",
+      body: "Important number-theoretic identities include: 1) Euler's Theorem: a^φ(m) ≡ 1 (mod m) for gcd(a, m) = 1, 2) Gauss's Identity: sum_{d | n} φ(d) = n, and 3) φ(p) = p - 1 for any prime p. Edge cases include n = 1 (φ(1) = 1 by definition) and prime inputs where trial division runs up to sqrt(n) without finding divisors until the final check.",
     },
   ],
   keyTerms: [
     {
       term: "Coprime Integers",
-      definition: "Two integers a and b are coprime if gcd(a, b) = 1.",
+      definition:
+        "Two integers a and b are coprime (or relatively prime) if their greatest common divisor gcd(a, b) = 1.",
+    },
+    {
+      term: "Euler's Product Formula",
+      definition:
+        "The formula φ(n) = n * prod_{p | n} (1 - 1/p) computing totient values from distinct prime factors.",
     },
     {
       term: "Multiplicative Function",
-      definition: "A number-theoretic function f(n) where f(a*b) = f(a)*f(b) for coprime a and b.",
+      definition:
+        "A number-theoretic function f where f(a * b) = f(a) * f(b) for all coprime integers a and b.",
     },
   ],
 };
@@ -300,7 +322,7 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Calculates φ(n), the count of positive integers up to n coprime to n, using Euler's product formula in O(sqrt(n)) time.",
+    "Given a positive integer n, calculate Euler's Totient function φ(n) representing the count of integers k in [1, n] coprime to n. The algorithm applies Euler's product formula φ(n) = n * prod(1 - 1/p) by finding prime factors up to sqrt(n) in O(sqrt(n)) time.",
   constraints: ["1 <= n <= 10^12"],
   examples: [
     {

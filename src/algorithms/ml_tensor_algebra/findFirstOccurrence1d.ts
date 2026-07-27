@@ -7,31 +7,20 @@ export interface findFirstOccurrence1dInput {
 }
 
 export const FINDFIRSTOCCURRENCE1D_CODE = `
-def findfirstoccurrence1d(tensor_shape, strides, memory_buffer):
+def find_first_occurrence_1d(buffer, target, stride=1):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Performs strided 1D linear memory scan to locate target element offset.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    n = len(buffer)
+    match_index = -1
 
-    is_contiguous = True
-    expected_stride = 1
+    for i in range(0, n, stride):
+        val = buffer[i]
+        if val == target:
+            match_index = i
+            break
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return match_index
 `;
 
 export const DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT: findFirstOccurrence1dInput = {
@@ -97,7 +86,7 @@ export const generateFindFirstOccurrence1dSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +98,7 @@ export const generateFindFirstOccurrence1dSteps = (
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +109,23 @@ export const generateFindFirstOccurrence1dSteps = (
 };
 
 const FINDFIRSTOCCURRENCE1D_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Find First Occurrence in 1D Buffer.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines strided 1D search function.",
+    4: "Gets buffer length N.",
+    5: "Initializes match index result to -1 (not found).",
+    7: "Iterates through buffer indices starting at 0 with step = stride.",
+    8: "Reads scalar value at physical offset index i.",
+    9: "Checks if value matches query target.",
+    10: "Records matching physical index i.",
+    11: "Exits loop immediately upon finding first match.",
+    13: "Returns match index or -1 if target absent.",
   },
 };
 
@@ -144,35 +139,35 @@ export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInp
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), find first occurrence in 1d buffer provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In strided tensor indexing, search kernels, and payload metadata parsers, locate matching scalar markers or target tokens across non-contiguous memory layouts requires strided linear scans.\n\nThis algorithm implements Find First Occurrence in 1D Buffer, performing a strided search pass across a 1D memory array to find the first index matching a target query scalar.\n\nInput Format:\n- data: 1D numerical buffer array.\n- target: Target scalar search value.\n\nOutput Format:\n- Returns integer physical buffer offset index if found, or -1 if absent.\n\nEdge Cases & Constraints:\n- Target present at index 0.\n- Target absent from array (returns -1).\n- Strided steps hopping over target elements.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: FINDFIRSTOCCURRENCE1D_CODE,
@@ -184,45 +179,40 @@ export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInp
   },
   topicGuide: {
     overview:
-      "Find First Occurrence in 1D Buffer is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Strided 1D buffer search is a building block for tensor slicing, token matching in LLM tokenizers, and finding sentinel values in sparse tensor buffers. Efficient strided traversal ensures linear-time search without redundant element checks.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, find first occurrence in 1d buffer operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Given a buffer of size N, stride S, and query target T, the search inspects indices i = 0, S, 2S, ..., stopping at the first index where buffer[i] == T. The time complexity is O(N / S) with O(1) auxiliary space.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Find First Occurrence in 1D Buffer optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "On modern CPU/GPU microarchitectures, strided access with stride S > 1 breaks spatial memory locality and SIMD vector loads. Increasing stride decreases L1 cache line utilization because unused adjacent bytes are fetched into cache lines.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing find first occurrence in 1d buffer efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation uses early loop termination upon target discovery to minimize instruction execution count. Boundary guards prevent indexing beyond buffer length N.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes target located at boundary elements (index 0 or last index), strides larger than buffer length, and empty buffers.",
       },
     ],
     keyTerms: [
       {
-        term: "Find Engine",
+        term: "Strided Search",
         definition:
-          "The underlying algorithmic system implementing find first occurrence in 1d buffer operations for deep learning workloads.",
+          "Scanning a memory array by advancing pointer positions by non-unit stride increments.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Early Exit",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Terminating search execution immediately once a target matching condition is met.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Spatial Locality",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The property where accessing a memory address makes adjacent memory addresses faster to access via CPU/GPU cache lines.",
       },
     ],
   },

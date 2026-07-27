@@ -16,20 +16,30 @@ export interface TwoSatSolverInput {
   clauses: TwoSatClause[];
 }
 
-export const TWO_SAT_CODE = `
-def two_sat(input_array):
-    """
-    Implementation of two_sat.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const TWO_SAT_CODE = `def solve_2sat(variables, clauses):
+    adj = {}
+    for var in variables:
+        adj[var] = []
+        adj[f"~{var}"] = []
+        
+    def not_lit(lit):
+        return lit[1:] if lit.startswith("~") else f"~{lit}"
+        
+    for lit1, lit2 in clauses:
+        adj[not_lit(lit1)].append(lit2)
+        adj[not_lit(lit2)].append(lit1)
+        
+    scc = kosaraju_scc(variables, adj)
+    
+    for var in variables:
+        if scc[var] == scc[f"~{var}"]:
+            return False, {}
+            
+    assignment = {var: scc[var] > scc[f"~{var}"] for var in variables}
+    return True, assignment`;
 
 export const TWO_SAT_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [7],
   distractors: [
     "if scc_ids[v] != scc_ids[f'~{v}']: return 'UNSATISFIABLE'",
     "adj[u].append(v)",
@@ -38,29 +48,31 @@ export const TWO_SAT_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 7,
+      line: 10,
       hint: "A clause (A or B) is logically equivalent to (~A -> B) and (~B -> A).",
     },
     {
-      line: 13,
+      line: 14,
       hint: "Kosaraju's SCC decomposition identifies cycles of implications.",
     },
     {
-      line: 18,
+      line: 17,
       hint: "If a variable and its negation belong to the same SCC, a contradiction exists (x => ~x and ~x => x), making the formula UNSATISFIABLE.",
     },
     {
-      line: 19,
+      line: 20,
       hint: "If all variables reside in distinct SCCs from their negations, set x = true if SCC(x) comes after SCC(~x) topologically.",
     },
   ],
   lineExplanations: {
     1: "Defines the 2-SAT solver function via implication graph and SCC decomposition.",
-    7: "Converts each disjunctive clause (A or B) into two implication edges in the directed implication graph.",
-    13: "Decomposes the implication graph into Strongly Connected Components (SCCs).",
-    18: "Checks if any variable x and its negation ~x belong to the same SCC (contradiction test).",
-    19: "Assigns consistent boolean truth values based on component topological order.",
-    21: "Returns 'SATISFIABLE' along with the valid boolean assignment.",
+    3: "Initializes implication graph adjacency lists for each literal and its negation.",
+    7: "Helper function returning the logical negation of a literal.",
+    10: "Converts each clause (A or B) into two implication edges (~A -> B, ~B -> A).",
+    14: "Decomposes the implication graph into Strongly Connected Components (SCCs).",
+    16: "Iterates over variables to check for unsatisfiable contradiction cycles.",
+    17: "If x and ~x belong to the same SCC, returns False (UNSATISFIABLE).",
+    20: "Assigns boolean values based on topological order of SCC indices.",
   },
 };
 

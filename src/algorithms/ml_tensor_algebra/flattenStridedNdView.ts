@@ -7,31 +7,19 @@ export interface flattenStridedNdViewInput {
 }
 
 export const FLATTENSTRIDEDNDVIEW_CODE = `
-def flattenstridedndview(tensor_shape, strides, memory_buffer):
+def flatten_strided_nd_view(coords, strides):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Maps N-dimensional tensor coordinates to 1D flat physical offset using strides.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    flat_offset = 0
+    dim_contributions = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for dim_idx, (coord, stride) in enumerate(zip(coords, strides)):
+        offset_contrib = coord * stride
+        flat_offset += offset_contrib
+        dim_contributions.append(offset_contrib)
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return flat_offset, dim_contributions
 `;
 
 export const DEFAULT_FLATTENSTRIDEDNDVIEW_INPUT: flattenStridedNdViewInput = {
@@ -97,7 +85,7 @@ export const generateFlattenStridedNdViewSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +97,7 @@ export const generateFlattenStridedNdViewSteps = (
   }));
 
   addStep(
-    6,
+    13,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +108,21 @@ export const generateFlattenStridedNdViewSteps = (
 };
 
 const FLATTENSTRIDEDNDVIEW_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for Multi-Dimensional Strided Coordinate Mapper.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines multi-dimensional strided coordinate mapper.",
+    4: "Initializes total flat memory offset to 0.",
+    7: "Iterates through per-dimension coordinate and stride pairs.",
+    8: "Calculates dimension memory contribution = coord * stride.",
+    9: "Accumulates contribution into total flat memory offset.",
+    10: "Records per-dimension offset contribution.",
+    12: "Returns calculated physical 1D offset and dimension breakdown.",
   },
 };
 
@@ -144,35 +136,35 @@ export const flattenStridedNdView: AlgorithmDefinition<flattenStridedNdViewInput
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), multi-dimensional strided coordinate mapper provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In N-dimensional PyTorch tensors (e.g., 4D image batch tensors NCHW or 3D transformer tokens BSD), computing physical memory addresses requires evaluating the multi-dimensional strided dot product between spatial coordinates and dimension stride vectors.\n\nThis algorithm implements Multi-Dimensional Strided Coordinate Mapper, evaluating flat physical offset calculations sum(coord_i * stride_i) across arbitrary tensor dimensions.\n\nInput Format:\n- data: Array of coordinate or stride values.\n- target: Optional scalar value target.\n\nOutput Format:\n- Returns scalar physical 1D memory offset and per-dimension offset contribution breakdown.\n\nEdge Cases & Constraints:\n- 1D scalar tensors (dimension count = 1).\n- Dimensions with zero strides (virtual broadcasting).\n- Large high-dimensional tensors (N >= 5).",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: FLATTENSTRIDEDNDVIEW_CODE,
@@ -184,45 +176,39 @@ export const flattenStridedNdView: AlgorithmDefinition<flattenStridedNdViewInput
   },
   topicGuide: {
     overview:
-      "Multi-Dimensional Strided Coordinate Mapper is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "N-dimensional coordinate mapping is at the heart of PyTorch ATen tensor indexing. Every tensor operation (subscripting tensor[i, j, k], slicing, broadcasting) relies on calculating physical buffer offsets using dimension stride vectors.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, multi-dimensional strided coordinate mapper operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for coordinate vector C = (c_0, c_1, ..., c_{k-1}) and stride vector S = (s_0, s_1, ..., s_{k-1}), physical 1D offset is computed as Offset = C . S = sum_{i=0}^{k-1} c_i * s_i.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Multi-Dimensional Strided Coordinate Mapper optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Evaluating strided dot products on hardware requires fast integer multiply-add instructions. PyTorch C++ kernels pre-calculate strides during tensor metadata initialization, making coordinate offset resolution O(D) where D is tensor rank.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing multi-dimensional strided coordinate mapper efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation zips coordinate and stride tuples, computing per-dimension contributions and accumulating the total linear memory pointer offset.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge cases include zero strides (where dimension offset contribution is 0 regardless of coordinate value) and unit strides along the inner-most dimension.",
       },
     ],
     keyTerms: [
       {
-        term: "Multi-Dimensional Engine",
-        definition:
-          "The underlying algorithmic system implementing multi-dimensional strided coordinate mapper operations for deep learning workloads.",
+        term: "Tensor Rank",
+        definition: "The total number of dimensions (axes) in a multi-dimensional tensor.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Strided Dot Product",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Vector dot product between tensor coordinates and stride values yielding physical 1D memory offset.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Dimension Offset",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The linear memory distance contributed by a specific dimension's coordinate value.",
       },
     ],
   },

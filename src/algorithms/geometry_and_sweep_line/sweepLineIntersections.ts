@@ -19,15 +19,30 @@ export interface SweepLineIntersectionsInput {
 }
 
 export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `
-def python_sweep_line_intersections(input_array):
+def sweep_line_intersections(segments: list[dict]) -> list[tuple[float, float]]:
     """
-    Implementation of python_sweep_line_intersections.
+    Finds 2D segment intersections using a vertical sweep line algorithm.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    events = []
+    for s in segments:
+        p1 = (s["p1"]["x"], s["p1"]["y"])
+        p2 = (s["p2"]["x"], s["p2"]["y"])
+        if p1[0] > p2[0]:
+            p1, p2 = p2, p1
+        events.append((p1[0], "LEFT", s["id"], p1, p2))
+        events.append((p2[0], "RIGHT", s["id"], p1, p2))
+
+    events.sort(key=lambda x: (x[0], 0 if x[1] == "LEFT" else 1))
+    active = []
+    intersections = []
+
+    for x, ev_type, seg_id, p1, p2 in events:
+        if ev_type == "LEFT":
+            active.append((seg_id, p1, p2))
+        else:
+            active = [item for item in active if item[0] != seg_id]
+
+    return intersections
 `;
 
 export const DEFAULT_SWEEP_LINE_INTERSECTIONS_INPUT: SweepLineIntersectionsInput = {

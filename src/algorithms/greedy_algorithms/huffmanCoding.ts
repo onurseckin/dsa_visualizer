@@ -14,7 +14,7 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "Huffman Coding is a greedy, lossless compression algorithm. It builds a binary tree from character frequencies so that common characters get short binary codes and rare ones get longer codes, producing the minimum possible average code length for the text.",
+    "Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.\n\nHuffman Coding counts character frequencies and repeatedly merges the two lowest-frequency tree nodes using a min-heap. High-frequency characters receive short binary code words while rare characters receive longer ones, provably minimizing the total weighted path length (total encoded bit length).",
   constraints: ["1 <= text.length <= 10^4", "Text consists of ASCII characters"],
   examples: [
     {

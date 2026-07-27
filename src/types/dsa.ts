@@ -138,68 +138,69 @@ export interface PanelVisibility {
 export type PanelKey = keyof PanelVisibility;
 export type DifficultyLevel = "Easy" | "Medium" | "Hard";
 
-export type CategoryType =
-  | "arrays_and_hashing"
-  | "two_pointers"
-  | "sliding_window"
-  | "stack_and_queue"
-  | "binary_search"
-  | "linked_list"
-  | "tree_fundamentals"
-  | "tree_queries_and_diameter"
-  | "tries_and_strings"
-  | "heap_and_priority_queue"
-  | "backtracking"
-  | "graph_traversal"
-  | "graph_shortest_paths"
-  | "graph_spanning_trees"
-  | "graph_directed_and_scc"
-  | "graph_flows_and_cuts"
-  | "dp_1d"
-  | "dp_2d"
-  | "intervals"
-  | "greedy_algorithms"
-  | "bit_manipulation"
-  | "math_and_number_theory"
-  | "game_theory"
-  | "advanced_range_queries"
-  | "geometry_and_sweep_line"
-  | "ml_infrastructure"
-  | "ml_infra"
-  | "ml_tensor_algebra"
-  | "ml_gemm_roofline"
-  | "ml_autograd_dags"
-  | "ml_precision_quantization"
-  | "ml_vector_search"
-  | "ml_tokenization"
-  | "ml_tree_ensembles"
-  | "ml_convolutions"
-  | "ml_recurrent_gates"
-  | "ml_attention_geometry"
-  | "ml_hardware_kernels"
-  | "ml_graph_compilers"
-  | "ml_hardware_kernels"
-  | "ml_distributed_systems"
-  | "ml_llm_serving"
-  // Compatibility aliases
-  | "stack"
-  | "trees"
-  | "tries"
-  | "heap"
-  | "graphs"
-  | "greedy"
-  | "advanced_graphs"
-  | "math_and_geometry"
-  | "advanced_range_and_cp"
-  | "sorting"
-  | "leetcode"
-  | "fundamentals"
-  | "data-structures"
-  | "dynamic-programming"
-  | "graph"
-  | "tree"
-  | "advanced"
-  | "math-games";
+export const ALL_CATEGORY_IDS = [
+  "arrays_and_hashing",
+  "two_pointers",
+  "sliding_window",
+  "stack_and_queue",
+  "binary_search",
+  "linked_list",
+  "tree_fundamentals",
+  "tree_queries_and_diameter",
+  "tries_and_strings",
+  "heap_and_priority_queue",
+  "backtracking",
+  "graph_traversal",
+  "graph_shortest_paths",
+  "graph_spanning_trees",
+  "graph_directed_and_scc",
+  "graph_flows_and_cuts",
+  "dp_1d",
+  "dp_2d",
+  "intervals",
+  "greedy_algorithms",
+  "bit_manipulation",
+  "math_and_number_theory",
+  "game_theory",
+  "advanced_range_queries",
+  "geometry_and_sweep_line",
+  "ml_infrastructure",
+  "ml_infra",
+  "ml_tensor_algebra",
+  "ml_gemm_roofline",
+  "ml_autograd_dags",
+  "ml_precision_quantization",
+  "ml_vector_search",
+  "ml_tokenization",
+  "ml_tree_ensembles",
+  "ml_convolutions",
+  "ml_recurrent_gates",
+  "ml_attention_geometry",
+  "ml_hardware_kernels",
+  "ml_graph_compilers",
+  "ml_distributed_systems",
+  "ml_llm_serving",
+  "stack",
+  "trees",
+  "tries",
+  "heap",
+  "graphs",
+  "greedy",
+  "advanced_graphs",
+  "math_and_geometry",
+  "advanced_range_and_cp",
+  "sorting",
+  "leetcode",
+  "fundamentals",
+  "data-structures",
+  "dynamic-programming",
+  "graph",
+  "tree",
+  "advanced",
+  "math-games",
+] as const;
+
+export type CategoryType = (typeof ALL_CATEGORY_IDS)[number];
 
 export interface TimeComplexity {
   best: string;

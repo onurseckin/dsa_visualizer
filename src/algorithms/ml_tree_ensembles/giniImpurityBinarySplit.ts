@@ -1,204 +1,302 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export interface giniImpurityBinarySplitInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface GiniImpurityBinarySplitInput {
+  labels: number[]; // binary classification labels 0 or 1
+  splitIndex: number; // candidate split boundary index (left = 0..splitIndex, right = splitIndex+1..end)
 }
 
-export const GINIIMPURITYBINARYSPLIT_CODE = `
-def giniimpuritybinarysplit(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
-
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_GINIIMPURITYBINARYSPLIT_INPUT: giniImpurityBinarySplitInput = {
-  data: [1, 1, 2, 2],
+export const DEFAULT_GINI_IMPURITY_INPUT: GiniImpurityBinarySplitInput = {
+  labels: [0, 0, 0, 1, 1, 1],
+  splitIndex: 2, // Left = [0,0,0], Right = [1,1,1]
 };
 
-export const generateGINIIMPURITYBINARYSPLITSteps = (
-  input: giniImpurityBinarySplitInput,
-): AlgorithmStep[] => {
+export const GINI_IMPURITY_CODE = `def compute_gini_impurity(labels: list[int]) -> float:
+    """
+    Computes Gini Impurity for a classification node.
+    Gini = 1 - sum(p_i^2) where p_i is class probability.
+    """
+    if not labels:
+        return 0.0
+    
+    n = len(labels)
+    counts = {}
+    for y in labels:
+        counts[y] = counts.get(y, 0) + 1
+        
+    return 1.0 - sum((cnt / n) ** 2 for cnt in counts.values())
+
+def gini_binary_split_gain(labels: list[int], split_index: int) -> tuple[float, float, float, float]:
+    """
+    Calculates Gini Impurity reduction (Gain) for a binary node split.
+    Gain = Gini(Parent) - (N_left / N) * Gini(Left) - (N_right / N) * Gini(Right).
+    """
+    left = labels[:split_index + 1]
+    right = labels[split_index + 1:]
+    
+    parent_gini = compute_gini_impurity(labels)
+    left_gini = compute_gini_impurity(left)
+    right_gini = compute_gini_impurity(right)
+    
+    n = len(labels)
+    n_left = len(left)
+    n_right = len(right)
+    
+    weighted_child_gini = (n_left / n) * left_gini + (n_right / n) * right_gini
+    gini_gain = parent_gini - weighted_child_gini
+    
+    return parent_gini, left_gini, right_gini, round(gini_gain, 4)`;
+
+export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
+  const { labels, splitIndex } = input;
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const calcGini = (lbls: number[]) => {
+    if (lbls.length === 0) return 0.0;
+    const n = lbls.length;
+    const counts: Record<number, number> = {};
+    lbls.forEach((y) => (counts[y] = (counts[y] || 0) + 1));
+    return 1.0 - Object.values(counts).reduce((acc, cnt) => acc + (cnt / n) ** 2, 0);
+  };
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const parentGini = calcGini(labels);
+  const leftLabels = labels.slice(0, splitIndex + 1);
+  const rightLabels = labels.slice(splitIndex + 1);
 
+  const leftGini = calcGini(leftLabels);
+  const rightGini = calcGini(rightLabels);
+
+  const n = labels.length;
+  const weightedChildGini =
+    (leftLabels.length / n) * leftGini + (rightLabels.length / n) * rightGini;
+  const giniGain = parentGini - weightedChildGini;
+
+  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    codeLine: 12,
+    explanation: {
+      what: "Initialize Gini Impurity Binary Split Evaluator (CART)",
+      why: `Parent node contains ${labels.length} class labels [${labels.join(
+        ", ",
+      )}]. Evaluating candidate split at index ${splitIndex}.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `Class ${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        parentGini: parentGini.toFixed(4),
+        totalSamples: String(labels.length),
+        splitIndex: String(splitIndex),
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { parentGini: Math.round(parentGini * 10000) / 10000, totalSamples: labels.length },
   });
 
+  // Step 1: Compute Parent Gini
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
+    codeLine: 19,
+    explanation: {
+      what: `Compute Parent Node Gini Impurity: Gini(Parent) = ${parentGini.toFixed(4)}`,
+      why: `Parent class distribution: ${leftLabels.length + rightLabels.length} samples. Gini = 1 - sum(p_i^2) = ${parentGini.toFixed(
+        4,
+      )}.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "active" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { computing: "true" },
+      customState: {
+        parentGini: parentGini.toFixed(4),
+        formula: "1.0 - sum((cnt / N)^2)",
+      },
     },
-    variables: { step: 1 },
+    variables: { parentGini: Math.round(parentGini * 10000) / 10000 },
   });
 
+  // Step 2: Compute Child Ginis & Split Gain
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 26,
+    explanation: {
+      what: `Compute Left & Right Child Gini Impurities: Gini(Left) = ${leftGini.toFixed(
+        4,
+      )}, Gini(Right) = ${rightGini.toFixed(4)}`,
+      why: `Left child (${leftLabels.length} samples [${leftLabels.join(",")}]), Right child (${rightLabels.length} samples [${rightLabels.join(",")}]).`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: idx <= splitIndex ? ("active" as ElementState) : ("visited" as ElementState),
+        pointers:
+          idx === splitIndex
+            ? [`Left Gini ${leftGini.toFixed(2)}`]
+            : idx === splitIndex + 1
+              ? [`Right Gini ${rightGini.toFixed(2)}`]
+              : [],
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        leftGini: leftGini.toFixed(4),
+        rightGini: rightGini.toFixed(4),
+        weightedChildGini: weightedChildGini.toFixed(4),
+        giniGain: giniGain.toFixed(4),
+      },
     },
-    variables: { result: "calculated" },
+    variables: {
+      leftGini: Math.round(leftGini * 10000) / 10000,
+      rightGini: Math.round(rightGini * 10000) / 10000,
+      giniGain: Math.round(giniGain * 10000) / 10000,
+    },
+  });
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 28,
+    explanation: {
+      what: `Gini Impurity Split Evaluation Complete: Gain = ${giniGain.toFixed(4)}`,
+      why: `Pure binary split achieved! Gini Gain = ${parentGini.toFixed(4)} - ${weightedChildGini.toFixed(
+        4,
+      )} = ${giniGain.toFixed(4)}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        giniGain: giniGain.toFixed(4),
+        status: "Completed",
+      },
+    },
+    variables: { giniGain: Math.round(giniGain * 10000) / 10000, complete: true },
   });
 
   return steps;
 };
 
-const GINIIMPURITYBINARYSPLIT_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
-};
-
-export const giniImpurityBinarySplit: AlgorithmDefinition<giniImpurityBinarySplitInput> = {
-  id: "gini-impurity-binary-split",
-  title: "Gini Impurity Binary Split Evaluator",
+export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySplitInput> = {
+  id: "giniImpurityBinarySplit",
+  title: "Gini Impurity Binary Split (CART)",
   category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "tree_fundamentals"],
-  difficulty: "Medium",
+  categories: ["ml_tree_ensembles"],
+  difficulty: "Easy",
   isMlInfra: true,
-  mlInfraLevel: 9,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), gini impurity binary split evaluator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  constraints: ["Valid input arguments required."],
+    "Computes Gini Impurity Gini(S) = 1 - sum(p_i^2) and Gini Gain reduction for binary classification decision tree splits (CART, Breiman et al. 1984). Measures node class homogeneity, where Gini = 0.0 indicates a perfectly pure node containing a single class.\n\nInput Format:\n- labels: Array of class labels (0 or 1).\n- splitIndex: Candidate split index boundary.\n\nOutput Format:\n- Returns tuple (parentGini, leftGini, rightGini, giniGain).\n\nEdge Cases & Constraints:\n- Pure node (all class 0 or class 1): Gini = 0.0.\n- 50/50 binary mix: Maximum Gini = 0.5.",
+  constraints: ["0 <= splitIndex < labels.length - 1."],
   examples: [
     {
       kind: "basic",
-      title: "Basic Case",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: { data: [1, 1, 2, 2] },
-      output: "Basic Output Result",
-      explanation: "Standard execution.",
+      title: "Perfect Pure Binary Split",
+      inputDisplay: "labels = [0, 0, 0, 1, 1, 1], splitIndex = 2",
+      outputDisplay: "Gini(Parent)=0.5, Gini(Left)=0.0, Gini(Right)=0.0, Gain=0.5",
+      input: DEFAULT_GINI_IMPURITY_INPUT,
+      output: "Gain = 0.5000",
+      explanation:
+        "Splits 50/50 mixed parent (Gini 0.5) into perfectly pure left [0,0,0] and right [1,1,1] nodes (Gini 0.0).",
     },
     {
       kind: "complex",
-      title: "Complex Case",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: { data: [1, 1, 2, 2] },
-      output: "Complex Output Result",
-      explanation: "Advanced execution.",
+      title: "Impure Binary Split",
+      inputDisplay: "labels = [0, 1, 0, 1, 0, 1], splitIndex = 2",
+      outputDisplay: "Gain = 0.0000",
+      input: {
+        labels: [0, 1, 0, 1, 0, 1],
+        splitIndex: 2,
+      },
+      output: "Gain = 0.0000",
+      explanation:
+        "Split results in identical 50/50 class distributions in both children, producing zero Gini Gain.",
     },
     {
       kind: "negative",
-      title: "Negative Case",
-      inputDisplay: "Negative Input",
-      outputDisplay: "Negative Output",
-      input: { data: [1, 1, 2, 2] },
-      output: "Negative Output Result",
-      explanation: "Edge case handling.",
+      title: "Single Class Dataset",
+      inputDisplay: "labels = [1, 1, 1, 1]",
+      outputDisplay: "Parent Gini = 0.0",
+      input: {
+        labels: [1, 1, 1, 1],
+        splitIndex: 1,
+      },
+      output: "Gini = 0.0000",
+      explanation: "Perfectly pure dataset has zero initial Gini impurity.",
     },
   ],
-  code: GINIIMPURITYBINARYSPLIT_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  defaultInput: DEFAULT_GINI_IMPURITY_INPUT,
+  code: GINI_IMPURITY_CODE,
+  timeComplexity: {
+    best: "O(N)",
+    average: "O(N)",
+    worst: "O(N)",
+  },
+  spaceComplexity: "O(C)",
   complexityAnalysis: {
-    time: "Algorithm specific time complexity.",
-    space: "Algorithm specific space complexity.",
+    time: "O(N) linear time scan across N sample labels.",
+    space: "O(C) auxiliary space for class frequency count dictionary.",
   },
   topicGuide: {
     overview:
-      "Gini Impurity Binary Split Evaluator is a critical component in ML TREE ENSEMBLES systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Gini Impurity (Corrado Gini 1912, Leo Breiman CART 1984) is the default split metric in classification decision trees (scikit-learn DecisionTreeClassifier, Random Forest). Gini measures the probability that a randomly chosen element from the set would be incorrectly labeled if it were randomly labeled according to the distribution of labels in the subset.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, gini impurity binary split evaluator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Gini(S) = 1 - sum_{i=1}^C p_i^2 = sum_{i != j} p_i p_j. For binary classification with positive fraction p, Gini = 1 - (p^2 + (1-p)^2) = 2p(1-p).",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Gini Impurity Binary Split Evaluator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "Gini Impurity vs Shannon Entropy",
+        body: "Gini Impurity avoids expensive log2 calculations required by Shannon Entropy, executing faster on CPUs and GPUs while yielding nearly identical tree structures.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing gini impurity binary split evaluator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Weighted Child Gini & Split Selection",
+        body: "Gini Gain = Gini(Parent) - [ (N_left / N) Gini(Left) + (N_right / N) Gini(Right) ]. CART searches for the feature threshold that maximizes Gini Gain.",
       },
     ],
     keyTerms: [
       {
-        term: "Gini Engine",
+        term: "Gini Impurity",
         definition:
-          "The underlying algorithmic system implementing gini impurity binary split evaluator operations for deep learning workloads.",
+          "Statistical measure of node label variance, ranging from 0.0 (pure) to 0.5 (equal binary mix).",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "CART Algorithm",
+        definition: "Classification And Regression Trees algorithm introduced by Breiman et al.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Gini Gain",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Reduction in weighted Gini impurity achieved by splitting a node into child subsets.",
       },
     ],
   },
-  trivia: GINIIMPURITYBINARYSPLIT_TRIVIA,
-  sources: [],
-  defaultInput: DEFAULT_GINIIMPURITYBINARYSPLIT_INPUT,
-  generateSteps: generateGINIIMPURITYBINARYSPLITSteps,
+  sources: [
+    { type: "ml_infra", kind: "ml_infra", label: "CART Decision Trees (Breiman et al. 1984)" },
+  ],
+  generateSteps: generateGiniImpuritySteps,
 };

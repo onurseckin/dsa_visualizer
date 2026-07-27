@@ -11,17 +11,29 @@ export const DEFAULT_COUNTING_TILINGS_INPUT: CountingTilingsInput = {
   m: 3,
 };
 
-export const PYTHON_COUNTING_TILINGS_CODE = `
-def python_counting_tilings(input_array):
-    """
-    Implementation of python_counting_tilings.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_COUNTING_TILINGS_CODE = `def count_tilings(n: int, m: int) -> int:
+    if (n * m) % 2 != 0:
+        return 0
+
+    num_masks = 1 << n
+    dp = [0] * num_masks
+    dp[0] = 1
+
+    for col in range(m):
+        for row in range(n):
+            next_dp = [0] * num_masks
+            for mask in range(num_masks):
+                if not dp[mask]:
+                    continue
+                if mask & (1 << row):
+                    next_dp[mask ^ (1 << row)] += dp[mask]
+                else:
+                    next_dp[mask | (1 << row)] += dp[mask]
+                    if row + 1 < n and not (mask & (1 << (row + 1))):
+                        next_dp[mask | (1 << (row + 1))] += dp[mask]
+            dp = next_dp
+
+    return dp[0]`;
 
 export const generateCountingTilingsSteps = (input: CountingTilingsInput): AlgorithmStep[] => {
   const n = Math.min(6, Math.max(1, input?.n ?? DEFAULT_COUNTING_TILINGS_INPUT.n));
@@ -32,10 +44,10 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
   if ((n * m) % 2 !== 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 6,
+      codeLine: 2,
       explanation: {
         what: `Total area n * m = ${n * m} is odd`,
-        why: "A grid with odd total area cannot be tiled using 1x2 dominoes of area 2. Return 0.",
+        why: "A grid with odd total area cannot be covered using dominoes of area 2. Return 0.",
       },
       primarySnapshot: {
         kind: "array",
@@ -53,10 +65,10 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 7,
     explanation: {
       what: `Initialize bitmask DP table for n=${n}`,
-      why: `Size of mask space is 2^${n} = ${numMasks}. dp[0] = 1 (empty profile before col 0).`,
+      why: `Number of boundary profile masks is 2^${n} = ${numMasks}. dp[0] = 1 (empty profile before col 0).`,
     },
     primarySnapshot: {
       kind: "array",
@@ -83,7 +95,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
         } else {
           nextDp[mask | (1 << row)] += dp[mask];
           if (row + 1 < n && !(mask & (1 << (row + 1)))) {
-            nextDp[mask] += dp[mask];
+            nextDp[mask | (1 << (row + 1))] += dp[mask];
           }
         }
       }
@@ -92,10 +104,10 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 23,
+        codeLine: 21,
         explanation: {
           what: `Processed cell (row ${row}, col ${col})`,
-          why: `Profile transition updated dp table for column ${col}, row ${row}. dp[0] is currently ${dp[0]}.`,
+          why: `Profile transitions updated DP table for column ${col}, row ${row}. Valid boundary profiles count: dp[0] = ${dp[0]}.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -117,10 +129,10 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
   const result = dp[0];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 23,
     explanation: {
-      what: `Return dp[0] = ${result}`,
-      why: `The total number of valid domino tilings for a ${n}x${m} grid is ${result}.`,
+      what: `Final result dp[0] = ${result}`,
+      why: `The total number of valid domino tilings for a ${n}x${m} grid with zero boundary overhangs is ${result}.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -140,19 +152,18 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
 const COUNTING_TILINGS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Helper is_bit_set checks if specific bit row is set in mask.",
-    4: "Defines count_tilings(n, m) -> int: broken profile bitmask DP.",
-    5: "If total area n * m is odd, returning 0 immediately.",
-    8: "Initializes DP array dp of size 2^n with 0s.",
-    9: "Sets base case dp[0] = 1 for empty boundary.",
-    11: "Iterates through each column col from 0 to m - 1.",
-    12: "Iterates through each row row from 0 to n - 1.",
-    13: "Allocates next_dp array for current cell transition.",
-    14: "Loops through all bitmask profile states from 0 to 2^n - 1.",
-    17: "If bit at row is set, clear bit and carry over previous count.",
-    20: "Else place horizontal domino or test vertical domino with cell below.",
-    23: "Update dp table to next_dp after processing cell.",
-    25: "Returns dp[0], valid tilings leaving no overhangs.",
+    1: "Defines count_tilings(n, m) -> int: counts valid 1x2 and 2x1 domino tilings.",
+    2: "Returns 0 if total area n * m is odd, as 1x2 dominoes of area 2 cannot tile an odd total area.",
+    5: "Calculates total profile states num_masks = 2^n.",
+    6: "Allocates DP array dp of size 2^n initialized to 0.",
+    7: "Sets base case dp[0] = 1 (empty boundary profile).",
+    9: "Outer loop sweeps column index col from 0 to m - 1.",
+    10: "Inner loop sweeps row index row from 0 to n - 1.",
+    11: "Allocates next_dp array of size 2^n for current cell transition.",
+    15: "If bit row is set in mask (already covered), clears bit row into next_dp.",
+    18: "Else places horizontal domino (setting bit row) or vertical domino (covering row and row+1).",
+    21: "Updates dp = next_dp after processing cell (row, col).",
+    23: "Returns dp[0], total tilings leaving zero boundary overhangs.",
   },
 };
 
@@ -168,6 +179,7 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
     "1 <= n <= 10",
     "1 <= m <= 10",
     "Time complexity O(N * M * 2^N)",
+    "Output must fit within standard 64-bit integer representation",
   ],
   examples: [
     {
@@ -195,57 +207,57 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
       title: "Odd Area Grid",
       input: { n: 3, m: 3 },
       output: "0",
-      explanation: "Odd total area 9 cannot be covered by 1x2 dominoes.",
+      explanation: "Odd total area 9 cannot be covered by 1x2 dominoes, returning 0.",
     },
   ],
   code: PYTHON_COUNTING_TILINGS_CODE,
   timeComplexity: { best: "O(N * M * 2^N)", average: "O(N * M * 2^N)", worst: "O(N * M * 2^N)" },
   spaceComplexity: "O(2^N)",
   complexityAnalysis: {
-    time: "Processes N * M cells, updating 2^N profile states per cell, yielding O(N * M * 2^N) time.",
-    space: "Maintains DP arrays of size 2^N for profile state bitmasks.",
+    time: "Processes N * M grid cells, updating 2^N profile states per cell, yielding O(N * M * 2^N) total time.",
+    space: "Maintains DP arrays of size 2^N to track boundary profile bitmask states.",
   },
   topicGuide: {
     overview:
-      "Counting domino tilings of an n x m grid is a classic problem in algebraic combinatorics and advanced dynamic programming. When n is small (n <= 10), profile bitmask DP (or broken-profile DP) processes cells one by one, using an n-bit integer mask to track boundary occupancy.",
+      "Counting domino tilings of an n x m grid is a classic problem in algebraic combinatorics and advanced dynamic programming (CSES 2181 / Kasteleyn Tiling Theory). When n is small (n <= 10), broken profile bitmask DP processes cells sequentially (col by col, row by row), maintaining an n-bit integer mask to track boundary cell occupancy.",
     sections: [
       {
         heading: "Core Concept: Broken Profile Bitmask States",
-        body: "Instead of transitioning entire columns at once (which takes O(M * 2^(2N)) steps), broken profile DP processes the grid cell by cell (r, c). The bitmask maintains an n-bit state where the i-th bit indicates whether cell (i, c) is already occupied by a horizontal domino extending from column c-1.",
+        body: "Instead of transitioning entire columns at once (which requires O(M * 2^(2N)) operations), broken profile DP processes grid cells individually at (r, c). The bitmask maintains an n-bit state where the i-th bit indicates whether cell (i, c) is already occupied by a horizontal domino extending from column c-1.",
       },
       {
-        heading: "Cell Transitions & Domino Placements",
+        heading: "Cell Transitions & Domino Placement Rules",
         body: "At cell (r, c), if bit r in mask is 1 (occupied), the cell is already filled, so we transition to next_mask with bit r cleared. If bit r is 0 (empty), we have two choices: place a horizontal 1x2 domino (setting bit r in next_mask) or place a vertical 2x1 domino covering (r, c) and (r+1, c) (if r+1 < n and bit r+1 is 0).",
       },
       {
-        heading: "Mathematical Parity & Kasteleyn Formula",
-        body: "If total area n * m is odd, tiling is impossible (returns 0). For larger grids, Kasteleyn's formula provides a closed-form solution using matrix determinants and trigonometric products.",
+        heading: "Mathematical Foundation & Kasteleyn Exact Formula",
+        body: "If total area n * m is odd, tiling is impossible (returns 0). For larger grids where n, m > 10, Kasteleyn's exact formula computes tilings in closed form using matrix determinants and trigonometric products: N(n,m) = prod_{j=1}^{n/2} prod_{k=1}^{m/2} 4 * (cos^2(j*pi/(n+1)) + cos^2(k*pi/(m+1))).",
       },
       {
         heading: "Systems Applications & Physics Models",
-        body: "Domino tiling algorithms model dimer coverages in statistical physics (Ising model), surface adsorption in chemistry, and layout tiling in VLSI floorplanning.",
+        body: "Domino tiling algorithms model dimer coverages in statistical mechanics (Ising model), molecular surface adsorption in physical chemistry, and cell layout packing in VLSI integrated circuit design.",
       },
     ],
     keyTerms: [
       {
         term: "Broken Profile DP",
         definition:
-          "A dynamic programming technique processing grid cells individually while maintaining a boundary bitmask.",
+          "A dynamic programming technique that processes grid cells individually while maintaining a boundary profile bitmask.",
       },
       {
         term: "Domino Tiling",
         definition:
-          "A tessellation of a region using 1x2 and 2x1 rectangular tiles with no overlaps or gaps.",
+          "A complete tessellation of a region using 1x2 and 2x1 rectangular tiles with no overlaps or gaps.",
       },
       {
-        term: "Bitmask State",
+        term: "Bitmask Profile State",
         definition:
           "An integer encoding boolean flags for n boundary cells using binary bit operations.",
       },
       {
         term: "Kasteleyn Formula",
         definition:
-          "An exact matrix product formula for counting matchings in planar bipartite graphs.",
+          "An exact matrix product formula for counting planar bipartite graph matchings.",
       },
     ],
   },

@@ -12,20 +12,34 @@ export interface SuccessorPathsInput {
   stepsQuery?: number;
 }
 
-export const SUCCESSOR_PATHS_CODE = `
-def successor_paths(input_array):
-    """
-    Implementation of successor_paths.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const SUCCESSOR_PATHS_CODE = `def successor_paths(succ, start_node, k_steps):
+    tortoise = succ[start_node]
+    hare = succ[succ[start_node]]
+    while tortoise != hare:
+        tortoise = succ[tortoise]
+        hare = succ[succ[hare]]
+        
+    tortoise = start_node
+    while tortoise != hare:
+        tortoise = succ[tortoise]
+        hare = succ[hare]
+    cycle_start = tortoise
+    
+    length = 1
+    hare = succ[tortoise]
+    while hare != tortoise:
+        hare = succ[hare]
+        length += 1
+    cycle_length = length
+    
+    curr = start_node
+    for _ in range(k_steps):
+        curr = succ[curr]
+        
+    return cycle_start, cycle_length, curr`;
 
 export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [5],
   distractors: [
     "hare = succ[hare]",
     "tortoise = start_node + 1",
@@ -47,16 +61,16 @@ export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
     },
     {
       line: 21,
-      hint: "Binary lifting jumps 2^b steps in O(1) by inspecting binary bits of k_steps.",
+      hint: "Advances k_steps from start_node following successor pointers.",
     },
   ],
   lineExplanations: {
-    1: "Defines cycle detection and successor path jumping on functional graphs.",
+    1: "Defines cycle detection and successor path queries on functional graphs.",
     2: "Pointers start with hare moving twice as fast as tortoise.",
     4: "Advances pointers until tortoise and hare meet inside the cycle.",
     8: "Resets tortoise to start_node; both advance at equal speed until meeting at cycle entry.",
     14: "Counts vertices around the cycle until returning to the entry node.",
-    21: "Decomposes k_steps into powers of 2 for O(log k) binary lifting jumps.",
+    21: "Executes k_steps successor queries from the starting vertex.",
   },
 };
 

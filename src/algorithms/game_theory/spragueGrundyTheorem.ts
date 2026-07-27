@@ -7,15 +7,28 @@ export interface SpragueGrundyInput {
 }
 
 export const PYTHON_SPRAGUE_GRUNDY_CODE = `
-def python_sprague_grundy(input_array):
+def mex(s: set[int]) -> int:
+    m = 0
+    while m in s:
+        m += 1
+    return m
+
+def sprague_grundy(pile_sizes: list[int], allowed_moves: list[int]) -> tuple[list[int], int]:
     """
-    Implementation of python_sprague_grundy.
+    Computes Grundy values (nim-values) for states up to max(pile_sizes) and evaluates total Nim-Sum.
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    max_p = max(pile_sizes) if pile_sizes else 0
+    g = [0] * (max_p + 1)
+    for i in range(1, max_p + 1):
+        reachable = set()
+        for m in allowed_moves:
+            if i - m >= 0:
+                reachable.add(g[i - m])
+        g[i] = mex(reachable)
+    nim_sum = 0
+    for p in pile_sizes:
+        nim_sum ^= g[p]
+    return g, nim_sum
 `;
 
 export const DEFAULT_SPRAGUE_GRUNDY_INPUT: SpragueGrundyInput = {
@@ -161,33 +174,46 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
   return steps;
 };
 
-const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
+export const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Sprague-Grundy Theorem states that every impartial game under normal play convention is equivalent to a single heap in the game of Nim, whose size is the Grundy value (nim-value) of the game state.",
+    "The Sprague-Grundy Theorem states that every impartial game under the normal play convention is mathematically equivalent to a single heap of size g in the game of Nim, where g is the Grundy value (or nim-value) of the game position. This powerful theorem allows complex multi-component combinatorial games to be solved in polynomial time.",
   sections: [
     {
-      heading: "Impartial Games & Normal Play",
-      body: "An impartial game is one where available moves depend only on the current state, not which player's turn it is. Under normal play, the last player to move wins.",
+      heading: "Impartial Games & Normal Play Convention",
+      body: "An impartial game is a two-player game with perfect information where the available moves depend solely on the current state, regardless of whose turn it is. Under the normal play convention, the last player to make a legal move wins (a player facing zero legal moves loses).",
     },
     {
-      heading: "The Minimum Excluded Value (MEX)",
-      body: "The Grundy value G(u) of state u is mex({G(v) : v is reachable from u}). MEX finds the smallest non-negative integer not present in the set of reachable Grundy values.",
+      heading: "Minimum Excluded Value (MEX) & Grundy Values",
+      body: "The Grundy value G(u) of a game state u is defined recursively as the Minimum Excluded Value (mex) of the Grundy values of all states reachable from u in one valid move: G(u) = mex({G(v) : u -> v}). Terminal losing states with no valid moves have G(u) = 0.",
+    },
+    {
+      heading: "Nim-Sum & Subgame Independence",
+      body: "When a game consists of several independent subgames played concurrently (such as multiple independent coin piles or rows), the overall Grundy value G of the combined game is the bitwise XOR sum (Nim-Sum) of the individual subgame Grundy values: G = G1 ⊕ G2 ⊕ ... ⊕ Gk. If G > 0, the first player has a forced winning strategy; if G = 0, the second player wins.",
+    },
+    {
+      heading: "Algorithmic Dynamic Programming & Patterns",
+      body: "For subtraction games or graph-based impartial games, Grundy values up to state M can be computed using dynamic programming in O(M * |Moves|) time. Frequently, Grundy value sequences exhibit periodic patterns that can be detected early to answer queries for arbitrarily large state values in O(1) time.",
     },
   ],
   keyTerms: [
     {
-      term: "MEX (Minimum Excluded)",
+      term: "MEX (Minimum Excluded Value)",
       definition:
-        "The smallest non-negative integer (0, 1, 2...) not present in a given set of numbers.",
+        "The smallest non-negative integer (0, 1, 2, ...) absent from a given set of non-negative integers.",
     },
     {
-      term: "Nim-Sum",
-      definition: "Bitwise XOR sum of Grundy values for independent subgames.",
+      term: "Grundy Value (Nim-Value)",
+      definition: "An integer representing the equivalent Nim heap size of a game state.",
+    },
+    {
+      term: "Impartial Game",
+      definition:
+        "A game where available moves and winning conditions are identical for both players from any given state.",
     },
   ],
 };
 
-const SPRAGUE_GRUNDY_TRIVIA: TriviaMeta = {
+export const SPRAGUE_GRUNDY_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines helper function calculating minimum excluded non-negative integer (mex).",
     7: "Main Sprague-Grundy function computing Grundy values for game states.",
@@ -209,7 +235,7 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   categories: ["game_theory"],
   difficulty: "Medium",
   description:
-    "Analyze impartial games under normal play by computing Grundy values (nim-values) using the minimum excluded value (mex) of reachable states.",
+    "Given a set of impartial game piles and a set of allowed move subtractions, compute the Grundy values (nim-values) of all states using the Minimum Excluded Value (mex) operation and determine the combined game Nim-Sum to identify whether the first or second player has a forced winning strategy.",
   constraints: [
     "1 <= pileSizes.length <= 10",
     "0 <= pileSizes[i] <= 50",

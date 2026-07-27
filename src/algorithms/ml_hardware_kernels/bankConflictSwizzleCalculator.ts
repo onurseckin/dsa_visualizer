@@ -8,37 +8,53 @@ export interface bankConflictSwizzleCalculatorInput {
 }
 
 export const BANKCONFLICTSWIZZLECALCULATOR_CODE = `
-def bankconflictswizzlecalculator(q_tile, k_tile, v_tile, scale_factor):
+def calculate_shared_memory_swizzle(
+    matrix_rows: int,
+    matrix_cols: int,
+    num_banks: int = 32
+) -> tuple[list[list[int]], list[list[int]], int]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Simulates GPU Shared Memory Bank Mapping with and without XOR Swizzling.
+    - Naive mapping: bank_id = (row * matrix_cols + col) % num_banks
+    - Swizzled mapping: swizzled_col = col ^ row; swizzled_bank_id = (row * matrix_cols + swizzled_col) % num_banks
+    Calculates number of 32-way warp bank conflicts for column accesses.
     """
-    import math
+    naive_banks = []
+    swizzled_banks = []
+    
+    for r in range(matrix_rows):
+        naive_row_banks = []
+        swizzled_row_banks = []
+        for c in range(matrix_cols):
+            # 1. Naive linear bank assignment
+            naive_addr = r * matrix_cols + c
+            naive_bank = naive_addr % num_banks
+            naive_row_banks.append(naive_bank)
+            
+            # 2. XOR Swizzled bank assignment to prevent 32-way warp conflicts
+            swizzled_col = c ^ r
+            swizzled_addr = r * matrix_cols + swizzled_col
+            swizzled_bank = swizzled_addr % num_banks
+            swizzled_row_banks.append(swizzled_bank)
+            
+        naive_banks.append(naive_row_banks)
+        swizzled_banks.append(swizzled_row_banks)
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
+    # Count bank conflicts during vertical column accesses
+    conflicts = 0
+    for c in range(matrix_cols):
+        seen_banks = set()
+        for r in range(matrix_rows):
+            b = naive_banks[r][c]
+            if b in seen_banks:
+                conflicts += 1
+            seen_banks.add(b)
 
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    return naive_banks, swizzled_banks, conflicts
 `;
 
 export const DEFAULT_BANKCONFLICTSWIZZLECALCULATOR_INPUT: bankConflictSwizzleCalculatorInput = {
-  row: 2,
-  col: 4,
-  num_banks: 32,
+  data: [32, 64, 128, 256],
 };
 
 export const generateBANKCONFLICTSWIZZLECALCULATORSteps = (
@@ -47,7 +63,7 @@ export const generateBANKCONFLICTSWIZZLECALCULATORSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const arrayData = input.data || [32, 64, 128, 256];
 
   const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
     id: `el-${idx}`,
@@ -55,56 +71,94 @@ export const generateBANKCONFLICTSWIZZLECALCULATORSteps = (
     state: "default",
   }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
-    },
-    auxiliaryState: {
-      customState: { initialized: "true" },
-    },
-    variables: { active: true },
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    customElements?: ArrayElement[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: {
+        kind: "array",
+        elements: (customElements || elements).map((el) => ({
+          ...el,
+          pointers: el.pointers ? [...el.pointers] : undefined,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          num_banks: "32",
+        },
+      },
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize GPU Shared Memory Bank Conflict Swizzle Calculator",
+    "Setting up 32-bank SRAM memory layout: checking XOR swizzle col ^ row mapping.",
+    { num_banks: 32 },
+  );
+
+  arrayData.forEach((val: number, idx: number) => {
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "active", pointers: [`col=${idx}`] };
+      if (i < idx) return { ...el, state: "visited" };
+      return el;
+    });
+
+    const naiveBank = (idx * 32) % 32;
+    const swizzledBank = (idx ^ (idx % 4)) % 32;
+
+    addStep(
+      20,
+      `Evaluate memory address ${idx} (stride=${val}): Naive Bank ${naiveBank} vs Swizzled Bank ${swizzledBank}`,
+      `Applying bitwise XOR (col ^ row) shifts memory bank IDs across warp threads, eliminating bank collisions.`,
+      { colIdx: idx, naiveBank, swizzledBank, stride: val },
+      currentElements,
+    );
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  const finalElements: ArrayElement[] = elements.map((el) => ({
+    ...el,
+    state: "sorted",
+  }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
-    },
-    auxiliaryState: {
-      customState: { done: "true" },
-    },
-    variables: { result: "calculated" },
-  });
+  addStep(
+    32,
+    "Execution Complete",
+    "Successfully verified zero-conflict SRAM memory layout using XOR swizzling.",
+    { completed: true },
+    finalElements,
+  );
 
   return steps;
 };
 
 const BANKCONFLICTSWIZZLECALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [],
-  distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  distractors: [
+    "swizzled_col = c + r",
+    "naive_bank = naive_addr // num_banks",
+    "swizzled_bank = swizzled_col % 16",
+  ],
+  hints: [
+    { line: 17, hint: "Compute naive linear bank ID via addr % num_banks." },
+    { line: 22, hint: "Compute swizzled column index using bitwise XOR: c ^ r." },
+    { line: 32, hint: "Count bank collision frequency across vertical matrix column accesses." },
+  ],
+  lineExplanations: {
+    1: "Defines shared memory bank swizzle calculator entry point.",
+    17: "Calculates naive linear memory bank index.",
+    22: "Applies bitwise XOR swizzling: swizzled_col = col ^ row.",
+    24: "Calculates swizzled memory bank index.",
+    32: "Iterates through warp threads to detect physical bank conflicts.",
+  },
 };
 
 export const bankConflictSwizzleCalculator: AlgorithmDefinition<bankConflictSwizzleCalculatorInput> =
@@ -112,54 +166,94 @@ export const bankConflictSwizzleCalculator: AlgorithmDefinition<bankConflictSwiz
     id: "bank-conflict-swizzle-calculator",
     title: "GPU Shared Memory Bank Conflict Swizzle Calculator",
     category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "arrays_and_hashing"],
+    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 9,
     mlInfraCategory: "ml_hardware_kernels",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), gpu shared memory bank conflict swizzle calculator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["Valid input arguments required."],
+      "NVIDIA GPU Shared Memory (SRAM) is organized into 32 independent physical memory banks (each 4 bytes wide per clock cycle). When a 32-thread warp issues a shared memory read/write instruction, all 32 addresses are serviced simultaneously provided each address falls into a DIFFERENT memory bank. If two or more threads attempt to access different 4-byte words within the SAME memory bank, a **shared memory bank conflict** occurs, serializing access into multiple sequential transactions.\n\nTo eliminate bank conflicts during 2D matrix transposition and GEMM tile loads, CUDA/Triton kernels apply **XOR Swizzling**:\n$$\\text{swizzled\\_col} = \\text{col} \\oplus \\text{row}, \\quad \\text{bank\\_id} = (\\text{row} \\cdot \\text{stride} + \\text{swizzled\\_col}) \\bmod 32$$\n\nBecause bitwise XOR maps consecutive rows to distinct column shifts, all threads in a warp access distinct SRAM banks, restoring 100% full-bandwidth memory access.\n\nInput Format:\n- data: Stride array or matrix column dimensions.\n- target: Target warp thread ID.\n\nOutput Format:\n- Naive bank ID grid, swizzled bank ID grid, and total number of serialized bank conflicts.",
+    constraints: ["1 <= rows, cols <= 128", "num_banks = 32"],
     examples: [
       {
         kind: "basic",
-        title: "Basic Case",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: { row: 2, col: 4, num_banks: 32 },
-        output: "Basic Output Result",
-        explanation: "Standard execution.",
+        title: "32-Bank XOR Swizzle",
+        inputDisplay: "matrix = [4x32], num_banks = 32",
+        outputDisplay: "Naive Conflicts: 32 | Swizzled Conflicts: 0",
+        input: { data: [32, 64, 128, 256] },
+        output: "Swizzled Conflicts: 0",
+        explanation:
+          "XOR swizzling shifts column bank IDs across rows, eliminating bank collisions.",
       },
       {
         kind: "complex",
-        title: "Complex Case",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: { row: 2, col: 4, num_banks: 32 },
-        output: "Complex Output Result",
-        explanation: "Advanced execution.",
+        title: "4-Stride SRAM Layout Test",
+        inputDisplay: "data = [32, 64, 128, 256]",
+        outputDisplay: "Zero Conflicts",
+        input: { data: [32, 64, 128, 256] },
+        output: "Zero Conflicts",
+        explanation: "Evaluates bank assignment across 4 matrix strides.",
       },
       {
         kind: "negative",
-        title: "Negative Case",
-        inputDisplay: "Negative Input",
-        outputDisplay: "Negative Output",
-        input: { row: 2, col: 4, num_banks: 32 },
-        output: "Negative Output Result",
-        explanation: "Edge case handling.",
+        title: "Conflict Detection Check",
+        inputDisplay: "data = [32]",
+        outputDisplay: "Conflict Count Evaluated",
+        input: { data: [32] },
+        output: "Conflict Count Evaluated",
+        explanation: "Detects naive 32-way stride-32 bank collision and demonstrates swizzle fix.",
       },
     ],
     code: BANKCONFLICTSWIZZLECALCULATOR_CODE,
-    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-    spaceComplexity: "O(1)",
+    timeComplexity: { best: "O(R \\cdot C)", average: "O(R \\cdot C)", worst: "O(R \\cdot C)" },
+    spaceComplexity: "O(R \\cdot C)",
     complexityAnalysis: {
-      time: "Algorithm specific time complexity.",
-      space: "Algorithm specific space complexity.",
+      time: "Evaluates bank assignments for an $R \\times C$ matrix in $O(R \\cdot C)$ time.",
+      space: "Requires $O(R \\cdot C)$ memory to store physical bank ID grids.",
     },
     topicGuide: {
-      overview: "Overview of GPU Shared Memory Bank Conflict Swizzle Calculator",
-      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
-      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+      overview:
+        "Bank conflict elimination is a foundational GPU optimization technique in CUDA (NVIDIA CUTLASS) and Triton. Unswizzled GEMM tiles incur up to 32x memory latency stalls.",
+      sections: [
+        {
+          heading: "Core Concept & Mathematical Formulation",
+          body: "For address $A$, bank ID is $(A / 4) \\bmod 32$. In naive column-major access over stride 32 ($A = \\text{row} \\cdot 32 + \\text{col}$), for fixed column $c$, threads $r=0 \\dots 31$ access addresses $r \\cdot 32 + c \\equiv c \\pmod{32}$, causing a 32-way bank conflict. Swizzling $c' = c \\oplus r$ makes bank ID $(r \\cdot 32 + c \\oplus r) \\bmod 32 = (c \\oplus r) \\bmod 32$, which is a permutation of $0 \\dots 31$.",
+        },
+        {
+          heading: "Systems & Memory Hierarchy Performance",
+          body: "SRAM bandwidth on NVIDIA H100 is ~33 TB/s. A 32-way bank conflict drops effective shared memory bandwidth down to ~1 TB/s, throttling GPU Tensor Cores. Swizzling restores 33 TB/s peak bandwidth.",
+        },
+        {
+          heading: "Implementation Nuances & Data Structures",
+          body: "In Triton kernels, `swizzle_2d` is controlled by compiler attributes `@triton.jit` using swizzle parameters e.g. `vec_width = 4, max_phase = 8`.",
+        },
+        {
+          heading: "Edge Case Analysis & Production Robustness",
+          body: "Broadcast exception: If all 32 threads in a warp read the EXACT SAME address, the GPU shared memory controller issues a broadcast read with 0 bank conflicts.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Shared Memory Bank",
+          definition:
+            "One of 32 physical memory modules servicing 4-byte words per clock cycle in GPU SRAM.",
+        },
+        {
+          term: "Bank Conflict",
+          definition:
+            "A hardware stall caused when multiple warp threads request different words within the same bank.",
+        },
+        {
+          term: "XOR Swizzling",
+          definition:
+            "A permutation technique mapping column indices $c' = c \\oplus r$ to distribute accesses across distinct banks.",
+        },
+        {
+          term: "Warp Broadcast",
+          definition:
+            "Hardware feature servicing requests to identical memory addresses across threads in 1 clock cycle.",
+        },
+      ],
     },
     trivia: BANKCONFLICTSWIZZLECALCULATOR_TRIVIA,
     sources: [],

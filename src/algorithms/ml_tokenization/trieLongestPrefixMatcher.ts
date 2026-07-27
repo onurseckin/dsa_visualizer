@@ -1,163 +1,296 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
-export const trieLongestPrefixMatcher: AlgorithmDefinition<string> = {
+export interface TrieLongestPrefixMatcherInput {
+  text: string;
+  vocab: string[];
+}
+
+export const DEFAULT_TRIE_LONGEST_PREFIX_INPUT: TrieLongestPrefixMatcherInput = {
+  text: "unwantedly",
+  vocab: ["un", "unwant", "unwanted", "want", "ed", "ly"],
+};
+
+export const TRIE_LONGEST_PREFIX_CODE = `def trie_longest_prefix_match(text: str, vocab: list[str]) -> list[str]:
+    """
+    Greedy Longest-Prefix Trie Matcher (WordPiece Tokenizer).
+    Repeatedly finds the longest matching subword token in vocabulary starting at current index.
+    If no subword matches, emits single character or OOV symbol.
+    """
+    vocab_set = set(vocab)
+    tokens = []
+    idx = 0
+
+    while idx < len(text):
+        longest_match = ""
+
+        # Search for longest matching subword starting at idx
+        for end in range(idx + 1, len(text) + 1):
+            sub = text[idx:end]
+            if sub in vocab_set:
+                longest_match = sub
+
+        if longest_match:
+            tokens.append(longest_match)
+            idx += len(longest_match)
+        else:
+            # Fallback to single character
+            tokens.append(text[idx])
+            idx += 1
+
+    return tokens`;
+
+export const generateTrieLongestPrefixSteps = (
+  input: TrieLongestPrefixMatcherInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { text, vocab } = input;
+  let stepIndex = 0;
+
+  const vocabSet = new Set(vocab);
+  const tokens: string[] = [];
+  let idx = 0;
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: "Initialize Greedy Longest-Prefix Trie Matcher (WordPiece)",
+      why: `Tokenizing text "${text}" using Trie vocabulary containing ${vocab.length} tokens: [${vocab
+        .map((v) => `"${v}"`)
+        .join(", ")}].`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: text.split("").map((ch, i) => ({
+        id: `c-${i}`,
+        value: i,
+        label: `'${ch}'`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        text: `"${text}"`,
+        vocabSize: String(vocab.length),
+        status: "Initialized",
+      },
+    },
+    variables: { textLen: text.length, vocabSize: vocab.length },
+  });
+
+  while (idx < text.length) {
+    let longestMatch = "";
+
+    for (let end = idx + 1; end <= text.length; end++) {
+      const sub = text.substring(idx, end);
+      if (vocabSet.has(sub)) {
+        longestMatch = sub;
+      }
+    }
+
+    if (longestMatch) {
+      tokens.push(longestMatch);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `Greedy Match at Position ${idx}: Longest Token "${longestMatch}" (len = ${longestMatch.length})`,
+          why: `Found longest prefix match "${longestMatch}" in Trie vocabulary starting at index ${idx}. Advanced pointer by ${longestMatch.length}.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: text.split("").map((ch, i) => ({
+            id: `c-${i}`,
+            value: i,
+            label: `'${ch}'`,
+            state:
+              i >= idx && i < idx + longestMatch.length
+                ? ("active" as ElementState)
+                : i < idx
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+            pointers: i === idx ? [`Token "${longestMatch}"`] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            position: String(idx),
+            longestMatch: `"${longestMatch}"`,
+            tokensSoFar: tokens.map((t) => `"${t}"`).join(", "),
+          },
+        },
+        variables: { idx, longestMatch },
+      });
+
+      idx += longestMatch.length;
+    } else {
+      const fallbackChar = text[idx];
+      tokens.push(fallbackChar);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 20,
+        explanation: {
+          what: `No Vocab Match at Position ${idx}: Single Character Fallback '${fallbackChar}'`,
+          why: `No subword in vocabulary matches prefix starting at '${fallbackChar}'. Emitted single character fallback token.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: text.split("").map((ch, i) => ({
+            id: `c-${i}`,
+            value: i,
+            label: `'${ch}'`,
+            state:
+              i === idx
+                ? ("highlighted" as ElementState)
+                : i < idx
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+            pointers: i === idx ? [`Fallback '${fallbackChar}'`] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            position: String(idx),
+            fallbackChar: `'${fallbackChar}'`,
+            tokensSoFar: tokens.map((t) => `"${t}"`).join(", "),
+          },
+        },
+        variables: { idx, fallbackChar },
+      });
+
+      idx += 1;
+    }
+  }
+
+  // Step Final: Complete
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 23,
+    explanation: {
+      what: `Longest-Prefix Tokenization Complete: ${tokens.length} Tokens Produced`,
+      why: `Final tokenization: [${tokens.map((t) => `"${t}"`).join(", ")}].`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: tokens.map((tok, rank) => ({
+        id: `res-${rank}`,
+        value: rank,
+        label: `"${tok}"`,
+        state: "sorted" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        finalTokens: tokens.map((t) => `"${t}"`).join(" + "),
+        totalTokens: String(tokens.length),
+        status: "Completed",
+      },
+    },
+    variables: { totalTokens: tokens.length, complete: true },
+  });
+
+  return steps;
+};
+
+export const trieLongestPrefixMatcher: AlgorithmDefinition<TrieLongestPrefixMatcherInput> = {
   id: "trieLongestPrefixMatcher",
-  title: "Trie Longest Prefix Matcher",
+  title: "Trie Longest-Prefix Matcher (WordPiece)",
   category: "ml_tokenization",
   categories: ["ml_tokenization", "tries_and_strings"],
   difficulty: "Medium",
-  description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), trie longest prefix matcher provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
   isMlInfra: true,
-  mlInfraLevel: 6,
+  mlInfraLevel: 5,
   mlInfraCategory: "ml_tokenization",
-  constraints: ["Input length >= 1"],
+  description:
+    "Executes greedy Longest-Prefix Matching over a Trie vocabulary (WordPiece tokenization engine, Wu et al., 2016 / Devlin et al., 2018 BERT). At each character position, the algorithm traverses the Trie to find the maximum-length subword token present in the vocabulary.\n\nInput Format:\n- text: Input text string.\n- vocab: List of subword vocabulary strings.\n\nOutput Format:\n- Returns array of longest matching subword token strings `[t_1, t_2, ..., t_K]`.\n\nEdge Cases & Constraints:\n- Overlapping prefix tokens ('un' vs 'unwanted'): Always selects the longest prefix ('unwanted').",
+  constraints: ["vocab contains unique string subword tokens."],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "Basic Input",
-      outputDisplay: "Basic Output",
-      input: "unaffordability",
-      output: "Basic Success",
-      explanation: "A simple clear basic example for trieLongestPrefixMatcher.",
+      title: "Greedy Longest Prefix Match for 'unwantedly'",
+      inputDisplay: "text = 'unwantedly', vocab = ['un', 'unwant', 'unwanted', 'want', 'ed', 'ly']",
+      outputDisplay: "Tokens: ['unwanted', 'ly']",
+      input: DEFAULT_TRIE_LONGEST_PREFIX_INPUT,
+      output: "['unwanted', 'ly']",
+      explanation:
+        "Selects longest matching prefix 'unwanted' over shorter prefixes 'un' and 'unwant'.",
     },
     {
       kind: "complex",
-      inputDisplay: "Complex Input",
-      outputDisplay: "Complex Output",
-      input: "unaffordability",
-      output: "Complex Success",
-      explanation: "A more intricate scenario with multiple elements.",
+      title: "Fallback to Shorter Prefixes",
+      inputDisplay: "text = 'unwantedly', vocab without 'unwanted'",
+      outputDisplay: "Tokens: ['unwant', 'ed', 'ly']",
+      input: {
+        text: "unwantedly",
+        vocab: ["un", "unwant", "want", "ed", "ly"],
+      },
+      output: "['unwant', 'ed', 'ly']",
+      explanation: "Selects next longest matching subword 'unwant'.",
     },
     {
       kind: "negative",
-      inputDisplay: "Empty Input",
-      outputDisplay: "Empty Output",
-      input: "unaffordability",
-      output: "Empty",
-      explanation: "Handling empty or invalid edge cases.",
+      title: "Character Fallback for Unknown Word",
+      inputDisplay: "text = 'xyz', empty vocab",
+      outputDisplay: "Tokens: ['x', 'y', 'z']",
+      input: { text: "xyz", vocab: [] },
+      output: "['x', 'y', 'z']",
+      explanation: "Falls back to single character tokens when no vocabulary prefixes match.",
     },
   ],
-  defaultInput: "unaffordability",
-  code: `
-def trieLongestPrefixMatcher(input_text, vocabulary_scores):
-    """
-    Trie Longest Prefix Matcher
-    Subword tokenization using dynamic programming lattice Viterbi decoding / BPE merge pairs.
-    """
-    text_len = len(input_text)
-    dp_scores = [float('-inf')] * (text_len + 1)
-    dp_scores[0] = 0.0
-    backtrack = [0] * (text_len + 1)
-
-    for i in range(1, text_len + 1):
-        for j in range(i):
-            subword = input_text[j:i]
-            if subword in vocabulary_scores:
-                candidate_score = dp_scores[j] + vocabulary_scores[subword]
-                if candidate_score > dp_scores[i]:
-                    dp_scores[i] = candidate_score
-                    backtrack[i] = j
-
-    cursor = text_len
-    subword_sequence = []
-    while cursor > 0:
-        prev = backtrack[cursor]
-        subword_sequence.append(input_text[prev:cursor])
-        cursor = prev
-
-    return subword_sequence[::-1]
-`,
+  defaultInput: DEFAULT_TRIE_LONGEST_PREFIX_INPUT,
+  code: TRIE_LONGEST_PREFIX_CODE,
   timeComplexity: {
-    best: "O(1)",
-    average: "O(N log N)",
-    worst: "O(N^2)",
+    best: "O(N * L_max)",
+    average: "O(N * L_max)",
+    worst: "O(N * L_max)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Time complexity heavily depends on the input size N.",
-    space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+    time: "O(N * L_max) greedy scan time where N is text length and L_max is maximum subword token length in vocabulary.",
+    space: "O(N) auxiliary space to store final token output list.",
   },
   topicGuide: {
     overview:
-      "Trie Longest Prefix Matcher is a critical component in ML TOKENIZATION systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "WordPiece tokenization (Schuster & Nakajima 2012, BERT Devlin et al. 2018) uses greedy longest-prefix matching to tokenize text. Given a vocabulary stored in a Trie, WordPiece repeatedly picks the longest prefix matching subword token, appending `##` continuation markers for non-initial subwords.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, trie longest prefix matcher operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        heading: "Core Concept & Greedy Maximal Matching",
+        body: "Starting at text index i, the Trie is traversed as far as possible to find the longest substring text[i..j] present in vocabulary V.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Trie Longest Prefix Matcher optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        heading: "WordPiece vs BPE Matching",
+        body: "While BPE tokenization performs merge rules in priority rank order, WordPiece tokenization performs deterministic left-to-right longest-prefix matching.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementing trie longest prefix matcher efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        heading: "Trie Memory Optimization",
+        body: "Using a Trie data structure ensures that checking for all prefix matches starting at index i executes in a single linear pass of length L_max.",
       },
     ],
     keyTerms: [
       {
-        term: "Trie Engine",
+        term: "Longest-Prefix Matching",
         definition:
-          "The underlying algorithmic system implementing trie longest prefix matcher operations for deep learning workloads.",
+          "Greedy heuristic selecting the maximum length vocabulary subword starting at current position.",
       },
       {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+        term: "WordPiece",
+        definition: "Subword tokenization algorithm used by BERT and Electra model architectures.",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Subword Continuation Marker (##)",
+        definition: "Prefix appended to non-initial subword tokens in WordPiece vocabularies.",
       },
     ],
   },
-  generateSteps: (_input: unknown) => {
-    const steps: AlgorithmStep[] = [];
-
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { phase: "init" } },
-      variables: { i: 0 },
-    });
-
-    steps.push({
-      stepIndex: 1,
-      codeLine: 4,
-      explanation: { what: "Iterate over elements", why: "Processing each element" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    steps.push({
-      stepIndex: 2,
-      codeLine: 6,
-      explanation: { what: "Finish execution", why: "All elements processed" },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-      },
-      auxiliaryState: {},
-      variables: { i: 1 },
-    });
-
-    return steps;
-  },
+  sources: [
+    {
+      type: "ml_infra",
+      kind: "ml_infra",
+      label: "BERT WordPiece Tokenizer (Devlin et al. NAACL 2019)",
+    },
+  ],
+  generateSteps: generateTrieLongestPrefixSteps,
 };

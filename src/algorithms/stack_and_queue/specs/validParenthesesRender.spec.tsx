@@ -31,9 +31,11 @@ describe("ValidParentheses React Component Spec", () => {
 
     expect(screen.getByText("Valid Parentheses")).toBeInTheDocument();
 
-    expect(screen.getAllByText(/Determine if an input string of brackets/i)[0]).toBeInTheDocument();
     expect(
-      screen.getAllByText(/most recent unfinished thing must be resolved first/i)[0],
+      screen.getAllByText(/Determine if an input string composed of bracket characters/i)[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/most recent unfinished obligation must be resolved first/i)[0],
     ).toBeInTheDocument();
   });
 

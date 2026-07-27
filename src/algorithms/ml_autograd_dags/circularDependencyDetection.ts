@@ -7,27 +7,32 @@ export interface circularDependencyDetectionInput {
 }
 
 export const CIRCULARDEPENDENCYDETECTION_CODE = `
-def circulardependencydetection(graph_nodes, adjacency_map):
+def circular_dependency_detection(num_nodes, edges):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Detects cycles in autograd computation graph using 3-color DFS traversal.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    adj = [[] for _ in range(num_nodes)]
+    for u, v in edges:
+        adj[u].append(v)
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    visited = [0] * num_nodes
+    has_cycle = False
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
+    def dfs(u):
+        nonlocal has_cycle
+        visited[u] = 1
+        for v in adj[u]:
+            if visited[v] == 1:
+                has_cycle = True
+            elif visited[v] == 0:
+                dfs(v)
+        visited[u] = 2
 
-    return topological_order
+    for i in range(num_nodes):
+        if visited[i] == 0:
+            dfs(i)
+
+    return has_cycle
 `;
 
 export const DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT: circularDependencyDetectionInput = {
@@ -40,7 +45,8 @@ export const generateCircularDependencyDetectionSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +72,8 @@ export const generateCircularDependencyDetectionSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +84,11 @@ export const generateCircularDependencyDetectionSteps = (
     1,
     "Initialize Circular Dependency Detection in Graph",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +99,7 @@ export const generateCircularDependencyDetectionSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +111,9 @@ export const generateCircularDependencyDetectionSteps = (
   }));
 
   addStep(
-    6,
+    26,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +122,28 @@ export const generateCircularDependencyDetectionSteps = (
 };
 
 const CIRCULARDEPENDENCYDETECTION_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for Circular Dependency Detection in Graph.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines 3-color DFS cycle detection function.",
+    4: "Allocates adjacency list adj for num_nodes graph nodes.",
+    5: "Populates adjacency list from directed edge pairs.",
+    8: "Allocates visited state array initialized to 0 (Unvisited).",
+    9: "Initializes has_cycle boolean flag to False.",
+    11: "Defines recursive DFS helper function.",
+    13: "Marks node u as Visiting (state 1, Gray).",
+    14: "Iterates through outgoing neighbor nodes v of u.",
+    15: "Checks if neighbor v is currently Visiting (state 1), confirming a cycle back-edge.",
+    16: "Flags has_cycle = True upon detecting cycle back-edge.",
+    18: "Recursively visits unvisited neighbor v (state 0).",
+    19: "Marks node u as Visited (state 2, Black) upon completing all outgoing searches.",
+    21: "Iterates through all graph nodes to cover disconnected components.",
+    25: "Returns has_cycle boolean result.",
   },
 };
 
@@ -141,100 +157,84 @@ export const circularDependencyDetection: AlgorithmDefinition<circularDependency
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), circular dependency detection in graph provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 207, url: "https://leetcode.com/problems/course-schedule/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 207,
-      title: "Course Schedule",
-      url: "https://leetcode.com/problems/course-schedule/",
-    },
-  ],
+    "Autograd execution engines require computation graphs to be Directed Acyclic Graphs (DAGs). Circular dependencies (cycles) cause infinite loops during forward evaluation and backward gradient propagation. Detecting cycles using 3-color Depth-First Search (DFS) validates graph sanity before executing topological sorts.\n\nThis algorithm implements Circular Dependency Detection in Graph, using 3-color DFS (0: Unvisited White, 1: Visiting Gray, 2: Visited Black) to detect back-edges indicating circular cycles.\n\nInput Format:\n- data: Array representing graph node/edge data.\n- target: Optional target value.\n\nOutput Format:\n- Returns boolean flag true if circular dependency cycle exists, false if valid DAG.\n\nEdge Cases & Constraints:\n- Graph with self-loop edge (u -> u).\n- Disconnected components in computation graph.\n- Complex directed cycles spanning multiple nodes.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: CIRCULARDEPENDENCYDETECTION_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "Circular Dependency Detection in Graph is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "3-Color DFS is the standard algorithm for cycle detection in directed graphs. Encountering a node in the 'Visiting' (Gray) state during active DFS recursion indicates a back-edge pointing to an ancestor node, confirming the presence of a cycle.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, circular dependency detection in graph operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, a directed graph G = (V, E) contains a cycle iff DFS traversal contains a back-edge (u, v) where v is an ancestor of u in the DFS recursion tree. Time complexity is O(V + E), space is O(V).",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Circular Dependency Detection in Graph optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Validating DAG properties before graph execution prevents stack overflow crashes and deadlock states in PyTorch TorchScript and ONNX model compilers.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing circular dependency detection in graph efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation maintains visited state array (0=Unvisited, 1=Visiting, 2=Visited), executes DFS recursively, flags cycle on encountering state 1, and marks completed nodes state 2.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes self-loops, parallel edges, and disconnected graph components.",
       },
     ],
     keyTerms: [
       {
-        term: "Circular Engine",
+        term: "Back-Edge",
         definition:
-          "The underlying algorithmic system implementing circular dependency detection in graph operations for deep learning workloads.",
+          "A graph edge pointing from a node to one of its active ancestors in the DFS recursion stack.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "3-Color DFS",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Cycle detection technique coloring nodes White (unvisited), Gray (visiting), and Black (visited).",
       },
       {
-        term: "Memory Coalescing",
-        definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+        term: "Directed Acyclic Graph (DAG)",
+        definition: "A directed graph containing no circular paths or cycles.",
       },
     ],
   },
   trivia: CIRCULARDEPENDENCYDETECTION_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT,
   generateSteps: generateCircularDependencyDetectionSteps,
 };

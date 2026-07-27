@@ -90,6 +90,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   id: "sieve-primes",
   title: "Sieve of Eratosthenes",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit. Instead of testing numbers individually, it crosses out the multiples of each discovered prime (starting from p²), leaving only primes standing — in nearly linear O(n log log n) time.",

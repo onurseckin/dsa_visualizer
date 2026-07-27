@@ -7,31 +7,22 @@ export interface causalLowerTriangularMaskInput {
 }
 
 export const CAUSALLOWERTRIANGULARMASK_CODE = `
-def causallowertriangularmask(q_tile, k_tile, v_tile, scale_factor):
+def causal_lower_triangular_mask(q_seq_len: int, kv_seq_len: int) -> list[list[float]]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Constructs a causal lower-triangular mask matrix for autoregressive attention.
+    Positions where query token index i < key token index j are assigned -inf
+    to enforce strictly causal autoregressive attention bounds.
     """
-    import math
-
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
-
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
-
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
-
-    return tiled_output
+    mask = []
+    for i in range(q_seq_len):
+        row = []
+        for j in range(kv_seq_len):
+            if j <= i:
+                row.append(0.0)
+            else:
+                row.append(float('-inf'))
+        mask.append(row)
+    return mask
 `;
 
 export const DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT: causalLowerTriangularMaskInput = {
@@ -81,7 +72,7 @@ export const generateCausalLowerTriangularMaskSteps = (
   addStep(
     1,
     "Initialize Causal Lower-Triangular Mask Generator",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up execution data structures and memory layout pointers for autoregressive masking.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
@@ -95,9 +86,9 @@ export const generateCausalLowerTriangularMaskSteps = (
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      8,
+      `Evaluate causal mask row i=${idx} (token value=${val})`,
+      `Applying lower-triangular check: for key indices j <= ${idx}, mask value is 0.0; for j > ${idx}, mask is -inf.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,9 +100,9 @@ export const generateCausalLowerTriangularMaskSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully constructed causal lower-triangular attention mask boundaries.",
     { completed: true },
     finalElements,
   );
@@ -120,17 +111,24 @@ export const generateCausalLowerTriangularMaskSteps = (
 };
 
 const CAUSALLOWERTRIANGULARMASK_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "row.append(1.0 if j == i else 0.0)",
+    "mask = [[0.0] * kv_seq_len] * q_seq_len",
+    "if j >= i: row.append(float('-inf'))",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 8, hint: "Check if key index j is less than or equal to query index i." },
+    { line: 9, hint: "Assign 0.0 to unmasked causal positions." },
+    { line: 11, hint: "Assign -inf to future positions to prohibit lookahead attention." },
+  ],
   lineExplanations: {
     1: "Defines entry point for Causal Lower-Triangular Mask Generator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    7: "Iterates through query sequence length row by row.",
+    8: "Checks whether key token index j is less than or equal to query token index i.",
+    9: "Sets mask value to 0.0 for valid historical and current tokens.",
+    11: "Sets mask value to -inf for future tokens to prevent information leak.",
+    13: "Returns the constructed lower-triangular causal mask matrix.",
   },
 };
 
@@ -144,85 +142,86 @@ export const causalLowerTriangularMask: AlgorithmDefinition<causalLowerTriangula
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), causal lower-triangular mask generator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In autoregressive Transformer models (such as GPT-4, LLaMA-3, and Claude), causal self-attention prevents tokens from attending to future positions $j > i$. Causal Lower-Triangular Masking constructs an explicit or implicit mask matrix $M \\in \\mathbb{R}^{N \\times N}$ where $M_{ij} = 0$ for $j \\le i$ and $M_{ij} = -\\infty$ for $j > i$.\n\nWhen added to unscaled attention score logits $S = Q K^T / \\sqrt{d_k}$, the $-\\infty$ values evaluate to $e^{-\\infty} = 0$ after Softmax normalization, guaranteeing zero attention weight on subsequent tokens.\n\nInput Format:\n- data: Sequence lengths or token ID array representing prompt and generated sequence length $N$.\n- target: Optional parameter specifying sequence length threshold or block boundary.\n\nOutput Format:\n- Returns a lower-triangular matrix or boolean mask view where non-causal entries are set to $-\\infty$ (or False), enforcing strictly unidirectional causal attention.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-token sequences ($N=1$), prefix-cached offset sequences where query index $i$ starts at offset $K$.\n- Numerical stability: Uses float32 $-\\infty$ or IEEE 754 half-precision minimum finite representation to avoid NaN propagation during Softmax exponentiation.\n- Memory alignment: High-performance kernels (FlashAttention) synthesize this mask on the fly using grid position comparison `thread_idx_j <= thread_idx_i`, bypassing explicit HBM allocation.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Causal Masking",
       inputDisplay: "data = [10, 20, 30], target = 30",
       outputDisplay: "[10, 20, 30]",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Computes lower-triangular valid score bounds for 3 tokens.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
+      title: "5-Token Sequence Masking",
       inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
       outputDisplay: "[1, 2, 3, 4, 5]",
       input: { data: [1, 2, 3, 4, 5], target: 4 },
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      explanation: "Evaluates causal lower-triangular bounds across a 5-token context.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Target Out-of-Bounds",
       inputDisplay: "data = [5, 10, 15], target = 99",
       outputDisplay: "[5, 10, 15]",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Safely processes sequence boundaries when target index exceeds current length.",
     },
   ],
   code: CAUSALLOWERTRIANGULARMASK_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(N^2)", average: "O(N^2)", worst: "O(N^2)" },
+  spaceComplexity: "O(N^2)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements to apply causal triangular masking bounds.",
-    space: "Linear memory allocation for result structures and attention logit bounds.",
+    time: "Requires quadratic O(N^2) evaluation across all query-key token pairs in standard dense attention, or O(1) per thread block in fused tile kernels.",
+    space:
+      "O(N^2) for explicit mask matrix storage, or O(1) auxiliary memory when computed implicitly in SRAM/registers.",
   },
   topicGuide: {
     overview:
-      "Causal Lower-Triangular Mask Generator is a critical component in ML ATTENTION GEOMETRY systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Causal Lower-Triangular Masking is a cornerstone of autoregressive Transformer architecture. It guarantees that during both prefill and generation phases, predictions for token $i$ depend exclusively on tokens $1 \\dots i$. In modern deep learning engines like vLLM, FlashAttention, and PyTorch SDPA, causal masking is implemented via mathematical bounds, avoiding memory bandwidth bottlenecks by fusing mask checking directly into CUDA warp loops.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, causal lower-triangular mask generator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "The causal attention mechanism modifies raw dot-product logits $S = Q K^T / \\sqrt{d_k}$ by adding an additive mask matrix $M$: $A = \\text{Softmax}(S + M) V$. The mask entries are defined as $M_{ij} = 0.0$ if $j \\le i$ and $M_{ij} = -\\infty$ if $j > i$. During exponentiation, $\\exp(S_{ij} - \\infty) = 0$, driving the attention probability strictly to zero for future tokens.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Causal Lower-Triangular Mask Generator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Materializing explicit $N \\times N$ floating-point mask matrices in GPU High Bandwidth Memory (HBM) consumes immense memory bandwidth ($O(N^2)$ bytes per layer). Modern GPU hardware kernels (FlashAttention-2/3, Triton) eliminate explicit mask tensors entirely. Kernels load tiles of $Q$ and $K$ into SRAM and apply conditional bounds (`if col_idx > row_idx`) directly in GPU registers, achieving 100% compute bound throughput.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing causal lower-triangular mask generator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "In batch inference with variable prompt lengths, causal masks are combined with padding masks or prefix cache block offsets (PagedAttention). For KV cache reuse, the effective key sequence length $L_K$ often exceeds the query length $L_Q$, requiring offset adjustments: $j \\le i + \\text{kv\\_offset}$.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "In FP16 precision, numerical $-\\infty$ must be represented carefully (e.g., `-65504.0` or float32 `1e-9` scale factors) to avoid IEEE 754 NaN overflows during softmax reduction. Out-of-bounds array access is guarded by warp lane predicates during parallel grid dispatch.",
       },
     ],
     keyTerms: [
       {
-        term: "Causal Engine",
+        term: "Causal Mask",
         definition:
-          "The underlying algorithmic system implementing causal lower-triangular mask generator operations for deep learning workloads.",
+          "A lower-triangular additive mask enforcing non-lookahead constraints in sequence modeling.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Implicit Mask Tiling",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "A CUDA/Triton optimization technique evaluating $j \\le i$ on-the-fly inside SRAM without DRAM allocations.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Autoregressive Decoding",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Sequential token generation where each token relies on past tokens generated in prior iterations.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Prefix Cache Offset",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "The index offset added to key positions when attending over pre-computed KV cache history.",
       },
     ],
   },

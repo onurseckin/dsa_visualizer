@@ -7,15 +7,16 @@ export interface ExtendedEuclideanInput {
 }
 
 export const PYTHON_EXTENDED_EUCLIDEAN_CODE = `
-def python_extended_euclidean(input_array):
+def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
     """
-    Implementation of python_extended_euclidean.
+    Computes gcd(a, b) and Bézout coefficients (gcd, x, y) such that a*x + b*y = gcd(a, b).
     """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = extended_gcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
 `;
 
 export const DEFAULT_EXTENDED_EUCLIDEAN_INPUT: ExtendedEuclideanInput = {
@@ -240,26 +241,38 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
 
 export const EXTENDED_EUCLIDEAN_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Extended Euclidean Algorithm computes the greatest common divisor (gcd) of two integers a and b, and simultaneously calculates Bezout coefficients x and y such that a*x + b*y = gcd(a,b).",
+    "The Extended Euclidean Algorithm extends Euclid's classic greatest common divisor algorithm. In addition to computing g = gcd(a, b), it efficiently finds integer Bézout coefficients x and y satisfying Bézout's identity a*x + b*y = g. This structural link between greatest common divisors and linear combinations serves as a fundamental building block of modern cryptography and modular arithmetic.",
   sections: [
     {
-      heading: "Bézout's Identity",
-      body: "Bézout's identity states that for any non-zero integers a and b, there exist integers x and y such that a*x + b*y = gcd(a,b). The smallest positive integer linear combination of a and b is gcd(a,b).",
+      heading: "Bézout's Identity & Recursive Substitution",
+      body: "Bézout's identity states that for any non-zero integers a and b, there exist integers x and y such that a*x + b*y = gcd(a, b). When recursively computing extended_gcd(b, a % b), we obtain coefficients x1 and y1 satisfying b*x1 + (a % b)*y1 = g. Substituting a % b = a - floor(a/b)*b gives a*y1 + b*(x1 - floor(a/b)*y1) = g. Thus, the updated coefficients for level (a, b) are x = y1 and y = x1 - floor(a/b)*y1.",
     },
     {
-      heading: "Recursive Coefficients Substitution",
-      body: "Knowing extended_gcd(b, a % b) yields gcd, x1, y1. Substituting a % b = a - (a//b)*b gives a*y1 + b*(x1 - (a//b)*y1) = gcd, deriving x = y1 and y = x1 - (a//b)*y1.",
+      heading: "Modular Inverses & Linear Diophantine Equations",
+      body: "The primary practical application of the Extended Euclidean Algorithm is finding general modular multiplicative inverses. When a and m are coprime (gcd(a, m) = 1), solving a*x + m*y = 1 modulo m yields a*x ≡ 1 (mod m), so x mod m is the modular inverse of a modulo m. It also solves linear Diophantine equations a*x + b*y = c: integer solutions exist if and only if gcd(a, b) divides c.",
+    },
+    {
+      heading: "Systems & Complexity Analysis",
+      body: "Like standard Euclid's GCD, the algorithm runs in O(log(min(a, b))) time because the remainder halves the smaller number at least every two steps. Memory complexity is O(log(min(a, b))) for recursive stack depth or O(1) space when implemented iteratively maintaining 2x2 matrix state transformations.",
+    },
+    {
+      heading: "Implementation Nuances & Edge Cases",
+      body: "Edge cases include b = 0 (base case returning gcd = a, x = 1, y = 0), a = 0, negative inputs, and ensuring x is adjusted to be positive modulo m when computing modular inverses (x_pos = (x % m + m) % m). Input ordering a < b is handled automatically after one division step.",
     },
   ],
   keyTerms: [
     {
-      term: "Bézout Coefficients",
-      definition: "Integers x and y satisfying the linear equation a*x + b*y = gcd(a,b).",
+      term: "Bézout's Identity",
+      definition:
+        "The theorem stating that gcd(a, b) can always be expressed as an integer linear combination a*x + b*y.",
     },
     {
-      term: "Diophantine Equation",
-      definition:
-        "Polynomial equation with integer coefficients where integer solutions are sought.",
+      term: "Bézout Coefficients",
+      definition: "The integers x and y that satisfy the linear equation a*x + b*y = gcd(a, b).",
+    },
+    {
+      term: "Linear Diophantine Equation",
+      definition: "An equation of the form a*x + b*y = c seeking integer solutions x and y.",
     },
   ],
 };
@@ -283,7 +296,7 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Computes gcd(a, b) and finds integer coefficients x and y satisfying Bézout's identity a*x + b*y = gcd(a, b). Essential for solving linear Diophantine equations and finding general modular inverses.",
+    "Given two non-negative integers a and b, compute their greatest common divisor gcd(a, b) and determine integer Bézout coefficients x and y satisfying a*x + b*y = gcd(a, b). This algorithm runs in O(log(min(a, b))) time and powers modular inverses and linear Diophantine equation solvers.",
   constraints: ["1 <= a, b <= 10^9"],
   examples: [
     {

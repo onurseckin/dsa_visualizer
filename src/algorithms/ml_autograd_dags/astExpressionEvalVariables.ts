@@ -7,27 +7,22 @@ export interface astExpressionEvalVariablesInput {
 }
 
 export const ASTEXPRESSIONEVALVARIABLES_CODE = `
-def astexpressionevalvariables(graph_nodes, adjacency_map):
+def ast_expression_eval_variables(node, env):
     """
-    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    Evaluates AST expression tree substituting variable bindings from environment.
     """
-    in_degrees = {node: 0 for node in graph_nodes}
-    for u in adjacency_map:
-        for v in adjacency_map[u]:
-            in_degrees[v] = in_degrees.get(v, 0) + 1
+    if isinstance(node, (int, float)):
+        return node
+    if isinstance(node, str):
+        return env.get(node, 0)
 
-    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
-    topological_order = []
+    op, left, right = node["op"], node["left"], node["right"]
+    val_l = ast_expression_eval_variables(left, env)
+    val_r = ast_expression_eval_variables(right, env)
 
-    while zero_degree_queue:
-        curr = zero_degree_queue.pop(0)
-        topological_order.append(curr)
-        for neighbor in adjacency_map.get(curr, []):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_degree_queue.append(neighbor)
-
-    return topological_order
+    if op == "+": return val_l + val_r
+    if op == "*": return val_l * val_r
+    return 0
 `;
 
 export const DEFAULT_ASTEXPRESSIONEVALVARIABLES_INPUT: astExpressionEvalVariablesInput = {
@@ -40,7 +35,8 @@ export const generateAstExpressionEvalVariablesSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+  const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -66,9 +62,8 @@ export const generateAstExpressionEvalVariablesSteps = (
       },
       auxiliaryState: {
         customState: {
-          dagNodes: "node1: active, node2: pending",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${arrayData.join(", ")}]`,
+          target: String(input?.target ?? 0),
         },
       },
       variables,
@@ -79,11 +74,11 @@ export const generateAstExpressionEvalVariablesSteps = (
     1,
     "Initialize AST Expression Evaluation with Variables",
     "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    { n: arrayData.length, target: input?.target ?? 0 },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
+  arrayData.forEach((val, idx) => {
+    const isTarget = val === input?.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
@@ -94,7 +89,7 @@ export const generateAstExpressionEvalVariablesSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in autograd computation graph.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -106,9 +101,9 @@ export const generateAstExpressionEvalVariablesSteps = (
   }));
 
   addStep(
-    6,
+    16,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Successfully processed all nodes in the computation graph structure.",
     { completed: true },
     finalElements,
   );
@@ -117,17 +112,23 @@ export const generateAstExpressionEvalVariablesSteps = (
 };
 
 const ASTEXPRESSIONEVALVARIABLES_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
   lineExplanations: {
-    1: "Defines entry point for AST Expression Evaluation with Variables.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines AST expression evaluation with variable environment bindings function.",
+    4: "Returns numeric scalar directly if node is numeric.",
+    6: "Looks up variable name string in environment dictionary env.",
+    8: "Unpacks operator, left child, and right child from node dictionary.",
+    9: "Recursively evaluates left child expression.",
+    10: "Recursively evaluates right child expression.",
+    12: "Applies addition operator val_l + val_r.",
+    13: "Applies multiplication operator val_l * val_r.",
+    14: "Returns 0 for unrecognized operators.",
   },
 };
 
@@ -141,100 +142,85 @@ export const astExpressionEvalVariables: AlgorithmDefinition<astExpressionEvalVa
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), ast expression evaluation with variables provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-  leetcode: { id: 224, url: "https://leetcode.com/problems/basic-calculator/" },
-  sources: [
-    {
-      type: "leetcode",
-      kind: "leetcode",
-      id: 224,
-      title: "Basic Calculator",
-      url: "https://leetcode.com/problems/basic-calculator/",
-    },
-  ],
+    "In deep learning forward-pass execution (e.g. PyTorch autograd evaluation, SymPy symbolic execution, JIT trace execution), evaluating expression trees requires looking up dynamic tensor variable bindings from an execution environment dictionary and evaluating operator nodes recursively.\n\nThis algorithm implements AST Expression Evaluation with Variables, traversing binary expression trees and substituting runtime variable values to compute output scalars.\n\nInput Format:\n- data: Input payload or variable values array.\n- target: Optional target value.\n\nOutput Format:\n- Returns evaluated scalar result of expression tree under given environment bindings.\n\nEdge Cases & Constraints:\n- Variable missing from environment (defaults to 0 or raises error).\n- Pure numeric constant nodes.\n- Deeply nested binary expression trees.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Autograd Pass",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Standard execution pass over computation graph.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger DAG Input",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Evaluated Graph State",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates multi-node computation graph DAG.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case DAG",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Evaluated Graph State",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ASTEXPRESSIONEVALVARIABLES_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
+  spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time pass across input elements.",
-    space: "Linear memory allocation for result structures.",
+    time: "Linear time traversal across graph vertices and edges.",
+    space: "Linear memory allocation for graph adjacency lists.",
   },
   topicGuide: {
     overview:
-      "AST Expression Evaluation with Variables is a critical component in ML AUTOGRAD DAGS systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "AST evaluation with variable environment substitution bridges symbolic computation and numeric execution. Autograd engines evaluate forward values through expression graphs while recording intermediate operations for backward gradient passes.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, ast expression evaluation with variables operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Mathematically, for node N, Value(N) = N if N in Reals; Value(N) = Env[N] if N in Variables; Value(N) = Op(Value(Left), Value(Right)) if N is Operator.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. AST Expression Evaluation with Variables optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Evaluating AST expressions in C++ engines avoids Python interpreter overhead, enabling fast forward-pass execution in ONNX and TorchScript runtimes.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing ast expression evaluation with variables efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementation recursively resolves left and right subtrees against variable dictionary env and applies operator binary math.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge case analysis includes uninitialized environment variables and deep stack recursion limits.",
       },
     ],
     keyTerms: [
       {
-        term: "AST Engine",
+        term: "Variable Binding",
         definition:
-          "The underlying algorithmic system implementing ast expression evaluation with variables operations for deep learning workloads.",
+          "Associating symbolic variable names with concrete numeric runtime scalar values.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Execution Environment",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Dictionary mapping variable identifier strings to scalar values during AST evaluation.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Symbolic Execution",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
-      },
-      {
-        term: "Arithmetic Intensity",
-        definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Evaluating expression trees using symbolic names before substituting numeric values.",
       },
     ],
   },
   trivia: ASTEXPRESSIONEVALVARIABLES_TRIVIA,
-
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
   defaultInput: DEFAULT_ASTEXPRESSIONEVALVARIABLES_INPUT,
   generateSteps: generateAstExpressionEvalVariablesSteps,
 };

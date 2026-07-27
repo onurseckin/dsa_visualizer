@@ -8,31 +8,42 @@ export interface SingleHeadAttentionInput {
 }
 
 export const SINGLEHEADATTENTIONMAP_CODE = `
-def singleheadattentionmap(q_tile, k_tile, v_tile, scale_factor):
+def single_head_attention(
+    q: list[list[float]],  # Shape [seq_len, d_k]
+    k: list[list[float]],  # Shape [seq_len, d_k]
+    v: list[list[float]],  # Shape [seq_len, d_v]
+    scale: float
+) -> tuple[list[list[float]], list[list[float]]]:
     """
-    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    Computes Scaled Dot-Product Attention: Output = Softmax(Q @ K.T * scale) @ V.
+    Returns (attention_weights, output_matrix).
     """
     import math
 
-    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
-    score_matrix = []
-    for q in q_tile:
-        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
-        score_matrix.append(row_scores)
+    seq_len = len(q)
+    d_v = len(v[0])
 
-    # Step 2: Online max reduction and log-sum-exp normalization
-    tiled_output = []
-    for row in score_matrix:
-        row_max = max(row)
-        exp_vals = [math.exp(val - row_max) for val in row]
-        lse = sum(exp_vals)
-        weights = [val / lse for val in exp_vals]
+    # Step 1: Compute scaled dot-product logits S = Q @ K.T * scale
+    scores = []
+    for i in range(seq_len):
+        row_scores = [sum(qi * ki for qi, ki in zip(q[i], k[j])) * scale for j in range(seq_len)]
+        scores.append(row_scores)
 
-        # Step 3: Weighted value sum: O = Softmax(S) @ V
-        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
-        tiled_output.append(out_row)
+    # Step 2: Row-wise Softmax normalization (online max subtraction for stability)
+    weights = []
+    for row in scores:
+        max_val = max(row)
+        exp_vals = [math.exp(sc - max_val) for sc in row]
+        sum_exp = sum(exp_vals)
+        weights.append([e / sum_exp for e in exp_vals])
 
-    return tiled_output
+    # Step 3: Weighted sum of values O = Softmax(S) @ V
+    output = []
+    for i in range(seq_len):
+        out_row = [sum(weights[i][t] * v[t][j] for t in range(seq_len)) for j in range(d_v)]
+        output.append(out_row)
+
+    return weights, output
 `;
 
 export const DEFAULT_SINGLEHEADATTENTIONMAP_INPUT: SingleHeadAttentionInput = {
@@ -112,7 +123,7 @@ export const generateSingleHeadAttentionMapSteps = (
           row: r,
           col: c,
           state,
-          distance: val, // use distance to show value
+          distance: val,
         };
       }),
     );
@@ -134,9 +145,9 @@ export const generateSingleHeadAttentionMapSteps = (
       }
       scores[i][j] = Number((dot / Math.sqrt(d_k)).toFixed(4));
       addStep(
-        15,
+        19,
         `Compute score for query ${i} and key ${j}`,
-        "Dot product of Q_i and K_j scaled by sqrt(d_k).",
+        "Dot product of Q_i and K_j scaled by 1/sqrt(d_k).",
         { i, j, dot, score: scores[i][j] },
         createGrid(scores, i, j),
       );
@@ -154,7 +165,7 @@ export const generateSingleHeadAttentionMapSteps = (
       weights[i][j] = Number((weights[i][j] / expSum).toFixed(4));
     }
     addStep(
-      27,
+      28,
       `Apply Softmax to row ${i}`,
       "Convert raw scores into probability distribution.",
       { i, maxScore, expSum },
@@ -170,7 +181,7 @@ export const generateSingleHeadAttentionMapSteps = (
       }
       output[i][j] = Number(val.toFixed(4));
       addStep(
-        38,
+        34,
         `Compute output for token ${i} feature ${j}`,
         "Weighted sum of values based on attention weights.",
         { i, j, val: output[i][j] },
@@ -180,7 +191,7 @@ export const generateSingleHeadAttentionMapSteps = (
   }
 
   addStep(
-    40,
+    36,
     "Attention Complete",
     "Final output representation computed for all tokens.",
     { done: true },
@@ -191,14 +202,23 @@ export const generateSingleHeadAttentionMapSteps = (
 };
 
 const SINGLEHEADATTENTIONMAP_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
-  distractors: ["attention_weights[i][j] = max(0, scores[i][j])", "dot += Q[d][i] * K[d][j]"],
-  hints: [{ line: 15, hint: "Don't forget to scale by 1/sqrt(d_k)" }],
+  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  distractors: [
+    "weights[i][j] = max(0, scores[i][j])",
+    "dot += Q[d][i] * K[d][j]",
+    "scale = sqrt(d_k)",
+  ],
+  hints: [
+    { line: 19, hint: "Scale dot product by 1/sqrt(d_k) to prevent softmax saturation." },
+    { line: 28, hint: "Perform row-wise exponentiation and normalization for softmax." },
+    { line: 34, hint: "Multiply probability weights by Value vectors." },
+  ],
   lineExplanations: {
-    14: "Dot product between query and key vectors.",
-    15: "Scaling by sqrt(d_k) prevents softmax from saturating.",
-    27: "Row-wise softmax normalization.",
-    38: "Weighting the Value vectors by the computed attention scores.",
+    1: "Defines Scaled Dot-Product Single-Head Attention entry point.",
+    19: "Computes scaled inner product score Q_i @ K_j.T / sqrt(d_k).",
+    28: "Computes row-wise Softmax probability distribution.",
+    34: "Computes weighted sum of value vectors to form output representation.",
+    36: "Returns attention weights matrix and final output tensor.",
   },
 };
 
@@ -212,7 +232,7 @@ export const singleHeadAttentionMap: AlgorithmDefinition<SingleHeadAttentionInpu
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), single-head attention map generator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "Scaled Dot-Product Attention (Vaswani et al., 2017) is the core operational building block of Transformer neural networks. Given Query matrix $Q \\in \\mathbb{R}^{N \\times d_k}$, Key matrix $K \\in \\mathbb{R}^{N \\times d_k}$, and Value matrix $V \\in \\mathbb{R}^{N \\times d_v}$, single-head attention maps input sequences into contextual representations:\n$$\\text{Attention}(Q, K, V) = \\text{Softmax}\\left(\\frac{Q K^T}{\\sqrt{d_k}}\\right) V$$\n\nThe scaling factor $1/\\sqrt{d_k}$ compensates for dot-product growth under large feature dimensions $d_k$, preventing the Softmax gradient from vanishing in regions of extreme values.\n\nInput Format:\n- q: Query matrix $[N, d_k]$.\n- k: Key matrix $[N, d_k]$.\n- v: Value matrix $[N, d_v]$.\n\nOutput Format:\n- Attention probability weights matrix $P \\in [0,1]^{N \\times N}$ and final contextual output matrix $O \\in \\mathbb{R}^{N \\times d_v}$.\n\nEdge Cases & Constraints:\n- Vanishing gradients: Large $d_k$ without $1/\\sqrt{d_k}$ scaling causes dot products to push Softmax inputs into regions of tiny gradients.\n- Zero queries: Zero Query vectors result in uniform attention distribution ($1/N$).",
   constraints: ["1 <= seq_len <= 100", "1 <= d_k, d_v <= 64"],
   examples: [
     {
@@ -276,56 +296,55 @@ export const singleHeadAttentionMap: AlgorithmDefinition<SingleHeadAttentionInpu
   ],
   code: SINGLEHEADATTENTIONMAP_CODE,
   timeComplexity: {
-    best: "O(N^2 * (d_k + d_v))",
-    average: "O(N^2 * (d_k + d_v))",
-    worst: "O(N^2 * (d_k + d_v))",
+    best: "O(N^2 \\cdot d_k + N^2 \\cdot d_v)",
+    average: "O(N^2 \\cdot d_k + N^2 \\cdot d_v)",
+    worst: "O(N^2 \\cdot d_k + N^2 \\cdot d_v)",
   },
-  spaceComplexity: "O(N^2 + N * d_v)",
+  spaceComplexity: "O(N^2 + N \\cdot d_v)",
   complexityAnalysis: {
-    time: "Requires O(N^2 * d_k) for QK^T, and O(N^2 * d_v) for Weight*V. Dominant is N^2 sequence length.",
-    space: "Requires O(N^2) memory to store the attention weight matrix.",
+    time: "Requires $O(N^2 \\cdot d_k)$ for $Q K^T$ matrix multiply and $O(N^2 \\cdot d_v)$ for $P V$ product.",
+    space: "Requires $O(N^2)$ memory to store the full $N \\times N$ attention weight matrix.",
   },
   topicGuide: {
     overview:
-      "Single-Head Attention Map Generator is a critical component in ML ATTENTION GEOMETRY systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Scaled Dot-Product Attention is the foundational building block of all modern Transformer architectures. By allowing every token to attend to every other token, attention captures complex long-range dependencies.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, single-head attention map generator operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "Given queries $Q \\in \\mathbb{R}^{N \\times d_k}$, keys $K \\in \\mathbb{R}^{N \\times d_k}$, values $V \\in \\mathbb{R}^{N \\times d_v}$, raw logits are $S = Q K^T / \\sqrt{d_k}$. Attention weights are $P = \\text{Softmax}(S) \\in \\mathbb{R}^{N \\times N}$. Output is $O = P V \\in \\mathbb{R}^{N \\times d_v}$.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. Single-Head Attention Map Generator optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "Standard attention materializes $S \\in \\mathbb{R}^{N \\times N}$ in GPU HBM, consuming $O(N^2)$ memory and creating a severe DRAM bandwidth bottleneck. Tiling algorithms like FlashAttention avoid materializing $S$ in DRAM by fusing matrix multiplication, online softmax, and value reduction inside fast GPU SRAM.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing single-head attention map generator efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Softmax stabilization: subtract max logit $m_i = \\max_j S_{ij}$ before exponentiation $\\exp(S_{ij} - m_i)$ to prevent IEEE 754 floating-point overflow.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Masked attention (causal or padding masks) sets invalid positions to $-\\infty$ before Softmax, ensuring those positions receive exactly 0 attention probability weight.",
       },
     ],
     keyTerms: [
       {
-        term: "Single-Head Engine",
-        definition:
-          "The underlying algorithmic system implementing single-head attention map generator operations for deep learning workloads.",
+        term: "Scaled Dot-Product Attention",
+        definition: "The fundamental attention mechanism computing Softmax(QK^T / sqrt(d_k)) V.",
       },
       {
-        term: "SRAM / Cache Tiling",
+        term: "Temperature Scaling Factor",
         definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "The factor 1/sqrt(d_k) used to maintain variance = 1 under random vector inputs.",
       },
       {
-        term: "Memory Coalescing",
+        term: "Attention Probability Weights",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Row-normalized probabilities representing contextual relevance between query and key tokens.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Online Softmax",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Technique for updating running max and sum-exp statistics dynamically during streaming tile evaluation.",
       },
     ],
   },

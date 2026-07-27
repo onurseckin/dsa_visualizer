@@ -1,134 +1,343 @@
-import { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+
+export interface SkipListNode {
+  id: number;
+  value: number;
+  nextId: number | null;
+  skipId: number | null;
+}
 
 export interface SingleSkipListLayerTraversalInput {
-  vectors: number[][];
-  target?: number[];
+  nodes: Record<number, SkipListNode>;
+  startId: number;
+  target: number;
 }
+
+export const DEFAULT_SINGLE_SKIP_LIST_INPUT: SingleSkipListLayerTraversalInput = {
+  target: 45,
+  startId: 1,
+  nodes: {
+    1: { id: 1, value: 10, nextId: 2, skipId: 3 },
+    2: { id: 2, value: 20, nextId: 3, skipId: null },
+    3: { id: 3, value: 30, nextId: 4, skipId: 5 },
+    4: { id: 4, value: 40, nextId: 5, skipId: null },
+    5: { id: 5, value: 50, nextId: 6, skipId: null },
+    6: { id: 6, value: 60, nextId: null, skipId: null },
+  },
+};
+
+export const SINGLE_SKIP_LIST_CODE = `def single_skip_list_layer_traversal(nodes: dict, start_id: int, target: int) -> tuple[int, list[int]]:
+    """
+    Traverses a 1D skip-list layer greedily towards 'target'.
+    Prefers express 'skip' pointers when available and skip_val <= target, falling back to 'next' pointers.
+    """
+    curr_id = start_id
+    path = [curr_id]
+
+    while curr_id in nodes:
+        curr_node = nodes[curr_id]
+        
+        # Check express skip pointer first
+        skip_id = curr_node.get("skipId")
+        if skip_id and skip_id in nodes and nodes[skip_id]["value"] <= target:
+            curr_id = skip_id
+            path.append(curr_id)
+            continue
+
+        # Fallback to sequential next pointer
+        next_id = curr_node.get("nextId")
+        if next_id and next_id in nodes and nodes[next_id]["value"] <= target:
+            curr_id = next_id
+            path.append(curr_id)
+            continue
+
+        # Found closest node <= target
+        break
+
+    return curr_id, path`;
+
+export const generateSingleSkipListSteps = (
+  input: SingleSkipListLayerTraversalInput,
+): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  const { nodes, startId, target } = input;
+  let stepIndex = 0;
+
+  let currId = startId;
+  const path: number[] = [currId];
+
+  // Step 0: Init
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize 1D Skip-List Traversal at Node ${startId} (val=${nodes[startId]?.value})`,
+      why: `Target value = ${target}. Traverses express skip edges before standard sequential edges.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Object.keys(nodes).map((nIdStr) => {
+        const nId = Number(nIdStr);
+        const node = nodes[nId];
+        return {
+          id: `node-${nId}`,
+          value: node.value,
+          label: `N${nId} (${node.value})`,
+          state: nId === startId ? ("active" as ElementState) : ("default" as ElementState),
+          pointers: nId === startId ? ["Start"] : [],
+        };
+      }),
+    },
+    auxiliaryState: {
+      customState: {
+        target: String(target),
+        startId: String(startId),
+        path: `[N${startId}]`,
+        status: "Initialized",
+      },
+    },
+    variables: { startId, target },
+  });
+
+  while (currId in nodes) {
+    const currNode = nodes[currId];
+    const skipId = currNode.skipId;
+    const nextId = currNode.nextId;
+
+    let tookSkip = false;
+    let tookNext = false;
+
+    if (skipId && skipId in nodes && nodes[skipId].value <= target) {
+      const prevId = currId;
+      currId = skipId;
+      path.push(currId);
+      tookSkip = true;
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 12,
+        explanation: {
+          what: `Express Skip Pointer Jump: N${prevId} (val=${nodes[prevId].value}) -> N${currId} (val=${nodes[currId].value})`,
+          why: `Skip pointer destination N${currId} value ${nodes[currId].value} <= target ${target}. Rapidly bypassed intermediate nodes.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: Object.keys(nodes).map((nIdStr) => {
+            const nId = Number(nIdStr);
+            const isCurr = nId === currId;
+            return {
+              id: `node-${nId}`,
+              value: nodes[nId].value,
+              label: `N${nId} (${nodes[nId].value})`,
+              state: isCurr
+                ? ("active" as ElementState)
+                : path.includes(nId)
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+              pointers: isCurr ? ["Express Jump"] : [],
+            };
+          }),
+        },
+        auxiliaryState: {
+          customState: {
+            jumpType: "Express Skip Edge",
+            fromNode: `N${prevId}`,
+            toNode: `N${currId}`,
+            path: path.map((id) => `N${id}`).join(" -> "),
+          },
+        },
+        variables: { currId, val: nodes[currId].value },
+      });
+      continue;
+    }
+
+    if (nextId && nextId in nodes && nodes[nextId].value <= target) {
+      const prevId = currId;
+      currId = nextId;
+      path.push(currId);
+      tookNext = true;
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 19,
+        explanation: {
+          what: `Sequential Next Step: N${prevId} (val=${nodes[prevId].value}) -> N${currId} (val=${nodes[currId].value})`,
+          why: `Express skip edge unavailable or exceeded target. Advanced to next adjacent node.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: Object.keys(nodes).map((nIdStr) => {
+            const nId = Number(nIdStr);
+            const isCurr = nId === currId;
+            return {
+              id: `node-${nId}`,
+              value: nodes[nId].value,
+              label: `N${nId} (${nodes[nId].value})`,
+              state: isCurr
+                ? ("active" as ElementState)
+                : path.includes(nId)
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+              pointers: isCurr ? ["Next Step"] : [],
+            };
+          }),
+        },
+        auxiliaryState: {
+          customState: {
+            jumpType: "Sequential Next Edge",
+            fromNode: `N${prevId}`,
+            toNode: `N${currId}`,
+            path: path.map((id) => `N${id}`).join(" -> "),
+          },
+        },
+        variables: { currId, val: nodes[currId].value },
+      });
+      continue;
+    }
+
+    if (!tookSkip && !tookNext) {
+      break;
+    }
+  }
+
+  // Step Final: Complete
+  const finalVal = nodes[currId]?.value;
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 24,
+    explanation: {
+      what: `Skip-List Layer Traversal Complete at Node N${currId} (val=${finalVal})`,
+      why: `Found closest node N${currId} with value ${finalVal} <= target ${target}. Traversal path: [${path
+        .map((id) => `N${id}`)
+        .join(" -> ")}].`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Object.keys(nodes).map((nIdStr) => {
+        const nId = Number(nIdStr);
+        const isFinal = nId === currId;
+        return {
+          id: `node-${nId}`,
+          value: nodes[nId].value,
+          label: `N${nId} (${nodes[nId].value})`,
+          state: isFinal
+            ? ("sorted" as ElementState)
+            : path.includes(nId)
+              ? ("visited" as ElementState)
+              : ("default" as ElementState),
+          pointers: isFinal ? [`Best Node <= ${target}`] : [],
+        };
+      }),
+    },
+    auxiliaryState: {
+      customState: {
+        finalNode: `N${currId}`,
+        finalValue: String(finalVal),
+        traversalPath: path.map((id) => `N${id}`).join(" -> "),
+        status: "Completed",
+      },
+    },
+    variables: { finalNode: currId, finalVal, complete: true },
+  });
+
+  return steps;
+};
 
 export const singleSkipListLayerTraversal: AlgorithmDefinition<SingleSkipListLayerTraversalInput> =
   {
     id: "singleSkipListLayerTraversal",
-    title: "Q6: Single Skip List Layer Traversal",
+    title: "Single Skip-List Layer Traversal",
     category: "ml_vector_search",
-    categories: ["ml_vector_search", "binary_search"],
+    categories: ["ml_vector_search", "graph_traversal"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 5,
     mlInfraCategory: "ml_vector_search",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), q6: single skip list layer traversal provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: [
-      "Vectors must have matching dimensions.",
-      "Input size typically constrained for visualization purposes.",
-    ],
+      "Simulates 1D skip-list layer routing (Pugh, 1990), serving as the foundational predecessor to HNSW spatial graph search. Given nodes with sequential `next` and express `skip` pointers, the traversal algorithm greedily takes express skip edges whenever the destination value <= target, falling back to sequential edges.\n\nInput Format:\n- nodes: Map of node ID to SkipListNode {id, value, nextId, skipId}.\n- startId: Entry node ID.\n- target: Scalar numerical search target value.\n\nOutput Format:\n- Returns tuple (closestNodeId, traversalPath).\n\nEdge Cases & Constraints:\n- Target smaller than startId node value: Remains at startId node.",
+    constraints: ["Node values must be strictly sorted along nextId chains."],
     examples: [
       {
         kind: "basic",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: {} as unknown as SingleSkipListLayerTraversalInput, // Will need actual data but cast to any
-        output: "Basic Success",
-        explanation: "A simple clear basic example for singleSkipListLayerTraversal.",
+        title: "Skip Traversal for Target = 45",
+        inputDisplay: "startId = 1 (val 10), target = 45",
+        outputDisplay: "Final Node N4 (val 40), Path: N1 -> N3 -> N4",
+        input: DEFAULT_SINGLE_SKIP_LIST_INPUT,
+        output: "N4",
+        explanation: "Jumps N1 -> N3 via express skip edge, then N3 -> N4 via next edge.",
       },
       {
         kind: "complex",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: {} as unknown as SingleSkipListLayerTraversalInput,
-        output: "Complex Success",
-        explanation: "A more intricate scenario with multiple elements.",
+        title: "Target Exceeding All Nodes (Target = 100)",
+        inputDisplay: "target = 100",
+        outputDisplay: "Final Node N6 (val 60)",
+        input: {
+          ...DEFAULT_SINGLE_SKIP_LIST_INPUT,
+          target: 100,
+        },
+        output: "N6",
+        explanation: "Traverses to rightmost node N6.",
       },
       {
         kind: "negative",
-        inputDisplay: "Empty Input",
-        outputDisplay: "Empty Output",
-        input: {} as unknown as SingleSkipListLayerTraversalInput,
-        output: "Empty",
-        explanation: "Handling empty or invalid edge cases.",
+        title: "Target Smaller Than Start Node (Target = 5)",
+        inputDisplay: "target = 5",
+        outputDisplay: "Final Node N1 (val 10)",
+        input: {
+          ...DEFAULT_SINGLE_SKIP_LIST_INPUT,
+          target: 5,
+        },
+        output: "N1",
+        explanation: "No edge satisfies value <= 5, terminating immediately at start node.",
       },
     ],
-    defaultInput: {} as unknown as SingleSkipListLayerTraversalInput,
-    code: `
-def singleSkipListLayerTraversal(query_vector, database_embeddings, top_k=3):
-    """
-    Q6: Single Skip List Layer Traversal
-    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
-    """
-    import math
-
-    candidate_distances = []
-    for idx, embedding in enumerate(database_embeddings):
-        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
-        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
-        candidate_distances.append((euclidean_dist, idx, embedding))
-
-    candidate_distances.sort(key=lambda item: item[0])
-    return candidate_distances[:top_k]
-`,
+    defaultInput: DEFAULT_SINGLE_SKIP_LIST_INPUT,
+    code: SINGLE_SKIP_LIST_CODE,
     timeComplexity: {
-      best: "O(1)",
-      average: "O(N log N)",
-      worst: "O(N^2)",
+      best: "O(log N)",
+      average: "O(log N)",
+      worst: "O(N)",
     },
-    spaceComplexity: "O(N)",
+    spaceComplexity: "O(Path)",
     complexityAnalysis: {
-      time: "Time complexity heavily depends on the input size N.",
-      space: "Requires O(N) auxiliary space for storing the intermediate processing states.",
+      time: "O(log N) average time steps using express skip pointers.",
+      space: "O(Path) auxiliary memory to store node traversal history.",
     },
     topicGuide: {
       overview:
-        "Comprehensive guide to singleSkipListLayerTraversal in machine learning infrastructure.",
+        "1D Skip-Lists (William Pugh, 1990) introduced probabilistic multi-layer express highways to sorted linked lists. Malkov & Yashunin extended this exact 1D skip-pointer concept to multi-dimensional spatial graphs in HNSW.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "The singleSkipListLayerTraversal algorithm is a foundational component.",
+          heading: "Core Concept & Express Routing",
+          body: "Skip pointers bypass O(N) linear scanning by providing O(2^k) geometric stride jumps. At each node, the algorithm probes the longest skip edge before dropping to shorter step scales.",
         },
         {
-          heading: "Mathematical Foundation",
-          body: "It relies on well-established principles for its operation.",
+          heading: "Systems & Performance Impact",
+          body: "Skip-lists provide logarithmic O(log N) point location without requiring complex tree rotations (like AVL or Red-Black trees), enabling simple lock-free concurrent updates.",
+        },
+        {
+          heading: "From 1D Skip-Lists to Multi-Dimensional HNSW",
+          body: "While 1D skip-lists compare scalar numerical inequality `val <= target`, HNSW replaces scalar inequality with spatial vector distance comparisons `dist(neighbor, query) < dist(curr, query)`.",
         },
       ],
       keyTerms: [
-        { term: "Node", definition: "A single unit of data or point in space." },
-        { term: "Edge", definition: "A connection or transition between nodes." },
+        {
+          term: "Skip Pointer",
+          definition: "An express link skipping multiple intermediate nodes to accelerate search.",
+        },
+        {
+          term: "Probabilistic Level",
+          definition:
+            "Random height assigned to a node determining how many skip layers it participates in.",
+        },
+        {
+          term: "Greedy Traversal",
+          definition:
+            "Always taking the edge that brings the current location closest to the target.",
+        },
       ],
     },
-    generateSteps: (_input: SingleSkipListLayerTraversalInput) => {
-      const steps: AlgorithmStep[] = [];
-
-      steps.push({
-        stepIndex: 0,
-        codeLine: 1,
-        explanation: { what: "Initialize algorithm", why: "To set up the initial state" },
-        primarySnapshot: { kind: "array", elements: [] },
-        auxiliaryState: { customState: { phase: "init" } },
-        variables: { i: 0 },
-      });
-
-      steps.push({
-        stepIndex: 1,
-        codeLine: 4,
-        explanation: { what: "Iterate over elements", why: "Processing each element" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "active" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      steps.push({
-        stepIndex: 2,
-        codeLine: 6,
-        explanation: { what: "Finish execution", why: "All elements processed" },
-        primarySnapshot: {
-          kind: "array",
-          elements: [{ id: "el-1", value: 1, label: "node1", state: "sorted" }],
-        },
-        auxiliaryState: {},
-        variables: { i: 1 },
-      });
-
-      return steps;
-    },
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "Pugh's Skip-Lists (CACM 1990)" }],
+    generateSteps: generateSingleSkipListSteps,
   };

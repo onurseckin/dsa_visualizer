@@ -193,7 +193,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
-    "Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. A hash map of values we've already seen lets each element check for its partner in constant time.",
+    "Given an array of integers nums and an integer target, return the 0-indexed indices [i, j] of the two distinct numbers such that nums[i] + nums[j] == target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\n### Input Parameters\n- nums (list[int]): An array of integers.\n- target (int): The target integer sum.\n\n### Output\n- list[int]: Indices [i, j] such that nums[i] + nums[j] == target.\n\n### Edge Cases & Constraints\n- Negative integers and zeroes are supported.\n- Exactly one valid solution exists for the input.",
   constraints: [
     "2 <= nums.length <= 10^4",
     "-10^9 <= nums[i] <= 10^9",
@@ -245,58 +245,40 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   },
   topicGuide: {
     overview:
-      "Two Sum is the canonical introduction to hashing as a search accelerator: instead of comparing every pair of numbers, you remember what you have already seen so that each new number can ask one direct question about its missing partner. The technique matters far beyond this one problem, because it is the template for turning a nested-loop search into a single pass backed by a dictionary. Learning it means learning to spot when a two-element relationship can be rewritten as a one-element lookup. The data structure doing the heavy lifting is the hash map, which trades memory for near-instant membership tests.",
+      "Two Sum is the fundamental paradigm shift from brute-force pair iteration O(N^2) to constant-time memory lookups O(N). In modern computer science, this pattern mirrors hash-join operations in database query engines (e.g. PostgreSQL, DuckDB) and sparse tensor key alignment in ML pipelines like PyTorch. Instead of comparing every candidate against all others, we compute the required complement target - num and query a hash table in O(1) average time.",
     sections: [
       {
-        heading: "The core idea: turn a pair search into a lookup",
-        body: 'The brute-force approach asks, for every element, whether any other element completes the target, which means comparing each number against all the others. The key move is to stop thinking about pairs and start thinking about complements: if the current number is num, then the only value that can possibly pair with it is target minus num. That value is fully determined, so you are no longer searching for "some element that works" but checking for "this one specific element". A hash map answers that specific question in constant time, which collapses the second loop entirely.',
+        heading: "Core Concept & Algorithmic Formulation",
+        body: "The brute-force approach tests all N*(N-1)/2 pairs. By rewriting the target equation nums[i] + nums[j] = target as nums[i] = target - nums[j], we transform a search problem over pairs into a lookup problem for a single complement value. As we iterate through the array, we check whether target - num already exists in our dictionary. If present, we have found the matching pair; if not, we record the current number and its index in the dictionary for subsequent elements to query.",
       },
       {
-        heading: "How the single pass operates",
-        body: "You keep a map called seen whose keys are values you have already walked past and whose values are the indices where they appeared. At each index i you compute complement = target - num and look it up in seen. If it is there, you already met the partner earlier, so you return that stored index alongside i and stop. If it is not there, you insert num with index i and move on, which makes the current element available as a partner for everyone still ahead of you. Notice the order: you always check before you insert, and the whole answer materialises the moment the second half of a pair arrives.",
+        heading: "Systems & Performance Impact",
+        body: "In production database systems, Two Sum's logic powers Hash Joins where a hash table is built for one relation and probed by another. In Machine Learning runtime engines (e.g., PyTorch autograd or graph compilers), dictionary-based index matching aligns corresponding node outputs and gradients efficiently without quadratic pairwise scanning.",
       },
       {
-        heading: "Why checking before inserting is what makes it correct",
-        body: "The invariant is that when you begin processing index i, seen contains exactly the values at indices 0 through i minus 1, each mapped to a valid earlier index. Because of that, a hit on the complement is guaranteed to be a genuinely different element rather than the current one reused twice. Correctness in the other direction comes from considering the true answer pair and letting j be its later index: at the moment the scan reaches j, the earlier partner is already in the map by the invariant, so the lookup must succeed and the algorithm cannot walk past the solution. If you inserted before checking, a target of exactly twice the current value would match the element against itself and return a bogus duplicate index.",
+        heading: "Implementation Nuances & Single-Pass Safety",
+        body: "Checking the hash map before inserting the current element is crucial. If we inserted the element prior to checking, a target equal to twice the current element (e.g., nums[i] = 3, target = 6) would match the element with itself, returning [i, i] as a false duplicate.",
       },
       {
-        heading: "When to use hashing versus the sorted two-pointer approach",
-        body: "The hash-map version is the right default when the array is unsorted and the problem wants original indices, because it neither reorders the data nor pays for sorting. If the input is already sorted, or the problem asks for the values rather than positions, the two-pointer walk from both ends solves it with no extra memory at all, which is the better choice under a tight space budget. Sorting an unsorted array just to use two pointers costs more than a linear pass and destroys index information unless you carry the original positions along. The trade is explicit: hashing buys time with memory, two pointers buy memory with an ordering requirement.",
-      },
-      {
-        heading: "Pitfalls and edge cases",
-        body: "Duplicate values are the classic trap, and they are exactly why the map stores an index rather than a count: for nums = [3, 3] with target 6, the first 3 is recorded, and the second 3 finds it and returns [0, 1] correctly. Storing values without indices, or overwriting entries carelessly, is fine here only because the problem promises a single valid answer; if it did not, you would need to collect all matches instead of returning early. Negative numbers and zero need no special handling, since the complement arithmetic is just subtraction. Remember that hash-map lookups are constant on average but not worst case, so with adversarial keys or a poor hash the guarantee softens.",
-      },
-      {
-        heading: "How the pattern generalises",
-        body: 'Fix one element and the same complement trick solves Three Sum, where you loop over each candidate and run a two-sum search on the remainder; the same nesting extends to Four Sum. Replace the target sum with a running prefix total and you get "count sub-arrays summing to k", where the map holds prefix sums instead of raw values and you look for a prefix that differs from the current one by k. The deeper reusable move is complement-and-remember: whenever a problem couples two items by an equation, solve the equation for the unknown item and store what you have seen so the unknown becomes a lookup. Anagram grouping, duplicate detection, and longest-substring problems all lean on that same remembered-state discipline.',
+        heading: "Edge Case Analysis & Memory Trade-offs",
+        body: "Duplicate values in nums are handled seamlessly because the map stores the most recently encountered index. When duplicate values form the target (e.g., [3, 3], target 6), the second 3 finds the first 3 already in the map. The spatial complexity is O(N) auxiliary space, trading RAM for an order of magnitude runtime speedup.",
       },
     ],
     keyTerms: [
       {
-        term: "Hash map",
+        term: "Hash Map / Dictionary",
         definition:
-          "A dictionary that maps keys to values with average constant-time insertion and lookup. Here it maps each number you have seen to the index where it appeared.",
+          "A key-value data structure offering O(1) average-time insertion and lookup using a hash function.",
       },
       {
         term: "Complement",
         definition:
-          "The exact value needed to reach the target alongside the current number, computed as target minus num. Framing the search around it is what removes the inner loop.",
+          "The required number (target - num) that when added to the current value equals target.",
       },
       {
-        term: "Single pass",
+        term: "Hash Join",
         definition:
-          "An algorithm that visits each element exactly once, carrying enough remembered state to finish without revisiting. Two Sum qualifies because the map preserves everything the scan needs.",
-      },
-      {
-        term: "Space-time trade-off",
-        definition:
-          "Spending extra memory to reduce running time, or the reverse. The hash map here is pure trade: linear extra storage in exchange for dropping from quadratic to linear time.",
-      },
-      {
-        term: "Loop invariant",
-        definition:
-          "A property that is true before and after every iteration and is used to argue correctness. Here it is that the map holds precisely the elements strictly before the current index.",
+          "A relational database join algorithm that builds an in-memory hash table on the smaller table and probes it with the larger table.",
       },
     ],
   },

@@ -7,31 +7,24 @@ export interface alignedSimtBlockTilingInput {
 }
 
 export const ALIGNEDSIMTBLOCKTILING_CODE = `
-def alignedsimtblocktiling(tensor_shape, strides, memory_buffer):
+def aligned_simt_block_tiling(data, block_size=4, alignment=16):
     """
-    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    Computes SIMD/SIMT 128-bit aligned memory block tiling and padding.
     """
-    rows, cols = tensor_shape
-    r_stride, c_stride = strides
-    flat_offsets = []
+    n = len(data)
+    padding = (alignment - (n % alignment)) % alignment
+    padded_len = n + padding
+    tiled_blocks = []
 
-    is_contiguous = True
-    expected_stride = 1
+    for b in range(0, padded_len, block_size):
+        block = []
+        for offset in range(block_size):
+            idx = b + offset
+            val = data[idx] if idx < n else 0
+            block.append(val)
+        tiled_blocks.append(block)
 
-    # Traverse shape dimensions in reverse order to check row-major contiguity
-    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
-        if stride != expected_stride:
-            is_contiguous = False
-        expected_stride *= dim
-
-    for r in range(rows):
-        for c in range(cols):
-            # Calculate 1D memory offset using row-major strided arithmetic
-            offset = r * r_stride + c * c_stride
-            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
-            flat_offsets.append((r, c, offset, val))
-
-    return is_contiguous, flat_offsets
+    return tiled_blocks, padding
 `;
 
 export const DEFAULT_ALIGNEDSIMTBLOCKTILING_INPUT: alignedSimtBlockTilingInput = {
@@ -97,7 +90,7 @@ export const generateAlignedSimtBlockTilingSteps = (
     addStep(
       4,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
+      `Evaluating element at index ${idx} in memory layout.`,
       { idx, val, isTarget },
       currentElements,
     );
@@ -109,7 +102,7 @@ export const generateAlignedSimtBlockTilingSteps = (
   }));
 
   addStep(
-    6,
+    18,
     "Execution Complete",
     "Successfully processed all elements in the memory structure.",
     { completed: true },
@@ -120,17 +113,22 @@ export const generateAlignedSimtBlockTilingSteps = (
 };
 
 const ALIGNEDSIMTBLOCKTILING_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [{ line: 4, hint: "Process elements sequentially in tensor memory." }],
   lineExplanations: {
-    1: "Defines entry point for SIMD/SIMT Aligned Memory Tiling Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Defines SIMD/SIMT memory block tiling entry point.",
+    4: "Calculates total element length of input memory buffer.",
+    5: "Computes padding elements required to reach alignment boundary.",
+    6: "Calculates total padded memory buffer size.",
+    9: "Iterates through padded buffer in fixed block_size steps.",
+    11: "Loops across element offsets within current tile block.",
+    13: "Fetches value from buffer or pads with zero if out of bounds.",
+    16: "Returns array of tiled memory blocks and total padding length.",
   },
 };
 
@@ -144,35 +142,35 @@ export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingI
   mlInfraLevel: 1,
   mlInfraCategory: "ml_tensor_algebra",
   description:
-    "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), simd/simt aligned memory tiling engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+    "In high-performance GPU execution pipelines (e.g. PyTorch ATen, Triton, CUDA, and vLLM), memory operations must be coalesced and aligned to 128-bit SIMD/SIMT vector boundaries. When tensor shapes are not exact multiples of block sizes, memory transactions incur unaligned access penalties, leading to multiple DRAM cycles and warp divergence.\n\nThis algorithm implements SIMD/SIMT Aligned Memory Tiling Engine, partitioning 1D/2D flat memory buffers into fixed-width aligned execution tiles while computing padding offsets to enforce hardware boundary alignment.\n\nInput Format:\n- data: Array of numeric tensor values representing flat memory buffers.\n- target: Optional target value.\n\nOutput Format:\n- Returns tiled 2D block partitions and padding element count maintaining exact SIMT memory alignment.\n\nEdge Cases & Constraints:\n- Array length already perfectly aligned (padding = 0).\n- Small input buffers smaller than a single block.\n- Boundary conditions handled with float zero padding.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Case",
+      title: "Standard Input Case",
       inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [10, 20, 30], target: 30 },
       output: "[10, 20, 30]",
-      explanation: "Processes standard input array cleanly.",
+      explanation: "Processes standard input tensor memory buffer cleanly.",
     },
     {
       kind: "complex",
-      title: "Larger Data Input",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates larger array with 5 elements.",
+      title: "Larger Data Buffer",
+      inputDisplay: "data = [10, 20, 30, 40, 50]",
+      outputDisplay: "Processed Memory Layout",
+      input: { data: [10, 20, 30, 40, 50] },
+      output: "[10, 20, 30, 40, 50]",
+      explanation: "Evaluates larger array with 5 tensor elements.",
     },
     {
       kind: "negative",
-      title: "Edge Case Target Not Found",
+      title: "Edge Case Execution",
       inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
+      outputDisplay: "Processed Memory Layout",
       input: { data: [5, 10, 15], target: 99 },
       output: "[5, 10, 15]",
-      explanation: "Target is absent from memory, processing finishes safely.",
+      explanation: "Edge case handling completes safely.",
     },
   ],
   code: ALIGNEDSIMTBLOCKTILING_CODE,
@@ -184,45 +182,40 @@ export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingI
   },
   topicGuide: {
     overview:
-      "SIMD/SIMT Aligned Memory Tiling Engine is a critical component in ML TENSOR ALGEBRA systems. It addresses key bottlenecks in GPU memory access, tensor layout transformations, parallel compute dispatch, and mathematical precision guarantees across modern deep learning stacks. Frameworks such as PyTorch, vLLM, Triton, and DeepSpeed rely on these exact primitives to optimize throughput and scale model inference and training.",
+      "Aligned memory tiling is foundational to high-performance CUDA and Triton kernel programming. Modern GPU microarchitectures achieve maximum memory throughput when 32 threads in a warp issue memory loads aligned to 128-bit vector boundaries (e.g., float4 or int4). Unaligned memory loads require the memory controller to split single hardware transactions into multiple DRAM accesses, drastically lowering effective memory bandwidth.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "At its mathematical foundation, simd/simt aligned memory tiling engine operates by modeling hardware and computational states as structured indexed spaces. Given input dimension arrays and memory stride vectors, elements are mapped via linear strided offset equations index = sum(i_k * s_k). The algorithm iterates across execution bounds while tracking intermediate accumulations and operational state transitions.",
+        body: "At its mathematical core, given an input tensor buffer of length N and alignment requirement A, the required zero-padding elements P is calculated as P = (A - (N mod A)) mod A. The total padded buffer size is N_padded = N + P. Memory tiling then partitions N_padded into blocks of width B, guaranteeing that every block index b starts at an integer multiple of B.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "From a GPU and systems hardware perspective, memory bandwidth between High Bandwidth Memory (HBM) and On-Chip Shared Memory (SRAM/L1 Cache) is often the dominant performance limit. SIMD/SIMT Aligned Memory Tiling Engine optimizes execution by maximizing arithmetic intensity (FLOPs per byte of DRAM access), minimizing warp divergence in CUDA executions, avoiding shared memory bank conflicts via swizzled indexing, and issuing 128-bit vectorized load/store instructions.",
+        body: "On NVIDIA H100 and A100 GPUs, High Bandwidth Memory (HBM3/HBM2e) transactions execute in 32-byte or 128-byte segments. Without SIMT alignment, adjacent threads in a warp read across cache line boundaries, causing L2 cache thrashing and memory pipeline stalls. By inserting zero-padding to enforce alignment, kernels maintain maximum arithmetic intensity and 100% memory coalescing efficiency.",
       },
       {
         heading: "Implementation Nuances & Data Structures",
-        body: "Implementing simd/simt aligned memory tiling engine efficiently requires careful handling of flat memory layouts, dynamic pointer offsets, and contiguous block allocations. In C++/CUDA and Triton implementations, array strides and block dimensions are pre-calculated to allow lock-free, zero-copy memory views without incurring costly heap re-allocations during tensor operations.",
+        body: "Implementing aligned block tiling in Triton or CUDA involves calculating tile offset pointers using stride arithmetic offset = block_idx * B + thread_offset. Guards (idx < N) ensure safe out-of-bounds loading without illegal memory access faults.",
       },
       {
         heading: "Edge Case Analysis & Production Robustness",
-        body: "Production deployments require robust edge-case handling. Extreme sequence lengths, unaligned block sizes, negative strides, non-contiguous layouts, and zero-valued target parameters must be validated at runtime. Out-of-bounds guards protect GPU kernels against illegal memory access faults, while fallback routines ensure graceful degradation on heterogeneous hardware topologies.",
+        body: "Edge cases include single-element inputs, empty buffers, and alignment factors equal to power-of-two vector sizes. Production systems use static scalar padding to prevent dynamic re-allocation during runtime execution.",
       },
     ],
     keyTerms: [
       {
-        term: "SIMD/SIMT Engine",
+        term: "SIMT Alignment",
         definition:
-          "The underlying algorithmic system implementing simd/simt aligned memory tiling engine operations for deep learning workloads.",
-      },
-      {
-        term: "SRAM / Cache Tiling",
-        definition:
-          "Technique of loading data sub-blocks into fast on-chip SRAM to minimize HBM access latency.",
+          "Structuring memory addresses to align with 128-bit hardware vector instruction boundaries.",
       },
       {
         term: "Memory Coalescing",
         definition:
-          "GPU execution pattern where consecutive threads in a warp access contiguous memory addresses simultaneously.",
+          "Combining memory accesses from adjacent GPU threads into a single DRAM transaction.",
       },
       {
-        term: "Arithmetic Intensity",
+        term: "Tile Padding",
         definition:
-          "The ratio of floating-point operations performed per byte of data transferred from main memory.",
+          "Inserting dummy zero elements to pad buffer dimensions to exact hardware block boundaries.",
       },
     ],
   },

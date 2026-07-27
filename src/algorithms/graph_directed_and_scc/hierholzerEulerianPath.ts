@@ -12,20 +12,38 @@ export interface HierholzerEulerianPathInput {
   edges: GraphEdgeItem[];
 }
 
-export const HIERHOLZER_CODE = `
-def hierholzer(input_array):
-    """
-    Implementation of hierholzer.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const HIERHOLZER_CODE = `def hierholzer(nodes, edges):
+    adj = {node: [] for node in nodes}
+    in_deg = {node: 0 for node in nodes}
+    out_deg = {node: 0 for node in nodes}
+    
+    for u, v in edges:
+        adj[u].append(v)
+        out_deg[u] += 1
+        in_deg[v] += 1
+        
+    start_node = nodes[0]
+    for u in nodes:
+        if out_deg[u] - in_deg[u] == 1:
+            start_node = u
+            break
+            
+    stack = [start_node]
+    circuit = []
+    
+    while stack:
+        u = stack[-1]
+        if adj[u]:
+            v = adj[u].pop()
+            stack.append(v)
+        else:
+            circuit.append(stack.pop())
+            
+    circuit.reverse()
+    return circuit`;
 
 export const HIERHOLZER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [4],
   distractors: [
     "stack.pop(0)",
     "circuit.append(curr)",
@@ -34,31 +52,32 @@ export const HIERHOLZER_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 12,
+      line: 13,
       hint: "Select a start node with out_degree - in_degree == 1 for Eulerian path, or any node with out_degree > 0 for Eulerian circuit.",
     },
     {
-      line: 19,
+      line: 21,
       hint: "Peek at the top of the stack and follow an unvisited outgoing edge if one exists.",
     },
     {
-      line: 24,
+      line: 25,
       hint: "When a vertex has no remaining outgoing edges, pop it from stack into the circuit.",
     },
     {
-      line: 26,
+      line: 27,
       hint: "The post-order traversal yields the circuit in reverse order.",
     },
   ],
   lineExplanations: {
     1: "Defines the function to compute an Eulerian path/circuit in a directed graph.",
-    5: "Populates the adjacency list and tracks in-degree and out-degree for each vertex.",
-    12: "Finds the start vertex for an Eulerian path (where out-degree exceeds in-degree by 1).",
-    16: "Initializes the traversal stack with the chosen start vertex and an empty circuit list.",
-    18: "While stack is non-empty, peek at the top vertex to explore unused outgoing edges.",
-    22: "Follows an unvisited outgoing edge and pushes the target vertex onto the stack.",
-    24: "Backtracks when no outgoing edges remain, popping the vertex into the final circuit.",
-    26: "Reverses the circuit array to output the Eulerian traversal from start to finish.",
+    2: "Initializes adjacency list, in-degree, and out-degree tables.",
+    6: "Populates directed edges and updates degree counters.",
+    13: "Finds start vertex for Eulerian path (out_deg - in_deg == 1).",
+    17: "Initializes traversal stack with start_node and empty circuit list.",
+    20: "Drives post-order traversal loop while stack is non-empty.",
+    21: "Peeks top vertex u; if u has outgoing edges, pops edge and pushes neighbor v.",
+    25: "Backtracks when u has no remaining outgoing edges, popping u into circuit.",
+    27: "Reverses post-order circuit to produce the valid Eulerian path sequence.",
   },
 };
 
