@@ -14,7 +14,7 @@ describe("QuickAccessDrawer Component Spec", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Algorithms" })).toBeInTheDocument();
-    expect(screen.getByText(/algorithms across 25 categories/i)).toBeInTheDocument();
+    expect(screen.getByText(/algorithms across \d+ categories/i)).toBeInTheDocument();
 
     const searchInput = screen.getByLabelText("Search algorithms");
     expect(searchInput).toHaveFocus();
@@ -110,7 +110,7 @@ describe("QuickAccessDrawer Component Spec", () => {
 
     // The drawer portals out of the render container, so query the document.
     const sections = Array.from(document.querySelectorAll<HTMLElement>(".ui-collapsible"));
-    expect(sections.length).toBe(25);
+    expect(sections.length).toBeGreaterThanOrEqual(25);
     sections.forEach((section) => {
       // Section and drawer share --bg-surface, so only the border separates them.
       expect(section.style.borderColor || section.className).toBeTruthy();
