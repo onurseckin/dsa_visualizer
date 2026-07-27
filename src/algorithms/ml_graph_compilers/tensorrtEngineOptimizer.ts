@@ -206,7 +206,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    9,
+    10,
     "Initialize Container optimized_layers",
     "Creating empty container to hold transformed layer metadata.",
     { n, targetPrecision },
@@ -216,7 +216,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    10,
+    11,
     "Initialize Index Pointer i = 0",
     "Setting iteration pointer i = 0.",
     { i: 0, n },
@@ -226,7 +226,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    12,
+    13,
     `Calculate Total Baseline Latency = ${origLatency.toFixed(2)}ms`,
     "Summing individual layer baseline latencies in FP32 precision.",
     { total_original_latency: origLatency },
@@ -240,7 +240,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
   while (i < n) {
     addStep(
-      15,
+      16,
       `Pass 1 & 2 Loop at i = ${i}`,
       `Inspecting layer ${layers[i].name} (${layers[i].type}) for CBR vertical fusion and precision quantization.`,
       { i, n, layer_name: layers[i].name },
@@ -250,7 +250,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     );
 
     addStep(
-      17,
+      18,
       `Check Vertical CBR Pattern at i = ${i}`,
       "Evaluating window [Conv, BiasAdd, ReLU] starting at index i.",
       { i, pattern: "CBR" },
@@ -266,8 +266,29 @@ export const generateTensorrtEngineOptimizerSteps = (
       layers[i + 2].type === "ReLU"
     ) {
       let fusedLatency = layers[i].latencyMs * 0.7;
+
+      addStep(
+        23,
+        `Compute Fused CBR Latency at i = ${i}`,
+        `Baseline latency ${layers[i].latencyMs}ms × 0.7 (fusion reduction) = ${(layers[i].latencyMs * 0.7).toFixed(2)}ms.`,
+        { i, base_latency: layers[i].latencyMs, fused_latency: (layers[i].latencyMs * 0.7).toFixed(2) },
+        i,
+        null,
+        "Pass 1: Vertical & Quant",
+      );
+
       if (targetPrecision === "FP16") fusedLatency *= 0.5;
       else if (targetPrecision === "INT8") fusedLatency *= 0.25;
+
+      addStep(
+        26,
+        `Apply ${targetPrecision} Precision Scaling to Fused Layer`,
+        `Scaled fused latency by ${targetPrecision === "FP16" ? "0.5 (FP16 2x speedup)" : targetPrecision === "INT8" ? "0.25 (INT8 4x speedup)" : "1.0 (FP32 no scaling)"} → ${fusedLatency.toFixed(2)}ms.`,
+        { i, targetPrecision, fused_latency: fusedLatency.toFixed(2) },
+        i,
+        null,
+        "Pass 1: Vertical & Quant",
+      );
 
       const fusedLayer: TensorrtLayer = {
         id: `fused_${layers[i].id}_${layers[i + 2].id}`,
@@ -280,7 +301,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       pass1Layers.push(fusedLayer);
 
       addStep(
-        28,
+        29,
         `Fuse Vertical CBR Pattern at i = ${i}..${i + 2}`,
         `Fused ${layers[i].name} + ${layers[i + 1].name} + ${layers[i + 2].name} into single ${targetPrecision} CBR kernel. Latency reduced to ${fusedLayer.latencyMs}ms.`,
         { i, fused_name: fusedLayer.name, latency: fusedLayer.latencyMs },
@@ -291,7 +312,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
       i += 3;
       addStep(
-        35,
+        36,
         `Advance Index i by 3 to ${i}`,
         "Skipping consumed vertical CBR layers.",
         { i },
@@ -302,7 +323,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       continue;
     } else {
       addStep(
-        17,
+        18,
         `Vertical CBR Pattern Rejected at i = ${i}`,
         "Window does not match Conv -> BiasAdd -> ReLU sequence.",
         { i, match: false },
@@ -322,10 +343,10 @@ export const generateTensorrtEngineOptimizerSteps = (
     pass1Layers.push(scaledLayer);
 
     addStep(
-      43,
-      `Apply ${targetPrecision} Precision Quantization to ${layers[i].name}`,
-      `Scaled layer latency from ${layers[i].latencyMs}ms down to ${scaledLayer.latencyMs}ms using ${targetPrecision} Tensor Cores.`,
-      { i, layer_name: layers[i].name, new_latency: scaledLayer.latencyMs },
+      40,
+      `Compute ${targetPrecision} Scale Factor for Single Layer ${layers[i].name}`,
+      `Scale = ${scale} for ${targetPrecision}. New latency: ${scaledLayer.latencyMs}ms.`,
+      { i, layer_name: layers[i].name, scale, new_latency: scaledLayer.latencyMs },
       i,
       [i, i],
       "Pass 1: Vertical & Quant",
@@ -333,7 +354,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
     i += 1;
     addStep(
-      44,
+      45,
       `Advance Index i to ${i}`,
       "Moving to next layer.",
       { i },
@@ -346,7 +367,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   let finalLayers = pass1Layers;
 
   addStep(
-    47,
+    48,
     "Evaluate Pass 3: Horizontal Layer Fusion",
     `Checking if enable_horizontal_fusion (${enableHorizontalFusion}) is true and optimized layers >= 2.`,
     { enableHorizontalFusion, layerCount: pass1Layers.length },
@@ -360,7 +381,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     let j = 0;
 
     addStep(
-      48,
+      49,
       "Initialize Horizontal Fusion Container h_fused",
       "Creating container to store horizontally merged layer groups.",
       { j: 0 },
@@ -369,9 +390,19 @@ export const generateTensorrtEngineOptimizerSteps = (
       "Pass 3: Horizontal Fusion",
     );
 
+    addStep(
+      50,
+      "Initialize Horizontal Index j = 0",
+      "Setting horizontal fusion pointer j = 0.",
+      { j: 0, total: pass1Layers.length },
+      n,
+      null,
+      "Pass 3: Horizontal Fusion",
+    );
+
     while (j < pass1Layers.length) {
       addStep(
-        50,
+        51,
         `Pass 3 Horizontal Loop at j = ${j}`,
         `Inspecting adjacent layers for parallel convolution coalescing.`,
         { j, total: pass1Layers.length },
@@ -398,7 +429,7 @@ export const generateTensorrtEngineOptimizerSteps = (
         hFused.push(mergedLayer);
 
         addStep(
-          54,
+          55,
           `Coalesce Parallel Convolutions '${pass1Layers[j].name}' and '${pass1Layers[j + 1].name}'`,
           `Merged parallel convolutions into grouped kernel '${mergedLayer.name}' with merged latency ${mergedLayer.latencyMs}ms.`,
           { j, merged_name: mergedLayer.name, latency: mergedLayer.latencyMs },
@@ -409,7 +440,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
         j += 2;
         addStep(
-          61,
+          62,
           `Advance Horizontal Index j by 2 to ${j}`,
           "Skipping coalesced parallel layers.",
           { j },
@@ -420,7 +451,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       } else {
         hFused.push(pass1Layers[j]);
         addStep(
-          63,
+          64,
           `Pass Through Single Layer '${pass1Layers[j].name}'`,
           "Layer cannot be horizontally fused; appending to execution plan.",
           { j, layer_name: pass1Layers[j].name },
@@ -438,7 +469,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   const speedup = Number((origLatency / (finalLatency || 1)).toFixed(2));
 
   addStep(
-    67,
+    68,
     `Calculate Final Optimized Latency = ${finalLatency.toFixed(2)}ms`,
     `Summed latencies of all ${finalLayers.length} optimized engine layers.`,
     { total_optimized_latency: finalLatency },
@@ -448,7 +479,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    68,
+    69,
     `Compute Overall Acceleration Speedup = ${speedup}x`,
     `Speedup factor computed as ${origLatency.toFixed(2)}ms / ${finalLatency.toFixed(2)}ms.`,
     { speedup },
@@ -458,7 +489,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    76,
+    71,
     "TensorRT Engine Compilation & Tactic Tuning Complete",
     `Successfully compiled optimized TensorRT execution engine with ${speedup}x total speedup. Ready for CUDA stream dispatch.`,
     { complete: true, origLatency, finalLatency, speedup },

@@ -265,7 +265,7 @@ export const generateOnnxOperatorFusionSteps = (
       initialNodes[i + 2].opType === "Relu"
     ) {
       addStep(
-        14,
+        15,
         `Pattern 1 Window Valid at i = ${i}..${i + 2}`,
         "Window has sufficient depth (i+2 < n) and op types match [Conv, BatchNormalization, Relu].",
         { i, match: true },
@@ -335,7 +335,7 @@ export const generateOnnxOperatorFusionSteps = (
       initialNodes[i + 2].opType === "Relu"
     ) {
       addStep(
-        31,
+        32,
         `Pattern 2 Window Valid at i = ${i}..${i + 2}`,
         "Window matches MatMul -> Add -> Relu sequence.",
         { i, match: true },
@@ -400,7 +400,7 @@ export const generateOnnxOperatorFusionSteps = (
 
     if (i + 1 < n && initialNodes[i].opType === "MatMul" && initialNodes[i + 1].opType === "Add") {
       addStep(
-        48,
+        49,
         `Pattern 3 Window Valid at i = ${i}..${i + 1}`,
         "Window matches MatMul -> Add sequence.",
         { i, match: true },
