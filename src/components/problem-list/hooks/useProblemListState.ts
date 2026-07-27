@@ -99,7 +99,9 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
         if (isMlGroupCategory) {
           if (!isMlAlg) return false;
         } else {
-          if (alg.category !== selectedCategory) return false;
+          const algCategories =
+            alg.categories && alg.categories.length > 0 ? alg.categories : [alg.category];
+          if (!algCategories.includes(selectedCategory)) return false;
         }
       }
 
