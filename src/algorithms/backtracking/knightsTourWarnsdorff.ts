@@ -255,6 +255,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   id: "knights-tour-warnsdorff",
   title: "Knight's Tour (Warnsdorff's Heuristic)",
   category: "backtracking",
+  categories: ["backtracking"],
   difficulty: "Medium",
   description:
     "A Knight's Tour is a sequence of moves on an N×N chessboard such that the knight visits every square exactly once. Warnsdorff's heuristic directs the knight to always move to an unvisited square with the smallest number of valid onward unvisited moves, turning exponential backtracking into a greedy polynomial search.",

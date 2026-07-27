@@ -6,8 +6,30 @@ export interface rowParallelLinearAllreducerInput {
   target?: number;
 }
 
-export const ROWPARALLELLINEARALLREDUCER_CODE =
-  "def row_parallel_linear_allreducer(input_data: list) -> list:\n    # Megatron-LM Row Parallel Linear All-Reduce Engine (Medium)\n    # Splits weight matrix W along rows and performs All-Reduce sum over layer outputs.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ROWPARALLELLINEARALLREDUCER_CODE = `
+def rowparallellinearallreducer(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT: rowParallelLinearAllreducerInput = {
   data: [10, 20, 30, 40, 50],

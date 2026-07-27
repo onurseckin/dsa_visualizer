@@ -47,7 +47,23 @@ export const binarySearchBucketIndex: AlgorithmDefinition<BinarySearchBucketInde
     },
   ],
   defaultInput: {} as unknown as BinarySearchBucketIndexInput,
-  code: `def process_data(data):\n    """\n    Executes binarySearchBucketIndex\n    """\n    result = []\n    for item in data:\n        result.append(item)\n    return result`,
+  code: `
+def binarySearchBucketIndex(query_vector, database_embeddings, top_k=3):
+    """
+    Q4: Binary Search Bucket Index
+    Performs nearest-neighbor vector search over multi-dimensional vector embeddings.
+    """
+    import math
+
+    candidate_distances = []
+    for idx, embedding in enumerate(database_embeddings):
+        # Calculate Euclidean distance: sqrt(sum((q_i - p_i)^2))
+        euclidean_dist = math.sqrt(sum((q - p) ** 2 for q, p in zip(query_vector, embedding)))
+        candidate_distances.append((euclidean_dist, idx, embedding))
+
+    candidate_distances.sort(key=lambda item: item[0])
+    return candidate_distances[:top_k]
+`,
   timeComplexity: {
     best: "O(1)",
     average: "O(N log N)",

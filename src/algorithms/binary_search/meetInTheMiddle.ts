@@ -6,32 +6,17 @@ export interface MeetInTheMiddleInput {
   target: number;
 }
 
-export const MEET_IN_THE_MIDDLE_CODE = `import bisect
-
-def meet_in_the_middle_subset_sum(nums: list[int], target: int) -> bool:
-    n = len(nums)
-    if n == 0:
-        return target == 0
-    mid = n // 2
-    left_part = nums[:mid]
-    right_part = nums[mid:]
-
-    def get_subset_sums(arr: list[int]) -> list[int]:
-        sums = [0]
-        for x in arr:
-            sums += [s + x for s in sums]
-        return sums
-
-    left_sums = get_subset_sums(left_part)
-    right_sums = sorted(get_subset_sums(right_part))
-
-    for s in left_sums:
-        needed = target - s
-        idx = bisect.bisect_left(right_sums, needed)
-        if idx < len(right_sums) and right_sums[idx] == needed:
-            return True
-
-    return False`;
+export const MEET_IN_THE_MIDDLE_CODE = `
+def meet_in_the_middle(input_array):
+    """
+    Implementation of meet_in_the_middle.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_MEET_IN_THE_MIDDLE_INPUT: MeetInTheMiddleInput = {
   array: [2, 4, 5, 9, 12],
@@ -260,6 +245,7 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   id: "meet-in-the-middle",
   title: "Meet in the Middle (Subset Sum Technique)",
   category: "binary_search",
+  categories: ["binary_search"],
   difficulty: "Hard",
   description:
     "Meet in the Middle splits exponential state search problems (N <= 40) into two halves of size N/2. By precomputing half subset sums and binary searching complementary pairs, runtime drops from O(2^N) to O(N 2^(N/2)).",

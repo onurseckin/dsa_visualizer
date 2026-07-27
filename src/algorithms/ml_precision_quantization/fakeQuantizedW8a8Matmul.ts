@@ -6,9 +6,23 @@ export interface fakeQuantizedW8a8MatmulInput {
   scale: number;
 }
 
-export const FAKEQUANTIZEDW8A8MATMUL_CODE = `def fakeQuantizedW8a8Matmul(values: list, scale: float) -> list:
-    # Real implementation for Fake Quantized W8a8 Matmul
-    return [max(min(int(v / scale), 127), -128) for v in values]`;
+export const FAKEQUANTIZEDW8A8MATMUL_CODE = `
+def fakequantizedw8a8matmul(fp32_weights, scale, zero_point):
+    """
+    Quantizes 32-bit floating-point activation/weight tensors to 8-bit integer precision (INT8/FP8).
+    """
+    quantized_tensor = []
+    q_min, q_max = -128, 127
+
+    for w in fp32_weights:
+        # Affine quantization formula: q = clamp(round(w / scale) + zero_point)
+        raw_q = int(round(w / scale)) + zero_point
+        clamped_q = max(q_min, min(q_max, raw_q))
+        dequantized_w = (clamped_q - zero_point) * scale
+        quantized_tensor.append((w, clamped_q, round(dequantized_w, 4)))
+
+    return quantized_tensor
+`;
 
 export const DEFAULT_FAKEQUANTIZEDW8A8MATMUL_INPUT: fakeQuantizedW8a8MatmulInput = {
   values: [1.2, -3.4, 5.5],
@@ -36,7 +50,12 @@ export const generateFakeQuantizedW8a8MatmulSteps = (
       kind: "array",
       elements,
     },
-    auxiliaryState: { customState: {} },
+    auxiliaryState: {
+      customState: {
+        quantizedScale: "127.5",
+        zeroPoint: "0",
+      },
+    },
     variables: { scale: input.scale },
   });
 
@@ -52,7 +71,12 @@ export const generateFakeQuantizedW8a8MatmulSteps = (
         value: Math.max(Math.min(Math.round((e.value as number) / input.scale), 127), -128),
       })),
     },
-    auxiliaryState: { customState: {} },
+    auxiliaryState: {
+      customState: {
+        quantizedScale: "127.5",
+        zeroPoint: "0",
+      },
+    },
     variables: { scale: input.scale, complete: true },
   });
 

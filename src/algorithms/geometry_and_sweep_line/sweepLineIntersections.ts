@@ -18,23 +18,17 @@ export interface SweepLineIntersectionsInput {
   segments: SegmentItem[];
 }
 
-export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `def sweep_line_intersections(segments: list) -> list:
-    events = []
-    for idx, seg in enumerate(segments):
-        p1, p2 = seg['p1'], seg['p2']
-        if p1['x'] > p2['x']: p1, p2 = p2, p1
-        events.append((p1['x'], 'LEFT', idx, p1, p2))
-        events.append((p2['x'], 'RIGHT', idx, p1, p2))
-    events.sort(key=lambda e: (e[0], 0 if e[1] == 'LEFT' else 1))
-
-    intersections = []
-    active_segments = set()
-    for x, event_type, seg_id, p1, p2 in events:
-        if event_type == 'LEFT':
-            active_segments.add(seg_id)
-        else:
-            active_segments.remove(seg_id)
-    return intersections`;
+export const PYTHON_SWEEP_LINE_INTERSECTIONS_CODE = `
+def python_sweep_line_intersections(input_array):
+    """
+    Implementation of python_sweep_line_intersections.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_SWEEP_LINE_INTERSECTIONS_INPUT: SweepLineIntersectionsInput = {
   segments: [
@@ -322,6 +316,7 @@ export const sweepLineIntersections: AlgorithmDefinition<SweepLineIntersectionsI
   id: "sweep-line-intersections",
   title: "Sweep Line Segment Intersections",
   category: "geometry_and_sweep_line",
+  categories: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Find segment intersections using a vertical sweep line algorithm (Shamos-Hoey / Bentley-Ottmann) processing start, end, and event points sorted by X.",

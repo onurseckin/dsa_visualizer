@@ -11,6 +11,7 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   id: "ford-fulkerson",
   title: "Ford-Fulkerson Maximum Flow",
   category: "graph_flows_and_cuts",
+  categories: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
     "Computes the maximum flow from a source vertex S to a sink vertex T in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem.",
@@ -114,5 +115,3 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   defaultInput: DEFAULT_FORD_FULKERSON_INPUT,
   generateSteps: generateFordFulkersonSteps,
 };
-
-export default fordFulkerson;

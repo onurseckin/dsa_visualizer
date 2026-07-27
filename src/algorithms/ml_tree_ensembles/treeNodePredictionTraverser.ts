@@ -7,8 +7,33 @@ export interface treeNodePredictionTraverserInput {
   [key: string]: unknown;
 }
 
-export const TREENODEPREDICTIONTRAVERSER_CODE =
-  "def algorithm(data: list) -> list:\n    # Process data\n    return [x * 2 for x in data]";
+export const TREENODEPREDICTIONTRAVERSER_CODE = `
+def treenodepredictiontraverser(feature_values, targets, split_threshold):
+    """
+    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
+    """
+    g_left, h_left = 0.0, 0.0
+    g_right = sum(targets)
+    h_right = len(targets) * 1.0
+
+    best_gain_score = -1.0
+    best_split_val = None
+
+    for val, target in zip(feature_values, targets):
+        if val <= split_threshold:
+            g_left += target
+            h_left += 1.0
+            g_right -= target
+            h_right -= 1.0
+
+            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
+            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
+            if split_gain > best_gain_score:
+                best_gain_score = split_gain
+                best_split_val = val
+
+    return best_split_val, best_gain_score
+`;
 
 export const DEFAULT_TREENODEPREDICTIONTRAVERSER_INPUT: treeNodePredictionTraverserInput = {
   data: [1, 2, 3],

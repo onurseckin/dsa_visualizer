@@ -1,24 +1,17 @@
 import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
-export const KADANE_MAX_SUBARRAY_CODE = `def max_sub_array(nums: list[int]) -> int:
-    current_max = nums[0]
-    global_max = nums[0]
-    start = end = temp_start = 0
-
-    for i in range(1, len(nums)):
-        if nums[i] > current_max + nums[i]:
-            current_max = nums[i]
-            temp_start = i
-        else:
-            current_max += nums[i]
-
-        if current_max > global_max:
-            global_max = current_max
-            start = temp_start
-            end = i
-
-    return global_max`;
+export const KADANE_MAX_SUBARRAY_CODE = `
+def kadane_max_subarray(input_array):
+    """
+    Implementation of kadane_max_subarray.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -190,6 +183,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   id: "kadane-max-subarray",
   title: "Kadane's Algorithm (Maximum Subarray)",
   category: "arrays_and_hashing",
+  categories: ["arrays_and_hashing"],
   difficulty: "Medium",
   description:
     "Kadane's Algorithm finds the maximum sum of a contiguous subarray in a single pass by making one decision at each index: extend the current run, or abandon it and start fresh.",

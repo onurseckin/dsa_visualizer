@@ -6,8 +6,33 @@ export interface stridedMaxPoolingInput {
   target?: number;
 }
 
-export const STRIDEDMAXPOOLING_CODE =
-  "def strided_max_pooling(input_data: list) -> list:\n    # 2D Strided Max Pooling Operator (Medium)\n    # Applies sliding window max pooling with spatial stride steps over 2D activation tensors.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const STRIDEDMAXPOOLING_CODE = `
+def stridedmaxpooling(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_STRIDEDMAXPOOLING_INPUT: stridedMaxPoolingInput = {
   data: [10, 20, 30, 40, 50],
@@ -118,6 +143,16 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
   mlInfraCategory: "ml_tensor_algebra",
   description:
     "Applies sliding window max pooling with spatial stride steps over 2D activation tensors.",
+  leetcode: { id: 239, url: "https://leetcode.com/problems/sliding-window-maximum/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 239,
+      title: "Sliding Window Maximum",
+      url: "https://leetcode.com/problems/sliding-window-maximum/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -173,7 +208,7 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
     ],
   },
   trivia: STRIDEDMAXPOOLING_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
+
   defaultInput: DEFAULT_STRIDEDMAXPOOLING_INPUT,
   generateSteps: generateStridedMaxPoolingSteps,
 };

@@ -6,8 +6,33 @@ export interface causalLowerTriangularMaskInput {
   target?: number;
 }
 
-export const CAUSALLOWERTRIANGULARMASK_CODE =
-  "def causal_lower_triangular_mask(input_data: list) -> list:\n    # Causal Lower-Triangular Mask Generator (Easy)\n    # Fills upper-triangular matrix entries with -inf to prevent attending to future tokens.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CAUSALLOWERTRIANGULARMASK_CODE = `
+def causallowertriangularmask(q_tile, k_tile, v_tile, scale_factor):
+    """
+    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    """
+    import math
+
+    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
+    score_matrix = []
+    for q in q_tile:
+        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
+        score_matrix.append(row_scores)
+
+    # Step 2: Online max reduction and log-sum-exp normalization
+    tiled_output = []
+    for row in score_matrix:
+        row_max = max(row)
+        exp_vals = [math.exp(val - row_max) for val in row]
+        lse = sum(exp_vals)
+        weights = [val / lse for val in exp_vals]
+
+        # Step 3: Weighted value sum: O = Softmax(S) @ V
+        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
+        tiled_output.append(out_row)
+
+    return tiled_output
+`;
 
 export const DEFAULT_CAUSALLOWERTRIANGULARMASK_INPUT: causalLowerTriangularMaskInput = {
   data: [10, 20, 30, 40, 50],

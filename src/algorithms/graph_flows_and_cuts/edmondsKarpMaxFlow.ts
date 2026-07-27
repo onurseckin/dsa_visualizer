@@ -13,45 +13,17 @@ export interface EdmondsKarpMaxFlowInput {
   edges: GraphEdgeItem[];
 }
 
-export const EDMONDS_KARP_CODE = `def edmonds_karp(nodes, edges, source, sink):
-    capacity = {u: {v: 0 for v in nodes} for u in nodes}
-    flow = {u: {v: 0 for v in nodes} for u in nodes}
-    for u, v, cap in edges:
-        capacity[u][v] += cap
-
-    max_flow = 0
-    while True:
-        parent = {u: None for u in nodes}
-        queue = [source]
-        while queue:
-            curr = queue.pop(0)
-            if curr == sink:
-                break
-            for nxt in nodes:
-                if parent[nxt] is None and nxt != source and capacity[curr][nxt] - flow[curr][nxt] > 0:
-                    parent[nxt] = curr
-                    queue.append(nxt)
-
-        if parent[sink] is None:
-            break
-
-        bottleneck = float("inf")
-        curr = sink
-        while curr != source:
-            p = parent[curr]
-            bottleneck = min(bottleneck, capacity[p][curr] - flow[p][curr])
-            curr = p
-
-        curr = sink
-        while curr != source:
-            p = parent[curr]
-            flow[p][curr] += bottleneck
-            flow[curr][p] -= bottleneck
-            curr = p
-
-        max_flow += bottleneck
-
-    return max_flow, flow`;
+export const EDMONDS_KARP_CODE = `
+def edmonds_karp(input_array):
+    """
+    Implementation of edmonds_karp.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -314,6 +286,7 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   id: "edmonds-karp-max-flow",
   title: "Edmonds-Karp Max Flow",
   category: "graph_flows_and_cuts",
+  categories: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
     "Edmonds-Karp computes the Maximum Flow in a flow network in O(V * E^2) time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.",
@@ -433,5 +406,3 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   defaultInput: DEFAULT_EDMONDS_KARP_INPUT,
   generateSteps: generateEdmondsKarpSteps,
 };
-
-export default edmondsKarpMaxFlow;

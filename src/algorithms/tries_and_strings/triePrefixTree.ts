@@ -11,6 +11,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   id: "trie-prefix-tree",
   title: "Trie (Prefix Tree)",
   category: "tries_and_strings",
+  categories: ["tries_and_strings"],
   difficulty: "Medium",
   description:
     "A Trie (Prefix Tree) is a tree-like data structure for storing strings so that words with a common prefix share a path. Each edge represents one character, which makes insertion, exact word search, and prefix matching (the basis of autocomplete) all cost O(L) — one step per character.",
@@ -89,5 +90,3 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   defaultInput: DEFAULT_TRIE_INPUT,
   generateSteps: generateTriePrefixTreeSteps,
 };
-
-export default triePrefixTree;

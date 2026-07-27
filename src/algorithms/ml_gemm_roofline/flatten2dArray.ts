@@ -6,8 +6,33 @@ export interface flatten2dArrayInput {
   target?: number;
 }
 
-export const FLATTEN2DARRAY_CODE =
-  "def flatten2d_array(input_data: list) -> list:\n    # 1D Buffer Matrix Flattening (Easy)\n    # Converts 2D matrix indices (r, c) to flat memory address (r * N + c).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FLATTEN2DARRAY_CODE = `
+def flatten2darray(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_FLATTEN2DARRAY_INPUT: flatten2dArrayInput = {
   data: [10, 20, 30, 40, 50],
@@ -117,6 +142,16 @@ export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description: "Converts 2D matrix indices (r, c) to flat memory address (r * N + c).",
+  leetcode: { id: 566, url: "https://leetcode.com/problems/reshape-the-matrix/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 566,
+      title: "Reshape the Matrix",
+      url: "https://leetcode.com/problems/reshape-the-matrix/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -169,7 +204,7 @@ export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
     keyTerms: [{ term: "Linear Address", definition: "Flat offset calculated as r * cols + c." }],
   },
   trivia: FLATTEN2DARRAY_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+
   defaultInput: DEFAULT_FLATTEN2DARRAY_INPUT,
   generateSteps: generateFlatten2dArraySteps,
 };

@@ -6,8 +6,29 @@ export interface astExpressionEvalVariablesInput {
   target?: number;
 }
 
-export const ASTEXPRESSIONEVALVARIABLES_CODE =
-  "def ast_expression_eval_variables(input_data: list) -> list:\n    # AST Expression Evaluation with Variables (Medium)\n    # Evaluates AST expression trees with variable substitutions.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASTEXPRESSIONEVALVARIABLES_CODE = `
+def astexpressionevalvariables(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_ASTEXPRESSIONEVALVARIABLES_INPUT: astExpressionEvalVariablesInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateAstExpressionEvalVariablesSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -119,6 +141,16 @@ export const astExpressionEvalVariables: AlgorithmDefinition<astExpressionEvalVa
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description: "Evaluates AST expression trees with variable substitutions.",
+  leetcode: { id: 224, url: "https://leetcode.com/problems/basic-calculator/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 224,
+      title: "Basic Calculator",
+      url: "https://leetcode.com/problems/basic-calculator/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -171,7 +203,7 @@ export const astExpressionEvalVariables: AlgorithmDefinition<astExpressionEvalVa
     keyTerms: [{ term: "AST", definition: "Abstract Syntax Tree representation." }],
   },
   trivia: ASTEXPRESSIONEVALVARIABLES_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
+
   defaultInput: DEFAULT_ASTEXPRESSIONEVALVARIABLES_INPUT,
   generateSteps: generateAstExpressionEvalVariablesSteps,
 };

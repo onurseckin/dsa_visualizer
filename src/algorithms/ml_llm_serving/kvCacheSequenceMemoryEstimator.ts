@@ -6,8 +6,30 @@ export interface kvCacheSequenceMemoryEstimatorInput {
   target?: number;
 }
 
-export const KVCACHESEQUENCEMEMORYESTIMATOR_CODE =
-  "def kv_cache_sequence_memory_estimator(input_data: list) -> list:\n    # KV-Cache Sequence Memory Footprint Calculator (Easy)\n    # Calculates KV-cache VRAM size 2 * L * H * D * S * bytes.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const KVCACHESEQUENCEMEMORYESTIMATOR_CODE = `
+def kvcachesequencememoryestimator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_KVCACHESEQUENCEMEMORYESTIMATOR_INPUT: kvCacheSequenceMemoryEstimatorInput = {
   data: [10, 20, 30, 40, 50],

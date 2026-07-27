@@ -11,6 +11,7 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   id: "huffman-coding",
   title: "Huffman Coding",
   category: "greedy_algorithms",
+  categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Huffman Coding is a greedy, lossless compression algorithm. It builds a binary tree from character frequencies so that common characters get short binary codes and rare ones get longer codes, producing the minimum possible average code length for the text.",
@@ -77,5 +78,3 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   defaultInput: DEFAULT_HUFFMAN_CODING_INPUT,
   generateSteps: generateHuffmanCodingSteps,
 };
-
-export default huffmanCoding;

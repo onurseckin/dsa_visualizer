@@ -6,8 +6,33 @@ export interface findFirstOccurrence1dInput {
   target?: number;
 }
 
-export const FINDFIRSTOCCURRENCE1D_CODE =
-  "def find_first_occurrence1d(input_data: list) -> list:\n    # Find First Occurrence in 1D Buffer (Easy)\n    # Scans a 1D linear memory buffer for the first occurrence of a target scalar value.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FINDFIRSTOCCURRENCE1D_CODE = `
+def findfirstoccurrence1d(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_FINDFIRSTOCCURRENCE1D_INPUT: findFirstOccurrence1dInput = {
   data: [10, 20, 30, 40, 50],

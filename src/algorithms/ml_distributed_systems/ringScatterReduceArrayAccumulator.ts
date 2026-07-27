@@ -5,20 +5,29 @@ export interface ringScatterReduceArrayAccumulatorInput {
   chunks: number[];
 }
 
-export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `def ring_scatter_reduce(chunks: list[float]) -> float:
-    # Simulates one chunk's reduction across N GPUs in a Ring topology.
-    # Each GPU sends its partial chunk sum to the next GPU.
-    N = len(chunks)
-    if N == 0:
-        return 0.0
-    
-    reduced_value = chunks[0]
-    
-    for i in range(1, N):
-        # In a real system, this is a receive from neighbor and local sum
-        reduced_value += chunks[i]
-        
-    return reduced_value
+export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `
+def ringscatterreducearrayaccumulator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
 `;
 
 export const DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT: ringScatterReduceArrayAccumulatorInput =

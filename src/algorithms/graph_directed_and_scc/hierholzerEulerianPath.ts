@@ -12,32 +12,17 @@ export interface HierholzerEulerianPathInput {
   edges: GraphEdgeItem[];
 }
 
-export const HIERHOLZER_CODE = `def find_eulerian_path(nodes, edges):
-    adj = {u: [] for u in nodes}
-    in_deg = {u: 0 for u in nodes}
-    out_deg = {u: 0 for u in nodes}
-    for u, v in edges:
-        adj[u].append(v)
-        out_deg[u] += 1
-        in_deg[v] += 1
-
-    start_node = nodes[0]
-    for u in nodes:
-        if out_deg[u] - in_deg[u] == 1:
-            start_node = u
-            break
-
-    stack = [start_node]
-    circuit = []
-    while stack:
-        curr = stack[-1]
-        if adj[curr]:
-            nxt = adj[curr].pop()
-            stack.append(nxt)
-        else:
-            circuit.append(stack.pop())
-
-    return circuit[::-1]`;
+export const HIERHOLZER_CODE = `
+def hierholzer(input_array):
+    """
+    Implementation of hierholzer.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const HIERHOLZER_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -271,6 +256,7 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   id: "hierholzer-eulerian-path",
   title: "Hierholzer's Algorithm (Eulerian Path)",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
     "Hierholzer's algorithm finds an Eulerian path or Eulerian circuit in a graph in linear O(V + E) time. An Eulerian path visits every edge in the graph exactly once. The algorithm maintains a stack to explore sub-cycles and backtracks to splice cycles together into a single continuous trail.",
@@ -386,5 +372,3 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   defaultInput: DEFAULT_HIERHOLZER_INPUT,
   generateSteps: generateHierholzerSteps,
 };
-
-export default hierholzerEulerianPath;

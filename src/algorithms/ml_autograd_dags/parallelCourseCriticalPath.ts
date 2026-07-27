@@ -6,8 +6,29 @@ export interface parallelCourseCriticalPathInput {
   target?: number;
 }
 
-export const PARALLELCOURSECRITICALPATH_CODE =
-  "def parallel_course_critical_path(input_data: list) -> list:\n    # Critical Path Latency Bounds in Computational Graph (Medium)\n    # Calculates longest latency path across parallel execution stages.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const PARALLELCOURSECRITICALPATH_CODE = `
+def parallelcoursecriticalpath(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_PARALLELCOURSECRITICALPATH_INPUT: parallelCourseCriticalPathInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateParallelCourseCriticalPathSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -119,6 +141,16 @@ export const parallelCourseCriticalPath: AlgorithmDefinition<parallelCourseCriti
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description: "Calculates longest latency path across parallel execution stages.",
+  leetcode: { id: 2050, url: "https://leetcode.com/problems/parallel-courses-iii/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 2050,
+      title: "Parallel Courses III",
+      url: "https://leetcode.com/problems/parallel-courses-iii/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -176,7 +208,7 @@ export const parallelCourseCriticalPath: AlgorithmDefinition<parallelCourseCriti
     ],
   },
   trivia: PARALLELCOURSECRITICALPATH_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
+
   defaultInput: DEFAULT_PARALLELCOURSECRITICALPATH_INPUT,
   generateSteps: generateParallelCourseCriticalPathSteps,
 };

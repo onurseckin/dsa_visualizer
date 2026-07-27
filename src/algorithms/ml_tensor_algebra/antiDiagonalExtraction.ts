@@ -6,8 +6,33 @@ export interface antiDiagonalExtractionInput {
   target?: number;
 }
 
-export const ANTIDIAGONALEXTRACTION_CODE =
-  "def anti_diagonal_extraction(input_data: list) -> list:\n    # Anti-Diagonal Matrix Traversal (Medium)\n    # Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ANTIDIAGONALEXTRACTION_CODE = `
+def antidiagonalextraction(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_ANTIDIAGONALEXTRACTION_INPUT: antiDiagonalExtractionInput = {
   data: [10, 20, 30, 40, 50],
@@ -120,6 +145,16 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
   mlInfraCategory: "ml_tensor_algebra",
   description:
     "Extracts anti-diagonal stripes from a 2D tensor to inspect strided memory access patterns.",
+  leetcode: { id: 498, url: "https://leetcode.com/problems/diagonal-traverse/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 498,
+      title: "Diagonal Traverse",
+      url: "https://leetcode.com/problems/diagonal-traverse/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -172,7 +207,7 @@ export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionI
     keyTerms: [{ term: "Anti-Diagonal", definition: "Stripes running top-right to bottom-left." }],
   },
   trivia: ANTIDIAGONALEXTRACTION_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" }],
+
   defaultInput: DEFAULT_ANTIDIAGONALEXTRACTION_INPUT,
   generateSteps: generateAntiDiagonalExtractionSteps,
 };

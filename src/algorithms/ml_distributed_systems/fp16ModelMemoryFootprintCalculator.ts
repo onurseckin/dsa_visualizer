@@ -6,8 +6,30 @@ export interface fp16ModelMemoryFootprintCalculatorInput {
   target?: number;
 }
 
-export const FP16MODELMEMORYFOOTPRINTCALCULATOR_CODE =
-  "def fp16_model_memory_footprint_calculator(input_data: list) -> list:\n    # Mixed-Precision 16-Psi Model Memory Calculator (Easy)\n    # Calculates 16*Psi baseline memory (2*Psi params, 2*Psi grads, 12*Psi master optimizer states).\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FP16MODELMEMORYFOOTPRINTCALCULATOR_CODE = `
+def fp16modelmemoryfootprintcalculator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_FP16MODELMEMORYFOOTPRINTCALCULATOR_INPUT: fp16ModelMemoryFootprintCalculatorInput =
   {

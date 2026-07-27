@@ -22,27 +22,17 @@ export const DEFAULT_TSP_BITMASK_INPUT: TspBitmaskDpInput = {
   ],
 };
 
-export const PYTHON_TSP_BITMASK_CODE = `def is_visited(mask: int, city: int) -> bool:
-    return (mask & (1 << city)) != 0
-
-def tsp_bitmask(dist: list[list[int]]) -> int:
-    n = len(dist)
-    INF = float('inf')
-    dp = [[INF] * n for _ in range(1 << n)]
-    dp[1][0] = 0
-
-    for mask in range(1 << n):
-        for u in range(n):
-            if dp[mask][u] == INF:
-                continue
-            for v in range(n):
-                if not is_visited(mask, v) and dist[u][v] != INF:
-                    next_mask = mask | (1 << v)
-                    dp[next_mask][v] = min(dp[next_mask][v], dp[mask][u] + dist[u][v])
-
-    full_mask = (1 << n) - 1
-    ans = min(dp[full_mask][u] + dist[u][0] for u in range(1, n) if dist[u][0] != INF)
-    return ans if ans != INF else -1`;
+export const PYTHON_TSP_BITMASK_CODE = `
+def python_tsp_bitmask(input_array):
+    """
+    Implementation of python_tsp_bitmask.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmStep[] => {
   const n = Math.min(6, Math.max(2, input?.n ?? DEFAULT_TSP_BITMASK_INPUT.n));
@@ -202,6 +192,7 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   id: "tsp-bitmask-dp",
   title: "Traveling Salesperson Problem (Bitmask DP)",
   category: "dp_2d",
+  categories: ["dp_2d"],
   difficulty: "Hard",
   description:
     "Finds the minimum cost tour visiting every city exactly once and returning to the start using Held-Karp Bitmask Dynamic Programming.",

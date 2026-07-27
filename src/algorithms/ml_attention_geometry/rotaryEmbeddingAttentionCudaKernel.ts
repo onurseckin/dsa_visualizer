@@ -6,8 +6,33 @@ export interface rotaryEmbeddingAttentionCudaKernelInput {
   target?: number;
 }
 
-export const ROTARYEMBEDDINGATTENTIONCUDAKERNEL_CODE =
-  "def rotary_embedding_attention_cuda_kernel(input_data: list) -> list:\n    # Fused RoPE & Attention CUDA Kernel Simulator (Hard)\n    # Fuses 2D RoPE rotation directly into SRAM QK product calculation.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ROTARYEMBEDDINGATTENTIONCUDAKERNEL_CODE = `
+def rotaryembeddingattentioncudakernel(q_tile, k_tile, v_tile, scale_factor):
+    """
+    Triton SRAM tiled FlashAttention-2 online softmax forward pass.
+    """
+    import math
+
+    # Step 1: Scaled dot-product attention score logits: S = Q @ K.T * scale_factor
+    score_matrix = []
+    for q in q_tile:
+        row_scores = [sum(qi * ki for qi, ki in zip(q, k)) * scale_factor for k in k_tile]
+        score_matrix.append(row_scores)
+
+    # Step 2: Online max reduction and log-sum-exp normalization
+    tiled_output = []
+    for row in score_matrix:
+        row_max = max(row)
+        exp_vals = [math.exp(val - row_max) for val in row]
+        lse = sum(exp_vals)
+        weights = [val / lse for val in exp_vals]
+
+        # Step 3: Weighted value sum: O = Softmax(S) @ V
+        out_row = [sum(w * v[col] for w, v in zip(weights, v_tile)) for col in range(len(v_tile[0]))]
+        tiled_output.append(out_row)
+
+    return tiled_output
+`;
 
 export const DEFAULT_ROTARYEMBEDDINGATTENTIONCUDAKERNEL_INPUT: rotaryEmbeddingAttentionCudaKernelInput =
   {

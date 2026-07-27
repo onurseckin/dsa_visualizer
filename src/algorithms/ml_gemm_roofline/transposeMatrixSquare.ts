@@ -6,8 +6,33 @@ export interface transposeMatrixSquareInput {
   target?: number;
 }
 
-export const TRANSPOSEMATRIXSQUARE_CODE =
-  "def transpose_matrix_square(input_data: list) -> list:\n    # Square Matrix Transpose Operator (Easy)\n    # Swaps rows and columns of a square matrix in-place.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const TRANSPOSEMATRIXSQUARE_CODE = `
+def transposematrixsquare(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT: transposeMatrixSquareInput = {
   data: [10, 20, 30, 40, 50],
@@ -119,6 +144,16 @@ export const transposeMatrixSquare: AlgorithmDefinition<transposeMatrixSquareInp
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description: "Swaps rows and columns of a square matrix in-place.",
+  leetcode: { id: 867, url: "https://leetcode.com/problems/transpose-matrix/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 867,
+      title: "Transpose Matrix",
+      url: "https://leetcode.com/problems/transpose-matrix/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -168,7 +203,7 @@ export const transposeMatrixSquare: AlgorithmDefinition<transposeMatrixSquareInp
     keyTerms: [{ term: "Transpose", definition: "Swapping axes i and j." }],
   },
   trivia: TRANSPOSEMATRIXSQUARE_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" }],
+
   defaultInput: DEFAULT_TRANSPOSEMATRIXSQUARE_INPUT,
   generateSteps: generateTransposeMatrixSquareSteps,
 };

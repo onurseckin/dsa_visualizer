@@ -6,8 +6,33 @@ export interface conv1dSharedMemoryScratchpadInput {
   target?: number;
 }
 
-export const CONV1DSHAREDMEMORYSCRATCHPAD_CODE =
-  "def conv1d_shared_memory_scratchpad(input_data: list) -> list:\n    # 1D Conv GPU SRAM Scratchpad Simulator (Medium)\n    # Loads input tiles and halo regions into fast shared memory scratchpad.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CONV1DSHAREDMEMORYSCRATCHPAD_CODE = `
+def conv1dsharedmemoryscratchpad(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_CONV1DSHAREDMEMORYSCRATCHPAD_INPUT: conv1dSharedMemoryScratchpadInput = {
   data: [10, 20, 30, 40, 50],

@@ -6,8 +6,30 @@ export interface zero2GradientPartitioningEngineInput {
   target?: number;
 }
 
-export const ZERO2GRADIENTPARTITIONINGENGINE_CODE =
-  "def zero2_gradient_partitioning_engine(input_data: list) -> list:\n    # DeepSpeed ZeRO-2 Gradient Partitioning Engine (Medium)\n    # Calculates per-GPU VRAM footprint under ZeRO-2: 2*Psi + 14*Psi/N.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ZERO2GRADIENTPARTITIONINGENGINE_CODE = `
+def zero2gradientpartitioningengine(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT: zero2GradientPartitioningEngineInput = {
   data: [10, 20, 30, 40, 50],

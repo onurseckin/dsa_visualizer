@@ -11,17 +11,17 @@ export interface IntervalSchedulingInput {
   intervals: IntervalItem[];
 }
 
-export const PYTHON_INTERVAL_SCHEDULING_CODE = `def interval_scheduling(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    intervals.sort(key=lambda x: x[1])
-    selected = []
-    last_end = float('-inf')
-
-    for start, end in intervals:
-        if start >= last_end:
-            selected.append((start, end))
-            last_end = end
-
-    return selected`;
+export const PYTHON_INTERVAL_SCHEDULING_CODE = `
+def python_interval_scheduling(input_array):
+    """
+    Implementation of python_interval_scheduling.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_INTERVAL_SCHEDULING_INPUT: IntervalSchedulingInput = {
   intervals: [
@@ -280,6 +280,7 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
   id: "interval-scheduling",
   title: "Interval Scheduling",
   category: "greedy_algorithms",
+  categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given a set of intervals each with a start and end time, select the maximum number of mutually compatible intervals. The greedy choice of sorting intervals by finish time guarantees an optimal schedule.",
@@ -361,5 +362,3 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
   defaultInput: DEFAULT_INTERVAL_SCHEDULING_INPUT,
   generateSteps: generateIntervalSchedulingSteps,
 };
-
-export default intervalScheduling;

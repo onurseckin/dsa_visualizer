@@ -227,6 +227,7 @@ export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   id: "binary-lifting-lca",
   title: "Binary Lifting for LCA",
   category: "tree_queries_and_diameter",
+  categories: ["tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
     "Binary Lifting is a dynamic programming technique for rooted trees that precomputes up[u][j] = the 2^j-th ancestor of node u. This enables O(log N) queries for Lowest Common Ancestor (LCA) and K-th ancestor after O(N log N) preprocessing.",

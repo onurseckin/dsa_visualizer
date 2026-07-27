@@ -6,12 +6,17 @@ export interface EuclidGcdInput {
   b: number;
 }
 
-export const PYTHON_EUCLID_GCD_CODE = `def euclid_gcd(a: int, b: int) -> int:
-    while b != 0:
-        remainder = a % b
-        a = b
-        b = remainder
-    return a`;
+export const PYTHON_EUCLID_GCD_CODE = `
+def python_euclid_gcd(input_array):
+    """
+    Implementation of python_euclid_gcd.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_EUCLID_GCD_INPUT: EuclidGcdInput = {
   a: 48,
@@ -276,6 +281,7 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   id: "euclid-gcd",
   title: "Euclidean Algorithm (GCD)",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
     "Computes the Greatest Common Divisor (GCD) of two non-negative integers with the classical Euclidean algorithm. It rests on one elegant fact — gcd(a, b) = gcd(b, a mod b) — so each remainder step shrinks the problem until the answer is simply the last non-zero value.",

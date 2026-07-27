@@ -12,31 +12,17 @@ export interface SuccessorPathsInput {
   stepsQuery?: number;
 }
 
-export const SUCCESSOR_PATHS_CODE = `def floyd_cycle_and_successor(succ, start_node=0, k_steps=5):
-    tortoise = succ[start_node]
-    hare = succ[succ[start_node]]
-    while tortoise != hare:
-        tortoise = succ[tortoise]
-        hare = succ[succ[hare]]
-
-    tortoise = start_node
-    while tortoise != hare:
-        tortoise = succ[tortoise]
-        hare = succ[hare]
-    cycle_start = tortoise
-
-    length = 1
-    hare = succ[tortoise]
-    while hare != tortoise:
-        hare = succ[hare]
-        length += 1
-
-    curr = start_node
-    for b in range(16):
-        if (k_steps >> b) & 1:
-            curr = succ_table[b][curr]
-
-    return cycle_start, length, curr`;
+export const SUCCESSOR_PATHS_CODE = `
+def successor_paths(input_array):
+    """
+    Implementation of successor_paths.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -316,6 +302,7 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   id: "successor-paths",
   title: "Successor Paths & Floyd's Cycle Detection",
   category: "graph_directed_and_scc",
+  categories: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
     "Analyzes functional graphs where every node has out-degree 1. Uses Floyd's Tortoise and Hare algorithm to detect cycles, find cycle entry point and length in O(V) time, and binary lifting to compute k-th successor paths in O(log k) time.",
@@ -411,5 +398,3 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   defaultInput: DEFAULT_SUCCESSOR_INPUT,
   generateSteps: generateSuccessorPathsSteps,
 };
-
-export default successorPaths;

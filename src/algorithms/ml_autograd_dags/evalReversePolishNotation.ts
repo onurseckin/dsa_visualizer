@@ -6,8 +6,29 @@ export interface evalReversePolishNotationInput {
   target?: number;
 }
 
-export const EVALREVERSEPOLISHNOTATION_CODE =
-  "def eval_reverse_polish_notation(input_data: list) -> list:\n    # Evaluate Reverse Polish Notation (Easy)\n    # Evaluates arithmetic expressions in RPN stack order.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const EVALREVERSEPOLISHNOTATION_CODE = `
+def evalreversepolishnotation(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT: evalReversePolishNotationInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateEvalReversePolishNotationSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -119,6 +141,16 @@ export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNot
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description: "Evaluates arithmetic expressions in RPN stack order.",
+  leetcode: { id: 150, url: "https://leetcode.com/problems/evaluate-reverse-polish-notation/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 150,
+      title: "Evaluate Reverse Polish Notation",
+      url: "https://leetcode.com/problems/evaluate-reverse-polish-notation/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -168,7 +200,7 @@ export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNot
     keyTerms: [{ term: "RPN", definition: "Reverse Polish Notation stack evaluation." }],
   },
   trivia: EVALREVERSEPOLISHNOTATION_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
+
   defaultInput: DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT,
   generateSteps: generateEvalReversePolishNotationSteps,
 };

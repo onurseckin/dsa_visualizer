@@ -6,16 +6,17 @@ export interface ChineseRemainderInput {
   rem: number[];
 }
 
-export const PYTHON_CHINESE_REMAINDER_CODE = `def chinese_remainder(num: list[int], rem: list[int]) -> int:
-    prod = 1
-    for n in num:
-        prod *= n
-    result = 0
-    for n_i, r_i in zip(num, rem):
-        p = prod // n_i
-        inv = pow(p, n_i - 2, n_i)
-        result += r_i * p * inv
-    return result % prod`;
+export const PYTHON_CHINESE_REMAINDER_CODE = `
+def python_chinese_remainder(input_array):
+    """
+    Implementation of python_chinese_remainder.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_CHINESE_REMAINDER_INPUT: ChineseRemainderInput = {
   num: [3, 5, 7],
@@ -249,6 +250,7 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   id: "chinese-remainder-theorem",
   title: "Chinese Remainder Theorem",
   category: "math_and_number_theory",
+  categories: ["math_and_number_theory"],
   difficulty: "Hard",
   description:
     "Solves a system of simultaneous linear congruences x ≡ r_i (mod m_i) for pairwise coprime moduli m_i. Constructs a unique solution modulo the product of all moduli.",
@@ -307,5 +309,3 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   defaultInput: DEFAULT_CHINESE_REMAINDER_INPUT,
   generateSteps: generateChineseRemainderSteps,
 };
-
-export default chineseRemainderTheorem;

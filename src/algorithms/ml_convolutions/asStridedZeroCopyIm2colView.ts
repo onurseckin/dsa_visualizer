@@ -6,8 +6,32 @@ export interface asStridedZeroCopyIm2colViewInput {
   target?: number;
 }
 
-export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE =
-  "def as_strided_zero_copy_im2col_view(input_data: list) -> list:\n    # Zero-Copy `as_strided` im2col View Engine (Medium)\n    # Constructs virtual 5D im2col view using PyTorch stride tricks to eliminate K^2 memory duplication.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const ASSTRIDEDZEROCOPYIM2COLVIEW_CODE = `
+def asstridedzerocopyim2colview(image_matrix, conv_kernel, stride=1, padding=0):
+    """
+    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    """
+    h_in, w_in = len(image_matrix), len(image_matrix[0])
+    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+
+    h_out = (h_in + 2 * padding - k_h) // stride + 1
+    w_out = (w_in + 2 * padding - k_w) // stride + 1
+
+    feature_map = [[0] * w_out for _ in range(h_out)]
+
+    for r in range(h_out):
+        for c in range(w_out):
+            acc_sum = 0
+            for kr in range(k_h):
+                for kc in range(k_w):
+                    ir = r * stride + kr - padding
+                    ic = c * stride + kc - padding
+                    if 0 <= ir < h_in and 0 <= ic < w_in:
+                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
+            feature_map[r][c] = acc_sum
+
+    return feature_map
+`;
 
 export const DEFAULT_ASSTRIDEDZEROCOPYIM2COLVIEW_INPUT: asStridedZeroCopyIm2colViewInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +69,7 @@ export const generateAsStridedZeroCopyIm2colViewSteps = (
       },
       auxiliaryState: {
         customState: {
+          im2colBuffer: "[(val*2)]",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },

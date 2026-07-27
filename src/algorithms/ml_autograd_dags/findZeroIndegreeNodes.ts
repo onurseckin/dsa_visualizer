@@ -6,8 +6,29 @@ export interface findZeroIndegreeNodesInput {
   target?: number;
 }
 
-export const FINDZEROINDEGREENODES_CODE =
-  "def find_zero_indegree_nodes(input_data: list) -> list:\n    # Find Zero In-Degree Root Input Nodes (Easy)\n    # Identifies graph source nodes with in-degree zero.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const FINDZEROINDEGREENODES_CODE = `
+def findzeroindegreenodes(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_FINDZEROINDEGREENODES_INPUT: findZeroIndegreeNodesInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateFindZeroIndegreeNodesSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },

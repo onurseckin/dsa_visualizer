@@ -202,6 +202,7 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   id: "euler-tour-technique",
   title: "Euler Tour Technique (Tree Flattening)",
   category: "tree_queries_and_diameter",
+  categories: ["tree_queries_and_diameter"],
   difficulty: "Medium",
   description:
     "The Euler Tour Technique flattens a tree structure into a 1D array by recording entry (tin) and exit (tout) times during a depth-first search. Because all nodes in a subtree are visited continuously between tin[u] and tout[u], any subtree query becomes a simple contiguous range query [tin[u], tout[u]] on a Fenwick tree or Segment tree.",

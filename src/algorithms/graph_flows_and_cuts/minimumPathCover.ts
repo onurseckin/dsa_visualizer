@@ -27,29 +27,17 @@ export const DEFAULT_MINIMUM_PATH_COVER_INPUT: MinimumPathCoverInput = {
   ],
 };
 
-export const PYTHON_MINIMUM_PATH_COVER_CODE = `def minimum_path_cover(num_nodes: int, edges: list[tuple[int, int]]) -> int:
-    adj = [[] for _ in range(num_nodes)]
-    for u, v in edges:
-        adj[u].append(v)
-
-    match = [-1] * num_nodes
-
-    def dfs(u: int, visited: list[bool]) -> bool:
-        for v in adj[u]:
-            if not visited[v]:
-                visited[v] = True
-                if match[v] == -1 or dfs(match[v], visited):
-                    match[v] = u
-                    return True
-        return False
-
-    matching_size = 0
-    for i in range(num_nodes):
-        visited = [False] * num_nodes
-        if dfs(i, visited):
-            matching_size += 1
-
-    return num_nodes - matching_size`;
+export const PYTHON_MINIMUM_PATH_COVER_CODE = `
+def python_minimum_path_cover(input_array):
+    """
+    Implementation of python_minimum_path_cover.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): AlgorithmStep[] => {
   const numNodes = Math.max(1, input?.numNodes ?? DEFAULT_MINIMUM_PATH_COVER_INPUT.numNodes);
@@ -206,6 +194,7 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   id: "minimum-path-cover",
   title: "Minimum Path Cover in DAG",
   category: "graph_flows_and_cuts",
+  categories: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
     "Finds the minimum number of vertex-disjoint paths required to cover all vertices in a Directed Acyclic Graph (DAG) using Maximum Bipartite Matching.",

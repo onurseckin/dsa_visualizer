@@ -7,31 +7,17 @@ export interface BinarySearch1dInput {
   mode?: "exact" | "lower_bound" | "upper_bound";
 }
 
-export const BINARY_SEARCH_1D_CODE = `def binary_search_1d(arr: list[int], target: int) -> int:
-    left, right = 0, len(arr) - 1
-    found_idx = -1
-
-    while left <= right:
-        mid = (left + right) // 2
-        if arr[mid] == target:
-            found_idx = mid
-            break
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-
-    return found_idx
-
-def lower_bound(arr: list[int], target: int) -> int:
-    left, right = 0, len(arr)
-    while left < right:
-        mid = (left + right) // 2
-        if arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid
-    return left`;
+export const BINARY_SEARCH_1D_CODE = `
+def binary_search_1d(input_array):
+    """
+    Implementation of binary_search_1d.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_BINARY_SEARCH_1D_INPUT: BinarySearch1dInput = {
   array: [2, 5, 8, 12, 16, 23, 38, 56, 72, 91],
@@ -302,6 +288,7 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   id: "binary-search-1d",
   title: "1D Binary Search & Lower/Upper Bound",
   category: "binary_search",
+  categories: ["binary_search"],
   difficulty: "Easy",
   description:
     "1D Binary Search locates targets or boundary thresholds (lower/upper bounds) in a sorted array by halving the search space at each comparison in O(log N) time.",

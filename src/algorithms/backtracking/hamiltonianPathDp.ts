@@ -200,6 +200,7 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   id: "hamiltonian-path-dp",
   title: "Hamiltonian Path & Circuit (Bitmask DP)",
   category: "backtracking",
+  categories: ["backtracking"],
   difficulty: "Hard",
   description:
     "A Hamiltonian Path is a path in an undirected or directed graph that visits every vertex exactly once. This algorithm computes whether a Hamiltonian Path or Circuit exists using Bitmask Dynamic Programming, reducing the brute-force O(N!) factorial search to O(2^N * N^2) time.",

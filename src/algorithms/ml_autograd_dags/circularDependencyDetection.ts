@@ -6,8 +6,29 @@ export interface circularDependencyDetectionInput {
   target?: number;
 }
 
-export const CIRCULARDEPENDENCYDETECTION_CODE =
-  "def circular_dependency_detection(input_data: list) -> list:\n    # Circular Dependency Detection in Graph (Medium)\n    # Detects cycles in graph dependencies using DFS recursion stack states.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const CIRCULARDEPENDENCYDETECTION_CODE = `
+def circulardependencydetection(graph_nodes, adjacency_map):
+    """
+    Executes topological sorting and vector-Jacobian product (VJP) backpropagation chain rule.
+    """
+    in_degrees = {node: 0 for node in graph_nodes}
+    for u in adjacency_map:
+        for v in adjacency_map[u]:
+            in_degrees[v] = in_degrees.get(v, 0) + 1
+
+    zero_degree_queue = [node for node in graph_nodes if in_degrees[node] == 0]
+    topological_order = []
+
+    while zero_degree_queue:
+        curr = zero_degree_queue.pop(0)
+        topological_order.append(curr)
+        for neighbor in adjacency_map.get(curr, []):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_degree_queue.append(neighbor)
+
+    return topological_order
+`;
 
 export const DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT: circularDependencyDetectionInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +66,7 @@ export const generateCircularDependencyDetectionSteps = (
       },
       auxiliaryState: {
         customState: {
+          dagNodes: "node1: active, node2: pending",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -119,6 +141,16 @@ export const circularDependencyDetection: AlgorithmDefinition<circularDependency
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
   description: "Detects cycles in graph dependencies using DFS recursion stack states.",
+  leetcode: { id: 207, url: "https://leetcode.com/problems/course-schedule/" },
+  sources: [
+    {
+      type: "leetcode",
+      kind: "leetcode",
+      id: 207,
+      title: "Course Schedule",
+      url: "https://leetcode.com/problems/course-schedule/",
+    },
+  ],
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -176,7 +208,7 @@ export const circularDependencyDetection: AlgorithmDefinition<circularDependency
     ],
   },
   trivia: CIRCULARDEPENDENCYDETECTION_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" }],
+
   defaultInput: DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT,
   generateSteps: generateCircularDependencyDetectionSteps,
 };

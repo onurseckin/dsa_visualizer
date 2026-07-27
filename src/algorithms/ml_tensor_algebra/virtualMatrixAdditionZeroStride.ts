@@ -6,8 +6,33 @@ export interface virtualMatrixAdditionZeroStrideInput {
   target?: number;
 }
 
-export const VIRTUALMATRIXADDITIONZEROSTRIDE_CODE =
-  "def virtual_matrix_addition_zero_stride(input_data: list) -> list:\n    # Zero-Stride Broadcasting Matrix Addition (Medium)\n    # Performs virtual tensor addition with zero-stride broadcast dimension pointers.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const VIRTUALMATRIXADDITIONZEROSTRIDE_CODE = `
+def virtualmatrixadditionzerostride(tensor_shape, strides, memory_buffer):
+    """
+    Computes strided multi-dimensional tensor memory indexing and contiguity validation.
+    """
+    rows, cols = tensor_shape
+    r_stride, c_stride = strides
+    flat_offsets = []
+
+    is_contiguous = True
+    expected_stride = 1
+
+    # Traverse shape dimensions in reverse order to check row-major contiguity
+    for dim, stride in zip(reversed(tensor_shape), reversed(strides)):
+        if stride != expected_stride:
+            is_contiguous = False
+        expected_stride *= dim
+
+    for r in range(rows):
+        for c in range(cols):
+            # Calculate 1D memory offset using row-major strided arithmetic
+            offset = r * r_stride + c * c_stride
+            val = memory_buffer[offset] if offset < len(memory_buffer) else 0
+            flat_offsets.append((r, c, offset, val))
+
+    return is_contiguous, flat_offsets
+`;
 
 export const DEFAULT_VIRTUALMATRIXADDITIONZEROSTRIDE_INPUT: virtualMatrixAdditionZeroStrideInput = {
   data: [10, 20, 30, 40, 50],

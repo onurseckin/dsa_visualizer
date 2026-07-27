@@ -6,8 +6,30 @@ export interface ncclTreeVsRingAllreduceSimulatorInput {
   target?: number;
 }
 
-export const NCCLTREEVSRINGALLREDUCESIMULATOR_CODE =
-  "def nccl_tree_vs_ring_allreduce_simulator(input_data: list) -> list:\n    # NCCL Tree vs Ring-AllReduce Topology Simulator (Medium)\n    # Compares latency vs bandwidth bounds for NCCL Double Binary Tree vs Ring topologies.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const NCCLTREEVSRINGALLREDUCESIMULATOR_CODE = `
+def nccltreevsringallreducesimulator(ring_ranks, parameter_shards):
+    """
+    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    """
+    num_nodes = len(ring_ranks)
+    shard_buffers = [list(shard) for shard in parameter_shards]
+
+    # Phase 1: Scatter-Reduce across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+
+    # Phase 2: AllGather across circular ring topology
+    for step in range(num_nodes - 1):
+        for rank in range(num_nodes):
+            send_idx = (rank - step + 1) % num_nodes
+            recv_rank = (rank + 1) % num_nodes
+            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+
+    return shard_buffers
+`;
 
 export const DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT: ncclTreeVsRingAllreduceSimulatorInput =
   {

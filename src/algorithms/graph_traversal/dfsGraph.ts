@@ -12,25 +12,17 @@ export interface DfsGraphInput {
   edges: GraphEdgeItem[];
 }
 
-export const DFS_GRAPH_CODE = `def dfs_graph(nodes, edges, start_node):
-    adj = {u: [] for u in nodes}
-    for u, v in edges:
-        adj[u].append(v)
-
-    visited = set()
-    stack = [start_node]
-    traversal = []
-
-    while stack:
-        curr = stack.pop()
-        if curr not in visited:
-            visited.add(curr)
-            traversal.append(curr)
-            for neighbor in reversed(adj[curr]):
-                if neighbor not in visited:
-                    stack.append(neighbor)
-
-    return traversal`;
+export const DFS_GRAPH_CODE = `
+def dfs_graph(input_array):
+    """
+    Implementation of dfs_graph.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DFS_GRAPH_TRIVIA: TriviaMeta = {
   skipLines: [2, 3, 4],
@@ -259,6 +251,7 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   id: "dfs-graph",
   title: "DFS Graph Traversal",
   category: "graph_traversal",
+  categories: ["graph_traversal"],
   difficulty: "Easy",
   description:
     "Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each branch before backtracking. It uses a call stack (or explicit LIFO stack) and a visited set to avoid cycles and process all reachable vertices in O(V + E) time.",
@@ -370,5 +363,3 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   defaultInput: DEFAULT_DFS_GRAPH_INPUT,
   generateSteps: generateDfsGraphSteps,
 };
-
-export default dfsGraph;

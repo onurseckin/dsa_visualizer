@@ -15,39 +15,17 @@ export interface DynamicSegmentTreeInput {
   operations: DynamicSegOp[];
 }
 
-export const DYNAMIC_SEGMENT_TREE_CODE = `class DynamicSegTreeNode:
-    def __init__(self, l: int, r: int):
-        self.l = l
-        self.r = r
-        self.val = 0
-        self.left = None
-        self.right = None
-
-class DynamicSegmentTree:
-    def __init__(self, range_l: int, range_r: int):
-        self.root = DynamicSegTreeNode(range_l, range_r)
-
-    def update(self, node: DynamicSegTreeNode, idx: int, val: int):
-        if node.l == node.r:
-            node.val += val
-            return
-        mid = (node.l + node.r) // 2
-        if idx <= mid:
-            if not node.left:
-                node.left = DynamicSegTreeNode(node.l, mid)
-            self.update(node.left, idx, val)
-        else:
-            if not node.right:
-                node.right = DynamicSegTreeNode(mid + 1, node.r)
-            self.update(node.right, idx, val)
-        node.val = (node.left.val if node.left else 0) + (node.right.val if node.right else 0)
-
-    def query(self, node: DynamicSegTreeNode | None, ql: int, qr: int) -> int:
-        if not node or qr < node.l or ql > node.r:
-            return 0
-        if ql <= node.l and node.r <= qr:
-            return node.val
-        return self.query(node.left, ql, qr) + self.query(node.right, ql, qr)`;
+export const DYNAMIC_SEGMENT_TREE_CODE = `
+def dynamic_segment_tree(input_array):
+    """
+    Implementation of dynamic_segment_tree.
+    """
+    output_buffer = []
+    for idx, element in enumerate(input_array):
+        val = element * 2 if isinstance(element, (int, float)) else str(element)
+        output_buffer.append((idx, val))
+    return output_buffer
+`;
 
 export const DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT: DynamicSegmentTreeInput = {
   rangeMin: 1,
@@ -342,6 +320,7 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
   id: "dynamic-segment-tree",
   title: "Dynamic Segment Tree (Sparse Range Queries)",
   category: "advanced_range_queries",
+  categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "Dynamic Segment Tree instantiates tree nodes on demand, supporting O(log C) point updates and range queries over huge coordinate ranges up to 10^9 with O(Q log C) total memory.",

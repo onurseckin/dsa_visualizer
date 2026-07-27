@@ -6,8 +6,32 @@ export interface multiChannelConv2dAccumulationInput {
   target?: number;
 }
 
-export const MULTICHANNELCONV2DACCUMULATION_CODE =
-  "def multi_channel_conv2d_accumulation(input_data: list) -> list:\n    # Multi-Channel Conv2D Accumulator (Easy)\n    # Accumulates cross-channel convolution products over C_in channels.\n    result = []\n    for item in input_data:\n        result.append(item)\n    return result";
+export const MULTICHANNELCONV2DACCUMULATION_CODE = `
+def multichannelconv2daccumulation(image_matrix, conv_kernel, stride=1, padding=0):
+    """
+    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    """
+    h_in, w_in = len(image_matrix), len(image_matrix[0])
+    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+
+    h_out = (h_in + 2 * padding - k_h) // stride + 1
+    w_out = (w_in + 2 * padding - k_w) // stride + 1
+
+    feature_map = [[0] * w_out for _ in range(h_out)]
+
+    for r in range(h_out):
+        for c in range(w_out):
+            acc_sum = 0
+            for kr in range(k_h):
+                for kc in range(k_w):
+                    ir = r * stride + kr - padding
+                    ic = c * stride + kc - padding
+                    if 0 <= ir < h_in and 0 <= ic < w_in:
+                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
+            feature_map[r][c] = acc_sum
+
+    return feature_map
+`;
 
 export const DEFAULT_MULTICHANNELCONV2DACCUMULATION_INPUT: multiChannelConv2dAccumulationInput = {
   data: [10, 20, 30, 40, 50],
@@ -45,6 +69,7 @@ export const generateMultiChannelConv2dAccumulationSteps = (
       },
       auxiliaryState: {
         customState: {
+          im2colBuffer: "[(val*2)]",
           data: `[${input.data.join(", ")}]`,
           target: String(input.target ?? 0),
         },
@@ -120,6 +145,16 @@ export const multiChannelConv2dAccumulation: AlgorithmDefinition<multiChannelCon
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description: "Accumulates cross-channel convolution products over C_in channels.",
+    leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
+    sources: [
+      {
+        type: "leetcode",
+        kind: "leetcode",
+        id: 48,
+        title: "Rotate Image",
+        url: "https://leetcode.com/problems/rotate-image/",
+      },
+    ],
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
@@ -174,7 +209,7 @@ export const multiChannelConv2dAccumulation: AlgorithmDefinition<multiChannelCon
       ],
     },
     trivia: MULTICHANNELCONV2DACCUMULATION_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+
     defaultInput: DEFAULT_MULTICHANNELCONV2DACCUMULATION_INPUT,
     generateSteps: generateMultiChannelConv2dAccumulationSteps,
   };
