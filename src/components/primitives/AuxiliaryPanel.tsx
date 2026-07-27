@@ -139,7 +139,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
 
   return (
     <div className="ui-card flex flex-col gap-5 p-6 md:p-8 min-w-0 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
-      <div className="flex items-center gap-2 pb-3 border-b border-[var(--border-subtle)]">
+      <div className="flex items-center gap-2 pb-4 mb-2 border-b border-[var(--border-subtle)]">
         <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
           Working Data & Variables
         </span>
@@ -149,7 +149,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
         )}
       </div>
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3.5 px-2">
         {groups.map((group) => (
           <div
             key={group.key}
