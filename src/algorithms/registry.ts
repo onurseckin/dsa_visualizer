@@ -263,5 +263,5 @@ export const getAlgorithm = (id: string): AlgorithmDefinition | undefined => {
 };
 
 export const getAllAlgorithms = (): AlgorithmDefinition[] => {
-  return Object.values(ALGORITHM_REGISTRY);
+  return Array.from(new Set(Object.values(ALGORITHM_REGISTRY)));
 };

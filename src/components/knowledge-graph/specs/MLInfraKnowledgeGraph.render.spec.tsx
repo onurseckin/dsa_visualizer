@@ -189,4 +189,21 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
       screen.queryByRole("dialog", { name: /Tensor Algebra & Memory Layout Drawer/i }),
     ).not.toBeInTheDocument();
   });
+
+  it("invokes onSelectCategoryFolder with the exact categoryFolder when clicking node cards or drawer category buttons", () => {
+    const onSelectCategoryFolder = vi.fn();
+    render(<MLInfraKnowledgeGraph onSelectCategoryFolder={onSelectCategoryFolder} />);
+
+    const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
+    fireEvent.click(tensorNode);
+
+    expect(onSelectCategoryFolder).toHaveBeenCalledWith("ml_tensor_algebra");
+
+    const drawerCategoryBtn = screen.getByRole("button", {
+      name: /View Tensor Algebra & Memory Layout Problems in Problem List/i,
+    });
+    fireEvent.click(drawerCategoryBtn);
+
+    expect(onSelectCategoryFolder).toHaveBeenLastCalledWith("ml_tensor_algebra");
+  });
 });

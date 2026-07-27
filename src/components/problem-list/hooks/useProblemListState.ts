@@ -86,18 +86,33 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
 
     const filtered = algorithms.filter((alg) => {
       if (selectedDifficulty !== "All" && alg.difficulty !== selectedDifficulty) return false;
-      if (selectedCategory !== "All" && alg.category !== selectedCategory) return false;
+
+      const isMlAlg =
+        Boolean(alg.isMlInfra) ||
+        alg.category.startsWith("ml_") ||
+        alg.category === "ml_infra" ||
+        alg.category === "ml_infrastructure";
+
+      if (selectedCategory !== "All") {
+        const isMlGroupCategory =
+          selectedCategory === "ml_infra" || selectedCategory === "ml_infrastructure";
+        if (isMlGroupCategory) {
+          if (!isMlAlg) return false;
+        } else {
+          if (alg.category !== selectedCategory) return false;
+        }
+      }
 
       if (selectedSource !== "All") {
         const sources = getAlgorithmSources(alg);
         const matchesSource = sources.some((s) => getSourceKind(s) === selectedSource);
-        const isMl =
-          selectedSource === "ml_infra" &&
-          (Boolean(alg.isMlInfra) ||
-            alg.category === "ml_infra" ||
-            alg.category === "ml_infrastructure" ||
-            alg.category.startsWith("ml_"));
-        if (!matchesSource && !isMl) return false;
+        const matchesMlSource = selectedSource === "ml_infra" && isMlAlg;
+        const isExplicitCategoryMatch =
+          selectedCategory !== "All" &&
+          (alg.category === selectedCategory ||
+            (isMlAlg && (selectedCategory === "ml_infra" || selectedCategory === "ml_infrastructure")));
+
+        if (!matchesSource && !matchesMlSource && !isExplicitCategoryMatch) return false;
       }
 
       if (!q) return true;

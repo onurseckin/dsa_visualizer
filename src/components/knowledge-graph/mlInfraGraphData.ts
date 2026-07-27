@@ -54,6 +54,7 @@ export interface MLInfraQuestionItem {
 
 export interface MLInfraNode {
   id: string;
+  categoryFolder: string;
   title: string;
   description: string;
   family: MLInfraFamilyId;
@@ -68,6 +69,7 @@ export interface MLInfraNode {
 export const ML_INFRA_NODES: MLInfraNode[] = [
   {
     id: "ml_tensor_algebra",
+    categoryFolder: "ml_tensor_algebra",
     title: "Tensor Algebra & Memory Layout",
     description:
       "Multi-dimensional tensor indexing, strided memory layouts, NCHW/NHWC offsets, and contiguity validation.",
@@ -118,6 +120,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_tokenization",
+    categoryFolder: "ml_tokenization",
     title: "Tokenization & Subword Tries",
     description:
       "Subword text tokenization, Byte-Pair Encoding (BPE), and Viterbi dynamic programming lattice decoding.",
@@ -159,6 +162,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_gemm_roofline",
+    categoryFolder: "ml_gemm_roofline",
     title: "GEMM & Roofline Model",
     description:
       "High-performance matrix multiplication tiling, SRAM shared memory access, and arithmetic intensity classification.",
@@ -200,6 +204,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_autograd_dags",
+    categoryFolder: "ml_autograd_dags",
     title: "Autograd & Computational DAGs",
     description:
       "Reverse-mode automatic differentiation, Vector-Jacobian Products (VJP), and memory activation checkpointing.",
@@ -240,6 +245,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_convolutions",
+    categoryFolder: "ml_convolutions",
     title: "Convolutional Tiling & im2col",
     description:
       "Spatial 2D filter convolutions lowered into matrix multiplication via im2col memory unrolling.",
@@ -272,6 +278,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_precision_quantization",
+    categoryFolder: "ml_precision_quantization",
     title: "Precision & Quantization",
     description:
       "Numeric representation bounds, uniform scale/zero-point INT8 quantization, and SmoothQuant outlier scaling.",
@@ -313,6 +320,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_recurrent_gates",
+    categoryFolder: "ml_recurrent_gates",
     title: "Recurrent Gates & Sequences",
     description:
       "Recurrent sequence unrolling, Backpropagation Through Time (BPTT), and LSTM Constant Error Carousels.",
@@ -345,6 +353,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_vector_search",
+    categoryFolder: "ml_vector_search",
     title: "Vector Search & Spatial Geometry",
     description:
       "Approximate Nearest Neighbor (ANN) search via Locality-Sensitive Hashing, IVF-PQ, and HNSW skip-graphs.",
@@ -394,6 +403,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_tree_ensembles",
+    categoryFolder: "ml_tree_ensembles",
     title: "Tree Ensembles & Gradient Boosting",
     description:
       "Decision tree impurity splits, Gini index computation, and XGBoost 1st/2nd order gradient histogram splitting.",
@@ -425,6 +435,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_attention_geometry",
+    categoryFolder: "ml_attention_geometry",
     title: "Attention Geometry & RoPE",
     description:
       "Scaled Dot-Product Attention, Rotary Position Embeddings (RoPE), and Grouped-Query Attention (GQA).",
@@ -466,6 +477,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_hardware_kernels",
+    categoryFolder: "ml_hardware_kernels",
     title: "Hardware Kernels & Fusion",
     description:
       "Fused softmax with Log-Sum-Exp tracking, Triton JIT block-wise compilation, and FlashAttention IO tiling.",
@@ -507,6 +519,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_distributed_systems",
+    categoryFolder: "ml_distributed_systems",
     title: "Distributed Systems & Parallelism",
     description:
       "Ring-AllReduce topology, Megatron Tensor/Sequence Parallelism, and DeepSpeed ZeRO 1-3 memory sharding.",
@@ -548,6 +561,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
   },
   {
     id: "ml_llm_serving",
+    categoryFolder: "ml_llm_serving",
     title: "LLM Serving & Continuous Batching",
     description:
       "PagedAttention block table virtual memory allocation, iteration-level continuous batching, and speculative decoding.",
