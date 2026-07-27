@@ -273,16 +273,20 @@ export const exactGreedySplitSearch: AlgorithmDefinition<ExactGreedySplitSearchI
       "XGBoost (Chen & Guestrin 2016) achieves state-of-the-art tabular ML performance by formulating decision tree split search around 2nd order Taylor expansions of loss functions. Exact Greedy Split Search evaluates all possible feature thresholds to maximize regularized gain.",
     sections: [
       {
-        heading: "Core Concept & Regularized Gain Score",
-        body: "The regularized gain formula is Gain = 0.5 * [ G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda) - G_{total}^2 / (H_{total} + lambda) ] - gamma. It balances gradient reduction against L2 leaf weight penalty lambda and node split cost gamma.",
+        heading: "Overview & Mathematical Formulation",
+        body: "XGBoost formulates tree split evaluation using a 2nd-order Taylor expansion of objective loss functions: L^(t) approx sum [ g_i w_q(x_i) + 0.5 h_i w_q(x_i)^2 ] + gamma T + 0.5 lambda sum w_j^2. Exact Greedy Split Search scans sorted feature values to maximize the resulting gain score.",
+      },
+      {
+        heading: "Core Concepts & Regularized Gain Score",
+        body: "The regularized gain formula is Gain = 0.5 * [ G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda) - G_{total}^2 / (H_{total} + lambda) ] - gamma. It balances gradient reduction against L2 leaf weight penalty lambda and node split complexity cost gamma.",
       },
       {
         heading: "Systems & Memory Bottlenecks",
         body: "Sorting feature columns takes O(K * N log N) time for K features. To scale to large datasets, modern libraries switch from Exact Greedy search to Histogram-based binning (`tree_method='hist'`).",
       },
       {
-        heading: "Parallelization across Feature Columns",
-        body: "Because feature columns are independent, exact split search parallelizes across threads, evaluating features in parallel block structures.",
+        heading: "Implementation Nuances & Edge Cases",
+        body: "When feature values are identical across samples, no valid split candidate exists. The algorithm must verify that adjacent feature values x_i and x_{i+1} differ before computing split gain thresholds.",
       },
     ],
     keyTerms: [
@@ -298,6 +302,11 @@ export const exactGreedySplitSearch: AlgorithmDefinition<ExactGreedySplitSearchI
       {
         term: "Gamma Regularization (γ)",
         definition: "Minimum gain threshold required to justify creating a new tree split node.",
+      },
+      {
+        term: "L2 Leaf Regularization (λ)",
+        definition:
+          "Penalty parameter smooths leaf node predictions in regions of low sample density or small Hessian total.",
       },
     ],
   },

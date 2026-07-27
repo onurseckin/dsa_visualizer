@@ -104,7 +104,7 @@ import { bpeTokenizer } from "./ml_infra/bpeTokenizer";
 import { viterbiSubwordSegmenter } from "./ml_infra/viterbiSubwordSegmenter";
 import { xgboostGradientSplit } from "./ml_infra/xgboostGradientSplit";
 import { im2colConvTiling } from "./ml_infra/im2colConvTiling";
-import { lstmConstantErrorCarousel } from "./ml_infra/lstmConstantErrorCarousel";
+import { lstmConstantErrorCarousel } from "./ml_recurrent_gates/lstmConstantErrorCarousel";
 import { scaledDotAttentionMask } from "./ml_infra/scaledDotAttentionMask";
 import { ropeRotaryPosition } from "./ml_infra/ropeRotaryPosition";
 import { groupedQueryAttention } from "./ml_infra/groupedQueryAttention";
@@ -125,7 +125,11 @@ import { distanceMetricsKnn } from "./ml_infra/distanceMetricsKnn";
 import { triePrefixTreeSearch } from "./ml_infra/triePrefixTreeSearch";
 import { decisionTreeGiniSplit } from "./ml_infra/decisionTreeGiniSplit";
 import { conv2dSlidingWindow } from "./ml_infra/conv2dSlidingWindow";
-import { recurrentUnrollingBptt } from "./ml_infra/recurrentUnrollingBptt";
+import { recurrentUnrollingBptt } from "./ml_recurrent_gates/recurrentUnrollingBptt";
+import { onnxOperatorFusion } from "./ml_graph_compilers/onnxOperatorFusion";
+import { tensorrtEngineOptimizer } from "./ml_graph_compilers/tensorrtEngineOptimizer";
+import { tvmRelayGraphLowering } from "./ml_graph_compilers/tvmRelayGraphLowering";
+import { xlaHloGraphOptimizer } from "./ml_graph_compilers/xlaHloGraphOptimizer";
 // Extended 190 ML Infra Curriculum Imports
 import { tensorContiguityVerifier } from "./ml_tensor_algebra/tensorContiguityVerifier";
 import { strided1dDotProduct } from "./ml_tensor_algebra/strided1dDotProduct";
@@ -447,6 +451,15 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "decision-tree-gini-split": decisionTreeGiniSplit as AlgorithmDefinition,
   "conv2d-sliding-window": conv2dSlidingWindow as AlgorithmDefinition,
   "recurrent-unrolling-bptt": recurrentUnrollingBptt as AlgorithmDefinition,
+  recurrentUnrollingBptt: recurrentUnrollingBptt as AlgorithmDefinition,
+  "onnx-operator-fusion": onnxOperatorFusion as AlgorithmDefinition,
+  onnxOperatorFusion: onnxOperatorFusion as AlgorithmDefinition,
+  "tensorrt-engine-optimizer": tensorrtEngineOptimizer as AlgorithmDefinition,
+  tensorrtEngineOptimizer: tensorrtEngineOptimizer as AlgorithmDefinition,
+  "tvm-relay-graph-lowering": tvmRelayGraphLowering as AlgorithmDefinition,
+  tvmRelayGraphLowering: tvmRelayGraphLowering as AlgorithmDefinition,
+  "xla-hlo-graph-optimizer": xlaHloGraphOptimizer as AlgorithmDefinition,
+  xlaHloGraphOptimizer: xlaHloGraphOptimizer as AlgorithmDefinition,
 
   // Extended 190 ML Infra Curriculum Entries
   "tensor-contiguity-verifier": tensorContiguityVerifier as AlgorithmDefinition,
@@ -565,22 +578,38 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "kv-cache-step-append": kvCacheStepAppend as AlgorithmDefinition,
   "rope-frequency-scaling-yarn": ropeFrequencyScalingYarn as AlgorithmDefinition,
   "paged-kv-cache-block-mapping": pagedKvCacheBlockMapping as AlgorithmDefinition,
+  transposedConv2dDeconvIndexMapper: transposedConv2dDeconvIndexMapper as AlgorithmDefinition,
   "transposed-conv2d-deconv-index-mapper": transposedConv2dDeconvIndexMapper as AlgorithmDefinition,
+  conv1dSlidingWindowDirect: conv1dSlidingWindowDirect as AlgorithmDefinition,
   "conv1d-sliding-window-direct": conv1dSlidingWindowDirect as AlgorithmDefinition,
+  col2imGradAccumulator: col2imGradAccumulator as AlgorithmDefinition,
   "col2im-grad-accumulator": col2imGradAccumulator as AlgorithmDefinition,
+  multiChannelConv2dAccumulation: multiChannelConv2dAccumulation as AlgorithmDefinition,
   "multi-channel-conv2d-accumulation": multiChannelConv2dAccumulation as AlgorithmDefinition,
+  winogradF23TransformMatrices: winogradF23TransformMatrices as AlgorithmDefinition,
   "winograd-f23-transform-matrices": winogradF23TransformMatrices as AlgorithmDefinition,
+  winogradMinimalFilteringExecution: winogradMinimalFilteringExecution as AlgorithmDefinition,
   "winograd-minimal-filtering-execution": winogradMinimalFilteringExecution as AlgorithmDefinition,
+  conv2dSlidingWindowDirect: conv2dSlidingWindowDirect as AlgorithmDefinition,
   "conv2d-sliding-window-direct": conv2dSlidingWindowDirect as AlgorithmDefinition,
+  loweredConv2dGemmExecutionEngine: loweredConv2dGemmExecutionEngine as AlgorithmDefinition,
   "lowered-conv2d-gemm-execution-engine": loweredConv2dGemmExecutionEngine as AlgorithmDefinition,
+  conv2dPaddingStrideOutputShape: conv2dPaddingStrideOutputShape as AlgorithmDefinition,
   "conv2d-padding-stride-output-shape": conv2dPaddingStrideOutputShape as AlgorithmDefinition,
+  fusedDepthwiseSeparableConv2dEngine: fusedDepthwiseSeparableConv2dEngine as AlgorithmDefinition,
   "fused-depthwise-separable-conv2d-engine":
     fusedDepthwiseSeparableConv2dEngine as AlgorithmDefinition,
+  cudnnImplicitGemmOnTheFlyKernel: cudnnImplicitGemmOnTheFlyKernel as AlgorithmDefinition,
   "cudnn-implicit-gemm-on-the-fly-kernel": cudnnImplicitGemmOnTheFlyKernel as AlgorithmDefinition,
+  receptiveFieldGrowthCalculator: receptiveFieldGrowthCalculator as AlgorithmDefinition,
   "receptive-field-growth-calculator": receptiveFieldGrowthCalculator as AlgorithmDefinition,
+  conv2dToGemmReceptiveFieldUnroll: conv2dToGemmReceptiveFieldUnroll as AlgorithmDefinition,
   "conv2d-to-gemm-receptive-field-unroll": conv2dToGemmReceptiveFieldUnroll as AlgorithmDefinition,
+  asStridedZeroCopyIm2colView: asStridedZeroCopyIm2colView as AlgorithmDefinition,
   "as-strided-zero-copy-im2col-view": asStridedZeroCopyIm2colView as AlgorithmDefinition,
+  fftFrequencyDomainConvolution2d: fftFrequencyDomainConvolution2d as AlgorithmDefinition,
   "fft-frequency-domain-convolution-2d": fftFrequencyDomainConvolution2d as AlgorithmDefinition,
+  im2col4dTo2dUnroller: im2col4dTo2dUnroller as AlgorithmDefinition,
   "im2col-4d-to-2d-unroller": im2col4dTo2dUnroller as AlgorithmDefinition,
   "single-feature-threshold-split": singleFeatureThresholdSplit as AlgorithmDefinition,
   "gini-impurity-binary-split": giniImpurityBinarySplit as AlgorithmDefinition,
@@ -590,13 +619,16 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "exact-greedy-split-search": exactGreedySplitSearch as AlgorithmDefinition,
   "missing-value-default-direction-splitter":
     missingValueDefaultDirectionSplitter as AlgorithmDefinition,
+  xgboostHistogramSplitSearch: xgboostHistogramSplitSearch as AlgorithmDefinition,
   "xgboost-histogram-split-search": xgboostHistogramSplitSearch as AlgorithmDefinition,
   "variance-reduction-split": varianceReductionSplit as AlgorithmDefinition,
   "tree-node-prediction-traverser": treeNodePredictionTraverser as AlgorithmDefinition,
+  weightedQuantileSketchHistogram: weightedQuantileSketchHistogram as AlgorithmDefinition,
   "weighted-quantile-sketch-histogram": weightedQuantileSketchHistogram as AlgorithmDefinition,
   "regularized-optimal-leaf-weight": regularizedOptimalLeafWeight as AlgorithmDefinition,
   "shannon-entropy-calculator": shannonEntropyCalculator as AlgorithmDefinition,
   "gpu-hist-quantized-histogram-kernel": gpuHistQuantizedHistogramKernel as AlgorithmDefinition,
+  xgboostSplitGainScoreCalculator: xgboostSplitGainScoreCalculator as AlgorithmDefinition,
   "xgboost-split-gain-score-calculator": xgboostSplitGainScoreCalculator as AlgorithmDefinition,
   "logloss-gradient-hessian-calculator": loglossGradientHessianCalculator as AlgorithmDefinition,
   "tile-index-grid-mapper": tileIndexGridMapper as AlgorithmDefinition,

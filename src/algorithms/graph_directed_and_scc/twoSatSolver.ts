@@ -419,11 +419,27 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
     keyTerms: [
       {
         term: "2-SAT",
-        definition: "Boolean satisfiability problem where each clause contains 2 literals.",
+        definition: "Boolean satisfiability problem where each clause contains exactly 2 literals.",
       },
       {
         term: "Implication Graph",
-        definition: "A directed graph representing logical implications between literals.",
+        definition:
+          "A directed graph representing logical implications (~u -> v, ~v -> u) derived from clause disjunctions (u OR v).",
+      },
+      {
+        term: "Strongly Connected Component (SCC)",
+        definition:
+          "A maximal directed subgraph where every vertex is reachable from every other vertex. In 2-SAT, SCCs encapsulate mutual implication loops.",
+      },
+      {
+        term: "Topological Rank Assignment",
+        definition:
+          "Constructing a satisfying truth assignment by evaluating reverse topological order of SCCs, setting variable x = true if scc[x] > scc[~x].",
+      },
+      {
+        term: "Cook-Levin Theorem & 3-SAT",
+        definition:
+          "Foundational complexity theorem establishing general 3-SAT as NP-complete, highlighting why 2-SAT's linear O(V + E) time reduction is uniquely tractable.",
       },
     ],
   },

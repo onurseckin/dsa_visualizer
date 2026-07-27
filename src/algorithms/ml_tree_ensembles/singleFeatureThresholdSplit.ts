@@ -202,7 +202,7 @@ export const singleFeatureThresholdSplit: AlgorithmDefinition<SingleFeatureThres
       "Every decision tree split node represents an axis-aligned hyperplane partition X[j] <= threshold. Feature threshold splitting is the fundamental decision logic executed at millions of decision tree nodes in Random Forests and XGBoost models.",
     sections: [
       {
-        heading: "Core Concept & Axis-Aligned Hyperplanes",
+        heading: "Overview & Axis-Aligned Hyperplanes",
         body: "A single feature threshold split divides R^D feature space into two half-spaces along the j-th coordinate axis.",
       },
       {
@@ -212,6 +212,10 @@ export const singleFeatureThresholdSplit: AlgorithmDefinition<SingleFeatureThres
       {
         heading: "Continuous vs Categorical Feature Splits",
         body: "Continuous features use inequality `x <= v`. Categorical features use subset membership `x in S_left`.",
+      },
+      {
+        heading: "Implementation Nuances & Floating-Point Equality",
+        body: "When comparing continuous feature values near float threshold boundaries, exact equality `x <= threshold` ensures samples matching the threshold fall into the left child.",
       },
     ],
     keyTerms: [
@@ -227,6 +231,11 @@ export const singleFeatureThresholdSplit: AlgorithmDefinition<SingleFeatureThres
       {
         term: "Axis-Aligned Partition",
         definition: "Hyperplane boundary perpendicular to a single feature axis.",
+      },
+      {
+        term: "Bitmask Predicate",
+        definition:
+          "Binary mask vector produced by parallel SIMD comparison instructions for index routing.",
       },
     ],
   },

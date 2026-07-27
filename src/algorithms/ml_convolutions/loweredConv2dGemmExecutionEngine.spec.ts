@@ -5,13 +5,14 @@ import {
   generateLoweredConv2dGemmExecutionEngineSteps,
 } from "./loweredConv2dGemmExecutionEngine";
 
-describe("lowered-conv2d-gemm-execution-engine (Lowered Conv2D GEMM Execution Engine)", () => {
+describe("loweredConv2dGemmExecutionEngine", () => {
   it("should have correct metadata", () => {
-    expect(loweredConv2dGemmExecutionEngine.id).toBe("lowered-conv2d-gemm-execution-engine");
+    expect(loweredConv2dGemmExecutionEngine.id).toBe("loweredConv2dGemmExecutionEngine");
     expect(loweredConv2dGemmExecutionEngine.isMlInfra).toBe(true);
     expect(loweredConv2dGemmExecutionEngine.mlInfraLevel).toBe(8);
     expect(loweredConv2dGemmExecutionEngine.mlInfraCategory).toBe("ml_convolutions");
     expect(loweredConv2dGemmExecutionEngine.categories).toContain("ml_convolutions");
+    expect(loweredConv2dGemmExecutionEngine.categories).toContain("ml_gemm_roofline");
   });
 
   it("should generate valid algorithm steps", () => {
@@ -20,6 +21,8 @@ describe("lowered-conv2d-gemm-execution-engine (Lowered Conv2D GEMM Execution En
     );
     expect(steps.length).toBeGreaterThan(0);
     expect(steps[0].explanation.what).toContain("Lowered Conv2D GEMM Execution Engine");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[steps.length - 1].explanation.what).toBe(
+      "Reshape Y_2d Matrix to 4D Output Tensor & Complete",
+    );
   });
 });

@@ -2,38 +2,42 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface kvCacheSequenceMemoryEstimatorInput {
-  data: number[];
-  target?: number;
+  layers: number;
+  num_kv_heads: number;
+  head_dim: number;
+  seq_len: number;
+  precision_bytes: number;
+  batch_size: number;
 }
 
 export const KVCACHESEQUENCEMEMORYESTIMATOR_CODE = `
-def kvcachesequencememoryestimator(ring_ranks, parameter_shards):
+def kv_cache_sequence_memory_estimator(layers=32, num_kv_heads=8, head_dim=128, seq_len=4096, precision_bytes=2, batch_size=1):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Calculates total VRAM required for Key-Value cache storage across transformer layers, heads, sequence lengths, and precision.
+    Formula: Total Bytes = 2 * layers * num_kv_heads * head_dim * seq_len * precision_bytes * batch_size
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    bytes_per_token_per_layer = 2 * num_kv_heads * head_dim * precision_bytes
+    bytes_per_sequence = layers * bytes_per_token_per_layer * seq_len
+    total_bytes = bytes_per_sequence * batch_size
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    total_mb = total_bytes / (1024 * 1024)
+    total_gb = total_mb / 1024
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    return {
+        'total_bytes': total_bytes,
+        'total_mb': round(total_mb, 2),
+        'total_gb': round(total_gb, 4),
+        'bytes_per_token': bytes_per_token_per_layer * layers
+    }
 `;
 
 export const DEFAULT_KVCACHESEQUENCEMEMORYESTIMATOR_INPUT: kvCacheSequenceMemoryEstimatorInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  layers: 32,
+  num_kv_heads: 8,
+  head_dim: 128,
+  seq_len: 4096,
+  precision_bytes: 2,
+  batch_size: 1,
 };
 
 export const generateKvCacheSequenceMemoryEstimatorSteps = (
@@ -41,9 +45,19 @@ export const generateKvCacheSequenceMemoryEstimatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
+
+  const components = [
+    { label: "Transformer Layers", val: input.layers },
+    { label: "KV Heads (GQA)", val: input.num_kv_heads },
+    { label: "Head Dimension", val: input.head_dim },
+    { label: "Sequence Length", val: input.seq_len },
+    { label: "Precision Bytes", val: input.precision_bytes },
+    { label: "Batch Concurrency", val: input.batch_size },
+  ];
+
+  const elements: ArrayElement[] = components.map((comp, idx) => ({
+    id: `comp-${idx}`,
+    value: `${comp.label}: ${comp.val}`,
     state: "default",
   }));
 
@@ -67,8 +81,10 @@ export const generateKvCacheSequenceMemoryEstimatorSteps = (
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          layers: String(input.layers),
+          num_kv_heads: String(input.num_kv_heads),
+          head_dim: String(input.head_dim),
+          seq_len: String(input.seq_len),
         },
       },
       variables,
@@ -78,38 +94,66 @@ export const generateKvCacheSequenceMemoryEstimatorSteps = (
   addStep(
     1,
     "Initialize KV-Cache Sequence Memory Footprint Calculator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Setting up model architectural dimensions: layers, KV heads, head dim, context sequence length, precision, and batch size.",
+    {
+      layers: input.layers,
+      num_kv_heads: input.num_kv_heads,
+      head_dim: input.head_dim,
+      seq_len: input.seq_len,
+    },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const bytesPerTokenPerLayer = 2 * input.num_kv_heads * input.head_dim * input.precision_bytes;
+  const currentElements = elements.map((el) => ({ ...el }));
+  currentElements[1] = { ...currentElements[1], state: "active", pointers: ["GQA heads"] };
+  currentElements[2] = { ...currentElements[2], state: "active", pointers: ["head_dim"] };
 
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
+  addStep(
+    8,
+    `Calculate per-layer token KV memory: ${bytesPerTokenPerLayer} Bytes`,
+    `Formula: 2 (K & V) * ${input.num_kv_heads} heads * ${input.head_dim} dim * ${input.precision_bytes} bytes = ${bytesPerTokenPerLayer} Bytes/token/layer.`,
+    { bytes_per_token_per_layer: bytesPerTokenPerLayer },
+    currentElements,
+  );
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
+  const bytesPerSeq = input.layers * bytesPerTokenPerLayer * input.seq_len;
+  currentElements[0] = {
+    ...currentElements[0],
+    state: "visited",
+    pointers: [`${input.layers} layers`],
+  };
+  currentElements[3] = {
+    ...currentElements[3],
+    state: "visited",
+    pointers: [`seq_len=${input.seq_len}`],
+  };
+
+  addStep(
+    9,
+    `Calculate single sequence KV memory: ${(bytesPerSeq / (1024 * 1024)).toFixed(2)} MB`,
+    `Multiplying across all ${input.layers} layers and ${input.seq_len} tokens yields ${(bytesPerSeq / (1024 * 1024)).toFixed(2)} MB per sequence.`,
+    { bytes_per_sequence_mb: Number((bytesPerSeq / (1024 * 1024)).toFixed(2)) },
+    currentElements,
+  );
+
+  const totalBytes = bytesPerSeq * input.batch_size;
+  const totalMB = totalBytes / (1024 * 1024);
+  const totalGB = totalMB / 1024;
+
+  const finalElements = currentElements.map((el) => ({
     ...el,
-    state: "sorted",
+    state: "sorted" as const,
   }));
 
   addStep(
-    6,
+    14,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
+    `Total KV-cache memory estimated: ${totalMB.toFixed(2)} MB (${totalGB.toFixed(4)} GB) across batch size ${input.batch_size}.`,
+    {
+      total_bytes: totalBytes,
+      total_mb: Number(totalMB.toFixed(2)),
+      total_gb: Number(totalGB.toFixed(4)),
+    },
     finalElements,
   );
 
@@ -117,17 +161,24 @@ export const generateKvCacheSequenceMemoryEstimatorSteps = (
 };
 
 const KVCACHESEQUENCEMEMORYESTIMATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "bytes_per_token = num_kv_heads * head_dim # missing factor of 2 for both K and V tensors",
+    "total_mb = total_bytes / 1000000 # decimal vs binary Mebibyte calculation",
+    "bytes_per_sequence = layers + seq_len",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 8,
+      hint: "Include factor of 2 for Key and Value tensors: 2 * heads * head_dim * bytes.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines entry point for KV-Cache Sequence Memory Footprint Calculator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Entry point for KV-Cache Sequence Memory Footprint Calculator.",
+    8: "Calculates per-token memory for K and V tensors in 1 layer.",
+    9: "Scales per-token memory across all transformer layers and sequence length S.",
+    10: "Scales sequence memory by batch size concurrency B.",
+    14: "Returns dictionary containing total memory footprint in Bytes, MB, and GB.",
   },
 };
 
@@ -136,66 +187,105 @@ export const kvCacheSequenceMemoryEstimator: AlgorithmDefinition<kvCacheSequence
     id: "kv-cache-sequence-memory-estimator",
     title: "KV-Cache Sequence Memory Footprint Calculator",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), kv-cache sequence memory footprint calculator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "In Large Language Model serving, Key-Value (KV) cache VRAM consumption is the dominant bottleneck governing maximum batch concurrency and long-context performance. During autoregressive decoding, past Key and Value activation vectors across all Transformer attention layers must be retained in GPU VRAM to avoid recomputing attention over historical tokens.\n\nThis algorithm calculates the exact VRAM memory footprint for KV-cache tensors using the analytical formula:\n  Memory_KV = 2 * L * H_kv * D_head * S * P * B\nwhere 2 accounts for both Key and Value tensors, L is the number of transformer layers, H_kv is the number of KV attention heads (accounting for Grouped-Query Attention GQA ratio), D_head is the head dimension, S is the sequence length in tokens, P is precision size in bytes (2 for FP16/BF16, 1 for FP8/INT8, 0.5 for INT4), and B is batch size concurrency.\n\nInput Format:\n- layers: Integer count of Transformer model layers L (e.g. 32 for LLaMA-7B).\n- num_kv_heads: Integer count of Key-Value attention heads H_kv.\n- head_dim: Dimension size per attention head D_head (e.g. 128).\n- seq_len: Integer sequence length in tokens S (e.g. 4096).\n- precision_bytes: Numeric byte size per tensor element P (e.g. 2 for FP16, 1 for INT8).\n- batch_size: Integer batch size concurrency B.\n\nOutput Format:\n- Returns a dictionary with total_bytes, total_mb, total_gb, and bytes_per_token calculations.\n\nEdge Cases & Constraints:\n- GQA vs MHA: Grouped-Query Attention (GQA) reduces H_kv by 4x-8x relative to query heads, drastically shrinking KV memory.\n- Quantized KV Cache: FP8 (1 byte) halves memory footprint compared to FP16 (2 bytes), doubling maximum serving batch capacity.",
+    constraints: [
+      "1 <= layers <= 128",
+      "1 <= num_kv_heads <= 128",
+      "16 <= head_dim <= 256",
+      "1 <= seq_len <= 1048576",
+      "1 <= precision_bytes <= 4",
+      "1 <= batch_size <= 1024",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "LLaMA-7B 4k Context FP16 KV Memory",
+        inputDisplay: "layers=32, num_kv_heads=8, head_dim=128, seq_len=4096, precision=2, batch=1",
+        outputDisplay: "Total Memory: 536,870,912 Bytes (512.00 MB, 0.5000 GB)",
+        input: {
+          layers: 32,
+          num_kv_heads: 8,
+          head_dim: 128,
+          seq_len: 4096,
+          precision_bytes: 2,
+          batch_size: 1,
+        },
+        output: "512.00 MB",
+        explanation:
+          "2 * 32 layers * 8 heads * 128 dim * 4096 tokens * 2 bytes = 512 MB per active sequence.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
-      },
-      {
-        kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "FP8 Quantization Doubling Concurrency",
+        inputDisplay: "layers=32, num_kv_heads=8, head_dim=128, seq_len=4096, precision=1, batch=2",
+        outputDisplay: "Total Memory: 536,870,912 Bytes (512.00 MB, 0.5000 GB)",
+        input: {
+          layers: 32,
+          num_kv_heads: 8,
+          head_dim: 128,
+          seq_len: 4096,
+          precision_bytes: 1,
+          batch_size: 2,
+        },
+        output: "512.00 MB",
+        explanation:
+          "FP8 quantization (1 byte) allows serving 2 concurrent sequences within the same 512 MB VRAM footprint.",
       },
     ],
     code: KVCACHESEQUENCEMEMORYESTIMATOR_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(1) constant time scalar arithmetic multiplication.",
+      space: "O(1) memory allocation to store output metrics object.",
     },
     topicGuide: {
-      overview: "KV-cache VRAM requirement scales linearly with sequence length S and batch size.",
+      overview:
+        "KV-Cache Memory Estimators compute GPU VRAM requirements across Transformer architectural dimensions, context lengths, precision types, and batch sizes.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Calculates KV-cache VRAM size 2 * L * H * D * S * bytes.",
+          heading: "Overview",
+          body: "In high-throughput LLM serving systems, GPU VRAM is split into three main regions: model parameter weights, execution activation buffers, and the KV-cache. While model parameters remain static, the KV-cache grows dynamically with sequence length and batch size, making it the primary factor limiting throughput and concurrency.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts",
+          body: "The KV-cache footprint formula is: Memory_KV = 2 * L * H_kv * D_head * S * P * B. Key components include: the 2x multiplier for storing both Key and Value matrices; Grouped-Query Attention (GQA) head reduction; and FP8/INT4 precision scaling.",
+        },
+        {
+          heading: "Systems & Memory Bandwidth Impact",
+          body: "Accurate memory estimation allows LLM serving engines (vLLM, TGI, TensorRT-LLM) to pre-allocate maximum VRAM block pools without risking Out-Of-Memory (OOM) crashes. Quantizing KV-cache from FP16 to FP8 halves bandwidth transfers and doubles GPU batch capacity.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Engineering considerations include PagedAttention virtual block memory overhead (allocating full 16-token pages), accounting for prefix-caching block sharing, and handling multi-GPU Tensor Parallelism sharding where H_kv is divided across GPUs.",
         },
       ],
       keyTerms: [
         {
-          term: "KV-Cache Size",
-          definition: "Bytes = 2 * layers * heads * dim * seq_len * dtype_bytes.",
+          term: "KV Cache Footprint",
+          definition:
+            "Total GPU VRAM allocated to store historical Key and Value vectors for attention calculations.",
+        },
+        {
+          term: "Grouped-Query Attention (GQA)",
+          definition:
+            "Architecture sharing KV heads across multiple query heads to reduce KV memory footprint.",
+        },
+        {
+          term: "Precision Quantization",
+          definition:
+            "Compressing KV cache vectors from 16-bit float to 8-bit or 4-bit integer types.",
+        },
+        {
+          term: "Context Concurrency Capacity",
+          definition:
+            "Maximum number of simultaneous active sequences GPU VRAM can host without OOM.",
         },
       ],
     },

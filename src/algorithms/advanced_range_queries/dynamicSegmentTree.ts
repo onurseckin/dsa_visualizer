@@ -290,16 +290,24 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     "A Dynamic (or Sparse) Segment Tree builds nodes lazily as updates occur instead of constructing a complete binary tree upfront. This enables range queries and updates over huge range domains like [0..10^9] using memory proportional only to the number of update operations (O(Q log C)).",
   sections: [
     {
-      heading: "Lazy Node Allocation",
+      heading: "Lazy Node Allocation Architecture",
       body: "Standard segment trees allocate 4N nodes upfront, which fails when coordinate ranges reach 10^9. A dynamic segment tree starts with only a root covering [1, C]. When traversing to a child that does not yet exist, the node is instantiated on the fly.",
     },
     {
-      heading: "Space Complexity Bound",
-      body: "Each point update creates at most log2(C) nodes along a single root-to-leaf path. After Q updates over range domain C, the tree contains at most Q log2(C) nodes.",
+      heading: "Space Complexity & Logarithmic Bound",
+      body: "Each point update creates at most log2(C) nodes along a single root-to-leaf path. After Q updates over range domain C, the tree contains at most Q log2(C) nodes, transforming O(C) memory requirements into sparse O(Q log C).",
     },
     {
-      heading: "Query Processing",
+      heading: "Query Processing & Implicit Zero Defaults",
       body: "Range queries traverse existing nodes in the dynamic tree. If a child branch is null (unallocated), its contribution is implicitly zero, avoiding unnecessary node creations during read queries.",
+    },
+    {
+      heading: "Dynamic Segment Tree vs Coordinate Compression",
+      body: "Coordinate compression requires knowing all query coordinates offline upfront to sort and map them to [1..N]. Dynamic segment trees work fully online, accepting dynamic point updates across arbitrary 32-bit integer ranges without preprocessing.",
+    },
+    {
+      heading: "Implementation Nuances & Memory Management",
+      body: "Tree nodes hold explicit pointers (left, right) instead of fixed array indices 2i and 2i+1. Care must be taken with integer mid-point calculation (l + r) // 2 for range domains spanning negative coordinate ranges.",
     },
   ],
   keyTerms: [
@@ -312,6 +320,21 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
       term: "Lazy Pointer Allocation",
       definition:
         "Creating child pointers (left and right) dynamically only when a path is visited by an update operation.",
+    },
+    {
+      term: "Online Algorithm",
+      definition:
+        "An algorithm that processes input requests sequentially as they arrive without requiring prior knowledge of all future operations.",
+    },
+    {
+      term: "Coordinate Range Domain",
+      definition:
+        "The numerical interval [rangeMin, rangeMax] over which range queries and updates operate.",
+    },
+    {
+      term: "Implicit Default Value",
+      definition:
+        "The assumed neutral value (e.g. 0 for sum, infinity for min) returned when querying an unallocated subtree node.",
     },
   ],
 };

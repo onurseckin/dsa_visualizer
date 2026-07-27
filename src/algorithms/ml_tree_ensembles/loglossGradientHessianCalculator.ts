@@ -224,7 +224,7 @@ export const loglossGradientHessianCalculator: AlgorithmDefinition<LoglossGradie
         "XGBoost (Chen & Guestrin 2016) reformulates gradient boosting via a 2nd order Taylor expansion of the loss function. Computing analytical 1st gradients g_i and 2nd hessians h_i allows XGBoost to support any custom differentiable loss function.",
       sections: [
         {
-          heading: "Core Concept & Taylor Expansion",
+          heading: "Overview & Taylor Expansion",
           body: "Loss approximation L^{(t)} approx sum_{i=1}^N [ L(y_i, hat{y}^{(t-1)}) + g_i f_t(x_i) + 0.5 h_i f_t(x_i)^2 ]. Omitting constants leaves objective sum [ g_i f_t(x_i) + 0.5 h_i f_t(x_i)^2 ] + Omega(f_t).",
         },
         {
@@ -234,6 +234,10 @@ export const loglossGradientHessianCalculator: AlgorithmDefinition<LoglossGradie
         {
           heading: "Hessian Clamping & Numerical Stability",
           body: "When probability p approaches 0 or 1, Hessian h = p(1-p) approaches 0. Systems enforce a lower bound `h = max(1e-6, h)` to prevent division by zero in leaf weight calculations w = -G / (H + lambda).",
+        },
+        {
+          heading: "Implementation Nuances & Vectorization",
+          body: "In high-throughput ML pipelines, sigmoid activation and derivative evaluations are vectorised using SIMD/CUDA instructions (e.g. `vpexpandd` / AVX-512) for parallel execution.",
         },
       ],
       keyTerms: [
@@ -251,6 +255,11 @@ export const loglossGradientHessianCalculator: AlgorithmDefinition<LoglossGradie
           term: "Second-Order Boosting",
           definition:
             "Optimization technique using both 1st and 2nd derivatives (Newton-Raphson step) to accelerate convergence.",
+        },
+        {
+          term: "Hessian Lower Bound",
+          definition:
+            "Floor value applied to Hessian h_i preventing numerical division overflow in downstream split score calculations.",
         },
       ],
     },

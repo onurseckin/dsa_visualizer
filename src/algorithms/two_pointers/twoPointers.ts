@@ -248,8 +248,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "height = [1, 8, 6, 2, 5, 4, 8, 3, 7]",
-      outputDisplay: "49",
+      inputDisplay: "arr = [1, 2, 3, 7, 5], target = 12",
+      outputDisplay: "[1, 3]",
       title: "Basic Example",
       input: { array: [1, 2, 3, 7, 5], target: 12 },
       output: "[1, 3]",
@@ -257,8 +257,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "height = [4, 3, 2, 1, 4]",
-      outputDisplay: "16",
+      inputDisplay: "arr = [1, 4, 20, 3, 10, 5], target = 33",
+      outputDisplay: "[2, 4]",
       title: "Complex Edge Case",
       input: { array: [1, 4, 20, 3, 10, 5], target: 33 },
       output: "[2, 4]",
@@ -267,8 +267,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "height = [1, 1]",
-      outputDisplay: "1",
+      inputDisplay: "arr = [1, 2, 3, 4], target = 15",
+      outputDisplay: "[-1, -1]",
       title: "Failing / Boundary Case",
       input: { array: [1, 2, 3, 4], target: 15 },
       output: "[-1, -1]",

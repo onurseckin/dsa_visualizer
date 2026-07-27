@@ -218,6 +218,18 @@ const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
       heading: "The Straddle Test",
       body: "Two segments AB and CD intersect if and only if C and D lie on opposite sides of line AB (d1 and d2 have opposite signs) AND A and B lie on opposite sides of line CD (d3 and d4 have opposite signs).",
     },
+    {
+      heading: "Handling Collinear Degeneracies",
+      body: "When cross product equals zero, points are collinear. Two collinear segments intersect if and only if their 1D bounding box intervals along both X and Y axes overlap (on_segment(p, q, r)).",
+    },
+    {
+      heading: "Parametric Intersection Point Computation",
+      body: "When segments straddle, the exact intersection point P = P1 + t * (Q1 - P1) is derived by solving linear system parameters t and u, avoiding slope division by zero for vertical line segments.",
+    },
+    {
+      heading: "Robust Integer Math vs Floating-Point Precision",
+      body: "Testing signs of integer cross products avoids floating-point inaccuracies, precision drift, and epsilon tolerances. Exact orientation primitives are the foundation of robust computational geometry engines (CGAL, GEOS).",
+    },
   ],
   keyTerms: [
     {
@@ -226,9 +238,24 @@ const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
         "Signed scalar indicating orientation and relative direction of turning between two 2D vectors.",
     },
     {
+      term: "Straddle Condition",
+      definition:
+        "Logical predicate ensuring each line segment straddles the infinite supporting line of the other segment.",
+    },
+    {
       term: "Collinear Overlap",
       definition:
         "Special case where cross products equal zero, requiring bounding box interval check.",
+    },
+    {
+      term: "Orientation Primitive",
+      definition:
+        "Basic geometric operation returning counter-clockwise, clockwise, or collinear turn direction.",
+    },
+    {
+      term: "Parametric Ray Equation",
+      definition:
+        "Representing segment points as P(t) = P1 + t*(Q1 - P1) for t in [0, 1] to calculate exact intersection coordinates.",
     },
   ],
 };

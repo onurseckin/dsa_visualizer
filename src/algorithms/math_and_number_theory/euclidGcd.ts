@@ -6,17 +6,12 @@ export interface EuclidGcdInput {
   b: number;
 }
 
-export const PYTHON_EUCLID_GCD_CODE = `
-def python_euclid_gcd(input_array):
-    """
-    Implementation of python_euclid_gcd.
-    """
-    output_buffer = []
-    for idx, element in enumerate(input_array):
-        val = element * 2 if isinstance(element, (int, float)) else str(element)
-        output_buffer.append((idx, val))
-    return output_buffer
-`;
+export const PYTHON_EUCLID_GCD_CODE = `def gcd(a: int, b: int) -> int:
+    while b != 0:
+        remainder = a % b
+        a = b
+        b = remainder
+    return a`;
 
 export const DEFAULT_EUCLID_GCD_INPUT: EuclidGcdInput = {
   a: 48,

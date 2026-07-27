@@ -320,7 +320,7 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   categories: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "Edmonds-Karp computes the Maximum Flow in a flow network in O(V * E^2) time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.",
+    "Edmonds-Karp computes the Maximum Flow in a flow network in O(V * E^2) time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.\n\nGiven a flow network represented by nodes and directed edges with non-negative capacity bounds, Edmonds-Karp repeatedly locates the shortest augmenting path (measured by the number of edges) from the source vertex to the sink vertex in the residual network.\n\n### Input Parameters\n- sourceId (string): The identifier of the flow source vertex S.\n- sinkId (string): The identifier of the flow sink vertex T.\n- nodes (list[GraphNodeItem]): Vertices comprising the network.\n- edges (list[GraphEdgeItem]): Directed edges with positive capacity weights.\n\n### Output\n- number: The maximum total flow pushed from source to sink.\n\n### Edge Cases & Constraints\n- Capacities must be non-negative (capacity[u][v] >= 0).\n- Reverse residual edges handle flow redirection when augmentations push back previously routed flow.\n- Disconnected sink returns 0 max flow.\n- Guaranteed polynomial termination in O(V * E^2) time regardless of capacity integrality.",
   constraints: ["2 <= V <= 200", "1 <= E <= 1000", "Capacities must be non-negative numbers"],
   examples: [
     {
@@ -400,27 +400,54 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   },
   topicGuide: {
     overview:
-      "Edmonds-Karp is a specific implementation of the Ford-Fulkerson method for computing maximum flow in a flow network. Using BFS to select augmenting paths with the minimum number of edges guarantees polynomial O(V * E^2) runtime.",
+      "Edmonds-Karp is a canonical implementation of the Ford-Fulkerson method for computing maximum network flow. By using Breadth-First Search (BFS) to select augmenting paths with the minimum edge count, it guarantees a polynomial time bound of O(V * E^2) and avoids infinite loops on irrational edge capacities.",
     sections: [
       {
-        heading: "BFS Shortest Path Guarantee",
-        body: "By picking augmenting paths via BFS, the distance from source to any node in the residual graph is non-decreasing. This prevents infinite loops on irrational capacities.",
+        heading: "BFS Shortest Path Guarantee & Termination",
+        body: "Standard Ford-Fulkerson using Depth-First Search can take exponentially many steps or fail to terminate on irrational edge capacities. Edmonds-Karp resolves this by using BFS to find augmenting paths with the minimum number of edges. Each augmentation guarantees that the shortest-path distance from the source to any node in the residual graph never decreases, which limits the number of augmentation iterations to at most O(V * E).",
+      },
+      {
+        heading: "Residual Network & Flow Redirection",
+        body: "Flow augmentation creates a residual graph containing forward edges with remaining capacity (capacity - flow) and backward edges with capacity equal to current flow (-flow). Reverse edges allow the algorithm to effectively undo or re-route prior flow decisions when a superior combination of paths is discovered.",
       },
       {
         heading: "Max-Flow Min-Cut Theorem",
-        body: "The maximum value of an s-t flow equals the minimum capacity of an s-t cut.",
+        body: "The Max-Flow Min-Cut theorem asserts that the value of the maximum s-t flow equals the total capacity of the minimum s-t cut that partitions vertices into source set S and sink set T. When no augmenting path remains in the residual graph, the set of vertices reachable from the source defines the exact minimum capacity cut.",
+      },
+      {
+        heading: "Real-World Applications & Network Optimization",
+        body: "Max flow algorithms solve transportation logistics, internet traffic routing, bipartite matching, image segmentation (graph cuts in computer vision), airline flight scheduling, and maximum bipartite matching problems.",
+      },
+      {
+        heading: "Implementation Nuances & Complexity",
+        body: "Evaluating residual capacity capacity[u][v] - flow[u][v] > 0 requires tracking two-dimensional matrices or adjacency structures with explicit residual edges. Each BFS pass takes O(E) time, yielding O(V * E^2) total runtime.",
       },
     ],
     keyTerms: [
-      { term: "Edmonds-Karp", definition: "Ford-Fulkerson variant using BFS augmenting paths." },
+      {
+        term: "Edmonds-Karp Algorithm",
+        definition:
+          "A specific specialization of Ford-Fulkerson that uses BFS to find augmenting paths with the fewest edges.",
+      },
       {
         term: "Residual Capacity",
-        definition: "Remaining capacity on an edge capacity[u][v] - flow[u][v].",
+        definition:
+          "The unallocated edge capacity capacity[u][v] - flow[u][v] available for additional flow.",
       },
       {
         term: "Augmenting Path",
         definition:
-          "A directed path from source to sink in the residual network with positive bottleneck capacity.",
+          "A simple directed path from source to sink in the residual network with positive bottleneck capacity.",
+      },
+      {
+        term: "Bottleneck Capacity",
+        definition:
+          "The minimum residual capacity along an augmenting path, which limits the maximum flow addition for that path.",
+      },
+      {
+        term: "Max-Flow Min-Cut Theorem",
+        definition:
+          "Fundamental theorem stating that maximum s-t network flow equals the minimum total capacity of edges separating s from t.",
       },
     ],
   },

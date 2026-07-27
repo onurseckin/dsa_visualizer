@@ -2,39 +2,53 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface hashBasedPrefixCacheTrieAllocatorInput {
-  data: number[];
-  target?: number;
+  prompt_tokens: number[];
+  block_size: number;
+  existing_hashes: string[];
 }
 
 export const HASHBASEDPREFIXCACHETRIEALLOCATOR_CODE = `
-def hashbasedprefixcachetrieallocator(ring_ranks, parameter_shards):
+import hashlib
+
+def hash_based_prefix_cache_trie_allocator(prompt_tokens, block_size=2, existing_hashes=None):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Computes cumulative block prefix hashes for prompt tokens and matches them against Radix Trie prefix cache.
+    Returns matched prefix block hashes, hit rate, and number of cached KV physical blocks reused.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    if existing_hashes is None:
+        existing_hashes = []
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    matched_hashes = []
+    num_blocks = len(prompt_tokens) // block_size
+    current_prefix = ""
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+    for b in range(num_blocks):
+        block_tokens = prompt_tokens[b * block_size : (b + 1) * block_size]
+        tokens_str = ",".join(map(str, block_tokens))
+        
+        # Cumulative prefix hash: hash(previous_hash + current_block_tokens)
+        combined = f"{current_prefix}:{tokens_str}"
+        block_hash = hashlib.md5(combined.encode()).hexdigest()[:8]
 
-    return shard_buffers
+        # Match against prefix cache Radix Trie (simulated via existing_hashes check)
+        if block_hash in existing_hashes or (b < len(existing_hashes) and existing_hashes[b] != ""):
+            matched_hashes.append(block_hash)
+            current_prefix = block_hash
+        else:
+            break
+
+    cache_hit_blocks = len(matched_hashes)
+    total_blocks = (len(prompt_tokens) + block_size - 1) // block_size
+    hit_rate = cache_hit_blocks / max(total_blocks, 1)
+
+    return matched_hashes, hit_rate, cache_hit_blocks
 `;
 
 export const DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT: hashBasedPrefixCacheTrieAllocatorInput =
   {
-    data: [10, 20, 30, 40, 50],
-    target: 30,
+    prompt_tokens: [101, 2054, 2003, 1037, 3899, 1010, 2026, 2171],
+    block_size: 2,
+    existing_hashes: ["cached_block_0", "cached_block_1"],
   };
 
 export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
@@ -42,11 +56,17 @@ export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const numBlocks = Math.floor(input.prompt_tokens.length / input.block_size);
+  const elements: ArrayElement[] = [];
+  for (let b = 0; b < numBlocks; b++) {
+    const chunk = input.prompt_tokens.slice(b * input.block_size, (b + 1) * input.block_size);
+    elements.push({
+      id: `block-${b}`,
+      value: `Block ${b}: [${chunk.join(", ")}]`,
+      state: "default",
+    });
+  }
 
   const addStep = (
     codeLine: number,
@@ -68,8 +88,9 @@ export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          block_size: String(input.block_size),
+          num_blocks: String(numBlocks),
+          existing_hashes_count: String(input.existing_hashes.length),
         },
       },
       variables,
@@ -79,38 +100,65 @@ export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
   addStep(
     1,
     "Initialize Hash-Based Prefix Caching Radix Trie Allocator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Loading prompt token sequence, chunking into block size B, and initializing prefix trie hash matcher.",
+    { num_blocks: numBlocks, block_size: input.block_size },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const currentElements = elements.map((el) => ({ ...el }));
+  const matchedHashes: string[] = [];
 
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
+  for (let b = 0; b < numBlocks; b++) {
+    const chunk = input.prompt_tokens.slice(b * input.block_size, (b + 1) * input.block_size);
+    const isHit = b < input.existing_hashes.length && input.existing_hashes[b] !== "";
+    const hashVal = isHit ? input.existing_hashes[b] : `miss_hash_${b}`;
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
+    if (isHit) {
+      matchedHashes.push(hashVal);
+      currentElements[b] = {
+        ...currentElements[b],
+        state: "active",
+        pointers: [`CACHE_HIT`, `hash=${hashVal}`],
+      };
+      addStep(
+        22,
+        `Block ${b}: Prefill Prefix Cache HIT! Reusing physical block`,
+        `Found matching token prefix hash '${hashVal}' in Radix Trie. Reusing KV cache without recomputation.`,
+        { block_idx: b, hash: hashVal, status: "HIT" },
+        currentElements,
+      );
+    } else {
+      currentElements[b] = {
+        ...currentElements[b],
+        state: "compare",
+        pointers: [`CACHE_MISS`, `hash=${hashVal}`],
+      };
+      addStep(
+        26,
+        `Block ${b}: Prefill Prefix Cache MISS! Allocate new block`,
+        `No matching prefix hash found in Radix Trie for tokens [${chunk.join(", ")}]. Allocating new physical KV block.`,
+        { block_idx: b, hash: hashVal, status: "MISS" },
+        currentElements,
+      );
+      break;
+    }
+  }
+
+  const finalElements = currentElements.map((el) => ({
     ...el,
-    state: "sorted",
+    state: el.state === "active" ? ("sorted" as const) : el.state,
   }));
 
+  const hitRate = matchedHashes.length / Math.max(numBlocks, 1);
+
   addStep(
-    6,
+    29,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
+    "Prefix cache trie allocation complete. Calculated matched blocks and hit rate.",
+    {
+      cache_hit_blocks: matchedHashes.length,
+      total_blocks: numBlocks,
+      hit_rate: Number(hitRate.toFixed(2)),
+    },
     finalElements,
   );
 
@@ -118,17 +166,21 @@ export const generateHashBasedPrefixCacheTrieAllocatorSteps = (
 };
 
 const HASHBASEDPREFIXCACHETRIEALLOCATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "combined = f'{tokens_str}' # missing previous hash link breaks cumulative prefix property",
+    "if block_hash not in existing_hashes: matched_hashes.append(block_hash)",
+    "hit_rate = total_blocks / cache_hit_blocks",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 22, hint: "Match cumulative prefix hash H_k = hash(H_{k-1}, block_k) in Radix Trie." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Hash-Based Prefix Caching Radix Trie Allocator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Entry point for Hash-Based Prefix Caching Radix Trie Allocator.",
+    17: "Calculates cumulative MD5 prefix hash for current token block.",
+    22: "Checks if prefix hash exists in Radix Trie cache and reuses physical KV block.",
+    26: "Terminates matching loop on first cache miss and allocates new physical KV block.",
+    29: "Returns matched hashes, cache hit rate, and total reusable block count.",
   },
 };
 
@@ -137,67 +189,97 @@ export const hashBasedPrefixCacheTrieAllocator: AlgorithmDefinition<hashBasedPre
     id: "hash-based-prefix-cache-trie-allocator",
     title: "Hash-Based Prefix Caching Radix Trie Allocator",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "tries_and_strings"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), hash-based prefix caching radix trie allocator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "Prefix Caching (pioneered in RadixAttention / SGLang and adopted by vLLM) reuses pre-computed KV-cache blocks across requests that share identical prompt prefixes (e.g. system prompts, few-shot examples, or chat templates). In multi-turn LLM serving, re-executing prefill computation for a 2,000-token system prompt on every user turn wastes massive amounts of GPU compute and memory bandwidth.\n\nThis algorithm implements the Hash-Based Prefix Caching Radix Trie Allocator. Prompt token sequences are split into block-sized chunks of size B (e.g. 16 tokens). For each block k, a cryptographic/hashing function computes a cumulative prefix hash H_k = hash(H_{k-1}, block_k). The engine traverses a Radix Trie indexed by H_k: for matching nodes (cache hits), it increments the physical block reference count and skips prefill FLOPs; on a cache miss, it allocates new physical blocks from the PagedAttention memory pool.\n\nInput Format:\n- prompt_tokens: Array of integer prompt token IDs.\n- block_size: Integer token capacity per KV physical block B (e.g. 16).\n- existing_hashes: Array of cached block prefix hashes present in the Radix Trie.\n\nOutput Format:\n- Returns a tuple of (matched_hashes, hit_rate, cache_hit_blocks) detailing matched block hashes and cache hit percentage.\n\nEdge Cases & Constraints:\n- Zero cache hit: When prompt prefix is entirely new, hit_rate = 0.0 and all blocks are newly allocated.\n- Complete system prompt hit: High reuse when requests share long system prompts (hit_rate ~ 0.9+).\n- Partial tail block: Tokens remaining after block_size division are handled during prefill execution.",
+    constraints: [
+      "1 <= block_size <= 64",
+      "0 <= prompt_tokens.length <= 8192",
+      "0 <= existing_hashes.length <= 512",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "2-Block Prefix Cache Hit",
+        inputDisplay:
+          "prompt_tokens=[101, 2054, 2003, 1037], block_size=2, existing=['cached_0', 'cached_1']",
+        outputDisplay: "Hit Blocks: 2, Hit Rate: 1.00",
+        input: {
+          prompt_tokens: [101, 2054, 2003, 1037],
+          block_size: 2,
+          existing_hashes: ["cached_0", "cached_1"],
+        },
+        output: "Hit Blocks: 2, Hit Rate: 1.00",
+        explanation:
+          "Both blocks 0 and 1 match existing prefix cache hashes. Prefill computation skipped for all 4 tokens.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
-      },
-      {
-        kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "Partial Cache Hit Followed by Miss",
+        inputDisplay: "prompt_tokens=[1, 2, 3, 4], block_size=2, existing=['cached_0']",
+        outputDisplay: "Hit Blocks: 1, Hit Rate: 0.50",
+        input: {
+          prompt_tokens: [1, 2, 3, 4],
+          block_size: 2,
+          existing_hashes: ["cached_0"],
+        },
+        output: "Hit Blocks: 1, Hit Rate: 0.50",
+        explanation:
+          "Block 0 hits cache (reused). Block 1 misses, triggering new KV block allocation for remaining tokens.",
       },
     ],
     code: HASHBASEDPREFIXCACHETRIEALLOCATOR_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(K)", average: "O(K)", worst: "O(K)" },
+    spaceComplexity: "O(K)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(K) where K is number of token blocks to compute MD5 prefix hashes and perform Radix Trie lookup.",
+      space: "O(K) memory allocation to return matched hash lists and hit rate statistics.",
     },
     topicGuide: {
       overview:
-        "Prefix caching reuses pre-computed system prompt KV blocks for matching prompt prefixes.",
+        "Hash-Based Prefix Cache Radix Trie Allocators match cumulative token prompt hashes against a system Radix Trie to reuse pre-computed KV-cache physical blocks.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Caches system prompt KV blocks in a Radix Trie using token hash keys.",
+          heading: "Overview",
+          body: "Multi-turn chatbots and agentic workflows frequently send repeated prompt prefixes, such as system instructions or few-shot context examples. Re-evaluating prefill attention matrix multiplications for identical prompt prefixes wastes GPU Tensor Core compute and introduces unnecessary Time-To-First-Token (TTFT) latency.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts",
+          body: "The Prefix Cache Allocator organizes cached KV blocks into a Radix Trie structured by token content hashes. For a incoming prompt, the allocator calculates cumulative hash keys H_k = hash(H_{k-1}, block_tokens_k). It traverses the trie to find the longest matching prefix branch, pinning matching physical blocks.",
+        },
+        {
+          heading: "Systems & Memory Bandwidth Impact",
+          body: "Reusing cached KV blocks reduces TTFT latency by up to 90% for long system prompts. Additionally, it eliminates VRAM allocation redundancy, enabling higher serving concurrency and lower memory bandwidth consumption per request.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Key engineering considerations include hash collision resilience (using 64-bit or 128-bit hashes), managing reference counts for Copy-on-Write (CoW) shared blocks, LRU eviction policies when VRAM is full, and handling block boundary alignments with PagedAttention.",
         },
       ],
       keyTerms: [
         {
           term: "Prefix Caching",
-          definition: "Reusing precomputed KV blocks for shared prompt prefixes.",
+          definition:
+            "Reusing pre-computed KV-cache physical blocks across requests with shared prompt prefixes.",
+        },
+        {
+          term: "Radix Trie Allocator",
+          definition:
+            "A trie data structure storing token block sequence hashes to index cached KV memory pages.",
+        },
+        {
+          term: "Token Block Hash",
+          definition:
+            "Cryptographic or rolling hash uniquely identifying a contiguous block of prompt tokens.",
+        },
+        {
+          term: "Time-To-First-Token (TTFT)",
+          definition:
+            "The latency duration from initial API request arrival to the output of the first generated token.",
         },
       ],
     },

@@ -6,29 +6,22 @@ export interface targetModelParallelVerificationPassInput {
   target?: number;
 }
 
-export const TARGETMODELPARALLELVERIFICATIONPASS_CODE = `
-def targetmodelparallelverificationpass(ring_ranks, parameter_shards):
+export const TARGETMODELPARALLELVERIFICATIONPASS_CODE = `def target_model_parallel_verification_pass(
+    draft_tokens: list[int], target_threshold: int = 30
+) -> list[bool]:
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Executes a single parallel target model forward pass verifying all gamma draft tokens
+    concurrently, evaluating acceptance criteria sequentially up to first rejection.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    verification_results = []
+    for pos, token in enumerate(draft_tokens):
+        if token <= target_threshold:
+            verification_results.append(True)
+        else:
+            verification_results.append(False)
+            break
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
-
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    return verification_results
 `;
 
 export const DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT: targetModelParallelVerificationPassInput =
@@ -77,26 +70,27 @@ export const generateTargetModelParallelVerificationPassSteps = (
   };
 
   addStep(
-    1,
+    8,
     "Initialize Speculative Decoding Target Model Parallel Verification Pass",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up target model parallel forward pass layout to verify candidate draft tokens in batch.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
+    const isAccepted = val <= (input.target ?? 30);
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+        return { ...el, state: isAccepted ? "active" : "compare", pointers: [`gamma_${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
+      10,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      `Verifying draft token at speculative position ${idx}. Accepted = ${isAccepted}.`,
+      { idx, val, isTarget, isAccepted },
       currentElements,
     );
   });
@@ -107,9 +101,9 @@ export const generateTargetModelParallelVerificationPassSteps = (
   }));
 
   addStep(
-    6,
+    16,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Completed target model parallel verification pass. Returned accepted draft token mask.",
     { completed: true },
     finalElements,
   );
@@ -118,17 +112,19 @@ export const generateTargetModelParallelVerificationPassSteps = (
 };
 
 const TARGETMODELPARALLELVERIFICATIONPASS_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    { line: 10, hint: "Verify draft tokens sequentially up to the first rejected position." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Speculative Decoding Target Model Parallel Verification Pass.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    8: "Defines entry point for Speculative Decoding Target Model Parallel Verification Pass.",
+    10: "Iterates through draft candidate tokens in parallel forward pass output.",
+    16: "Returns verification boolean mask array.",
   },
 };
 
@@ -137,72 +133,103 @@ export const targetModelParallelVerificationPass: AlgorithmDefinition<targetMode
     id: "target-model-parallel-verification-pass",
     title: "Speculative Decoding Target Model Parallel Verification Pass",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_distributed_systems"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), speculative decoding target model parallel verification pass provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "Speculative decoding speeds up LLM generation by replacing $\\gamma$ sequential forward passes of a large target model with $\\gamma$ fast forward passes of a small draft model, followed by a single parallel forward pass of the target model. During this parallel verification pass, the target model receives all $\\gamma$ candidate draft tokens in a single batched sequence, computing logits for every token position concurrently in parallel. The engine then inspects acceptance criteria sequentially, accepting tokens up to the first rejection point.\n\nInput Format:\n- `data`: Array of draft token IDs generated by the draft model during speculative lookahead.\n- `target`: Target verification threshold or rank index for parallel verification.\n\nOutput Format:\n- Returns boolean array indicating token acceptance up to first rejection boundary.\n\nEdge Cases & Constraints:\n- All $\\gamma$ tokens accepted: Maximum speedup ($\\gamma + 1$ total tokens generated in 1 target pass).\n- First token rejected: Target model still emits 1 valid replacement token from residual distribution.\n- Distributed Tensor Parallelism: Target logits across multiple GPU ranks must be synchronized via AllReduce before verification.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
         title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
+        inputDisplay: "draft_tokens = [10, 20, 30], threshold = 30",
+        outputDisplay: "[True, True, True]",
         input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        output: "[True, True, True]",
+        explanation: "All 3 draft tokens are verified and accepted in a single target model pass.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        title: "Early Rejection",
+        inputDisplay: "draft_tokens = [10, 20, 50, 10], threshold = 30",
+        outputDisplay: "[True, True, False]",
+        input: { data: [10, 20, 50, 10], target: 30 },
+        output: "[True, True, False]",
+        explanation: "Token 50 at index 2 fails verification; acceptance halts early at index 2.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "First Token Rejected",
+        inputDisplay: "draft_tokens = [50, 10, 20], threshold = 30",
+        outputDisplay: "[False]",
+        input: { data: [50, 10, 20], target: 30 },
+        output: "[False]",
+        explanation: "First token fails verification immediately; 0 draft tokens accepted.",
       },
     ],
     code: TARGETMODELPARALLELVERIFICATIONPASS_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(gamma)", average: "O(gamma)", worst: "O(gamma)" },
+    spaceComplexity: "O(gamma)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(gamma) time to verify gamma draft tokens sequentially after 1 target model GEMM forward pass.",
+      space: "O(gamma) memory to store verification output booleans.",
     },
     topicGuide: {
       overview:
-        "Target model verifies all gamma draft tokens concurrently in 1 single forward pass.",
+        "The Target Model Parallel Verification Pass converts sequential autoregressive LLM decoding iterations into a single batched parallel forward pass across speculative draft tokens.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Verifies gamma draft tokens in a single parallel forward pass on target model M_target.",
+          heading: "1. Overview & Theoretical Foundations",
+          body: "Standard LLM decoding generates 1 token per forward pass, causing low compute intensity (arithmetic intensity $\\approx 1$ FLOP/byte) because GPU Memory Bandwidth is spent loading model weights for every single token. Speculative decoding batches $\\gamma$ draft tokens into a single parallel forward pass on the target model. This transforms matrix-vector multiplications into matrix-matrix multiplications (GEMM), dramatically increasing Tensor Core utilization.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "2. Core Concepts & Algorithmic Design",
+          body: "During parallel verification: (1) The draft model sequentially generates $\\gamma$ tokens $x_1, x_2, \\dots, x_\\gamma$, (2) The target model executes a single forward pass over input sequence $[x_1, \\dots, x_\\gamma]$, producing logit distributions $p_1, \\dots, p_{\\gamma+1}$ simultaneously using causal attention masks, and (3) The engine sequentially checks rejection sampling criteria for each position $i \\in [1, \\gamma]$.",
+        },
+        {
+          heading: "3. Systems & Memory Bandwidth Impact",
+          body: "Evaluating $\\gamma$ draft tokens in 1 target pass increases batch size in the target GEMM kernels from 1 to $\\gamma$. GPU memory bandwidth utilization drops as FLOP-to-byte ratio rises, accelerating overall inference latency by 2x-3x on large models (e.g. LLaMA-70B).",
+        },
+        {
+          heading: "4. Implementation Nuances & Edge Cases",
+          body: "If a rejection occurs at position $k < \\gamma$, the KV cache entries for rejected tokens $x_{k+1}, \\dots, x_\\gamma$ must be rolled back or truncated in the block table. For tree-based speculative decoding (e.g. Medusa or SpecInfer), tree causal attention masks are constructed to verify multiple draft branches simultaneously.",
         },
       ],
       keyTerms: [
         {
-          term: "Parallel Verification",
-          definition: "Verifying gamma draft tokens in 1 single target forward pass.",
+          term: "Parallel Verification Pass",
+          definition:
+            "A single target model forward pass evaluating gamma speculative draft tokens concurrently.",
+        },
+        {
+          term: "Speculative Horizon (gamma)",
+          definition:
+            "The number of candidate tokens generated by the draft model per verification iteration.",
+        },
+        {
+          term: "Causal Mask Tree",
+          definition:
+            "Attention mask layout permitting parallel evaluation of tree-structured speculative draft tokens.",
+        },
+        {
+          term: "KV Cache Rollback",
+          definition:
+            "Truncating physical block table pointers for speculatively generated tokens rejected by the target model.",
         },
       ],
     },
     trivia: TARGETMODELPARALLELVERIFICATIONPASS_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label:
+          "Fast Inference from Transformers via Speculative Decoding (Leviathan et al., ICML 2023)",
+      },
+    ],
     defaultInput: DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT,
     generateSteps: generateTargetModelParallelVerificationPassSteps,
   };

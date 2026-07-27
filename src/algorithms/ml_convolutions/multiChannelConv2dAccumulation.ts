@@ -2,40 +2,83 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface multiChannelConv2dAccumulationInput {
-  data: number[];
-  target?: number;
+  image: number[][][];
+  kernels: number[][][][];
+  stride?: number;
+  padding?: number;
 }
 
 export const MULTICHANNELCONV2DACCUMULATION_CODE = `
-def multichannelconv2daccumulation(image_matrix, conv_kernel, stride=1, padding=0):
+def multi_channel_conv2d_accumulation(image, kernels, stride=1, padding=0):
     """
-    2D Convolution operator lowering to 2D matrix multiplication via im2col sliding windows.
+    Multi-Channel 2D Convolution Spatial & Cross-Channel Accumulation.
+    Performs standard multi-channel 2D convolution by sliding 3D kernel volumes (C_in, K_h, K_w)
+    over 3D input feature maps (C_in, H, W) and accumulating spatial cross-channel dot products
+    for each output feature channel (C_out).
     """
-    h_in, w_in = len(image_matrix), len(image_matrix[0])
-    k_h, k_w = len(conv_kernel), len(conv_kernel[0])
+    c_out = len(kernels)
+    c_in = len(kernels[0])
+    k_h, k_w = len(kernels[0][0]), len(kernels[0][0][0])
 
+    h_in, w_in = len(image[0]), len(image[0][0])
     h_out = (h_in + 2 * padding - k_h) // stride + 1
     w_out = (w_in + 2 * padding - k_w) // stride + 1
 
-    feature_map = [[0] * w_out for _ in range(h_out)]
+    output = [[[0.0] * w_out for _ in range(h_out)] for _ in range(c_out)]
 
-    for r in range(h_out):
-        for c in range(w_out):
-            acc_sum = 0
-            for kr in range(k_h):
-                for kc in range(k_w):
-                    ir = r * stride + kr - padding
-                    ic = c * stride + kc - padding
-                    if 0 <= ir < h_in and 0 <= ic < w_in:
-                        acc_sum += image_matrix[ir][ic] * conv_kernel[kr][kc]
-            feature_map[r][c] = acc_sum
+    for co in range(c_out):
+        for r in range(h_out):
+            for c in range(w_out):
+                acc = 0.0
+                for ci in range(c_in):
+                    for kr in range(k_h):
+                        for kc in range(k_w):
+                            ir = r * stride + kr - padding
+                            ic = c * stride + kc - padding
+                            if 0 <= ir < h_in and 0 <= ic < w_in:
+                                acc += image[ci][ir][ic] * kernels[co][ci][kr][kc]
+                output[co][r][c] = acc
 
-    return feature_map
+    return output
 `;
 
 export const DEFAULT_MULTICHANNELCONV2DACCUMULATION_INPUT: multiChannelConv2dAccumulationInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  image: [
+    [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+    ],
+    [
+      [2, 1, 0],
+      [1, 2, 1],
+      [0, 1, 2],
+    ],
+  ],
+  kernels: [
+    [
+      [
+        [1, 0],
+        [0, 1],
+      ],
+      [
+        [0, 1],
+        [1, 0],
+      ],
+    ],
+    [
+      [
+        [0, 1],
+        [1, 0],
+      ],
+      [
+        [1, 0],
+        [0, 1],
+      ],
+    ],
+  ],
+  stride: 1,
+  padding: 0,
 };
 
 export const generateMultiChannelConv2dAccumulationSteps = (
@@ -43,8 +86,26 @@ export const generateMultiChannelConv2dAccumulationSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+
+  const image = input.image;
+  const kernels = input.kernels;
+  const stride = input.stride ?? 1;
+  const padding = input.padding ?? 0;
+
+  const cOut = kernels.length;
+  const cIn = kernels[0].length;
+  const kH = kernels[0][0].length;
+  const kW = kernels[0][0][0].length;
+
+  const hIn = image[0].length;
+  const wIn = image[0][0].length;
+
+  const hOut = Math.floor((hIn + 2 * padding - kH) / stride) + 1;
+  const wOut = Math.floor((wIn + 2 * padding - kW) / stride) + 1;
+
+  const flatInput = image.flatMap((ch) => ch.flatMap((row) => row));
+  const elements: ArrayElement[] = flatInput.map((val, idx) => ({
+    id: `val-${idx}`,
     value: val,
     state: "default",
   }));
@@ -54,7 +115,7 @@ export const generateMultiChannelConv2dAccumulationSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    customState?: Record<string, string>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -62,16 +123,16 @@ export const generateMultiChannelConv2dAccumulationSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: elements.map((el) => ({ ...el })),
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "[(val*2)]",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          inputChannels: String(cIn),
+          outputChannels: String(cOut),
+          inputSize: `${hIn}x${wIn}`,
+          outputSize: `${hOut}x${wOut}`,
+          kernelSize: `${kH}x${kW}`,
+          ...customState,
         },
       },
       variables,
@@ -81,39 +142,53 @@ export const generateMultiChannelConv2dAccumulationSteps = (
   addStep(
     1,
     "Initialize Multi-Channel Conv2D Accumulator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Setting up cross-channel convolution loops over 3D kernel filters.",
+    { cIn, cOut, hIn, wIn, kH, kW, hOut, wOut, stride, padding },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const output: number[][][] = Array.from({ length: cOut }, () =>
+    Array.from({ length: hOut }, () => Array(wOut).fill(0)),
+  );
 
-    addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
-      currentElements,
-    );
-  });
+  for (let co = 0; co < cOut; co++) {
+    for (let r = 0; r < hOut; r++) {
+      for (let c = 0; c < wOut; c++) {
+        let acc = 0;
+        const channelAccs: number[] = [];
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+        for (let ci = 0; ci < cIn; ci++) {
+          let chSum = 0;
+          for (let kr = 0; kr < kH; kr++) {
+            for (let kc = 0; kc < kW; kc++) {
+              const ir = r * stride + kr - padding;
+              const ic = c * stride + kc - padding;
+              if (ir >= 0 && ir < hIn && ic >= 0 && ic < wIn) {
+                chSum += image[ci][ir][ic] * kernels[co][ci][kr][kc];
+              }
+            }
+          }
+          acc += chSum;
+          channelAccs.push(chSum);
+        }
+
+        output[co][r][c] = acc;
+
+        addStep(
+          20,
+          `Accumulate spatial dot products for Output Channel ${co}, position (${r}, ${c})`,
+          `Summed per-channel contributions [${channelAccs.join(", ")}] into output activation ${acc}.`,
+          { co, r, c, acc, channelAccs: channelAccs.join(",") },
+          { currentOutput: `Out[${co}][${r}][${c}] = ${acc}` },
+        );
+      }
+    }
+  }
 
   addStep(
-    6,
+    29,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    `Successfully accumulated cross-channel convolutions into ${cOut}x${hOut}x${wOut} feature map tensor.`,
     { completed: true },
-    finalElements,
   );
 
   return steps;
@@ -122,95 +197,112 @@ export const generateMultiChannelConv2dAccumulationSteps = (
 const MULTICHANNELCONV2DACCUMULATION_TRIVIA: TriviaMeta = {
   skipLines: [1],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "acc += image[ci][ir][ic] + kernels[co][ci][kr][kc]",
+    "output[co][r][c] = max(channelAccs)",
+    "if c_in != kernels.length: raise Exception()",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 20,
+      hint: "Cross-channel accumulation aggregates 2D spatial dot products across all input channels.",
+    },
+    { line: 29, hint: "Each output channel is computed by its own dedicated 3D kernel filter." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Multi-Channel Conv2D Accumulator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Entry point for multi-channel Conv2D accumulation algorithm.",
+    20: "Inner spatial and cross-channel accumulation loop.",
+    29: "Returns computed multi-channel feature map tensor.",
   },
 };
 
 export const multiChannelConv2dAccumulation: AlgorithmDefinition<multiChannelConv2dAccumulationInput> =
   {
-    id: "multi-channel-conv2d-accumulation",
+    id: "multiChannelConv2dAccumulation",
     title: "Multi-Channel Conv2D Accumulator",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "arrays_and_hashing"],
+    categories: ["ml_convolutions", "ml_hardware_kernels"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), multi-channel conv2d accumulator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    leetcode: { id: 48, url: "https://leetcode.com/problems/rotate-image/" },
-    sources: [
-      {
-        type: "leetcode",
-        kind: "leetcode",
-        id: 48,
-        title: "Rotate Image",
-        url: "https://leetcode.com/problems/rotate-image/",
-      },
+      "Multi-Channel 2D Convolution Accumulation performs the foundational tensor operation behind Convolutional Neural Networks (CNNs). Given a 3D input feature map of shape (C_in, H, W) and a 4D filter weight tensor of shape (C_out, C_in, K_h, K_w), the algorithm computes spatial dot products across all input channels for every output filter. For a given spatial pixel (r, c) and output channel c_out, the accumulated result is the sum over c_in, k_h, and k_w of image[c_in][r*stride + k_h][c*stride + k_w] * weight[c_out][c_in][k_h][k_w]. This accumulation forms the basis of feature extraction in VGG, ResNet, and ConvNeXt.\n\nInput Format:\n- image: 3D tensor of shape (C_in, H, W).\n- kernels: 4D filter tensor of shape (C_out, C_in, K_h, K_w).\n- stride: Spatial stride integer (default 1).\n- padding: Zero-padding width integer (default 0).\n\nOutput Format:\n- Returns a 3D output tensor of shape (C_out, H_out, W_out).\n\nEdge Cases & Constraints:\n- Boundary padding: Zero-padding fills out-of-bound image positions.\n- Spatial stride > 1: Reduces spatial output dimensions (H_out, W_out).\n- Linear scale: Computation scales linearly with C_out * C_in * H_out * W_out * K_h * K_w.",
+    constraints: [
+      "1 <= C_in, C_out <= 512",
+      "1 <= H, W <= 512",
+      "1 <= K_h, K_w <= 11",
+      "stride >= 1",
     ],
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
-      },
-      {
-        kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
-      },
-      {
-        kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "2 Input Channels, 2 Output Channels",
+        inputDisplay: "image: 2x3x3, kernels: 2x2x2x2",
+        outputDisplay: "output: 2x2x2",
+        input: DEFAULT_MULTICHANNELCONV2DACCUMULATION_INPUT,
+        output: "Tensor (2, 2, 2)",
+        explanation:
+          "Accumulates 2D spatial dot products across 2 input channels for 2 output feature maps.",
       },
     ],
     code: MULTICHANNELCONV2DACCUMULATION_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: {
+      best: "O(C_out * C_in * H_out * W_out * K_h * K_w)",
+      average: "O(C_out * C_in * H_out * W_out * K_h * K_w)",
+      worst: "O(C_out * C_in * H_out * W_out * K_h * K_w)",
+    },
+    spaceComplexity: "O(C_out * H_out * W_out)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "Performs exactly 2 * C_out * C_in * H_out * W_out * K_h * K_w floating point operations (FLOPs).",
+      space: "Allocates storage for the output feature map tensor of size C_out * H_out * W_out.",
     },
     topicGuide: {
-      overview: "Multi-channel conv sums spatial dot products across all input channels.",
+      overview:
+        "Multi-Channel 2D Convolution Accumulation aggregates spatial signals across input channels to synthesize high-level representations in deep neural networks.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Accumulates cross-channel convolution products over C_in channels.",
+          heading: "Overview",
+          body: "Unlike 2D grayscale convolutions, deep neural networks process multi-channel feature maps (e.g. RGB channels or internal hidden channels). Each output channel aggregates spatial features across all input channels.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts",
+          body: "1. 3D Kernel Filters: Each output channel has a 3D filter volume of shape (C_in, K_h, K_w).\n2. Cross-Channel Dot Product: For each spatial patch, 2D convolution is performed on each input channel, and outputs are summed across C_in.\n3. Bias Addition & Activation: In full layers, a scalar bias b[c_out] is added followed by non-linear activation (ReLU, GELU).",
+        },
+        {
+          heading: "Systems & Performance Impact",
+          body: "Multi-channel convolutions require high memory bandwidth when loaded directly. Hardware architectures (NVIDIA GPUs, Google TPUs) use loop tiling and SIMD accumulation registers to keep partial channel sums in hardware accumulators.",
+        },
+        {
+          heading: "Implementation Nuances",
+          body: "Memory layout order (NCHW vs NHWC) significantly alters cache contiguity. NHWC layout stores channels adjacent in memory, benefiting GEMM accumulation along inner vector loops.",
+        },
+        {
+          heading: "Edge Cases",
+          body: "Asymmetric kernel dimensions, padded spatial boundaries, single-channel inputs (C_in=1), and 1x1 convolutions.",
         },
       ],
       keyTerms: [
-        { term: "Channel Sum", definition: "Summing filter outputs across C_in channels." },
+        {
+          term: "Cross-Channel Accumulation",
+          definition: "Summing 2D spatial convolution outputs across all input channels C_in.",
+        },
+        {
+          term: "Feature Map",
+          definition:
+            "3D tensor representing spatial activation channels at a specific layer depth.",
+        },
+        {
+          term: "NCHW / NHWC Layout",
+          definition: "Tensor memory storage ordering (Channels-First vs Channels-Last).",
+        },
+        {
+          term: "Partial Sum Register",
+          definition:
+            "Hardware accumulator register used to store intermediate channel sums during loop execution.",
+        },
       ],
     },
     trivia: MULTICHANNELCONV2DACCUMULATION_TRIVIA,
-
     defaultInput: DEFAULT_MULTICHANNELCONV2DACCUMULATION_INPUT,
     generateSteps: generateMultiChannelConv2dAccumulationSteps,
   };

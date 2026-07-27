@@ -5,13 +5,14 @@ import {
   generateFusedDepthwiseSeparableConv2dEngineSteps,
 } from "./fusedDepthwiseSeparableConv2dEngine";
 
-describe("fused-depthwise-separable-conv2d-engine (Fused Depthwise Separable Conv2D Engine)", () => {
+describe("fusedDepthwiseSeparableConv2dEngine", () => {
   it("should have correct metadata", () => {
-    expect(fusedDepthwiseSeparableConv2dEngine.id).toBe("fused-depthwise-separable-conv2d-engine");
+    expect(fusedDepthwiseSeparableConv2dEngine.id).toBe("fusedDepthwiseSeparableConv2dEngine");
     expect(fusedDepthwiseSeparableConv2dEngine.isMlInfra).toBe(true);
     expect(fusedDepthwiseSeparableConv2dEngine.mlInfraLevel).toBe(8);
     expect(fusedDepthwiseSeparableConv2dEngine.mlInfraCategory).toBe("ml_convolutions");
     expect(fusedDepthwiseSeparableConv2dEngine.categories).toContain("ml_convolutions");
+    expect(fusedDepthwiseSeparableConv2dEngine.categories).toContain("ml_hardware_kernels");
   });
 
   it("should generate valid algorithm steps", () => {

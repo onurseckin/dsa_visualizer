@@ -266,7 +266,7 @@ export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySpli
       "Gini Impurity (Corrado Gini 1912, Leo Breiman CART 1984) is the default split metric in classification decision trees (scikit-learn DecisionTreeClassifier, Random Forest). Gini measures the probability that a randomly chosen element from the set would be incorrectly labeled if it were randomly labeled according to the distribution of labels in the subset.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
+        heading: "Overview & Mathematical Formulation",
         body: "Gini(S) = 1 - sum_{i=1}^C p_i^2 = sum_{i != j} p_i p_j. For binary classification with positive fraction p, Gini = 1 - (p^2 + (1-p)^2) = 2p(1-p).",
       },
       {
@@ -276,6 +276,10 @@ export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySpli
       {
         heading: "Weighted Child Gini & Split Selection",
         body: "Gini Gain = Gini(Parent) - [ (N_left / N) Gini(Left) + (N_right / N) Gini(Right) ]. CART searches for the feature threshold that maximizes Gini Gain.",
+      },
+      {
+        heading: "Implementation Nuances & Edge Cases",
+        body: "When child subsets contain zero samples (N_left = 0 or N_right = 0), the weighted Gini calculation must guard against division by zero by defining empty node impurity as 0.0.",
       },
     ],
     keyTerms: [
@@ -292,6 +296,11 @@ export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySpli
         term: "Gini Gain",
         definition:
           "Reduction in weighted Gini impurity achieved by splitting a node into child subsets.",
+      },
+      {
+        term: "Node Purity",
+        definition:
+          "Condition when all samples in a decision tree node belong to a single target class (Gini = 0.0).",
       },
     ],
   },

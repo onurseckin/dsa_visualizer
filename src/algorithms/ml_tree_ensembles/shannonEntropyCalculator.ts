@@ -194,7 +194,7 @@ export const shannonEntropyCalculator: AlgorithmDefinition<ShannonEntropyCalcula
       "Shannon Entropy (Claude Shannon 1948, Ross Quinlan ID3 1986) measures information content and disorder. In C4.5 decision trees, Information Gain IG(S, A) = H(S) - sum (|S_v| / |S|) H(S_v) measures the entropy reduction achieved by splitting on feature A.",
     sections: [
       {
-        heading: "Core Concept & Information Gain",
+        heading: "Overview & Information Gain",
         body: "Entropy H(S) = - sum p_i log2(p_i) measures average bits required to encode class labels. Information Gain IG selects the feature that maximizes entropy reduction.",
       },
       {
@@ -204,6 +204,10 @@ export const shannonEntropyCalculator: AlgorithmDefinition<ShannonEntropyCalcula
       {
         heading: "Entropy vs Gini Impurity",
         body: "Gini Impurity 1 - sum p_i^2 is computationally faster because it avoids `log2` evaluation, but entropy offers direct information-theoretic interpretation.",
+      },
+      {
+        heading: "Implementation Nuances & Zero Probability",
+        body: "As p_i approaches 0, p_i * log2(p_i) approaches 0 (by limit x log x -> 0 as x -> 0). Code implementations must check `if p > 0` to prevent `log2(0)` domain errors.",
       },
     ],
     keyTerms: [
@@ -219,6 +223,11 @@ export const shannonEntropyCalculator: AlgorithmDefinition<ShannonEntropyCalcula
         term: "Gain Ratio",
         definition:
           "C4.5 metric normalizing Information Gain by split entropy to prevent feature cardinality bias.",
+      },
+      {
+        term: "Bit (Unit of Information)",
+        definition:
+          "Standard unit measuring binary uncertainty; H = 1.0 bit for a 50/50 binary classification split.",
       },
     ],
   },

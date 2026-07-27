@@ -315,11 +315,19 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "Space and Time Efficiency",
-      body: "Each point update creates exactly log2(N) + 1 new nodes and takes O(log N) time. After K updates, total memory used is O(N + K log N).",
+      body: "Each point update creates exactly log2(N) + 1 new nodes and takes O(log N) time. After K updates, total memory used is O(N + K log N), which is vastly more space-efficient than cloning the entire tree (O(K * N)).",
     },
     {
-      heading: "Applications",
-      body: "Persistent Segment Trees are essential for solving advanced range problems like finding the kth smallest element in a subarray (Range Kth Smallest), spatial range queries, and undoing/rewinding data structure operations.",
+      heading: "Functional Immutability & Version Trees",
+      body: "Because nodes are never modified in place, previous root pointers remain permanently valid. This enables fully persistent data structures, allowing users to query any historical state or branch new update histories from any arbitrary version ID.",
+    },
+    {
+      heading: "Advanced Range Applications",
+      body: "Persistent Segment Trees are essential for solving advanced range problems like finding the kth smallest element in a subarray (Range Kth Smallest using Chairman Tree), spatial range queries, and undoing/rewinding data structure operations.",
+    },
+    {
+      heading: "Implementation Nuances & Garbage Collection",
+      body: "Memory allocation creates O(K log N) node instances. In languages like C++, node pools or smart pointers are recommended; in GC environments, roots must be referenced to prevent un-reachable versions from being swept.",
     },
   ],
   keyTerms: [
@@ -331,6 +339,20 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
       term: "Path Copying",
       definition:
         "Duplicating only the nodes along the update path while re-using existing nodes for unchanged subtrees.",
+    },
+    {
+      term: "Chairman Tree",
+      definition:
+        "A specialized persistent segment tree built over prefix frequencies used to solve Range Kth Smallest queries in O(log N) time.",
+    },
+    {
+      term: "Version History Tree",
+      definition: "The tree of version roots formed when updates branch off non-latest versions.",
+    },
+    {
+      term: "Fully Persistent vs Partially Persistent",
+      definition:
+        "Fully persistent structures allow modifications to any historical version; partially persistent structures allow modifications only to the latest version while permitting queries on all past versions.",
     },
   ],
 };

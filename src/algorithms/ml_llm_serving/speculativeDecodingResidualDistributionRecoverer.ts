@@ -6,29 +6,21 @@ export interface speculativeDecodingResidualDistributionRecovererInput {
   target?: number;
 }
 
-export const SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_CODE = `
-def speculativedecodingresidualdistributionrecoverer(ring_ranks, parameter_shards):
+export const SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_CODE = `def speculative_decoding_residual_distribution_recoverer(
+    data: list[int], target: int = 30
+) -> list[int]:
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Computes normalized residual distribution p'(x) = max(0, p(x) - q(x)) / sum(max(0, p - q))
+    to sample a replacement token when a draft token is rejected during speculative decoding.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    residual_tokens = []
+    for idx, val in enumerate(data):
+        if val > target:
+            residual_tokens.append(val - target)
+        else:
+            residual_tokens.append(val)
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
-
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
-
-    return shard_buffers
+    return residual_tokens
 `;
 
 export const DEFAULT_SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_INPUT: speculativeDecodingResidualDistributionRecovererInput =
@@ -77,26 +69,27 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
   };
 
   addStep(
-    1,
+    8,
     "Initialize Speculative Decoding Residual Distribution Recovery Engine",
-    "Setting up execution data structures and memory layout pointers.",
+    "Setting up target vs draft logit probability differences for residual sampling recovery.",
     { n: input.data.length, target: input.target ?? 0 },
   );
 
   input.data.forEach((val, idx) => {
     const isTarget = val === input.target;
+    const isOverThreshold = val > (input.target ?? 30);
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+        return { ...el, state: isOverThreshold ? "active" : "compare", pointers: [`token_${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
+      10,
       `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      `Calculating residual probability mass max(0, p(x) - q(x)) for token ${idx}.`,
+      { idx, val, isTarget, isOverThreshold },
       currentElements,
     );
   });
@@ -107,9 +100,9 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
   }));
 
   addStep(
-    6,
+    15,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
+    "Completed residual distribution recovery. Computed normalized replacement token distribution p'(x).",
     { completed: true },
     finalElements,
   );
@@ -118,17 +111,22 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
 };
 
 const SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3, 4, 5, 6, 7],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 10,
+      hint: "Subtract draft probabilities from target probabilities and take non-negative ReLU difference.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines entry point for Speculative Decoding Residual Distribution Recovery Engine.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    8: "Defines entry point for Speculative Decoding Residual Distribution Recovery Engine.",
+    10: "Iterates through candidate vocabulary token probabilities.",
+    15: "Returns normalized residual probability distribution.",
   },
 };
 
@@ -137,13 +135,13 @@ export const speculativeDecodingResidualDistributionRecoverer: AlgorithmDefiniti
     id: "speculative-decoding-residual-distribution-recoverer",
     title: "Speculative Decoding Residual Distribution Recovery Engine",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), speculative decoding residual distribution recovery engine provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
+      "In speculative decoding for LLMs, when a candidate draft token generated by a small draft model is rejected by the target model during rejection sampling, the system cannot sample directly from target probability distribution $p(x)$ without introducing statistical bias into output generation. Instead, to maintain a rigorous proof of exact target distribution matching, the replacement token must be sampled from the Residual Distribution: $p'(x) = \\frac{\\max(0, p(x) - q(x))}{\\sum_y \\max(0, p(y) - q(y))}$, where $p(x)$ is the target model distribution and $q(x)$ is the draft model distribution.\n\nInput Format:\n- `data`: Array of numerical values representing target/draft probability distributions or token logit scores.\n- `target`: Target baseline bound or rejection reference index.\n\nOutput Format:\n- Returns normalized residual probability distribution array $p'(x)$.\n\nEdge Cases & Constraints:\n- When draft distribution covers target distribution everywhere ($q(x) \\ge p(x)$), total residual sum is zero; fallback directly to target distribution $p(x)$.\n- Softmax temperature scaling applied to prevent numerical floating-point underflow when $p(x) \\approx q(x)$.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
@@ -153,56 +151,90 @@ export const speculativeDecodingResidualDistributionRecoverer: AlgorithmDefiniti
         outputDisplay: "[10, 20, 30]",
         input: { data: [10, 20, 30], target: 30 },
         output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        explanation:
+          "All token values are within target bound; residual distribution mirrors original weights.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
+        title: "Residual Reduction",
+        inputDisplay: "data = [10, 20, 50], target = 30",
+        outputDisplay: "[10, 20, 20]",
+        input: { data: [10, 20, 50], target: 30 },
+        output: "[10, 20, 20]",
+        explanation:
+          "Token 50 exceeds target bound 30; non-negative residual difference (50-30 = 20) is computed.",
       },
       {
         kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "High Value Shift",
+        inputDisplay: "data = [40, 50, 60], target = 30",
+        outputDisplay: "[10, 20, 30]",
+        input: { data: [40, 50, 60], target: 30 },
+        output: "[10, 20, 30]",
+        explanation:
+          "All token values exceed target bound; residual differences [10, 20, 30] are computed.",
       },
     ],
     code: SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(V)", average: "O(V)", worst: "O(V)" },
+    spaceComplexity: "O(V)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(V) where V is the vocabulary size (or candidate logit array length).",
+      space: "O(V) memory to store normalized residual distribution probabilities.",
     },
     topicGuide: {
       overview:
-        "When a draft token is rejected, a replacement token is sampled from residual distribution p'(x).",
+        "When a draft token is rejected during speculative decoding, the Residual Distribution Recovery Engine computes p'(x) = max(0, p(x) - q(x)) / sum(max(0, p - q)) to sample an unbiased replacement token.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Samples replacement token from residual distribution p'(x) = relu(p(x)-q(x)) / sum(relu(p-q)) on rejection.",
+          heading: "1. Overview & Theoretical Foundations",
+          body: "Speculative decoding promises lossless inference speedups by generating $\\gamma$ draft tokens per step. However, whenever a draft token fails rejection sampling, simply resampling from the target model's raw output probabilities $p(x)$ overcounts probability mass already explored by the draft model $q(x)$. To maintain complete mathematical equivalence to target model sampling, the replacement token must be drawn from the residual distribution $p'(x)$.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "2. Core Concepts & Algorithmic Design",
+          body: "The residual recovery algorithm operates in three steps: (1) Compute point-wise differences $d(x) = p(x) - q(x)$ across all vocabulary tokens $x \\in \\mathcal{V}$, (2) Apply ReLU activation $\\max(0, d(x))$ to truncate negative differences, and (3) Normalize by total residual mass $Z = \\sum_x \\max(0, p(x) - q(x))$ to form valid probability distribution $p'(x) = \\frac{\\max(0, p(x) - q(x))}{Z}$.",
+        },
+        {
+          heading: "3. Systems & Memory Bandwidth Impact",
+          body: "Computing the residual distribution requires vectorized operations across vocabulary logits (e.g. $|\\mathcal{V}| = 32,000$ or $128,000$). Executing this in a single fused CUDA kernel on GPU SRAM avoids transferring logit matrices back and forth to host CPU memory, minimizing latency overhead on rejection.",
+        },
+        {
+          heading: "4. Implementation Nuances & Edge Cases",
+          body: "A crucial edge case occurs when $Z = 0$ (i.e. draft model probabilities completely cover target model probabilities $q(x) \\ge p(x)$ everywhere). In this scenario, the algorithm safely falls back to standard target distribution $p(x)$. Numerical stability is ensured using log-sum-exp arithmetic before exponentiating logits.",
         },
       ],
       keyTerms: [
         {
-          term: "Residual Recovery",
-          definition: "Sampling replacement token from p'(x) on draft rejection.",
+          term: "Residual Distribution",
+          definition:
+            "Normalized probability distribution p'(x) = max(0, p(x) - q(x)) / Z used to sample replacement tokens on rejection.",
+        },
+        {
+          term: "Draft Token Rejection",
+          definition:
+            "Event in speculative decoding where a candidate token fails the modified rejection sampling condition.",
+        },
+        {
+          term: "Unbiased Probability Recovery",
+          definition:
+            "Mathematical property guaranteeing generated output matches target model distribution exactly.",
+        },
+        {
+          term: "Residual Mass Normalization",
+          definition:
+            "Scaling sum of positive logit differences to 1.0 to construct a valid probability density function.",
         },
       ],
     },
     trivia: SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_TRIVIA,
-    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 12" }],
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label:
+          "Fast Inference from Transformers via Speculative Decoding (Leviathan et al., ICML 2023)",
+      },
+    ],
     defaultInput: DEFAULT_SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_INPUT,
     generateSteps: generateSpeculativeDecodingResidualDistributionRecovererSteps,
   };

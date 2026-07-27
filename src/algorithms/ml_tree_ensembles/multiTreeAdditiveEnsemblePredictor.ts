@@ -221,7 +221,7 @@ export const multiTreeAdditiveEnsemblePredictor: AlgorithmDefinition<MultiTreeAd
         "Gradient Boosted Decision Trees (Friedman 2001) construct models additively F_K(x) = sum_{k=1}^K eta f_k(x). During inference, a test sample routes through K trees simultaneously, accumulating leaf weights into a final margin prediction.",
       sections: [
         {
-          heading: "Core Concept & Shrinkage (Learning Rate)",
+          heading: "Overview & Shrinkage (Learning Rate)",
           body: "Shrinkage parameter eta scales the contribution of each newly added tree f_k(x), preventing early trees from dominating the model and reducing overfitting.",
         },
         {
@@ -231,6 +231,10 @@ export const multiTreeAdditiveEnsemblePredictor: AlgorithmDefinition<MultiTreeAd
         {
           heading: "Systems & SIMD Batch Vectorization",
           body: "Production inference engines (Treelite, XGBoost C++ Predictor) compile decision tree structures into SIMD assembly or C code, evaluating batch queries across CPU threads.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "When treeLeafValues array is empty (K = 0), the predictor returns baseScore as the raw margin and sigmoid(baseScore) as the classification probability.",
         },
       ],
       keyTerms: [
@@ -248,6 +252,11 @@ export const multiTreeAdditiveEnsemblePredictor: AlgorithmDefinition<MultiTreeAd
           term: "Margin Prediction",
           definition:
             "Unbounded linear sum z before transformation by sigmoid/exponential link functions.",
+        },
+        {
+          term: "Base Score",
+          definition:
+            "Initial baseline prediction value (e.g. 0.0 or log-odds of prior label probability) before adding tree outputs.",
         },
       ],
     },

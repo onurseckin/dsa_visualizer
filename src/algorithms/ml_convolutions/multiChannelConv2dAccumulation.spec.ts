@@ -5,13 +5,14 @@ import {
   generateMultiChannelConv2dAccumulationSteps,
 } from "./multiChannelConv2dAccumulation";
 
-describe("multi-channel-conv2d-accumulation (Multi-Channel Conv2D Accumulator)", () => {
+describe("multiChannelConv2dAccumulation", () => {
   it("should have correct metadata", () => {
-    expect(multiChannelConv2dAccumulation.id).toBe("multi-channel-conv2d-accumulation");
+    expect(multiChannelConv2dAccumulation.id).toBe("multiChannelConv2dAccumulation");
     expect(multiChannelConv2dAccumulation.isMlInfra).toBe(true);
     expect(multiChannelConv2dAccumulation.mlInfraLevel).toBe(8);
     expect(multiChannelConv2dAccumulation.mlInfraCategory).toBe("ml_convolutions");
     expect(multiChannelConv2dAccumulation.categories).toContain("ml_convolutions");
+    expect(multiChannelConv2dAccumulation.categories).toContain("ml_hardware_kernels");
   });
 
   it("should generate valid algorithm steps", () => {

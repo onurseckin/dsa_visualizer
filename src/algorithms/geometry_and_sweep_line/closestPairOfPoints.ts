@@ -247,7 +247,19 @@ const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "At Most 6 Candidates Geometry Proof",
-      body: "Due to packing arguments, a rectangle of dimensions delta x 2-delta can contain at most 6 points whose pairwise distances are all at least delta. Thus each point compares against at most 6 active candidates.",
+      body: "Due to geometric packing arguments, a rectangle of dimensions delta x 2-delta can contain at most 6 points whose pairwise distances are all at least delta. Thus each point compares against at most 6 active candidates in the Y-ordered set.",
+    },
+    {
+      heading: "Sweep Line vs Divide-and-Conquer",
+      body: "The classical divide-and-conquer algorithm splits points recursively around a median X coordinate, taking O(N log N) time with merge steps. The sweep line approach achieves the exact same O(N log N) runtime in a single online pass with a dynamic Y-balanced tree or sliding window.",
+    },
+    {
+      heading: "Systems Applications & Collision Detection",
+      body: "Finding closest pairs powers spatial databases, air traffic collision avoidance systems, N-body physics simulations, computational chemistry molecular modeling, and clustering algorithms.",
+    },
+    {
+      heading: "Implementation Nuances & Precision",
+      body: "Distance comparisons can use squared distance (dx*dx + dy*dy < delta*delta) to avoid computing expensive square roots during intermediate loop steps, evaluating square roots only for final output.",
     },
   ],
   keyTerms: [
@@ -260,6 +272,21 @@ const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
       term: "Active Window Strip",
       definition:
         "A sliding subset of points lying within delta X-distance from the current sweep point.",
+    },
+    {
+      term: "Packing Argument",
+      definition:
+        "Geometric proof bounding the maximum density of points separated by at least delta to at most 6 points per strip box.",
+    },
+    {
+      term: "Divide-and-Conquer Geometry",
+      definition:
+        "Algorithmic paradigm bisecting point sets by median X-coordinate and merging strip boundaries in linear time.",
+    },
+    {
+      term: "Squared Distance Metric",
+      definition:
+        "Comparing dx^2 + dy^2 < delta^2 to skip square root calculations until the final candidate distance extraction.",
     },
   ],
 };

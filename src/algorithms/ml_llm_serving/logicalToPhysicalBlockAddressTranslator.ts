@@ -2,39 +2,42 @@ import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../typ
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface logicalToPhysicalBlockAddressTranslatorInput {
-  data: number[];
-  target?: number;
+  token_index: number;
+  block_size: number;
+  block_table: number[];
 }
 
 export const LOGICALTOPHYSICALBLOCKADDRESSTRANSLATOR_CODE = `
-def logicaltophysicalblockaddresstranslator(ring_ranks, parameter_shards):
+def logical_to_physical_block_address_translator(token_index, block_size=16, block_table=None):
     """
-    Ring-AllReduce collective communications and vLLM PagedAttention virtual memory translation.
+    Translates a logical sequence token index into physical GPU VRAM block address and offset using PagedAttention.
     """
-    num_nodes = len(ring_ranks)
-    shard_buffers = [list(shard) for shard in parameter_shards]
+    if block_table is None:
+        block_table = [102, 405, 89]
 
-    # Phase 1: Scatter-Reduce across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] += shard_buffers[rank][send_idx]
+    logical_block_idx = token_index // block_size
+    block_offset = token_index % block_size
 
-    # Phase 2: AllGather across circular ring topology
-    for step in range(num_nodes - 1):
-        for rank in range(num_nodes):
-            send_idx = (rank - step + 1) % num_nodes
-            recv_rank = (rank + 1) % num_nodes
-            shard_buffers[recv_rank][send_idx] = shard_buffers[rank][send_idx]
+    if logical_block_idx >= len(block_table):
+        raise IndexError("Token index exceeds allocated logical block table bounds")
 
-    return shard_buffers
+    physical_block_id = block_table[logical_block_idx]
+    physical_token_slot = physical_block_id * block_size + block_offset
+
+    return {
+        'token_index': token_index,
+        'logical_block_idx': logical_block_idx,
+        'block_offset': block_offset,
+        'physical_block_id': physical_block_id,
+        'physical_token_slot': physical_token_slot
+    }
 `;
 
 export const DEFAULT_LOGICALTOPHYSICALBLOCKADDRESSTRANSLATOR_INPUT: logicalToPhysicalBlockAddressTranslatorInput =
   {
-    data: [10, 20, 30, 40, 50],
-    target: 30,
+    token_index: 35,
+    block_size: 16,
+    block_table: [102, 405, 89],
   };
 
 export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
@@ -42,9 +45,10 @@ export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
+
+  const elements: ArrayElement[] = input.block_table.map((physId, logIdx) => ({
+    id: `block-${logIdx}`,
+    value: `Logical Block ${logIdx} -> Physical Block #${physId}`,
     state: "default",
   }));
 
@@ -68,8 +72,9 @@ export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          token_index: String(input.token_index),
+          block_size: String(input.block_size),
+          block_table: `[${input.block_table.join(", ")}]`,
         },
       },
       variables,
@@ -79,38 +84,69 @@ export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
   addStep(
     1,
     "Initialize PagedAttention Logical to Physical Address Translator",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Loading input token index t, block size B, and sequence block table.",
+    { token_index: input.token_index, block_size: input.block_size },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  const logicalBlockIdx = Math.floor(input.token_index / input.block_size);
+  const blockOffset = input.token_index % input.block_size;
 
+  const currentElements = elements.map((el) => ({ ...el }));
+
+  addStep(
+    11,
+    `Calculate Logical Block Index and Offset for token t=${input.token_index}`,
+    `Logical block index = floor(${input.token_index} / ${input.block_size}) = ${logicalBlockIdx}. Offset within block = ${input.token_index} mod ${input.block_size} = ${blockOffset}.`,
+    {
+      token_index: input.token_index,
+      logical_block_idx: logicalBlockIdx,
+      block_offset: blockOffset,
+    },
+  );
+
+  if (logicalBlockIdx >= input.block_table.length) {
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} against target condition.`,
-      { idx, val, isTarget },
+      14,
+      "IndexError: Token index exceeds block table bounds",
+      "Token index requires more logical blocks than currently allocated in sequence block table.",
+      { logical_block_idx: logicalBlockIdx, table_length: input.block_table.length },
       currentElements,
     );
-  });
+    return steps;
+  }
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
+  const physicalBlockId = input.block_table[logicalBlockIdx];
+  const physicalTokenSlot = physicalBlockId * input.block_size + blockOffset;
+
+  currentElements[logicalBlockIdx] = {
+    ...currentElements[logicalBlockIdx],
+    state: "active",
+    pointers: [`TARGET_BLOCK`, `phys_id=${physicalBlockId}`, `slot=${physicalTokenSlot}`],
+  };
+
+  addStep(
+    16,
+    `Lookup Physical Block ID #${physicalBlockId} in Block Table`,
+    `Block table at index ${logicalBlockIdx} maps to GPU physical VRAM block #${physicalBlockId}.`,
+    { logical_block_idx: logicalBlockIdx, physical_block_id: physicalBlockId },
+    currentElements,
+  );
+
+  const finalElements = currentElements.map((el) => ({
     ...el,
-    state: "sorted",
+    state: "sorted" as const,
   }));
 
   addStep(
-    6,
+    17,
     "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
+    `Address translation complete. Logical token index ${input.token_index} translates to Physical VRAM Slot ${physicalTokenSlot} (Block #${physicalBlockId}, Offset ${blockOffset}).`,
+    {
+      token_index: input.token_index,
+      physical_block_id: physicalBlockId,
+      block_offset: blockOffset,
+      physical_token_slot: physicalTokenSlot,
+    },
     finalElements,
   );
 
@@ -118,17 +154,24 @@ export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
 };
 
 const LOGICALTOPHYSICALBLOCKADDRESSTRANSLATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 2, 3],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "logical_block_idx = token_index % block_size # confusing modulo and division",
+    "physical_token_slot = physical_block_id + block_offset # missing block_size stride multiplier",
+    "block_offset = token_index // block_size",
   ],
-  hints: [{ line: 4, hint: "Process elements sequentially in flat memory." }],
+  hints: [
+    {
+      line: 11,
+      hint: "Logical block index is floor(token_index / block_size); offset is token_index % block_size.",
+    },
+  ],
   lineExplanations: {
-    1: "Defines entry point for PagedAttention Logical to Physical Address Translator.",
-    4: "Iterates through the primary data structure.",
-    6: "Returns computed result array.",
+    1: "Entry point for PagedAttention Logical to Physical Address Translator.",
+    11: "Calculates logical block index and token offset within block.",
+    14: "Validates that requested logical block exists within allocated sequence block table.",
+    16: "Retrieves physical block ID from sequence logical block table.",
+    17: "Calculates absolute physical VRAM token slot index.",
   },
 };
 
@@ -137,67 +180,95 @@ export const logicalToPhysicalBlockAddressTranslator: AlgorithmDefinition<logica
     id: "logical-to-physical-block-address-translator",
     title: "PagedAttention Logical to Physical Address Translator",
     category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "heap_and_priority_queue"],
+    categories: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Easy",
     isMlInfra: true,
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), pagedattention logical to physical address translator provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+      "PagedAttention (Kwon et al., vLLM) introduces virtual memory paging to LLM serving KV-caches. In traditional LLM serving engines, KV-cache memory for a request is allocated as a contiguous memory block in GPU VRAM based on the maximum context length (e.g. 4096 tokens). Because actual sequence lengths are unpredictable, this causes severe external and internal memory fragmentation (wasting 60%-80% of VRAM).\n\nPagedAttention divides the KV cache into fixed-size physical blocks (e.g., B = 16 tokens per block). Non-contiguous physical GPU VRAM blocks are mapped to contiguous logical token indices via per-sequence Block Tables. For any logical token index t:\n  1. Logical Block Index: i_logical = floor(t / B)\n  2. Block Offset: o = t mod B\n  3. Physical Block ID: P = BlockTable[i_logical]\n  4. Absolute Physical VRAM Slot: Slot_phys = P * B + o\n\nInput Format:\n- token_index: Logical integer index of token t in sequence (0-indexed).\n- block_size: Number of tokens stored per physical block B (e.g. 16).\n- block_table: Array mapping logical block index -> physical GPU block ID.\n\nOutput Format:\n- Returns a dictionary with token_index, logical_block_idx, block_offset, physical_block_id, and physical_token_slot.\n\nEdge Cases & Constraints:\n- Out-of-bounds access: If logical_block_idx >= block_table.length, raises IndexError (triggering page fault allocation).\n- Block alignment: Token index 0 maps to physical_block_id = block_table[0] with offset 0.",
+    constraints: [
+      "0 <= token_index <= 1048576",
+      "1 <= block_size <= 64",
+      "1 <= block_table.length <= 65536",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "Processes standard input array cleanly.",
+        title: "Token Index 35 in Block Size 16 Table",
+        inputDisplay: "token_index=35, block_size=16, block_table=[102, 405, 89]",
+        outputDisplay: "Logical Block: 2, Offset: 3, Physical Block ID: 89, Physical Slot: 1427",
+        input: {
+          token_index: 35,
+          block_size: 16,
+          block_table: [102, 405, 89],
+        },
+        output: "Physical Block: 89, Slot: 1427",
+        explanation:
+          "35 // 16 = block 2. 35 % 16 = offset 3. BlockTable[2] = 89. Physical slot = 89 * 16 + 3 = 1427.",
       },
       {
         kind: "complex",
-        title: "Larger Data Input",
-        inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-        outputDisplay: "[1, 2, 3, 4, 5]",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation: "Evaluates larger array with 5 elements.",
-      },
-      {
-        kind: "negative",
-        title: "Edge Case Target Not Found",
-        inputDisplay: "data = [5, 10, 15], target = 99",
-        outputDisplay: "[5, 10, 15]",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Target is absent from memory, processing finishes safely.",
+        title: "First Token Alignment",
+        inputDisplay: "token_index=0, block_size=16, block_table=[50]",
+        outputDisplay: "Logical Block: 0, Offset: 0, Physical Block ID: 50, Slot: 800",
+        input: {
+          token_index: 0,
+          block_size: 16,
+          block_table: [50],
+        },
+        output: "Physical Block: 50, Slot: 800",
+        explanation:
+          "Token 0 maps directly to physical block 50 at offset 0 (slot = 50 * 16 + 0 = 800).",
       },
     ],
     code: LOGICALTOPHYSICALBLOCKADDRESSTRANSLATOR_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-    spaceComplexity: "O(N)",
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
     complexityAnalysis: {
-      time: "Linear time pass across input elements.",
-      space: "Linear memory allocation for result structures.",
+      time: "O(1) constant time integer division and array lookup.",
+      space: "O(1) constant memory allocation.",
     },
     topicGuide: {
       overview:
-        "Logical token t maps to physical block table entry via floor(t / B) and offset t % B.",
+        "PagedAttention Address Translators map dynamic, contiguous logical token indices into non-contiguous physical GPU VRAM memory pages.",
       sections: [
         {
-          heading: "Core Concept",
-          body: "Translates logical token index t into physical address Addr(t) = BlockPtr * B + (t % B).",
+          heading: "Overview",
+          body: "Virtual memory is a foundational concept in Operating Systems that translates virtual addresses to physical RAM pages via page tables. PagedAttention adapts this concept to GPU VRAM for Large Language Model serving. Instead of requiring contiguous memory for growing KV-caches, PagedAttention allocates fixed-size memory blocks dynamically.",
         },
         {
-          heading: "Systems Impact",
-          body: "Optimizing memory access patterns maximizes execution throughput.",
+          heading: "Core Concepts",
+          body: "Each sequence maintains a Logical Block Table. Given token index t and block size B, the translator computes: Logical Block Index i = floor(t / B), Offset o = t mod B, Physical Block P = Table[i], and Physical Slot = P * B + o.",
+        },
+        {
+          heading: "Systems & Memory Bandwidth Impact",
+          body: "PagedAttention reduces VRAM memory fragmentation from 60-80% down to under 4% (limited only to the last un-filled block of a sequence). This space reclamation enables serving engines to increase batch sizes by 2x-4x, doubling total system output throughput.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Key system details include selecting block size B (B=16 or B=32 balances memory overhead against GPU SIMD cache line locality), Copy-on-Write for branch forks in parallel beam search, and low-latency CUDA kernel execution.",
         },
       ],
       keyTerms: [
         {
-          term: "Address Translation",
-          definition: "Mapping logical token index to physical GPU VRAM address.",
+          term: "PagedAttention Virtual Memory",
+          definition:
+            "Memory management technique storing KV caches in non-contiguous physical GPU blocks.",
+        },
+        {
+          term: "Logical Block Table",
+          definition:
+            "Per-sequence page table mapping sequence logical block indices to GPU physical block IDs.",
+        },
+        {
+          term: "Physical Block ID",
+          definition: "Unique index identifying a fixed-size memory page in GPU VRAM pool.",
+        },
+        {
+          term: "Block Offset",
+          definition:
+            "Relative position of a token within a physical KV block (0 <= offset < block_size).",
         },
       ],
     },

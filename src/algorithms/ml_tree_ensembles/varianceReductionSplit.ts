@@ -230,7 +230,7 @@ export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitI
       "Variance Reduction is the regression equivalent of Gini Impurity reduction. Regression trees (DecisionTreeRegressor, GradientBoostingRegressor) evaluate candidate split thresholds to minimize mean squared error (MSE) or variance in child nodes.",
     sections: [
       {
-        heading: "Core Concept & Mean Squared Error (MSE)",
+        heading: "Overview & Mean Squared Error (MSE)",
         body: "Minimizing child node MSE is mathematically equivalent to maximizing Variance Reduction VR = Var(Parent) - [ (N_L/N) Var(Left) + (N_R/N) Var(Right) ].",
       },
       {
@@ -240,6 +240,10 @@ export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitI
       {
         heading: "Incremental Running Sum Computation",
         body: "By maintaining running sums sum(y) and sum(y^2), child variances Var = (sum(y^2) / n) - (sum(y) / n)^2 can be evaluated in O(1) time per split point.",
+      },
+      {
+        heading: "Implementation Nuances & Single Sample Variance",
+        body: "A leaf node with a single sample (N = 1) has zero target variance (Var = 0.0). Empty subsets must be guarded to avoid division by zero.",
       },
     ],
     keyTerms: [
@@ -257,6 +261,11 @@ export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitI
         term: "Mean Squared Error (MSE)",
         definition:
           "Loss metric measuring average squared difference between true targets and predicted leaf means.",
+      },
+      {
+        term: "Running Moment Sums",
+        definition:
+          "Maintaining sum(y) and sum(y^2) accumulators for O(1) online sample variance update.",
       },
     ],
   },

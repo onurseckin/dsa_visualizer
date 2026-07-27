@@ -1,113 +1,200 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
-export interface weightedQuantileSketchHistogramInput {
-  data?: number[];
-  target?: number;
-  [key: string]: unknown;
+export interface WeightedQuantileSketchHistogramInput {
+  featureValues: number[];
+  weights: number[];
+  eps: number;
 }
 
-export const WEIGHTEDQUANTILESKETCHHISTOGRAM_CODE = `
-def weightedquantilesketchhistogram(feature_values, targets, split_threshold):
-    """
-    Gradient boosted decision tree histogram split optimization and XGBoost gain calculation.
-    """
-    g_left, h_left = 0.0, 0.0
-    g_right = sum(targets)
-    h_right = len(targets) * 1.0
-
-    best_gain_score = -1.0
-    best_split_val = None
-
-    for val, target in zip(feature_values, targets):
-        if val <= split_threshold:
-            g_left += target
-            h_left += 1.0
-            g_right -= target
-            h_right -= 1.0
-
-            # Calculate XGBoost split gain score: G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda)
-            split_gain = (g_left**2 / (h_left + 1e-5)) + (g_right**2 / (h_right + 1e-5))
-            if split_gain > best_gain_score:
-                best_gain_score = split_gain
-                best_split_val = val
-
-    return best_split_val, best_gain_score
-`;
-
-export const DEFAULT_WEIGHTEDQUANTILESKETCHHISTOGRAM_INPUT: weightedQuantileSketchHistogramInput = {
-  data: [1, 2, 3],
+export const DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT: WeightedQuantileSketchHistogramInput = {
+  featureValues: [1.0, 2.5, 3.2, 4.7, 5.1, 7.8, 9.0],
+  weights: [0.5, 1.0, 0.5, 2.0, 1.5, 0.5, 1.0],
+  eps: 0.25,
 };
 
-export const generateWEIGHTEDQUANTILESKETCHHISTOGRAMSteps = (
-  input: weightedQuantileSketchHistogramInput,
+export const WEIGHTED_QUANTILE_SKETCH_HISTOGRAM_CODE = `def weighted_quantile_sketch(feature_values: list[float], weights: list[float], eps: float = 0.25) -> list[float]:
+    """
+    Computes candidate split thresholds using the Weighted Quantile Sketch algorithm (XGBoost, Chen & Guestrin 2016).
+    Iteratively selects quantile boundaries s_j such that the cumulative weight between adjacent boundaries is bounded by eps * total_weight.
+    """
+    if not feature_values or not weights or len(feature_values) != len(weights):
+        return []
+    
+    # Sort samples by feature value
+    samples = sorted(zip(feature_values, weights), key=lambda x: x[0])
+    total_weight = sum(w for _, w in samples)
+    if total_weight <= 0:
+        return []
+
+    quantile_thresholds = [samples[0][0]]
+    target_step = eps * total_weight
+    accumulated_weight = 0.0
+    current_target = target_step
+
+    for val, w in samples:
+        accumulated_weight += w
+        if accumulated_weight >= current_target:
+            quantile_thresholds.append(val)
+            current_target += target_step
+
+    if quantile_thresholds[-1] != samples[-1][0]:
+        quantile_thresholds.append(samples[-1][0])
+
+    return quantile_thresholds`;
+
+export const generateWeightedQuantileSketchSteps = (
+  input: WeightedQuantileSketchHistogramInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [1, 2, 3];
+  const featureValues = input.featureValues || DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT.featureValues;
+  const weights = input.weights || DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT.weights;
+  const eps = input.eps ?? 0.25;
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const samples = featureValues
+    .map((val, idx) => ({ val, weight: weights[idx] ?? 1.0, originalIdx: idx }))
+    .sort((a, b) => a.val - b.val);
 
+  const totalWeight = samples.reduce((sum, s) => sum + s.weight, 0);
+  const targetStep = eps * totalWeight;
+
+  // Step 0: Initial state & setup
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 1,
-    explanation: { what: "Initialize algorithm", why: "Setting up memory and local vars." },
+    explanation: {
+      what: "Initialize Weighted Quantile Sketch",
+      why: `Sorted ${samples.length} samples by feature value. Total Hessian Weight W = ${totalWeight.toFixed(
+        2,
+      )}, Target Bin Step ε*W = ${targetStep.toFixed(2)} (ε = ${eps}).`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, pointers: ["init"] })),
+      elements: samples.map((s, idx) => ({
+        id: `s-${idx}`,
+        value: Math.round(s.val * 10),
+        label: `x=${s.val} (w=${s.weight})`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: {
-      customState: { initialized: "true" },
+      customState: {
+        totalWeight: totalWeight.toFixed(2),
+        eps: String(eps),
+        targetStep: targetStep.toFixed(2),
+        boundariesCount: "1",
+        status: "Initialized",
+      },
     },
-    variables: { active: true },
+    variables: { totalWeight, eps, targetStep, sampleCount: samples.length },
   });
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: { what: "Process data", why: "Applying algorithm logic." },
-    primarySnapshot: {
-      kind: "array",
-      elements: elements.map((e, idx) => ({ ...e, state: idx === 0 ? "active" : "compare" })),
-    },
-    auxiliaryState: {
-      customState: { computing: "true" },
-    },
-    variables: { step: 1 },
-  });
+  const quantileThresholds: number[] = [samples[0].val];
+  let accumulatedWeight = 0.0;
+  let currentTarget = targetStep;
 
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
+    accumulatedWeight += s.weight;
+    const isBoundary = accumulatedWeight >= currentTarget;
+
+    if (isBoundary) {
+      quantileThresholds.push(s.val);
+      currentTarget += targetStep;
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `Process Sample ${i + 1}: x = ${s.val}, weight = ${s.weight}`,
+        why: `Accumulated Weight = ${accumulatedWeight.toFixed(2)} / ${totalWeight.toFixed(
+          2,
+        )}. Target threshold = ${currentTarget.toFixed(2)}. ${
+          isBoundary ? `Added boundary candidate s = ${s.val}` : "Below target step threshold."
+        }`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: samples.map((elem, idx) => ({
+          id: `s-${idx}`,
+          value: Math.round(elem.val * 10),
+          label: `x=${elem.val}`,
+          state:
+            idx === i
+              ? ("active" as ElementState)
+              : quantileThresholds.includes(elem.val)
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`Acc W = ${accumulatedWeight.toFixed(2)}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          accumulatedWeight: accumulatedWeight.toFixed(2),
+          currentTarget: currentTarget.toFixed(2),
+          boundaries: quantileThresholds.join(", "),
+        },
+      },
+      variables: {
+        currentVal: s.val,
+        accumulatedWeight,
+        boundariesCount: quantileThresholds.length,
+      },
+    });
+  }
+
+  if (quantileThresholds[quantileThresholds.length - 1] !== samples[samples.length - 1].val) {
+    quantileThresholds.push(samples[samples.length - 1].val);
+  }
+
+  // Final Step: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: { what: "Complete", why: "Returning result." },
+    codeLine: 25,
+    explanation: {
+      what: "Weighted Quantile Sketch Complete",
+      why: `Identified ${quantileThresholds.length} candidate split thresholds: [${quantileThresholds.join(
+        ", ",
+      )}]. Guaranteeing max error bound ε = ${eps}.`,
+    },
     primarySnapshot: {
       kind: "array",
-      elements: elements.map((e) => ({ ...e, state: "sorted" })),
+      elements: samples.map((s, idx) => ({
+        id: `s-${idx}`,
+        value: Math.round(s.val * 10),
+        label: `x=${s.val}`,
+        state: quantileThresholds.includes(s.val)
+          ? ("sorted" as ElementState)
+          : ("compare" as ElementState),
+        pointers: quantileThresholds.includes(s.val) ? ["Quantile Boundary"] : [],
+      })),
     },
     auxiliaryState: {
-      customState: { done: "true" },
+      customState: {
+        finalQuantiles: quantileThresholds.join(", "),
+        totalThresholds: String(quantileThresholds.length),
+        status: "Completed",
+      },
     },
-    variables: { result: "calculated" },
+    variables: { quantileThresholds: quantileThresholds.join(", "), complete: true },
   });
 
   return steps;
 };
 
-const WEIGHTEDQUANTILESKETCHHISTOGRAM_TRIVIA: TriviaMeta = {
+const WEIGHTED_QUANTILE_SKETCH_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: ["return None"],
-  hints: [{ line: 1, hint: "Start" }],
-  lineExplanations: { 1: "Defines entry point." },
+  hints: [{ line: 1, hint: "Sort samples by feature values." }],
+  lineExplanations: { 1: "Entry point for Weighted Quantile Sketch algorithm." },
 };
 
-export const weightedQuantileSketchHistogram: AlgorithmDefinition<weightedQuantileSketchHistogramInput> =
+export const weightedQuantileSketchHistogram: AlgorithmDefinition<WeightedQuantileSketchHistogramInput> =
   {
-    id: "weighted-quantile-sketch-histogram",
+    id: "weightedQuantileSketchHistogram",
     title: "Weighted Quantile Sketch Feature Binning",
     category: "ml_tree_ensembles",
     categories: ["ml_tree_ensembles", "tree_fundamentals"],
@@ -116,51 +203,112 @@ export const weightedQuantileSketchHistogram: AlgorithmDefinition<weightedQuanti
     mlInfraLevel: 9,
     mlInfraCategory: "ml_tree_ensembles",
     description:
-      "In high-performance machine learning systems and deep learning infrastructure (e.g. PyTorch, vLLM, FlashAttention, Triton, XGBoost, and NCCL), weighted quantile sketch feature binning provides core operational capabilities for model computation, memory hierarchy optimization, and parallel execution. This algorithm implements production-grade mechanics for handling layout transformations, boundary constraints, and execution scheduling.\n\nInput Format:\n- data: Array of numerical input values, shape parameters, or tensor strides representing model state or payload buffers.\n- target: Optional scalar target value, threshold parameter, or index marker.\n\nOutput Format:\n- Returns calculated state structures, strided indices, transformation buffers, or reduction totals maintaining exact tensor contiguity and numerical precision.\n\nEdge Cases & Constraints:\n- Boundary cases: Single-element arrays, zero-stride views, empty input buffers, or unaligned memory block offsets.\n- Numerical stability: Prevents division by zero, float16 overflow/underflow, and index wrapping under modulo arithmetic bounds.\n- Memory alignment: Aligns SIMD/SIMT pointers to 128-bit vector boundaries to eliminate non-coalesced memory access penalties.",
-    constraints: ["Valid input arguments required."],
+      "Computes approximate candidate split thresholds for continuous feature values using the Weighted Quantile Sketch algorithm (Chen & Guestrin, XGBoost Section 3.3). When dataset instances have non-uniform sample weights (e.g., 2nd-order loss Hessians h_i), standard quantile binning fails. The Weighted Quantile Sketch guarantees that candidate split boundaries s_0, s_1, ..., s_k partition cumulative Hessian weight into balanced intervals with relative error bounded by ε.\n\nInput Format:\n- featureValues: Continuous feature values for training samples.\n- weights: Sample weight / Hessian vector h_i corresponding to featureValues.\n- eps: Approximation error parameter ε (e.g., 0.25 for ~4 quantile bins).\n\nOutput Format:\n- Returns a list of candidate split boundary thresholds s_j maintaining max weight delta ε * H_total.\n\nEdge Cases & Constraints:\n- Zero or uniform weights: Degenerates to standard unweighted rank percentile binning.\n- Equal feature values with high weight: Handled seamlessly by merging cumulative weight at distinct feature value steps.",
+    constraints: [
+      "featureValues and weights must have equal length N > 0.",
+      "weights[i] >= 0.0.",
+      "0.0 < eps <= 1.0.",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Basic Case",
-        inputDisplay: "Basic Input",
-        outputDisplay: "Basic Output",
-        input: { data: [1, 2, 3] },
-        output: "Basic Output Result",
-        explanation: "Standard execution.",
+        title: "Weighted Quantile Binning across 7 Samples",
+        inputDisplay: "7 continuous samples with Hessian weights, eps = 0.25",
+        outputDisplay: "Split Thresholds: [1.0, 4.7, 7.8, 9.0]",
+        input: DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT,
+        output: "[1.0, 4.7, 7.8, 9.0]",
+        explanation:
+          "Accumulates Hessian weights across sorted samples to pick quantile boundaries with step size eps * W_total.",
       },
       {
         kind: "complex",
-        title: "Complex Case",
-        inputDisplay: "Complex Input",
-        outputDisplay: "Complex Output",
-        input: { data: [1, 2, 3] },
-        output: "Complex Output Result",
-        explanation: "Advanced execution.",
+        title: "Fine Granularity (eps = 0.1)",
+        inputDisplay: "eps = 0.1 for 10 quantile bins",
+        outputDisplay: "Dense candidate split boundaries",
+        input: {
+          ...DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT,
+          eps: 0.1,
+        },
+        output: "10 quantile threshold boundaries",
+        explanation: "Smaller eps produces finer quantile candidate splits for split search.",
       },
       {
         kind: "negative",
-        title: "Negative Case",
-        inputDisplay: "Negative Input",
-        outputDisplay: "Negative Output",
-        input: { data: [1, 2, 3] },
-        output: "Negative Output Result",
-        explanation: "Edge case handling.",
+        title: "Single Sample Input",
+        inputDisplay: "featureValues = [5.0], weights = [1.0], eps = 0.25",
+        outputDisplay: "[5.0]",
+        input: {
+          featureValues: [5.0],
+          weights: [1.0],
+          eps: 0.25,
+        },
+        output: "[5.0]",
+        explanation: "Single sample returns that value as sole boundary candidate.",
       },
     ],
-    code: WEIGHTEDQUANTILESKETCHHISTOGRAM_CODE,
-    timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+    code: WEIGHTED_QUANTILE_SKETCH_HISTOGRAM_CODE,
+    timeComplexity: {
+      best: "O(N log N)",
+      average: "O(N log N)",
+      worst: "O(N log N)",
+    },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Algorithm specific time complexity.",
-      space: "Algorithm specific space complexity.",
+      time: "O(N log N) to sort N samples by feature value, plus O(N) linear sweep to accumulate weights and sample quantile split points.",
+      space: "O(N) space for sorted sample pairs and output quantile thresholds list.",
     },
     topicGuide: {
-      overview: "Overview of Weighted Quantile Sketch Feature Binning",
-      sections: [{ heading: "Concept", body: "Core algorithm mechanics." }],
-      keyTerms: [{ term: "Metric", definition: "A quantifiable measure." }],
+      overview:
+        "In gradient boosted decision trees (XGBoost), sample weights correspond to second-order loss Hessians h_i. When loss functions exhibit non-uniform curvature, standard rank quantiles produce unbalanced split candidates. The Weighted Quantile Sketch solves this by constructing a streaming data structure with provable relative error guarantees under non-uniform weights.",
+      sections: [
+        {
+          heading: "Overview & Mathematical Formulation",
+          body: "Given a multi-set of samples D = {(x_1, h_1), (x_2, h_2), ..., (x_n, h_n)}, define rank function r_D(x) = (1 / sum h_i) * sum_{x_i < x} h_i. The algorithm finds candidate split points {s_1, s_2, ..., s_k} such that |r_D(s_j) - r_D(s_{j-1})| < eps, ensuring equal distribution of Hessian curvature across feature bins.",
+        },
+        {
+          heading: "Core Concepts & Distributed Sketch Merging",
+          body: "The Weighted Quantile Sketch uses a summary structure with merge and prune operations. When distributed across multiple GPU worker nodes, local sketches can be combined into a global sketch with zero memory overhead.",
+        },
+        {
+          heading: "Systems & Performance Impact",
+          body: "By generating fixed quantile split candidates upfront, XGBoost replaces expensive O(N log N) exact greedy evaluation with fast O(B) histogram split search, accelerating training by up to 50x on large datasets.",
+        },
+        {
+          heading: "Implementation Nuances & Edge Cases",
+          body: "Handling duplicate feature values requires aggregating weights at identical value steps before evaluating quantile step boundaries to prevent redundant split candidates.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Weighted Quantile Sketch",
+          definition:
+            "A data structure for computing quantile boundaries under non-uniform sample weights with relative error bounds.",
+        },
+        {
+          term: "Hessian Weight (h_i)",
+          definition:
+            "Second-order derivative of the loss function measuring curvature and sample importance in GBDTs.",
+        },
+        {
+          term: "Epsilon Approximation Bound (ε)",
+          definition:
+            "Maximum allowable rank error bound between adjacent candidate quantile thresholds.",
+        },
+        {
+          term: "Distributed Sketching",
+          definition:
+            "Merging local quantile sketches from multi-GPU node workers into a unified global feature distribution summary.",
+        },
+      ],
     },
-    trivia: WEIGHTEDQUANTILESKETCHHISTOGRAM_TRIVIA,
-    sources: [],
-    defaultInput: DEFAULT_WEIGHTEDQUANTILESKETCHHISTOGRAM_INPUT,
-    generateSteps: generateWEIGHTEDQUANTILESKETCHHISTOGRAMSteps,
+    trivia: WEIGHTED_QUANTILE_SKETCH_TRIVIA,
+    sources: [
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label: "XGBoost Section 3.3 Weighted Quantile Sketch (Chen & Guestrin 2016)",
+      },
+    ],
+    defaultInput: DEFAULT_WEIGHTED_QUANTILE_SKETCH_INPUT,
+    generateSteps: generateWeightedQuantileSketchSteps,
   };

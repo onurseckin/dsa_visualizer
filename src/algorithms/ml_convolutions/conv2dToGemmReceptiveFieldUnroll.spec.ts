@@ -5,9 +5,9 @@ import {
   generateConv2dToGemmReceptiveFieldUnrollSteps,
 } from "./conv2dToGemmReceptiveFieldUnroll";
 
-describe("conv2d-to-gemm-receptive-field-unroll (Conv2D Receptive Field Patch Unroller)", () => {
+describe("conv2dToGemmReceptiveFieldUnroll (Conv2D Receptive Field Patch Unroller)", () => {
   it("should have correct metadata", () => {
-    expect(conv2dToGemmReceptiveFieldUnroll.id).toBe("conv2d-to-gemm-receptive-field-unroll");
+    expect(conv2dToGemmReceptiveFieldUnroll.id).toBe("conv2dToGemmReceptiveFieldUnroll");
     expect(conv2dToGemmReceptiveFieldUnroll.isMlInfra).toBe(true);
     expect(conv2dToGemmReceptiveFieldUnroll.mlInfraLevel).toBe(8);
     expect(conv2dToGemmReceptiveFieldUnroll.mlInfraCategory).toBe("ml_convolutions");

@@ -5,9 +5,9 @@ import {
   generateConv2dSlidingWindowDirectSteps,
 } from "./conv2dSlidingWindowDirect";
 
-describe("conv2d-sliding-window-direct (2D Direct Sliding Window Convolution)", () => {
+describe("conv2dSlidingWindowDirect (2D Direct Sliding Window Convolution)", () => {
   it("should have correct metadata", () => {
-    expect(conv2dSlidingWindowDirect.id).toBe("conv2d-sliding-window-direct");
+    expect(conv2dSlidingWindowDirect.id).toBe("conv2dSlidingWindowDirect");
     expect(conv2dSlidingWindowDirect.isMlInfra).toBe(true);
     expect(conv2dSlidingWindowDirect.mlInfraLevel).toBe(8);
     expect(conv2dSlidingWindowDirect.mlInfraCategory).toBe("ml_convolutions");
