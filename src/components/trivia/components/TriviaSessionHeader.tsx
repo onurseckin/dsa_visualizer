@@ -66,7 +66,7 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
           ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-2 p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap">
+      <div className="flex items-center gap-3 mt-3 p-4 md:p-5 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] flex-wrap shadow-sm">
         {`Level ${level} · ${coverage}% covered`}
       </div>
     </header>

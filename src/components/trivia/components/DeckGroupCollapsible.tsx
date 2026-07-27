@@ -61,7 +61,7 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col gap-1.5 p-3 bg-[var(--bg-inset)]">
+      <div className="flex flex-col gap-2 p-4 bg-[var(--bg-inset)]">
         {group.entries.map((entry) => {
           const isSelected = selected.has(entry.id);
           return (

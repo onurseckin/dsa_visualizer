@@ -130,8 +130,8 @@ export function TriviaHeaderCard({
         </ButtonGroup>
       }
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 flex-wrap p-3 bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-[var(--radius-md)]">
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center gap-3 flex-wrap p-4 md:p-5 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] shadow-sm">
           <Badge variant="info" size="sm">
             Level {level} of {config.maxBlanks}
           </Badge>

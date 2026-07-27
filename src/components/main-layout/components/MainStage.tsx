@@ -48,7 +48,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       height: layoutState.layout.panelHeights.tutorial,
       content:
         currentStep?.explanation !== undefined ? (
-          <div className="h-full border border-[var(--border-default)] rounded-[var(--radius-md)] bg-[var(--bg-surface)] overflow-auto">
+          <div className="h-full overflow-auto">
             <TutorialCard
               explanation={currentStep.explanation}
               what={currentStep.explanation.what}
@@ -67,7 +67,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: !panels.visualizer,
       height: layoutState.layout.panelHeights.auxiliary,
       content: (
-        <div className="h-full border border-[var(--border-default)] rounded-[var(--radius-md)] bg-[var(--bg-surface)] overflow-auto">
+        <div className="h-full overflow-auto">
           <AuxiliaryPanel
             state={currentStep?.auxiliaryState}
             variables={currentStep?.variables}

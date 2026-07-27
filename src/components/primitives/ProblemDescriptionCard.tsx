@@ -30,7 +30,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
 }) => {
   return (
     <Card padding="md" className="p-6 md:p-8 border-[var(--border-default)]">
-      <div className="flex items-center flex-wrap gap-3 py-1 px-1">
+      <div className="flex items-center flex-wrap gap-3 py-3 px-4 bg-[var(--bg-inset)] border border-[var(--border-subtle)] rounded-[var(--radius-md)]">
         <h1 className="m-0 text-xl font-bold text-[var(--text-primary)] nowrap overflow-hidden text-ellipsis">
           {title}
         </h1>
@@ -55,7 +55,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
         <div
           id="problem-description-details"
           data-testid="problem-description-details"
-          className="mt-6 pt-6 border-t border-[var(--border-default)] flex flex-col gap-6"
+          className="mt-6 pt-6 border-t border-[var(--border-default)] px-2 flex flex-col gap-6"
           style={{ borderTop: "1px solid var(--border-default)" }}
         >
           <section>
