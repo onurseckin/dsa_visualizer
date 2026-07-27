@@ -185,6 +185,22 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     { sequenceTokens: S, blockSize: B, totalPhysicalBlocks: P },
   );
 
+  addStep(
+    6,
+    `Compute num_logical_blocks = ceil(${S} / ${B}) = ${numLogicalBlocks}`,
+    `num_logical_blocks = (${S} + ${B} - 1) // ${B} = ${numLogicalBlocks}. This is how many virtual pages the sequence occupies.`,
+    -1,
+    { sequence_tokens: S, block_size: B, num_logical_blocks: numLogicalBlocks },
+  );
+
+  addStep(
+    12,
+    `Initialize block_table = [], free_blocks = [0..${P - 1}]`,
+    `block_table will store logical_block → physical_block mappings. free_blocks is the pool of ${P} available physical pages.`,
+    -1,
+    { total_physical_blocks: P, free_blocks_count: P },
+  );
+
   for (let lIdx = 0; lIdx < numLogicalBlocks; lIdx++) {
     const physIdx = freeBlocks.shift()!;
     blockTable.push(physIdx);
@@ -193,17 +209,25 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     const endToken = Math.min(S - 1, (lIdx + 1) * B - 1);
 
     addStep(
-      15,
+      17,
       `Allocated Physical Block #${physIdx} for Logical Block #${lIdx}`,
-      `Mapped token range [${startToken}..${endToken}] to non-contiguous physical GPU block #${physIdx}. Remaining free blocks: ${freeBlocks.length}.`,
+      `physical_idx = free_blocks.pop(0) = ${physIdx}. Mapped token range [${startToken}..${endToken}] to non-contiguous physical GPU block #${physIdx}. Remaining free blocks: ${freeBlocks.length}.`,
       lIdx,
       { logicalBlock: lIdx, physicalBlock: physIdx, tokens: `${startToken}..${endToken}` },
     );
   }
 
   addStep(
-    22,
-    "PagedAttention Block Allocation Complete",
+    20,
+    `Compute token_offset = ${S} % ${B} = ${S % B || B}`,
+    `Offset of last write position inside the active (last) block. ${S % B === 0 ? `Sequence fills blocks exactly: offset set to block_size=${B}` : `${S % B} tokens used in final block #${numLogicalBlocks - 1}`}.`,
+    numLogicalBlocks,
+    { sequence_tokens: S, block_size: B, token_offset: S % B || B },
+  );
+
+  addStep(
+    24,
+    "Return PagedAttention Block Table",
     `Successfully constructed Virtual Block Table mapping for ${S} tokens across ${numLogicalBlocks} physical blocks without VRAM fragmentation.`,
     numLogicalBlocks,
     { totalAllocatedBlocks: blockTable.length, freeBlocksRemaining: freeBlocks.length },
