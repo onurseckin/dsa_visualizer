@@ -13,7 +13,7 @@ describe("bellmanFord algorithm logic spec", () => {
 
   it("should generate valid steps and compute shortest distances for default input", () => {
     const steps = generateBellmanFordSteps(DEFAULT_BELLMAN_FORD_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -42,6 +42,20 @@ describe("bellmanFord algorithm logic spec", () => {
       expect(snapshot.kind).toBe("graph");
       expect(snapshot.nodes.length).toBe(5);
     }
+  });
+
+  it("maps every non-blank code line in lineExplanations", () => {
+    const meta = bellmanFord.trivia;
+    const lines = bellmanFord.code.replace(/\s+$/, "").split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (line.trim().length > 0) {
+        expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+        expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      }
+    });
   });
 
   it("should detect negative weight cycles in a graph", () => {

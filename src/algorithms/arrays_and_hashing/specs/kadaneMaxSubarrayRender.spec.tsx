@@ -30,9 +30,11 @@ describe("KadaneMaxSubarray React Component Spec", () => {
 
     // Problem details render expanded, so the description needs no disclosure click.
     expect(
-      screen.getByText(/Kadane's Algorithm finds the maximum sum of a contiguous subarray/i),
+      screen.getByText(/Kadane's Algorithm computes the maximum sum of a contiguous subarray/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(kadaneMaxSubarray.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Kadane's Algorithm is an optimal dynamic programming technique/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: kadaneMaxSubarray.topicGuide.sections[0].heading }),
     ).toBeInTheDocument();

@@ -38,7 +38,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
   if (nums.length === 0) {
     steps.push({
       stepIndex: 0,
-      codeLine: 1,
+      codeLine: 3,
       explanation: {
         what: "Stop: the array is empty",
         why: "There is no Kth largest element to find in an empty array, so we stop right away.",
@@ -105,6 +105,26 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
 
   for (let i = 0; i < nums.length; i++) {
     const num = nums[i];
+
+    // Step for line 5: loop iteration
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 5,
+      explanation: {
+        what: `Inspect element nums[${i}] = ${num}`,
+        why: `We consider ${num} to see if it belongs among the ${k} largest elements seen so far.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: createArrayElements(minHeap),
+      },
+      auxiliaryState: {
+        customState: { currentNum: num, heap: `[${minHeap.join(", ")}]`, rootMin: minHeap[0] ?? "none" },
+      },
+      variables: { i, num, heapSize: minHeap.length, k },
+    });
+
+    // Step for line 6: push into heap
     minHeap.push(num);
     const activeIdx = siftUp(minHeap);
 
@@ -125,7 +145,28 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       variables: { i, num, heapSize: minHeap.length, k },
     });
 
-    if (minHeap.length > k) {
+    // Step for line 7: check capacity
+    const exceedsCapacity = minHeap.length > k;
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 7,
+      explanation: {
+        what: `Check heap capacity: size ${minHeap.length} > k (${k})? ${exceedsCapacity ? "Yes" : "No"}`,
+        why: exceedsCapacity
+          ? `The heap size (${minHeap.length}) exceeds k (${k}), so we must evict the root (the smallest candidate).`
+          : `The heap size (${minHeap.length}) is within capacity k (${k}), so no eviction is needed yet.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: createArrayElements(minHeap, 0, exceedsCapacity ? "active" : "default"),
+      },
+      auxiliaryState: {
+        customState: { currentNum: num, heap: `[${minHeap.join(", ")}]`, rootMin: minHeap[0], exceedsCapacity },
+      },
+      variables: { i, num, heapSize: minHeap.length, k, exceedsCapacity },
+    });
+
+    if (exceedsCapacity) {
       const popped = minHeap[0];
       minHeap[0] = minHeap[minHeap.length - 1];
       minHeap.pop();
@@ -136,7 +177,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         codeLine: 8,
         explanation: {
           what: `Evict the root minimum, ${popped}`,
-          why: `The heap just grew to ${minHeap.length + 1} — one more than the ${k} we want to keep — so the smallest candidate, ${popped} at the root, gets dropped. Everything still in the heap is at least as large as what we discard.`,
+          why: `The heap just grew past capacity ${k}, so the smallest candidate, ${popped} at the root, gets dropped. Everything still in the heap is at least as large as what we discard.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -162,7 +203,7 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     codeLine: 9,
     explanation: {
       what: `Done: the answer is ${result}`,
-      why: `Every number has passed through the filter, so the heap now holds the ${k} largest values in the whole array — and its root, ${result}, is the smallest of that group, which makes it exactly the Kth largest overall. Each element cost one O(log K) heap operation, O(N log K) in total.`,
+      why: `Every number has passed through the filter, so the heap now holds the ${k} largest values in the whole array — and its root, ${result}, is the smallest of that group, which makes it exactly the Kth largest overall.`,
     },
     primarySnapshot: { kind: "array", elements: finalElements },
     auxiliaryState: {

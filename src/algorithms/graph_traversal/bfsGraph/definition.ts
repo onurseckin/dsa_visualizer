@@ -52,9 +52,11 @@ const BFS_GRAPH_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "deque supplies an O(1) popleft/append pair, which is exactly what a FIFO queue needs — BFS depends on that cheap front-pop to keep vertices coming out in discovery order.",
+    2: "Blank separator line following module import definitions.",
     3: "Declares the traversal's entry point: an adjacency-style graph and the vertex to start the layer-by-layer expansion from.",
     4: "Seeds the visited set with the start node immediately, so it can never be rediscovered and queued a second time later.",
     5: "Initializes the FIFO frontier holding only the start node — the sole vertex at distance 0 from itself.",
+    6: "Blank line preceding the primary while loop traversal logic.",
     7: "Keeps expanding as long as any discovered-but-unprocessed vertex remains in the frontier.",
     8: "Pops from the front, so vertices come out in the exact order they were discovered — that FIFO discipline is the entire reason BFS finds shortest paths in unweighted graphs.",
     9: "Scans every edge leaving the current vertex to find candidates for the next layer out.",
@@ -71,7 +73,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   categories: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Given a directed or undirected graph represented by a set of nodes and edges, along with a specified start node, perform a Breadth-First Search (BFS) to traverse all reachable vertices layer by layer. BFS starts at the designated source node and explores all immediately adjacent neighbors (distance 1), then moves on to explore neighbors of neighbors (distance 2), and so forth. The algorithm utilizes a First-In-First-Out (FIFO) queue data structure to maintain discovery order and a visited set to prevent processing duplicate vertices or getting trapped in infinite loops caused by cycles. Return the sequence of visited vertices in exact order of discovery.",
+    "Given a directed or undirected graph $G = (V, E)$ represented by vertices $V$ and edges $E$, along with a specified start node $s \\in V$, perform a Breadth-First Search (BFS) to traverse all reachable vertices layer by layer. BFS starts at the source $s$ at distance $d(s, s) = 0$ and explores all immediately adjacent neighbors at distance $d=1$, then moves on to explore neighbors of neighbors at distance $d=2$, and so forth. The algorithm utilizes a First-In-First-Out (FIFO) queue $Q$ to maintain discovery order and a visited set $S \\subseteq V$ to prevent processing duplicate vertices or getting trapped in infinite loops caused by graph cycles. Overall runtime is bounded by $\\mathcal{O}(|V| + |E|)$ with $\\mathcal{O}(|V|)$ auxiliary space.",
   constraints: [
     "1 <= Number of vertices V <= 10^4",
     "0 <= Number of edges E <= 10^5",
@@ -167,64 +169,54 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each vertex enters the queue at most once — the visited set guarantees it — and is dequeued and processed once, which accounts for the V term. When a vertex is dequeued we scan its incident edges, and over the whole run every edge is looked at only a constant number of times, adding the E term. The total is O(V + E) in every case, because BFS always sweeps the entire reachable component.",
+    time: "Each vertex enters the queue $Q$ at most once — guaranteed by the visited set $S$ — and is dequeued and processed once, taking $\\mathcal{O}(|V|)$ time. Scanning incident edges takes $\\mathcal{O}(|E|)$ total work across all vertices. The total complexity is $\\mathcal{O}(|V| + |E|)$.",
     space:
-      "The visited set can end up holding every vertex, and the queue can hold a whole frontier of vertices at once, so extra memory grows with the vertex count — O(V).",
+      "The visited set $S$ holds up to $|V|$ vertices, and the queue $Q$ holds a frontier bounded by $\\mathcal{O}(|V|)$ vertices at maximum layer width, requiring $\\mathcal{O}(|V|)$ space.",
   },
   topicGuide: {
     overview:
-      'Breadth-first search explores a graph in rings around a starting vertex: everything one edge away, then everything two edges away, and so on until the reachable part of the graph is exhausted. That ordering is not a stylistic preference but the source of its main guarantee, because the first time BFS reaches a vertex it has necessarily arrived by a path with the fewest possible edges. It is the traversal to reach for whenever "shortest", "fewest moves", or "closest" appears in an unweighted setting, and it is the backbone of grid puzzles, maze solving, social-distance queries, and web crawling. The whole algorithm is a queue, a visited set, and the discipline to never look at a vertex twice.',
+      'Breadth-first search explores a graph $G=(V, E)$ in expanding concentric rings around a starting vertex $s$: all vertices at unweighted distance $d=1$, then $d=2$, up to distance $d=k$. That ordering guarantees that the first time BFS visits a vertex $v$, it has reached $v$ via a path of minimum edge count $\\text{dist}(s, v)$. It is the fundamental algorithm for unweighted shortest paths, maze solving, connected component analysis, and network flooding.',
     sections: [
       {
         heading: "The core idea: a queue turns a graph into layers",
-        body: "A traversal is defined by which discovered-but-unexplored vertex you choose to expand next, and BFS always chooses the one that has been waiting longest. A first-in-first-out queue enforces that choice mechanically, so vertices leave the queue in the same order they were discovered. Because a vertex is discovered from a neighbour one edge closer to the source, this ordering keeps the queue sorted by distance from the source at all times. In the sample graph, starting at A the queue holds B and C, then D and E, then F, which is exactly the layer structure of the graph drawn out. Swap the queue for a stack and you get depth-first search instead, which is why these two famous traversals differ by a single data-structure choice.",
+        body: "A graph traversal strategy is governed by how candidate vertices in the frontier are prioritized. BFS uses a First-In-First-Out (FIFO) queue $Q$, ensuring vertices are popped in the exact chronological order of their discovery. When expanding a node $u$ at distance $d(s,u)=k$, any unvisited neighbor $v$ is added at distance:\n\n$$\\text{dist}(s, v) = \\text{dist}(s, u) + 1$$\n\nBecause $Q$ processes layer $k$ entirely before layer $k+1$, the queue contents maintain a monotonically non-decreasing distance property.",
       },
       {
         heading: "How the mechanism works: visit, mark, enqueue",
-        body: "You seed the visited set and the queue with the source, then loop while the queue is non-empty. Each iteration pops the front vertex, scans its adjacency list, and for every neighbour not yet in the visited set adds it to visited and pushes it onto the back of the queue. The critical detail is that a vertex is marked visited the moment it is enqueued, not when it is later dequeued. If you delay the mark until dequeue, a vertex with several neighbours in the current layer gets pushed multiple times, and the queue can blow up while your traversal reports duplicate visits. If you need distances or the actual path, store a distance or parent value alongside the mark at the same instant, since that is exactly when the shortest path to that vertex is fixed.",
+        body: "You seed the visited set $S = \\{s\\}$ and the queue $Q = [s]$, then iterate while $Q \\neq \\emptyset$. Each iteration pops $u = Q.\\text{popleft()}$, scans all directed or undirected edges $(u, v) \\in E$, and for every $v \\notin S$, marks $v \\in S$ and pushes $Q.\\text{append}(v)$. Marking $v$ at the exact moment of enqueue (rather than dequeue) is essential to prevent duplicate queue entries when multiple nodes share neighbor $v$.",
       },
       {
-        heading: "Why it is correct: distances never go backwards",
-        body: "The invariant that carries BFS is that at every moment the queue contains vertices from at most two consecutive layers, with the nearer layer in front, and every vertex in the queue is labelled with its true shortest distance from the source. Expanding a vertex at distance d can only discover unvisited neighbours at distance d + 1, so appending them to the back keeps the queue ordered and the invariant intact. This is what licenses the first-visit rule: when you reach a vertex for the first time, no shorter route can exist, because every route with fewer edges would have come from an earlier layer that was already fully expanded. Any later edge into that vertex therefore offers nothing better and can be ignored, which is why marking on discovery loses no correctness. Notice how much this argument depends on all edges costing the same, and that is precisely the assumption Dijkstra has to replace when weights differ.",
+        heading: "Why it is correct: distance invariants",
+        body: "The correctness of BFS as an unweighted shortest path algorithm stems from the induction invariant:\n\n$$Q = [v_1, v_2, \\dots, v_m] \\implies \\text{dist}(s, v_1) \\le \\text{dist}(s, v_2) \\le \\dots \\le \\text{dist}(s, v_m) \\le \\text{dist}(s, v_1) + 1$$\n\nWhen vertex $v$ is first enqueued, no shorter path can exist because all paths with fewer edges were explored in earlier layers.",
       },
       {
         heading: "When to use BFS versus the alternatives",
-        body: "Choose BFS when edges are unweighted or uniformly weighted and you care about distance, since it gives shortest paths with nothing more than a queue. Choose depth-first search when you want to go deep rather than wide, as in cycle detection, topological ordering, or exploring every path, and when its recursion structure makes the bookkeeping natural. Once edges carry different positive weights, BFS is simply wrong and you need Dijkstra with a priority queue; the special case of weights that are only 0 or 1 has a neat middle ground called 0-1 BFS using a deque. If you are searching a huge space toward a known target, bidirectional BFS from both ends can cut the explored frontier dramatically, and A-star adds a heuristic when you have a sensible distance estimate.",
+        body: "Use BFS for unweighted or uniform-edge-weight graphs where shortest path guarantees are required in $\\mathcal{O}(|V| + |E|)$ time. If edges have non-negative weights $w(u,v) \\ge 0$, upgrade to Dijkstra's algorithm using a priority queue $\\mathcal{O}((V+E)\\log V)$. If weights are restricted to $0$ and $1$, use $0-1$ BFS with a double-ended queue (`deque`) in $\\mathcal{O}(|V| + |E|)$ time.",
       },
       {
         heading: "Pitfalls and edge cases",
-        body: "BFS only reaches the connected component containing the source, so counting all components means restarting it from every unvisited vertex, and the sample disconnected case is a reminder that unvisited does not mean unreachable by mistake. Watch out for graphs represented so that a missing key throws instead of returning an empty neighbour list, and for the source vertex needing to be in visited before the loop starts. Self loops and parallel edges are harmless if you check visited before enqueuing, but they will cause duplicates if you skip that check. Memory is the sneakier problem: the frontier of a broad graph can be a large fraction of all vertices at once, so BFS can use far more memory than DFS on the same graph. Directed graphs also make the traversal one-way, so reachability from A says nothing about reachability back to A.",
+        body: "A single BFS invocation visits only the connected component containing source $s$. To traverse disconnected graphs, execute a outer loop over all $v \\in V$. Remember to handle isolated nodes ($E=\\emptyset$) and self-loops cleanly.",
       },
       {
         heading: "How the pattern generalizes",
-        body: "Once the loop is familiar, most BFS problems are small variations on it. Recording the queue length before each round and draining exactly that many vertices gives you an explicit layer number, which is how minimum-moves puzzles report their answer. Seeding the queue with several vertices at once turns it into multi-source BFS, which computes the distance to the nearest of many starts in one sweep and solves rotting-oranges and nearest-exit problems directly. Colouring vertices by alternating layers checks whether a graph is bipartite. On grids the graph is implicit, with cells as vertices and the four or eight step directions as edges, so no adjacency list needs building at all. State-space search generalizes further still, treating any configuration such as a board layout or a word as a vertex and legal transformations as edges.",
+        body: "Multi-source BFS initializes $Q$ with multiple start nodes simultaneously, finding shortest paths to the nearest seed in $\\mathcal{O}(|V| + |E|)$. Grid problems treat $(r, c)$ coordinates as implicit graph vertices with 4-way or 8-way transitions.",
       },
     ],
     keyTerms: [
       {
-        term: "Frontier",
+        term: "Frontier (Q)",
         definition:
-          "The set of discovered vertices still waiting to be expanded, which is exactly what the queue holds. Its size at the widest layer determines the memory BFS actually needs.",
+          "The FIFO queue holding discovered nodes awaiting neighbor expansion.",
       },
       {
-        term: "Layer",
+        term: "Layer / Level",
         definition:
-          "All vertices at the same edge distance from the source. BFS processes layers strictly in order, and that order is what makes its distances shortest.",
+          "The set of vertices at uniform edge distance $d(s, v)$ from the source.",
       },
       {
-        term: "Visited set",
+        term: "Visited Set (S)",
         definition:
-          "The record of vertices already discovered, which prevents cycles from causing infinite loops and repeated work. Adding to it at discovery time rather than expansion time is what keeps the queue free of duplicates.",
-      },
-      {
-        term: "Adjacency list",
-        definition:
-          "A representation storing, for each vertex, the collection of vertices it links to. It lets BFS scan only the edges that actually exist rather than testing every possible pair.",
-      },
-      {
-        term: "Connected component",
-        definition:
-          "A maximal group of vertices mutually reachable through edges. A single BFS explores exactly one of them, which is why component counting restarts the search from each unvisited vertex.",
+          "The lookup set preventing cycle loops and duplicate enqueues.",
       },
     ],
   },

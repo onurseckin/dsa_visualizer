@@ -10,9 +10,9 @@ describe("bubbleSort algorithm spec", () => {
     expect(bubbleSort.defaultInput).toEqual([5, 2, 8, 1, 4]);
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate valid steps for default input (>= 20 steps)", () => {
     const steps = generateBubbleSortSteps(bubbleSort.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -34,7 +34,7 @@ describe("bubbleSort algorithm spec", () => {
 
   it("should handle single element array", () => {
     const steps = generateBubbleSortSteps([42]);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements.map((el) => el.value)).toEqual([42]);
@@ -43,7 +43,7 @@ describe("bubbleSort algorithm spec", () => {
 
   it("should handle empty array", () => {
     const steps = generateBubbleSortSteps([]);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toEqual([]);
@@ -51,6 +51,7 @@ describe("bubbleSort algorithm spec", () => {
 
   it("should handle reverse sorted array", () => {
     const steps = generateBubbleSortSteps([3, 2, 1]);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements.map((el) => el.value)).toEqual([1, 2, 3]);
@@ -59,7 +60,16 @@ describe("bubbleSort algorithm spec", () => {
 
 describe("bubbleSort trivia metadata", () => {
   const meta = bubbleSort.trivia;
-  const lines = bubbleSort.code.replace(/\s+$/, "").split("\n");
+  const lines = bubbleSort.code.split("\n");
+
+  it("maps every code line in lineExplanations", () => {
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    }
+  });
 
   it("points skipLines and hints at real, non-empty lines", () => {
     expect(meta).toBeDefined();
@@ -71,7 +81,6 @@ describe("bubbleSort trivia metadata", () => {
       expect(line).toBeLessThanOrEqual(lines.length);
       expect(lines[line - 1].trim()).not.toBe("");
     });
-    // A hint on a line the drill never hides would never be shown.
     hinted.forEach((line) => expect(skipped).not.toContain(line));
   });
 
@@ -85,3 +94,4 @@ describe("bubbleSort trivia metadata", () => {
     });
   });
 });
+

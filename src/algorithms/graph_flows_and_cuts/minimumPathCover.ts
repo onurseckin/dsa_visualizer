@@ -256,33 +256,33 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   timeComplexity: { best: "O(V * E)", average: "O(V * E)", worst: "O(V * E)" },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "DFS augmenting path algorithm runs once for each of V vertices, yielding O(V * E) runtime.",
+    time: "DFS augmenting path algorithm runs once for each of $V$ vertices, yielding $\\mathcal{O}(V \\cdot E)$ runtime.",
     space:
-      "Requires matching and visited arrays of size V, plus adjacency list taking O(V + E) memory.",
+      "Requires matching and visited arrays of size $V$, plus adjacency list taking $\\mathcal{O}(V + E)$ memory.",
   },
   topicGuide: {
     overview:
-      "Minimum Path Cover in a Directed Acyclic Graph (DAG) finds the minimum number of vertex-disjoint paths required to visit every vertex in the graph. By Gallai's Theorem, this combinatorial optimization problem reduces directly to finding the Maximum Bipartite Matching in a split-vertex bipartite graph.",
+      "**Minimum Path Cover** in a Directed Acyclic Graph (DAG) finds the minimum number of vertex-disjoint paths required to visit every vertex in the graph. By **Gallai's Theorem**, this combinatorial optimization problem reduces directly to finding the **Maximum Bipartite Matching** in a split-vertex bipartite graph.",
     sections: [
       {
         heading: "Bipartite Graph Reduction & Vertex Splitting",
-        body: "To transform path covering into bipartite matching, each vertex u in the original DAG is split into two vertices in a new bipartite graph: an output vertex u_out on the left side and an input vertex u_in on the right side. Every directed edge u -> v in the original DAG becomes a bipartite edge from u_out to v_in.",
+        body: "To transform path covering into bipartite matching, each vertex $u$ in the original DAG is split into two vertices in a new bipartite graph: an output vertex $u_{\\text{out}}$ on the left side and an input vertex $u_{\\text{in}}$ on the right side. Every directed edge $u \\to v$ in the original DAG becomes a bipartite edge from $u_{\\text{out}}$ to $v_{\\text{in}}$.",
       },
       {
         heading: "Gallai's Identity & Mathematical Proof",
-        body: "In a DAG, each matched edge in the bipartite graph corresponds to joining two path segments at a vertex. Initially, N isolated paths cover the N vertices. Each edge added to a valid path cover reduces the total path count by 1. Since paths must be vertex-disjoint, no vertex can have in-degree > 1 or out-degree > 1 in the path cover, matching the exact structural constraint of bipartite matching. Thus, Minimum Path Cover = N - Maximum Bipartite Matching Size.",
+        body: "In a DAG, each matched edge in the bipartite graph corresponds to joining two path segments at a vertex. Initially, $N$ isolated paths cover the $N$ vertices. Each edge added to a valid path cover reduces the total path count by 1:\n$$\\text{Min Path Cover} = N - |M^*|$$\nSince paths must be vertex-disjoint, no vertex can have $\\text{in\\_degree} > 1$ or $\\text{out\\_degree} > 1$ in the path cover, matching the exact structural constraint of bipartite matching.",
       },
       {
         heading: "Dilworth's Theorem & General Path Covers",
-        body: "Dilworth's theorem establishes a famous duality in order theory: in any finite partially ordered set (POSet represented by a DAG), the size of the minimum general (non-disjoint) path cover equals the size of the maximum antichain (a set of mutually incomparable elements). For vertex-disjoint path covers on transitive DAGs, Dilworth's theorem directly applies.",
+        body: "**Dilworth's theorem** establishes a famous duality in order theory: in any finite partially ordered set (poset represented by a DAG), the size of the minimum general (non-disjoint) path cover equals the size of the **maximum antichain** (a set of mutually incomparable elements). For vertex-disjoint path covers on transitive DAGs, Dilworth's theorem directly applies.",
       },
       {
         heading: "Practical Systems Applications",
         body: "Minimum Path Cover algorithms schedule dependent tasks across parallel processors, optimize compiler instruction pipelines, plan robotic movement routes through DAG checkpoints, and analyze workflow concurrency in data engineering pipelines.",
       },
       {
-        heading: "Implementation Nuances & Edge Cases",
-        body: "Using DFS-based augmenting paths (Kuhn's algorithm) or Hopcroft-Karp on the split bipartite graph yields O(V * E) or O(sqrt(V) * E) runtime. Graph connectivity edge cases include isolated nodes (each contributing 1 to path count) and complete linear chains (yielding matching size N-1 and path count 1).",
+        heading: "Complexity Analysis",
+        body: "$$\\text{Time Complexity}: \\mathcal{O}(V \\cdot E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Matching Pass**: DFS-based augmenting path search (Kuhn's algorithm) takes $\\mathcal{O}(E)$ per vertex for $V$ vertices, yielding $\\mathcal{O}(V \\cdot E)$ total time.\n- **Space**: Adjacency lists and matching arrays consume $\\mathcal{O}(V + E)$ space.",
       },
     ],
     keyTerms: [
@@ -294,12 +294,12 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
       {
         term: "Gallai's Identity",
         definition:
-          "Mathematical identity stating that Minimum Path Cover equals N minus Maximum Bipartite Matching size.",
+          "Mathematical identity stating that Minimum Path Cover equals $N - |M^*|$ (vertices minus Maximum Bipartite Matching size).",
       },
       {
         term: "Vertex Splitting",
         definition:
-          "Transformation mapping each DAG node u into dual nodes u_out and u_in to formulate bipartite matching.",
+          "Transformation mapping each DAG node $u$ into dual nodes $u_{\\text{out}}$ and $u_{\\text{in}}$ to formulate bipartite matching.",
       },
       {
         term: "Dilworth's Theorem",

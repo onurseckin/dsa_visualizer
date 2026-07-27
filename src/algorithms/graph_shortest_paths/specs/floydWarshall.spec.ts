@@ -17,7 +17,7 @@ describe("floydWarshall algorithm logic spec", () => {
 
   it("should generate valid steps and compute all-pairs distances for default input", () => {
     const steps = generateFloydWarshallSteps(DEFAULT_FLOYD_WARSHALL_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -41,6 +41,20 @@ describe("floydWarshall algorithm logic spec", () => {
     expect(distTable?.["1→3"]).toBe(-2);
     expect(distTable?.["3→4"]).toBe(2);
     expect(distTable?.["1→4"]).toBe(0);
+  });
+
+  it("maps every non-blank code line in lineExplanations", () => {
+    const meta = floydWarshall.trivia;
+    const lines = floydWarshall.code.replace(/\s+$/, "").split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (line.trim().length > 0) {
+        expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+        expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      }
+    });
   });
 
   it("should detect negative self cycles", () => {

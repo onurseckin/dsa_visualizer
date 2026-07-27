@@ -14,14 +14,29 @@ describe("slidingWindowMin algorithm spec", () => {
     expect(slidingWindowMin.defaultInput).toEqual(DEFAULT_SLIDING_WINDOW_MIN_INPUT);
   });
 
-  it("should compute sliding window minimums correctly for default input", () => {
+  it("should compute sliding window minimums correctly for default input and produce >= 20 steps", () => {
     const steps = generateSlidingWindowMinSteps(DEFAULT_SLIDING_WINDOW_MIN_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.codeLine).toBe(19);
     expect(lastStep.variables.result).toBe("2, 2, 5, 5, 3, 3");
     expect(lastStep.auxiliaryState.visited).toEqual([2, 2, 5, 5, 3, 3]);
+  });
+
+  it("should map every non-blank code line in lineExplanations", () => {
+    const codeLines = slidingWindowMin.code.split("\n");
+    const lineExplanations = slidingWindowMin.trivia?.lineExplanations || {};
+    const skipLines = slidingWindowMin.trivia?.skipLines || [];
+
+    codeLines.forEach((lineText, idx) => {
+      const lineNum = idx + 1;
+      const isBlank = lineText.trim() === "";
+      if (!isBlank && !skipLines.includes(lineNum)) {
+        expect(lineExplanations[lineNum]).toBeDefined();
+        expect(lineExplanations[lineNum].length).toBeGreaterThan(10);
+      }
+    });
   });
 
   it("should handle window size equal to array length", () => {

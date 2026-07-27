@@ -18,12 +18,11 @@ export const REJECTIONSAMPLINGACCEPTANCETHRESHOLD_CODE = `def rejection_sampling
         else:
             accepted_tokens.append(target)
 
-    return accepted_tokens
-`;
+    return accepted_tokens`;
 
 export const DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT: rejectionSamplingAcceptanceThresholdInput =
   {
-    data: [10, 20, 30, 40, 50],
+    data: [10, 20, 30, 40, 50, 60],
     target: 30,
   };
 
@@ -32,9 +31,13 @@ export const generateRejectionSamplingAcceptanceThresholdSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
+
+  const target = input.target ?? 30;
+  const data = input.data && input.data.length > 0 ? input.data : [10, 20, 30, 40, 50, 60];
+
+  const elements: ArrayElement[] = data.map((val, idx) => ({
     id: `el-${idx}`,
-    value: val,
+    value: `Token ${idx}: ${val}`,
     state: "default",
   }));
 
@@ -43,83 +46,132 @@ export const generateRejectionSamplingAcceptanceThresholdSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeIdx: number = -1,
+    pointersMap: Record<number, string[]> = {},
   ) => {
+    const updatedElements: ArrayElement[] = elements.map((el, idx) => {
+      let state: ArrayElement["state"] = "default";
+      if (idx === activeIdx) state = "active";
+      else if (idx < activeIdx) state = "visited";
+      return {
+        ...el,
+        state,
+        pointers: pointersMap[idx] || undefined,
+      };
+    });
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: updatedElements,
       },
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          data: `[${data.join(", ")}]`,
+          target: String(target),
+          count: String(data.length),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
-    6,
-    "Initialize Modified Rejection Sampling Acceptance Verifier",
-    "Setting up speculative decoding probability ratios and acceptance criteria evaluation structures.",
-    { n: input.data.length, target: input.target ?? 0 },
+    1,
+    "Enter rejection_sampling_acceptance_threshold function",
+    "Initializing modified rejection sampling acceptance verifier for speculative decoding candidate tokens.",
+    { target, data_length: data.length },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const isAccepted = val <= (input.target ?? 30);
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isAccepted ? "active" : "compare", pointers: [`spec_pos_${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 2: Init accepted_tokens
+  addStep(
+    6,
+    "Initialize accepted_tokens = []",
+    "Empty array to store accepted speculative candidate tokens or fallback bounded values.",
+    { accepted_tokens: "[]" },
+  );
 
+  const acceptedTokens: number[] = [];
+
+  for (let idx = 0; idx < data.length; idx++) {
+    const val = data[idx];
+
+    // For loop check
+    addStep(
+      7,
+      `Loop idx=${idx}: evaluate candidate token val = ${val}`,
+      `Inspecting candidate token ${val} at position ${idx}.`,
+      { idx, val, target },
+      idx,
+      { [idx]: [`idx=${idx}`] },
+    );
+
+    // Condition check
+    const isBelow = val <= target;
     addStep(
       8,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating speculative draft token ${val} against acceptance threshold. Accepted = ${isAccepted}.`,
-      { idx, val, isTarget, isAccepted },
-      currentElements,
+      `Check condition: val (${val}) <= target (${target}) -> ${isBelow}`,
+      isBelow
+        ? `Candidate score ${val} is within acceptance threshold ${target}.`
+        : `Candidate score ${val} exceeds target threshold ${target}.`,
+      { val, target, condition: isBelow },
+      idx,
+      { [idx]: [isBelow ? "val <= target" : "val > target"] },
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    if (isBelow) {
+      acceptedTokens.push(val);
+      addStep(
+        9,
+        `Branch True: accepted_tokens.append(${val}) -> [${acceptedTokens.join(", ")}]`,
+        `Appended candidate token ${val} to accepted output sequence.`,
+        { val, accepted_tokens: acceptedTokens.join(", ") },
+        idx,
+        { [idx]: ["accepted"] },
+      );
+    } else {
+      acceptedTokens.push(target);
+      addStep(
+        11,
+        `Branch False: accepted_tokens.append(target=${target}) -> [${acceptedTokens.join(", ")}]`,
+        `Candidate token ${val} exceeded threshold; appended bounded target value ${target}.`,
+        { val, target, accepted_tokens: acceptedTokens.join(", ") },
+        idx,
+        { [idx]: ["bounded"] },
+      );
+    }
+  }
 
+  // Final return
   addStep(
     13,
-    "Execution Complete",
-    "Completed modified rejection sampling pass over speculative draft candidate tokens.",
-    { completed: true },
-    finalElements,
+    `Return accepted_tokens = [${acceptedTokens.join(", ")}]`,
+    `Completed rejection sampling pass over all ${data.length} candidate tokens.`,
+    { accepted_tokens: acceptedTokens.join(", "), total: acceptedTokens.length },
   );
 
   return steps;
 };
 
 const REJECTIONSAMPLINGACCEPTANCETHRESHOLD_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5],
-  distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
-  ],
-  hints: [{ line: 8, hint: "Compare draft token probability against target threshold." }],
   lineExplanations: {
-    6: "Defines entry point for Modified Rejection Sampling Acceptance Verifier.",
-    8: "Iterates through candidate speculative tokens.",
-    13: "Returns accepted token sequence structure.",
+    1: "Function signature for rejection_sampling_acceptance_threshold taking data list and target threshold.",
+    2: "Begin docstring describing Modified Rejection Sampling acceptance verification.",
+    3: "Docstring line detailing acceptance probability formula: P(accept) = min(1.0, P_target(x) / P_draft(x)).",
+    4: "Docstring line explaining target probability distribution recovery guarantee.",
+    5: "End docstring.",
+    6: "Initialize empty list accepted_tokens to store verified candidate tokens.",
+    7: "Iterate over candidate draft tokens using enumerate(data).",
+    8: "Check if draft candidate value val is less than or equal to target acceptance threshold.",
+    9: "Append accepted candidate token val to accepted_tokens list.",
+    10: "Else branch for candidate tokens exceeding acceptance threshold.",
+    11: "Append target acceptance bound value to accepted_tokens list upon rejection.",
+    12: "Blank line before return statement.",
+    13: "Return accepted_tokens list to caller.",
   },
 };
 
@@ -134,17 +186,17 @@ export const rejectionSamplingAcceptanceThreshold: AlgorithmDefinition<rejection
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "Speculative decoding accelerates LLM generation by employing a small draft model to generate candidate tokens that are subsequently verified in parallel by a larger target model. To guarantee that the generated sequence strictly adheres to the target model's probability distribution without quality loss, speculative decoding uses Modified Rejection Sampling. Each draft token $x$ is accepted with probability $P(\\text{accept}) = \\min\\left(1, \\frac{p(x)}{q(x)}\\right)$, where $p(x)$ is the target model probability and $q(x)$ is the draft model probability.\n\nInput Format:\n- `data`: Array of numerical values representing draft token probabilities or candidate sequence scores.\n- `target`: Acceptance threshold marker or target probability bound.\n\nOutput Format:\n- Returns array of accepted draft tokens or binary acceptance decisions.\n\nEdge Cases & Constraints:\n- When $p(x) \\ge q(x)$, acceptance probability is $1.0$, guaranteeing token acceptance.\n- Zero draft probability $q(x) = 0$ handled safely by accepting or sampling directly from target model.\n- Epsilon thresholds prevent division-by-zero or floating-point instability when evaluating probability ratios.",
+      "Speculative decoding accelerates LLM generation by employing a small draft model $M_{\\text{draft}}$ to generate candidate tokens that are subsequently verified in parallel by a larger target model $M_{\\text{target}}$. To guarantee that the generated sequence strictly adheres to the target model's probability distribution without quality loss, speculative decoding uses Modified Rejection Sampling.\n\n### Mathematical Acceptance Probability Formula\nEach draft token $x$ is accepted with probability:\n$$P(\\text{accept}) = \\min\\left(1.0, \\frac{p(x)}{q(x)}\\right)$$\nwhere $p(x) = P_{\\text{target}}(x)$ is the target model probability and $q(x) = P_{\\text{draft}}(x)$ is the draft model probability.\n\nIf candidate token $x$ is rejected at position $k$, subsequent candidate tokens $x_{k+1 \\dots \\gamma}$ are discarded, and a replacement token is sampled from the adjusted residual distribution:\n$$p'(x) = \\frac{\\max(0, p(x) - q(x))}{\\sum_{x'} \\max(0, p(x') - q(x'))}$$\n\nInput Format:\n- `data`: Array of numerical values representing draft token probabilities or candidate sequence scores.\n- `target`: Acceptance threshold marker or target probability bound.\n\nOutput Format:\n- Returns array of accepted draft tokens or binary acceptance decisions.\n\nEdge Cases & Constraints:\n- When $p(x) \\ge q(x)$, acceptance probability is $1.0$, guaranteeing token acceptance.\n- Zero draft probability $q(x) = 0$ handled safely by accepting or sampling directly from target model.\n- Epsilon thresholds prevent division-by-zero or floating-point instability when evaluating probability ratios.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
     examples: [
       {
         kind: "basic",
-        title: "Standard Case",
-        inputDisplay: "data = [10, 20, 30], target = 30",
-        outputDisplay: "[10, 20, 30]",
-        input: { data: [10, 20, 30], target: 30 },
-        output: "[10, 20, 30]",
-        explanation: "All tokens satisfy the acceptance threshold criteria and are accepted.",
+        title: "16 Candidate Tokens Verification",
+        inputDisplay: "16 candidate tokens, target threshold = 50",
+        outputDisplay: "Accepted tokens array returned",
+        input: DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT,
+        output: "Accepted candidate tokens vector returned",
+        explanation: "Evaluates modified rejection sampling across 16 speculative tokens.",
       },
       {
         kind: "complex",
@@ -191,7 +243,7 @@ export const rejectionSamplingAcceptanceThreshold: AlgorithmDefinition<rejection
         },
         {
           heading: "4. Implementation Nuances & Edge Cases",
-          body: "Implementation requires careful probability normalization across temperature, top-$k$, and top-$p$ nucleus sampling masks. When a draft token is rejected, a replacement token is sampled from the residual distribution $p'(x) = \\text{ReLU}(p(x) - q(x)) / \\sum \\text{ReLU}(p - q)$ to ensure zero statistical bias.",
+          body: "Implementation requires careful probability normalization across temperature, top-$k$, and top-$p$ nucleus sampling masks. When a draft token is rejected, a replacement token is sampled from the residual distribution $p'(x) = \\frac{\\text{ReLU}(p(x) - q(x))}{\\sum \\text{ReLU}(p - q)}$ to ensure zero statistical bias.",
         },
       ],
       keyTerms: [
@@ -229,3 +281,5 @@ export const rejectionSamplingAcceptanceThreshold: AlgorithmDefinition<rejection
     defaultInput: DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT,
     generateSteps: generateRejectionSamplingAcceptanceThresholdSteps,
   };
+
+export default rejectionSamplingAcceptanceThreshold;

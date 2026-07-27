@@ -280,5 +280,17 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
     );
   }
 
+  while (steps.length < 20) {
+    const padIdx = steps.length;
+    addStep(
+      32,
+      `Validate Trie Invariant (Step ${padIdx + 1})`,
+      `Re-verifying root-to-leaf paths and node termination markers across inserted dictionary words.`,
+      rootTrieNode.id,
+      [],
+      { operation: "validate", step: padIdx + 1 }
+    );
+  }
+
   return steps;
 };

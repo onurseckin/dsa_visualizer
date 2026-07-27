@@ -11,8 +11,7 @@ export interface SparseTableRmqInput {
   queries: SparseTableQuery[];
 }
 
-export const SPARSE_TABLE_RMQ_CODE = `
-import math
+export const SPARSE_TABLE_RMQ_CODE = `import math
 
 class SparseTableRMQ:
     """
@@ -35,8 +34,7 @@ class SparseTableRMQ:
     def query(self, left: int, right: int) -> int:
         length = right - left + 1
         k = math.floor(math.log2(length))
-        return min(self.st[left][k], self.st[right - (1 << k) + 1][k])
-`;
+        return min(self.st[left][k], self.st[right - (1 << k) + 1][k])`;
 
 export const DEFAULT_SPARSE_TABLE_RMQ_INPUT: SparseTableRmqInput = {
   array: [7, 2, 3, 0, 5, 10, 3, 12],
@@ -124,7 +122,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   }
 
   addStep(
-    10,
+    14,
     "Base case: len = 1 (j = 0)",
     "st[i][0] contains the minimum for length 2^0 = 1 starting at index i, which is arr[i].",
     { j: 0, length: 1 },
@@ -139,7 +137,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     const half = 1 << (j - 1);
 
     addStep(
-      12,
+      15,
       `Computing table row j = ${j} (length = 2^${j} = ${len})`,
       `Combining two overlapping halves of size ${half} to find minimums for range length ${len}.`,
       { j, length: len, halfLength: half },
@@ -151,7 +149,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
       st[i][j] = Math.min(leftVal, rightVal);
 
       addStep(
-        15,
+        19,
         `st[${i}][${j}] = min(st[${i}][${j - 1}], st[${i + half}][${j - 1}]) = ${st[i][j]}`,
         `Minimum of interval [${i}..${i + half - 1}] (${leftVal}) and interval [${i + half}..${i + len - 1}] (${rightVal}) is ${st[i][j]}.`,
         { i, j, leftVal, rightVal, minVal: st[i][j] },
@@ -161,7 +159,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   }
 
   addStep(
-    18,
+    19,
     "Sparse Table construction complete",
     "All intervals of length 2^j precomputed. Ready to answer O(1) range minimum queries.",
     { n, K },
@@ -184,7 +182,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     const queryMin = Math.min(leftPartMin, rightPartMin);
 
     addStep(
-      20,
+      21,
       `Query ${qIdx + 1}: RMQ(${L}, ${R})`,
       `Range length = ${len}. Largest power of 2 fitting in ${len} is 2^${k} = ${1 << k}.`,
       { queryIndex: qIdx + 1, L, R, length: len, k },
@@ -192,7 +190,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     );
 
     addStep(
-      23,
+      24,
       `RMQ(${L}, ${R}) = min(st[${L}][${k}], st[${R - (1 << k) + 1}][${k}]) = ${queryMin}`,
       `Combining overlapping intervals [${L}..${L + (1 << k) - 1}] (min ${leftPartMin}) and [${R - (1 << k) + 1}..${R}] (min ${rightPartMin}) yields overall minimum ${queryMin} in O(1) time.`,
       { L, R, k, leftPartMin, rightPartMin, queryMin },
@@ -207,45 +205,53 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
 
 export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A Sparse Table precomputes answers for all range intervals of length 2^k starting at index i. By overlapping two intervals of length 2^k, any idempotent range query (such as min, max, or gcd) can be answered in O(1) worst-case time after O(N log N) preprocessing.",
+    "A **Sparse Table** is an advanced static range query data structure that precomputes answers for all sub-intervals whose lengths are exact powers of $2$. Leveraging the algebraic property of **idempotence** ($f(x, x) = x$, such as $\\min$, $\\max$, or $\\text{GCD}$), any query range $[L \\dots R]$ can be completely covered by overlapping two precomputed power-of-2 sub-intervals. This enables Range Minimum Queries (RMQ) to execute in $O(1)$ constant time after $O(N \\log N)$ dynamic programming precomputation.",
   sections: [
     {
-      heading: "Interval Covering via Powers of 2",
-      body: "Instead of computing answers for arbitrary range sizes, Sparse Table only builds values for range lengths that are exact powers of 2. For an array of size N, there are only floor(log2 N) + 1 possible power-of-2 lengths.",
+      heading: "1. Power-of-Two Sub-interval Precomputation",
+      body: "Instead of precomputing all $O(N^2)$ possible contiguous sub-intervals, a Sparse Table computes values only for sub-intervals of length $2^j$ starting at index $i$, where $0 \\le j \\le \\lfloor \\log_2 N \\rfloor$.\n\n- Entry `st[i][j]` stores the minimum for interval $[i \\dots i + 2^j - 1]$.\n- Table dimensions are $N \\times (\\lfloor \\log_2 N \\rfloor + 1)$, requiring $O(N \\log N)$ space.",
     },
     {
-      heading: "Idempotent Operations and Overlapping Ranges",
-      body: "Because min(x, x) = x, an operation like minimum is idempotent. When querying range [L, R] of length len, we pick k = floor(log2 len). The two ranges [L, L + 2^k - 1] and [R - 2^k + 1, R] together cover all elements of [L, R] with an overlap in the middle. Computing min of these two values gives the exact minimum of [L, R] in O(1) time.",
+      heading: "2. Dynamic Programming Precomputation",
+      body: "The table is built bottom-up by powers of two:\n\n- **Base Case ($j=0$, length $2^0=1$)**: `st[i][0] = arr[i]`.\n- **Inductive Step ($j \\ge 1$, length $2^j$)**: Split the length-$2^j$ interval into two adjacent halves of length $2^{j-1}$:\n\n$$\\text{st}[i][j] = \\min\\left(\\text{st}[i][j-1], \\, \\text{st}[i + 2^{j-1}][j-1]\\right)$$",
     },
     {
-      heading: "Building the Table",
-      body: "The table st[i][j] stores the result for interval [i, i + 2^j - 1]. The base row j=0 stores original array values arr[i]. Row j is built from row j-1 using the recurrence st[i][j] = min(st[i][j-1], st[i + 2^(j-1)][j-1]).",
+      heading: "3. Constant Time $O(1)$ Overlapping Query Mechanics",
+      body: "To query range $[L \\dots R]$:\n\n1. Compute length $\\text{len} = R - L + 1$ and power exponent $k = \\lfloor \\log_2(\\text{len}) \\rfloor$.\n2. The range is covered by two overlapping intervals of length $2^k$:\n   - Left subsegment $[L \\dots L + 2^k - 1]$ stored at `st[L][k]`.\n   - Right subsegment $[R - 2^k + 1 \\dots R]$ stored at `st[R - 2^k + 1][k]`.\n3. Return the minimum of the two parts:\n\n$$\\text{RMQ}(L, R) = \\min\\left(\\text{st}[L][k], \\, \\text{st}[R - 2^k + 1][k]\\right)$$",
     },
     {
-      heading: "Trade-offs and Limitations",
-      body: "Sparse Table provides fast O(1) queries but does not support point or range updates without rebuilding the table (O(N log N)). For dynamic arrays with updates, Segment Trees or Fenwick Trees are preferred.",
+      heading: "4. Trade-off Matrix: Sparse Table vs Segment Tree",
+      body: "| Feature | Sparse Table | Segment Tree |\n| :--- | :--- | :--- |\n| **Query Complexity** | $O(1)$ constant time | $O(\\log N)$ logarithmic time |\n| **Update Complexity** | Static Only ($O(N \\log N)$ rebuild) | $O(\\log N)$ point/range updates |\n| **Supported Operations** | Idempotent Only ($\min$, $\max$, $\\text{GCD}$) | Any Associative Operation (including Sum) |",
+    },
+    {
+      heading: "5. Interview Pitfalls & Common Bugs",
+      body: "- **Non-Idempotent Operations**: Never use Sparse Tables for Range Sum queries in $O(1)$ time, as overlapping elements would be counted twice.\n- **0-Based Index Math**: Ensure $R - 2^k + 1$ is calculated correctly to align the right-hand covering interval with boundary $R$.",
     },
   ],
   keyTerms: [
     {
-      term: "RMQ",
-      definition: "Range Minimum Query: finding the minimum value in a subarray arr[L..R].",
+      term: "RMQ (Range Minimum Query)",
+      definition: "The problem of finding the minimum element in a subarray arr[L..R].",
     },
     {
       term: "Idempotence",
       definition:
-        "A operation property where f(a, a) = a, allowing overlapping intervals to be combined without error.",
+        "A mathematical property where combining a value with itself yields the same value: $f(x, x) = x$ (e.g. $\\min(a, a) = a$).",
     },
     {
-      term: "Sparse Table",
+      term: "Power-of-Two Interval",
+      definition: "A sub-interval whose length is an exact power of 2 ($1, 2, 4, 8, \\dots$).",
+    },
+    {
+      term: "Overlapping Coverage",
       definition:
-        "A 2D array st[i][j] holding precomputed query answers for intervals of length 2^j starting at index i.",
+        "Covering range $[L \\dots R]$ using two overlapping intervals of length $2^k$ in $O(1)$ time without double-counting errors.",
     },
   ],
 };
 
 export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 19],
+  skipLines: [2, 6, 20],
   distractors: [
     "return min(st[L][k], st[R][k])",
     "st[i][j] = st[i][j - 1] + st[i + (1 << j)][j - 1]",
@@ -253,21 +259,39 @@ export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 15,
+      line: 19,
       hint: "Combine left interval st[i][j-1] and right interval st[i + 2^(j-1)][j-1]",
     },
     {
-      line: 23,
+      line: 24,
       hint: "Use floor(log2(R - L + 1)) to get largest power of 2 length",
     },
   ],
   lineExplanations: {
-    3: "Function signature for building Sparse Table for RMQ.",
-    6: "Handle boundary check for empty array.",
-    10: "Base case: store single elements of length 2^0 = 1.",
-    15: "Fill table via dynamic programming over powers of two.",
-    20: "Function signature for querying range minimum.",
-    23: "Look up two overlapping intervals in constant O(1) time.",
+    1: "Imports the math module for log2 and floor calculations.",
+    2: "Blank line separating imports.",
+    3: "Defines SparseTableRMQ class for static O(1) Range Minimum Queries.",
+    4: "Docstring describing O(N log N) build and O(1) query time.",
+    5: "Docstring continuation.",
+    6: "Docstring continuation.",
+    7: "Constructor taking input sequence arr.",
+    8: "Stores array size n.",
+    9: "Checks for empty input array.",
+    10: "Returns early for empty array.",
+    11: "Calculates max power of 2 level k = floor(log2(n)) + 1.",
+    12: "Allocates 2D sparse table st of dimensions n x k initialized to 0.",
+    13: "Loops over each element i to initialize base row j=0.",
+    14: "Fills base row st[i][0] with original array value arr[i] (length 2^0 = 1).",
+    15: "Loops over power-of-two levels j from 1 to k-1.",
+    16: "Calculates full interval length: length = 1 << j (2^j).",
+    17: "Calculates half interval length: half = 1 << (j - 1) (2^(j-1)).",
+    18: "Loops over valid starting indices i up to n - length + 1.",
+    19: "Computes st[i][j] as min of left half st[i][j-1] and right half st[i+half][j-1].",
+    20: "Blank line separating constructor.",
+    21: "Defines query(left, right) returning minimum in subarray [left..right].",
+    22: "Calculates total query range length: length = right - left + 1.",
+    23: "Calculates largest power-of-two exponent k = floor(log2(length)).",
+    24: "Returns min of two overlapping power-of-2 intervals covering [left..right] in O(1) time.",
   },
 };
 
@@ -278,7 +302,7 @@ export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   categories: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
-    "Sparse Table precomputes range minimums for intervals of power-of-two lengths. It achieves O(N log N) precomputation time and O(1) query time for idempotent operations like minimum and maximum.",
+    "A **Sparse Table** precomputes range minimums for power-of-two interval lengths. Leveraging the idempotence of minimum operations, it achieves $O(N \\log N)$ precomputation time and $O(1)$ constant query time on static arrays.",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
@@ -353,3 +377,4 @@ export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   defaultInput: DEFAULT_SPARSE_TABLE_RMQ_INPUT,
   generateSteps: generateSparseTableRmqSteps,
 };
+

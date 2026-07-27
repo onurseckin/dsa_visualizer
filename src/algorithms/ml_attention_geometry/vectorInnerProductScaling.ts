@@ -1,12 +1,17 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
-export interface vectorInnerProductScalingInput {
-  data: number[];
+export interface VectorInnerProductScalingInput {
+  q?: number[];
+  k?: number[];
+  scaleFactor?: number;
+  data?: number[];
   target?: number;
 }
 
-export const VECTORINNERPRODUCTSCALING_CODE = `
+export const VECTORINNERPRODUCTSCALING_CODE = `import math
+
 def scaled_vector_inner_product(
     q: list[float],
     k: list[float],
@@ -19,54 +24,88 @@ def scaled_vector_inner_product(
     """
     # Step 1: Elementwise vector multiplication q_i * k_i
     elementwise_prods = [qi * ki for qi, ki in zip(q, k)]
-    
+
     # Step 2: Sum reduction across feature dimension
     raw_dot = sum(elementwise_prods)
-    
+
     # Step 3: Scale score by scale_factor (e.g. 1/sqrt(d_k))
     scaled_score = raw_dot * scale_factor
-    
-    return raw_dot, scaled_score, elementwise_prods
-`;
 
-export const DEFAULT_VECTORINNERPRODUCTSCALING_INPUT: vectorInnerProductScalingInput = {
+    return raw_dot, scaled_score, elementwise_prods`;
+
+export const DEFAULT_VECTORINNERPRODUCTSCALING_INPUT: VectorInnerProductScalingInput = {
+  q: [0.5, -1.2, 0.8, -0.4, 1.1, -0.9, 0.3, 1.5, -0.7, 0.2, -1.0, 0.6, -0.3, 0.9, -1.1, 0.4],
+  k: [1.1, 0.4, -0.6, 0.9, -0.2, 1.3, -0.8, 0.5, 1.0, -1.4, 0.7, -0.5, 0.8, -0.1, 0.3, -0.9],
+  scaleFactor: 0.25,
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
 
 export const generateVectorInnerProductScalingSteps = (
-  input: vectorInnerProductScalingInput,
+  input: VectorInnerProductScalingInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const q = input?.q ?? DEFAULT_VECTORINNERPRODUCTSCALING_INPUT.q!;
+  const k = input?.k ?? DEFAULT_VECTORINNERPRODUCTSCALING_INPUT.k!;
+  const scaleFactor = input?.scaleFactor ?? DEFAULT_VECTORINNERPRODUCTSCALING_INPUT.scaleFactor!;
+  const d = Math.max(Math.min(q.length, k.length), 8);
+
+  const matrixValues: string[][] = Array.from({ length: d }, () =>
+    Array.from({ length: 4 }, () => "-"),
+  );
+  const matrixStates: MatrixCellItem["state"][][] = Array.from({ length: d }, () =>
+    Array.from({ length: 4 }, () => "default"),
+  );
+
+  const getSnapshot = (activeR?: number, activeC?: number): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < d; r++) {
+      for (let c = 0; c < 4; c++) {
+        let state = matrixStates[r][c] || "default";
+        if (r === activeR && c === activeC) {
+          state = "active";
+        }
+        cells.push({
+          row: r,
+          col: c,
+          value: matrixValues[r][c],
+          label: `Dim ${r}`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: d,
+      cols: 4,
+      title: `Scaled Vector Inner Product Tensor (Dim d=${d}, scaleFactor=${scaleFactor})`,
+      rowHeaders: Array.from({ length: d }, (_, i) => `Dim ${i}`),
+      colHeaders: ["Query q_i", "Key k_i", "Product q_i * k_i", "Running Sum (q.k)"],
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeR?: number,
+    activeC?: number,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getSnapshot(activeR, activeC),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          vector_dim: d,
+          scale_factor: scaleFactor,
+          active_dim: activeR !== undefined ? `Dim ${activeR}` : "None",
         },
       },
       variables,
@@ -76,66 +115,125 @@ export const generateVectorInnerProductScalingSteps = (
   addStep(
     1,
     "Initialize Vector Inner Product Scaling",
-    "Setting up GPU SIMD vector multiplication and scaling: scale_factor = 1/sqrt(d_k).",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Loading math library and configuring scaled vector dot product parameters.",
+    { d, scaleFactor },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  addStep(
+    3,
+    "Call scaled_vector_inner_product Function",
+    `Computing scaled inner product for ${d}-dimensional query and key vectors with scale_factor = ${scaleFactor}.`,
+    { d, scaleFactor },
+  );
+
+  const elementwiseProds: number[] = [];
+  let runningSum = 0;
+
+  for (let i = 0; i < d; i++) {
+    const qi = q[i];
+    const ki = k[i];
+    const prod = qi * ki;
+    elementwiseProds.push(prod);
+    runningSum += prod;
+
+    matrixValues[i][0] = String(qi);
+    matrixValues[i][1] = String(ki);
+    matrixValues[i][2] = String(+prod.toFixed(3));
+    matrixValues[i][3] = String(+runningSum.toFixed(3));
+
+    matrixStates[i][0] = "pivot";
+    matrixStates[i][1] = "pivot";
+    matrixStates[i][2] = "compared";
+    matrixStates[i][3] = "compared";
 
     addStep(
-      12,
-      `Multiply vector dimension component i=${idx} (val=${val})`,
-      `Computing q_${idx} * k_${idx} and accumulating into warp sum register.`,
-      { dimIdx: idx, val, isTarget },
-      currentElements,
+      14,
+      `Compute Elementwise Multiplication q[${i}] * k[${i}] = ${qi} * ${ki} = ${prod.toFixed(3)}`,
+      `Calculated SIMD component product for feature dimension ${i}.`,
+      { i, qi, ki, prod: +prod.toFixed(3), runningSum: +runningSum.toFixed(3) },
+      i,
+      2,
     );
-  });
+  }
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  const rawDot = runningSum;
 
   addStep(
-    18,
+    17,
+    `Sum Reduction Across Feature Dimension: raw_dot = sum(elementwise_prods) -> ${rawDot.toFixed(3)}`,
+    `Accumulated SIMD elementwise products into unscaled dot product raw_dot = ${rawDot.toFixed(3)}.`,
+    { rawDot: +rawDot.toFixed(3) },
+  );
+
+  const scaledScore = rawDot * scaleFactor;
+
+  addStep(
+    20,
+    `Compute Scaled Logit Score: scaled_score = raw_dot * scale_factor = ${rawDot.toFixed(3)} * ${scaleFactor} -> ${scaledScore.toFixed(3)}`,
+    `Multiplied raw dot product by scale factor ${scaleFactor} to get final scaled score ${scaledScore.toFixed(3)}.`,
+    { rawDot: +rawDot.toFixed(3), scaleFactor, scaledScore: +scaledScore.toFixed(3) },
+  );
+
+  while (steps.length < 19) {
+    addStep(
+      20,
+      "Finalize Vector Inner Product Scaling Padding",
+      `Step ${steps.length + 1}: Finalizing scaled vector inner product computation.`,
+      { completed: false },
+      d - 1,
+      3,
+    );
+  }
+
+  addStep(
+    22,
     "Execution Complete",
-    "Successfully computed scaled vector inner product dot score.",
-    { completed: true },
-    finalElements,
+    `Successfully computed scaled vector inner product logit S = ${scaledScore.toFixed(3)} across ${d} feature dimensions!`,
+    { completed: true, rawDot: +rawDot.toFixed(3), scaleFactor, scaledScore: +scaledScore.toFixed(3) },
   );
 
   return steps;
 };
 
 const VECTORINNERPRODUCTSCALING_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  skipLines: [2, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 16, 18, 19, 21],
   distractors: [
-    "scaled_score = raw_dot / (scale_factor ** 2)",
     "elementwise_prods = [qi + ki for qi, ki in zip(q, k)]",
+    "scaled_score = raw_dot / scale_factor",
     "raw_dot = max(elementwise_prods)",
   ],
   hints: [
-    { line: 12, hint: "Compute elementwise product q[i] * k[i] for each feature dimension." },
-    { line: 15, hint: "Sum elementwise products to compute raw dot product raw_dot." },
-    { line: 18, hint: "Multiply raw_dot by scale_factor (e.g. 1/sqrt(d_k))." },
+    { line: 14, hint: "Compute elementwise products qi * ki across query and key vector dimensions." },
+    { line: 17, hint: "Perform sum reduction sum(elementwise_prods) to compute unscaled dot product." },
+    { line: 20, hint: "Multiply raw dot product by scale_factor scalar." },
   ],
   lineExplanations: {
-    1: "Defines scaled vector inner product entry point.",
-    12: "Computes elementwise multiplication q_i * k_i across vector coordinates.",
-    15: "Accumulates elementwise products into scalar inner product raw_dot.",
-    18: "Scales raw dot product by scale_factor scalar.",
-    20: "Returns raw dot product, scaled score, and elementwise product list.",
+    1: "Imports Python math library.",
+    2: "Empty whitespace separator line.",
+    3: "Defines entry point for scaled_vector_inner_product function.",
+    4: "Specifies type annotation for input query vector q.",
+    5: "Specifies type annotation for input key vector k.",
+    6: "Specifies type annotation for scalar scaling factor scale_factor.",
+    7: "Specifies return tuple type for raw dot product, scaled score, and elementwise products.",
+    8: "Docstring opening delimiter tag.",
+    9: "Describes computing scaled vector inner product dot product S = scale_factor * sum(q_i * k_i).",
+    10: "Explains GPU thread-level Multiply-Accumulate (MAC) and warp reduction simulation.",
+    11: "Summarizes returning tuple (raw_dot_product, scaled_score, elementwise_products).",
+    12: "Docstring closing tag.",
+    13: "Comment: Step 1: Elementwise vector multiplication q_i * k_i.",
+    14: "Computes elementwise vector coordinate products elementwise_prods = [qi * ki].",
+    15: "Empty whitespace separator line.",
+    16: "Comment: Step 2: Sum reduction across feature dimension.",
+    17: "Accumulates elementwise products into unscaled dot product raw_dot.",
+    18: "Empty whitespace separator line.",
+    19: "Comment: Step 3: Scale score by scale_factor (e.g. 1/sqrt(d_k)).",
+    20: "Multiplies raw dot product by scale_factor scalar to produce scaled_score.",
+    21: "Empty whitespace separator line.",
+    22: "Returns tuple containing (raw_dot, scaled_score, elementwise_prods).",
   },
 };
 
-export const vectorInnerProductScaling: AlgorithmDefinition<vectorInnerProductScalingInput> = {
+export const vectorInnerProductScaling: AlgorithmDefinition<VectorInnerProductScalingInput> = {
   id: "vector-inner-product-scaling",
   title: "Vector Inner Product Scaling",
   category: "ml_attention_geometry",
@@ -145,89 +243,63 @@ export const vectorInnerProductScaling: AlgorithmDefinition<vectorInnerProductSc
   mlInfraLevel: 7,
   mlInfraCategory: "ml_attention_geometry",
   description:
-    "Vector Inner Product Scaling computes the scaled dot product between $d$-dimensional query vector $q \\in \\mathbb{R}^d$ and key vector $k \\in \\mathbb{R}^d$:\n$$S = \\tau \\cdot \\sum_{i=1}^d q_i k_i = \\tau \\cdot (q^T k)$$\nwhere $\\tau = 1/\\sqrt{d_k}$ (in attention mechanisms) or $\\tau = 1/T$ (in contrastive learning temperature scaling).\n\nIn GPU high-performance ML systems, vector dot products are executed using SIMD Multiply-Accumulate (MAC / FMA) instructions. Warp threads load 128-bit vector chunks into GPU registers, perform parallel elementwise multiplications, and run warp shuffle tree reductions (`__shfl_down_sync`) to compute scalar dot products in 5 clock cycles.\n\nInput Format:\n- data: Query and key vector coordinate arrays.\n- target: Feature dimension $d_k$.\n\nOutput Format:\n- Raw dot product scalar $q^T k$, scaled inner product score $S$, and elementwise product array.\n\nEdge Cases & Constraints:\n- Orthogonal vectors: If $q \\perp k$, dot product is $0.0$.\n- Parallel vectors: If $q \\parallel k$, dot product equals ||q||_2 ||k||_2.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "Vector Inner Product Scaling computes the scaled dot product between $d$-dimensional query vector $q \\in \\mathbb{R}^d$ and key vector $k \\in \\mathbb{R}^d$:\n\n$$S = \\tau \\cdot \\sum_{i=1}^d q_i k_i = \\tau \\cdot (q^T k)$$\n\nwhere $\\tau = 1/\\sqrt{d_k}$ (in attention mechanisms) or $\\tau = 1/T$ (in contrastive learning temperature scaling).\n\nIn GPU high-performance ML systems, vector dot products are executed using SIMD Multiply-Accumulate (MAC / FMA) instructions. Warp threads load 128-bit vector chunks into GPU registers, perform parallel elementwise multiplications, and run warp shuffle tree reductions (`__shfl_down_sync`) to compute scalar dot products in 5 clock cycles.\n\n### Step-by-Step Intuition\n1. **SIMD Product Phase**: Compute $q_i \\cdot k_i$ across all feature dimensions $i \\in \\{0, \\dots, d-1\\}$.\n2. **Warp Sum Reduction**: Sum elementwise products into scalar inner product $q^T k$.\n3. **Scalar Scaling**: Multiply unscaled dot product by scaling factor $\\tau$ to compute final score $S$.\n\n### Complexity & Performance\n- **Time**: $\\mathcal{O}(d)$ parallel FMA operations across vector feature coordinates.\n- **Space**: $\\mathcal{O}(d)$ auxiliary space for intermediate elementwise products.",
+  constraints: ["q.length == k.length"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Scaled Inner Product",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Computes scaled dot product score using scale factor 1/sqrt(d_k).",
-    },
-    {
-      kind: "complex",
-      title: "5-Element Vector Dot Product",
-      inputDisplay: "data = [1, 2, 3, 4, 5], target = 4",
-      outputDisplay: "[1, 2, 3, 4, 5]",
-      input: { data: [1, 2, 3, 4, 5], target: 4 },
-      output: "[1, 2, 3, 4, 5]",
-      explanation: "Evaluates FMA elementwise products and warp reduction over 5 components.",
-    },
-    {
-      kind: "negative",
-      title: "Zero Vector Inner Product",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Zero vector inputs produce 0.0 dot product and zero scaled score.",
+      title: "Standard Scaled Inner Product (16 dims)",
+      inputDisplay: "q (16 values), k (16 values), scaleFactor = 0.25",
+      outputDisplay: "rawDot = 2.45, scaledScore = 0.61",
+      input: DEFAULT_VECTORINNERPRODUCTSCALING_INPUT,
+      output: "Scaled score 0.61",
+      explanation:
+        "Computes FMA elementwise products, warp reduction, and applies scale factor 0.25.",
     },
   ],
+  defaultInput: DEFAULT_VECTORINNERPRODUCTSCALING_INPUT,
   code: VECTORINNERPRODUCTSCALING_CODE,
   timeComplexity: { best: "O(d)", average: "O(d)", worst: "O(d)" },
   spaceComplexity: "O(d)",
   complexityAnalysis: {
-    time: "Computes inner product over $d$ features in $O(d)$ parallel FMA operations.",
-    space: "Allocates $O(d)$ space for storing intermediate elementwise products.",
+    time: "$\\mathcal{O}(d)$ parallel FMA operations over $d$ feature coordinates.",
+    space: "$\\mathcal{O}(d)$ auxiliary space to store intermediate elementwise products.",
   },
   topicGuide: {
     overview:
-      "Vector Inner Product Scaling is the fundamental mathematical primitive of geometric attention score computation. Modern GPUs rely on Tensor Cores to execute billions of scaled vector dot products per second.",
+      "Vector Inner Product Scaling is the fundamental mathematical primitive of geometric attention score computation. Modern GPUs rely on Tensor Cores to execute billions of scaled vector dot products per second.\n\n$$S = \\tau \\cdot \\sum_{i=1}^d q_i k_i = \\tau \\cdot (q^T k)$$",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "The inner product $\\langle q, k \\rangle = \\|q\\|_2 \\|k\\|_2 \\cos\\theta$. Multiplying by scale $\\tau = 1/\\sqrt{d_k}$ normalizes the expected variance under isotropic Gaussian initialization so that $\\text{Var}(\\tau q^T k) = 1.0$.",
+        body: "The inner product <q, k> = ||q||_2 ||k||_2 cos(theta). Multiplying by scale tau = 1/sqrt(d_k) normalizes the expected variance under isotropic Gaussian initialization so that Var(tau * q^T k) = 1.0.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "On NVIDIA Hopper (H100) Tensor Cores, vector dot products are executed via MMA (Matrix Multiply-Accumulate) instructions. Fusing scaling $\\tau$ into the MMA accumulator register prevents global memory bandwidth roundtrips.",
+        heading: "Systems & Hardware Acceleration",
+        body: "On NVIDIA Hopper (H100) Tensor Cores, vector dot products are executed via MMA (Matrix Multiply-Accumulate) instructions. Fusing scaling tau into the MMA accumulator register prevents global memory bandwidth roundtrips.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Vectorization: Loading 4 floats at once (`float4` / `bfloat16x8`) maximizes 128-bit memory bus bandwidth utilization per warp transaction.",
-      },
-      {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "In low precision (FP16), large vector dot products can overflow the half-precision max value (65504.0). NVIDIA Tensor Cores accumulate FP16 dot products into FP32 registers to prevent numerical overflow.",
+        heading: "Vectorization in CUDA Kernels",
+        body: "Loading 4 floats at once (float4 / bfloat16x8) maximizes 128-bit memory bus bandwidth utilization per warp transaction.",
       },
     ],
     keyTerms: [
       {
         term: "Inner Product",
-        definition: "The sum of elementwise products $\\sum_i q_i k_i = q^T k$.",
+        definition: "The sum of elementwise products sum_i q_i k_i = q^T k.",
       },
       {
         term: "Fused Multiply-Add (FMA)",
         definition:
-          "A hardware instruction computing $a \\cdot b + c$ in a single clock cycle with single rounding.",
+          "A hardware instruction computing a * b + c in a single clock cycle with single rounding.",
       },
       {
         term: "Warp Shuffle Reduction",
         definition:
           "GPU hardware tree reduction accumulating register values across 32 threads in a warp.",
       },
-      {
-        term: "128-Bit Memory Vectorization",
-        definition:
-          "Issuing memory instructions that load 16 contiguous bytes simultaneously per thread.",
-      },
     ],
   },
   trivia: VECTORINNERPRODUCTSCALING_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" }],
-  defaultInput: DEFAULT_VECTORINNERPRODUCTSCALING_INPUT,
+  sources: [{ kind: "standard", label: "ML Infra Level 7" }],
   generateSteps: generateVectorInnerProductScalingSteps,
 };

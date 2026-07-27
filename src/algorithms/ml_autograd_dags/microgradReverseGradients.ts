@@ -6,8 +6,7 @@ export interface microgradReverseGradientsInput {
   target?: number;
 }
 
-export const MICROGRADREVERSEGRADIENTSS_CODE = `
-def micrograd_reverse_gradients(nodes, edges):
+export const MICROGRADREVERSEGRADIENTSS_CODE = `def micrograd_reverse_gradients(nodes, edges):
     """
     Topologically sorts computation DAG and triggers reverse-mode gradient propagation.
     """
@@ -33,8 +32,7 @@ def micrograd_reverse_gradients(nodes, edges):
         for child in edges.get(v, []):
             gradients[child] += g
 
-    return gradients
-`;
+    return gradients`;
 
 export const DEFAULT_MICROGRADREVERSEGRADIENTS_INPUT: microgradReverseGradientsInput = {
   data: [10, 20, 30, 40, 50],
@@ -48,6 +46,8 @@ export const generateMicrogradReverseGradientsSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
+  const target = input?.target ?? 30;
+
   const elements: ArrayElement[] = arrayData.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
@@ -60,6 +60,7 @@ export const generateMicrogradReverseGradientsSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -75,38 +76,125 @@ export const generateMicrogradReverseGradientsSteps = (
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
-          target: String(input?.target ?? 0),
+          target: String(target),
+          ...customState,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Init Reverse Mode Autograd Engine
   addStep(
     1,
-    "Initialize Micrograd Reverse-Mode Automatic Differentiation",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: arrayData.length, target: input?.target ?? 0 },
+    "Initialize Micrograd Reverse-Mode Autograd Engine",
+    "Setting up topological sorting structures and gradient accumulation map for reverse-mode backpropagation.",
+    { nodeCount: arrayData.length, target, phase: "INIT_REVERSE_AUTOGRAD" },
+    undefined,
+    { topo_order: "[]", visited_count: "0" },
   );
 
+  // Step 2: Init topo list and visited set
+  addStep(
+    5,
+    "Allocate `topo = []` and `visited = set()`",
+    "Initializing post-order DFS stacks for graph topological sorting.",
+    { phase: "ALLOC_TOPO_STACKS" },
+  );
+
+  // Phase 1: Build Topological Sort Order
+  const topoOrder: number[] = [];
   arrayData.forEach((val, idx) => {
-    const isTarget = val === input?.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+    topoOrder.push(idx);
+
+    const stateA: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "compare", pointers: [`DFS_${idx}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in autograd computation graph.`,
-      { idx, val, isTarget },
-      currentElements,
+      9,
+      `Build Topo DFS Visit Node ${idx}`,
+      `Checking if node ${idx} is in visited set. Adding to visited set and traversing children.`,
+      { node: idx, isVisited: false, phase: "DFS_VISIT" },
+      stateA,
+      { activeNode: `Node_${idx}` },
+    );
+
+    addStep(
+      13,
+      `Append Node ${idx} to ` + "`topo`" + ` List`,
+      `Post-order DFS complete for Node_${idx}. Appended to topological ordering.`,
+      { node: idx, topoLength: topoOrder.length, phase: "TOPO_APPEND" },
+      stateA,
+      { topo_order: `[${topoOrder.join(", ")}]` },
     );
   });
 
+  // Step 3: Initialize gradients map
+  const gradMap: Record<number, number> = {};
+  arrayData.forEach((_, idx) => {
+    gradMap[idx] = 0.0;
+  });
+
+  addStep(
+    18,
+    "Initialize `gradients = {v: 0.0}` for All Graph Nodes",
+    "Allocating gradient map with initial zero partial derivative values for all graph nodes.",
+    { nodeCount: arrayData.length, phase: "INIT_GRADIENTS_MAP" },
+  );
+
+  // Step 4: Seed loss node gradient
+  const lossNode = topoOrder[topoOrder.length - 1] ?? 0;
+  gradMap[lossNode] = 1.0;
+
+  addStep(
+    20,
+    `Seed Upstream Loss Gradient: gradients[Node_${lossNode}] = 1.0`,
+    `Setting output loss node derivative dL/dL = 1.0 to begin reverse-mode autograd chain rule traversal.`,
+    { lossNode, lossGrad: 1.0, phase: "SEED_LOSS_GRAD" },
+    undefined,
+    { loss_node: `Node_${lossNode}` },
+  );
+
+  // Phase 2: Reverse Topological Gradient Backpropagation Pass
+  for (let tIdx = topoOrder.length - 1; tIdx >= 0; tIdx--) {
+    const v = topoOrder[tIdx];
+    const g = gradMap[v];
+    const isTarget = arrayData[v] === target;
+
+    const stateB: ArrayElement[] = elements.map((el, i) => {
+      if (i === v) return { ...el, state: isTarget ? "active" : "sorted", value: g, pointers: [`dL/d_${v}=${g}`] };
+      if (i > v) return { ...el, state: "visited" };
+      return el;
+    });
+
+    addStep(
+      23,
+      `Fetch Accumulated Gradient for Node ${v}: g = ${g}`,
+      `Traversing in reverse topological order. Node ${v} total accumulated upstream gradient dL/d_${v} = ${g}.`,
+      { node: v, g, phase: "FETCH_NODE_GRAD" },
+      stateB,
+      { currentNode: `Node_${v}`, currentGrad: String(g) },
+    );
+
+    if (v > 0) {
+      const child = v - 1;
+      gradMap[child] = Number((gradMap[child] + g).toFixed(4));
+
+      addStep(
+        25,
+        `Propagate Gradient to Child Node ${child}: gradients[${child}] += ${g} -> ${gradMap[child]}`,
+        `Applying multivariable chain rule sum: sending gradient contribution ${g} from Node_${v} to child Node_${child}.`,
+        { parentNode: v, childNode: child, propagatedGrad: g, updatedChildGrad: gradMap[child], phase: "PROPAGATE_CHILD_GRAD" },
+        stateB,
+        { [`dL/d_${child}`]: String(gradMap[child]) },
+      );
+    }
+  }
+
+  // Step final-1: Verify Backprop Completion
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     state: "sorted",
@@ -114,9 +202,18 @@ export const generateMicrogradReverseGradientsSteps = (
 
   addStep(
     27,
+    "Verify Full Micrograd Reverse Backpropagation Pass",
+    "Checking that all nodes received accumulated gradients in reverse topological order.",
+    { totalNodesProcessed: arrayData.length, backpropComplete: true },
+    finalElements,
+  );
+
+  // Step final: Complete
+  addStep(
+    27,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
-    { completed: true },
+    { completed: true, totalSteps: stepIndex },
     finalElements,
   );
 
@@ -124,26 +221,47 @@ export const generateMicrogradReverseGradientsSteps = (
 };
 
 const MICROGRADREVERSEGRADIENTSS_TRIVIA: TriviaMeta = {
-  skipLines: [],
+  skipLines: [2, 3, 4, 7, 14, 17, 21, 26],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
+    "gradients[child] = g",
   ],
-  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
+  hints: [
+    { line: 8, hint: "Perform post-order DFS to build topological sort order topo." },
+    { line: 20, hint: "Seed output loss node gradient (topo[-1]) to 1.0 (dL/dL = 1.0)." },
+    { line: 22, hint: "Iterate through nodes v in reverse topological order." },
+    { line: 25, hint: "Accumulate gradient g into child nodes: gradients[child] += g." },
+  ],
   lineExplanations: {
-    1: "Defines Micrograd reverse-mode automatic differentiation function.",
-    4: "Initializes topological sort list topo.",
-    5: "Initializes visited node set.",
-    7: "Defines post-order DFS helper function build_topo.",
-    9: "Visits unvisited child nodes recursively.",
-    11: "Appends node v to topo list after visiting all children.",
-    16: "Initializes gradients dictionary for all nodes to 0.0.",
-    18: "Sets output loss node gradient (topo[-1]) to 1.0.",
-    20: "Iterates through nodes v in reverse topological order.",
-    21: "Fetches accumulated gradient g for node v.",
-    23: "Propagates gradient g to child nodes: gradients[child] += g.",
-    25: "Returns dictionary of computed node loss gradients.",
+    1: "Defines entry point for micrograd_reverse_gradients backpropagation function.",
+    2: "Docstring opening: describes topological sorting and reverse-mode gradient propagation.",
+    3: "Docstring body: topologically sorts computation DAG and triggers backward autograd pass.",
+    4: "Docstring closing.",
+    5: "Initializes list topo to store nodes in topological sorting order.",
+    6: "Initializes set visited to track DFS visited graph nodes.",
+    7: "Empty line separating topological variables from recursive DFS helper function.",
+    8: "Defines recursive post-order depth-first search helper function build_topo(v).",
+    9: "Checks if graph node v has not yet been visited in DFS traversal.",
+    10: "Adds node v to visited set.",
+    11: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
+    12: "Recursively invokes build_topo(child) for unvisited child node.",
+    13: "Appends node v to topo list in post-order after visiting all downstream child subtrees.",
+    14: "Empty line separating DFS helper definition from outer graph traversal loop.",
+    15: "Iterates through all nodes in input graph to process disconnected components.",
+    16: "Invokes build_topo(node) for each seed graph node.",
+    17: "Empty line separating topological ordering from gradient dictionary allocation.",
+    18: "Allocates gradients dictionary initializing all graph node partial derivatives to 0.0.",
+    19: "Checks if topo list contains nodes.",
+    20: "Seeds output loss node (last node in topo) gradient to 1.0 (dL/dL = 1.0).",
+    21: "Empty line separating gradient initialization from reverse topological backpropagation loop.",
+    22: "Iterates through graph nodes v in reverse topological order (reversed(topo)).",
+    23: "Fetches total accumulated upstream gradient g = gradients[v] for current node v.",
+    24: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
+    25: "Accumulates gradient contribution into child node: gradients[child] += g.",
+    26: "Empty line before returning computed gradient map.",
+    27: "Returns gradients dictionary mapping all graph node IDs to their computed loss derivatives.",
   },
 };
 
@@ -156,8 +274,32 @@ export const microgradReverseGradients: AlgorithmDefinition<microgradReverseGrad
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
-  description:
-    "Reverse-mode automatic differentiation (backpropagation) computes gradients of a loss output scalar with respect to all leaf input weights in O(N) time. The algorithm topologically sorts computation DAG nodes, sets loss gradient dL/dL = 1.0, and iterates through nodes in reverse topological order, calling local backward functions to accumulate gradients into child nodes.\n\nThis algorithm implements Micrograd Reverse-Mode Automatic Differentiation, building reverse topological ordering and executing backward chain rule gradient propagation.\n\nInput Format:\n- data: Array representing node/edge graph data.\n- target: Optional target value.\n\nOutput Format:\n- Returns dictionary mapping node IDs to computed loss gradients.\n\nEdge Cases & Constraints:\n- Single-node graph (gradient = 1.0).\n- Diamond-shaped DAGs (verifying multivariable chain rule sum).\n- Disconnected graph components.",
+  description: `### Micrograd Reverse-Mode Automatic Differentiation
+
+Reverse-mode automatic differentiation (**backpropagation**) computes the partial derivatives of a scalar output loss $L$ with respect to all leaf input weight parameters ($W, b$) in a single $\\mathcal{O}(V + E)$ pass.
+
+#### Why It Exists & What It Solves
+When training deep neural networks with millions or billions of parameters:
+1. **Forward-mode autograd** requires running one forward pass per input parameter ($N$ passes for $N$ parameters), which is intractable for large networks.
+2. **Reverse-mode autograd** evaluates $\\frac{\\partial L}{\\partial x}$ for all parameters simultaneously in a single backward pass, regardless of parameter count.
+
+Topological sorting is essential:
+- Nodes must be evaluated in **reverse topological order**.
+- Evaluating nodes in reverse topological order guarantees that a node's total upstream gradient $\\text{dL/d}v$ is fully accumulated from all downstream paths before $v$ propagates its gradient to its children.
+
+#### Step-by-Step Mechanism
+1. **Topological Sort**: Perform a post-order DFS traversal to populate list \`topo\` storing graph nodes.
+2. **Gradient Map Allocation**: Initialize \`gradients = {v: 0.0 for v in nodes}\`.
+3. **Loss Seed**: Set loss output node derivative \`gradients[topo[-1]] = 1.0\` ($dL/dL = 1.0$).
+4. **Backward Chain Rule Loop**: Iterate through nodes \`v\` in \`reversed(topo)\`:
+   - Fetch accumulated gradient $g = \\text{gradients}[v]$.
+   - For each child node, accumulate gradient: \`gradients[child] += g\`.
+5. **Return Parameter Gradients**: Return \`gradients\` dictionary.
+
+#### Complexity & Trade-Offs
+- **Time Complexity**: $\\mathcal{O}(V + E)$ linear time across $V$ vertices and $E$ edges in the computation DAG.
+- **Space Complexity**: $\\mathcal{O}(V)$ auxiliary memory for recursion stack and gradient storage.
+- **Trade-Off**: Provides optimal computational speed for scalar loss backpropagation at the cost of retaining forward activation tensors in memory until backward execution completes.`,
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -192,8 +334,8 @@ export const microgradReverseGradients: AlgorithmDefinition<microgradReverseGrad
   timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Linear time traversal across graph vertices and edges.",
-    space: "Linear memory allocation for graph adjacency lists.",
+    time: "Linear time traversal across graph vertices and directed edges.",
+    space: "Linear memory allocation for topological sorting list and gradient map.",
   },
   topicGuide: {
     overview:
@@ -201,19 +343,19 @@ export const microgradReverseGradients: AlgorithmDefinition<microgradReverseGrad
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, reverse mode evaluates dL/dx for all nodes x in O(|V| + |E|) time regardless of input parameter count. This enables training deep neural networks with millions of parameters in a single backward pass.",
+        body: "Mathematically, reverse mode evaluates $\\frac{\\partial L}{\\partial x}$ for all nodes $x$ in $\\mathcal{O}(|V| + |E|)$ time regardless of input parameter count. This enables training deep neural networks with billions of parameters in a single backward pass.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
         body: "Without topological sorting, propagating gradients out-of-order yields incomplete intermediate gradients, producing incorrect final weight derivatives.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
+        heading: "Implementation Details & Topological Sort",
         body: "Implementation builds topological ordering via post-order DFS, initializes loss gradient to 1.0, and steps backward through topo list accumulating gradients to children.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes diamond DAG structures (where node output branches to multiple paths).",
+        heading: "Edge Case Analysis & Diamond DAGs",
+        body: "Edge cases include diamond DAG structures (where node output branches to multiple paths, requiring multivariable chain rule summation $\\sum_i \\frac{\\partial L}{\\partial y_i} \\frac{\\partial y_i}{\\partial x}$).",
       },
     ],
     keyTerms: [

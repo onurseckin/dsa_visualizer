@@ -6,8 +6,7 @@ export interface evalReversePolishNotationInput {
   target?: number;
 }
 
-export const EVALREVERSEPOLISHNOTATION_CODE = `
-def eval_reverse_polish_notation(tokens):
+export const EVALREVERSEPOLISHNOTATION_CODE = `def eval_reverse_polish_notation(tokens):
     """
     Evaluates Reverse Polish Notation (RPN) expression using an explicit operand stack.
     """
@@ -22,8 +21,7 @@ def eval_reverse_polish_notation(tokens):
             elif token == "/": stack.append(int(a / b))
         else:
             stack.append(int(token))
-    return stack[0]
-`;
+    return stack[0]`;
 
 export const DEFAULT_EVALREVERSEPOLISHNOTATION_INPUT: evalReversePolishNotationInput = {
   data: [10, 20, 30, 40, 50],
@@ -36,11 +34,27 @@ export const generateEvalReversePolishNotationSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
+  
+  // Construct an explicit RPN token sequence to evaluate, e.g. ["10", "20", "+", "30", "*", "40", "-"]
+  const tokens: string[] = [
+    String(arrayData[0] ?? 10),
+    String(arrayData[1] ?? 20),
+    "+",
+    String(arrayData[2] ?? 30),
+    "*",
+    String(arrayData[3] ?? 40),
+    "-",
+    String(arrayData[4] ?? 50),
+    "+",
+  ];
+
+  const elements: ArrayElement[] = tokens.map((tok, idx) => ({
+    id: `tok-${idx}`,
+    value: tok,
     state: "default",
   }));
+
+  const operandStack: number[] = [];
 
   const addStep = (
     codeLine: number,
@@ -48,6 +62,7 @@ export const generateEvalReversePolishNotationSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     customElements?: ArrayElement[],
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -61,40 +76,137 @@ export const generateEvalReversePolishNotationSteps = (
         })),
       },
       auxiliaryState: {
+        stack: operandStack.map(String),
         customState: {
-          data: `[${arrayData.join(", ")}]`,
-          target: String(input?.target ?? 0),
+          tokens: `[${tokens.join(", ")}]`,
+          stack: `[${operandStack.join(", ")}]`,
+          ...customState,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Init RPN Evaluator
   addStep(
     1,
-    "Initialize Evaluate Reverse Polish Notation",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: arrayData.length, target: input?.target ?? 0 },
+    "Initialize Reverse Polish Notation (RPN) Evaluator",
+    "Setting up execution environment and preparing LIFO operand stack for postfix expression traversal.",
+    { tokenCount: tokens.length, stackSize: 0, phase: "INIT_RPN" },
   );
 
-  arrayData.forEach((val, idx) => {
-    const isTarget = val === input?.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
+  // Step 2: Init stack array
+  addStep(
+    5,
+    "Allocate LIFO Operand Stack `stack = []`",
+    "Initializing dynamic array stack to hold intermediate scalar operands.",
+    { stackSize: 0, phase: "ALLOC_STACK" },
+  );
+
+  // Token-by-token evaluation loop
+  tokens.forEach((tok, idx) => {
+    const isOp = ["+", "-", "*", "/"].includes(tok);
+
+    const stateTok: ArrayElement[] = elements.map((el, i) => {
+      if (i === idx) return { ...el, state: "compare", pointers: [`token=${tok}`] };
       if (i < idx) return { ...el, state: "visited" };
       return el;
     });
 
+    // Step A: Inspect token
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in autograd computation graph.`,
-      { idx, val, isTarget },
-      currentElements,
+      6,
+      `Loop Token ${idx}: "${tok}"`,
+      `Reading token "${tok}" from RPN stream. Checking if it is an arithmetic operator or numeric operand.`,
+      { idx, token: tok, isOperator: isOp, stackDepth: operandStack.length, phase: "READ_TOKEN" },
+      stateTok,
+      { currentToken: tok },
     );
+
+    // Step B: Check operator condition
+    addStep(
+      7,
+      `Check Token Type: token in ["+", "-", "*", "/"] -> ${isOp}`,
+      isOp
+        ? `Token "${tok}" is a binary operator. Popping top two operands from stack.`
+        : `Token "${tok}" is a numeric operand constant. Preparing stack push.`,
+      { token: tok, isOperator: isOp, phase: "CHECK_OPERATOR" },
+      stateTok,
+    );
+
+    if (isOp) {
+      const b = operandStack.pop() ?? 0;
+      addStep(
+        8,
+        `Pop Right Operand: b = ${b}`,
+        `Popped top scalar operand b = ${b} from LIFO stack. Stack depth now ${operandStack.length}.`,
+        { b, stackDepth: operandStack.length, phase: "POP_B" },
+        stateTok,
+        { popped_b: String(b) },
+      );
+
+      const a = operandStack.pop() ?? 0;
+      addStep(
+        9,
+        `Pop Left Operand: a = ${a}`,
+        `Popped second scalar operand a = ${a} from LIFO stack. Operand pair ready: (${a} ${tok} ${b}).`,
+        { a, b, op: tok, stackDepth: operandStack.length, phase: "POP_A" },
+        stateTok,
+        { popped_a: String(a), popped_b: String(b) },
+      );
+
+      let res = 0;
+      let lineNum = 10;
+      if (tok === "+") {
+        res = a + b;
+        lineNum = 10;
+      } else if (tok === "-") {
+        res = a - b;
+        lineNum = 11;
+      } else if (tok === "*") {
+        res = a * b;
+        lineNum = 12;
+      } else if (tok === "/") {
+        res = Math.trunc(a / (b || 1));
+        lineNum = 13;
+      }
+
+      operandStack.push(res);
+      const stateResult: ArrayElement[] = elements.map((el, i) => {
+        if (i === idx) return { ...el, state: "active", pointers: [`res=${res}`] };
+        if (i < idx) return { ...el, state: "visited" };
+        return el;
+      });
+
+      addStep(
+        lineNum,
+        `Execute Binary Op "${tok}": ${a} ${tok} ${b} = ${res}`,
+        `Evaluated arithmetic expression and pushed computed result ${res} back onto operand stack.`,
+        { a, b, op: tok, result: res, stackDepth: operandStack.length, phase: "EXEC_OP" },
+        stateResult,
+        { stackTop: String(res) },
+      );
+    } else {
+      const numVal = parseInt(tok, 10);
+      operandStack.push(numVal);
+      const statePush: ArrayElement[] = elements.map((el, i) => {
+        if (i === idx) return { ...el, state: "active", pointers: [`push(${numVal})`] };
+        if (i < idx) return { ...el, state: "visited" };
+        return el;
+      });
+
+      addStep(
+        15,
+        `Push Operand onto Stack: int("${tok}") -> ${numVal}`,
+        `Converted token string "${tok}" to integer ${numVal} and pushed onto LIFO stack. Stack depth now ${operandStack.length}.`,
+        { token: tok, value: numVal, stackDepth: operandStack.length, phase: "PUSH_OPERAND" },
+        statePush,
+        { stackTop: String(numVal) },
+      );
+    }
   });
 
+  const finalRes = operandStack[0] ?? 0;
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     state: "sorted",
@@ -102,9 +214,18 @@ export const generateEvalReversePolishNotationSteps = (
 
   addStep(
     16,
+    `Return Final RPN Evaluated Result: stack[0] = ${finalRes}`,
+    `Postfix expression evaluation complete. Single remaining scalar result on top of stack: ${finalRes}.`,
+    { finalResult: finalRes, stackDepth: operandStack.length },
+    finalElements,
+    { finalResult: String(finalRes) },
+  );
+
+  addStep(
+    16,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
-    { completed: true },
+    { completed: true, totalSteps: stepIndex },
     finalElements,
   );
 
@@ -112,26 +233,36 @@ export const generateEvalReversePolishNotationSteps = (
 };
 
 const EVALREVERSEPOLISHNOTATION_TRIVIA: TriviaMeta = {
-  skipLines: [],
+  skipLines: [2, 3, 4, 14],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
     "if len(input_data) == 0: return -1",
+    "stack.append(a - b)",
   ],
-  hints: [{ line: 4, hint: "Process graph nodes in autograd execution pipeline." }],
+  hints: [
+    { line: 5, hint: "Initialize empty list for LIFO operand stack." },
+    { line: 7, hint: "Check if current token is one of the four binary operator symbols." },
+    { line: 8, hint: "Pop right operand b first, then pop left operand a second." },
+    { line: 15, hint: "Convert numeric token to integer and push onto stack." },
+  ],
   lineExplanations: {
-    1: "Defines RPN postfix expression evaluation function.",
-    4: "Initializes operand LIFO stack array.",
-    5: "Iterates through RPN token strings.",
-    6: "Checks if current token is a binary operator (+, -, *, /).",
-    7: "Pops right operand b from stack.",
-    8: "Pops left operand a from stack.",
-    9: "Pushes sum a + b onto stack for addition operator.",
-    10: "Pushes difference a - b onto stack for subtraction operator.",
-    11: "Pushes product a * b onto stack for multiplication operator.",
-    12: "Pushes truncated integer division int(a / b) onto stack for division operator.",
-    14: "Pushes numeric operand token onto stack.",
-    15: "Returns final evaluated scalar result from top of stack.",
+    1: "Defines entry point for eval_reverse_polish_notation RPN postfix evaluator.",
+    2: "Docstring opening: describes Reverse Polish Notation expression evaluation.",
+    3: "Docstring body: evaluates RPN tokens using an explicit LIFO operand stack.",
+    4: "Docstring closing.",
+    5: "Initializes empty list stack to serve as LIFO operand stack.",
+    6: "Iterates through RPN expression token strings.",
+    7: "Checks if current token is a binary arithmetic operator (+, -, *, /).",
+    8: "Pops right operand b from top of operand stack.",
+    9: "Pops left operand a from top of operand stack.",
+    10: "Evaluates addition (a + b) and pushes scalar result onto stack.",
+    11: "Evaluates subtraction (a - b) and pushes scalar result onto stack.",
+    12: "Evaluates multiplication (a * b) and pushes scalar result onto stack.",
+    13: "Evaluates integer division int(a / b) truncating towards zero and pushes result onto stack.",
+    14: "Else branch handling non-operator numeric token strings.",
+    15: "Converts operand token string to integer and pushes value onto stack.",
+    16: "Returns final evaluated scalar result from index 0 of operand stack.",
   },
 };
 
@@ -144,8 +275,33 @@ export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNot
   isMlInfra: true,
   mlInfraLevel: 3,
   mlInfraCategory: "ml_autograd_dags",
-  description:
-    'Reverse Polish Notation (RPN, postfix expression format) represents mathematical operator trees without parentheses (e.g., ["2", "1", "+", "3", "*"] -> (2 + 1) * 3 = 9). Deep learning compilers and execution engines evaluate postfix token streams using an operand stack in O(N) time.\n\nThis algorithm implements Evaluate Reverse Polish Notation, pushing numeric operands onto a stack and popping operand pairs when encountering operators to compute expression totals.\n\nInput Format:\n- data: Array representing input tokens or numbers.\n- target: Optional target value.\n\nOutput Format:\n- Returns scalar integer or float result of evaluated RPN postfix expression.\n\nEdge Cases & Constraints:\n- Subtraction and division operand ordering (a - b and a / b where b was popped first).\n- Single token input array (returns scalar token).\n- Integer division truncation towards zero.',
+  description: `### Evaluate Reverse Polish Notation (RPN)
+
+In deep learning compilers (**PyTorch FX**, **XLA Intermediate Representation**, **Bytecode Virtual Machines**, and **Stack Calculators**), expressions are often serialized in **Reverse Polish Notation (RPN)** / **Postfix Order**.
+
+#### Why It Exists & What It Solves
+Standard mathematical expressions write operators in infix form: $(a + b) \\times (c - d)$.
+Evaluating infix expressions directly requires maintaining operator precedence rules and tracking nested parentheses.
+
+By converting computation DAGs to Postfix / RPN:
+1. **Zero Parentheses**: Operators strictly follow their operands, eliminating explicit grouping symbols.
+2. **Contiguous Stack Execution**: Expressions can be evaluated sequentially in a single $\\mathcal{O}(N)$ pass using a LIFO operand stack without recursive tree pointers.
+
+#### Step-by-Step Mechanism
+1. **Initialize Stack**: Allocate empty operand stack \`stack = []\`.
+2. **Token Stream Traversal**: Iterate through tokens sequentially:
+   - **Numeric Operand**: Convert string token to integer \`int(token)\` and push onto \`stack\`.
+   - **Binary Operator** (\`+\`, \`-\`, \`*\`, \`/\`):
+     - Pop right operand $b = \\text{stack.pop()}$.
+     - Pop left operand $a = \\text{stack.pop()}$.
+     - Compute binary result (e.g. $a + b$, $a - b$, $a \\times b$, or $\\lfloor a / b \\rfloor$).
+     - Push computed scalar result back onto \`stack\`.
+3. **Return Output**: Return the final scalar \`stack[0]\`.
+
+#### Complexity & Trade-Offs
+- **Time Complexity**: $\\mathcal{O}(N)$ linear time over $N$ expression tokens.
+- **Space Complexity**: $\\mathcal{O}(N)$ max auxiliary stack depth for pending operands.
+- **Trade-Off**: Provides optimal cache locality and sequential memory execution at the cost of requiring linear auxiliary stack memory.`,
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
@@ -177,47 +333,48 @@ export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNot
     },
   ],
   code: EVALREVERSEPOLISHNOTATION_CODE,
-  timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
-  spaceComplexity: "O(V + E)",
+  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
+  spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Linear time traversal across graph vertices and edges.",
-    space: "Linear memory allocation for graph adjacency lists.",
+    time: "Single-pass linear scan processes each token in O(1) time.",
+    space: "Operand stack memory scales linearly with total tokens.",
   },
   topicGuide: {
     overview:
-      "RPN evaluation is a classic stack algorithm used in expression parsers, bytecode interpreters (e.g. Python dis, JVM stack execution), and neural network graph execution engines.",
+      "RPN evaluation is a foundational stack-based algorithm used in deep learning graph compilers, bytecode interpreters, and mathematical expression engines.",
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, scanning RPN tokens left-to-right guarantees that whenever an operator is encountered, its required operands reside at the top of the stack. Time complexity is O(N), auxiliary space is O(N).",
+        body: "RPN places operators after operands: $a \\ b \\ \\text{op}$. Scanning tokens left-to-right guarantees operands $a$ and $b$ are pushed onto stack before operator evaluation: $\\text{stack.pop}() \\to b, \\text{stack.pop}() \\to a$.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "Stack-based bytecode evaluation eliminates tree pointer traversal overhead, executing math expressions in contiguous CPU memory arrays.",
+        heading: "Practical Applications in ML Systems",
+        body: "TorchScript JIT and ONNX execution engines serialize complex tensor mathematical graphs into postfix instructions, allowing GPU kernel dispatch loops to run without graph recursion.",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation iterates through tokens, pushing numbers onto stack, popping b then a for operators, applying arithmetic, and pushing results back onto stack.",
+        heading: "Implementation Details & Stack Management",
+        body: "Operands are pushed onto LIFO stack. When encountering operators, right operand $b$ is popped first, followed by left operand $a$. Care must be taken for non-commutative operations ($a - b$ and $\\lfloor a / b \\rfloor$).",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes integer division truncation towards zero (int(a / b) in Python).",
+        heading: "Complexity Analysis & Performance Profile",
+        body: "Linear $\\mathcal{O}(N)$ execution time and $\\mathcal{O}(N)$ space efficiency ensure minimal CPU overhead during graph lowering passes.",
       },
     ],
     keyTerms: [
       {
         term: "Reverse Polish Notation (RPN)",
         definition:
-          "Postfix mathematical expression notation where operators follow their operands.",
+          "Mathematical expression format where operators follow their operands, eliminating parentheses.",
       },
       {
         term: "Operand Stack",
         definition:
-          "LIFO stack storing active intermediate numeric values during postfix expression evaluation.",
+          "LIFO data structure storing intermediate scalar or tensor values during postfix evaluation.",
       },
       {
-        term: "Postfix Order",
-        definition: "Expression ordering where child operands precede parent operator nodes.",
+        term: "Non-Commutative Evaluation",
+        definition:
+          "Operations like subtraction and division where operand popping order (b first, a second) is critical.",
       },
     ],
   },

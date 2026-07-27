@@ -28,15 +28,22 @@ describe("huffmanCoding spec logic", () => {
     expect(guide.keyTerms?.map((t) => t.term)).toContain("Min-heap");
   });
 
-  it("uses Python code representation", () => {
+  it("uses Python code representation and maps every code line in trivia.lineExplanations", () => {
     expect(huffmanCoding.code).toContain("import heapq");
     expect(huffmanCoding.code).toContain("def build_huffman_tree(text):");
     expect(huffmanCoding.code).toContain("class HuffmanNode:");
+
+    const lines = huffmanCoding.code.split("\n");
+    expect(huffmanCoding.trivia?.lineExplanations).toBeDefined();
+    for (let i = 1; i <= lines.length; i++) {
+      expect(huffmanCoding.trivia?.lineExplanations?.[i]).toBeDefined();
+      expect(typeof huffmanCoding.trivia?.lineExplanations?.[i]).toBe("string");
+    }
   });
 
-  it('generates steps for default input "abracadabra"', () => {
+  it('generates steps for default input (>= 20 steps)', () => {
     const steps = generateHuffmanCodingSteps(DEFAULT_HUFFMAN_CODING_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);

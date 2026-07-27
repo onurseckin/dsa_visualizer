@@ -28,8 +28,8 @@ export const TWOGPUPARAMETERSPLITTER_CODE = `def split_model_parameters_2gpu(lay
 `;
 
 export const DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT: twoGpuParameterSplitterInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  data: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95],
+  target: 50,
 };
 
 export const generateTwoGpuParameterSplitterSteps = (
@@ -72,17 +72,45 @@ export const generateTwoGpuParameterSplitterSteps = (
   };
 
   const totalLayers = input.data.length;
-  const splitIdx = Math.max(1, Math.min(totalLayers - 1, Math.floor(totalLayers / 2)));
+  const splitRatio = 0.5;
+  const splitIdx = Math.max(1, Math.min(totalLayers - 1, Math.floor(totalLayers * splitRatio)));
 
   addStep(
     1,
     "Initialize 2-GPU Model Layer Pipeline Splitter",
     "Setting up layer weight array, target split boundary, and pipeline stage targets (GPU 0 vs GPU 1).",
-    { total_layers: totalLayers, split_idx: splitIdx, target: input.target ?? 0 },
+    { total_layers: totalLayers, split_ratio: splitRatio, target: input.target ?? 0 },
   );
+
+  addStep(
+    12,
+    `Compute Total Layers count = ${totalLayers}`,
+    `Loaded ${totalLayers} neural network layers for pipeline stage assignment.`,
+    { total_layers: totalLayers },
+  );
+
+  addStep(
+    13,
+    `Check Empty Layers Guard (total_layers == 0)`,
+    `Total layers = ${totalLayers} > 0, continuing execution.`,
+    { total_layers: totalLayers, is_empty: false },
+  );
+
+  addStep(
+    16,
+    `Calculate Split Index split_idx = ${splitIdx}`,
+    `Applying split_ratio = 0.5 to total_layers = ${totalLayers}: split_idx = max(1, min(${totalLayers - 1}, int(${totalLayers} * 0.5))) = ${splitIdx}.`,
+    { split_idx: splitIdx, total_layers: totalLayers, split_ratio: splitRatio },
+  );
+
+  let gpu0Sum = 0;
+  let gpu1Sum = 0;
 
   input.data.forEach((val, idx) => {
     const isGpu0 = idx < splitIdx;
+    if (isGpu0) gpu0Sum += val;
+    else gpu1Sum += val;
+
     const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
@@ -96,13 +124,27 @@ export const generateTwoGpuParameterSplitterSteps = (
     });
 
     addStep(
-      15,
+      17,
       `Assign Layer ${idx} (${val} MB parameters) to GPU ${isGpu0 ? 0 : 1}`,
-      `Evaluating pipeline layer placement index ${idx} relative to split pivot ${splitIdx}.`,
-      { idx, layer_size: val, assigned_gpu: isGpu0 ? 0 : 1, isTarget },
+      `Evaluating pipeline layer placement index ${idx} relative to split pivot ${splitIdx}. Running parameter sum: GPU 0 = ${gpu0Sum} MB, GPU 1 = ${gpu1Sum} MB.`,
+      { idx, layer_size: val, assigned_gpu: isGpu0 ? 0 : 1, isTarget, gpu0Sum, gpu1Sum },
       currentElements,
     );
   });
+
+  addStep(
+    17,
+    `Slice GPU 0 Parameter Sublist [0..${splitIdx - 1}]`,
+    `Extracted ${splitIdx} layers containing total parameter payload of ${gpu0Sum} MB for GPU 0.`,
+    { split_idx: splitIdx, gpu0_layers_count: splitIdx, gpu0_total_mb: gpu0Sum },
+  );
+
+  addStep(
+    18,
+    `Slice GPU 1 Parameter Sublist [${splitIdx}..${totalLayers - 1}]`,
+    `Extracted ${totalLayers - splitIdx} layers containing total parameter payload of ${gpu1Sum} MB for GPU 1.`,
+    { split_idx: splitIdx, gpu1_layers_count: totalLayers - splitIdx, gpu1_total_mb: gpu1Sum },
+  );
 
   const finalElements: ArrayElement[] = elements.map((el, idx) => ({
     ...el,
@@ -111,10 +153,10 @@ export const generateTwoGpuParameterSplitterSteps = (
   }));
 
   addStep(
-    18,
+    19,
     "Execution Complete",
-    `Pipeline splitting complete. Layers [0..${splitIdx - 1}] assigned to GPU 0; Layers [${splitIdx}..${totalLayers - 1}] assigned to GPU 1.`,
-    { completed: true, gpu0_layers: splitIdx, gpu1_layers: totalLayers - splitIdx },
+    `Pipeline splitting complete. GPU 0 receives ${splitIdx} layers (${gpu0Sum} MB); GPU 1 receives ${totalLayers - splitIdx} layers (${gpu1Sum} MB).`,
+    { completed: true, gpu0_layers: splitIdx, gpu1_layers: totalLayers - splitIdx, gpu0Sum, gpu1Sum },
     finalElements,
   );
 
@@ -122,18 +164,39 @@ export const generateTwoGpuParameterSplitterSteps = (
 };
 
 const TWOGPUPARAMETERSPLITTER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   distractors: [
     "split_idx = total_layers * 2",
     "gpu0_params = layer_weights",
     "return gpu0_params + gpu1_params",
+    "split_idx = total_layers // 4",
   ],
-  hints: [{ line: 15, hint: "Split layers into contiguous blocks for GPU 0 and GPU 1." }],
+  hints: [
+    { line: 16, hint: "Calculate split pivot index while bounding within [1, total_layers-1]." },
+    { line: 17, hint: "Slice parameter list into GPU 0 parameter sublist." },
+    { line: 18, hint: "Slice parameter list into GPU 1 parameter sublist." },
+    { line: 19, hint: "Return tuple containing GPU 0 and GPU 1 layer assignment lists." },
+  ],
   lineExplanations: {
-    1: "Defines entry point for split_model_parameters_2gpu.",
-    11: "Handles empty layer weight array edge case.",
-    15: "Calculates split pivot index while bounding within [1, total_layers-1].",
-    16: "Slices parameter list into GPU 0 and GPU 1 pipeline stages.",
+    1: "Defines entry point for split_model_parameters_2gpu taking layer_weights list and split_ratio.",
+    2: "Docstring start describing 2-GPU pipeline parallel layer partitioning.",
+    3: "Describes splitting neural network layers across 2 GPUs for model sharding.",
+    4: "Blank line in docstring.",
+    5: "Docstring parameter section header.",
+    6: "Explains layer_weights input list containing parameter counts.",
+    7: "Explains split_ratio fraction allocated to GPU 0.",
+    8: "Blank line in docstring.",
+    9: "Docstring returns section header.",
+    10: "Explains return tuple containing parameter lists for GPU 0 and GPU 1.",
+    11: "Docstring close.",
+    12: "Calculates total number of model layers total_layers = len(layer_weights).",
+    13: "Checks edge case guard for empty layer weight array.",
+    14: "Returns empty tuples for both GPU devices if total_layers is 0.",
+    15: "Blank line before split index computation.",
+    16: "Computes split pivot index split_idx while bounding within [1, total_layers-1].",
+    17: "Slices parameter list layer_weights[:split_idx] for GPU 0 stage.",
+    18: "Slices parameter list layer_weights[split_idx:] for GPU 1 stage.",
+    19: "Returns tuple (gpu0_params, gpu1_params) containing partitioned layer lists.",
   },
 };
 
@@ -147,17 +210,17 @@ export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitte
   mlInfraLevel: 11,
   mlInfraCategory: "ml_distributed_systems",
   description:
-    "Partitions neural network transformer layers across a 2-GPU pipeline parallel cluster to balance memory footprint and compute workload.\n\nWhen a deep learning model's memory requirements exceed the VRAM capacity of a single GPU, Pipeline Parallelism (PP) partitions the model sequentially across multiple devices:\n1. Stage 0 (GPU 0): Holds embedding layers and initial transformer layers $L_0 \\dots L_{k-1}$.\n2. Stage 1 (GPU 1): Holds subsequent transformer layers $L_k \\dots L_{M-1}$ and the language model output head.\n\nTo minimize pipeline bubbles (idle GPU time) and balance VRAM usage, the layer partition index $k$ is calculated based on cumulative parameter counts or floating-point computational complexity.\n\nIn a 1F1B (One Forward, One Backward) pipeline schedule, intermediate activation tensors computed at stage boundary $L_{k-1}$ are transferred across NVLink or PCIe from GPU 0 to GPU 1 during the forward pass, and activation gradients are passed back during the backward pass.\n\nInput Format:\n- data: Array of parameter counts or weight memory sizes per layer in MB/GB.\n- target: Optional target layer size or search marker.\n\nOutput Format:\n- Returns partitioned layer lists assigned to GPU 0 (Pipeline Stage 0) and GPU 1 (Pipeline Stage 1).\n\nEdge Cases & Constraints:\n- Single Layer ($M=1$): Cannot be split; retained on GPU 0.\n- Uneven layer sizes: Embedding + Output Head layers often carry extra parameters, requiring custom split ratios beyond 50/50.",
+    "Partitions neural network transformer layers across a 2-GPU pipeline parallel cluster to balance memory footprint and compute workload.\n\n### Mathematical Formulation & Pipeline Balancing\nWhen a deep learning model's memory requirements exceed the VRAM capacity of a single GPU, Pipeline Parallelism (PP) partitions the model depth-wise across $N = 2$ devices:\n- **Stage 0 (GPU 0)**: Holds embedding layers and initial transformer layers $L_0 \\dots L_{k-1}$ with total parameter weight $M_0 = \\sum_{i=0}^{k-1} w_i$.\n- **Stage 1 (GPU 1)**: Holds subsequent transformer layers $L_k \\dots L_{N_{\\text{total}}-1}$ and output head with total weight $M_1 = \\sum_{i=k}^{N_{\\text{total}}-1} w_i$.\n\nFor a target split ratio $\\rho \\in (0, 1)$ (default $\\rho = 0.5$):\n$$k = \\max\\left(1, \\min\\left(N_{\\text{total}} - 1, \\lfloor N_{\\text{total}} \\cdot \\rho \\rfloor\\right)\\right)$$\nMemory imbalance ratio $\\Delta M$ between GPU 0 and GPU 1 is computed as:\n$$\\Delta M = \\frac{|M_0 - M_1|}{M_0 + M_1}$$\n\nIn a 1F1B (One Forward, One Backward) pipeline schedule, intermediate activation tensors $A_k \\in \\mathbb{R}^{B \\times S \\times h}$ computed at stage boundary $L_{k-1}$ are transferred across NVLink ($B_{\\text{NVLink}} \\approx 900\\text{ GB/s}$) from GPU 0 to GPU 1 during the forward pass, and activation gradients $\\frac{\\partial \\mathcal{L}}{\\partial A_k}$ are passed back during backward propagation.\n\nInput Format:\n- `data`: Array of parameter counts or weight memory sizes per layer in MB/GB.\n- `target`: Optional target layer size or search marker.\n\nOutput Format:\n- Returns partitioned layer lists assigned to GPU 0 (Pipeline Stage 0) and GPU 1 (Pipeline Stage 1).\n\nEdge Cases & Constraints:\n- Single Layer ($M=1$): Cannot be split; retained on GPU 0.\n- Uneven layer sizes: Embedding + Output Head layers often carry extra parameters, requiring custom split ratios beyond 50/50.",
   constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "4 Transformer Layers Split across 2 GPUs",
-      inputDisplay: "layer_weights = [10, 20, 30, 40] (total 100 MB), target = 30",
-      outputDisplay: "GPU 0: [10, 20], GPU 1: [30, 40]",
-      input: { data: [10, 20, 30, 40], target: 30 },
-      output: "GPU 0: [10, 20], GPU 1: [30, 40]",
-      explanation: "Splits 4 layers evenly: GPU 0 gets layers 0-1, GPU 1 gets layers 2-3.",
+      title: "18 Transformer Layers Split across 2 GPUs",
+      inputDisplay: "18 layers, target = 50",
+      outputDisplay: "GPU 0: 9 layers, GPU 1: 9 layers",
+      input: DEFAULT_TWOGPUPARAMETERSPLITTER_INPUT,
+      output: "GPU 0: [10..50], GPU 1: [55..95]",
+      explanation: "Splits 18 layers evenly: GPU 0 gets layers 0-8, GPU 1 gets layers 9-17.",
     },
     {
       kind: "complex",
@@ -195,15 +258,15 @@ export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitte
       },
       {
         heading: "Core Concepts & 1F1B Scheduling",
-        body: "To prevent GPUs from sitting idle while waiting for activations (the 'pipeline bubble'), pipeline schedulers split mini-batches into micro-batches. Under the 1F1B (One Forward, One Backward) schedule, each GPU alternates between executing one micro-batch forward pass and one micro-batch backward pass, capping peak activation memory.",
+        body: "To prevent GPUs from sitting idle while waiting for activations (the 'pipeline bubble'), pipeline schedulers split mini-batches into micro-batches ($m$). Under the 1F1B (One Forward, One Backward) schedule, each GPU alternates between executing one micro-batch forward pass and one micro-batch backward pass, capping peak activation memory to $\\mathcal{O}(P_{\\text{stages}} \\times m)$.",
       },
       {
         heading: "Systems & Memory Hierarchy Performance",
-        body: "Inter-stage communication sends activation tensors across stage boundaries. When GPU 0 and GPU 1 reside on the same server, transfers utilize NVLink (up to 900 GB/s on H100). When crossing server nodes, transfers use InfiniBand Remote Direct Memory Access (RDMA), requiring careful activation compression or chunking.",
+        body: "Inter-stage communication sends activation tensors $A \\in \\mathbb{R}^{B \\times S \\times h}$ across stage boundaries. When GPU 0 and GPU 1 reside on the same server, transfers utilize NVLink ($B_{\\text{NVLink}} \\approx 900\\text{ GB/s}$ on H100). When crossing server nodes, transfers use InfiniBand Remote Direct Memory Access (RDMA), requiring careful activation compression or chunking.",
       },
       {
         heading: "Implementation Nuances & Load Balancing",
-        body: "Naively splitting layers by count ($M/2$) often results in memory imbalance because layer 0 contains token embeddings and layer $M-1$ contains output LM heads. Production pipeline splitters run dynamic programming algorithms to balance parameter memory + peak activation VRAM across all stages.",
+        body: "Naively splitting layers by count ($M/2$) often results in memory imbalance because layer 0 contains token embeddings and layer $M-1$ contains output LM heads. Production pipeline splitters run dynamic programming algorithms to balance parameter memory $M_0, M_1$ plus peak activation VRAM across all stages.",
       },
     ],
     keyTerms: [
@@ -225,7 +288,7 @@ export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitte
       {
         term: "Activation Transfer",
         definition:
-          "Inter-GPU communication of forward intermediate hidden states and backward activation gradients across pipeline stage boundaries.",
+          "Inter-GPU communication of forward intermediate hidden states ($A$) and backward activation gradients ($\\frac{\\partial \\mathcal{L}}{\\partial A}$) across pipeline stage boundaries.",
       },
     ],
   },

@@ -7,8 +7,7 @@ export interface flashDecodingSplitKKvCacheGatherInput {
   split_outputs: number[][];
 }
 
-export const FLASHDECODINGSPLITKKVCACHEGATHER_CODE = `
-import math
+export const FLASHDECODINGSPLITKKVCACHEGATHER_CODE = `import math
 
 def flash_decoding_split_k_gather(split_maxes, split_sums, split_outputs):
     """
@@ -39,8 +38,7 @@ def flash_decoding_split_k_gather(split_maxes, split_sums, split_outputs):
         for d in range(dim):
             global_output[d] += split_outputs[k][d] * weight_factor
 
-    return global_output, global_max, global_sum
-`;
+    return global_output, global_max, global_sum`;
 
 export const DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT: flashDecodingSplitKKvCacheGatherInput =
   {
@@ -60,9 +58,12 @@ export const generateFlashDecodingSplitKKvCacheGatherSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const elements: ArrayElement[] = input.split_maxes.map((m, idx) => ({
+  const { split_maxes, split_sums, split_outputs } = input;
+  const numSplits = split_maxes.length;
+
+  const elements: ArrayElement[] = split_maxes.map((m, idx) => ({
     id: `split-${idx}`,
-    value: `Split ${idx}: max=${m.toFixed(1)}, sum=${input.split_sums[idx].toFixed(1)}`,
+    value: `Split ${idx}: m=${m.toFixed(1)}, l=${split_sums[idx].toFixed(1)}`,
     state: "default",
   }));
 
@@ -71,118 +72,287 @@ export const generateFlashDecodingSplitKKvCacheGatherSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
+    activeSplitIdx: number = -1,
+    pointersMap: Record<number, string[]> = {},
     customElements?: ArrayElement[],
   ) => {
+    const baseElements = customElements || elements;
+    const updatedElements: ArrayElement[] = baseElements.map((el, idx) => {
+      let state: ArrayElement["state"] = el.state;
+      if (activeSplitIdx >= 0 && idx === activeSplitIdx) state = "active";
+      else if (activeSplitIdx >= 0 && idx < activeSplitIdx && state !== "sorted") state = "visited";
+      return {
+        ...el,
+        state,
+        pointers: pointersMap[idx] || el.pointers || undefined,
+      };
+    });
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: updatedElements,
       },
       auxiliaryState: {
         customState: {
-          num_splits: String(input.split_maxes.length),
-          dim: String(input.split_outputs[0]?.length ?? 0),
+          num_splits: String(numSplits),
+          dim: String(split_outputs[0]?.length ?? 0),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Import line 1
   addStep(
     1,
-    "Initialize FlashDecoding Split-K KV Cache Gather Engine",
-    "Loading partial max score array split_maxes, sumexp array split_sums, and partial output vectors.",
-    { num_splits: input.split_maxes.length },
+    "import math",
+    "Importing math module for exponential calculation exp(m_k - m_global).",
+    { num_splits: numSplits },
   );
 
-  const globalMax = Math.max(...input.split_maxes);
-  const currentElements = elements.map((el) => ({ ...el }));
-
+  // Step 2: Function signature line 3
   addStep(
-    14,
-    `Compute Global Maximum Score m_global = ${globalMax.toFixed(2)}`,
-    "Finding maximum score across all K sequence splits to prevent float exponent overflow.",
+    3,
+    "Enter flash_decoding_split_k_gather function",
+    "Initializing online log-sum-exp reduction gather for Split-K decoding attention splits.",
+    { num_splits: numSplits },
+  );
+
+  // Step 3: num_splits line 8
+  addStep(
+    8,
+    `Compute num_splits = len(split_maxes) -> ${numSplits}`,
+    `Found ${numSplits} parallel GPU thread block splits to reduce.`,
+    { num_splits: numSplits },
+  );
+
+  // Step 4: empty check line 9
+  addStep(
+    9,
+    `Check if num_splits == 0 -> ${numSplits === 0}`,
+    "Verifying non-empty split partition list.",
+    { num_splits: numSplits },
+  );
+
+  if (numSplits === 0) {
+    addStep(10, "Return [], 0.0, 0.0 for empty splits", "Early exit.", { empty: true });
+    return steps;
+  }
+
+  // Step 5: Global max line 13
+  const globalMax = Math.max(...split_maxes);
+  addStep(
+    13,
+    `Compute global_max = max(split_maxes) -> ${globalMax.toFixed(2)}`,
+    `Global maximum attention score across all ${numSplits} splits: $m_{\\text{global}} = ${globalMax.toFixed(2)}$.`,
     { global_max: Number(globalMax.toFixed(2)) },
   );
 
-  let globalSum = 0;
-  const rescaledWeights: number[] = [];
+  // Step 6: rescaled_sums init line 16
+  addStep(
+    16,
+    "Initialize rescaled_sums = []",
+    "Allocating list to store rescaled sum-exponent denominators $l_k \\cdot e^{m_k - m_{\\text{global}}}$.",
+    { rescaled_sums: "[]" },
+  );
 
-  input.split_maxes.forEach((m, k) => {
-    const w = input.split_sums[k] * Math.exp(m - globalMax);
-    rescaledWeights.push(w);
-    globalSum += w;
+  // Step 7: global_sum init line 17
+  addStep(
+    17,
+    "Initialize global_sum = 0.0",
+    "Accumulator for global softmax denominator $L_{\\text{global}}$.",
+    { global_sum: 0.0 },
+  );
 
+  const rescaledSums: number[] = [];
+  let globalSum = 0.0;
+  const currentElements = [...elements];
+
+  // Step 8: Loop for rescaled sums lines 18-21
+  for (let k = 0; k < numSplits; k++) {
+    addStep(
+      18,
+      `Loop k=${k} of num_splits=${numSplits}`,
+      `Rescaling split ${k} partial softmax sum-exponent.`,
+      { k, split_max: split_maxes[k], split_sum: split_sums[k] },
+      k,
+      { [k]: [`m_${k}=${split_maxes[k]}`] },
+      currentElements,
+    );
+
+    const diff = split_maxes[k] - globalMax;
+    const expFactor = Math.exp(diff);
+    const rescaledW = split_sums[k] * expFactor;
+
+    addStep(
+      19,
+      `Split ${k}: rescaled_w = ${split_sums[k]} * exp(${split_maxes[k]} - ${globalMax.toFixed(1)}) -> ${rescaledW.toFixed(4)}`,
+      `Rescaled weight $w_${k} = ${split_sums[k]} \\cdot e^{${diff.toFixed(2)}} = ${rescaledW.toFixed(4)}$.`,
+      { k, diff: Number(diff.toFixed(2)), expFactor: Number(expFactor.toFixed(4)), rescaledW: Number(rescaledW.toFixed(4)) },
+      k,
+      { [k]: [`rescaled_w=${rescaledW.toFixed(3)}`] },
+      currentElements,
+    );
+
+    rescaledSums.push(rescaledW);
+    addStep(
+      20,
+      `Split ${k}: rescaled_sums.append(${rescaledW.toFixed(4)})`,
+      `Appended rescaled weight for split ${k}.`,
+      { k, rescaledW: Number(rescaledW.toFixed(4)) },
+      k,
+      {},
+      currentElements,
+    );
+
+    globalSum += rescaledW;
     currentElements[k] = {
       ...currentElements[k],
-      state: "active",
-      pointers: [`rescaled_w=${w.toFixed(3)}`],
+      value: `Split ${k}: w=${rescaledW.toFixed(2)}`,
+      state: "sorted",
     };
 
     addStep(
-      18,
-      `Rescale Split ${k} partial sumexp: w_${k} = ${w.toFixed(3)}`,
-      `Applying log-sum-exp correction factor exp(${m.toFixed(1)} - ${globalMax.toFixed(1)}). Cumulative global sum is now ${globalSum.toFixed(3)}.`,
-      {
-        split_idx: k,
-        split_max: m,
-        rescaled_w: Number(w.toFixed(3)),
-        global_sum: Number(globalSum.toFixed(3)),
-      },
+      21,
+      `Split ${k}: global_sum += ${rescaledW.toFixed(4)} -> ${globalSum.toFixed(4)}`,
+      `Updated global denominator sum: $L_{\\text{global}} = ${globalSum.toFixed(4)}$.`,
+      { k, global_sum: Number(globalSum.toFixed(4)) },
+      k,
+      { [k]: [`global_sum=${globalSum.toFixed(2)}`] },
       currentElements,
     );
-  });
+  }
 
-  const dim = input.split_outputs[0]?.length || 0;
-  const globalOutput = new Array(dim).fill(0);
-
-  input.split_maxes.forEach((_, k) => {
-    const factor = rescaledWeights[k] / Math.max(globalSum, 1e-12);
-    for (let d = 0; d < dim; d++) {
-      globalOutput[d] += input.split_outputs[k][d] * factor;
-    }
-  });
-
-  const finalElements = currentElements.map((el) => ({
-    ...el,
-    state: "sorted" as const,
-  }));
-
+  // Step 9: Dim line 24
+  const dim = split_outputs[0]?.length || 0;
   addStep(
-    30,
-    "Execution Complete",
-    "Successfully accumulated rescaled partial outputs into global attention output vector O_global.",
+    24,
+    `Compute dim = len(split_outputs[0]) -> ${dim}`,
+    `Attention head vector dimension $D = ${dim}$.`,
+    { dim },
+  );
+
+  // Step 10: global_output init line 25
+  const globalOutput = new Array(dim).fill(0.0);
+  addStep(
+    25,
+    `Initialize global_output = [0.0] * ${dim}`,
+    "Allocating zero-initialized global output attention accumulator vector.",
+    { global_output: `[${globalOutput.join(", ")}]` },
+  );
+
+  // Step 11: Loop for weighted accumulation lines 27-30
+  for (let k = 0; k < numSplits; k++) {
+    addStep(
+      27,
+      `Loop k=${k}: Accumulate split output vector O_${k}`,
+      `Calculating global weight factor for split ${k}.`,
+      { k },
+      k,
+      { [k]: [`split_${k}`] },
+      currentElements,
+    );
+
+    const weightFactor = rescaledSums[k] / Math.max(globalSum, 1e-12);
+    addStep(
+      28,
+      `Split ${k}: weight_factor = ${rescaledSums[k].toFixed(4)} / ${globalSum.toFixed(4)} -> ${weightFactor.toFixed(4)}`,
+      `Normalized attention weight for split ${k}: $\\alpha_${k} = ${weightFactor.toFixed(4)}$ (${(weightFactor * 100).toFixed(1)}%).`,
+      { k, weight_factor: Number(weightFactor.toFixed(4)) },
+      k,
+      { [k]: [`weight=${(weightFactor * 100).toFixed(1)}%`] },
+      currentElements,
+    );
+
+    for (let d = 0; d < dim; d++) {
+      addStep(
+        29,
+        `Split ${k}, Dim ${d}: inner loop over vector dimensions`,
+        `Multiplying dimension ${d} of split vector $O_{${k}, ${d}}$ by weight $\\alpha_${k}$.`,
+        { k, d, val: split_outputs[k][d] },
+        k,
+      );
+
+      const term = split_outputs[k][d] * weightFactor;
+      globalOutput[d] += term;
+      addStep(
+        30,
+        `Split ${k}, Dim ${d}: global_output[${d}] += ${split_outputs[k][d]} * ${weightFactor.toFixed(4)} -> ${globalOutput[d].toFixed(4)}`,
+        `Accumulated dimension ${d}: $O_{\\text{global}}[${d}] = ${globalOutput[d].toFixed(4)}$.`,
+        { k, d, term: Number(term.toFixed(4)), global_out_d: Number(globalOutput[d].toFixed(4)) },
+        k,
+      );
+    }
+  }
+
+  // Step 12: Final return line 32
+  addStep(
+    32,
+    "Return global_output, global_max, global_sum",
+    `Completed FlashDecoding Split-K gather reduction! $O_{\\text{global}} = [${globalOutput.map((v) => v.toFixed(3)).join(", ")}]$, $m_{\\text{global}} = ${globalMax.toFixed(2)}$, $L_{\\text{global}} = ${globalSum.toFixed(3)}$.`,
     {
       global_max: Number(globalMax.toFixed(2)),
       global_sum: Number(globalSum.toFixed(3)),
       global_output: `[${globalOutput.map((v) => v.toFixed(3)).join(", ")}]`,
     },
-    finalElements,
+    -1,
+    {},
+    currentElements,
   );
 
   return steps;
 };
 
 const FLASHDECODINGSPLITKKVCACHEGATHER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
+  skipLines: [2, 4, 5, 6, 7, 11, 12, 14, 15, 22, 23, 26, 31],
   distractors: [
-    "global_max = sum(split_maxes) / len(split_maxes)",
-    "rescaled_w = split_sums[k] * math.exp(global_max - split_maxes[k])",
-    "global_output[d] += split_outputs[k][d] * split_sums[k]",
+    "global_max = sum(split_maxes)",
+    "rescaled_w = split_sums[k] * split_maxes[k]",
+    "weight_factor = rescaled_sums[k] * global_sum",
+    "global_output[d] = split_outputs[k][d]",
   ],
-  hints: [{ line: 18, hint: "Rescale partial sum by exp(m_k - m_global) before accumulating." }],
+  hints: [
+    { line: 13, hint: "Find global maximum attention score across all splits: max(split_maxes)." },
+    { line: 19, hint: "Rescale split sum-exponent using math.exp(split_maxes[k] - global_max)." },
+    { line: 28, hint: "Compute normalized weight factor: rescaled_sums[k] / max(global_sum, 1e-12)." },
+  ],
   lineExplanations: {
-    1: "Entry point for FlashDecoding Split-K KV Cache Gather Engine.",
-    14: "Finds maximum score across all sequence split blocks for numerical stability.",
-    18: "Rescales partial sum-exponents using online log-sum-exp identity.",
-    27: "Computes weighted average of partial split output vectors.",
-    30: "Returns final global attention output vector O_global and reduced log-sum-exp metadata.",
+    1: "Import math module for exponential function math.exp.",
+    2: "Blank line after imports.",
+    3: "Function signature for flash_decoding_split_k_gather taking split_maxes, split_sums, and split_outputs.",
+    4: "Begin docstring describing FlashDecoding Split-K KV cache gather engine.",
+    5: "Docstring line detailing log-sum-exp reduction.",
+    6: "Docstring line detailing global rowmax and rescaled weighted sum.",
+    7: "End docstring.",
+    8: "Compute number of splits: num_splits = len(split_maxes).",
+    9: "Check if num_splits equals zero.",
+    10: "Return empty results if zero splits.",
+    11: "Blank line after empty check.",
+    12: "Comment explaining Step 1: computing global maximum score across all K splits.",
+    13: "Compute global maximum score across all K splits: global_max = max(split_maxes).",
+    14: "Blank line before Step 2.",
+    15: "Comment explaining Step 2: rescaling partial sum-exponents.",
+    16: "Initialize empty list rescaled_sums for rescaled sum-exponents.",
+    17: "Initialize global_sum counter to 0.0.",
+    18: "Loop over split indices k in range(num_splits).",
+    19: "Rescale partial sum-exponent for split k: rescaled_w = split_sums[k] * math.exp(split_maxes[k] - global_max).",
+    20: "Append rescaled_w to rescaled_sums.",
+    21: "Accumulate rescaled_w into global_sum.",
+    22: "Blank line before Step 3.",
+    23: "Comment explaining Step 3: weighted sum of split output vectors.",
+    24: "Get vector dimension dim = len(split_outputs[0]).",
+    25: "Initialize global_output list with zeroes of length dim.",
+    26: "Blank line before output vector reduction loop.",
+    27: "Loop over split indices k in range(num_splits) for weighted sum accumulation.",
+    28: "Compute weight_factor = rescaled_sums[k] / max(global_sum, 1e-12).",
+    29: "Loop over output vector dimensions d in range(dim).",
+    30: "Accumulate weighted split output into global_output[d] += split_outputs[k][d] * weight_factor.",
+    31: "Blank line before return statement.",
+    32: "Return tuple of global_output vector, global_max scalar, and global_sum scalar.",
   },
 };
 
@@ -197,7 +367,7 @@ export const flashDecodingSplitKKvCacheGather: AlgorithmDefinition<flashDecoding
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "FlashDecoding (Tri Dao et al.) parallelizes single-query LLM decode attention across long KV-cache sequence lengths. In traditional FlashAttention decode, a single query token Q (1 x D) scans the entire KV-cache sequence sequentially within a single thread block. When sequence length N exceeds 64k-1M tokens, single-query decode cannot saturate GPU Streaming Multiprocessors (SMs), resulting in under 5% hardware utilization.\n\nFlashDecoding splits the K and V sequence dimension into K_splits partition blocks processed concurrently by independent GPU thread blocks. Each thread block computes partial attention rowmax m_k, partial sum-exponent l_k, and partial output vector O_k. A lightweight final reduction gather kernel computes global rowmax m_global = max_k(m_k), rescales partial sumexps l_k_rescaled = l_k * exp(m_k - m_global), and combines partial outputs O_global = sum(O_k * l_k_rescaled) / l_global.\n\nInput Format:\n- split_maxes: Array of partial maximum attention scores m_k across K splits.\n- split_sums: Array of partial softmax sum-exponents l_k across K splits.\n- split_outputs: 2D array of partial attention output vectors O_k [K_splits, head_dim].\n\nOutput Format:\n- Returns a tuple of (global_output, global_max, global_sum) containing the reduced attention vector and log-sum-exp scalars.\n\nEdge Cases & Constraints:\n- Single split: When K_splits = 1, reduction degenerates gracefully into standard FlashAttention.\n- Extreme score disparity: Handles large negative m_k values by clamping exp(m_k - m_global) to 0 without underflow NaN.\n- Zero denominator protection: Safeguards global_sum with 1e-12 threshold against zero division.",
+      "FlashDecoding (Tri Dao et al.) parallelizes single-query LLM decode attention across long KV-cache sequence lengths. In traditional FlashAttention decode, a single query token Q (1 x D) scans the entire KV-cache sequence sequentially within a single thread block. When sequence length N exceeds 64k-1M tokens, single-query decode cannot saturate GPU Streaming Multiprocessors (SMs), resulting in under 5% hardware utilization.\n\n### FlashDecoding Split-K Reduction Math\nFlashDecoding splits the K and V sequence dimension into $K_{\\text{splits}}$ partition blocks processed concurrently by independent GPU thread blocks. Each thread block computes partial attention rowmax $m_k$, partial sum-exponent $l_k$, and partial output vector $O_k$.\n\nA lightweight final reduction gather kernel computes:\n1. **Global Rowmax**: $m_{\\text{global}} = \\max_k(m_k)$\n2. **Rescaled Sum-Exponents**: $l_{k, \\text{rescaled}} = l_k \\cdot e^{m_k - m_{\\text{global}}}$\n3. **Global Softmax Denominator**: $L_{\\text{global}} = \\sum_k l_{k, \\text{rescaled}}$\n4. **Global Output Vector**: $O_{\\text{global}} = \\sum_k O_k \\cdot \\frac{l_{k, \\text{rescaled}}}{L_{\\text{global}}}$\n\n### Input Parameters\n- `split_maxes`: Array of partial maximum attention scores $m_k$.\n- `split_sums`: Array of partial softmax sum-exponents $l_k$.\n- `split_outputs`: 2D array of partial attention output vectors $O_k$.\n\n### Output\n- Returns tuple `(global_output, global_max, global_sum)`.",
     constraints: [
       "1 <= split_maxes.length <= 256",
       "split_sums[i] > 0",
@@ -246,20 +416,20 @@ export const flashDecodingSplitKKvCacheGather: AlgorithmDefinition<flashDecoding
     timeComplexity: { best: "O(K * D)", average: "O(K * D)", worst: "O(K * D)" },
     spaceComplexity: "O(K + D)",
     complexityAnalysis: {
-      time: "O(K * D) where K is number of splits and D is head dimension to perform rescaled vector accumulation.",
-      space: "O(K + D) auxiliary space for rescaled weights and final reduced output vector.",
+      time: "$O(K \\cdot D)$ where $K$ is number of splits and $D$ is head dimension to perform rescaled vector accumulation.",
+      space: "$O(K + D)$ auxiliary space for rescaled weights and final reduced output vector.",
     },
     topicGuide: {
       overview:
         "FlashDecoding Split-K Gather parallelizes long-context single-query decode attention by reducing partial block attention outputs via online Log-Sum-Exp rescaling.",
       sections: [
         {
-          heading: "Overview",
+          heading: "Overview & Decoding Bottlenecks",
           body: "During the decode phase of LLM serving, each step processes a single query token (Q length = 1) per sequence. In long-context scenarios (32k to 1M tokens), scanning the entire KV-cache sequentially with a single thread block severely limits GPU occupancy and underutilizes Tensor Cores.",
         },
         {
-          heading: "Core Concepts",
-          body: "FlashDecoding partitions the KV sequence into K_splits chunks, running parallel thread blocks on GPU SMs. Each block produces partial online Softmax statistics (partial rowmax m_k and partial sum-exp l_k) and partial output vector O_k. The Gather step unifies these splits via global log-sum-exp rescaling.",
+          heading: "Split-K Parallelism & Online Log-Sum-Exp",
+          body: "FlashDecoding partitions the KV sequence into $K_{\\text{splits}}$ chunks, running parallel thread blocks on GPU SMs. Each block produces partial online Softmax statistics (partial rowmax $m_k$ and partial sum-exp $l_k$) and partial output vector $O_k$. The Gather step unifies these splits via global log-sum-exp rescaling.",
         },
         {
           heading: "Systems & Memory Bandwidth Impact",
@@ -298,3 +468,5 @@ export const flashDecodingSplitKKvCacheGather: AlgorithmDefinition<flashDecoding
     defaultInput: DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT,
     generateSteps: generateFlashDecodingSplitKKvCacheGatherSteps,
   };
+
+export default flashDecodingSplitKKvCacheGather;

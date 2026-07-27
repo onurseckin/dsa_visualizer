@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ncclTreeVsRingAllreduceSimulatorInput {
@@ -55,99 +55,273 @@ export const generateNcclTreeVsRingAllreduceSimulatorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+  const payloads = input.data.length > 0 ? input.data : [64, 256, 1024, 4096, 65536, 1048576];
   const numGpus = Math.max(2, input.target ?? 16);
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const ringSteps = 2 * (numGpus - 1);
+  const treeSteps = 2 * Math.ceil(Math.log2(numGpus));
+
+  const buildMatrixCells = (
+    activeRow?: number,
+    completedRows: number[] = [],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < payloads.length; r++) {
+      const bytes = payloads[r];
+      const ringVolMB = (((2 * (numGpus - 1)) / numGpus) * bytes) / (1024 * 1024);
+      const treeVolMB = (2.0 * bytes) / (1024 * 1024);
+      const isSmall = bytes <= 256 * 1024;
+      const rec = isSmall && numGpus > 4 ? "TREE" : "RING";
+
+      const isDone = completedRows.includes(r);
+      const isActive = r === activeRow;
+
+      const rowValues = [
+        bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${bytes} B`,
+        `${ringSteps} steps`,
+        `${treeSteps} steps`,
+        `${ringVolMB < 0.01 ? ringVolMB.toFixed(4) : ringVolMB.toFixed(2)} MB`,
+        `${treeVolMB < 0.01 ? treeVolMB.toFixed(4) : treeVolMB.toFixed(2)} MB`,
+        rec,
+      ];
+
+      for (let c = 0; c < 6; c++) {
+        let state: MatrixCellItem["state"] = "default";
+        if (isDone) state = "sorted";
+        else if (isActive) state = c === 5 ? "active" : "compared";
+
+        cells.push({
+          row: r,
+          col: c,
+          value: rowValues[c],
+          label: `Payload ${bytes}B (col ${c})`,
+          state,
+        });
+      }
+    }
+    return cells;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeRow?: number,
+    completedRows: number[] = [],
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: payloads.length,
+        cols: 6,
+        rowHeaders: payloads.map((b) => (b >= 1024 ? `${b / 1024}KB` : `${b}B`)),
+        colHeaders: [
+          "Payload Size",
+          "Ring Steps (2N-2)",
+          "Tree Steps (2logN)",
+          "Ring Vol/GPU",
+          "Tree Vol/GPU",
+          "NCCL Recommendation",
+        ],
+        cells: buildMatrixCells(activeRow, completedRows),
       },
       auxiliaryState: {
         customState: {
-          payloadSizes: `[${input.data.join(", ")}]`,
           numGpus: String(numGpus),
+          ringSteps: String(ringSteps),
+          treeSteps: String(treeSteps),
+          activePayload: activeRow !== undefined ? `${payloads[activeRow]} Bytes` : "None",
         },
       },
       variables,
     });
   };
 
+  // Step 1: Module import
   addStep(
     1,
-    "Initialize NCCL Tree vs Ring-AllReduce Topology Simulator",
-    `Evaluating Double Binary Tree vs Ring topologies across ${numGpus} GPUs.`,
-    { num_gpus: numGpus, payload_buffers: input.data.length },
+    "Import Math Module",
+    "Importing math module for logarithmic step calculations.",
+    { module: "math" },
   );
 
-  const ringSteps = 2 * (numGpus - 1);
-  const treeSteps = 2 * Math.ceil(Math.log2(numGpus));
+  // Step 2: Function entry
+  addStep(
+    3,
+    "Enter nccl_tree_vs_ring_allreduce_simulator",
+    `Initializing NCCL topology evaluation for ${numGpus} GPUs across ${payloads.length} payload buffers.`,
+    { num_gpus: numGpus, payload_count: payloads.length },
+  );
 
-  input.data.forEach((bytes, idx) => {
-    const isSmall = bytes <= 256 * 1024;
-    const isTreeRec = isSmall && numGpus > 4;
-    const recTopology = isTreeRec ? "TREE" : "RING";
+  // Step 3: Validate GPUs
+  addStep(
+    15,
+    "Validate GPU Count and Tensor Size",
+    `Evaluating num_gpus (${numGpus}) <= 1 or tensor_size_bytes <= 0. Validation passed.`,
+    { num_gpus: numGpus, valid: true },
+  );
 
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return {
-          ...el,
-          state: isTreeRec ? "active" : "compare",
-          pointers: [`Rec:${recTopology}`],
-        };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 4: Ring steps formula
+  addStep(
+    18,
+    "Compute Ring All-Reduce Step Count",
+    `ring_steps = 2 * (${numGpus} - 1) = ${ringSteps} sequential ring communication steps.`,
+    { num_gpus: numGpus, ring_steps: ringSteps },
+  );
 
+  // Step 5: Tree steps formula
+  addStep(
+    19,
+    "Compute Double Binary Tree Step Count",
+    `tree_steps = 2 * math.ceil(math.log2(${numGpus})) = ${treeSteps} tree depth steps.`,
+    { num_gpus: numGpus, tree_steps: treeSteps },
+  );
+
+  const completedRows: number[] = [];
+
+  for (let r = 0; r < payloads.length; r++) {
+    const bytes = payloads[r];
+
+    // Step: Loop payload entry
+    addStep(
+      21,
+      `Evaluate Payload Size: ${bytes} Bytes on ${numGpus} GPUs`,
+      `Processing evaluation for payload_bytes = ${bytes} B.`,
+      { payload_idx: r, payload_bytes: bytes },
+      r,
+      completedRows,
+    );
+
+    // Step: Ring volume per GPU
+    const ringVolBytes = ((2 * (numGpus - 1)) / numGpus) * bytes;
+    addStep(
+      21,
+      `Compute Ring Data Volume per GPU for ${bytes}B`,
+      `ring_volume_per_gpu = (2 * (${numGpus} - 1) / ${numGpus}) * ${bytes} = ${ringVolBytes.toFixed(1)} bytes.`,
+      { payload_bytes: bytes, ring_vol_bytes: ringVolBytes },
+      r,
+      completedRows,
+    );
+
+    // Step: Tree volume per GPU
+    const treeVolBytes = 2.0 * bytes;
     addStep(
       22,
-      `Evaluate ${bytes} Bytes Payload on ${numGpus} GPUs: Ring Steps=${ringSteps}, Tree Steps=${treeSteps}`,
-      `Payload ${bytes} B ${isSmall ? "<= 256KB threshold (latency-bound)." : "> 256KB threshold (bandwidth-bound)."}. NCCL Recommendation: ${recTopology}.`,
-      {
-        payload_bytes: bytes,
-        ring_steps: ringSteps,
-        tree_steps: treeSteps,
-        recommendation: recTopology,
-      },
-      currentElements,
+      `Compute Tree Data Volume per GPU for ${bytes}B`,
+      `tree_volume_per_gpu = 2.0 * ${bytes} = ${treeVolBytes} bytes.`,
+      { payload_bytes: bytes, tree_vol_bytes: treeVolBytes },
+      r,
+      completedRows,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    // Step: Threshold check
+    const threshold = 256 * 1024;
+    const isSmall = bytes <= threshold;
+    addStep(
+      25,
+      `Evaluate 256KB Threshold Heuristic (${bytes} B vs 262144 B)`,
+      isSmall
+        ? `Payload ${bytes} B <= 256KB threshold; network latency dominates transfer duration.`
+        : `Payload ${bytes} B > 256KB threshold; link bandwidth dominates transfer duration.`,
+      { payload_bytes: bytes, threshold_bytes: threshold, is_latency_bound: isSmall },
+      r,
+      completedRows,
+    );
+
+    // Step: Recommendation
+    const rec = isSmall && numGpus > 4 ? "TREE" : "RING";
+    addStep(
+      26,
+      `NCCL Recommendation for ${bytes}B: ${rec}`,
+      rec === "TREE"
+        ? `Selected TREE topology because ${treeSteps} tree steps << ${ringSteps} ring steps for small message latency optimization.`
+        : `Selected RING topology because ring volume per GPU (${ringVolBytes.toFixed(0)}B) < tree volume (${treeVolBytes}B) for bandwidth optimization.`,
+      { payload_bytes: bytes, recommendation: rec, ring_steps: ringSteps, tree_steps: treeSteps },
+      r,
+      completedRows,
+    );
+
+    completedRows.push(r);
+  }
+
+  // Step: Constructing output dictionary
+  const primaryBytes = payloads[payloads.length - 1];
+  const isSmallPrimary = primaryBytes <= 256 * 1024;
+  const primaryRec = isSmallPrimary && numGpus > 4 ? "TREE" : "RING";
 
   addStep(
-    27,
-    "Execution Complete",
-    `NCCL topology evaluation finished. Tree topology minimizes latency (2*log2(${numGpus})=${treeSteps} steps) for small payloads; Ring maximizes bandwidth (2*(${numGpus}-1)=${ringSteps} steps) for large payloads.`,
-    { completed: true, num_gpus: numGpus, ring_steps: ringSteps, tree_steps: treeSteps },
-    finalElements,
+    28,
+    "Construct Return Dictionary",
+    "Building final simulation results dictionary payload.",
+    { primary_bytes: primaryBytes },
+    undefined,
+    completedRows,
+  );
+
+  addStep(
+    29,
+    `Set tensor_size_bytes = ${primaryBytes}`,
+    `Populating field "tensor_size_bytes": ${primaryBytes}.`,
+    { tensor_size_bytes: primaryBytes },
+    undefined,
+    completedRows,
+  );
+
+  addStep(
+    30,
+    `Set num_gpus = ${numGpus}`,
+    `Populating field "num_gpus": ${numGpus}.`,
+    { num_gpus: numGpus },
+    undefined,
+    completedRows,
+  );
+
+  addStep(
+    31,
+    `Set ring_steps = ${ringSteps}`,
+    `Populating field "ring_steps": ${ringSteps}.`,
+    { ring_steps: ringSteps },
+    undefined,
+    completedRows,
+  );
+
+  addStep(
+    32,
+    `Set tree_steps = ${treeSteps}`,
+    `Populating field "tree_steps": ${treeSteps}.`,
+    { tree_steps: treeSteps },
+    undefined,
+    completedRows,
+  );
+
+  addStep(
+    35,
+    `Set recommended_topology = "${primaryRec}"`,
+    `Final recommendation for ${primaryBytes}B on ${numGpus} GPUs is ${primaryRec}.`,
+    { recommended_topology: primaryRec },
+    undefined,
+    completedRows,
+  );
+
+  // Return step
+  addStep(
+    36,
+    "Return Topology Evaluation Dictionary",
+    `Completed topology comparison across ${payloads.length} payload buffers on ${numGpus} GPUs.`,
+    { completed: true, num_gpus: numGpus },
+    undefined,
+    completedRows,
   );
 
   return steps;
 };
 
 const NCCLTREEVSRINGALLREDUCESIMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  skipLines: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
   distractors: [
     "ring_steps = num_gpus ** 2",
     "tree_steps = num_gpus / 2",
@@ -155,16 +329,47 @@ const NCCLTREEVSRINGALLREDUCESIMULATOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 22,
+      line: 26,
       hint: "NCCL selects Tree topology for small payloads (<=256KB) to minimize O(log N) latency.",
     },
   ],
   lineExplanations: {
-    1: "Defines entry point for NCCL Tree vs Ring-AllReduce topology simulator.",
-    16: "Calculates Ring step count 2*(N-1).",
-    17: "Calculates Tree step count 2*ceil(log2(N)).",
-    22: "Applies 256KB payload byte threshold heuristic.",
-    27: "Returns dictionary of step metrics and recommended NCCL topology.",
+    1: "Imports Python math library for log2 and ceil functions.",
+    2: "Blank line after module imports.",
+    3: "Defines entry point for NCCL Tree vs Ring-AllReduce simulator taking tensor size and GPU count.",
+    4: "Starts docstring documenting topology comparison.",
+    5: "Describes simulating NCCL Double Binary Tree vs Ring-AllReduce topology performance metrics.",
+    6: "Details Tree latency O(log2 N) vs Ring bandwidth O(N) trade-off.",
+    7: "Blank line in docstring.",
+    8: "Docstring section header for input parameters.",
+    9: "Docstring describing tensor_size_bytes parameter.",
+    10: "Docstring describing num_gpus parameter.",
+    11: "Blank line in docstring.",
+    12: "Docstring section header for output dictionary.",
+    13: "Docstring describing return payload containing comparative step metrics and recommendations.",
+    14: "Closes docstring block.",
+    15: "Validates positive GPU count (> 1) and positive tensor size.",
+    16: "Returns fallback dictionary if input parameters are invalid.",
+    17: "Blank line before step count calculations.",
+    18: "Calculates Ring topology step count 2*(num_gpus - 1).",
+    19: "Calculates Double Binary Tree step count 2*ceil(log2(num_gpus)).",
+    20: "Blank line before per-GPU volume calculations.",
+    21: "Computes Ring data volume transferred per GPU (2*(N-1)/N * S).",
+    22: "Computes Tree data volume transferred per GPU (2.0 * S).",
+    23: "Blank line before threshold evaluation.",
+    24: "Comment explaining 256KB NCCL threshold heuristic.",
+    25: "Defines threshold_bytes as 256 * 1024 = 262144 bytes.",
+    26: "Evaluates conditional recommendation returning 'TREE' for small payloads or 'RING' for large payloads.",
+    27: "Blank line before return dictionary payload.",
+    28: "Starts dictionary construction for evaluation result.",
+    29: "Sets tensor_size_bytes key.",
+    30: "Sets num_gpus key.",
+    31: "Sets ring_steps key.",
+    32: "Sets tree_steps key.",
+    33: "Sets ring_volume_bytes key.",
+    34: "Sets tree_volume_bytes key.",
+    35: "Sets recommended_topology string key.",
+    36: "Closes return dictionary construct.",
   },
 };
 
@@ -179,7 +384,7 @@ export const ncclTreeVsRingAllreduceSimulator: AlgorithmDefinition<ncclTreeVsRin
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "NVIDIA Collective Communications Library (NCCL) dynamically selects between **Ring** and **Double Binary Tree** All-Reduce algorithms based on message payload size ($S$) and GPU rank count ($N$).\n\nKey Trade-offs:\n- **Ring Topology**: Requires $2(N-1)$ communication steps. Latency scales linearly $O(N)$ with rank count, but achieves maximum bandwidth efficiency $\\frac{2(N-1)}{N} S \\approx 2S$ per GPU. Ideal for large tensor buffers ($>256$ KB).\n- **Double Binary Tree Topology**: Requires $2 \\lceil \\log_2 N \\rceil$ communication steps. Latency scales logarithmically $O(\\log N)$, making it significantly faster for small payloads (${\\le} 256$ KB) across large clusters (e.g. $N=128$ GPUs).\n\nInput Format:\n- data: Array of tensor payload buffer sizes in bytes (e.g. `[64, 256, 1024, 1048576]`).\n- target: Number of GPU ranks participating in the collective ($N$).\n\nOutput Format:\n- Returns comparative metrics including step counts, volume transferred per GPU, latency scaling factors, and recommended NCCL topology.\n\nEdge Cases & Constraints:\n- Threshold switching: NCCL typically switches from Tree to Ring around $256$ KB to $512$ KB payloads.\n- GPU scale $N$: For $N \\le 4$, Ring and Tree step counts are comparable, so Ring is preferred for simpler routing.\n- Power of 2 ranks: Double Binary Tree constructs balanced binary trees when $N$ is a power of 2.",
+      "NVIDIA Collective Communications Library (NCCL) dynamically selects between **Ring-AllReduce** and **Double Binary Tree AllReduce** algorithms based on message payload size ($S$) and GPU rank count ($N$).\n\n### Why It Exists & Problem Solved\nIn large distributed GPU clusters (e.g. 1,024 GPUs), network transmission time is governed by the Hockney alpha-beta model ($T = \\alpha \\cdot \\text{steps} + \\beta \\cdot \\text{volume}$). For large tensors (like gradient updates in LLM training), bandwidth $\\beta \\cdot \\text{volume}$ dominates, making Ring-AllReduce ideal ($2 \\frac{N-1}{N} S \\approx 2S$ bytes per GPU). However, for small tensors (like gradient norm reductions, 256KB layers, or barrier synchronizations), fixed latency $\\alpha \\cdot \\text{steps}$ dominates. At $N=1,024$, Ring requires 2,046 steps ($O(N)$), while Double Binary Tree requires only 20 steps ($O(\\log_2 N)$)!\n\n### Step-by-Step Intuition\n1. **Ring Topology**: $2(N-1)$ sequential steps. Each rank sends to $(r+1)\\%N$ and receives from $(r-1)\\%N$. Optimal bandwidth utilization, linear latency.\n2. **Double Binary Tree Topology**: Constructs two non-overlapping binary trees over the network graph. Each GPU acts as an internal node in one tree and a leaf node in the other. Reductions travel up child-to-parent links in $\\lceil \\log_2 N \\rceil$ steps, followed by broadcast down in $\\lceil \\log_2 N \\rceil$ steps.\n3. **Heuristic Threshold**: NCCL automatically switches from Tree to Ring when payload size exceeds $256$ KB.\n\n### Trade-offs & Complexity\n- **Time Complexity**: Ring latency $O(N)$ vs Tree latency $O(\\log N)$.\n- **Volume per GPU**: Ring transfers $2 \\frac{N-1}{N} S$ bytes vs Tree transfers $2.0 S$ bytes.\n- **Network Utilization**: Tree uses twice as many link hops, which can cause link congestion on large payloads.",
     constraints: ["2 <= target (num_gpus) <= 1024", "1 <= data.length <= 100"],
     examples: [
       {
@@ -225,20 +430,20 @@ export const ncclTreeVsRingAllreduceSimulator: AlgorithmDefinition<ncclTreeVsRin
         "NCCL dynamically toggles between Ring-AllReduce (optimal for large tensor throughput) and Double Binary Tree AllReduce (optimal for small message latency).",
       sections: [
         {
-          heading: "Core Concepts",
-          body: "Ring-AllReduce executes in $2(N-1)$ sequential steps. When scaling to 1,000+ GPUs, latency grows unacceptably high for small collective synchronization calls (such as gradient norm reductions or barrier ops). NCCL constructs two non-overlapping binary trees over the GPU network, enabling child-to-parent reductions in $2 \\lceil \\log_2 N \\rceil$ steps.",
+          heading: "Why It Exists & Problem Solved",
+          body: "Ring-AllReduce executes in 2(N-1) sequential steps. When scaling to 1,000+ GPUs, latency grows unacceptably high for small collective synchronization calls (such as gradient norm reductions or barrier ops). NCCL constructs two non-overlapping binary trees over the GPU network, enabling child-to-parent reductions in 2 * ceil(log2 N) steps.",
         },
         {
-          heading: "Systems & Bandwidth Impact",
-          body: "For a 1,024-GPU cluster, Ring-AllReduce requires 2,046 communication steps, whereas Tree AllReduce requires only 20 steps! For small payload messages (where fixed link latency $\\alpha$ dominates transfer time $\\beta \\cdot S$), Tree topology yields up to 100x lower latency.",
+          heading: "Step-by-Step Intuition",
+          body: "1. For small messages (<= 256KB), network handshake latency dominates. Double Binary Tree reduces latency from O(N) to O(log N).\n2. For large messages (> 256KB), interconnect transfer bandwidth dominates. Ring-AllReduce achieves maximum bus bandwidth utilization.",
         },
         {
-          heading: "Implementation Nuances & Edge Cases",
-          body: "Double Binary Tree routing requires establishing two independent spanning trees where every GPU is an internal node in one tree and a leaf node in the other. This ensures equal workload distribution across all GPU network cards (HCAs).",
+          heading: "Distributed Systems & Bandwidth Analysis",
+          body: "For a 1,024-GPU cluster, Ring-AllReduce requires 2,046 communication steps, whereas Tree AllReduce requires only 20 steps! For small payload messages, Tree topology yields up to 100x lower latency.",
         },
         {
-          heading: "Architecture & Topology Trade-offs",
-          body: "Tree topology uses twice as many network link hops for full reduction compared to Ring. For large gradient tensors (e.g. $>256$ KB in modern LLMs), link bandwidth $\\beta$ dominates, making Ring topology the clear winner for maximum training throughput.",
+          heading: "Hardware & Architecture Trade-offs",
+          body: "Double Binary Tree routing requires establishing two independent spanning trees where every GPU is an internal node in one tree and a leaf node in the other. This ensures equal workload distribution across all GPU network interface cards (HCAs).",
         },
       ],
       keyTerms: [
@@ -269,3 +474,4 @@ export const ncclTreeVsRingAllreduceSimulator: AlgorithmDefinition<ncclTreeVsRin
     defaultInput: DEFAULT_NCCLTREEVSRINGALLREDUCESIMULATOR_INPUT,
     generateSteps: generateNcclTreeVsRingAllreduceSimulatorSteps,
   };
+

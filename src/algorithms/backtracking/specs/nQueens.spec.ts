@@ -13,7 +13,7 @@ describe("nQueens algorithm spec", () => {
 
   it("should generate steps and find 2 solutions for 4-Queens", () => {
     const steps = generateNQueensSteps(DEFAULT_NQUEENS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.codeLine).toBe(1);

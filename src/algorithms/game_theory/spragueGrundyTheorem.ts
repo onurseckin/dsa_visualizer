@@ -6,8 +6,7 @@ export interface SpragueGrundyInput {
   allowedMoves: number[];
 }
 
-export const PYTHON_SPRAGUE_GRUNDY_CODE = `
-def mex(s: set[int]) -> int:
+export const PYTHON_SPRAGUE_GRUNDY_CODE = `def mex(s: set[int]) -> int:
     m = 0
     while m in s:
         m += 1
@@ -28,20 +27,106 @@ def sprague_grundy(pile_sizes: list[int], allowed_moves: list[int]) -> tuple[lis
     nim_sum = 0
     for p in pile_sizes:
         nim_sum ^= g[p]
-    return g, nim_sum
-`;
+    return g, nim_sum`;
 
 export const DEFAULT_SPRAGUE_GRUNDY_INPUT: SpragueGrundyInput = {
-  pileSizes: [3, 4],
+  pileSizes: [4, 6],
   allowedMoves: [1, 2, 3],
+};
+
+export const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    "The Sprague-Grundy Theorem is the unifying cornerstone of impartial combinatorial game theory under normal play rules. It proves that every position in ANY impartial game (such as subtraction games, Nim, or coin turning) is mathematically equivalent to a single Nim heap of size $G$, known as the Grundy value (or nim-value) of that position. Furthermore, when a game consists of multiple independent subgame components played concurrently, the total Grundy value of the combined game is simply the bitwise XOR sum (Nim-sum) of the individual subgame Grundy values:\n$$G_{\\text{total}} = G(P_1) \\oplus G(P_2) \\oplus \\dots \\oplus G(P_k)$$",
+  sections: [
+    {
+      heading: "Impartial Games & The Minimum Excluded Value (MEX)",
+      body: "In an impartial game under normal play, available moves from any position are identical for both players, and the last player to make a valid move wins (a player with 0 valid moves loses). The Grundy value $G(u)$ of a game state $u$ is defined recursively as the Minimum Excluded Value (mex) of the Grundy values of all states $v$ directly reachable from $u$ in 1 move:\n$$G(u) = \\text{mex}(\\{G(v) : u \\to v\\})$$\nThe mex of a set $S$ is the smallest non-negative integer ($0, 1, 2, \\dots$) absent from $S$. Terminal losing states with no valid moves have $G(u) = \\text{mex}(\\emptyset) = 0$.",
+    },
+    {
+      heading: "Dynamic Programming for Grundy Values in Subtraction Games",
+      body: "For subtraction games with allowed move set $M = \\{m_1, m_2, \\dots\\}$, we compute Grundy values iteratively for all state sizes $i$ from $0$ up to $\\max(pile\\_sizes)$. State $0$ has $G(0) = 0$. For state $i$, we evaluate all valid moves $m \\in M$ where $i - m \\ge 0$, collect the reachable Grundy values $g[i - m]$ into a set $reachable$, and set $g[i] = \\text{mex}(reachable)$. This takes $\\mathcal{O}(K \\times |M|)$ dynamic programming time for state $K$.",
+    },
+    {
+      heading: "Subgame Independence & The Nim-Sum Property",
+      body: "When playing multiple independent game piles concurrently (e.g., pile 1 of size $P_1$, pile 2 of size $P_2$, ...), a player chooses 1 pile on their turn and executes a valid move on that pile alone. The Sprague-Grundy Theorem states that the overall Grundy value $G$ of the combined game is the bitwise XOR sum of the component Grundy values:\n$$G = G(P_1) \\oplus G(P_2) \\oplus \\dots \\oplus G(P_n)$$\nIf $G > 0$, the first player has a forced winning strategy (N-position); if $G = 0$, the second player wins (P-position).",
+    },
+    {
+      heading: "Periodicity & Pattern Detection in Game Theory",
+      body: "For many subtraction games, Grundy value sequences $g[0], g[1], g[2], \\dots$ display periodic repeating patterns after an initial pre-period. Detecting period length $P$ allows computing the Grundy value $g[N]$ for arbitrarily massive numbers (e.g. $N = 10^{18}$) in $\\mathcal{O}(1)$ time without computing millions of DP states.",
+    },
+  ],
+  keyTerms: [
+    {
+      term: "MEX (Minimum Excluded Value)",
+      definition:
+        "The smallest non-negative integer ($0, 1, 2, 3, \\dots$) that is absent from a given set of non-negative integers.",
+    },
+    {
+      term: "Grundy Value (Nim-Value)",
+      definition: "An integer representing the equivalent Nim heap size of an arbitrary impartial game state.",
+    },
+    {
+      term: "Impartial Game",
+      definition:
+        "A game where legal move options depend solely on the current board state, not on which player's turn it is.",
+    },
+    {
+      term: "Nim-Sum of Independent Subgames",
+      definition:
+        "The bitwise XOR sum $G(P_1) \\oplus G(P_2) \\oplus \\dots \\oplus G(P_n)$ that evaluates the combined winning status of concurrent subgames.",
+    },
+  ],
+};
+
+export const SPRAGUE_GRUNDY_TRIVIA: TriviaMeta = {
+  skipLines: [6, 10],
+  distractors: [
+    "g[i] = min(reachable) if reachable else 0",
+    "nim_sum = sum(g)",
+    "g[i] = max(reachable) + 1",
+  ],
+  hints: [
+    {
+      line: 14,
+      hint: "Mex is the smallest non-negative integer absent from the set",
+    },
+    {
+      line: 18,
+      hint: "Assign mex(reachable) to g[i]",
+    },
+  ],
+  lineExplanations: {
+    1: "Defines mex(s) helper function calculating minimum excluded non-negative integer.",
+    2: "Initializes candidate non-negative integer m = 0.",
+    3: "Loops while candidate integer m is present in set s.",
+    4: "Increments candidate integer m by 1.",
+    5: "Returns smallest non-negative integer m absent from set s.",
+    6: "Empty line separating helper function from main function.",
+    7: "Defines sprague_grundy function computing Grundy values and total Nim-Sum.",
+    8: "Docstring opening delimiter.",
+    9: "Docstring describing Grundy value evaluation.",
+    10: "Docstring closing delimiter.",
+    11: "Calculates maximum pile size max_p to bound dynamic programming array.",
+    12: "Allocates Grundy values array g of size max_p + 1 initialized to 0.",
+    13: "Loops through each state size i from 1 to max_p.",
+    14: "Initializes empty set reachable for storing Grundy values of reachable states.",
+    15: "Loops over each allowed move m in allowed_moves.",
+    16: "Evaluates if subtracting move m lands on a valid state (i - m >= 0).",
+    17: "Adds reachable state Grundy value g[i - m] to reachable set.",
+    18: "Computes g[i] as mex(reachable) and stores it in Grundy array.",
+    19: "Initializes total Nim-Sum accumulator variable to 0.",
+    20: "Loops over each pile size p in pile_sizes.",
+    21: "Accumulates pile Grundy value g[p] into total Nim-Sum via XOR: nim_sum ^= g[p].",
+    22: "Returns complete Grundy array g and combined game Nim-Sum.",
+  },
 };
 
 export const generateSpragueGrundySteps = (input: SpragueGrundyInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const piles = (input.pileSizes || [3, 4]).map((p) => Math.max(0, Math.floor(p)));
-  const moves = (input.allowedMoves || [1, 2, 3])
+  const piles = (input?.pileSizes || [3, 4, 5]).map((p) => Math.max(0, Math.floor(p)));
+  const moves = (input?.allowedMoves || [1, 2, 3])
     .map((m) => Math.max(1, Math.floor(m)))
     .filter((m, i, arr) => arr.indexOf(m) === i)
     .sort((a, b) => a - b);
@@ -80,7 +165,7 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 7,
     explanation: {
-      what: `Initializing Sprague-Grundy theorem calculation for piles [${piles.join(", ")}] with allowed moves [${moves.join(", ")}].`,
+      what: `Start Sprague-Grundy calculation for piles [${piles.join(", ")}] and moves [${moves.join(", ")}]`,
       why: "Every impartial game under normal play is equivalent to a Nim pile of size equal to its Grundy value G(s) = mex({G(t) : s -> t}).",
     },
     primarySnapshot: {
@@ -97,15 +182,140 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
     variables: { maxPiles: maxP },
   });
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 11,
+    explanation: {
+      what: `Calculate maximum pile size max_p = ${maxP}`,
+      why: "Determines the upper bound for state Grundy value tabulation.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: makeElements(),
+    },
+    auxiliaryState: {
+      hashMap: { maxP },
+    },
+    variables: { maxP },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 12,
+    explanation: {
+      what: `Allocate Grundy values table g of size max_p + 1 (${maxP + 1}) initialized to 0`,
+      why: "Base case state 0 has G(0) = 0 because no legal moves can be made from a size 0 pile.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: makeElements(0),
+    },
+    auxiliaryState: {
+      hashMap: { "G(0)": 0 },
+    },
+    variables: { maxP, "g[0]": 0 },
+  });
+
   for (let i = 1; i <= maxP; i++) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 13,
+      explanation: {
+        what: `Begin evaluating Grundy value for state size i = ${i}`,
+        why: `We will test all allowed move subtractions from state ${i} to collect reachable Grundy values.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeElements(i),
+      },
+      auxiliaryState: {
+        hashMap: { currentState: i },
+      },
+      variables: { i, maxP },
+    });
+
     const reachable = new Set<number>();
     const reachableDetails: string[] = [];
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 14,
+      explanation: {
+        what: `Initialize empty set reachable for state ${i}`,
+        why: "Tracks Grundy values of all states directly reachable in one legal move from state i.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeElements(i),
+      },
+      auxiliaryState: {
+        hashMap: { currentState: i, reachableCount: 0 },
+      },
+      variables: { i },
+    });
+
     for (const m of moves) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 15,
+        explanation: {
+          what: `Check move m = ${m} from state i = ${i}`,
+          why: `Testing if i - m = ${i - m} >= 0 is a legal move.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: makeElements(i),
+        },
+        auxiliaryState: {
+          hashMap: { currentState: i, testingMove: m },
+        },
+        variables: { i, m, "i - m": i - m },
+      });
+
       if (i - m >= 0) {
         const targetG = g[i - m];
         reachable.add(targetG);
         reachableDetails.push(`move ${m} -> G(${i - m})=${targetG}`);
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 17,
+          explanation: {
+            what: `Valid move m=${m}: state ${i - m} has Grundy value G(${i - m}) = ${targetG}. Add ${targetG} to reachable set.`,
+            why: `Since moving ${m} units from state ${i} lands on state ${i - m}, value G(${i - m}) is reachable.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: makeElements(i, Array.from(reachable)),
+          },
+          auxiliaryState: {
+            hashMap: {
+              currentState: i,
+              validMove: m,
+              targetState: i - m,
+              targetGrundy: targetG,
+              ReachableSet: `{${Array.from(reachable).sort((a, b) => a - b).join(", ")}}`,
+            },
+          },
+          variables: { i, m, "i - m": i - m, targetG },
+        });
+      } else {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 16,
+          explanation: {
+            what: `Move m=${m} is invalid from state ${i} (i - m = ${i - m} < 0)`,
+            why: "Cannot remove more units than available in state i.",
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: makeElements(i),
+          },
+          auxiliaryState: {
+            hashMap: { currentState: i, invalidMove: m },
+          },
+          variables: { i, m, "i - m": i - m },
+        });
       }
     }
 
@@ -117,12 +327,10 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 15,
+      codeLine: 18,
       explanation: {
-        what: `Evaluating state ${i}: Reachable Grundy values = {${Array.from(reachable)
-          .sort((a, b) => a - b)
-          .join(", ")}}. mex = ${mex}.`,
-        why: `Smallest non-negative integer absent from reachable Grundy values is ${mex}, so G(${i}) = ${mex}.`,
+        what: `Compute mex({${Array.from(reachable).sort((a, b) => a - b).join(", ")}}) = ${mex}. Set G(${i}) = ${mex}.`,
+        why: `Smallest non-negative integer absent from reachable Grundy values is ${mex}, so state ${i} has Grundy value ${mex}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -141,21 +349,72 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
     });
   }
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 19,
+    explanation: {
+      what: "Initialize total game Nim-Sum = 0",
+      why: "The overall game outcome is evaluated by XOR-ing the Grundy values of all active piles.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: makeElements(),
+    },
+    auxiliaryState: {
+      hashMap: { nimSum: 0 },
+    },
+    variables: { nimSum: 0 },
+  });
+
   let nimSum = 0;
   const pileGrundySummary: string[] = [];
   for (const p of piles) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 20,
+      explanation: {
+        what: `Inspect pile of size p = ${p} (Grundy value G(${p}) = ${g[p]})`,
+        why: `XOR-ing G(${p}) = ${g[p]} into the running total game Nim-Sum.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeElements(p),
+      },
+      auxiliaryState: {
+        hashMap: { currentPile: p, pileGrundy: g[p], runningNimSum: nimSum },
+      },
+      variables: { p, "g[p]": g[p], nimSum },
+    });
+
     nimSum ^= g[p];
     pileGrundySummary.push(`G(${p})=${g[p]}`);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `Update total Nim-Sum: XOR in G(${p})=${g[p]} -> running Nim-Sum = ${nimSum}`,
+        why: "Subgame independence guarantees that the total game behaves as a Nim game with pile sizes equal to Grundy values.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeElements(p),
+      },
+      auxiliaryState: {
+        hashMap: { currentPile: p, pileGrundy: g[p], runningNimSum: nimSum },
+      },
+      variables: { p, "g[p]": g[p], nimSum },
+    });
   }
 
   const winningPlayer = nimSum !== 0 ? "First Player (P1)" : "Second Player (P2)";
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 22,
     explanation: {
-      what: `Calculated total Nim-Sum across all game piles: ${pileGrundySummary.join(" ⊕ ")} = ${nimSum}.`,
-      why: `Nim-Sum is ${nimSum === 0 ? "ZERO (Losing Position)" : "NON-ZERO (Winning Position)"}. Strategy: ${winningPlayer} has a forced winning strategy.`,
+      what: `Final result: Nim-Sum across piles [${piles.join(", ")}] is ${pileGrundySummary.join(" ⊕ ")} = ${nimSum}.`,
+      why: `Nim-Sum is ${nimSum === 0 ? "ZERO (Second Player forced win)" : "NON-ZERO (First Player forced win)"}. Strategy: ${winningPlayer} has a forced winning strategy.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -174,60 +433,6 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
   return steps;
 };
 
-export const SPRAGUE_GRUNDY_TOPIC_GUIDE: TopicGuide = {
-  overview:
-    "The Sprague-Grundy Theorem states that every impartial game under the normal play convention is mathematically equivalent to a single heap of size g in the game of Nim, where g is the Grundy value (or nim-value) of the game position. This powerful theorem allows complex multi-component combinatorial games to be solved in polynomial time.",
-  sections: [
-    {
-      heading: "Impartial Games & Normal Play Convention",
-      body: "An impartial game is a two-player game with perfect information where the available moves depend solely on the current state, regardless of whose turn it is. Under the normal play convention, the last player to make a legal move wins (a player facing zero legal moves loses).",
-    },
-    {
-      heading: "Minimum Excluded Value (MEX) & Grundy Values",
-      body: "The Grundy value G(u) of a game state u is defined recursively as the Minimum Excluded Value (mex) of the Grundy values of all states reachable from u in one valid move: G(u) = mex({G(v) : u -> v}). Terminal losing states with no valid moves have G(u) = 0.",
-    },
-    {
-      heading: "Nim-Sum & Subgame Independence",
-      body: "When a game consists of several independent subgames played concurrently (such as multiple independent coin piles or rows), the overall Grundy value G of the combined game is the bitwise XOR sum (Nim-Sum) of the individual subgame Grundy values: G = G1 ⊕ G2 ⊕ ... ⊕ Gk. If G > 0, the first player has a forced winning strategy; if G = 0, the second player wins.",
-    },
-    {
-      heading: "Algorithmic Dynamic Programming & Patterns",
-      body: "For subtraction games or graph-based impartial games, Grundy values up to state M can be computed using dynamic programming in O(M * |Moves|) time. Frequently, Grundy value sequences exhibit periodic patterns that can be detected early to answer queries for arbitrarily large state values in O(1) time.",
-    },
-  ],
-  keyTerms: [
-    {
-      term: "MEX (Minimum Excluded Value)",
-      definition:
-        "The smallest non-negative integer (0, 1, 2, ...) absent from a given set of non-negative integers.",
-    },
-    {
-      term: "Grundy Value (Nim-Value)",
-      definition: "An integer representing the equivalent Nim heap size of a game state.",
-    },
-    {
-      term: "Impartial Game",
-      definition:
-        "A game where available moves and winning conditions are identical for both players from any given state.",
-    },
-  ],
-};
-
-export const SPRAGUE_GRUNDY_TRIVIA: TriviaMeta = {
-  lineExplanations: {
-    1: "Defines helper function calculating minimum excluded non-negative integer (mex).",
-    7: "Main Sprague-Grundy function computing Grundy values for game states.",
-    8: "Finds maximum pile size max_p to size Grundy value array.",
-    9: "Initializes Grundy array g of size max_p + 1 with 0s.",
-    10: "Loops through game states 1 to max_p.",
-    12: "Loops through allowed moves from state i.",
-    14: "Adds reachable state Grundy value g[i - m] to reachable set.",
-    15: "Computes g[i] as mex of reachable state Grundy values.",
-    18: "XOR sums Grundy values across all active game piles to get overall Nim-Sum.",
-    19: "Returns array of Grundy values and total Nim-Sum.",
-  },
-};
-
 export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   id: "sprague-grundy-theorem",
   title: "Sprague-Grundy Theorem & Grundy Values",
@@ -235,7 +440,7 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   categories: ["game_theory"],
   difficulty: "Medium",
   description:
-    "Given a set of impartial game piles and a set of allowed move subtractions, compute the Grundy values (nim-values) of all states using the Minimum Excluded Value (mex) operation and determine the combined game Nim-Sum to identify whether the first or second player has a forced winning strategy.",
+    "The Sprague-Grundy Theorem states that every impartial game position is mathematically equivalent to a Nim pile of size equal to its Grundy value:\n$$G(u) = \\text{mex}(\\{G(v) : u \\to v\\})$$\nFor games composed of independent subgame components, the combined game's winning status is determined by the bitwise XOR sum (Nim-sum) of their individual Grundy values:\n$$G_{\\text{total}} = G(P_1) \\oplus G(P_2) \\oplus \\dots \\oplus G(P_k)$$",
   constraints: [
     "1 <= pileSizes.length <= 10",
     "0 <= pileSizes[i] <= 50",
@@ -244,10 +449,10 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   examples: [
     {
       kind: "basic",
-      title: "Piles [3, 4] with moves [1, 2, 3]",
-      input: { pileSizes: [3, 4], allowedMoves: [1, 2, 3] },
-      output: "Nim-Sum: 7 (P1 Wins)",
-      explanation: "G(3) = 3, G(4) = 0. Nim-Sum = 3 XOR 0 = 3 != 0, so First Player wins.",
+      title: "Piles [4, 6] with moves [1, 2, 3]",
+      input: { pileSizes: [4, 6], allowedMoves: [1, 2, 3] },
+      output: "Nim-Sum: 2 (P1 Wins)",
+      explanation: "G(4) = 0, G(6) = 2. Nim-Sum = 0 XOR 2 = 2 != 0, so First Player wins.",
     },
     {
       kind: "complex",
@@ -272,8 +477,8 @@ export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   },
   spaceComplexity: "O(M)",
   complexityAnalysis: {
-    time: "Computing Grundy values up to maximum pile size M takes O(M * |Moves|) transitions.",
-    space: "Requires O(M) memory to store Grundy values.",
+    time: "Computing Grundy values up to maximum pile size $M$ takes $\\mathcal{O}(M \\times |Moves|)$ transitions.",
+    space: "Requires $\\mathcal{O}(M)$ auxiliary space to store Grundy values.",
   },
   topicGuide: SPRAGUE_GRUNDY_TOPIC_GUIDE,
   trivia: SPRAGUE_GRUNDY_TRIVIA,

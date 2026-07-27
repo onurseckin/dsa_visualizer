@@ -1,8 +1,7 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  GraphNodeItem,
-  GraphEdgeItem,
+  VectorItem,
   TopicGuide,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
@@ -38,7 +37,7 @@ export const DEFAULT_MARKOV_CHAINS_INPUT: MarkovChainsInput = {
     [0.2, 0.3, 0.5],
   ],
   initialDistribution: [1.0, 0.0, 0.0],
-  steps: 5,
+  steps: 18,
 };
 
 export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmStep[] => {
@@ -46,7 +45,7 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
   let stepIndex = 0;
 
   const n = Math.max(1, Math.min(6, input.numStates || 3));
-  const rawSteps = Math.max(1, Math.min(20, input.steps || 5));
+  const rawSteps = Math.max(1, Math.min(30, input.steps || 18));
 
   // Sanitize initial distribution
   let currentDist: number[] = Array.from({ length: n }, (_, i) =>
@@ -85,59 +84,32 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
     matrix.push(normalizedRow);
   }
 
-  const radius = 180;
-  const centerX = 250;
-  const centerY = 200;
+  const createVectorSnapshot = (dist: number[], activeStateIdx?: number) => {
+    const vectors: VectorItem[] = dist.map((prob, idx) => ({
+      id: `S${idx}`,
+      label: `State S${idx}: ${(prob * 100).toFixed(1)}%`,
+      x: idx * 50,
+      y: Math.round(prob * 100),
+      subText: `P(S${idx}) = ${prob.toFixed(3)}`,
+      state: activeStateIdx === idx ? "active" : prob > 0.3 ? "result" : "default",
+    }));
 
-  const makeGraphSnapshot = (dist: number[], activeStateIdx?: number) => {
-    const nodes: GraphNodeItem[] = [];
-    const edges: GraphEdgeItem[] = [];
-
-    for (let i = 0; i < n; i++) {
-      const angle = (2 * Math.PI * i) / n - Math.PI / 2;
-      const x = Math.round(centerX + radius * Math.cos(angle));
-      const y = Math.round(centerY + radius * Math.sin(angle));
-      const probPercent = (dist[i] * 100).toFixed(1);
-
-      nodes.push({
-        id: `S${i}`,
-        label: `S${i}: ${probPercent}%`,
-        x,
-        y,
-        state: activeStateIdx === i ? "active" : dist[i] > 0.3 ? "visited" : "default",
-        val: Math.round(dist[i] * 100),
-      });
-    }
-
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        const p = matrix[i][j];
-        if (p > 0.01) {
-          edges.push({
-            from: `S${i}`,
-            to: `S${j}`,
-            weight: Math.round(p * 100) / 100,
-            isTraversed: activeStateIdx === i,
-            isPath: dist[i] > 0.2 && p > 0.2,
-          });
-        }
-      }
-    }
-
-    return { nodes, edges };
+    return {
+      kind: "vector" as const,
+      vectors,
+      planeTitle: "Markov State Probability Vector v_k",
+      dimensions: "2d" as const,
+    };
   };
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 2,
     explanation: {
       what: `Initializing Markov Chain with ${n} states. Initial distribution: [${currentDist.map((v) => v.toFixed(2)).join(", ")}].`,
       why: "A discrete-time Markov chain updates state probabilities at each step based purely on the current state distribution and transition matrix.",
     },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(currentDist),
-    },
+    primarySnapshot: createVectorSnapshot(currentDist),
     auxiliaryState: {
       hashMap: {
         Step: 0,
@@ -145,6 +117,34 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
       },
     },
     variables: { step: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `n = len(initial_dist) = ${n}.`,
+      why: "Read state space dimension n.",
+    },
+    primarySnapshot: createVectorSnapshot(currentDist),
+    auxiliaryState: {
+      hashMap: { "State Space Size": n },
+    },
+    variables: { n, step: 0 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `curr = list(initial_dist): [${currentDist.map((v) => v.toFixed(3)).join(", ")}].`,
+      why: "Set running probability distribution vector.",
+    },
+    primarySnapshot: createVectorSnapshot(currentDist),
+    auxiliaryState: {
+      hashMap: { "curr": currentDist.map((v) => v.toFixed(3)).join(", ") },
+    },
+    variables: { n, step: 0 },
   });
 
   for (let s = 1; s <= rawSteps; s++) {
@@ -160,15 +160,12 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 4,
+      codeLine: 12,
       explanation: {
         what: `Step ${s}/${rawSteps}: Computed next state distribution via matrix multiplication.`,
-        why: `State S${maxProbIdx} now has highest probability (${(currentDist[maxProbIdx] * 100).toFixed(1)}%).`,
+        why: `State S${maxProbIdx} currently holds highest probability (${(currentDist[maxProbIdx] * 100).toFixed(1)}%).`,
       },
-      primarySnapshot: {
-        kind: "graph",
-        ...makeGraphSnapshot(currentDist, maxProbIdx),
-      },
+      primarySnapshot: createVectorSnapshot(currentDist, maxProbIdx),
       auxiliaryState: {
         hashMap: {
           "Current Step": s,
@@ -183,15 +180,12 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
   const finalMaxIdx = currentDist.indexOf(Math.max(...currentDist));
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 10,
+    codeLine: 14,
     explanation: {
       what: `Markov Chain simulation completed after ${rawSteps} steps. Final distribution: [${currentDist.map((v) => v.toFixed(3)).join(", ")}].`,
       why: "Stationary/steady-state distribution describes the long-term proportion of time spent in each state.",
     },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(currentDist, finalMaxIdx),
-    },
+    primarySnapshot: createVectorSnapshot(currentDist, finalMaxIdx),
     auxiliaryState: {
       hashMap: {
         "Final Distribution": currentDist.map((v) => v.toFixed(3)).join(", "),
@@ -204,55 +198,63 @@ export const generateMarkovChainsSteps = (input: MarkovChainsInput): AlgorithmSt
   return steps;
 };
 
-const MARKOV_CHAINS_TOPIC_GUIDE: TopicGuide = {
+export const MARKOV_CHAINS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A Discrete-Time Markov Chain (DTMC) models a sequence of random events where the probability of transitioning to the next state depends exclusively on the current state (the memoryless Markov Property P(X_{n+1} | X_n, ..., X_0) = P(X_{n+1} | X_n)). It forms the mathematical backbone of probabilistic modeling, Google PageRank, MCMC sampling, and reinforcement learning MDPs.",
+    "A Discrete-Time Markov Chain (DTMC) models a sequence of random events where the transition probability to the next state depends exclusively on the current state (the memoryless Markov Property $P(X_{n+1} \\mid X_n, \\dots, X_0) = P(X_{n+1} \\mid X_n)$). It forms the mathematical foundation of probabilistic modeling, Google PageRank, MCMC sampling, and reinforcement learning MDPs.",
   sections: [
     {
       heading: "Transition Matrices & State Vector Dynamics",
-      body: "A finite Markov chain with N states is parameterized by an N x N right stochastic transition matrix P, where P[i][j] = P(X_{n+1} = j | X_n = i) and each row sums to 1. Given an initial probability vector v_0, the state distribution after k steps is computed by vector-matrix multiplication v_k = v_0 * P^k.",
+      body: "A finite Markov chain with $N$ states is parameterized by an $N \\times N$ right stochastic transition matrix $\\mathbf{P}$, where $\\mathbf{P}[i][j] = P(X_{n+1} = j \\mid X_n = i)$ and each row sums to $1$ ($\\sum_j \\mathbf{P}[i][j] = 1$). Given an initial probability vector $\\mathbf{v}_0 \\in \\mathbb{R}^N$, the state distribution vector after $k$ steps is computed via matrix multiplication:\n$$\\mathbf{v}_k^T = \\mathbf{v}_0^T \\mathbf{P}^k$$",
     },
     {
-      heading: "Stationary Distributions & Convergence",
-      body: "For an irreducible (every state is reachable from any other) and aperiodic (no cyclic state lockstep) Markov chain, repeated transition multiplication converges to a unique stationary distribution vector π satisfying π * P = π and sum(π_i) = 1. This stationary vector represents the long-term steady-state proportion of time spent in each state.",
+      heading: "Stationary Distributions & Steady-State Convergence",
+      body: "For an irreducible (every state is reachable from any other state) and aperiodic (no cyclic state lockstep) Markov chain, repeated matrix multiplication converges to a unique stationary distribution vector $\\boldsymbol{\\pi}$ satisfying:\n$$\\boldsymbol{\\pi}^T \\mathbf{P} = \\boldsymbol{\\pi}^T \\quad \\text{and} \\quad \\sum_{i=1}^N \\pi_i = 1$$\nThis stationary distribution represents the long-term steady-state proportion of time spent in each state.",
     },
     {
-      heading: "Systems & ML Applications",
-      body: "Markov chains are extensively deployed across AI and systems engineering: 1) Google PageRank (random surfer model over web graph adjacency matrices), 2) MCMC (Markov Chain Monte Carlo sampling methods like Metropolis-Hastings for Bayesian inference), 3) Reinforcement Learning (Markov Decision Processes), and 4) Queueing Theory & Server Traffic Modeling.",
+      heading: "Systems & Machine Learning Applications",
+      body: "Markov chains are extensively deployed across artificial intelligence and systems engineering:\n1. Google PageRank: Random surfer model over web graph adjacency matrices.\n2. MCMC: Markov Chain Monte Carlo sampling algorithms (Metropolis-Hastings, Gibbs Sampling) for Bayesian inference.\n3. Reinforcement Learning: Markov Decision Processes (MDPs).\n4. Queueing Theory & Traffic Modeling.",
     },
     {
       heading: "Implementation Nuances & Numerical Stability",
-      body: "Simulating k steps via vector-matrix multiplication takes O(k * N^2) time and O(N) space. For large k, binary matrix exponentiation on P computes P^k in O(N^3 log k) time. In floating-point implementations, normalizing row sums to exactly 1 at each iteration prevents rounding drift.",
+      body: "Simulating $k$ steps via vector-matrix multiplication takes $\\mathcal{O}(k N^2)$ time and $\\mathcal{O}(N)$ space. For large $k$, binary matrix exponentiation computes $\\mathbf{P}^k$ in $\\mathcal{O}(N^3 \\log k)$ time. In floating-point implementations, re-normalizing probability vectors at each step prevents numerical floating-point drift.",
     },
   ],
   keyTerms: [
     {
       term: "Markov Property",
       definition:
-        "The memoryless property stating that future states depend only on the current state, not on past states.",
+        "The memoryless property stating that future state distributions depend solely on the current state, independent of past history.",
     },
     {
       term: "Stochastic Matrix",
       definition:
-        "A square matrix with non-negative real numbers where each row sums to 1, representing transition probabilities.",
+        "A square matrix $\\mathbf{P} \\in \\mathbb{R}_{\\ge 0}^{N \\times N}$ with non-negative real entries where each row sums to $1$.",
     },
     {
       term: "Stationary Distribution",
       definition:
-        "A probability vector π that remains invariant under state transitions: π * P = π.",
+        "A probability vector $\\boldsymbol{\\pi}$ that remains invariant under state transitions: $\\boldsymbol{\\pi}^T \\mathbf{P} = \\boldsymbol{\\pi}^T$.",
     },
   ],
 };
 
-const MARKOV_CHAINS_TRIVIA: TriviaMeta = {
+export const MARKOV_CHAINS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines function simulating Markov chain step transitions.",
-    2: "Initializes current distribution vector from initial input.",
-    4: "Iterates over simulation steps.",
-    5: "Initializes next distribution vector with zeros.",
-    6: "Computes matrix-vector transition probabilities for state i to state j.",
-    9: "Updates current state distribution to next_dist.",
-    10: "Returns final state probability distribution vector.",
+    1: "Empty leading line for code formatting.",
+    2: "Defines markov_chain function signature taking transition matrix, initial distribution vector, and steps count.",
+    3: "Opening docstring tag.",
+    4: "Docstring describing discrete-time Markov chain simulation.",
+    5: "Closing docstring tag.",
+    6: "Stores state space dimension $n$ from length of initial distribution vector.",
+    7: "Initializes current distribution vector curr from input distribution.",
+    8: "Iterates over $k$ simulation time steps.",
+    9: "Initializes next distribution vector nxt with zeros.",
+    10: "Outer loop iterates through source state index $i$.",
+    11: "Inner loop iterates through destination state index $j$.",
+    12: "Computes matrix-vector transition probability contribution from state $i$ to state $j$.",
+    13: "Updates current state distribution vector curr to nxt vector.",
+    14: "Returns final state probability distribution vector $\\mathbf{v}_k$.",
+    15: "Empty trailing line for code formatting.",
   },
 };
 
@@ -263,7 +265,7 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Given an N-state discrete-time Markov chain defined by an N x N stochastic transition matrix and an initial probability distribution vector v_0, simulate state probability transitions over k time steps to compute the state probability vector v_k and observe steady-state convergence.",
+    "Given an $N$-state discrete-time Markov chain defined by an $N \\times N$ right stochastic transition matrix $\\mathbf{P}$ and an initial probability distribution vector $\\mathbf{v}_0$, simulate state probability transitions over $k$ time steps to compute state vector $\\mathbf{v}_k$:\n\n$$\\mathbf{v}_k^T = \\mathbf{v}_0^T \\mathbf{P}^k$$\n\n### State Vector Representation\nThe dynamic probability state is represented as an $N$-dimensional vector $\\mathbf{v}_k \\in \\mathbb{R}^N$ where component $v_{k, i}$ holds $P(X_k = S_i)$.\n\n### Input Parameters\n- `numStates` ($N \\in \\mathbb{Z}_{> 0}$): Number of states $N$ in the Markov chain.\n- `transitionMatrix` (`list[list[float]]`): $N \\times N$ right stochastic transition matrix $\\mathbf{P}$.\n- `initialDistribution` (`list[float]`): Initial probability distribution vector $\\mathbf{v}_0$.\n- `steps` ($k \\in \\mathbb{Z}_{> 0}$): Number of time steps $k$ to simulate.\n\n### Output\n- `list[float]`: State probability distribution vector $\\mathbf{v}_k$ after $k$ steps.\n\n### Edge Cases & Constraints\n- Absorbing States: Matrix rows with $1.0$ on diagonal remain trapped.\n- Stochastic Normalization: Row sums must equal $1.0$.",
   constraints: ["1 <= numStates <= 10", "1 <= steps <= 100", "0.0 <= matrix[i][j] <= 1.0"],
   examples: [
     {
@@ -323,9 +325,8 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   },
   spaceComplexity: "O(N^2)",
   complexityAnalysis: {
-    time: "Each of the k steps multiplies an N-dimensional vector by an N x N transition matrix in O(N^2) time.",
-    space:
-      "Requires storing N x N transition matrix and N-element probability distribution vectors.",
+    time: "Each of the $k$ steps multiplies an $N$-dimensional vector by an $N \\times N$ transition matrix in $\\mathcal{O}(N^2)$ time, giving $\\mathcal{O}(k N^2)$ total operations.",
+    space: "Requires $\\mathcal{O}(N^2)$ memory to store the transition matrix and probability vectors.",
   },
   topicGuide: MARKOV_CHAINS_TOPIC_GUIDE,
   trivia: MARKOV_CHAINS_TRIVIA,
@@ -341,3 +342,4 @@ export const markovChains: AlgorithmDefinition<MarkovChainsInput> = {
   defaultInput: DEFAULT_MARKOV_CHAINS_INPUT,
   generateSteps: generateMarkovChainsSteps,
 };
+

@@ -7,8 +7,7 @@ export interface draftModelLookaheadTokenSamplerInput {
   temperature: number;
 }
 
-export const DRAFTMODELLOOKAHEADTOKENSAMPLER_CODE = `
-import math
+export const DRAFTMODELLOOKAHEADTOKENSAMPLER_CODE = `import math
 
 def draft_model_lookahead_token_sampler(logits_seq, gamma=4, temperature=1.0):
     """
@@ -37,8 +36,7 @@ def draft_model_lookahead_token_sampler(logits_seq, gamma=4, temperature=1.0):
         draft_tokens.append(best_token)
         draft_probs.append(probs[best_token])
 
-    return draft_tokens, draft_probs
-`;
+    return draft_tokens, draft_probs`;
 
 export const DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT: draftModelLookaheadTokenSamplerInput = {
   logits_seq: [
@@ -46,8 +44,10 @@ export const DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT: draftModelLookaheadT
     [0.1, 4.2, 1.0, 0.3],
     [3.1, 1.1, 0.2, 2.5],
     [0.5, 0.8, 5.0, 1.0],
+    [1.5, 3.5, 0.2, 0.9],
+    [0.2, 1.0, 4.5, 2.0],
   ],
-  gamma: 4,
+  gamma: 6,
   temperature: 1.0,
 };
 
@@ -57,9 +57,12 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const elements: ArrayElement[] = input.logits_seq.slice(0, input.gamma).map((logits, idx) => ({
+  const { logits_seq, gamma, temperature } = input;
+  const maxSteps = Math.min(gamma, logits_seq.length);
+
+  const elements: ArrayElement[] = logits_seq.slice(0, maxSteps).map((logits, idx) => ({
     id: `step-${idx}`,
-    value: `Step ${idx + 1} Logits [${logits.map((l) => l.toFixed(1)).join(", ")}]`,
+    value: `Step ${idx + 1} Logits: [${logits.map((l) => l.toFixed(1)).join(", ")}]`,
     state: "default",
   }));
 
@@ -68,103 +71,230 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeStepIdx: number = -1,
+    pointersMap: Record<number, string[]> = {},
   ) => {
+    const updatedElements: ArrayElement[] = elements.map((el, idx) => {
+      let state: ArrayElement["state"] = "default";
+      if (idx === activeStepIdx) state = "active";
+      else if (idx < activeStepIdx) state = "visited";
+      return {
+        ...el,
+        state,
+        pointers: pointersMap[idx] || undefined,
+      };
+    });
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: updatedElements,
       },
       auxiliaryState: {
         customState: {
-          gamma: String(input.gamma),
-          temperature: String(input.temperature),
+          gamma: String(gamma),
+          temperature: String(temperature),
+          totalLookaheadSteps: String(maxSteps),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Function entry
   addStep(
-    1,
-    "Initialize Speculative Decoding Draft Token Sampler",
-    "Setting up logit sequence processing, lookahead depth gamma, and temperature scaling factor.",
-    { gamma: input.gamma, temperature: input.temperature },
+    3,
+    "Enter draft_model_lookahead_token_sampler function",
+    "Initializing speculative decoding token sampler with draft model logits sequence and gamma lookahead budget.",
+    { gamma, temperature, stepsAvailable: logits_seq.length },
   );
 
-  const currentElements = elements.map((el) => ({ ...el }));
+  // Step 2: Init draft_tokens
+  addStep(
+    9,
+    "Initialize draft_tokens = []",
+    "Empty array to store sampled candidate token indices $x_1, x_2, \\dots, x_{\\gamma}$.",
+    { draft_tokens: "[]" },
+  );
+
+  // Step 3: Init draft_probs
+  addStep(
+    10,
+    "Initialize draft_probs = []",
+    "Empty array to store candidate sampling probabilities $q(x_i)$ for target model verification.",
+    { draft_probs: "[]" },
+  );
+
   const draftTokens: number[] = [];
   const draftProbs: number[] = [];
 
-  const maxSteps = Math.min(input.gamma, input.logits_seq.length);
   for (let step = 0; step < maxSteps; step++) {
-    const logits = input.logits_seq[step];
-    const temp = Math.max(input.temperature, 1e-5);
+    addStep(
+      12,
+      `Loop step ${step + 1} of ${maxSteps}: range(min(gamma=${gamma}, len(logits_seq)=${logits_seq.length}))`,
+      `Beginning lookahead sampling iteration for step ${step + 1}.`,
+      { step: step + 1, gamma, maxSteps },
+      step,
+      { [step]: [`step=${step + 1}`] },
+    );
+
+    const logits = logits_seq[step];
+    addStep(
+      13,
+      `Step ${step + 1}: Extract raw logits = [${logits.join(", ")}]`,
+      `Unnormalized output vector from draft model at position ${step + 1}.`,
+      { step: step + 1, logits: logits.join(", ") },
+      step,
+    );
+
+    const temp = Math.max(temperature, 1e-5);
+    addStep(
+      15,
+      `Step ${step + 1}: Clamp temperature temp = max(${temperature}, 1e-5) -> ${temp}`,
+      "Guarantees positive non-zero temperature scaling divisor to prevent division by zero.",
+      { step: step + 1, temp },
+      step,
+    );
+
     const scaledLogits = logits.map((l) => l / temp);
+    addStep(
+      16,
+      `Step ${step + 1}: Compute scaled_logits = [${scaledLogits.map((l) => l.toFixed(2)).join(", ")}]`,
+      `Applied temperature scaling: $z_i / T$ for $T = ${temp}$.`,
+      { step: step + 1, scaled_logits: scaledLogits.map((l) => l.toFixed(2)).join(", ") },
+      step,
+    );
+
     const maxL = Math.max(...scaledLogits);
+    addStep(
+      19,
+      `Step ${step + 1}: Find max_l = max(scaled_logits) = ${maxL.toFixed(2)}`,
+      "Max logit subtraction ensures numerical stability: $\\exp(z_i - \\max(z)) \\le 1.0$, preventing overflow.",
+      { step: step + 1, max_l: Number(maxL.toFixed(2)) },
+      step,
+    );
+
     const expLogits = scaledLogits.map((l) => Math.exp(l - maxL));
+    addStep(
+      20,
+      `Step ${step + 1}: Compute exp_logits = [${expLogits.map((e) => e.toFixed(4)).join(", ")}]`,
+      "Exponentiating shifted logits: $\\exp(z_i - \\max(z))$.",
+      { step: step + 1, exp_logits: expLogits.map((e) => e.toFixed(4)).join(", ") },
+      step,
+    );
+
     const sumExp = expLogits.reduce((a, b) => a + b, 0);
+    addStep(
+      21,
+      `Step ${step + 1}: Compute sum_exp = sum(exp_logits) = ${sumExp.toFixed(4)}`,
+      "Summing exponentiated values to compute Softmax denominator.",
+      { step: step + 1, sum_exp: Number(sumExp.toFixed(4)) },
+      step,
+    );
+
     const probs = expLogits.map((e) => e / sumExp);
+    addStep(
+      22,
+      `Step ${step + 1}: Compute Softmax probs = [${probs.map((p) => p.toFixed(4)).join(", ")}]`,
+      "Probability distribution $q(x)$: $q_i = \\exp(z_i - \\max(z)) / \\sum \\exp(z_j - \\max(z))$.",
+      { step: step + 1, probs: probs.map((p) => p.toFixed(4)).join(", ") },
+      step,
+    );
 
     let bestToken = 0;
     for (let i = 1; i < probs.length; i++) {
       if (probs[i] > probs[bestToken]) bestToken = i;
     }
+    addStep(
+      25,
+      `Step ${step + 1}: Pick greedy best_token = ${bestToken} (prob q(x) = ${probs[bestToken].toFixed(4)})`,
+      `Token ${bestToken} achieves highest candidate probability $q(x_{${step + 1}}) = ${probs[bestToken].toFixed(4)}$.`,
+      { step: step + 1, best_token: bestToken, prob: Number(probs[bestToken].toFixed(4)) },
+      step,
+      { [step]: [`token=${bestToken}`, `q=${probs[bestToken].toFixed(3)}`] },
+    );
 
     draftTokens.push(bestToken);
-    draftProbs.push(probs[bestToken]);
-
-    currentElements[step] = {
-      ...currentElements[step],
-      state: "active",
-      pointers: [`token=${bestToken}`, `q(x)=${probs[bestToken].toFixed(3)}`],
-    };
-
     addStep(
-      21,
-      `Step ${step + 1}: Sample candidate token ${bestToken}`,
-      `Scaled logits by temp=${temp.toFixed(2)}, calculated softmax probs, sampled candidate token ${bestToken} with q(x)=${probs[bestToken].toFixed(3)}.`,
-      { step: step + 1, sampled_token: bestToken, prob: Number(probs[bestToken].toFixed(3)) },
-      currentElements,
+      27,
+      `Step ${step + 1}: Append ${bestToken} to draft_tokens -> [${draftTokens.join(", ")}]`,
+      `Candidate sequence updated: [${draftTokens.join(", ")}].`,
+      { step: step + 1, draft_tokens: draftTokens.join(", ") },
+      step,
+    );
+
+    draftProbs.push(probs[bestToken]);
+    addStep(
+      28,
+      `Step ${step + 1}: Append ${probs[bestToken].toFixed(4)} to draft_probs -> [${draftProbs.map((p) => p.toFixed(3)).join(", ")}]`,
+      "Draft probability distribution updated for target verification.",
+      { step: step + 1, draft_probs: draftProbs.map((p) => p.toFixed(3)).join(", ") },
+      step,
     );
   }
 
-  const finalElements = currentElements.map((el) => ({
-    ...el,
-    state: "sorted" as const,
-  }));
-
+  // Step return
   addStep(
-    28,
-    "Execution Complete",
-    "Successfully generated gamma lookahead candidate tokens for target model verification pass.",
-    { tokens_generated: draftTokens.join(", "), gamma: input.gamma },
-    finalElements,
+    30,
+    `Return (draft_tokens=[${draftTokens.join(", ")}], draft_probs=[${draftProbs.map((p) => p.toFixed(3)).join(", ")}])`,
+    `Completed generation of ${draftTokens.length} speculative lookahead candidate tokens for target verification pass.`,
+    {
+      draft_tokens: draftTokens.join(", "),
+      draft_probs: draftProbs.map((p) => p.toFixed(3)).join(", "),
+      count: draftTokens.length,
+    },
   );
 
   return steps;
 };
 
 const DRAFTMODELLOOKAHEADTOKENSAMPLER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
+  skipLines: [2, 4, 5, 6, 7, 8, 11, 14, 17, 18, 23, 24, 26, 29],
   distractors: [
-    "scaled_logits = [l * temperature for l in logits]",
-    "probs = [math.exp(l) for l in logits]",
+    "draft_tokens = [0] * gamma",
+    "probs = [l / sum(logits) for l in logits]",
     "best_token = min(range(len(probs)), key=lambda i: probs[i])",
+    "temp = min(temperature, 1.0)",
   ],
-  hints: [{ line: 21, hint: "Sample token index maximizing softmax probability q(x_i)." }],
+  hints: [
+    { line: 15, hint: "Clamp temperature using max(temperature, 1e-5) to prevent division by zero." },
+    { line: 19, hint: "Subtract max_l before exponentiation for numerical stability." },
+    { line: 25, hint: "Select best_token via greedy argmax or multinomial sampling over probs." },
+  ],
   lineExplanations: {
-    1: "Entry point for Speculative Decoding Draft Token Sampler.",
-    16: "Applies temperature scaling to raw unnormalized draft model logits.",
-    21: "Calculates numerically stable softmax probabilities using max logit subtraction.",
-    25: "Selects candidate lookahead token index with highest probability.",
-    28: "Returns list of draft candidate tokens and candidate probability distribution q(x).",
+    1: "Import math module for floating-point exponential calculation math.exp.",
+    2: "Blank line after imports.",
+    3: "Function signature for Speculative Decoding Draft Token Sampler taking logits_seq, gamma, and temperature.",
+    4: "Begin docstring describing lookahead candidate sampling.",
+    5: "Docstring line describing autoregressive sampling of gamma candidate tokens.",
+    6: "Docstring line describing temperature scaling and numerically stable softmax.",
+    7: "Docstring line describing output tuple of candidate tokens and probabilities q(x_i).",
+    8: "End docstring.",
+    9: "Initialize empty list draft_tokens to store sampled candidate token indices.",
+    10: "Initialize empty list draft_probs to store candidate sampling probabilities q(x_i).",
+    11: "Blank line before lookahead sampling loop.",
+    12: "Loop over each lookahead step from 0 up to min(gamma, len(logits_seq)).",
+    13: "Extract raw logits vector for current lookahead step.",
+    14: "Comment explaining temperature scaling.",
+    15: "Clamp temperature to minimum epsilon (1e-5) to prevent division by zero.",
+    16: "Scale raw logits by temperature factor: scaled_logits = [l / temp for l in logits].",
+    17: "Blank line before Softmax computation.",
+    18: "Comment explaining Softmax with max logit subtraction.",
+    19: "Find maximum scaled logit max_l for numerical stability during Softmax.",
+    20: "Exponentiate shifted logits: exp_logits = [math.exp(l - max_l) for l in scaled_logits].",
+    21: "Sum exponentiated values to compute Softmax normalization denominator.",
+    22: "Compute normalized Softmax probability distribution: probs = [e / sum_exp for e in exp_logits].",
+    23: "Blank line before candidate token selection.",
+    24: "Comment explaining greedy top-1 candidate selection.",
+    25: "Select candidate token index with highest probability (argmax greedy selection).",
+    26: "Blank line before updating output lists.",
+    27: "Append selected best_token index to draft_tokens list.",
+    28: "Append candidate probability probs[best_token] to draft_probs list.",
+    29: "Blank line before returning results.",
+    30: "Return tuple of draft_tokens and draft_probs to caller for target verification.",
   },
 };
 
@@ -179,7 +309,7 @@ export const draftModelLookaheadTokenSampler: AlgorithmDefinition<draftModelLook
     mlInfraLevel: 12,
     mlInfraCategory: "ml_llm_serving",
     description:
-      "Speculative Decoding uses a small, fast draft model M_draft (or speculative draft heads like Medusa / Eagle) to autoregressively sample gamma lookahead candidate tokens (x_{t+1}, x_{t+2}, ..., x_{t+gamma}) prior to running the target model M_target. Because draft models are 10x-100x smaller than the target LLM, generating gamma tokens sequentially with M_draft consumes very little time and memory bandwidth.\n\nThis algorithm implements the Speculative Draft Token Sampler. At each lookahead step, raw logits from M_draft are scaled by temperature T, normalized via numerically stable Softmax (subtracting max logit to prevent IEEE 754 float overflow), and candidate tokens are sampled along with their probabilities q_i(x). The resulting sequence of gamma candidate tokens and probabilities is packaged for a single parallel verification pass by the target model.\n\nInput Format:\n- logits_seq: 2D array of draft model logit vectors, shape [gamma, vocab_size].\n- gamma: Integer speculative lookahead depth (e.g. 4 tokens).\n- temperature: Floating-point sampling temperature T > 0.\n\nOutput Format:\n- Returns a tuple of (draft_tokens, draft_probs) containing candidate token IDs and probabilities q(x_i).\n\nEdge Cases & Constraints:\n- Low temperature limit: As T -> 0, temperature scaling approaches argmax greedy selection.\n- Softmax stability: Subtracts max(logits) before exponentiating to avoid Inf/NaN errors in float16/float32.\n- Vocab bounds: Validates token indices within [0, vocab_size - 1].",
+      "Speculative Decoding uses a small, fast draft model $M_{\\text{draft}}$ (or speculative draft heads like Medusa / Eagle) to autoregressively sample $\\gamma$ lookahead candidate tokens $(x_{t+1}, x_{t+2}, \\dots, x_{t+\\gamma})$ prior to running the target model $M_{\\text{target}}$. Because draft models are 10x-100x smaller than the target LLM, generating $\\gamma$ tokens sequentially with $M_{\\text{draft}}$ consumes minimal time and GPU memory bandwidth.\n\n### Softmax & Sampling Formula\n$$\\text{Softmax}(z_i) = \\frac{\\exp\\left((z_i - \\max(z)) / T\\right)}{\\sum_j \\exp\\left((z_j - \\max(z)) / T\\right)}$$\n\nwhere:\n- $z_i$: Raw draft model logit for token $i$.\n- $T$: Sampling temperature parameter.\n- $\\max(z)$: Maximum scaled logit subtracted for numerical stability (preventing IEEE 754 overflow).\n\n### Input Parameters\n- `logits_seq`: 2D array of draft model logit vectors, shape $[\\gamma, V]$.\n- `gamma`: Speculative lookahead depth $\\gamma$.\n- `temperature`: Sampling temperature $T > 0$.\n\n### Output\n- Returns tuple `(draft_tokens, draft_probs)` containing candidate token IDs and probabilities $q(x_i)$.",
     constraints: [
       "1 <= gamma <= 16",
       "0.01 <= temperature <= 5.0",
@@ -188,20 +318,12 @@ export const draftModelLookaheadTokenSampler: AlgorithmDefinition<draftModelLook
     examples: [
       {
         kind: "basic",
-        title: "4-Token Lookahead Sampling",
-        inputDisplay:
-          "logits_seq = [[2.1, 0.5, 3.8, 1.2], [0.1, 4.2, 1.0, 0.3]], gamma = 2, temp = 1.0",
-        outputDisplay: "Draft Tokens: [2, 1], Draft Probs: [0.724, 0.901]",
-        input: {
-          logits_seq: [
-            [2.1, 0.5, 3.8, 1.2],
-            [0.1, 4.2, 1.0, 0.3],
-          ],
-          gamma: 2,
-          temperature: 1.0,
-        },
-        output: "Draft Tokens: [2, 1]",
-        explanation: "Step 1 selects token 2 (logit 3.8). Step 2 selects token 1 (logit 4.2).",
+        title: "6-Token Lookahead Sampling",
+        inputDisplay: "6-step logits sequence, gamma = 6, temp = 1.0",
+        outputDisplay: "Draft tokens and candidate probabilities generated",
+        input: DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT,
+        output: "Draft tokens and probs tuple returned",
+        explanation: "Evaluates 6 speculative lookahead sampling iterations.",
       },
       {
         kind: "complex",
@@ -222,24 +344,24 @@ export const draftModelLookaheadTokenSampler: AlgorithmDefinition<draftModelLook
     timeComplexity: { best: "O(gamma * V)", average: "O(gamma * V)", worst: "O(gamma * V)" },
     spaceComplexity: "O(gamma * V)",
     complexityAnalysis: {
-      time: "O(gamma * V) to scale logits and compute Softmax over vocabulary size V for gamma steps.",
-      space: "O(gamma * V) for scaled logits and output candidate token buffers.",
+      time: "$O(\\gamma \\cdot V)$ to scale logits and compute Softmax over vocabulary size $V$ for $\\gamma$ steps.",
+      space: "$O(\\gamma \\cdot V)$ for scaled logits and output candidate token buffers.",
     },
     topicGuide: {
       overview:
         "Speculative Decoding draft samplers generate gamma lookahead token proposals fast using small draft models, setting up target model parallel verification.",
       sections: [
         {
-          heading: "Overview",
-          body: "Autoregressive generation in large models is memory-bandwidth bound: each token requires transferring hundreds of gigabytes of model weights from DRAM to GPU SRAM. Speculative Decoding breaks this memory bottleneck by using a small draft model (10x-100x smaller) to quickly speculate gamma future tokens in sequence.",
+          heading: "Overview & Speculative Architecture",
+          body: "Autoregressively generating tokens in large models is memory-bandwidth bound: each token requires transferring hundreds of gigabytes of model weights from DRAM to GPU SRAM. Speculative Decoding breaks this memory bottleneck by using a small draft model (10x-100x smaller) to quickly speculate $\\gamma$ future tokens in sequence.",
         },
         {
-          heading: "Core Concepts",
-          body: "The Draft Sampler runs gamma forward passes of M_draft. At each step step=1..gamma, logits are scaled by temperature T and normalized via Softmax to yield draft probability distribution q_i(x). Candidates x_i are sampled and appended to a candidate sequence along with q_i(x_i).",
+          heading: "Core Sampling & Softmax Math",
+          body: "The Draft Sampler runs $\\gamma$ forward passes of $M_{\\text{draft}}$. At each step $\\text{step}=1..\\gamma$, logits are scaled by temperature $T$ and normalized via Softmax to yield draft probability distribution $q_i(x)$:\n$$\\text{Softmax}(z_i) = \\frac{\\exp\\left((z_i - \\max(z)) / T\\right)}{\\sum_j \\exp\\left((z_j - \\max(z)) / T\\right)}$$\nCandidates $x_i$ are sampled and appended to a candidate sequence along with $q_i(x_i)$.",
         },
         {
           heading: "Systems & Memory Bandwidth Impact",
-          body: "Because M_draft parameters fit within L2 cache or require minimal DRAM bandwidth, draft sampling latency is negligible (e.g. 1-2 ms total for gamma=5). When combined with a single parallel target pass, system latency is reduced by 2x-3x without changing output quality.",
+          body: "Because $M_{\\text{draft}}$ parameters fit within L2 cache or require minimal DRAM bandwidth, draft sampling latency is negligible (e.g. 1-2 ms total for $\\gamma=5$). When combined with a single parallel target pass, system latency is reduced by 2x-3x without changing output quality.",
         },
         {
           heading: "Implementation Nuances & Edge Cases",
@@ -273,3 +395,5 @@ export const draftModelLookaheadTokenSampler: AlgorithmDefinition<draftModelLook
     defaultInput: DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT,
     generateSteps: generateDraftModelLookaheadTokenSamplerSteps,
   };
+
+export default draftModelLookaheadTokenSampler;

@@ -1,6 +1,3 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
-import type { TriviaMeta } from "../../types/trivia";
-
 export interface MeetInTheMiddleInput {
   array: number[];
   target: number;
@@ -35,8 +32,8 @@ def meet_in_the_middle(nums: list[int], target: int) -> bool:
     return False`;
 
 export const DEFAULT_MEET_IN_THE_MIDDLE_INPUT: MeetInTheMiddleInput = {
-  array: [2, 4, 5, 9, 12],
-  target: 15,
+  array: [2, 4, 5, 9, 12, 16],
+  target: 37,
 };
 
 export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): AlgorithmStep[] => {
@@ -93,7 +90,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     3,
     "Initialize Meet in the Middle Subset Sum",
-    `Input set of N = ${n} numbers: [${nums.join(", ")}]. Target sum = ${target}. Split size N // 2 = ${Math.floor(n / 2)}.`,
+    `Input set of N = ${n} numbers: [${nums.join(", ")}]. Target sum = ${target}.`,
     { n, target },
   );
 
@@ -108,54 +105,126 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     return steps;
   }
 
-  const mid = Math.floor(n / 2);
-  const leftPart = nums.slice(0, mid);
-  const rightPart = nums.slice(mid);
-
   addStep(
-    7,
-    `Split array into Left [0..${mid - 1}] and Right [${mid}..${n - 1}]`,
-    `Left subset [${leftPart.join(", ")}] (size ${leftPart.length}), Right subset [${rightPart.join(", ")}] (size ${rightPart.length}).`,
-    { leftLen: leftPart.length, rightLen: rightPart.length },
+    4,
+    `Cache element count n = ${n}`,
+    `Storing array length n = ${n} to evaluate partitioning threshold.`,
+    { n, target },
+  );
+
+  const mid = Math.floor(n / 2);
+  addStep(
+    8,
+    `Calculate midpoint index mid = n // 2 = ${mid}`,
+    `Splitting ${n} elements into two halves of size ${mid} and ${n - mid}.`,
+    { n, mid },
+  );
+
+  const leftPart = nums.slice(0, mid);
+  addStep(
+    9,
+    `Slice left_part = nums[:${mid}]`,
+    `Left subset contains elements: [${leftPart.join(", ")}].`,
+    { leftLen: leftPart.length },
     Array.from({ length: mid }, (_, i) => i),
+  );
+
+  const rightPart = nums.slice(mid);
+  addStep(
+    10,
+    `Slice right_part = nums[${mid}:]`,
+    `Right subset contains elements: [${rightPart.join(", ")}].`,
+    { rightLen: rightPart.length },
+    undefined,
     Array.from({ length: n - mid }, (_, i) => i + mid),
   );
 
-  const getSubsetSums = (arr: number[]): number[] => {
+  const getSubsetSums = (arr: number[], label: "left" | "right"): number[] => {
+    addStep(
+      13,
+      `Initialize ${label}_sums = [0]`,
+      `Base case for ${label} subset sum generation starts with single element 0 (empty subset).`,
+      { label, initialSum: 0 },
+      label === "left" ? Array.from({ length: mid }, (_, i) => i) : undefined,
+      label === "right" ? Array.from({ length: n - mid }, (_, i) => i + mid) : undefined,
+    );
+
     let sums = [0];
-    for (const x of arr) {
+    for (let i = 0; i < arr.length; i++) {
+      const x = arr[i];
       const nextSums = sums.map((s) => s + x);
       sums = sums.concat(nextSums);
+
+      addStep(
+        15,
+        `Include element ${x} in ${label}_sums (2^${i + 1} = ${sums.length} total sums)`,
+        `Adding element ${x} doubles candidate ${label} sums to [${sums.join(", ")}].`,
+        { label, element: x, totalSums: sums.length },
+        label === "left" ? [i] : undefined,
+        label === "right" ? [i + mid] : undefined,
+        { [`${label}Sums`]: JSON.stringify(sums) },
+      );
     }
+
+    addStep(
+      16,
+      `Return ${label}_sums vector (${sums.length} combinations)`,
+      `Completed subset sum expansion for ${label} half.`,
+      { label, finalCount: sums.length },
+    );
+
     return sums;
   };
 
-  const leftSums = getSubsetSums(leftPart);
-  const rightSums = getSubsetSums(rightPart).sort((a, b) => a - b);
+  addStep(
+    12,
+    "Define get_subset_sums helper",
+    "Helper function generates 2^k subset sums for an array of size k.",
+    { leftLen: leftPart.length, rightLen: rightPart.length },
+  );
 
   addStep(
     18,
-    `Generated ${leftSums.length} left subset sums and ${rightSums.length} sorted right subset sums`,
-    `Left sums: [${leftSums.join(", ")}]. Sorted Right sums: [${rightSums.join(", ")}].`,
-    { leftSumsCount: leftSums.length, rightSumsCount: rightSums.length },
+    `Begin left_sums = get_subset_sums(left_part)`,
+    `Generating subset sums for left half elements [${leftPart.join(", ")}].`,
+    { leftLen: leftPart.length },
+  );
+  const leftSums = getSubsetSums(leftPart, "left");
+
+  addStep(
+    19,
+    `Begin right_sums = sorted(get_subset_sums(right_part))`,
+    `Generating and sorting subset sums for right half elements [${rightPart.join(", ")}].`,
+    { rightLen: rightPart.length },
+  );
+  const rightSums = getSubsetSums(rightPart, "right").sort((a, b) => a - b);
+
+  addStep(
+    19,
+    `Sorted right_sums = [${rightSums.join(", ")}]`,
+    `Right subset sums sorted in non-decreasing order to enable O(log(2^(N/2))) binary search lookups.`,
+    { rightSumsCount: rightSums.length },
     undefined,
-    undefined,
-    {
-      leftSums: JSON.stringify(leftSums),
-      rightSums: JSON.stringify(rightSums),
-    },
+    Array.from({ length: n - mid }, (_, i) => i + mid),
+    { rightSums: JSON.stringify(rightSums) },
   );
 
   let foundMatch = false;
 
   for (let idx = 0; idx < leftSums.length; idx++) {
     const s = leftSums[idx];
-    const needed = target - s;
-
     addStep(
       21,
-      `Testing left sum s = ${s} (needed right sum = ${needed})`,
-      `Left sum ${s} requires complementary right sum target - s = ${target} - ${s} = ${needed}.`,
+      `Loop iteration ${idx + 1}/${leftSums.length}: Test left sum s = ${s}`,
+      `Inspecting candidate left subset sum s = ${s}.`,
+      { leftIdx: idx, leftSum: s, target },
+    );
+
+    const needed = target - s;
+    addStep(
+      22,
+      `Calculate needed right sum: needed = target - s = ${target} - ${s} = ${needed}`,
+      `Left sum ${s} requires complementary right sum ${needed} to reach target ${target}.`,
       { leftSum: s, needed, target },
     );
 
@@ -163,26 +232,53 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     let bLeft = 0;
     let bRight = rightSums.length - 1;
     let found = false;
+    let foundIdx = -1;
+
+    addStep(
+      23,
+      `Bisect left: bisect.bisect_left(right_sums, ${needed})`,
+      `Searching sorted right_sums [${rightSums.join(", ")}] for target complement ${needed}.`,
+      { needed, rightSumsLength: rightSums.length },
+    );
 
     while (bLeft <= bRight) {
       const bMid = Math.floor((bLeft + bRight) / 2);
-      if (rightSums[bMid] === needed) {
+      const bVal = rightSums[bMid];
+
+      addStep(
+        23,
+        `Probe right_sums[${bMid}] = ${bVal} against needed = ${needed}`,
+        `Binary search probe at index ${bMid} in range [${bLeft}..${bRight}]. Value ${bVal} vs needed ${needed}.`,
+        { bLeft, bRight, bMid, bVal, needed },
+      );
+
+      if (bVal === needed) {
         found = true;
+        foundIdx = bMid;
         break;
-      } else if (rightSums[bMid] < needed) {
+      } else if (bVal < needed) {
         bLeft = bMid + 1;
       } else {
         bRight = bMid - 1;
       }
     }
 
+    addStep(
+      24,
+      `Evaluate match check for needed = ${needed}`,
+      found
+        ? `Match found in right_sums at index ${foundIdx} (value ${needed}).`
+        : `Value ${needed} not present in right_sums.`,
+      { needed, found },
+    );
+
     if (found) {
       foundMatch = true;
       addStep(
-        24,
-        `Found matching pair! Left sum (${s}) + Right sum (${needed}) = ${target}`,
-        `Binary search located right sum ${needed} in rightSums array. Target ${target} successfully formed!`,
-        { leftSum: s, rightSum: needed, target },
+        25,
+        `Return True — Found subset pair summing to ${target}!`,
+        `Left sum (${s}) + Right sum (${needed}) = ${target}. Target successfully formed!`,
+        { leftSum: s, rightSum: needed, target, foundMatch: true },
         undefined,
         undefined,
         { matchResult: `True (${s} + ${needed} = ${target})` },
@@ -193,9 +289,9 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
 
   if (!foundMatch) {
     addStep(
-      26,
-      `No combination of left sum and right sum equals ${target}`,
-      "All binary search lookups exhausted without finding a complementary pair.",
+      27,
+      `Return False — No combination equals ${target}`,
+      "All binary search lookups exhausted without finding a complementary subset pair.",
       { target, matched: false },
     );
   }
@@ -205,65 +301,98 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
 
 export const MEET_IN_THE_MIDDLE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Meet in the Middle is a powerful algorithmic paradigm designed to solve hard exponential search problems (such as Subset Sum, 4-Sum, or Discrete Logarithms) when problem sizes N are around 30–40. Brute-force state space exploration scales as O(2^N), which quickly becomes impossible (2^40 ~ 10^12). By splitting the input into two equal halves of size N/2, computing all 2^(N/2) state sums for each side, and joining them using binary search or hash tables, the overall computational complexity drops to O(N 2^(N/2)). This technique is foundational in cryptanalysis (e.g., Meet-in-the-Middle attacks on Double DES) and competitive programming.",
+    "Meet in the Middle is an algorithmic paradigm that reduces the exponential complexity of hard search problems (like Subset Sum, 4-Sum, or Discrete Logarithms) from O(2^N) to O(N * 2^(N/2)). For problem sizes around N = 30 to 40, brute-force exploration requiring 2^40 (~1 trillion) operations is intractable. By splitting the domain into two halves of size N/2, precomputing all 2^(N/2) state sums for each side, sorting one side, and querying complements via binary search or two pointers, the search completes in milliseconds.",
   sections: [
     {
-      heading: "Exponential Reduction via Halving",
-      body: "For N = 40, searching 2^40 combinations requires over 1 trillion operations. Partitioning the array into two sub-arrays of size 20 generates 2^20 (~1,048,576) subset sums for each half. Storing and sorting 1 million integers takes a few megabytes of memory and milliseconds of CPU time.",
+      heading: "Why It Exists & The Halving Breakthrough",
+      body: "Brute-force subset sum checks all 2^N combinations. For N = 40, 2^40 operations takes hours or days on modern CPUs. Splitting N into two halves of 20 yields 2^20 (~1 million) sums for each half. Generating, sorting, and binary searching 1 million integers takes only a few megabytes of memory and milliseconds of processing time.",
     },
     {
-      heading: "Binary Search Coupling",
-      body: "Once all subset sums of the left half (L) and right half (R) are generated, we sort R in O(N 2^(N/2)) time. For every sum s in L, the required complement is target - s. Performing a binary search for target - s in R takes O(N/2) time, giving a total query time of O(N 2^(N/2)).",
+      heading: "Step-by-Step Intuition & Binary Search Join",
+      body: "1. Partition the N-element set into left_part (size N/2) and right_part (size N - N/2).\n2. Compute all 2^(N/2) subset sums for left_part and sorted 2^(N/2) subset sums for right_part.\n3. For each sum s in left_sums, query required complement `needed = target - s` in right_sums using binary search (bisect_left).\n4. If `needed` exists in right_sums, a valid subset exists!",
     },
     {
-      heading: "Two-Pointer Join Variant",
-      body: "Alternatively, after sorting both L and R, a converging two-pointer scan can find all matching pairs (s_L + s_R == target) or the closest sum to target in linear O(|L| + |R|) = O(2^(N/2)) time, avoiding individual binary searches.",
+      heading: "Trade-offs & Memory Considerations",
+      body: "Meet in the Middle trades space for time: while time drops from O(2^N) to O(N * 2^(N/2)), auxiliary memory increases from O(N) to O(2^(N/2)) to store generated subset sums. For N = 40, storing 2^20 64-bit integers requires ~8 MB of RAM, which fits comfortably in CPU cache.",
     },
     {
-      heading: "Applications & Cryptographic Impact",
-      body: "Meet-in-the-middle is famous for proving Double DES insecure: encrypting plaintext with key K1 and decrypting ciphertext with key K2 allows an attacker to meet in the middle on 2^56 intermediate states instead of 2^112 key pairs. In DSA, it solves 4-Sum, 0-1 Knapsack with N <= 40, and Baby-Step Giant-Step for discrete logarithms.",
+      heading: "Cryptographic & Systems Applications",
+      body: "Meet in the Middle is famous in cryptanalysis for demonstrating the insecurity of Double DES: encrypting plaintext with key K1 and decrypting ciphertext with key K2 allows an attacker to meet in the middle on 2^56 intermediate states instead of 2^112 key pairs. It also powers Baby-Step Giant-Step algorithms for discrete logarithms and 4-Sum solvers.",
     },
   ],
   keyTerms: [
     {
       term: "Meet in the Middle",
       definition:
-        "A search strategy that splits an exponential problem of size N into two halves of size N/2, precomputes solutions for each half, and joins them to reduce runtime from 2^N to N 2^(N/2).",
+        "A search strategy that splits an exponential problem of size N into two halves of size N/2, precomputes solutions for each half, and joins them to cut time from 2^N to N 2^(N/2).",
     },
     {
       term: "Subset Sum Problem",
       definition:
-        "The decision problem of finding whether any non-empty subset of numbers sums to a given target. It is NP-complete in general, but solvable in O(N 2^(N/2)) for small N via Meet in the Middle.",
+        "The decision problem of finding whether any subset of numbers sums to a target value. NP-complete in general, but solvable in O(N 2^(N/2)) for small N.",
     },
     {
-      term: "Baby-Step Giant-Step",
+      term: "Complement Search",
       definition:
-        "A meet-in-the-middle algorithm for computing discrete logarithms in finite abelian groups in O(sqrt(N)) time and space.",
+        "Looking up the exact complementary value `target - s` in a sorted pre-computed array of state values using binary search.",
     },
   ],
 };
 
 export const MEET_IN_THE_MIDDLE_TRIVIA: TriviaMeta = {
+  skipLines: [2, 7, 11, 17, 20, 26],
+  distractors: [
+    "mid = n // 3",
+    "left_sums = get_subset_sums(nums)",
+    "needed = target + s",
+    "idx = right_sums.index(needed)",
+  ],
+  hints: [
+    {
+      line: 8,
+      hint: "Split the array at its midpoint so each half generates roughly 2^(N/2) subset sums.",
+    },
+    {
+      line: 19,
+      hint: "Sort the right subset sums so binary search can locate complements in logarithmic time.",
+    },
+    {
+      line: 22,
+      hint: "Calculate the exact value the right half must contribute to reach target.",
+    },
+    {
+      line: 23,
+      hint: "Binary search the sorted right subset sums for the needed complement.",
+    },
+  ],
   lineExplanations: {
-    1: "Imports bisect for binary search on sorted right subset sums.",
-    3: "Declares meet_in_the_middle_subset_sum: returns whether any subset of nums sums to target.",
-    4: "Caches length of nums.",
-    5: "Handles empty array base case.",
-    6: "Returns whether target equals 0 for empty array.",
-    7: "Calculates midpoint index n // 2 to split array into two equal halves.",
-    8: "Splits left half of array up to mid.",
-    9: "Splits right half of array from mid to end.",
-    11: "Defines helper get_subset_sums to generate all 2^k subset sums for an array.",
-    12: "Initializes subset sums list with 0 (empty subset sum).",
-    14: "Appends s + x for each existing sum to double the combinations for each element.",
-    17: "Generates all subset sums for left half of the array.",
-    18: "Generates and sorts all subset sums for right half of the array.",
-    20: "Iterates through each subset sum s generated from left half.",
-    21: "Calculates required complement needed = target - s from right half.",
-    22: "Binary searches sorted right_sums for needed complement.",
-    23: "Checks if binary search found matching complement element.",
-    24: "Returns True if valid subset pair sums to target.",
-    26: "Returns False if no complementary subset pair reaches target.",
+    1: "Imports bisect for fast binary search on sorted right subset sums.",
+    2: "Blank line preceding main function.",
+    3: "Defines meet_in_the_middle(nums, target) -> bool to test if any subset sums to target.",
+    4: "Stores total element count n of input array nums.",
+    5: "Checks base case when input array is empty (n == 0).",
+    6: "Returns True if target is 0 for empty array, False otherwise.",
+    7: "Blank line preceding array partition.",
+    8: "Calculates midpoint index mid = n // 2 to split array into equal halves.",
+    9: "Extracts left half slice left_part = nums[:mid].",
+    10: "Extracts right half slice right_part = nums[mid:].",
+    11: "Blank line preceding helper definition.",
+    12: "Defines helper function get_subset_sums(arr) to compute all 2^k subset sums.",
+    13: "Initializes sums list with 0 representing the empty subset sum.",
+    14: "Loops through each element x in input array arr.",
+    15: "Appends s + x for every existing sum s to double available subset sums.",
+    16: "Returns accumulated list of all subset sums.",
+    17: "Blank line preceding left and right subset sum computations.",
+    18: "Computes all subset sums for left_part array.",
+    19: "Computes and sorts all subset sums for right_part array in non-decreasing order.",
+    20: "Blank line preceding search loop.",
+    21: "Loops through each subset sum s in left_sums.",
+    22: "Calculates complementary value needed = target - s required from right half.",
+    23: "Performs binary search bisect_left to locate needed in sorted right_sums.",
+    24: "Checks if bisect index is within bounds and right_sums[idx] equals needed.",
+    25: "Returns True immediately upon finding a valid left and right sum combination.",
+    26: "Blank line ending main search loop.",
+    27: "Returns False when no subset sum pair combines to equal target.",
   },
 };
 
@@ -273,22 +402,48 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   category: "binary_search",
   categories: ["binary_search"],
   difficulty: "Hard",
-  description:
-    "Determine if there exists a non-empty subset of numbers in an array array that sums to target using the Meet in the Middle technique in O(N * 2^(N/2)) time.\n\n### Problem Statement\nGiven an array of N integers array and an integer target, determine whether any subset of elements from array sums to target.\n\nWhen N is around 30 to 40, a standard brute-force subset sum check of O(2^N) requires up to 2^40 operations, which is intractable. The Meet in the Middle technique divides the array into two equal halves of size N/2, computes all 2^(N/2) subset sums for each half, sorts the right subset sums, and uses binary search to find complementary sum pairs in O(N * 2^(N/2)) total time and O(2^(N/2)) space.\n\n### Input Parameters\n- array: An array of N integers.\n- target: The integer target sum to search for.\n\n### Output\n- Returns true if a subset exists whose sum equals target, otherwise false.\n\n### Edge Cases & Constraints\n- 1 <= N <= 40\n- -10^9 <= array[i], target <= 10^9\n- target = 0: The empty subset always sums to 0.\n- All positive vs mixed positive/negative array elements.\n- Array with a single element.",
+  description: `Master Meet in the Middle: solve exponential search problems like Subset Sum for $N \\approx 40$ in $O(N \\cdot 2^{N/2})$ time instead of $O(2^N)$.
+
+### Why It Exists & What It Solves
+Brute-force subset sum exploration tests all $2^N$ subsets. When $N = 40$, $2^{40} \\approx 1.1 \\times 10^{12}$ combinations requires hours of computation. Meet in the Middle solves this by partitioning the input into two halves of size $N/2 = 20$. Each half generates $2^{20} \\approx 10^6$ subset sums. Sorting one side and probing complementary values via binary search reduces total operations to $O(N \\cdot 2^{N/2})$, executing in under 50 milliseconds.
+
+### Step-by-Step Intuition
+1. **Partition the Array**: Split $N$ elements into \`left_part\` ($N/2$ elements) and \`right_part\` ($N - N/2$ elements).
+2. **Precompute Subset Sums**: Generate all $2^{N/2}$ subset sums for \`left_part\` and sort the $2^{N/2}$ subset sums of \`right_part\`.
+3. **Complement Search**: For each sum $s \\in \\text{left\\_sums}$, calculate \`needed = target - s\`.
+4. **Binary Search Join**: Binary search for \`needed\` in sorted \`right_sums\`. If found, a valid subset exists!
+
+### Input Parameters
+- \`array\`: An array of $N$ integers ($1 \\le N \\le 40$).
+- \`target\`: The integer target sum to search for.
+
+### Output
+- Returns boolean \`true\` if a subset exists whose sum equals target, otherwise \`false\`.
+
+### Trade-offs & Complexity
+- **Time Complexity**: $O(N \\cdot 2^{N/2})$ worst/average case.
+- **Space Complexity**: $O(2^{N/2})$ auxiliary memory to store precomputed subset sums.
+- **Limitation**: Effective when $N \\le 40$; larger $N$ exceeds RAM limits for $2^{N/2}$ elements.
+
+### Edge Cases & Constraints
+- \`1 <= N <= 40\`
+- \`-10^9 <= array[i], target <= 10^9\`
+- Target 0 (always satisfied by empty subset).
+- Single-element arrays ($N = 1$).`,
   constraints: ["1 <= N <= 40", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {
       kind: "basic",
       title: "Basic Example",
-      inputDisplay: "arr = [2, 4, 5, 9, 12], target = 15",
-      outputDisplay: "Match Found: True (5 + 10 or 15)",
+      inputDisplay: "arr = [2, 4, 5, 9, 12, 16], target = 25",
+      outputDisplay: "Match Found: True (4 + 5 + 16 = 25)",
       input: {
-        array: [2, 4, 5, 9, 12],
-        target: 15,
+        array: [2, 4, 5, 9, 12, 16],
+        target: 25,
       },
       output: "Match Found: True",
       explanation:
-        "N=5 split into left [2,4] and right [5,9,12]. Left sum 0 combines with right sum 15 (or 9+4+2=15).",
+        "N=6 split into left [2,4,5] and right [9,12,16]. Left sum 9 (4+5) combines with right sum 16.",
     },
     {
       kind: "complex",
@@ -324,48 +479,10 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   },
   spaceComplexity: "O(2^(n/2))",
   complexityAnalysis: {
-    time: "Generating 2^(n/2) subset sums for both halves takes O(2^(n/2)). Sorting right sums takes O(n 2^(n/2)). Doing 2^(n/2) binary searches of size 2^(n/2) takes O(n 2^(n/2)) total time.",
-    space: "Requires O(2^(n/2)) memory to store subset sums for left and right halves.",
+    time: "Generating 2^(n/2) subset sums for both halves takes O(2^(n/2)). Sorting right sums takes O(n 2^(n/2)). Doing 2^(n/2) binary searches takes O(n 2^(n/2)) total time.",
+    space: "Requires O(2^(n/2)) auxiliary memory to store precomputed left and right subset sum vectors.",
   },
-  topicGuide: {
-    overview:
-      "Meet in the Middle is a powerful algorithmic paradigm designed to solve hard exponential search problems (such as Subset Sum, 4-Sum, 0-1 Knapsack, or Discrete Logarithms) when problem sizes N are around 30–40. Brute-force state space exploration scales as O(2^N), which quickly becomes impossible (2^40 ~ 10^12). By splitting the input into two equal halves of size N/2, computing all 2^(N/2) state sums for each side, and joining them using binary search or hash tables, the overall computational complexity drops to O(N 2^(N/2)). This technique is foundational in cryptanalysis (e.g., Meet-in-the-Middle attacks on Double DES) and competitive programming.",
-    sections: [
-      {
-        heading: "Exponential Reduction via Halving",
-        body: "For N = 40, searching 2^40 combinations requires over 1 trillion operations. Partitioning the array into two sub-arrays of size 20 generates 2^20 (~1,048,576) subset sums for each half. Storing and sorting 1 million integers takes a few megabytes of memory and milliseconds of CPU time.",
-      },
-      {
-        heading: "Binary Search Coupling",
-        body: "Once all subset sums of the left half (L) and right half (R) are generated, we sort R in O(N 2^(N/2)) time. For every sum s in L, the required complement is target - s. Performing a binary search for target - s in R takes O(N/2) time, giving a total query time of O(N 2^(N/2)).",
-      },
-      {
-        heading: "Two-Pointer Join Variant",
-        body: "Alternatively, after sorting both L and R, a converging two-pointer scan can find all matching pairs (s_L + s_R == target) or the closest sum to target in linear O(|L| + |R|) = O(2^(N/2)) time, avoiding individual binary searches.",
-      },
-      {
-        heading: "Applications & Cryptographic Impact",
-        body: "Meet-in-the-middle is famous for proving Double DES insecure: encrypting plaintext with key K1 and decrypting ciphertext with key K2 allows an attacker to meet in the middle on 2^56 intermediate states instead of 2^112 key pairs. In DSA, it solves 4-Sum, 0-1 Knapsack with N <= 40, and Baby-Step Giant-Step for discrete logarithms.",
-      },
-    ],
-    keyTerms: [
-      {
-        term: "Meet in the Middle",
-        definition:
-          "A search strategy that splits an exponential problem of size N into two halves of size N/2, precomputes solutions for each half, and joins them to reduce runtime from 2^N to N 2^(N/2).",
-      },
-      {
-        term: "Subset Sum Problem",
-        definition:
-          "The decision problem of finding whether any non-empty subset of numbers sums to a given target. It is NP-complete in general, but solvable in O(N 2^(N/2)) for small N via Meet in the Middle.",
-      },
-      {
-        term: "Baby-Step Giant-Step",
-        definition:
-          "A meet-in-the-middle algorithm for computing discrete logarithms in finite abelian groups in O(sqrt(N)) time and space.",
-      },
-    ],
-  },
+  topicGuide: MEET_IN_THE_MIDDLE_TOPIC_GUIDE,
   trivia: MEET_IN_THE_MIDDLE_TRIVIA,
   sources: [
     {

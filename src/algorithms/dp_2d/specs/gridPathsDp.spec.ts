@@ -16,10 +16,10 @@ describe("gridPathsDp algorithm logic spec", () => {
 
   it("generates valid steps for default input", () => {
     const steps = generateGridPathsDpSteps(DEFAULT_GRID_PATHS_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.primarySnapshot.kind).toBe("grid");
-    expect(lastStep.variables.result).toBe(2);
+    expect(lastStep.variables.result).toBe(8);
   });
 
   it("handles blocked start cell", () => {

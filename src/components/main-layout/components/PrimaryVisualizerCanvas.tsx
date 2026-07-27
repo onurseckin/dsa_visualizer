@@ -4,6 +4,9 @@ import { ArrayVisualizer } from "../../primitives/ArrayVisualizer";
 import { GridVisualizer } from "../../primitives/GridVisualizer";
 import { GraphVisualizer } from "../../primitives/GraphVisualizer";
 import { TreeVisualizer } from "../../primitives/TreeVisualizer";
+import { VectorVisualizer } from "../../primitives/VectorVisualizer";
+import { MatrixVisualizer } from "../../primitives/MatrixVisualizer";
+import { QuantizationVisualizer } from "../../primitives/QuantizationVisualizer";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { Card } from "../../../ui";
 
@@ -30,6 +33,37 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
         return <GraphVisualizer nodes={primarySnapshot.nodes} edges={primarySnapshot.edges} />;
       case "tree":
         return <TreeVisualizer nodes={primarySnapshot.nodes} rootId={primarySnapshot.rootId} />;
+      case "vector":
+        return (
+          <VectorVisualizer
+            vectors={primarySnapshot.vectors}
+            origin={primarySnapshot.origin}
+            planeTitle={primarySnapshot.planeTitle}
+            dimensions={primarySnapshot.dimensions}
+          />
+        );
+      case "matrix":
+        return (
+          <MatrixVisualizer
+            rows={primarySnapshot.rows}
+            cols={primarySnapshot.cols}
+            cells={primarySnapshot.cells}
+            rowHeaders={primarySnapshot.rowHeaders}
+            colHeaders={primarySnapshot.colHeaders}
+            title={primarySnapshot.title}
+          />
+        );
+      case "quantization":
+        return (
+          <QuantizationVisualizer
+            originalValue={primarySnapshot.originalValue}
+            quantizedValue={primarySnapshot.quantizedValue}
+            scale={primarySnapshot.scale}
+            zeroPoint={primarySnapshot.zeroPoint}
+            bits={primarySnapshot.bits}
+            title={primarySnapshot.title}
+          />
+        );
       default:
         return null;
     }

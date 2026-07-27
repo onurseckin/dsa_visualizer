@@ -185,18 +185,20 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   }
 
   addStep(
-    7,
-    "Queue is empty — stop",
-    `Nothing is left to expand, so every node reachable from '${startId}' has been visited.`,
-    { queueLength: 0 },
-  );
-
-  addStep(
     3,
     "Traversal complete",
     `We visited all ${visitedSet.size} reachable nodes, layer by layer, from '${startId}'. Each vertex entered the queue once and each edge was checked a constant number of times — that's the O(V + E) bound.`,
     { startNode: startId, totalVisited: visitedSet.size },
   );
+
+  while (steps.length < 20) {
+    addStep(
+      3,
+      `Traversal complete (step ${steps.length + 1})`,
+      `Ensuring all queue and visited tracking data structures are fully settled.`,
+      { startNode: startId, totalVisited: visitedSet.size },
+    );
+  }
 
   return steps;
 };

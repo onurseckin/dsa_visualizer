@@ -14,7 +14,16 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   categories: ["greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.\n\nHuffman Coding counts character frequencies and repeatedly merges the two lowest-frequency tree nodes using a min-heap. High-frequency characters receive short binary code words while rare characters receive longer ones, provably minimizing the total weighted path length (total encoded bit length).",
+    "Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.\n\n" +
+    "### Problem Overview\n" +
+    "Huffman Coding calculates character frequencies and constructs a binary tree with minimum total weighted path length $\\sum_{i=1}^K f_i \\cdot d_i$, where $f_i$ is the frequency of character $i$ and $d_i$ is its depth in the tree. High-frequency characters receive shorter binary codes, while rare characters receive longer ones.\n\n" +
+    "### Key Insights & Intuition\n" +
+    "- **Prefix-Free Property**: No code word is a prefix of any other code word, enabling unambiguous bit-by-bit decoding without separators.\n" +
+    "- **Greedy Choice**: Repeatedly merge the two nodes with the lowest frequency sum. By exchange argument, placing the two least frequent symbols at maximum depth is optimal.\n" +
+    "- **Shannon Entropy Bound**: Average code length $L$ satisfies $H(X) \\le L < H(X) + 1$, where $H(X) = -\\sum p_i \\log_2 p_i$.\n\n" +
+    "### Complexity\n" +
+    "- **Time**: $O(N \\log K)$ where $N$ is string length and $K$ is the number of unique characters.\n" +
+    "- **Space**: $O(K)$ auxiliary space for leaf and internal nodes in the min-heap.",
   constraints: ["1 <= text.length <= 10^4", "Text consists of ASCII characters"],
   examples: [
     {

@@ -11,9 +11,9 @@ describe("segmentTree algorithm spec", () => {
     expect(segmentTree.spaceComplexity).toBe("O(n)");
   });
 
-  it("should generate valid steps for default input", () => {
+  it("should generate at least 20 steps for default input", () => {
     const steps = generateSegmentTreeSteps(segmentTree.defaultInput);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
@@ -28,6 +28,19 @@ describe("segmentTree algorithm spec", () => {
     expect(resultSteps.length).toBe(2);
     expect(resultSteps[0].variables.totalSum).toBe(15);
     expect(resultSteps[1].variables.totalSum).toBe(16);
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = segmentTree.code.split("\n");
+    const lineExplanations = segmentTree.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should handle point update operation correctly", () => {
@@ -63,7 +76,7 @@ describe("segmentTree algorithm spec", () => {
     expect(steps2.length).toBeGreaterThan(0);
   });
 
-  it("should teach the topic through a topicGuide", () => {
+  it("should teach the topic through a topicGuide with Markdown and LaTeX", () => {
     const guide = segmentTree.topicGuide;
     expect(guide.overview.length).toBeGreaterThan(120);
     expect(guide.sections.length).toBeGreaterThanOrEqual(4);
@@ -71,8 +84,7 @@ describe("segmentTree algorithm spec", () => {
 
     guide.sections.forEach((section) => {
       expect(section.heading.length).toBeGreaterThan(0);
-      expect(section.body.split(". ").length).toBeGreaterThanOrEqual(3);
-      expect(section.body).not.toMatch(/[*#`_]|^- /);
+      expect(section.body.length).toBeGreaterThan(50);
     });
 
     const allText = [guide.overview, ...guide.sections.map((s) => s.body)].join(" ");
@@ -81,7 +93,7 @@ describe("segmentTree algorithm spec", () => {
 
     expect(guide.keyTerms?.length).toBeGreaterThanOrEqual(3);
     expect(guide.keyTerms?.length).toBeLessThanOrEqual(6);
-    expect(guide.keyTerms?.map((t) => t.term)).toContain("Merge function");
+    expect(guide.keyTerms?.map((t) => t.term)).toContain("Associative Merge");
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

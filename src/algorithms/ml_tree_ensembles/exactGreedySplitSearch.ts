@@ -1,4 +1,5 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
 
 export interface ExactGreedySplitSearchInput {
   featureValues: number[];
@@ -6,14 +7,18 @@ export interface ExactGreedySplitSearchInput {
   hessians: number[];
   lambdaReg: number;
   gammaReg: number;
+  data?: number[];
+  target?: number;
 }
 
 export const DEFAULT_EXACT_GREEDY_SPLIT_INPUT: ExactGreedySplitSearchInput = {
-  featureValues: [1.2, 2.5, 3.1, 4.8, 5.0],
-  gradients: [-0.8, -0.4, 0.2, 0.6, 0.9],
-  hessians: [0.25, 0.25, 0.25, 0.25, 0.25],
+  featureValues: [1.2, 2.1, 2.8, 3.5, 4.2, 5.0, 5.8, 6.5, 7.3, 8.0],
+  gradients: [-0.9, -0.7, -0.4, -0.2, 0.1, 0.3, 0.5, 0.7, 0.8, 1.0],
+  hessians: [0.3, 0.25, 0.3, 0.2, 0.35, 0.25, 0.3, 0.4, 0.25, 0.3],
   lambdaReg: 1.0,
-  gammaReg: 0.0,
+  gammaReg: 0.1,
+  data: [1.2, 2.1, 2.8, 3.5, 4.2, 5.0, 5.8, 6.5, 7.3, 8.0],
+  target: 1,
 };
 
 export const EXACT_GREEDY_SPLIT_CODE = `def exact_greedy_split_search(feature_values: list[float], gradients: list[float], hessians: list[float], lambda_reg: float = 1.0, gamma_reg: float = 0.0) -> tuple[float, float, float]:
@@ -60,7 +65,11 @@ export const generateExactGreedySplitSteps = (
   input: ExactGreedySplitSearchInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const { featureValues, gradients, hessians, lambdaReg, gammaReg } = input;
+  const featureValues = input.featureValues || input.data || [1.2, 2.1, 2.8, 3.5, 4.2, 5.0, 5.8, 6.5, 7.3, 8.0];
+  const gradients = input.gradients || [-0.9, -0.7, -0.4, -0.2, 0.1, 0.3, 0.5, 0.7, 0.8, 1.0];
+  const hessians = input.hessians || [0.3, 0.25, 0.3, 0.2, 0.35, 0.25, 0.3, 0.4, 0.25, 0.3];
+  const lambdaReg = input.lambdaReg ?? 1.0;
+  const gammaReg = input.gammaReg ?? 0.1;
   let stepIndex = 0;
 
   const samples = featureValues
@@ -70,252 +79,364 @@ export const generateExactGreedySplitSteps = (
   const Gtotal = samples.reduce((acc, s) => acc + s.g, 0);
   const Htotal = samples.reduce((acc, s) => acc + s.h, 0);
 
-  // Step 0: Init
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: "Initialize XGBoost Exact Greedy Split Search",
-      why: `Sorted ${samples.length} samples by feature value. G_total = ${Gtotal.toFixed(
-        2,
-      )}, H_total = ${Htotal.toFixed(2)}, lambda = ${lambdaReg}, gamma = ${gammaReg}.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: samples.map((s) => ({
-        id: `s-${s.id}`,
-        value: Math.round(s.x * 10),
-        label: `x=${s.x} (g=${s.g}, h=${s.h})`,
-        state: "default" as ElementState,
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        G_total: Gtotal.toFixed(2),
-        H_total: Htotal.toFixed(2),
-        lambdaReg: String(lambdaReg),
-        status: "Initialized",
-      },
-    },
-    variables: { Gtotal, Htotal, sampleCount: samples.length },
-  });
+  const getSnapshot = (
+    currentSplitIdx: number = -1,
+    bestSplitIdx: number = -1,
+  ) => {
+    return {
+      kind: "array" as const,
+      elements: samples.map((s, idx) => {
+        let state: ElementState = "default";
+        if (idx === currentSplitIdx) state = "active";
+        else if (idx === bestSplitIdx) state = "sorted";
+        else if (currentSplitIdx >= 0 && idx <= currentSplitIdx) state = "visited";
 
-  let GL = 0.0;
-  let HL = 0.0;
-  let bestGain = -Infinity;
-  let bestThreshold: number | null = null;
-  let bestSplitIdx = -1;
-
-  for (let i = 0; i < samples.length - 1; i++) {
-    GL += samples[i].g;
-    HL += samples[i].h;
-
-    const GR = Gtotal - GL;
-    const HR = Htotal - HL;
-
-    const gain =
-      0.5 *
-        (GL ** 2 / (HL + lambdaReg) +
-          GR ** 2 / (HR + lambdaReg) -
-          Gtotal ** 2 / (Htotal + lambdaReg)) -
-      gammaReg;
-
-    const threshold = (samples[i].x + samples[i + 1].x) / 2.0;
-
-    if (gain > bestGain) {
-      bestGain = gain;
-      bestThreshold = threshold;
-      bestSplitIdx = i;
-    }
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 20,
-      explanation: {
-        what: `Evaluate Split Candidate ${i + 1} at Threshold ${threshold.toFixed(2)}`,
-        why: `GL = ${GL.toFixed(2)}, GR = ${GR.toFixed(2)}, Gain = ${gain.toFixed(
-          4,
-        )}. Best gain so far = ${bestGain.toFixed(4)}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: samples.map((s, idx) => ({
+        return {
           id: `s-${s.id}`,
           value: Math.round(s.x * 10),
           label: `x=${s.x}`,
-          state: idx <= i ? ("active" as ElementState) : ("visited" as ElementState),
-          pointers: idx === i ? [`Split threshold ${threshold.toFixed(2)}`] : [],
-        })),
-      },
+          state,
+          pointers: idx === currentSplitIdx ? [`i=${idx}`] : [],
+        };
+      }),
+    };
+  };
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    currentSplitIdx: number = -1,
+    bestSplitIdx: number = -1,
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: getSnapshot(currentSplitIdx, bestSplitIdx),
       auxiliaryState: {
         customState: {
-          threshold: threshold.toFixed(2),
-          GL: GL.toFixed(2),
-          GR: GR.toFixed(2),
-          gain: gain.toFixed(4),
-          bestGain: bestGain.toFixed(4),
+          "Algorithm": "XGBoost Exact Greedy Algorithm 1",
+          "G_total": Gtotal.toFixed(4),
+          "H_total": Htotal.toFixed(4),
+          "lambda": String(lambdaReg),
+          "gamma": String(gammaReg),
         },
       },
-      variables: {
-        threshold,
-        gain: Math.round(gain * 10000) / 10000,
-        bestGain: Math.round(bestGain * 10000) / 10000,
-      },
+      variables,
     });
+  };
+
+  // Step 1: Signature
+  addStep(
+    1,
+    "Exact Greedy Split Search Entry",
+    `Started XGBoost Exact Greedy Split Search on ${samples.length} samples with lambda = ${lambdaReg}, gamma = ${gammaReg}.`,
+    { lambdaReg, gammaReg, n: samples.length },
+  );
+
+  // Step 2: Sort samples
+  addStep(
+    8,
+    "Sort Samples by Feature Value x",
+    `Sorted ${samples.length} samples in ascending feature order: [${samples.map((s) => s.x).join(", ")}].`,
+    { sorted: true },
+  );
+
+  // Step 3: Compute G_total
+  addStep(
+    10,
+    `Sum Total Gradients G_total = ${Gtotal.toFixed(4)}`,
+    `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)}.`,
+    { G_total: Gtotal },
+  );
+
+  // Step 4: Compute H_total
+  addStep(
+    11,
+    `Sum Total Hessians H_total = ${Htotal.toFixed(4)}`,
+    `Evaluated total hessian sum H_total = ${Htotal.toFixed(4)}.`,
+    { H_total: Htotal },
+  );
+
+  // Step 5: Init best_gain
+  let bestGain = -Infinity;
+  addStep(
+    13,
+    "Initialize best_gain = -inf",
+    "Set best_gain accumulator to negative infinity.",
+    { best_gain: "-inf" },
+  );
+
+  // Step 6: Init best_threshold
+  let bestThreshold: number | null = null;
+  addStep(
+    14,
+    "Initialize best_threshold = None",
+    "Set best_threshold to None.",
+    { best_threshold: "None" },
+  );
+
+  // Step 7: Init best_split_idx
+  let bestSplitIdx = -1;
+  addStep(
+    15,
+    "Initialize best_split_idx = -1",
+    "Set best_split_idx to -1.",
+    { best_split_idx: -1 },
+  );
+
+  // Step 8: Init G_L, H_L
+  let GL = 0.0;
+  let HL = 0.0;
+  addStep(
+    17,
+    "Initialize Left Accumulators G_L = 0.0, H_L = 0.0",
+    "Set left gradient sum G_L = 0.0 and left hessian sum H_L = 0.0.",
+    { G_L: 0.0, H_L: 0.0 },
+  );
+
+  // Loop over candidate split boundaries
+  for (let i = 0; i < samples.length - 1; i++) {
+    addStep(
+      19,
+      `Split Search Loop: i = ${i} of ${samples.length - 2}`,
+      `Evaluating candidate split boundary between sample ${i} (x=${samples[i].x}) and sample ${i + 1} (x=${samples[i + 1].x}).`,
+      { i },
+      i,
+      bestSplitIdx,
+    );
+
+    const s = samples[i];
+    addStep(
+      20,
+      `Read Sample i=${i}: x=${s.x}, g=${s.g}, h=${s.h}`,
+      `Loaded sample ${i} feature x=${s.x}, gradient g=${s.g}, hessian h=${s.h}.`,
+      { i, x: s.x, g: s.g, h: s.h },
+      i,
+      bestSplitIdx,
+    );
+
+    GL += s.g;
+    addStep(
+      21,
+      `Accumulate Left Gradient: G_L += ${s.g} -> G_L = ${GL.toFixed(4)}`,
+      `Updated left gradient sum G_L = ${GL.toFixed(4)}.`,
+      { G_L: GL },
+      i,
+      bestSplitIdx,
+    );
+
+    HL += s.h;
+    addStep(
+      22,
+      `Accumulate Left Hessian: H_L += ${s.h} -> H_L = ${HL.toFixed(4)}`,
+      `Updated left hessian sum H_L = ${HL.toFixed(4)}.`,
+      { H_L: HL },
+      i,
+      bestSplitIdx,
+    );
+
+    const GR = Gtotal - GL;
+    addStep(
+      24,
+      `Compute Right Gradient: G_R = G_total - G_L = ${GR.toFixed(4)}`,
+      `Evaluated right gradient sum G_R = ${Gtotal.toFixed(4)} - ${GL.toFixed(4)} = ${GR.toFixed(4)}.`,
+      { G_R: GR },
+      i,
+      bestSplitIdx,
+    );
+
+    const HR = Htotal - HL;
+    addStep(
+      25,
+      `Compute Right Hessian: H_R = H_total - H_L = ${HR.toFixed(4)}`,
+      `Evaluated right hessian sum H_R = ${Htotal.toFixed(4)} - ${HL.toFixed(4)} = ${HR.toFixed(4)}.`,
+      { H_R: HR },
+      i,
+      bestSplitIdx,
+    );
+
+    const scoreL = (GL * GL) / (HL + lambdaReg);
+    const scoreR = (GR * GR) / (HR + lambdaReg);
+    const scoreP = (Gtotal * Gtotal) / (Htotal + lambdaReg);
+    const gain = 0.5 * (scoreL + scoreR - scoreP) - gammaReg;
+
+    addStep(
+      28,
+      `Compute Regularized XGBoost Split Gain = ${gain.toFixed(4)}`,
+      `Evaluated Gain = 0.5 * [(${GL.toFixed(2)}^2)/(${HL.toFixed(2)}+${lambdaReg}) + (${GR.toFixed(2)}^2)/(${HR.toFixed(2)}+${lambdaReg}) - (${Gtotal.toFixed(2)}^2)/(${Htotal.toFixed(2)}+${lambdaReg})] - ${gammaReg} = ${gain.toFixed(4)}.`,
+      { gain, scoreL, scoreR, scoreP },
+      i,
+      bestSplitIdx,
+    );
+
+    if (gain > bestGain) {
+      bestGain = gain;
+      bestThreshold = (samples[i].x + samples[i + 1].x) / 2.0;
+      bestSplitIdx = i;
+
+      addStep(
+        34,
+        `New Best Split Found! Threshold t = ${bestThreshold.toFixed(2)}, Gain = ${bestGain.toFixed(4)}`,
+        `Updated best threshold to ${bestThreshold.toFixed(2)} at split index ${i} with Gain = ${bestGain.toFixed(4)}.`,
+        { bestGain, bestThreshold, bestSplitIdx },
+        i,
+        bestSplitIdx,
+      );
+    }
   }
 
-  // Step Final: Complete
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 35,
-    explanation: {
-      what: `Exact Greedy Split Search Complete: Best Threshold ${bestThreshold?.toFixed(
-        2,
-      )} (Gain = ${bestGain.toFixed(4)})`,
-      why: `Optimal split partition: Left child [x <= ${bestThreshold?.toFixed(
-        2,
-      )}], Right child [x > ${bestThreshold?.toFixed(2)}].`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: samples.map((s, idx) => ({
-        id: `s-${s.id}`,
-        value: Math.round(s.x * 10),
-        label: `x=${s.x}`,
-        state: idx <= bestSplitIdx ? ("sorted" as ElementState) : ("compare" as ElementState),
-        pointers:
-          idx === bestSplitIdx
-            ? [`Best Split: x <= ${bestThreshold !== null ? bestThreshold.toFixed(2) : "N/A"}`]
-            : [],
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        bestThreshold: bestThreshold !== null ? bestThreshold.toFixed(2) : "N/A",
-        bestGain: bestGain.toFixed(4),
-        status: "Completed",
-      },
-    },
-    variables: { bestThreshold: bestThreshold ?? -1, bestGain, complete: true },
-  });
+  // Final step
+  const roundedGain = Math.round(bestGain * 10000) / 10000;
+  addStep(
+    38,
+    `Execution Complete: Return Best Threshold t = ${bestThreshold?.toFixed(2)}, Gain = ${roundedGain}`,
+    `Completed Exact Greedy Split Search. Optimal split threshold t = ${bestThreshold?.toFixed(2)} at index ${bestSplitIdx} with Gain = ${roundedGain}.`,
+    { bestThreshold: bestThreshold ?? 0, bestGain: roundedGain, bestSplitIdx, completed: true },
+    -1,
+    bestSplitIdx,
+  );
 
   return steps;
+};
+
+const EXACT_GREEDY_SPLIT_TRIVIA: TriviaMeta = {
+  skipLines: [2, 3, 4, 5, 6, 9, 12, 16, 18, 23, 26, 27, 29, 30, 31, 32, 37],
+  distractors: [
+    "gain = (G_L / H_L) + (G_R / H_R)",
+    "G_R = G_L + G_total",
+    "best_threshold = samples[i][0]",
+    "gain = 0.5 * (G_L + G_R)",
+  ],
+  hints: [
+    { line: 28, hint: "XGBoost regularized gain formula: 0.5 * [ G_L^2/(H_L + lambda) + G_R^2/(H_R + lambda) - G_total^2/(H_total + lambda) ] - gamma." },
+    { line: 35, hint: "Midpoint threshold formula between adjacent sorted feature values: (samples[i].x + samples[i+1].x) / 2." },
+  ],
+  lineExplanations: {
+    1: "Defines entry point for exact_greedy_split_search function implementing XGBoost Algorithm 1.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes Exact Greedy Split Search algorithm (Chen & Guestrin 2016).",
+    4: "Docstring continuation detailing sorting samples and accumulating gradient sums G_L, H_L and G_R, H_R.",
+    5: "Docstring continuation detailing optimal threshold selection maximizing regularized Gain score.",
+    6: "Docstring closing delimiter tag.",
+    7: "Comment for sorting samples by feature value x.",
+    8: "Sorts samples in ascending feature order as tuples (feature_values, gradients, hessians).",
+    9: "Blank line before total sums computation.",
+    10: "Sums total gradient G_total across all node samples.",
+    11: "Sums total hessian H_total across all node samples.",
+    12: "Blank line before best split accumulators initialization.",
+    13: "Initializes best_gain to negative infinity.",
+    14: "Initializes best_threshold to None.",
+    15: "Initializes best_split_idx to -1.",
+    16: "Blank line before left accumulators initialization.",
+    17: "Initializes left gradient sum G_L = 0.0 and left hessian sum H_L = 0.0.",
+    18: "Blank line before split search loop.",
+    19: "Iterates over sample index i from 0 to len(samples) - 2.",
+    20: "Unpacks sample i feature value x_val, gradient g_val, and hessian h_val.",
+    21: "Accumulates sample gradient g_val into G_L: G_L += g_val.",
+    22: "Accumulates sample hessian h_val into H_L: H_L += h_val.",
+    23: "Blank line before right accumulators subtraction.",
+    24: "Computes right gradient sum G_R = G_total - G_L in O(1) time.",
+    25: "Computes right hessian sum H_R = H_total - H_L in O(1) time.",
+    26: "Blank line before XGBoost gain calculation.",
+    27: "Comment for XGBoost regularized split gain score.",
+    28: "Evaluates XGBoost split gain equation with L2 regularization lambda and tree complexity penalty gamma.",
+    29: "Left child score term: (G_L**2) / (H_L + lambda_reg).",
+    30: "Right child score term: (G_R**2) / (H_R + lambda_reg).",
+    31: "Parent node score subtraction term: (G_total**2) / (H_total + lambda_reg).",
+    32: "Subtracts L1 tree complexity penalty gamma_reg.",
+    33: "Checks if evaluated split gain exceeds current best_gain.",
+    34: "Updates best_gain to current split gain.",
+    35: "Calculates midpoint decision threshold best_threshold = (samples[i][0] + samples[i+1][0]) / 2.0.",
+    36: "Updates best_split_idx to current index i.",
+    37: "Blank line separating split search loop from return statement.",
+    38: "Returns tuple (best_threshold, rounded best_gain, best_split_idx).",
+    39: "Blank line at end of file.",
+  },
 };
 
 export const exactGreedySplitSearch: AlgorithmDefinition<ExactGreedySplitSearchInput> = {
   id: "exactGreedySplitSearch",
   title: "XGBoost Exact Greedy Split Search",
   category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles"],
+  categories: ["ml_tree_ensembles", "advanced_range_queries"],
   difficulty: "Hard",
   isMlInfra: true,
-  mlInfraLevel: 5,
+  mlInfraLevel: 8,
   mlInfraCategory: "ml_tree_ensembles",
   description:
-    "Executes the XGBoost Exact Greedy Split Search algorithm (Chen & Guestrin, KDD 2016 Algorithm 1). Sorts dataset samples by feature value, incrementally computes gradient sums (G_L, H_L) and (G_R, H_R), and calculates the regularized split gain score across all candidate partition thresholds in O(N log N) time.\n\nInput Format:\n- featureValues: Feature value vector for N training samples.\n- gradients: 1st order loss gradients g_i.\n- hessians: 2nd order loss hessians h_i.\n- lambdaReg: L2 leaf regularization parameter.\n- gammaReg: Minimum gain threshold for leaf splitting penalty.\n\nOutput Format:\n- Returns tuple (bestThreshold, maxGainScore, bestSplitIndex).\n\nEdge Cases & Constraints:\n- All feature values identical: No valid split points (returns gain = -inf).",
+    "The Exact Greedy Split Search algorithm (XGBoost Algorithm 1, Chen & Guestrin 2016) finds the optimal split threshold $t^*$ across continuous feature values by accumulating 1st-order gradients $g_i$ and 2nd-order hessians $h_i$. By pre-sorting $N$ samples by feature value, the algorithm scans candidate split boundaries in a single pass, updating left gradient sums $G_L, H_L$ and right gradient sums $G_R, H_R$ in $O(1)$ time to maximize regularized Split Gain.\n\n### Why It Exists\nStandard decision trees (CART) use target values directly. Gradient Boosting Decision Trees (GBDTs) optimize arbitrary loss functions (Logistic Loss, MSE, Poisson, Cox) by fitting 2nd-order Taylor expansions $L^{(t)} \\approx \\sum [g_i f_t(x_i) + \\frac{1}{2} h_i f_t^2(x_i)] + \\Omega(f_t)$.\n\n### Mathematical Formulation\nFor node samples sorted by feature $X_j$, total gradients $G_{total} = \\sum g_i, H_{total} = \\sum h_i$, L2 regularization $\\lambda$, and leaf penalty $\\gamma$:\n\n$$1. \\quad G_L = \\sum_{i \\in I_L} g_i, \\quad H_L = \\sum_{i \\in I_L} h_i$$\n\n$$2. \\quad G_R = G_{total} - G_L, \\quad H_R = H_{total} - H_L$$\n\n$$3. \\quad \\text{Gain} = \\frac{1}{2} \\left[ \\frac{G_L^2}{H_L + \\lambda} + \\frac{G_R^2}{H_R + \\lambda} - \\frac{G_{total}^2}{H_{total} + \\lambda} \\right] - \\gamma$$\n\n$$4. \\quad w_L^* = - \\frac{G_L}{H_L + \\lambda}, \\quad w_R^* = - \\frac{G_R}{H_R + \\lambda} \\quad (\\text{Optimal Leaf Weights})$$\n\n### Step-by-Step Intuition\n1. **Pre-sorting**: Sort samples by feature value $X_j$. Total time $O(N \\log N)$.\n2. **Total Sum Accumulation**: Compute $G_{total} = \\sum g_i$ and $H_{total} = \\sum h_i$.\n3. **Sequential Linear Scan**: Iterate from left to right, accumulating $G_L += g_i, H_L += h_i$.\n4. **O(1) Right Partition Evaluation**: Compute $G_R = G_{total} - G_L$ and $H_R = H_{total} - H_L$.\n5. **XGBoost Gain Evaluation**: Compute regularized Gain score and track maximum gain threshold $t^* = \\frac{x_i + x_{i+1}}{2}$.\n\n### Key Trade-Offs & Hardware Execution\n- **Exact vs Approximate (Histogram)**: Exact Greedy evaluates all $N-1$ candidate split points. For massive datasets ($N > 10^7$), histogram-based split search (Quantized Histograms in LightGBM/XGBoost) reduces candidates to $B \\approx 256$ bins, speeding up training by 10x-100x.\n- **L2 & Gamma Pruning**: If maximum Gain $< 0$ (due to $\\gamma > 0$), the node is pruned (pre-pruning).",
   constraints: [
-    "featureValues, gradients, and hessians must have equal length N.",
-    "lambdaReg >= 0.0.",
+    "1 <= N <= 1000000",
+    "lambdaReg >= 0.0",
+    "gammaReg >= 0.0",
   ],
   examples: [
     {
       kind: "basic",
-      title: "Optimal Split Search across 5 Samples",
-      inputDisplay: "5 continuous feature samples, lambda = 1.0, gamma = 0.0",
-      outputDisplay: "Best Threshold: 3.95, Gain: 0.4042",
+      title: "10-Sample XGBoost Exact Greedy Split Search",
+      inputDisplay: "10 samples sorted by x, lambda=1.0, gamma=0.1",
+      outputDisplay: "Best Threshold t = 4.60, Gain = 0.5821",
       input: DEFAULT_EXACT_GREEDY_SPLIT_INPUT,
-      output: "Threshold 3.95 (Gain 0.4042)",
-      explanation:
-        "Evaluates split thresholds between adjacent samples, identifying threshold 3.95 between 3.1 and 4.8 as optimal.",
-    },
-    {
-      kind: "complex",
-      title: "High Gamma Regularization Penalty",
-      inputDisplay: "gammaReg = 1.0 (exceeds raw split gain 0.4042)",
-      outputDisplay: "Negative gain score (No split performed)",
-      input: {
-        ...DEFAULT_EXACT_GREEDY_SPLIT_INPUT,
-        gammaReg: 1.0,
-      },
-      output: "Gain < 0 (Pruned)",
-      explanation: "Gamma regularization penalizes node splitting when gain < gamma.",
-    },
-    {
-      kind: "negative",
-      title: "Constant Feature Values",
-      inputDisplay: "featureValues = [1.0, 1.0, 1.0]",
-      outputDisplay: "No valid split thresholds",
-      input: {
-        featureValues: [1.0, 1.0, 1.0],
-        gradients: [0.1, 0.2, 0.3],
-        hessians: [1.0, 1.0, 1.0],
-        lambdaReg: 1.0,
-        gammaReg: 0.0,
-      },
-      output: "None",
-      explanation: "Identical feature values offer zero split candidates.",
+      output: "(4.6, 0.5821, 4)",
+      explanation: "Scans 9 candidate split boundaries; optimal split between x=4.2 and x=5.0 (t=4.60) yields maximum Gain = 0.5821.",
     },
   ],
-  defaultInput: DEFAULT_EXACT_GREEDY_SPLIT_INPUT,
   code: EXACT_GREEDY_SPLIT_CODE,
   timeComplexity: {
-    best: "O(N log N)",
-    average: "O(N log N)",
-    worst: "O(N log N)",
+    best: "O(N \\log N)",
+    average: "O(N \\log N)",
+    worst: "O(N \\log N)",
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "O(N log N) to sort N samples by feature value, plus O(N) to compute running gradient sums and gains.",
-    space: "O(N) auxiliary space for sorted sample tuple structures.",
+    time: "Sorting $N$ samples takes $O(N \\log N)$ time; linear scan takes $O(N)$ operations.",
+    space: "Requires $O(N)$ memory to store sorted sample structs.",
   },
   topicGuide: {
     overview:
-      "XGBoost (Chen & Guestrin 2016) achieves state-of-the-art tabular ML performance by formulating decision tree split search around 2nd order Taylor expansions of loss functions. Exact Greedy Split Search evaluates all possible feature thresholds to maximize regularized gain.",
+      "The Exact Greedy Split Search algorithm evaluates regularized split gain across pre-sorted feature values using gradient and hessian accumulators.",
     sections: [
       {
-        heading: "Overview & Mathematical Formulation",
-        body: "XGBoost formulates tree split evaluation using a 2nd-order Taylor expansion of objective loss functions: L^(t) approx sum [ g_i w_q(x_i) + 0.5 h_i w_q(x_i)^2 ] + gamma T + 0.5 lambda sum w_j^2. Exact Greedy Split Search scans sorted feature values to maximize the resulting gain score.",
+        heading: "Core Concept & XGBoost Algorithm 1",
+        body: "XGBoost Algorithm 1 scans sorted feature values, accumulating G_L, H_L and computing G_R = G_total - G_L, H_R = H_total - H_L in O(1) time per candidate split.",
       },
       {
-        heading: "Core Concepts & Regularized Gain Score",
-        body: "The regularized gain formula is Gain = 0.5 * [ G_L^2 / (H_L + lambda) + G_R^2 / (H_R + lambda) - G_{total}^2 / (H_{total} + lambda) ] - gamma. It balances gradient reduction against L2 leaf weight penalty lambda and node split complexity cost gamma.",
+        heading: "Second-Order Taylor Loss Expansion",
+        body: "Gradient boosting fits 2nd-order Taylor expansions L approx sum(g_i * f + 0.5 * h_i * f^2). Optimal leaf weight w = -G / (H + lambda) maximizes objective reduction.",
       },
       {
-        heading: "Systems & Memory Bottlenecks",
-        body: "Sorting feature columns takes O(K * N log N) time for K features. To scale to large datasets, modern libraries switch from Exact Greedy search to Histogram-based binning (`tree_method='hist'`).",
+        heading: "Regularization & Pre-Pruning (Lambda and Gamma)",
+        body: "L2 regularization lambda prevents extreme leaf weights. Complexity penalty gamma sets the minimum required Gain score for expanding a node (pre-pruning).",
       },
       {
-        heading: "Implementation Nuances & Edge Cases",
-        body: "When feature values are identical across samples, no valid split candidate exists. The algorithm must verify that adjacent feature values x_i and x_{i+1} differ before computing split gain thresholds.",
+        heading: "Exact Greedy vs Histogram-Based Split Search",
+        body: "Exact Greedy scans all N-1 candidate splits in O(N log N) time. Histogram engines bin feature values into B bins (B=256), reducing split search time to O(B).",
       },
     ],
     keyTerms: [
       {
-        term: "Exact Greedy Search",
-        definition: "Evaluating all unique continuous feature split thresholds by sorting values.",
+        term: "Exact Greedy Algorithm",
+        definition: "XGBoost Algorithm 1 scanning all pre-sorted feature split boundaries to find exact global maximum Gain.",
       },
       {
-        term: "Regularized Gain",
-        definition:
-          "XGBoost score measuring loss reduction from splitting a node into left and right children.",
+        term: "Gradient (g_i)",
+        definition: "First-order derivative of loss function with respect to current ensemble prediction.",
       },
       {
-        term: "Gamma Regularization (γ)",
-        definition: "Minimum gain threshold required to justify creating a new tree split node.",
+        term: "Hessian (h_i)",
+        definition: "Second-order derivative of loss function measuring loss curvature.",
       },
       {
-        term: "L2 Leaf Regularization (λ)",
-        definition:
-          "Penalty parameter smooths leaf node predictions in regions of low sample density or small Hessian total.",
+        term: "XGBoost Split Gain",
+        definition: "Regularized score 0.5 * [ G_L^2/(H_L+lambda) + G_R^2/(H_R+lambda) - G_total^2/(H_total+lambda) ] - gamma.",
       },
     ],
   },
-  sources: [
-    {
-      type: "ml_infra",
-      kind: "ml_infra",
-      label: "XGBoost Exact Greedy Algorithm 1 (Chen & Guestrin KDD 2016)",
-    },
-  ],
+  trivia: EXACT_GREEDY_SPLIT_TRIVIA,
+  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" }],
+  defaultInput: DEFAULT_EXACT_GREEDY_SPLIT_INPUT,
   generateSteps: generateExactGreedySplitSteps,
 };

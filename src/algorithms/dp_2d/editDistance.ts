@@ -74,6 +74,42 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
     return { kind: "grid", grid: gridNodes };
   };
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: `Start Edit Distance algorithm for word1="${word1}" and word2="${word2}"`,
+      why: "Computing minimal character insertion, deletion, and replacement operations.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { customState: { word1, word2 } },
+    variables: { word1, word2 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `Store string lengths m=${m} ("${word1}") and n=${n} ("${word2}")`,
+      why: "Grid dimensions will be (m+1) x (n+1) to include empty prefixes.",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { customState: { m, n } },
+    variables: { m, n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: `Initialize 2D DP matrix of size ${m + 1} x ${n + 1} with zeros`,
+      why: "dp[i][j] will store the edit distance between word1[0..i-1] and word2[0..j-1].",
+    },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { customState: { rows: m + 1, cols: n + 1 } },
+    variables: { m, n },
+  });
+
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
 
@@ -81,20 +117,70 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 6,
     explanation: {
-      what: `Fill base row and column for empty prefix cases`,
-      why: `First column dp[i][0] = i (i deletions from "${word1}"). First row dp[0][j] = j (j insertions into empty string to form "${word2}").`,
+      what: `Initialize base column dp[i][0] = i for i = 0..${m}`,
+      why: "Transforming word1 prefix of length i to empty string requires i deletions.",
+    },
+    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
+    auxiliaryState: { customState: { baseColInitialized: true } },
+    variables: { m },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 8,
+    explanation: {
+      what: `Initialize base row dp[0][j] = j for j = 0..${n}`,
+      why: "Transforming empty string to word2 prefix of length j requires j insertions.",
     },
     primarySnapshot: createGridSnapshot(undefined, [], [0, n]),
-    auxiliaryState: {
-      customState: { word1, word2, rows: m + 1, cols: n + 1 },
-    },
-    variables: { m, n },
+    auxiliaryState: { customState: { baseRowInitialized: true } },
+    variables: { n },
   });
 
   for (let i = 1; i <= m; i++) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 10,
+      explanation: {
+        what: `Begin outer loop for row i = ${i} (char '${word1[i - 1]}')`,
+        why: `Processing prefix word1[0..${i - 1}] against all prefixes of word2.`,
+      },
+      primarySnapshot: createGridSnapshot(undefined, [], [i, 0]),
+      auxiliaryState: {
+        customState: { i, char1: word1[i - 1], word1, word2 },
+      },
+      variables: { i, char1: word1[i - 1] },
+    });
+
     for (let j = 1; j <= n; j++) {
       const char1 = word1[i - 1];
       const char2 = word2[j - 1];
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 11,
+        explanation: {
+          what: `Inner loop cell (i=${i}, j=${j}): compare '${char1}' with '${char2}'`,
+          why: `Evaluating transition to fill dp[${i}][${j}].`,
+        },
+        primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
+        auxiliaryState: { customState: { i, j, char1, char2 } },
+        variables: { i, j, char1, char2 },
+      });
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 12,
+        explanation: {
+          what: `Evaluate condition word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}')`,
+          why: char1 === char2
+            ? `Characters match! Zero extra edit cost required.`
+            : `Characters differ! Must take 1 + min(delete, insert, replace).`,
+        },
+        primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
+        auxiliaryState: { customState: { i, j, match: char1 === char2 } },
+        variables: { i, j, match: char1 === char2 },
+      });
 
       if (char1 === char2) {
         dp[i][j] = dp[i - 1][j - 1];
@@ -102,8 +188,8 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
           stepIndex: stepIndex++,
           codeLine: 13,
           explanation: {
-            what: `Match '${char1}' at cell (${i}, ${j})`,
-            why: `Both words have character '${char1}' at position (${i}, ${j}). Zero edit cost: carry over diagonal value dp[${i - 1}][${j - 1}] = ${dp[i][j]}.`,
+            what: `Match '${char1}' at cell (${i}, ${j}): dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}`,
+            why: `Carried forward diagonal cost dp[${i - 1}][${j - 1}] without additional edit cost.`,
           },
           primarySnapshot: createGridSnapshot([i, j], [[i - 1, j - 1]], [i, j]),
           auxiliaryState: {
@@ -126,8 +212,8 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
           stepIndex: stepIndex++,
           codeLine: 15,
           explanation: {
-            what: `Resolve mismatch '${char1}' vs '${char2}'`,
-            why: `Characters differ. Min of delete (${deleteOp}), insert (${insertOp}), replace (${replaceOp}) is ${minPrev}. Adding 1 edit yields dp[${i}][${j}] = ${dp[i][j]}.`,
+            what: `Mismatch: dp[${i}][${j}] = 1 + min(delete:${deleteOp}, insert:${insertOp}, replace:${replaceOp}) = ${dp[i][j]}`,
+            why: `Optimal move is ${bestOpName}. Updated dp[${i}][${j}] = ${dp[i][j]}.`,
           },
           primarySnapshot: createGridSnapshot(
             [i, j],
@@ -176,13 +262,19 @@ const EDIT_DISTANCE_TRIVIA: TriviaMeta = {
     1: "Defines min_distance(word1, word2) -> int: computes Levenshtein edit distance.",
     2: "Calculates prefix lengths m and n for word1 and word2.",
     3: "Allocates 2D DP matrix of size (m+1) x (n+1) initialized to 0.",
+    4: "Blank line separating DP matrix creation from base row/col initialization.",
+    5: "Outer loop fills first column dp[i][0] with row index i.",
     6: "Fills first column dp[i][0] = i, representing i deletions from word1 prefix.",
+    7: "Outer loop fills first row dp[0][j] with column index j.",
     8: "Fills first row dp[0][j] = j, representing j insertions into empty string.",
+    9: "Blank line separating base case initialization from subproblem grid sweep.",
     10: "Outer loop sweeps row index i from 1 to m.",
     11: "Inner loop sweeps col index j from 1 to n.",
     12: "Compares character word1[i-1] with word2[j-1].",
     13: "If characters match, copies diagonal value dp[i-1][j-1] at zero additional edit cost.",
+    14: "Else branch executes when characters word1[i-1] and word2[j-1] differ.",
     15: "If characters differ, sets dp[i][j] = 1 + min(delete, insert, replace).",
+    16: "Blank line separating nested loops from final distance return statement.",
     17: "Returns dp[m][n], minimum edit distance for complete strings.",
   },
 };
@@ -193,8 +285,26 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   category: "dp_2d",
   categories: ["dp_2d"],
   difficulty: "Hard",
-  description:
-    "Given two strings word1 and word2, return the minimum number of single-character operations required to convert word1 to word2. You are allowed three operations on a character: Insert a character, Delete a character, or Replace a character. Solve using 2D dynamic programming tabulation where dp[i][j] represents the Levenshtein edit distance between prefix word1[0..i-1] and prefix word2[0..j-1].",
+  description: `The **Edit Distance** (Levenshtein Distance) problem (LeetCode #72) asks for the minimum number of single-character operations—**Insert**, **Delete**, or **Replace**—required to transform string $A$ (\`word1\`) of length $M$ into string $B$ (\`word2\`) of length $N$.
+
+### Optimal Substructure & 2D Recurrence
+Let $dp[i][j]$ denote the minimum edit distance between prefix $A[0..i-1]$ and prefix $B[0..j-1]$.
+
+#### Base Cases
+- $dp[i][0] = i$ (deleting all $i$ characters from $A$)
+- $dp[0][j] = j$ (inserting all $j$ characters into an empty string to form $B$)
+
+#### State Transitions
+For cell $(i, j)$:
+- If $A[i-1] == B[j-1]$ (character match):
+  $$dp[i][j] = dp[i-1][j-1]$$
+- If $A[i-1] \\ne B[j-1]$ (character mismatch):
+  $$dp[i][j] = 1 + \\min \\Big( \\underbrace{dp[i-1][j]}_{\\text{Delete}}, \\, \\underbrace{dp[i][j-1]}_{\\text{Insert}}, \\, \\underbrace{dp[i-1][j-1]}_{\\text{Replace}} \\Big)$$
+
+### Key Interview Insights
+1. **Grid Tabulation**: Fills an $(M+1) \\times (N+1)$ table bottom-up in $\\mathcal{O}(M \\times N)$ time.
+2. **Space Optimization**: Since row $i$ depends only on row $i-1$, auxiliary space can be reduced to $\\mathcal{O}(\\min(M, N))$.
+3. **Hirschberg's Algorithm**: Combines divide-and-conquer with DP to reconstruct alignment paths in $\\mathcal{O}(M+N)$ linear space.`,
   constraints: [
     "0 <= word1.length, word2.length <= 500",
     "word1 and word2 consist of lowercase English letters",
@@ -245,45 +355,40 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   },
   topicGuide: {
     overview:
-      "Edit distance (or Levenshtein distance, LeetCode #72) quantifies the minimum number of single-character insertions, deletions, and substitutions required to transform one string into another. It represents the foundation of string alignment and sequence matching. The DP table is a grid of size (M+1) x (N+1) where row i and column j represent prefixes word1[0..i-1] and word2[0..j-1]. Matching characters carry forward the diagonal cost dp[i-1][j-1], while mismatched characters take 1 + min(delete: dp[i-1][j], insert: dp[i][j-1], replace: dp[i-1][j-1]).",
+      "Edit Distance (Levenshtein Distance) is a core problem in string processing and sequence alignment. Given two strings $A$ and $B$, we compute the minimal cost to transform $A$ into $B$ via character insertions, deletions, and substitutions. 2D dynamic programming builds an $(M+1) \\times (N+1)$ matrix in $\\mathcal{O}(M \\times N)$ time and space.",
     sections: [
       {
-        heading: "Core Concept: Prefix States & Recurrence Relation",
-        body: "Define dp[i][j] as the minimum edit distance between the first i characters of word1 and first j characters of word2. Base cases dp[i][0] = i and dp[0][j] = j represent deleting i characters or inserting j characters when one prefix is empty. If word1[i-1] == word2[j-1], dp[i][j] = dp[i-1][j-1]. Otherwise, dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]).",
+        heading: "1. 2D Grid Formulation & Recurrence",
+        body: "We define $dp[i][j]$ as the edit distance between $A[0..i-1]$ and $B[0..j-1]$.\n\n- **Base Row & Column**:\n  $$dp[i][0] = i, \\quad dp[0][j] = j$$\n- **Transitions**:\n  $$dp[i][j] = \\begin{cases} dp[i-1][j-1] & \\text{if } A[i-1] = B[j-1] \\\\ 1 + \\min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) & \\text{if } A[i-1] \\ne B[j-1] \\end{cases}$$\n- **Result**: $dp[M][N]$.",
       },
       {
-        heading: "Systems Applications: Spell Checkers, Diff Engines & Bioinformatics",
-        body: "Edit distance powers key software systems: spell check suggestions (Google Search / OS spellcheck), code diff utilities (git diff / unified diff), fuzzy string search in databases (Elasticsearch Levenshtein queries), and global sequence alignment in computational biology (Needleman-Wunsch algorithm for DNA/protein alignment).",
+        heading: "2. Visualizing Operations on the DP Grid",
+        body: "Each movement on the 2D grid maps to an edit operation:\n- **Diagonal $(\\nwarrow)$**: Replace $A[i-1]$ with $B[j-1]$ (cost 1 if mismatch, cost 0 if match).\n- **Vertical $(\\uparrow)$**: Delete $A[i-1]$ from $A$ (cost 1).\n- **Horizontal $(\\leftarrow)$**: Insert $B[j-1]$ into $A$ (cost 1).",
       },
       {
-        heading: "Space Optimization & Hirschberg's Linear Space Algorithm",
-        body: "Because dp[i][j] depends only on row i and row i-1, space can be compressed from O(M * N) down to O(min(M, N)) using two row vectors. To reconstruct the exact sequence of edit operations in linear O(M + N) space, Hirschberg's divide-and-conquer algorithm combines 2D DP with divide-and-conquer recurrence.",
+        heading: "3. Systems Applications",
+        body: "Edit distance powers infrastructure tools:\n- **Spell Checkers & Auto-Correct**: Candidate lookup within Levenshtein edit distance $k$.\n- **Bioinformatics (Needleman-Wunsch)**: Global DNA sequence alignment under scoring matrices.\n- **Version Control (`git diff`)**: Myers diff algorithm variants.",
       },
       {
-        heading: "Edge Case Analysis & Off-By-One Pitfalls",
-        body: "Edge cases include empty strings (word1 or word2 length 0), identical strings (0 edits), and completely distinct character sets. Off-by-one errors frequently arise when indexing strings vs DP tables: DP table index i corresponds to string index i-1.",
+        heading: "4. Linear Space Optimization & Hirschberg's Algorithm",
+        body: "Standard DP requires $\\mathcal{O}(M \\times N)$ memory. Using two row vectors reduces space to $\\mathcal{O}(N)$. Hirschberg's divide-and-conquer algorithm recovers the exact alignment path in $\\mathcal{O}(M \\times N)$ time and $\\mathcal{O}(M + N)$ space.",
       },
     ],
     keyTerms: [
       {
         term: "Levenshtein Distance",
         definition:
-          "The minimum number of single-character insertions, deletions, or substitutions required to transform one string into another.",
+          "The minimal number of single-character inserts, deletes, or substitutions to convert string A into B.",
       },
       {
-        term: "Prefix State",
+        term: "Needleman-Wunsch",
         definition:
-          "Subproblem definition indexing substring prefixes word1[0..i-1] and word2[0..j-1].",
-      },
-      {
-        term: "Needleman-Wunsch Algorithm",
-        definition:
-          "A global sequence alignment algorithm extending edit distance with custom scoring matrices in bioinformatics.",
+          "A global sequence alignment algorithm extending edit distance with gap penalties in computational biology.",
       },
       {
         term: "Hirschberg's Algorithm",
         definition:
-          "A divide-and-conquer algorithm computing optimal sequence alignment in linear O(N) space.",
+          "A divide-and-conquer algorithm computing sequence alignment in linear $\\mathcal{O}(N)$ memory.",
       },
     ],
   },
@@ -310,3 +415,4 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };
+

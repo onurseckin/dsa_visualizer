@@ -15,24 +15,35 @@ describe("binarySearchMatrix algorithm spec", () => {
     expect(binarySearchMatrix.defaultInput).toEqual(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
   });
 
-  it("should generate steps and find existing target in 2D matrix", () => {
+  it("should generate at least 20 steps and find existing target in 2D matrix for default input", () => {
     const steps = generateBinarySearchMatrixSteps(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
-    expect(firstStep.codeLine).toBe(5);
-    expect(firstStep.variables.low).toBe(0);
-    expect(firstStep.variables.high).toBe(11);
+    expect(firstStep.codeLine).toBe(1);
+    expect(firstStep.variables.target).toBe(34);
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.found).toBe(true);
-    expect(lastStep.variables.midVal).toBe(3);
 
     const snapshot = lastStep.primarySnapshot as GridVisualSnapshot;
     expect(snapshot.kind).toBe("grid");
-    expect(snapshot.grid).toHaveLength(3);
-    expect(snapshot.grid[0]).toHaveLength(4);
-    expect(snapshot.grid[0][1].state).toBe("sorted");
+    expect(snapshot.grid).toHaveLength(5);
+    expect(snapshot.grid[0]).toHaveLength(5);
+    expect(snapshot.grid[3][2].state).toBe("sorted");
+  });
+
+  it("should map every code line in trivia.lineExplanations", () => {
+    const codeLines = binarySearchMatrix.code.split("\n");
+    const lineExplanations = binarySearchMatrix.trivia?.lineExplanations;
+    expect(lineExplanations).toBeDefined();
+
+    codeLines.forEach((_, index) => {
+      const lineNum = index + 1;
+      expect(lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof lineExplanations?.[lineNum]).toBe("string");
+      expect(lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    });
   });
 
   it("should generate steps and handle target not present in matrix", () => {

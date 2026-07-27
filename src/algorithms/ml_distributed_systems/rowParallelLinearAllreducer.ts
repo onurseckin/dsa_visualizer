@@ -29,8 +29,8 @@ export const ROWPARALLELLINEARALLREDUCER_CODE = `def row_parallel_linear_allredu
 `;
 
 export const DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT: rowParallelLinearAllreducerInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  data: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85],
+  target: 50,
 };
 
 export const generateRowParallelLinearAllreducerSteps = (
@@ -38,6 +38,8 @@ export const generateRowParallelLinearAllreducerSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+
+  const tpSize = input.data.length;
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
     id: `tp-rank-${idx}`,
     value: val,
@@ -64,57 +66,76 @@ export const generateRowParallelLinearAllreducerSteps = (
       },
       auxiliaryState: {
         customState: {
+          tp_size: String(tpSize),
           data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
         },
       },
       variables,
     });
   };
 
-  const tpSize = input.data.length;
   addStep(
     1,
     "Initialize Megatron-LM Row Parallel Linear All-Reduce Engine",
-    "Setting up TP ranks, partial activation vectors Y_i, and All-Reduce sum barriers.",
-    { tp_size: tpSize, target: input.target ?? 0 },
+    `Configuring Tensor Parallelism world size tp_size = ${tpSize} across participating GPU ranks.`,
+    { tp_size: tpSize },
+    [...elements],
+  );
+
+  addStep(
+    16,
+    "Check Guard Condition (tp_size <= 1 or empty activations)",
+    `Validating TP world size: ${tpSize} > 1. All-Reduce inter-GPU communication barrier is required.`,
+    { tp_size: tpSize, needs_allreduce: true },
+    [...elements],
   );
 
   let accumulatedSum = 0;
   input.data.forEach((val, idx) => {
+    const prevSum = accumulatedSum;
     accumulatedSum += val;
     const isTarget = val === input.target;
+
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return {
           ...el,
           state: isTarget ? ("active" as const) : ("compare" as const),
-          pointers: [`TP_${idx}`],
+          pointers: [`TP_${idx}`, `Y_${idx}=${val}`],
         };
       if (i < idx) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      18,
-      `Process TP Rank ${idx} Partial Result: Y_${idx} = ${val}`,
-      `Accumulating partial activation Y_${idx} into row-parallel linear output sum buffer.`,
-      { idx, val, accumulated_sum: accumulatedSum, isTarget },
+      19,
+      `Accumulate Partial Activation for Rank ${idx} (+${val} => ${accumulatedSum})`,
+      `All-Reduce sum step for Rank ${idx}: total_reduced = ${prevSum} + ${val} = ${accumulatedSum}.`,
+      { idx, partial_activation: val, total_reduced: accumulatedSum, isTarget },
       currentElements,
     );
   });
+
+  addStep(
+    19,
+    `Complete All-Reduce Reduction Step total_reduced = ${accumulatedSum}`,
+    `Final aggregate partial activation sum across all ${tpSize} TP ranks: ${accumulatedSum}.`,
+    { tp_size: tpSize, total_reduced: accumulatedSum },
+    [...elements],
+  );
 
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     value: accumulatedSum,
     state: "sorted" as const,
+    pointers: ["Synchronized"],
   }));
 
   addStep(
-    19,
-    "Execution Complete",
-    `All-Reduce sum complete. Final output activation across all TP ranks = ${accumulatedSum}.`,
-    { completed: true, total_reduced: accumulatedSum },
+    20,
+    `Broadcast Synchronized Output Array across ${tpSize} Ranks`,
+    `Constructing synchronized output vector where every TP rank holds the reduced activation ${accumulatedSum}.`,
+    { tp_size: tpSize, total_reduced: accumulatedSum },
     finalElements,
   );
 
@@ -122,20 +143,39 @@ export const generateRowParallelLinearAllreducerSteps = (
 };
 
 const ROWPARALLELLINEARALLREDUCER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18],
   distractors: [
     "total_reduced = partial_activations[0] * tp_size",
     "return [x / tp_size for x in partial_activations]",
     "return partial_activations[::-1]",
+    "total_reduced = partial_activations[0] + tp_size",
   ],
   hints: [
-    { line: 18, hint: "Row-parallel linear layers sum partial GEMM results via All-Reduce." },
+    { line: 16, hint: "Check if tp_size <= 1 or partial_activations list is empty." },
+    { line: 19, hint: "Row-parallel linear layers sum partial GEMM results via total_reduced = sum(partial_activations)." },
+    { line: 20, hint: "Return array with total_reduced duplicated across all TP ranks." },
   ],
   lineExplanations: {
-    1: "Defines function entry point for row_parallel_linear_allreduce.",
-    16: "Checks for single rank (TP=1) where no communication is required.",
-    18: "Sums partial activations across all Tensor Parallel ranks.",
-    19: "Broadcasts reduced sum across all TP ranks.",
+    1: "Function signature for row_parallel_linear_allreduce taking partial_activations list and tp_size.",
+    2: "Docstring start describing Megatron-LM Row-Parallel Linear layer forward execution.",
+    3: "Describes Tensor Parallel (TP) Row-Parallel Linear layer execution.",
+    4: "Blank line in docstring.",
+    5: "Explains row-wise weight matrix partitioning W in Megatron-LM.",
+    6: "Explains local matrix multiplication Y_i = X_i @ W_i on GPU i.",
+    7: "Explains final output reduction Y = sum(Y_i) across all TP ranks.",
+    8: "Blank line in docstring.",
+    9: "Docstring args section header.",
+    10: "Explains partial_activations argument containing partial GEMM outputs from TP ranks.",
+    11: "Explains tp_size argument representing Tensor Parallelism world size.",
+    12: "Blank line in docstring.",
+    13: "Docstring returns section header.",
+    14: "Explains return array of reduced output values synchronized across TP ranks.",
+    15: "Docstring close.",
+    16: "Checks guard condition for single rank (tp_size <= 1) or empty partial_activations.",
+    17: "Returns copy of partial_activations directly if no inter-GPU reduction is required.",
+    18: "Blank line before All-Reduce reduction calculation.",
+    19: "Computes total_reduced by summing partial_activations across all TP ranks.",
+    20: "Returns list with total_reduced replicated across len(partial_activations) ranks.",
   },
 };
 
@@ -149,17 +189,17 @@ export const rowParallelLinearAllreducer: AlgorithmDefinition<rowParallelLinearA
   mlInfraLevel: 11,
   mlInfraCategory: "ml_distributed_systems",
   description:
-    "Simulates Megatron-LM Tensor Parallelism (TP) Row-Parallel Linear layer forward execution and All-Reduce communication.\n\nIn Large Language Model (LLM) Transformer architectures, Megatron-LM splits linear projection matrices across $N_{\\text{TP}}$ GPUs to fit massive weight tensors into VRAM and parallelize matrix multiplication:\n\n1. Column-Parallel Linear Layer ($h \\to 4h$):\n   The weight matrix $W$ is split along its columns: $W = [W_1 | W_2 | \\dots | W_k]$. Each rank computes $Y_i = X @ W_i$ independently without inter-GPU communication.\n\n2. Row-Parallel Linear Layer ($4h \\to h$):\n   The weight matrix $W$ is split along its rows: $W = [W_1^T, W_2^T, \\dots, W_k^T]^T$. Input $X$ is split along the hidden dimension into $[X_1 | X_2 | \\dots | X_k]$. Each rank computes local matrix product $Y_i = X_i @ W_i$.\n\n3. All-Reduce Sum Reduction:\n   Because $Y = X @ W = \\sum_{i=1}^{k} (X_i @ W_i) = \\sum Y_i$, an All-Reduce sum operation is performed across the $N_{\\text{TP}}$ ranks to synchronize the output activation tensor $Y$.\n\nBy pairing Column-Parallel and Row-Parallel linear layers in Transformer MLPs and Attention projections, Megatron-LM reduces communication overhead from 4 All-Reduces per Transformer block to just 2 All-Reduces (1 in Attention, 1 in MLP).\n\nInput Format:\n- data: Array of partial output scalar values or tensor magnitudes computed by each TP rank.\n- target: Optional target search value.\n\nOutput Format:\n- Returns synchronized reduced array where each TP rank holds the sum of all partial activations.\n\nEdge Cases & Constraints:\n- Single TP Rank ($N_{\\text{TP}}=1$): Communication is completely skipped.\n- Interconnect Saturation: High TP sizes ($N_{\\text{TP}} > 8$) cross intra-node NVLink bounds and incur heavy inter-node InfiniBand latency penalties.",
+    "Simulates Megatron-LM Tensor Parallelism (TP) Row-Parallel Linear layer forward execution and All-Reduce communication.\n\n### Mathematical Formulation & Megatron-LM Partitioning\nIn Large Language Model (LLM) Transformer architectures, Megatron-LM splits linear projection matrices across $N_{\\text{TP}}$ GPUs to fit massive weight tensors into VRAM and parallelize matrix multiplication:\n\n1. **Column-Parallel Linear Layer** ($h \\to 4h$):\n   The weight matrix $W$ is split along its columns: $W = [W_1 | W_2 | \\dots | W_k]$. Each rank computes $Y_i = X @ W_i$ independently without inter-GPU communication.\n\n2. **Row-Parallel Linear Layer** ($4h \\to h$):\n   The weight matrix $W$ is split along its rows: $W = [W_1^T, W_2^T, \\dots, W_k^T]^T$. Input $X$ is split along the hidden dimension into $[X_1 | X_2 | \\dots | X_k]$. Each rank computes local matrix product $Y_i = X_i @ W_i$.\n\n3. **All-Reduce Sum Reduction**:\n   Because $Y = X @ W = \\sum_{i=1}^{k} (X_i @ W_i) = \\sum Y_i$, an All-Reduce sum operation is performed across the $N_{\\text{TP}}$ ranks to synchronize the output activation tensor $Y$:\n$$Y = \\sum_{i=1}^{N_{\\text{TP}}} Y_i$$\n\nBy pairing Column-Parallel and Row-Parallel linear layers in Transformer MLPs and Attention projections, Megatron-LM reduces communication overhead from 4 All-Reduces per Transformer block to just 2 All-Reduces (1 in Attention, 1 in MLP).\n\nInput Format:\n- `data`: Array of partial output scalar values or tensor magnitudes computed by each TP rank.\n- `target`: Optional target search value.\n\nOutput Format:\n- Returns synchronized reduced array where each TP rank holds the sum of all partial activations.\n\nEdge Cases & Constraints:\n- Single TP Rank ($N_{\\text{TP}}=1$): Communication is completely skipped.\n- Interconnect Saturation: High TP sizes ($N_{\\text{TP}} > 8$) cross intra-node NVLink bounds and incur heavy inter-node InfiniBand latency penalties.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "4-Rank TP Row-Parallel Reduction",
-      inputDisplay: "partial_activations = [10, 20, 30, 40], target = 30",
-      outputDisplay: "All-Reduced Output = [100, 100, 100, 100]",
-      input: { data: [10, 20, 30, 40], target: 30 },
-      output: "[100, 100, 100, 100]",
-      explanation: "Each TP rank computes partial output Y_i; All-Reduce sums 10+20+30+40 = 100.",
+      title: "16-Rank TP Row-Parallel Reduction",
+      inputDisplay: "16 partial activation blocks, target = 50",
+      outputDisplay: "All-Reduce sum calculated and synchronized across 16 ranks",
+      input: DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT,
+      output: "Synchronized output vector returned",
+      explanation: "Evaluates Row-Parallel Linear All-Reduce across 16 TP ranks.",
     },
     {
       kind: "complex",

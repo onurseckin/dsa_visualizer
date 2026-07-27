@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, VectorItem, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface EulerTotientInput {
@@ -25,7 +25,7 @@ def euler_totient(n: int) -> int:
 `;
 
 export const DEFAULT_EULER_TOTIENT_INPUT: EulerTotientInput = {
-  n: 36,
+  n: 360,
 };
 
 export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmStep[] => {
@@ -39,42 +39,54 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
 
   const primeFactors: number[] = [];
 
-  const createElements = (
+  const createVectorSnapshot = (
     rVal: number,
     tVal: number,
     pVal: number,
     activeSlot?: "p" | "res" | "temp",
-  ): ArrayElement[] => {
-    return [
-      { id: "n", value: nVal, state: "default", pointers: ["n"] },
+  ) => {
+    const vectors: VectorItem[] = [
+      { id: "n", label: `n = ${nVal}`, x: nVal, y: 0, state: "default" },
       {
         id: "result",
-        value: rVal,
-        state: activeSlot === "res" ? "active" : "sorted",
-        pointers: ["phi(n)"],
+        label: `phi(n) = ${rVal}`,
+        x: rVal,
+        y: 1,
+        state: activeSlot === "res" ? "active" : "result",
       },
       {
         id: "temp",
-        value: tVal,
-        state: activeSlot === "temp" ? "active" : "compare",
-        pointers: ["temp"],
+        label: `temp = ${tVal}`,
+        x: tVal,
+        y: 2,
+        state: activeSlot === "temp" ? "active" : "compared",
       },
-      { id: "p", value: pVal, state: activeSlot === "p" ? "active" : "pivot", pointers: ["p"] },
+      {
+        id: "p",
+        label: `p = ${pVal}`,
+        x: pVal,
+        y: 3,
+        state: activeSlot === "p" ? "active" : "default",
+      },
     ];
+
+    return {
+      kind: "vector" as const,
+      vectors,
+      planeTitle: `Euler Totient Factorization State Vector (n = ${nVal})`,
+      dimensions: "2d" as const,
+    };
   };
 
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 1,
+    codeLine: 2,
     explanation: {
       what: `Starting Euler's Totient function for n = ${nVal}. Initial phi(n) = ${nVal}.`,
-      why: "Euler's totient function φ(n) counts integers k in [1, n] such that gcd(k, n) = 1.",
+      why: "Euler's totient function φ(n) counts positive integers k in [1, n] such that gcd(k, n) = 1.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: createElements(result, temp, p),
-    },
+    primarySnapshot: createVectorSnapshot(result, temp, p),
     auxiliaryState: {
       hashMap: {
         "Input n": `${nVal}`,
@@ -95,19 +107,58 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
     },
   });
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Set initial result = ${nVal}.`,
+      why: "According to Euler's product formula φ(n) = n * prod(1 - 1/p), we start with n and multiply by (1 - 1/p) for each distinct prime factor p.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p, "res"),
+    auxiliaryState: {
+      hashMap: { "result": `${result}` },
+    },
+    variables: { result, temp, p },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 7,
+    explanation: {
+      what: `Set initial temp = ${nVal}.`,
+      why: "temp tracks the remaining unfactored part of n as prime factors are divided out.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p, "temp"),
+    auxiliaryState: {
+      hashMap: { "temp": `${temp}` },
+    },
+    variables: { result, temp, p },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 8,
+    explanation: {
+      what: `Set initial prime candidate p = 2.`,
+      why: "2 is the smallest prime number.",
+    },
+    primarySnapshot: createVectorSnapshot(result, temp, p, "p"),
+    auxiliaryState: {
+      hashMap: { "p": `${p}` },
+    },
+    variables: { result, temp, p },
+  });
+
   // Loop prime factorization
   while (p * p <= temp) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 5,
+      codeLine: 9,
       explanation: {
         what: `Checking candidate prime factor p = ${p} (p*p = ${p * p} <= temp = ${temp}).`,
-        why: "Scan prime candidates up to sqrt(temp).",
+        why: "Scan prime candidates up to sqrt(temp). Any composite temp has at least one prime factor <= sqrt(temp).",
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: createElements(result, temp, p, "p"),
-      },
+      primarySnapshot: createVectorSnapshot(result, temp, p, "p"),
       auxiliaryState: {
         visited: [...primeFactors],
         customState: {
@@ -128,20 +179,16 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 6,
+        codeLine: 10,
         explanation: {
-          what: `Found prime factor p = ${p}. Removing all factors of ${p} from temp = ${temp}.`,
-          why: "According to Euler's product formula, each prime factor p reduces result by result // p.",
+          what: `Found prime factor p = ${p} (temp % ${p} == 0).`,
+          why: "Since p divides temp, p is a distinct prime factor of n.",
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: createElements(result, temp, p, "temp"),
-        },
+        primarySnapshot: createVectorSnapshot(result, temp, p, "p"),
         auxiliaryState: {
           visited: [...primeFactors],
           customState: {
             foundFactor: p,
-            tempBefore: temp,
           },
         },
         variables: {
@@ -151,8 +198,31 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
         },
       });
 
+      let divisions = 0;
       while (temp % p === 0) {
         temp = Math.floor(temp / p);
+        divisions++;
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 12,
+          explanation: {
+            what: `Divided out factor ${p} from temp (division #${divisions}). Remaining temp = ${temp}.`,
+            why: "Remove all powers of prime factor p so future multiples of p are not counted as distinct prime factors.",
+          },
+          primarySnapshot: createVectorSnapshot(result, temp, p, "temp"),
+          auxiliaryState: {
+            visited: [...primeFactors],
+            customState: {
+              temp,
+              p,
+            },
+          },
+          variables: {
+            result,
+            temp,
+            p,
+          },
+        });
       }
 
       const prevRes = result;
@@ -160,15 +230,12 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 9,
+        codeLine: 13,
         explanation: {
-          what: `Update result: phi(n) = ${prevRes} - (${prevRes} // ${p}) = ${result}. Remaining temp = ${temp}.`,
-          why: `Applied formula term (1 - 1/${p}) for prime factor ${p}.`,
+          what: `Update result: phi(n) = ${prevRes} - (${prevRes} // ${p}) = ${result}.`,
+          why: `Applied Euler product formula term (1 - 1/${p}) for prime factor ${p}.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: createElements(result, temp, p, "res"),
-        },
+        primarySnapshot: createVectorSnapshot(result, temp, p, "res"),
         auxiliaryState: {
           visited: [...primeFactors],
           hashMap: {
@@ -190,25 +257,50 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
     }
 
     p += 1;
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 14,
+      explanation: {
+        what: `Incremented candidate p to ${p}.`,
+        why: "Advance to the next candidate integer factor.",
+      },
+      primarySnapshot: createVectorSnapshot(result, temp, p, "p"),
+      auxiliaryState: {
+        hashMap: { "p": `${p}` },
+      },
+      variables: { result, temp, p },
+    });
   }
 
   // Final check for remaining prime factor > 1
   if (temp > 1) {
     primeFactors.push(temp);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 15,
+      explanation: {
+        what: `Loop finished. Remaining temp = ${temp} > 1 is a prime factor.`,
+        why: "Any leftover temp after sqrt loop must be a prime factor.",
+      },
+      primarySnapshot: createVectorSnapshot(result, temp, p, "temp"),
+      auxiliaryState: {
+        visited: [...primeFactors],
+        customState: { temp },
+      },
+      variables: { result, temp },
+    });
+
     const prevRes = result;
     result -= Math.floor(result / temp);
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 16,
       explanation: {
-        what: `Remaining temp = ${temp} > 1 is a prime factor. Update result: ${prevRes} - (${prevRes} // ${temp}) = ${result}.`,
-        why: "Any leftover temp after sqrt loop must be a prime factor.",
+        what: `Update result for final prime factor ${temp}: ${prevRes} - (${prevRes} // ${temp}) = ${result}.`,
+        why: `Applied Euler product formula term (1 - 1/${temp}) for final prime factor ${temp}.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: createElements(result, temp, p, "res"),
-      },
+      primarySnapshot: createVectorSnapshot(result, temp, p, "res"),
       auxiliaryState: {
         visited: [...primeFactors],
         hashMap: {
@@ -230,15 +322,12 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
   // Done step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 17,
     explanation: {
       what: `Finished! φ(${nVal}) = ${result}. There are ${result} numbers in [1, ${nVal}] coprime to ${nVal}.`,
       why: "Euler's product formula evaluation complete.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: createElements(result, 1, p, "res"),
-    },
+    primarySnapshot: createVectorSnapshot(result, 1, p, "res"),
     auxiliaryState: {
       visited: [...primeFactors],
       hashMap: {
@@ -260,58 +349,64 @@ export const generateEulerTotientSteps = (input: EulerTotientInput): AlgorithmSt
 
 export const EULER_TOTIENT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Euler's Totient function φ(n) (also known as Euler's phi function) counts the number of positive integers k in the range 1 <= k <= n that are coprime to n (i.e. gcd(k, n) = 1). It plays a fundamental role in modular arithmetic, Group Theory (order of multiplicative groups (Z/nZ)*), and asymmetric RSA cryptography.",
+    "Euler's Totient function $\\phi(n)$ (also known as Euler's phi function) counts the number of positive integers $k \\in [1, n]$ coprime to $n$ (i.e. $\\gcd(k, n) = 1$). It is a foundational multiplicative function in Number Theory, Group Theory (order of multiplicative groups $(\\mathbb{Z}/n\\mathbb{Z})^*$), and RSA public-key cryptography.",
   sections: [
     {
-      heading: "Euler's Product Formula & Derivation",
-      body: "Euler's product formula states φ(n) = n * prod_{p | n} (1 - 1/p), where the product is taken over all distinct prime factors p of n. By prime factorization n = p1^k1 * p2^k2 * ... * pr^kr and using the multiplicative property of totient functions for coprime numbers, for any prime power φ(p^k) = p^k - p^(k-1) = p^k * (1 - 1/p). Multiplying across all prime factors yields the product formula.",
+      heading: "Euler's Product Formula & Mathematical Derivation",
+      body: "Euler's product formula states that for any integer $n \\ge 1$:\n$$\\phi(n) = n \\prod_{p \\mid n} \\left(1 - \\frac{1}{p}\\right)$$\nwhere the product ranges over all distinct prime factors $p$ dividing $n$. By the prime factorization $n = \\prod p_i^{k_i}$ and the multiplicative property $\\phi(a b) = \\phi(a) \\phi(b)$ for $\\gcd(a, b) = 1$, the totient of a prime power is $\\phi(p^k) = p^k - p^{k-1} = p^k (1 - 1/p)$. Multiplying across all prime power factors yields the product formula.",
     },
     {
-      heading: "Systems & Cryptographic Significance",
-      body: "Euler's Totient function is the backbone of RSA public-key encryption. In RSA, one selects two large secret primes p and q and computes n = p*q. The totient φ(n) = (p-1)*(q-1) defines the secret order of the multiplicative group modulo n, allowing the public encryption exponent e and private decryption exponent d to satisfy e*d ≡ 1 (mod φ(n)). Knowing φ(n) is computationally equivalent to factoring n.",
+      heading: "Systems & RSA Cryptographic Significance",
+      body: "Euler's Totient function is the backbone of RSA public-key encryption. In RSA, two large secret primes $p, q$ yield modulus $n = p q$. The secret order of the multiplicative group modulo $n$ is $\\phi(n) = (p-1)(q-1)$. Public exponent $e$ and private exponent $d$ satisfy:\n$$e \\cdot d \\equiv 1 \\pmod{\\phi(n)}$$\nComputing $\\phi(n)$ without knowing the prime factors $(p, q)$ is computationally equivalent to integer factorization.",
     },
     {
-      heading: "Implementation & Factorization Sweeps",
-      body: "To compute φ(n) for a single value n, trial division sweeps prime candidates p up to sqrt(n). Whenever p divides temp, all occurrences of p are divided out and result is updated via integer subtraction: result -= result // p (equivalent to multiplying by 1 - 1/p). If temp > 1 after the loop, the remaining temp is itself a prime factor, requiring one final subtraction. To compute φ(n) for all numbers up to N, a modified Sieve of Eratosthenes computes the totient array in O(N log log N) time.",
+      heading: "Trial Division & Factorization Sweeps",
+      body: "To compute $\\phi(n)$ for a single number $n$, trial division sweeps prime candidates $p \\le \\sqrt{n}$. Whenever $p \\mid temp$, all occurrences of $p$ are divided out, and $\\phi$ is updated in integer arithmetic:\n$$\\text{result} \\leftarrow \\text{result} - \\lfloor \\text{result} / p \\rfloor$$\nequivalent to multiplying by $\\left(1 - \\frac{1}{p}\\right)$. If $temp > 1$ after the loop, the remaining $temp$ is a final prime factor.",
     },
     {
-      heading: "Key Identities & Edge Cases",
-      body: "Important number-theoretic identities include: 1) Euler's Theorem: a^φ(m) ≡ 1 (mod m) for gcd(a, m) = 1, 2) Gauss's Identity: sum_{d | n} φ(d) = n, and 3) φ(p) = p - 1 for any prime p. Edge cases include n = 1 (φ(1) = 1 by definition) and prime inputs where trial division runs up to sqrt(n) without finding divisors until the final check.",
+      heading: "Key Number-Theoretic Identities",
+      body: "1. Euler's Theorem: $a^{\\phi(m)} \\equiv 1 \\pmod m$ for $\\gcd(a, m) = 1$.\n2. Gauss's Identity: $\\sum_{d \\mid n} \\phi(d) = n$.\n3. Prime Property: $\\phi(p) = p - 1$ for any prime $p$.\n4. Boundary Case: $\\phi(1) = 1$ by definition.",
     },
   ],
   keyTerms: [
     {
       term: "Coprime Integers",
       definition:
-        "Two integers a and b are coprime (or relatively prime) if their greatest common divisor gcd(a, b) = 1.",
+        "Two integers $a, b$ are coprime if their greatest common divisor $\\gcd(a, b) = 1$.",
     },
     {
       term: "Euler's Product Formula",
       definition:
-        "The formula φ(n) = n * prod_{p | n} (1 - 1/p) computing totient values from distinct prime factors.",
+        "The identity $\\phi(n) = n \\prod_{p \\mid n} \\left(1 - \\frac{1}{p}\\right)$ computing totient values from prime factors.",
     },
     {
       term: "Multiplicative Function",
       definition:
-        "A number-theoretic function f where f(a * b) = f(a) * f(b) for all coprime integers a and b.",
+        "A number-theoretic function $f$ satisfying $f(a b) = f(a) f(b)$ whenever $\\gcd(a, b) = 1$.",
     },
   ],
 };
 
 export const EULER_TOTIENT_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines phi(n) -> int: computes Euler's totient function φ(n).",
-    2: "Initialize result = n.",
-    3: "Start checking candidate prime factor p = 2.",
-    4: "Set temp = n to reduce as prime factors are found.",
-    5: "Loop while p * p <= temp (factors up to sqrt(n)).",
-    6: "Check if p divides temp.",
-    8: "Divide out all occurrences of prime factor p from temp.",
-    9: "Subtract result // p applying Euler product term (1 - 1/p).",
-    10: "Increment candidate factor p.",
-    11: "If leftover temp > 1, temp itself is a prime factor.",
-    12: "Subtract result // temp for final prime factor.",
-    13: "Return total count of coprime integers φ(n).",
+    1: "Empty leading line for code formatting.",
+    2: "Defines euler_totient function signature taking integer $n$ and returning $\\phi(n)$.",
+    3: "Opening docstring tag.",
+    4: "Docstring describing Euler's totient function.",
+    5: "Closing docstring tag.",
+    6: "Initializes result accumulator result = n.",
+    7: "Sets temp = n to track remaining unfactored portion.",
+    8: "Initializes prime candidate pointer p = 2.",
+    9: "Loops while $p^2 \\le temp$, scanning candidate prime factors up to $\\sqrt{temp}$.",
+    10: "Checks if candidate $p$ divides temp ($temp \\bmod p == 0$).",
+    11: "Inner loop while $p$ divides temp.",
+    12: "Divides out all factors of prime $p$ from temp ($temp \\leftarrow \\lfloor temp / p \\rfloor$).",
+    13: "Updates result by applying product term: $result \\leftarrow result - \\lfloor result / p \\rfloor$.",
+    14: "Increments candidate factor $p$ by 1.",
+    15: "Checks if remaining $temp > 1$ after loop (indicating a prime factor $> \\sqrt{n}$).",
+    16: "Applies product term for final prime factor $temp$.",
+    17: "Returns computed Euler totient count $\\phi(n)$.",
+    18: "Empty trailing line for code formatting.",
   },
 };
 
@@ -322,7 +417,7 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   categories: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Given a positive integer n, calculate Euler's Totient function φ(n) representing the count of integers k in [1, n] coprime to n. The algorithm applies Euler's product formula φ(n) = n * prod(1 - 1/p) by finding prime factors up to sqrt(n) in O(sqrt(n)) time.",
+    "Given a positive integer $n$, calculate Euler's Totient function $\\phi(n)$ representing the count of integers $k \\in [1, n]$ coprime to $n$ ($\\gcd(k, n) = 1$):\n\n$$\\phi(n) = n \\prod_{p \\mid n} \\left(1 - \\frac{1}{p}\\right)$$\n\n### Factorization State Vector\nThe state is tracked as a 4D state vector $\\mathbf{v} = (n, \\phi(n), temp, p)^T \\in \\mathbb{Z}^4$ updated dynamically as prime factors are discovered and divided out.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{> 0}$): Positive target integer.\n\n### Output\n- `int`: Count of coprime integers $\\phi(n)$.\n\n### Edge Cases & Constraints\n- Base Case: $\\phi(1) = 1$.\n- Prime Input: $\\phi(p) = p - 1$.",
   constraints: ["1 <= n <= 10^12"],
   examples: [
     {
@@ -361,8 +456,8 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "The factorization loop checks prime candidates up to sqrt(n), giving O(sqrt(n)) execution time.",
-    space: "O(1) auxiliary space.",
+    time: "Trial division scans prime candidates up to $\\sqrt{n}$, resulting in $\\mathcal{O}(\\sqrt{n})$ execution time.",
+    space: "Requires $\\mathcal{O}(1)$ auxiliary space.",
   },
   topicGuide: EULER_TOTIENT_TOPIC_GUIDE,
   trivia: EULER_TOTIENT_TRIVIA,
@@ -378,3 +473,4 @@ export const eulerTotientFunction: AlgorithmDefinition<EulerTotientInput> = {
   defaultInput: DEFAULT_EULER_TOTIENT_INPUT,
   generateSteps: generateEulerTotientSteps,
 };
+

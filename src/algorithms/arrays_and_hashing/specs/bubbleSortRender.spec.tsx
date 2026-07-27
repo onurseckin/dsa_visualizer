@@ -30,9 +30,11 @@ describe("BubbleSort React Component Spec", () => {
 
     // Problem details render expanded, so the description needs no disclosure click.
     expect(
-      screen.getByText(/Bubble Sort is a simple comparison-based sorting algorithm/i),
+      screen.getByText(/Bubble Sort is the quintessential comparison-based sorting algorithm/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(bubbleSort.topicGuide.overview)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Bubble Sort is the fundamental comparison-based sorting algorithm/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: bubbleSort.topicGuide.sections[0].heading }),
     ).toBeInTheDocument();

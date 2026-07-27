@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface oneF1bPipelineParallelExecutionSchedulerInput {
@@ -78,144 +78,293 @@ export const generateOneF1bPipelineParallelExecutionSchedulerSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const numStages = Math.max(2, input.target ?? 4);
-  const numMicrobatches = Math.max(numStages, input.data.length);
+  const numMicrobatches = Math.max(numStages, input.data.length > 0 ? input.data.length : 8);
 
-  const elements: ArrayElement[] = Array.from({ length: numMicrobatches }, (_, idx) => ({
-    id: `mb-${idx}`,
-    value: idx,
-    state: "default",
-  }));
+  interface ScheduleItem {
+    step: number;
+    phase: string;
+    type: "FORWARD" | "BACKWARD";
+    microbatch_id: number;
+  }
+
+  const scheduleList: ScheduleItem[] = [];
+
+  const buildMatrixCells = (
+    currentStepIdx?: number,
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+    const totalScheduleSteps = scheduleList.length;
+    const cols = Math.max(1, totalScheduleSteps);
+
+    for (let r = 0; r < numStages; r++) {
+      for (let c = 0; c < cols; c++) {
+        const item = scheduleList[c];
+        let val = "-";
+        let state: MatrixCellItem["state"] = "default";
+
+        if (item) {
+          const passAbbr = item.type === "FORWARD" ? "F" : "B";
+          val = `${passAbbr}${item.microbatch_id}`;
+
+          if (c === currentStepIdx) {
+            state = "active";
+          } else if (c < currentStepIdx!) {
+            state = item.type === "FORWARD" ? "compared" : "sorted";
+          }
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: `Stage ${r} Step ${c}`,
+          state,
+        });
+      }
+    }
+    return cells;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
   ) => {
+    const currentStepIdx = scheduleList.length > 0 ? scheduleList.length - 1 : 0;
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: numStages,
+        cols: Math.max(1, scheduleList.length),
+        rowHeaders: Array.from({ length: numStages }, (_, r) => `Stage ${r}`),
+        colHeaders: Array.from({ length: Math.max(1, scheduleList.length) }, (_, c) => `T${c}`),
+        cells: buildMatrixCells(currentStepIdx),
       },
       auxiliaryState: {
         customState: {
-          stages: String(numStages),
-          microbatches: String(numMicrobatches),
+          numStages: String(numStages),
+          numMicrobatches: String(numMicrobatches),
+          scheduleLength: String(scheduleList.length),
+          bubbleFraction: ((numStages - 1) / numMicrobatches).toFixed(3),
         },
       },
       variables,
     });
   };
 
+  // Step 1: Function entry
   addStep(
     1,
-    "Initialize 1F1B (One Forward One Backward) Pipeline Parallel Scheduler",
-    `Configuring pipeline with ${numStages} GPU stages and ${numMicrobatches} micro-batches.`,
+    "Enter one_f1b_pipeline_parallel_execution_scheduler",
+    `Initializing 1F1B schedule generation for P=${numStages} pipeline stages and M=${numMicrobatches} micro-batches.`,
     { num_stages: numStages, num_microbatches: numMicrobatches },
   );
 
-  const warmupSteps = Math.min(numStages, numMicrobatches);
+  // Step 2: Validate input
+  addStep(
+    13,
+    "Validate Pipeline Stages & Micro-batches",
+    `Checking if num_stages (${numStages}) <= 0 or num_microbatches (${numMicrobatches}) <= 0. Validation passed.`,
+    { num_stages: numStages, num_microbatches: numMicrobatches, valid: true },
+  );
 
-  // Warmup phase
+  // Step 3: Initialize schedule container
+  addStep(
+    16,
+    "Initialize Schedule Array",
+    "Created empty schedule list to record ordered 1F1B execution step descriptors.",
+    { schedule_length: 0 },
+  );
+
+  // Step 4: Warmup steps formula
+  const warmupSteps = Math.min(numStages, numMicrobatches);
+  addStep(
+    17,
+    "Compute Warmup Steps Count",
+    `warmup_steps = min(${numStages}, ${numMicrobatches}) = ${warmupSteps} forward pass steps.`,
+    { warmup_steps: warmupSteps },
+  );
+
+  // Phase 1: Warmup loop
+  addStep(
+    19,
+    "Phase 1: Begin Warmup Phase (Forward Passes Only)",
+    `Executing ${warmupSteps} initial forward passes to fill pipeline depth and establish steady-state flow.`,
+    { phase: "WARMUP", warmup_steps: warmupSteps },
+  );
+
   for (let mb = 0; mb < warmupSteps; mb++) {
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === mb) return { ...el, state: "active", pointers: [`FW-MB-${mb}`] };
-      if (i < mb) return { ...el, state: "visited" };
-      return el;
-    });
+    addStep(
+      20,
+      `Warmup Step ${mb + 1}/${warmupSteps}: Loop Header`,
+      `Iterating warmup loop for microbatch_id = ${mb}.`,
+      { phase: "WARMUP", microbatch_id: mb },
+    );
+
+    const item: ScheduleItem = {
+      step: scheduleList.length,
+      phase: "WARMUP",
+      type: "FORWARD",
+      microbatch_id: mb,
+    };
+    scheduleList.push(item);
 
     addStep(
-      19,
-      `Warmup Step ${mb + 1}/${warmupSteps}: Forward Pass MB-${mb}`,
-      `Pipelining forward activation micro-batch ${mb} across stage pipeline to fill buffer queues.`,
-      { phase: "WARMUP", type: "FORWARD", microbatch_id: mb },
-      currentElements,
+      21,
+      `Warmup Step ${mb + 1}: Append FORWARD Micro-batch ${mb}`,
+      `Scheduled Forward pass for micro-batch ${mb} (activation VRAM allocation +1).`,
+      { step: item.step, phase: item.phase, type: item.type, microbatch_id: mb },
     );
   }
 
-  // Steady-state phase
+  // Phase 2: Steady State setup
+  addStep(
+    28,
+    "Phase 2: Begin 1F1B Steady-State Phase (Interleaved 1 Forward, 1 Backward)",
+    "Pointers fw_mb and bw_mb established. Alternating 1 Backward pass with 1 Forward pass to keep activation VRAM bounded.",
+    { phase: "1F1B_STEADY_STATE", fw_mb: warmupSteps, bw_mb: 0 },
+  );
+
   let fwMb = warmupSteps;
   let bwMb = 0;
-  while (fwMb < numMicrobatches) {
-    const currentElementsBw: ArrayElement[] = elements.map((el, i) => {
-      if (i === bwMb) return { ...el, state: "compare", pointers: [`BW-MB-${bwMb}`] };
-      return el;
-    });
-
-    addStep(
-      28,
-      `1F1B Steady-State: Backward Pass MB-${bwMb}`,
-      `Executing backward gradient pass on micro-batch ${bwMb} and freeing peak activation memory.`,
-      { phase: "STEADY_STATE", type: "BACKWARD", microbatch_id: bwMb },
-      currentElementsBw,
-    );
-    bwMb++;
-
-    const currentElementsFw: ArrayElement[] = elements.map((el, i) => {
-      if (i === fwMb) return { ...el, state: "active", pointers: [`FW-MB-${fwMb}`] };
-      return el;
-    });
-
-    addStep(
-      36,
-      `1F1B Steady-State: Forward Pass MB-${fwMb}`,
-      `Executing forward pass on micro-batch ${fwMb} while maintaining constant activation buffer capacity.`,
-      { phase: "STEADY_STATE", type: "FORWARD", microbatch_id: fwMb },
-      currentElementsFw,
-    );
-    fwMb++;
-  }
-
-  // Cooldown phase
-  while (bwMb < numMicrobatches) {
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === bwMb) return { ...el, state: "compare", pointers: [`BW-MB-${bwMb}`] };
-      if (i < bwMb) return { ...el, state: "sorted" };
-      return el;
-    });
-
-    addStep(
-      45,
-      `Cooldown Step: Backward Pass MB-${bwMb}`,
-      `Draining remaining micro-batches; executing backward pass for MB-${bwMb}.`,
-      { phase: "COOLDOWN", type: "BACKWARD", microbatch_id: bwMb },
-      currentElements,
-    );
-    bwMb++;
-  }
-
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-    pointers: ["Completed"],
-  }));
-
-  const bubbleFraction = ((numStages - 1) / numMicrobatches).toFixed(3);
 
   addStep(
-    52,
-    "Execution Complete",
-    `Successfully scheduled 1F1B pipeline execution. Total steps: ${numMicrobatches * 2}. Pipeline bubble fraction: ${bubbleFraction}. Peak activation VRAM bounded by O(${numStages}).`,
-    {
-      completed: true,
-      total_microbatches: numMicrobatches,
-      bubble_fraction: parseFloat(bubbleFraction),
-    },
-    finalElements,
+    29,
+    "Initialize Steady-State Forward Pointer",
+    `Set fw_mb = warmup_steps = ${fwMb}.`,
+    { fw_mb: fwMb },
+  );
+
+  addStep(
+    30,
+    "Initialize Steady-State Backward Pointer",
+    "Set bw_mb = 0.",
+    { bw_mb: 0 },
+  );
+
+  while (fwMb < numMicrobatches) {
+    addStep(
+      31,
+      `Steady-State Loop Check: fw_mb (${fwMb}) < num_microbatches (${numMicrobatches})`,
+      `Evaluating steady-state condition for forward micro-batch ${fwMb}.`,
+      { fw_mb: fwMb, num_microbatches: numMicrobatches },
+    );
+
+    // Backward item
+    const bwItem: ScheduleItem = {
+      step: scheduleList.length,
+      phase: "1F1B_STEADY_STATE",
+      type: "BACKWARD",
+      microbatch_id: bwMb,
+    };
+    scheduleList.push(bwItem);
+
+    addStep(
+      32,
+      `1F1B Steady-State: Schedule BACKWARD Pass for Micro-batch ${bwMb}`,
+      `Scheduled Backward pass for micro-batch ${bwMb} (gradient computed & activation VRAM freed -1).`,
+      { step: bwItem.step, phase: bwItem.phase, type: bwItem.type, microbatch_id: bwMb },
+    );
+
+    bwMb++;
+    addStep(
+      38,
+      `Increment Backward Micro-batch Pointer -> bw_mb = ${bwMb}`,
+      `Updated bw_mb = ${bwMb}.`,
+      { bw_mb: bwMb },
+    );
+
+    // Forward item
+    const fwItem: ScheduleItem = {
+      step: scheduleList.length,
+      phase: "1F1B_STEADY_STATE",
+      type: "FORWARD",
+      microbatch_id: fwMb,
+    };
+    scheduleList.push(fwItem);
+
+    addStep(
+      40,
+      `1F1B Steady-State: Schedule FORWARD Pass for Micro-batch ${fwMb}`,
+      `Scheduled Forward pass for micro-batch ${fwMb} (reusing VRAM memory freed by backward pass).`,
+      { step: fwItem.step, phase: fwItem.phase, type: fwItem.type, microbatch_id: fwMb },
+    );
+
+    fwMb++;
+    addStep(
+      46,
+      `Increment Forward Micro-batch Pointer -> fw_mb = ${fwMb}`,
+      `Updated fw_mb = ${fwMb}.`,
+      { fw_mb: fwMb },
+    );
+  }
+
+  // Phase 3: Cooldown Phase
+  addStep(
+    48,
+    "Phase 3: Begin Cooldown Phase (Draining Remaining Backward Passes)",
+    `Forward passes complete. Draining remaining backward micro-batches (${bwMb} to ${numMicrobatches - 1}).`,
+    { phase: "COOLDOWN", remaining_backward: numMicrobatches - bwMb },
+  );
+
+  while (bwMb < numMicrobatches) {
+    addStep(
+      49,
+      `Cooldown Loop Check: bw_mb (${bwMb}) < num_microbatches (${numMicrobatches})`,
+      `Evaluating cooldown condition for backward micro-batch ${bwMb}.`,
+      { bw_mb: bwMb, num_microbatches: numMicrobatches },
+    );
+
+    const bwItem: ScheduleItem = {
+      step: scheduleList.length,
+      phase: "COOLDOWN",
+      type: "BACKWARD",
+      microbatch_id: bwMb,
+    };
+    scheduleList.push(bwItem);
+
+    addStep(
+      50,
+      `Cooldown Step: Schedule BACKWARD Pass for Micro-batch ${bwMb}`,
+      `Scheduled final Backward pass for micro-batch ${bwMb}.`,
+      { step: bwItem.step, phase: bwItem.phase, type: bwItem.type, microbatch_id: bwMb },
+    );
+
+    bwMb++;
+    addStep(
+      56,
+      `Increment Backward Pointer -> bw_mb = ${bwMb}`,
+      `Updated bw_mb = ${bwMb}.`,
+      { bw_mb: bwMb },
+    );
+  }
+
+  // Verification step
+  const bubbleFraction = ((numStages - 1) / numMicrobatches).toFixed(3);
+  addStep(
+    58,
+    "Verify Bounded Activation VRAM & Pipeline Bubble Overhead",
+    `Verified 1F1B schedule bounds peak activation VRAM to O(${numStages}) micro-batches with pipeline bubble fraction of ${bubbleFraction}.`,
+    { num_stages: numStages, num_microbatches: numMicrobatches, bubble_fraction: parseFloat(bubbleFraction) },
+  );
+
+  // Return step
+  addStep(
+    58,
+    "Return Ordered 1F1B Execution Schedule",
+    `Returning completed 1F1B pipeline schedule containing ${scheduleList.length} micro-batch execution steps.`,
+    { completed: true, schedule_length: scheduleList.length },
   );
 
   return steps;
 };
 
 const ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   distractors: [
     "schedule = [('FORWARD', i) for i in range(M)] + [('BACKWARD', i) for i in range(M)]",
     "torch.cuda.synchronize()",
@@ -223,17 +372,69 @@ const ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 28,
+      line: 31,
       hint: "1F1B alternates 1 Backward pass with 1 Forward pass to immediately free activation tensors.",
     },
   ],
   lineExplanations: {
-    1: "Defines entry point for 1F1B pipeline parallel execution scheduler.",
-    15: "Validates non-empty stage count and micro-batch numbers.",
-    18: "Executes Warmup Phase issuing P forward micro-batches to fill pipeline depth.",
-    26: "Executes 1F1B Steady-State Phase alternating backward and forward micro-batches.",
-    43: "Executes Cooldown Phase running remaining backward micro-batches.",
-    52: "Returns complete ordered 1F1B pipeline execution schedule.",
+    1: "Defines entry point for 1F1B pipeline parallel execution scheduler function.",
+    2: "Starts docstring detailing 1F1B scheduling purpose.",
+    3: "Describes scheduling 1F1B (One Forward One Backward) pipeline micro-batch sequences.",
+    4: "Notes reducing peak activation memory footprint from O(M) down to O(P).",
+    5: "Blank line in docstring.",
+    6: "Docstring section header for input arguments.",
+    7: "Docstring describing num_stages parameter as pipeline GPU count P.",
+    8: "Docstring describing num_microbatches parameter as total micro-batches M.",
+    9: "Blank line in docstring.",
+    10: "Docstring section header for return value.",
+    11: "Docstring describing return format of scheduled step dictionaries.",
+    12: "Closes docstring block.",
+    13: "Validates positive stage count and positive micro-batch numbers.",
+    14: "Returns empty list immediately if input arguments are invalid.",
+    15: "Blank line before schedule list initialization.",
+    16: "Initializes empty list to accumulate scheduled step objects.",
+    17: "Calculates warmup steps count min(num_stages, num_microbatches).",
+    18: "Blank line before Phase 1 Warmup loop.",
+    19: "Comment documenting Phase 1 Warmup Phase (Forward passes only).",
+    20: "For loop iterating over warmup micro-batches 0 to warmup_steps - 1.",
+    21: "Appends dictionary payload for warmup FORWARD micro-batch pass.",
+    22: "Sets step index field as current schedule length.",
+    23: "Sets phase key to WARMUP.",
+    24: "Sets type key to FORWARD.",
+    25: "Sets microbatch_id key to current mb index.",
+    26: "Closes warmup dictionary entry payload.",
+    27: "Blank line before Phase 2 1F1B Steady-State loop.",
+    28: "Comment documenting Phase 2 1F1B Steady-State Phase.",
+    29: "Initializes fw_mb forward micro-batch pointer to warmup_steps.",
+    30: "Initializes bw_mb backward micro-batch pointer to 0.",
+    31: "While loop running steady-state 1F1B until all forward passes are scheduled.",
+    32: "Appends dictionary payload for steady-state BACKWARD micro-batch pass.",
+    33: "Sets step index field.",
+    34: "Sets phase key to 1F1B_STEADY_STATE.",
+    35: "Sets type key to BACKWARD.",
+    36: "Sets microbatch_id key to current bw_mb index.",
+    37: "Closes backward pass dictionary payload.",
+    38: "Increments bw_mb pointer by 1.",
+    39: "Blank line between backward and forward pass scheduling.",
+    40: "Appends dictionary payload for steady-state FORWARD micro-batch pass.",
+    41: "Sets step index field.",
+    42: "Sets phase key to 1F1B_STEADY_STATE.",
+    43: "Sets type key to FORWARD.",
+    44: "Sets microbatch_id key to current fw_mb index.",
+    45: "Closes forward pass dictionary payload.",
+    46: "Increments fw_mb pointer by 1.",
+    47: "Blank line before Phase 3 Cooldown loop.",
+    48: "Comment documenting Phase 3 Cooldown Phase (Remaining Backward passes).",
+    49: "While loop running cooldown phase until all backward passes are completed.",
+    50: "Appends dictionary payload for cooldown BACKWARD micro-batch pass.",
+    51: "Sets step index field.",
+    52: "Sets phase key to COOLDOWN.",
+    53: "Sets type key to BACKWARD.",
+    54: "Sets microbatch_id key to current bw_mb index.",
+    55: "Closes cooldown dictionary payload.",
+    56: "Increments bw_mb pointer by 1.",
+    57: "Blank line before returning schedule.",
+    58: "Returns complete ordered list of 1F1B scheduled step dictionaries.",
   },
 };
 
@@ -248,7 +449,7 @@ export const oneF1bPipelineParallelExecutionScheduler: AlgorithmDefinition<oneF1
     mlInfraLevel: 11,
     mlInfraCategory: "ml_distributed_systems",
     description:
-      "Pipeline Parallelism (PP) partitions layers of a Large Language Model across $P$ pipeline stages. Naive scheduling (like GPipe) executes all $M$ forward micro-batches before any backward micro-batches, requiring VRAM to store peak activation tensors for all $M$ micro-batches ($O(M)$ memory scaling).\n\nThe **1F1B (One Forward, One Backward)** schedule (used in Megatron-LM and DeepSpeed) mitigates this memory bottleneck through a three-phase schedule:\n1. **Warmup Phase**: Executes $P - i - 1$ forward passes to fill the pipeline depth.\n2. **1F1B Steady-State Phase**: Alternates 1 Backward micro-batch pass with 1 Forward micro-batch pass. Executing a backward pass immediately computes gradients and frees peak activation memory, bounding activation VRAM capacity to $O(P)$ micro-batches regardless of global batch size $M$.\n3. **Cooldown Phase**: Drains remaining backward passes.\n\nInput Format:\n- data: Array of micro-batch index identifiers (e.g. `[0, 1, 2, 3, 4, 5, 6, 7]`).\n- target: Number of Pipeline Parallel GPU stages ($P$).\n\nOutput Format:\n- Returns sequential execution schedule specifying pass type (`FORWARD` / `BACKWARD`), micro-batch ID, and step indices.\n\nEdge Cases & Constraints:\n- Micro-batch depth $M \\ge P$: Requires $M \\ge P$ to achieve high pipeline efficiency; bubble overhead fraction is $\\frac{P-1}{M}$.\n- Interleaved 1F1B: Virtual pipeline stages assign multiple non-contiguous layer blocks per GPU rank to shrink bubble size to $\\frac{P-1}{v M}$.",
+      "Pipeline Parallelism (PP) partitions layers of a Large Language Model across $P$ pipeline stages. Naive scheduling (like GPipe) executes all $M$ forward micro-batches before any backward micro-batches, requiring VRAM to store peak activation tensors for all $M$ micro-batches ($O(M)$ memory scaling).\n\nThe **1F1B (One Forward, One Backward)** schedule (used in Megatron-LM and DeepSpeed) mitigates this memory bottleneck through a three-phase schedule:\n\n### Why It Exists & Problem Solved\nExecuting all forward passes first forces keeping intermediate activation tensors in VRAM until backward passes run. For large batch sizes (e.g. $M=64$ micro-batches), activation memory quickly causes Out-Of-Memory (OOM) crashes. 1F1B initiates backward passes as soon as the first micro-batch completes its forward pass through all stages. Executing a backward pass immediately computes gradients and frees peak activation memory, bounding activation VRAM capacity to $O(P)$ micro-batches regardless of global batch size $M$!\n\n### Step-by-Step Intuition\n1. **Phase 1: Warmup Phase**: Execute $P$ forward passes ($F_0, F_1, \\dots, F_{P-1}$) to fill the pipeline depth.\n2. **Phase 2: 1F1B Steady-State Phase**: Alternate 1 Backward pass with 1 Forward pass ($B_0, F_P, B_1, F_{P+1}, \\dots$). Each backward pass frees activation memory just before the next forward pass allocates memory.\n3. **Phase 3: Cooldown Phase**: Drain remaining backward passes ($B_{M-P}, \\dots, B_{M-1}$).\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(M)$ schedule construction step for $M$ micro-batches.\n- **Peak Activation Memory**: Bounded to $O(P)$ micro-batches instead of $O(M)$.\n- **Pipeline Bubble Overhead**: Idle GPU time fraction is $\\frac{P-1}{M}$. Setting $M \\ge 10P$ reduces bubble overhead below 10%.",
     constraints: ["2 <= target (num_stages) <= 64", "1 <= data.length <= 1000"],
     examples: [
       {
@@ -294,20 +495,20 @@ export const oneF1bPipelineParallelExecutionScheduler: AlgorithmDefinition<oneF1
         "1F1B pipeline scheduling alternates forward and backward micro-batch execution to keep peak activation VRAM bounded by pipeline depth P rather than global micro-batch count M.",
       sections: [
         {
-          heading: "Core Concepts",
-          body: "Naive pipeline parallel schedules (like GPipe) store activation tensors for all $M$ micro-batches before executing backward passes. 1F1B solves this by initiating backward passes as soon as the first micro-batch completes its forward pass through all stages. Each completed backward pass frees activation VRAM, allowing the next forward pass to reuse freed memory.",
+          heading: "Why It Exists & Problem Solved",
+          body: "Naive pipeline parallel schedules (like GPipe) store activation tensors for all M micro-batches before executing backward passes. 1F1B solves this by initiating backward passes as soon as the first micro-batch completes its forward pass through all stages. Each completed backward pass frees activation VRAM, allowing the next forward pass to reuse freed memory.",
         },
         {
-          heading: "Systems & Bandwidth Impact",
-          body: "1F1B bounds peak activation memory to $O(P \\times \\text{layer_activations})$. This memory saving allows training multi-billion parameter models with batch sizes 10x larger than GPipe without triggering Out-Of-Memory (OOM) errors.",
+          heading: "Step-by-Step Intuition",
+          body: "1. Phase 1 (Warmup): Run P forward passes to fill the pipeline depth.\n2. Phase 2 (Steady State): Alternate 1 Backward pass with 1 Forward pass. Running a backward pass frees activation memory right before the next forward pass allocates new memory.\n3. Phase 3 (Cooldown): Execute remaining backward passes to drain the pipeline.",
         },
         {
-          heading: "Implementation Nuances & Edge Cases",
-          body: "The pipeline bubble fraction is given by $\\frac{P-1}{M}$. To keep idle GPU time under 10%, global micro-batch count $M$ must be at least $10 \\times P$. Interleaved 1F1B (virtual pipeline stages) splits each physical GPU into $v$ virtual stages, reducing bubble overhead down to $\\frac{P-1}{v \\cdot M}$.",
+          heading: "Distributed Systems & Bandwidth Analysis",
+          body: "1F1B bounds peak activation memory to O(P * layer_activations). This memory saving allows training multi-billion parameter models with batch sizes 10x larger than GPipe without triggering Out-Of-Memory (OOM) errors.",
         },
         {
-          heading: "Architecture & Topology Trade-offs",
-          body: "Point-to-point (P2P) peer transfers (e.g. `ncclSend` and `ncclRecv`) stream activation tensors between adjacent pipeline stage GPUs. High-speed inter-node connections (such as InfiniBand or RoCEv2) prevent stage communication bottlenecks.",
+          heading: "Hardware & Architecture Trade-offs",
+          body: "The pipeline bubble fraction is given by (P-1)/M. To keep idle GPU time under 10%, global micro-batch count M must be at least 10 * P. Interleaved 1F1B (virtual pipeline stages) splits each physical GPU into v virtual stages, reducing bubble overhead down to (P-1)/(v * M).",
         },
       ],
       keyTerms: [
@@ -338,3 +539,4 @@ export const oneF1bPipelineParallelExecutionScheduler: AlgorithmDefinition<oneF1
     defaultInput: DEFAULT_ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_INPUT,
     generateSteps: generateOneF1bPipelineParallelExecutionSchedulerSteps,
   };
+

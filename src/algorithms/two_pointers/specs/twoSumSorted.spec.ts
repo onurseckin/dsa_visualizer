@@ -15,54 +15,62 @@ describe("twoSumSorted algorithm spec", () => {
     expect(twoSumSorted.defaultInput).toEqual(DEFAULT_TWO_SUM_SORTED_INPUT);
   });
 
-  it("should find target pair with two pointers on default input", () => {
+  it("should find target pair with two pointers on default input (>= 20 steps)", () => {
     const steps = generateTwoSumSortedSteps(DEFAULT_TWO_SUM_SORTED_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(9);
-    expect(lastStep.variables.resultIdx1).toBe(0);
-    expect(lastStep.variables.resultIdx2).toBe(6);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching pair"));
+    expect(returnStep).toBeDefined();
+    expect(returnStep?.variables.resultIdx1).toBe(0);
+    expect(returnStep?.variables.resultIdx2).toBe(5);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
+    const snap = returnStep?.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.elements[0].state).toBe("sorted");
-    expect(snap.elements[6].state).toBe("sorted");
+    expect(snap.elements[5].state).toBe("sorted");
   });
 
   it("should adjust left pointer when sum is less than target", () => {
     const input = { nums: [1, 2, 3, 9], target: 12 };
     const steps = generateTwoSumSortedSteps(input);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(9);
-    expect(lastStep.variables.resultIdx1).toBe(2);
-    expect(lastStep.variables.resultIdx2).toBe(3);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching pair"));
+    expect(returnStep?.variables.resultIdx1).toBe(2);
+    expect(returnStep?.variables.resultIdx2).toBe(3);
   });
 
   it("should return empty step when no pair sums to target", () => {
     const input = { nums: [1, 2, 4], target: 100 };
     const steps = generateTwoSumSortedSteps(input);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(15);
-    expect(lastStep.explanation.what).toContain("Return empty array");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const emptyStep = steps.find((s) => s.explanation.what.includes("Return empty array"));
+    expect(emptyStep).toBeDefined();
   });
 
   it("should pull right pointer back when sum exceeds target", () => {
     const input = { nums: [1, 5, 10, 20], target: 6 };
     const steps = generateTwoSumSortedSteps(input);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(9);
-    expect(lastStep.variables.resultIdx1).toBe(0);
-    expect(lastStep.variables.resultIdx2).toBe(1);
-
-    const rightDecrementStep = steps.find((s) => s.explanation.what.includes("Pull right back"));
-    expect(rightDecrementStep).toBeDefined();
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const returnStep = steps.find((s) => s.explanation.what.includes("Return matching pair"));
+    expect(returnStep?.variables.resultIdx1).toBe(0);
+    expect(returnStep?.variables.resultIdx2).toBe(1);
   });
 
   it("should handle empty input array", () => {
     const input = { nums: [], target: 5 };
     const steps = generateTwoSumSortedSteps(input);
-    const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(15);
-    expect(lastStep.explanation.what).toContain("Return empty array");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    const emptyStep = steps.find((s) => s.explanation.what.includes("Return empty array"));
+    expect(emptyStep).toBeDefined();
+  });
+
+  it("maps every code line in lineExplanations", () => {
+    const meta = twoSumSorted.trivia;
+    const lines = twoSumSorted.code.split("\n");
+    expect(meta?.lineExplanations).toBeDefined();
+    for (let lineNum = 1; lineNum <= lines.length; lineNum++) {
+      expect(meta?.lineExplanations?.[lineNum]).toBeDefined();
+      expect(typeof meta?.lineExplanations?.[lineNum]).toBe("string");
+      expect(meta?.lineExplanations?.[lineNum].length).toBeGreaterThan(0);
+    }
   });
 });

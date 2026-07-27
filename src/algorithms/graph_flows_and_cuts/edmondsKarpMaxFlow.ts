@@ -395,32 +395,32 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Using BFS guarantees that each shortest path augmentation increases the distance to at least one edge's bottleneck. There are at most O(V * E) total augmentations, each taking O(E) time for BFS, yielding O(V * E^2) total runtime.",
-    space: "Capacity/flow matrices and BFS queues consume O(V^2) or O(V + E) space.",
+    time: "Using BFS guarantees that each shortest path augmentation increases the distance to at least one edge's bottleneck. There are at most $\\mathcal{O}(V \\cdot E)$ total augmentations, each taking $\\mathcal{O}(E)$ time for BFS, yielding $\\mathcal{O}(V \\cdot E^2)$ total runtime.",
+    space: "Capacity/flow matrices and BFS queues consume $\\mathcal{O}(V^2)$ or $\\mathcal{O}(V + E)$ space.",
   },
   topicGuide: {
     overview:
-      "Edmonds-Karp is a canonical implementation of the Ford-Fulkerson method for computing maximum network flow. By using Breadth-First Search (BFS) to select augmenting paths with the minimum edge count, it guarantees a polynomial time bound of O(V * E^2) and avoids infinite loops on irrational edge capacities.",
+      "**Edmonds-Karp** is a canonical implementation of the Ford-Fulkerson method for computing maximum network flow. By using **Breadth-First Search (BFS)** to select augmenting paths with the minimum edge count, it guarantees a polynomial time bound of $\\mathcal{O}(V \\cdot E^2)$ and avoids infinite loops on irrational edge capacities.",
     sections: [
       {
         heading: "BFS Shortest Path Guarantee & Termination",
-        body: "Standard Ford-Fulkerson using Depth-First Search can take exponentially many steps or fail to terminate on irrational edge capacities. Edmonds-Karp resolves this by using BFS to find augmenting paths with the minimum number of edges. Each augmentation guarantees that the shortest-path distance from the source to any node in the residual graph never decreases, which limits the number of augmentation iterations to at most O(V * E).",
+        body: "Standard Ford-Fulkerson using Depth-First Search can take exponentially many steps or fail to terminate on irrational edge capacities. Edmonds-Karp resolves this by using BFS to find augmenting paths with the minimum number of edges. Each augmentation guarantees that the shortest-path distance $\\delta_f(s, v)$ from source to any node never decreases, limiting the total number of augmentations to at most $\\mathcal{O}(V \\cdot E)$.",
       },
       {
         heading: "Residual Network & Flow Redirection",
-        body: "Flow augmentation creates a residual graph containing forward edges with remaining capacity (capacity - flow) and backward edges with capacity equal to current flow (-flow). Reverse edges allow the algorithm to effectively undo or re-route prior flow decisions when a superior combination of paths is discovered.",
+        body: "Flow augmentation creates a residual graph $G_f$ containing forward edges with remaining capacity $c_f(u, v) = c(u, v) - f(u, v)$ and backward edges $c_f(v, u) = f(u, v)$. Reverse edges allow the algorithm to effectively undo or re-route prior flow decisions when a superior combination of paths is discovered.",
       },
       {
         heading: "Max-Flow Min-Cut Theorem",
-        body: "The Max-Flow Min-Cut theorem asserts that the value of the maximum s-t flow equals the total capacity of the minimum s-t cut that partitions vertices into source set S and sink set T. When no augmenting path remains in the residual graph, the set of vertices reachable from the source defines the exact minimum capacity cut.",
+        body: "The Max-Flow Min-Cut theorem asserts that the value of the maximum $s$-$t$ flow equals the total capacity of the minimum $s$-$t$ cut partitioning vertices into source set $S$ and sink set $T$:\n$$|f^*| = \\min_{S, T} c(S, T) = \\sum_{u \\in S, v \\in T} c(u, v)$$\nWhen no augmenting path remains in $G_f$, the set of vertices reachable from $s$ defines the exact minimum capacity cut.",
       },
       {
         heading: "Real-World Applications & Network Optimization",
         body: "Max flow algorithms solve transportation logistics, internet traffic routing, bipartite matching, image segmentation (graph cuts in computer vision), airline flight scheduling, and maximum bipartite matching problems.",
       },
       {
-        heading: "Implementation Nuances & Complexity",
-        body: "Evaluating residual capacity capacity[u][v] - flow[u][v] > 0 requires tracking two-dimensional matrices or adjacency structures with explicit residual edges. Each BFS pass takes O(E) time, yielding O(V * E^2) total runtime.",
+        heading: "Complexity Analysis",
+        body: "$$\\text{Time Complexity}: \\mathcal{O}(V \\cdot E^2)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **BFS Pass**: Each BFS takes $\\mathcal{O}(E)$ time.\n- **Augmentations**: Number of augmenting paths is bounded by $\\mathcal{O}(V \\cdot E)$. Total runtime is $\\mathcal{O}(V \\cdot E^2)$.",
       },
     ],
     keyTerms: [
@@ -432,7 +432,7 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
       {
         term: "Residual Capacity",
         definition:
-          "The unallocated edge capacity capacity[u][v] - flow[u][v] available for additional flow.",
+          "The unallocated edge capacity $c_f(u, v) = c(u, v) - f(u, v)$ available for additional flow.",
       },
       {
         term: "Augmenting Path",
@@ -442,12 +442,12 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
       {
         term: "Bottleneck Capacity",
         definition:
-          "The minimum residual capacity along an augmenting path, which limits the maximum flow addition for that path.",
+          "The minimum residual capacity $\\gamma$ along an augmenting path, which limits the maximum flow addition for that path.",
       },
       {
         term: "Max-Flow Min-Cut Theorem",
         definition:
-          "Fundamental theorem stating that maximum s-t network flow equals the minimum total capacity of edges separating s from t.",
+          "Fundamental theorem stating that maximum $s$-$t$ network flow equals the minimum total capacity of edges separating $s$ from $t$.",
       },
     ],
   },

@@ -1,8 +1,8 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  ArrayElement,
-  ElementState,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
@@ -91,10 +91,58 @@ export const DEFAULT_XLA_HLO_GRAPH_OPTIMIZER_INPUT: XlaHloGraphOptimizerInput = 
     { id: "p1", opcode: "parameter", operands: [] },
     { id: "m1", opcode: "multiply", operands: ["p0", "p1"] },
     { id: "a1", opcode: "add", operands: ["m1", "p0"] },
-    { id: "r1", opcode: "reduce", operands: ["a1"] },
+    { id: "s1", opcode: "subtract", operands: ["a1", "p1"] },
+    { id: "d1", opcode: "divide", operands: ["s1", "p0"] },
+    { id: "r1", opcode: "reduce", operands: ["d1"] },
+    { id: "m2", opcode: "multiply", operands: ["r1", "p0"] },
+    { id: "r2", opcode: "reduce", operands: ["m2"] },
+    { id: "out", opcode: "parameter", operands: ["r2"] },
   ],
   maxFusionSize: 4,
 };
+
+function buildXlaMatrixSnapshot(
+  instructions: HloInstruction[],
+  currentIndex: number,
+  clusterInstIds: string[],
+): MatrixVisualSnapshot {
+  const colHeaders = ["Idx", "ID", "Opcode", "Operands", "Cluster State"];
+  const rows = instructions.length;
+  const cells: MatrixCellItem[] = [];
+
+  instructions.forEach((inst, r) => {
+    let state: MatrixCellItem["state"] = "default";
+    let statusText = "Pending";
+
+    if (clusterInstIds.includes(inst.id)) {
+      state = "active";
+      statusText = "In Cluster";
+    } else if (r < currentIndex) {
+      state = "sorted";
+      statusText = "Processed";
+    } else if (r === currentIndex) {
+      state = "pivot";
+      statusText = "Evaluating";
+    }
+
+    cells.push(
+      { row: r, col: 0, value: r, state },
+      { row: r, col: 1, value: inst.id, state },
+      { row: r, col: 2, value: inst.opcode, state },
+      { row: r, col: 3, value: inst.operands.join(", "), state },
+      { row: r, col: 4, value: statusText, state },
+    );
+  });
+
+  return {
+    kind: "matrix",
+    rows,
+    cols: 5,
+    colHeaders,
+    cells,
+    title: `XLA HLO Cluster Fusion Matrix`,
+  };
+}
 
 export const generateXlaHloGraphOptimizerSteps = (
   input: XlaHloGraphOptimizerInput,
@@ -103,33 +151,58 @@ export const generateXlaHloGraphOptimizerSteps = (
   let stepIndex = 0;
 
   const { instructions, maxFusionSize } = input;
+  const n = instructions.length;
 
-  const initialElements: ArrayElement[] = instructions.map((inst, idx) => ({
-    id: `inst-${idx}`,
-    value: inst.opcode,
-    state: "default",
-    pointers: [inst.id],
-  }));
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Google XLA HLO Graph Fusion Compiler",
-      why: `Loaded HLO instruction module with ${instructions.length} instructions. Max fusion cluster size: ${maxFusionSize}. Scanning for elementwise & reduction fusion sequences.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: initialElements,
-    },
-    auxiliaryState: {
-      customState: {
-        maxFusionSize: String(maxFusionSize),
-        totalInstructions: String(instructions.length),
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    currentIndex: number,
+    clusterInstIds: string[],
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: buildXlaMatrixSnapshot(instructions, currentIndex, clusterInstIds),
+      auxiliaryState: {
+        customState: {
+          maxFusionSize: String(maxFusionSize),
+          totalInstructions: String(n),
+          activeClusterSize: String(clusterInstIds.length),
+        },
       },
-    },
-    variables: { totalInstructions: instructions.length, maxFusionSize },
-  });
+      variables,
+    });
+  };
+
+  addStep(
+    1,
+    "Initialize Google XLA HLO Fusion Compiler",
+    `Loaded HLO module with ${n} instructions. Max cluster size = ${maxFusionSize}. Scanning for kLoop and kInput fusions.`,
+    { n, maxFusionSize },
+    0,
+    [],
+  );
+
+  addStep(
+    8,
+    "Initialize Container fused_instructions",
+    "Creating empty list to accumulate fused HLO nodes.",
+    { n },
+    0,
+    [],
+  );
+
+  addStep(
+    9,
+    "Initialize Container current_cluster",
+    "Creating cluster buffer to group compatible elementwise instructions.",
+    { n },
+    0,
+    [],
+  );
 
   const fusedInstructions: Array<{
     id: string;
@@ -141,43 +214,30 @@ export const generateXlaHloGraphOptimizerSteps = (
   let currentCluster: HloInstruction[] = [];
 
   instructions.forEach((inst, idx) => {
+    addStep(
+      11,
+      `Inspect Instruction '${inst.id}' (${inst.opcode})`,
+      `Evaluating instruction opcode '${inst.opcode}' for fusion compatibility.`,
+      { idx, inst_id: inst.id, opcode: inst.opcode },
+      idx,
+      currentCluster.map((c) => c.id),
+    );
+
     const isElementwise = ["multiply", "add", "broadcast", "subtract", "divide"].includes(
       inst.opcode,
     );
 
     if (isElementwise) {
       currentCluster.push(inst);
-      const elements: ArrayElement[] = instructions.map((item, i) => {
-        let state: ElementState = "default";
-        if (currentCluster.some((c) => c.id === item.id)) state = "active";
-        else if (i < idx) state = "visited";
-        return {
-          id: `inst-${i}`,
-          value: item.opcode,
-          state,
-          pointers: [item.id],
-        };
-      });
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 15,
-        explanation: {
-          what: `Add elementwise instruction '${inst.opcode}' (${inst.id}) to active fusion cluster`,
-          why: `Current fusion cluster size: ${currentCluster.length}/${maxFusionSize}. Operands evaluated in GPU SRAM registers without DRAM writes.`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements,
-        },
-        auxiliaryState: {
-          customState: {
-            activeClusterSize: String(currentCluster.length),
-            clusterOps: currentCluster.map((c) => c.opcode).join(", "),
-          },
-        },
-        variables: { idx, opcode: inst.opcode, clusterSize: currentCluster.length },
-      });
+      addStep(
+        13,
+        `Add '${inst.opcode}' (${inst.id}) to Active Fusion Cluster`,
+        `Cluster size is now ${currentCluster.length}/${maxFusionSize}. Operands cached in GPU SRAM registers.`,
+        { idx, inst_id: inst.id, clusterSize: currentCluster.length },
+        idx,
+        currentCluster.map((c) => c.id),
+      );
 
       if (currentCluster.length >= maxFusionSize) {
         const fusionNode = {
@@ -186,10 +246,39 @@ export const generateXlaHloGraphOptimizerSteps = (
           fusionKind: "kLoop",
           instructionsFused: currentCluster.map((i) => i.id),
         };
+
         fusedInstructions.push(fusionNode);
+
+        addStep(
+          22,
+          `Form kLoop Fusion Node '${fusionNode.id}' (Size ${maxFusionSize})`,
+          `Saturated max_fusion_size limit. Emitting kLoop parallel kernel for [${fusionNode.instructionsFused.join(", ")}].`,
+          { idx, fusion_id: fusionNode.id, kind: "kLoop" },
+          idx,
+          [],
+        );
+
         currentCluster = [];
+
+        addStep(
+          23,
+          "Reset Active Cluster Buffer to Empty",
+          "Flushed full cluster into fused_instructions; ready for new cluster.",
+          { idx },
+          idx,
+          [],
+        );
       }
     } else if (inst.opcode === "reduce") {
+      addStep(
+        24,
+        `Encountered Reduction Instruction '${inst.id}'`,
+        "Checking if an active elementwise producer cluster exists to form a kInput reduction fusion.",
+        { idx, inst_id: inst.id, hasCluster: currentCluster.length > 0 },
+        idx,
+        currentCluster.map((c) => c.id),
+      );
+
       if (currentCluster.length > 0) {
         currentCluster.push(inst);
         const fusionNode = {
@@ -199,37 +288,49 @@ export const generateXlaHloGraphOptimizerSteps = (
           instructionsFused: currentCluster.map((i) => i.id),
         };
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 27,
-          explanation: {
-            what: `Form kInput Reduction Fusion Cluster ending at '${inst.id}'`,
-            why: `Fused elementwise producers directly into reduction consumer node '${inst.id}'.`,
-          },
-          primarySnapshot: {
-            kind: "array",
-            elements: instructions.map((item, i) => ({
-              id: `inst-${i}`,
-              value: item.opcode,
-              state: i <= idx ? "visited" : "default",
-              pointers: [item.id],
-            })),
-          },
-          auxiliaryState: {
-            customState: {
-              fusedKind: "kInput (Reduction)",
-              fusedCount: String(fusionNode.instructionsFused.length),
-            },
-          },
-          variables: { idx, fusionKind: "kInput" },
-        });
-
         fusedInstructions.push(fusionNode);
+
+        addStep(
+          34,
+          `Form kInput Reduction Fusion Node '${fusionNode.id}'`,
+          `Fused elementwise producers [${currentCluster.slice(0, -1).map((c) => c.id).join(", ")}] directly into reduction consumer '${inst.id}'.`,
+          { idx, fusion_id: fusionNode.id, kind: "kInput" },
+          idx,
+          [],
+        );
+
         currentCluster = [];
+
+        addStep(
+          35,
+          "Reset Cluster Buffer After kInput Fusion",
+          "Flushed reduction cluster; resetting buffer.",
+          { idx },
+          idx,
+          [],
+        );
       } else {
         fusedInstructions.push(inst);
+
+        addStep(
+          37,
+          `Pass Through Unfused Reduction '${inst.id}'`,
+          "No producer cluster available; appending standalone reduce instruction.",
+          { idx, inst_id: inst.id },
+          idx,
+          [],
+        );
       }
     } else {
+      addStep(
+        38,
+        `Encountered Non-Fusable Barrier '${inst.id}' (${inst.opcode})`,
+        "Instruction acts as fusion boundary; flushing active cluster.",
+        { idx, inst_id: inst.id, opcode: inst.opcode },
+        idx,
+        currentCluster.map((c) => c.id),
+      );
+
       if (currentCluster.length > 0) {
         const fusionNode = {
           id: `fusion_${currentCluster[0].id}_${currentCluster[currentCluster.length - 1].id}`,
@@ -237,10 +338,31 @@ export const generateXlaHloGraphOptimizerSteps = (
           fusionKind: "kLoop",
           instructionsFused: currentCluster.map((i) => i.id),
         };
+
         fusedInstructions.push(fusionNode);
+
+        addStep(
+          47,
+          `Flush Cluster Before Barrier into '${fusionNode.id}'`,
+          `Emitted kLoop fusion node for preceding elements [${fusionNode.instructionsFused.join(", ")}].`,
+          { idx, fusion_id: fusionNode.id },
+          idx,
+          [],
+        );
+
         currentCluster = [];
       }
+
       fusedInstructions.push(inst);
+
+      addStep(
+        49,
+        `Append Barrier Instruction '${inst.id}' (${inst.opcode})`,
+        "Appended unfused instruction directly to output module.",
+        { idx, inst_id: inst.id },
+        idx,
+        [],
+      );
     }
   });
 
@@ -251,62 +373,118 @@ export const generateXlaHloGraphOptimizerSteps = (
       fusionKind: "kLoop",
       instructionsFused: currentCluster.map((i) => i.id),
     };
+
     fusedInstructions.push(fusionNode);
+
+    addStep(
+      59,
+      `Flush Trailing Cluster into '${fusionNode.id}'`,
+      `Emitted trailing kLoop fusion node for [${fusionNode.instructionsFused.join(", ")}].`,
+      { fusion_id: fusionNode.id },
+      n,
+      [],
+    );
   }
 
-  const finalElements: ArrayElement[] = fusedInstructions.map((f, idx) => ({
-    id: `fused-${idx}`,
-    value: f.opcode === "fusion" ? `fusion (${f.fusionKind})` : f.opcode,
-    state: "sorted",
-    pointers: [f.id],
-  }));
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 50,
-    explanation: {
-      what: "Google XLA HLO Cluster Fusion Complete",
-      why: `Compressed ${instructions.length} original HLO instructions into ${fusedInstructions.length} fused GPU/TPU execution nodes. Memory bandwidth footprint minimized.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: finalElements,
-    },
-    auxiliaryState: {
-      customState: {
-        originalCount: String(instructions.length),
-        fusedCount: String(fusedInstructions.length),
-      },
-    },
-    variables: { complete: true, finalCount: fusedInstructions.length },
-  });
+  addStep(
+    66,
+    "Google XLA HLO Cluster Fusion Complete",
+    `Successfully optimized HLO module from ${n} original instructions to ${fusedInstructions.length} fused GPU/TPU nodes.`,
+    { complete: true, origCount: n, fusedCount: fusedInstructions.length },
+    n,
+    [],
+  );
 
   return steps;
 };
 
 const XLA_HLO_GRAPH_OPTIMIZER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8],
-  hints: [
-    {
-      line: 15,
-      hint: "Accumulate elementwise instructions (multiply, add, broadcast) into active fusion cluster.",
-    },
-    {
-      line: 27,
-      hint: "Fuse elementwise producers directly into reduce consumer forming kInput fusion node.",
-    },
-    { line: 50, hint: "Return final HLO module instructions after cluster fusion pass." },
-  ],
+  skipLines: [2, 3, 4, 5, 6, 7, 10, 21, 23, 24, 33, 35, 36, 38, 46, 48, 50, 51, 58, 60, 61, 65, 66],
   distractors: [
     "current_cluster.clear()",
     "fusion_kind = 'kInvalid'",
     "fused_instructions = instructions[::-1]",
+    "max_fusion_size = 0",
+  ],
+  hints: [
+    {
+      line: 13,
+      hint: "Accumulate elementwise instructions (multiply, add, broadcast) into active fusion cluster.",
+    },
+    {
+      line: 26,
+      hint: "Fuse elementwise producers directly into reduce consumer forming kInput fusion node.",
+    },
+    { line: 49, hint: "Append non-fusable barrier instruction directly to fused_instructions." },
+    { line: 66, hint: "Return final optimized HLO module instruction payload." },
   ],
   lineExplanations: {
-    1: "Defines entry point for XLA HLO cluster fusion optimization compiler.",
-    15: "Accumulates elementwise HLO operations into SRAM fusion clusters.",
-    27: "Constructs kInput reduction fusion nodes combining producers with reduce operations.",
-    50: "Emits final optimized XLA HLO instruction module.",
+    1: "Function signature for optimize_xla_hlo receiving instructions and max_fusion_size.",
+    2: "Docstring start describing XLA HLO module optimization pass.",
+    3: "Describes instruction-level cluster fusion pass.",
+    4: "Describes identification of elementwise and reduction instruction sequences.",
+    5: "Describes grouping into kLoop or kInput fusion nodes.",
+    6: "Describes elimination of intermediate HBM allocations.",
+    7: "Docstring close.",
+    8: "Initializes fused_instructions list to store rewritten HLO instructions.",
+    9: "Initializes current_cluster list to track active elementwise instruction window.",
+    10: "Blank line before main loop.",
+    11: "Loop iterating over each instruction inst in instructions list.",
+    12: "Checks if opcode is elementwise operation (multiply, add, broadcast, subtract, divide).",
+    13: "Appends elementwise instruction inst to current_cluster.",
+    14: "Checks if current_cluster length has reached max_fusion_size threshold.",
+    15: "Opens fusion_node dictionary payload.",
+    16: "Sets composite fusion node identifier.",
+    17: "Sets opcode to fusion.",
+    18: "Sets fusionKind to kLoop for elementwise parallel loop execution.",
+    19: "Collects list of instruction IDs included in fusion cluster.",
+    20: "Sets rootOpcode to last instruction's opcode.",
+    21: "Closes fusion_node dictionary.",
+    22: "Appends fused kLoop node to fused_instructions.",
+    23: "Resets current_cluster to empty list.",
+    24: "Elif branch checking if opcode is reduce.",
+    25: "Checks if an active producer cluster current_cluster exists.",
+    26: "Appends reduce instruction inst to current_cluster.",
+    27: "Opens reduction fusion_node dictionary.",
+    28: "Sets composite fusion node identifier.",
+    29: "Sets opcode to fusion.",
+    30: "Sets fusionKind to kInput for producer-reduction fusion.",
+    31: "Collects fused instruction IDs.",
+    32: "Sets rootOpcode to reduce.",
+    33: "Closes reduction fusion_node payload.",
+    34: "Appends kInput fusion node to fused_instructions.",
+    35: "Resets current_cluster to empty list.",
+    36: "Else branch when reduce has no preceding elementwise cluster.",
+    37: "Appends unfused reduce instruction to fused_instructions.",
+    38: "Else branch for non-fusable barrier instructions (parameter, custom-call).",
+    39: "Checks if active cluster current_cluster exists before barrier.",
+    40: "Opens kLoop fusion_node dictionary for active cluster.",
+    41: "Sets composite fusion node identifier.",
+    42: "Sets opcode to fusion.",
+    43: "Sets fusionKind to kLoop.",
+    44: "Collects fused instruction IDs.",
+    45: "Sets rootOpcode to last cluster instruction opcode.",
+    46: "Closes fusion_node dictionary.",
+    47: "Appends fusion node to fused_instructions.",
+    48: "Resets current_cluster to empty list.",
+    49: "Appends non-fusable instruction inst directly to fused_instructions.",
+    50: "Blank line after main loop.",
+    51: "Checks if trailing un-flushed cluster current_cluster remains after loop.",
+    52: "Opens trailing fusion_node dictionary.",
+    53: "Sets composite fusion node identifier.",
+    54: "Sets opcode to fusion.",
+    55: "Sets fusionKind to kLoop.",
+    56: "Collects fused instruction IDs.",
+    57: "Sets rootOpcode to last cluster instruction opcode.",
+    58: "Closes trailing fusion_node payload.",
+    59: "Appends trailing fusion node to fused_instructions.",
+    60: "Blank line before final return.",
+    61: "Opens return dictionary payload.",
+    62: "Returns originalInstructionCount.",
+    63: "Returns fusedInstructionCount.",
+    64: "Returns fusedInstructions list.",
+    65: "Closes return dictionary payload.",
+    66: "Return statement end.",
   },
 };
 
@@ -320,18 +498,19 @@ export const xlaHloGraphOptimizer: AlgorithmDefinition<XlaHloGraphOptimizerInput
   mlInfraLevel: 7,
   mlInfraCategory: "ml_graph_compilers",
   description:
-    "Google Accelerated Linear Algebra (XLA) is a domain-specific compiler for TensorFlow, JAX, and PyTorch. XLA ingests High-Level Optimizer (HLO) IR graphs and applies cluster fusion passes—grouping elementwise operations into `kLoop` fusions and reduction trees into `kInput` fusions. Fused HLO clusters generate single monolithic CUDA kernels or TPU assembly instructions, eliminating DRAM memory roundtrips.\n\nInput Format:\n- instructions: List of HLO instruction metadata objects containing `id`, `opcode`, and `operands` references.\n- maxFusionSize: Maximum number of instructions permitted within a single fused HLO cluster.\n\nOutput Format:\n- Returns dictionary containing original and fused instruction counts alongside the rewritten `fusedInstructions` list.\n\nEdge Cases & Constraints:\n- Non-fusion barriers: Custom call operations, distributed collectives (AllReduce), or memory control-flow ops act as strict fusion barriers.\n- TPU register pressure: Excessive cluster fusion sizes induce register spilling on TPU/GPU hardware, requiring `maxFusionSize` constraints.",
+    "Google Accelerated Linear Algebra (XLA) is a domain-specific compiler framework designed for high-performance execution of TensorFlow, JAX, and PyTorch models across Cloud TPUs and NVIDIA GPUs. In un-fused computation graphs, evaluating complex expressions requires executing separate kernel launches for every math operation. Each kernel launch incurs launch latency and forces intermediate tensor results to be written to and read back from High Bandwidth Memory (HBM/DRAM).\n\n### Mathematical Formulation & Fusion Passes\n1. **`kLoop` Fusion**: Combines a chain of $K$ elementwise instructions $f_1, f_2, \\dots, f_K$ acting on element $x_j$:\n$$y_j = (f_K \\circ \\dots \\circ f_2 \\circ f_1)(x_j)$$\nIn an un-fused graph, this requires $K$ GPU/TPU kernel launches and $2K$ DRAM accesses per element. `kLoop` fusion collapses this into a single loop kernel executing in $1$ DRAM write and $1$ DRAM read, achieving memory traffic reduction ratio:\n$$\\text{Traffic Reduction} = \\frac{2K}{2} = K\\times$$\n\n2. **`kInput` Reduction Fusion**: Fuses elementwise producer instructions $g(x_j)$ directly into a downstream reduction consumer $\\text{Reduce}_{\\oplus}$ over axis $\\Omega$:\n$$S = \\bigoplus_{j \\in \\Omega} g(x_j)$$\nThe reduction kernel computes $g(x_j)$ on-the-fly in SRAM registers before accumulating into reduction register state $S$, bypassing intermediate vector storage entirely.\n\n3. **Fusion Boundaries & Register Constraints**: Non-fusable ops (such as `parameter` or `all-reduce`) act as fusion barriers, closing the active cluster and bounding maximum fusion size ($N_{\\text{cluster}} \\le N_{\\text{max}}$) to prevent register spilling.\n\nInput Format:\n- `instructions`: List of HLO instruction metadata objects containing `id`, `opcode`, and `operands` references.\n- `maxFusionSize`: Maximum number of instructions permitted within a single fused HLO cluster.\n\nOutput Format:\n- Returns dictionary containing original and fused instruction counts alongside rewritten `fusedInstructions` list.\n\nEdge Cases & Constraints:\n- Non-fusion barriers: Custom call operations, distributed collectives (AllReduce), or memory control-flow ops act as strict fusion barriers.\n- TPU register pressure: Excessive cluster fusion sizes ($N_{\\text{cluster}} > N_{\\text{max}}$) induce register spilling on TPU/GPU hardware, requiring `maxFusionSize` constraints.",
   constraints: ["1 <= instructions.length <= 100", "1 <= maxFusionSize <= 32"],
   examples: [
     {
       kind: "basic",
-      title: "Elementwise + Reduce kInput Fusion",
-      inputDisplay: "instructions=[parameter, parameter, multiply, add, reduce], maxFusionSize=4",
-      outputDisplay: "fused HLO module (1 parameter ops + 1 kInput fusion node)",
+      title: "10 HLO Instructions with kLoop & kInput Fusions",
+      inputDisplay:
+        "10 instructions: 2 parameters, 4 elementwise ops (multiply/add/sub/div), 1 reduce, 1 multiply, 1 reduce, 1 output parameter",
+      outputDisplay: "Compressed HLO module with kLoop and kInput fusion nodes",
       input: DEFAULT_XLA_HLO_GRAPH_OPTIMIZER_INPUT,
-      output: "fusion (kInput), parameter",
+      output: "Optimized HLO module with 5 fused/parameter nodes",
       explanation:
-        "Fuses multiply and add producers directly into the reduce consumer, creating a single kInput reduction kernel.",
+        "Fuses elementwise producers into kLoop and kInput reduction nodes, eliminating intermediate DRAM writes.",
     },
     {
       kind: "complex",
@@ -379,23 +558,27 @@ export const xlaHloGraphOptimizer: AlgorithmDefinition<XlaHloGraphOptimizerInput
   },
   topicGuide: {
     overview:
-      "Google XLA (Accelerated Linear Algebra) optimizes AI workloads across Cloud TPUs and NVIDIA/AMD GPUs. By operating on High-Level Optimizer (HLO) IR graphs, XLA analyzes dataflow patterns and fuses hundreds of fine-grained tensor operations into custom ML target code.",
+      "Google XLA (Accelerated Linear Algebra) is the underlying compilation engine for JAX, TensorFlow, and PyTorch/XLA. It targets Cloud TPUs (v4, v5p, v6e) and NVIDIA/AMD GPUs, optimizing compute graphs to extract maximum hardware utilization.",
     sections: [
       {
-        heading: "Core Concepts & HLO Fusion Taxonomies (kLoop vs kInput)",
-        body: "XLA categorizes instruction fusion into two primary kinds: `kLoop` fusion merges sequences of pure elementwise operations ($x \\cdot y + z$), emitting a single multi-threaded loop. `kInput` fusion merges elementwise producer nodes directly into a reduction consumer node (e.g. $\\text{ReduceSum}(\\text{Abs}(X))$), avoiding writing intermediate absolute values to memory.",
+        heading: "Why It Exists",
+        body: "High-level ML frameworks build flexible dataflow graphs where every primitive function is decoupled. When executed naively, memory bandwidth bounds severely restrict GPU/TPU performance. XLA compiles entire computational subgraphs into custom machine code, eliminating memory roundtrips.",
       },
       {
-        heading: "Systems & Memory Hierarchy Footprint Optimization",
-        body: "In un-fused JAX or PyTorch code, evaluating $A = B \\cdot C + D$ requires two GPU kernel launches and allocating intermediate array $B \\cdot C$ in High Bandwidth Memory (HBM). XLA HLO fusion keeps intermediate values inside fast GPU SRAM registers, lowering memory bandwidth traffic by up to $5\\times$.",
+        heading: "What It Solves",
+        body: "XLA addresses memory bandwidth saturation and kernel launch overheads. By combining elementwise operations into `kLoop` kernels and reductions into `kInput` kernels, XLA drastically reduces memory traffic and accelerates tensor computations by $3\\times - 7\\times$.",
       },
       {
-        heading: "Implementation Nuances & Heuristic Cost Modeling",
-        body: "XLA uses a cost model to determine whether fusion is advantageous. If fusing an instruction causes it to be recomputed multiple times by separate consumers, XLA compares the memory bandwidth saved against the extra FLOP computation cost before committing to fusion.",
+        heading: "Step-by-Step Intuition",
+        body: "The compiler pass iterates through HLO instructions sequentially. It accumulates elementwise operations into an active cluster up to `maxFusionSize` ($N_{\\text{cluster}} \\le N_{\\text{max}}$). If a reduction operation is encountered, it fuses the cluster into a `kInput` reduction node. If a barrier (e.g. parameter or collective) is hit, it flushes the active cluster into a `kLoop` fusion node.",
       },
       {
-        heading: "Edge Cases & Production Accelerator Hardware Bounds",
-        body: "Excessively large fusion clusters exceed available GPU shared memory or TPU vector register file limits, causing 'register spilling' to slow DRAM. XLA limits cluster depth via `maxFusionSize` heuristics and target register availability checks.",
+        heading: "Trade-offs & Systems Impact",
+        body: "Fusing too many operations into a single kernel increases register usage on GPU/TPU hardware. If register demand exceeds physical register file size ($R_{\\text{allocated}} > R_{\\text{max}}$), the compiler spills registers to slow memory, degrading performance. `maxFusionSize` limits prevent register pressure overflow.",
+      },
+      {
+        heading: "Complexity & Scalability",
+        body: "HLO cluster fusion executes in linear $\\mathcal{O}(H)$ time relative to instruction count $H$. Memory complexity is $\\mathcal{O}(H)$ for the transformed module.",
       },
     ],
     keyTerms: [
@@ -412,12 +595,12 @@ export const xlaHloGraphOptimizer: AlgorithmDefinition<XlaHloGraphOptimizerInput
       {
         term: "kLoop Fusion",
         definition:
-          "XLA fusion pass combining pure elementwise operations into a single parallel loop kernel.",
+          "XLA fusion pass combining pure elementwise operations into a single parallel loop kernel: $y_j = (f_K \\circ \\dots \\circ f_1)(x_j)$.",
       },
       {
         term: "kInput Reduction Fusion",
         definition:
-          "XLA fusion pass merging elementwise producer operations directly into a reduction operation.",
+          "XLA fusion pass merging elementwise producer operations directly into a reduction operation: $S = \\bigoplus_{j \\in \\Omega} g(x_j)$.",
       },
     ],
   },

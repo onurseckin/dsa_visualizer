@@ -1,6 +1,6 @@
 import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Card, FieldLabel, Well } from "..";
+import { Card, FieldLabel, Well, MarkdownRenderer } from "..";
 import { cx } from "../cx";
 import {
   CategoryType,
@@ -98,9 +98,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
             <section>
               <FieldLabel label="Problem" />
               <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-                <p className="m-0 text-base leading-relaxed text-[var(--text-secondary)]">
-                  {description}
-                </p>
+                <MarkdownRenderer content={description} />
               </Well>
             </section>
 

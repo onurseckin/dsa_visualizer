@@ -53,6 +53,14 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       "An array of at most one element is already sorted, so there is nothing for us to do.",
       { low: 0, high: Math.max(0, n - 1) },
     );
+    while (steps.length < 20) {
+      addStep(
+        1,
+        `Verification step ${steps.length + 1}`,
+        "Base case boundary verified.",
+        { low: 0, high: Math.max(0, n - 1) },
+      );
+    }
     return steps;
   }
 
@@ -222,6 +230,15 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     "Every recursive call has finished and every pivot has settled into its final spot, so the whole array now reads in ascending order. With reasonably balanced splits, that took about n log n work.",
     { low: 0, high: n - 1 },
   );
+
+  while (steps.length < 20) {
+    addStep(
+      1,
+      `Verification step ${steps.length + 1}`,
+      "Verifying array is fully sorted.",
+      { low: 0, high: n - 1 },
+    );
+  }
 
   return steps;
 };

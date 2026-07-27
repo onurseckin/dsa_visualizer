@@ -1,8 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, GridCellNode, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface cudnnImplicitGemmOnTheFlyKernelInput {
-  data: number[];
+  image?: number[][];
+  kernel?: number[][];
+  stride?: number;
+  padding?: number;
+  data?: number[];
   target?: number;
 }
 
@@ -50,12 +54,21 @@ export const CUDNNIMPLICITGEMMONTHEFLYKERNEL_CODE = `def cudnn_implicit_gemm_on_
 
         output_map[out_r][out_c] = acc
 
-    return output_map
-`;
+    return output_map`;
 
 export const DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT: cudnnImplicitGemmOnTheFlyKernelInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  image: [
+    [1, 2, 3, 0],
+    [0, 1, 2, 3],
+    [3, 0, 1, 2],
+    [2, 3, 0, 1],
+  ],
+  kernel: [
+    [2, 0],
+    [0, -1],
+  ],
+  stride: 1,
+  padding: 0,
 };
 
 export const generateCudnnImplicitGemmOnTheFlyKernelSteps = (
@@ -63,99 +76,357 @@ export const generateCudnnImplicitGemmOnTheFlyKernelSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+
+  const image = input.image || [
+    [1, 2, 3, 0],
+    [0, 1, 2, 3],
+    [3, 0, 1, 2],
+    [2, 3, 0, 1],
+  ];
+
+  const kernel = input.kernel || [
+    [2, 0],
+    [0, -1],
+  ];
+
+  const stride = input.stride ?? 1;
+  const padding = input.padding ?? 0;
+
+  const hIn = image.length;
+  const wIn = image[0].length;
+  const kH = kernel.length;
+  const kW = kernel[0].length;
+
+  const hOut = Math.floor((hIn + 2 * padding - kH) / stride) + 1;
+  const wOut = Math.floor((wIn + 2 * padding - kW) / stride) + 1;
+
+  const mDim = hOut * wOut;
+  const kDim = kH * kW;
+
+  const outputMap: number[][] = Array.from({ length: hOut }, () => Array(wOut).fill(0));
+
+  const createGrid = (
+    activeOutR: number = -1,
+    activeOutC: number = -1,
+  ): GridCellNode[][] => {
+    return outputMap.map((row, r) =>
+      row.map((val, c) => {
+        let state: "default" | "active" | "compare" | "visited" = "default";
+        if (r === activeOutR && c === activeOutC) {
+          state = "active";
+        } else if (val !== 0) {
+          state = "visited";
+        }
+        return {
+          row: r,
+          col: c,
+          state,
+          distance: val,
+        };
+      }),
+    );
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeOutR: number = -1,
+    activeOutC: number = -1,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "grid",
+        grid: createGrid(activeOutR, activeOutC),
       },
       auxiliaryState: {
         customState: {
-          im2colBuffer: "Implicit GEMM Register Tile",
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          "Algorithm": "cuDNN / CUTLASS Implicit GEMM",
+          "GEMM Tile m_dim": `${mDim} (Spatial Tokens)`,
+          "GEMM Reduction k_dim": `${kDim} (Kernel Footprint)`,
+          "DRAM Storage Allocated": "0 Bytes (Im2col computed in SRAM registers)",
+          "Output Matrix": `[${outputMap.map((r) => `[${r.map((v) => v.toFixed(1)).join(", ")}]`).join(", ")}]`,
         },
       },
       variables,
     });
   };
 
+  // Step 1: Entry
   addStep(
     1,
-    "Initialize cuDNN Implicit GEMM On-The-Fly Kernel",
-    "Setting up CUDA warp block tiles and on-the-fly coordinate mapping math in GPU registers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "cuDNN Implicit GEMM On-The-Fly Kernel Entry",
+    `Started cuDNN CUTLASS implicit GEMM kernel simulation on ${hIn}x${wIn} image and ${kH}x${kW} kernel with stride=${stride}, padding=${padding}.`,
+    { hIn, wIn, kH, kW, stride, padding },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Step 2: Measure input
+  addStep(
+    9,
+    "Measure Input Spatial Dimensions h_in, w_in",
+    `Input spatial dimensions: h_in = ${hIn}, w_in = ${wIn}.`,
+    { hIn, wIn },
+  );
 
+  // Step 3: Measure kernel
+  addStep(
+    10,
+    "Measure Kernel Filter Dimensions k_h, k_w",
+    `Convolution filter kernel dimensions: k_h = ${kH}, k_w = ${kW}.`,
+    { kH, kW },
+  );
+
+  // Step 4: Calculate h_out
+  addStep(
+    12,
+    "Calculate Spatial Output Height h_out",
+    `Output feature height h_out = (${hIn} + 2 * ${padding} - ${kH}) // ${stride} + 1 = ${hOut}.`,
+    { hOut, hIn, kH, stride, padding },
+  );
+
+  // Step 5: Calculate w_out
+  addStep(
+    13,
+    "Calculate Spatial Output Width w_out",
+    `Output feature width w_out = (${wIn} + 2 * ${padding} - ${kW}) // ${stride} + 1 = ${wOut}.`,
+    { wOut, wIn, kW, stride, padding },
+  );
+
+  // Step 6: Define m_dim
+  addStep(
+    15,
+    "Define GEMM Spatial Token Dimension m_dim",
+    `GEMM M dimension (number of spatial output tokens): m_dim = ${hOut} * ${wOut} = ${mDim}.`,
+    { mDim, hOut, wOut },
+  );
+
+  // Step 7: Define k_dim
+  addStep(
+    16,
+    "Define GEMM Reduction Footprint Dimension k_dim",
+    `GEMM K reduction dimension (unrolled kernel size): k_dim = ${kH} * ${kW} = ${kDim}.`,
+    { kDim, kH, kW },
+  );
+
+  // Step 8: Allocate output map
+  addStep(
+    19,
+    "Initialize Output Matrix Buffer",
+    `Allocated ${hOut}x${wOut} output feature map filled with 0.0 floats.`,
+    { hOut, wOut },
+  );
+
+  // Implicit GEMM Simulation Loop
+  for (let m = 0; m < mDim; m++) {
+    addStep(
+      22,
+      `Outer GEMM Token Loop: m = ${m}`,
+      `Processing GEMM spatial token index m = ${m} of ${mDim - 1}.`,
+      { m, mDim },
+    );
+
+    const outR = Math.floor(m / wOut);
+    addStep(
+      23,
+      `On-The-Fly Decode Output Row: out_r = ${outR}`,
+      `Decoded spatial output row: out_r = m // w_out = ${m} // ${wOut} = ${outR}.`,
+      { m, wOut, outR },
+      outR,
+    );
+
+    const outC = m % wOut;
     addStep(
       24,
-      `Evaluate implicit GEMM coordinate for element ${idx}: value = ${val}`,
-      `Calculating spatial coordinates on-the-fly in SRAM registers to perform Tensor Core dot products.`,
-      { idx, val, isTarget },
-      currentElements,
+      `On-The-Fly Decode Output Col: out_c = ${outC}`,
+      `Decoded spatial output col: out_c = m % w_out = ${m} % ${wOut} = ${outC}.`,
+      { m, wOut, outC },
+      outR,
+      outC,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    let acc = 0.0;
+    addStep(
+      26,
+      `Reset Tensor Core Accumulator: acc = 0.0`,
+      `Initialized Systolic Array accumulator acc = 0.0 for token m = ${m} at (${outR}, ${outC}).`,
+      { m, outR, outC, acc },
+      outR,
+      outC,
+    );
 
+    for (let k = 0; k < kDim; k++) {
+      addStep(
+        28,
+        `GEMM K-Reduction Loop: k = ${k}`,
+        `Scanning GEMM reduction tap k = ${k} of ${kDim - 1}.`,
+        { m, k, kDim },
+        outR,
+        outC,
+      );
+
+      const kr = Math.floor(k / kW);
+      addStep(
+        29,
+        `Decode Kernel Row: kr = ${kr}`,
+        `Decoded kernel row: kr = k // k_w = ${k} // ${kW} = ${kr}.`,
+        { k, kW, kr },
+        outR,
+        outC,
+      );
+
+      const kc = k % kW;
+      addStep(
+        30,
+        `Decode Kernel Col: kc = ${kc}`,
+        `Decoded kernel col: kc = k % k_w = ${k} % ${kW} = ${kc}.`,
+        { k, kW, kc },
+        outR,
+        outC,
+      );
+
+      const imgR = outR * stride + kr - padding;
+      addStep(
+        32,
+        `Implicit On-The-Fly Image Row Address: img_r = ${imgR}`,
+        `Evaluated img_r = out_r * stride + kr - padding = ${outR} * ${stride} + ${kr} - ${padding} = ${imgR}.`,
+        { outR, stride, kr, padding, imgR },
+        outR,
+        outC,
+      );
+
+      const imgC = outC * stride + kc - padding;
+      addStep(
+        33,
+        `Implicit On-The-Fly Image Col Address: img_c = ${imgC}`,
+        `Evaluated img_c = out_c * stride + kc - padding = ${outC} * ${stride} + ${kc} - ${padding} = ${imgC}.`,
+        { outC, stride, kc, padding, imgC },
+        outR,
+        outC,
+      );
+
+      const inside = imgR >= 0 && imgR < hIn && imgC >= 0 && imgC < wIn;
+      const valA = inside ? image[imgR][imgC] : 0.0;
+      addStep(
+        35,
+        `Fetch Implicit Activation val_a = ${valA}`,
+        `Fetched val_a = ${valA} directly from DRAM image coordinate (${imgR}, ${imgC}) without im2col buffer allocation.`,
+        { imgR, imgC, hIn, wIn, valA },
+        outR,
+        outC,
+      );
+
+      const valB = kernel[kr][kc];
+      addStep(
+        40,
+        `Fetch Kernel Weight val_b = ${valB}`,
+        `Fetched filter weight val_b = ${valB} at kernel position (${kr}, ${kc}).`,
+        { kr, kc, valB },
+        outR,
+        outC,
+      );
+
+      const prod = valA * valB;
+      acc += prod;
+      addStep(
+        41,
+        `Accumulate FMA: acc += ${valA} * ${valB} = ${prod}`,
+        `Executed FMA (Fused Multiply-Add) on GPU Tensor Core. Updated acc = ${acc.toFixed(1)}.`,
+        { m, k, valA, valB, prod, acc },
+        outR,
+        outC,
+      );
+    }
+
+    outputMap[outR][outC] = acc;
+    addStep(
+      43,
+      `Store Final Spatial Token: output_map[${outR}][${outC}] = ${acc.toFixed(1)}`,
+      `Wrote completed dot product ${acc.toFixed(1)} into output grid at (${outR}, ${outC}).`,
+      { outR, outC, "output_map[out_r][out_c]": acc },
+      outR,
+      outC,
+    );
+  }
+
+  // Step final
   addStep(
-    40,
+    45,
     "Execution Complete",
-    "Successfully computed implicit GEMM convolution with zero DRAM unroll allocation.",
-    { completed: true },
-    finalElements,
+    `Successfully completed cuDNN Implicit GEMM On-The-Fly Kernel execution. Zero DRAM im2col memory buffer allocated.`,
+    { completed: true, mDim, kDim },
   );
 
   return steps;
 };
 
 const CUDNNIMPLICITGEMMONTHEFLYKERNEL_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 11, 14, 17, 18, 20, 21, 25, 27, 31, 34, 39, 42, 44],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "im2col_buf = allocate_dram(m_dim * k_dim)",
+    "out_r = m % w_out",
+    "kr = k * k_w",
+    "acc *= val_a * val_b",
   ],
   hints: [
     {
-      line: 24,
-      hint: "Compute im2col DRAM offsets dynamically inside GPU registers without explicit buffer allocation.",
+      line: 23,
+      hint: "On-the-fly decode GEMM index m into spatial output row out_r = m // w_out and col out_c = m % w_out.",
+    },
+    {
+      line: 32,
+      hint: "Compute image row address implicitly inside inner CUDA warp loop: img_r = out_r * stride + kr - padding.",
     },
   ],
   lineExplanations: {
-    1: "Defines entry point for cuDNN Implicit GEMM On-The-Fly Kernel.",
-    24: "Maps GEMM reduction coordinate k dynamically to image spatial coordinate (img_r, img_c).",
-    40: "Returns convolved output feature map.",
+    1: "Defines entry point for cuDNN implicit GEMM on-the-fly kernel function.",
+    2: "Docstring opening delimiter tag.",
+    3: "Describes cuDNN / CUTLASS implicit GEMM computing spatial im2col indices on-the-fly in GPU SRAM registers.",
+    4: "Docstring continuation tag.",
+    5: "Docstring formula line explaining C[m, n] = sum_k (A_implicit[m, k] * B[k, n]).",
+    6: "Docstring parameter detail mapping m to spatial token, n to channel, and k to kernel tap.",
+    7: "Docstring continuation tag.",
+    8: "Docstring closing delimiter tag.",
+    9: "Unpacks height h_in and width w_in of input image matrix.",
+    10: "Unpacks height k_h and width k_w of filter weight kernel.",
+    11: "Blank line before output dimension calculation.",
+    12: "Calculates spatial output height h_out using integer division floor.",
+    13: "Calculates spatial output width w_out using integer division floor.",
+    14: "Blank line before GEMM dimension definition.",
+    15: "Calculates GEMM M dimension m_dim = h_out * w_out representing spatial output tokens.",
+    16: "Calculates GEMM K reduction dimension k_dim = k_h * k_w representing unrolled kernel footprint.",
+    17: "Blank line before output matrix allocation.",
+    18: "Comment for output feature map matrix.",
+    19: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
+    20: "Blank line before implicit GEMM simulation loop.",
+    21: "Comment for implicit GEMM simulation iterating over GEMM token index m.",
+    22: "Iterates over GEMM spatial token index m from 0 to m_dim - 1.",
+    23: "Decodes spatial output row coordinate out_r = m // w_out.",
+    24: "Decodes spatial output column coordinate out_c = m % w_out.",
+    25: "Blank line before accumulator initialization.",
+    26: "Resets Systolic Array accumulator scalar acc to 0.0 for token m.",
+    27: "Comment for GEMM reduction dimension k on-the-fly address mapping.",
+    28: "Iterates over GEMM reduction tap index k from 0 to k_dim - 1.",
+    29: "Decodes filter kernel row index kr = k // k_w.",
+    30: "Decodes filter kernel column index kc = k % k_w.",
+    31: "Blank line before implicit address calculation.",
+    32: "Calculates spatial image row index img_r = out_r * stride + kr - padding on-the-fly.",
+    33: "Calculates spatial image column index img_c = out_c * stride + kc - padding on-the-fly.",
+    34: "Blank line before boundary check.",
+    35: "Checks if spatial image coordinate (img_r, img_c) is inside valid input image bounds.",
+    36: "Fetches activation val_a = image[img_r][img_c] directly from DRAM without im2col memory buffer.",
+    37: "Branch executed when coordinate is out of bounds.",
+    38: "Sets val_a = 0.0 for zero-padding.",
+    39: "Blank line before kernel weight fetch.",
+    40: "Loads filter weight val_b = kernel[kr][kc].",
+    41: "Executes FMA (Fused Multiply-Add) accumulating val_a * val_b into acc.",
+    42: "Blank line separating inner reduction loop from output store.",
+    43: "Stores completed dot product accumulation acc into output_map[out_r][out_c].",
+    44: "Blank line separating GEMM token loop from return statement.",
+    45: "Returns final 2D feature map matrix output_map.",
   },
 };
 
@@ -164,98 +435,82 @@ export const cudnnImplicitGemmOnTheFlyKernel: AlgorithmDefinition<cudnnImplicitG
     id: "cudnnImplicitGemmOnTheFlyKernel",
     title: "cuDNN Implicit GEMM On-The-Fly Kernel",
     category: "ml_convolutions",
-    categories: ["ml_convolutions", "ml_hardware_kernels"],
-    difficulty: "Hard",
+    categories: ["ml_convolutions", "ml_gemm_roofline"],
+    difficulty: "Medium",
     isMlInfra: true,
     mlInfraLevel: 8,
     mlInfraCategory: "ml_convolutions",
     description:
-      "Explicit im2col requires writing large temporary unroll matrices to High Bandwidth Memory (DRAM), causing severe memory bandwidth bottlenecks. NVIDIA cuDNN and CUTLASS solve this using Implicit GEMM kernels: GPU thread blocks load activation tiles directly into fast SRAM/registers and compute spatial im2col coordinates on-the-fly (img_r = out_r * stride + kr - padding) inside the GEMM reduction loop, achieving peak Tensor Core TFLOPS with zero DRAM memory overhead.\n\nInput Format:\n- image: 2D activation tensor [H, W].\n- kernel: 2D weight matrix [K_h, K_w].\n- stride: Spatial stride step.\n- padding: Zero-padding size.\n\nOutput Format:\n- Returns output feature map matrix [H_out, W_out].\n\nEdge Cases & Constraints:\n- Predicate masking in registers: Out-of-bounds zero-padding checks evaluated in registers without branch divergence.\n- Memory coalescing: Mapping GEMM tile indices (M, N, K) to aligned DRAM loads.\n- Warp-level MMA (Matrix Multiply-Accumulate) primitive tile alignment (e.g. 16x16x16 Tensor Core tiles).",
-    constraints: ["1 <= H, W <= 4096", "1 <= K_h, K_w <= H, W", "stride >= 1"],
+      "cuDNN and CUTLASS **Implicit GEMM** kernels execute 2D spatial convolutions at peak Tensor Core FLOPS by calculating `im2col` spatial memory addresses **on-the-fly** inside GPU CUDA warp register loops. Instead of allocating massive explicit DRAM memory buffers for unrolled $X_{col}$ matrices, Implicit GEMM maps GEMM matrix indices $(m, k)$ directly to 4D input tensor coordinates $(b, ci, ir, ic)$ using integer arithmetic instructions inside GPU register files.\n\n### Why It Exists\nExplicit `im2col` unrolling allocates $O(K_h \\cdot K_w \\cdot N \\cdot H_{out} \\cdot W_{out})$ DRAM memory, incurring severe memory bandwidth overhead ($50\\%+$ of GPU time spent moving bytes to/from DRAM). Implicit GEMM achieves zero extra DRAM memory allocations while feeding GPU Systolic Array Tensor Cores at full compute throughput.\n\n### Mathematical Formulation\nStandard convolution is formulated as a 2D GEMM matrix multiplication $C[m, n] = \\sum_{k=0}^{K-1} A_{implicit}[m, k] \\cdot B[k, n]$, where:\n\n$$m = r \\cdot W_{out} + c \\quad (\\text{Output Spatial Token Index})$$\n\n$$k = ci \\cdot K_h K_w + kr \\cdot K_w + kc \\quad (\\text{Reduction Footprint Index})$$\n\n$$n = co \\quad (\\text{Output Channel Index})$$\n\nOn-the-fly address generation decodes $(m, k)$ directly in GPU registers:\n\n$$out\\_r = m // W_{out}, \\quad out\\_c = m \\% W_{out}$$\n\n$$kr = k // K_w, \\quad kc = k \\% K_w$$\n\n$$img\\_r = out\\_r \\cdot S + kr - P, \\quad img\\_c = out\\_c \\cdot S + kc - P$$\n\n$$A_{implicit}[m, k] = \\begin{cases} X[ci, img\\_r, img\\_c] & \\text{if } 0 \\le img\\_r < H_{in} \\text{ and } 0 \\le img\\_c < W_{in} \\\\ 0.0 & \\text{otherwise} \\end{cases}$$\n\n### Step-by-Step Intuition\n1. **GEMM Grid Dispatch**: Dispatch GPU thread blocks across 2D GEMM tile dimensions $M \\times N$ ($M = H_{out}W_{out}$, $N = C_{out}$).\n2. **Index Decoding**: Inside CUDA thread registers, decode thread token index $m$ to spatial coordinates $(out\\_r, out\\_c)$.\n3. **On-The-Fly Address Generation**: For each reduction step $k$, compute image row $img\\_r$ and col $img\\_c$ using fast SIMD integer instructions.\n4. **Direct DRAM Read**: Load activation scalar directly from $X[img\\_r, img\\_c]$ into GPU L1/SRAM registers.\n5. **Tensor Core FMA**: Pass registers directly into Tensor Core MMA (Matrix Multiply Accumulate) instructions.\n\n### Key Trade-Offs & Hardware Execution\n- **Zero Memory Overhead**: Saves gigabytes of GPU VRAM in large LLM vision backbones (CLIP, LLaVA).\n- **Integer Arithmetic Overhead**: Requires GPU ALUs to compute integer division and modulo (`//` and `%`) on every reduction step. Compiler optimizations (CUTLASS fast integer division via magic multiplication constants) eliminate division latency.",
+    constraints: [
+      "1 <= H_in, W_in <= 1024",
+      "1 <= K_h, K_w <= 11",
+      "stride >= 1",
+      "padding >= 0",
+    ],
     examples: [
       {
         kind: "basic",
-        title: "Implicit 2x2 GEMM Tile",
-        inputDisplay: "image = 4x4, kernel = 2x2, stride = 1",
-        outputDisplay: "3x3 output feature map",
-        input: { data: [10, 20, 30, 40, 50], target: 30 },
-        output: "[10, 20, 30, 40, 50]",
-        explanation:
-          "Computes spatial 2x2 patch indices dynamically in registers during GEMM execution.",
-      },
-      {
-        kind: "complex",
-        title: "Strided Implicit GEMM",
-        inputDisplay: "image = 6x6, kernel = 3x3, stride = 2",
-        outputDisplay: "2x2 output feature map",
-        input: { data: [1, 2, 3, 4, 5], target: 4 },
-        output: "[1, 2, 3, 4, 5]",
-        explanation:
-          "Evaluates strided index offsets on-the-fly in SRAM without memory unroll allocations.",
-      },
-      {
-        kind: "negative",
-        title: "Predicated Border Masking",
-        inputDisplay: "image = 3x3, kernel = 3x3, padding = 1",
-        outputDisplay: "3x3 output with border predicates zeroed",
-        input: { data: [5, 10, 15], target: 99 },
-        output: "[5, 10, 15]",
-        explanation: "Register predicate masks zero out out-of-bound activation loads dynamically.",
+        title: "Standard 4x4 Image Implicit GEMM Execution",
+        inputDisplay: "Image 4x4, Kernel 2x2, Stride 1",
+        outputDisplay: "Output 3x3 matrix",
+        input: DEFAULT_CUDNNIMPLICITGEMMONTHEFLYKERNEL_INPUT,
+        output: "3x3 spatial output feature map",
+        explanation: "Decodes 9 spatial GEMM tokens on-the-fly without DRAM im2col memory buffer.",
       },
     ],
     code: CUDNNIMPLICITGEMMONTHEFLYKERNEL_CODE,
     timeComplexity: {
-      best: "O(H_{out} W_{out} K^2)",
-      average: "O(H_{out} W_{out} K^2)",
-      worst: "O(H_{out} W_{out} K^2)",
+      best: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
+      average: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
+      worst: "O(H_{out} \\cdot W_{out} \\cdot K_h \\cdot K_w)",
     },
-    spaceComplexity: "O(1)",
+    spaceComplexity: "O(H_{out} \\cdot W_{out})",
     complexityAnalysis: {
-      time: "Evaluates H_{out} * W_{out} * K^2 inner product operations directly inside GEMM thread tiles.",
-      space:
-        "Requires O(1) auxiliary DRAM space because spatial coordinates are computed on-the-fly in SRAM registers.",
+      time: "Evaluates $K_h \\cdot K_w$ reduction steps for each of the $H_{out} \\cdot W_{out}$ spatial tokens, executing at peak Tensor Core TFLOPS.",
+      space: "Requires $O(H_{out} \\cdot W_{out})$ memory for output feature map storage; zero extra memory allocated for im2col unrolling.",
     },
     topicGuide: {
       overview:
-        "The cuDNN Implicit GEMM On-The-Fly Kernel computes spatial im2col memory coordinates dynamically within GPU Tensor Core register tiles, eliminating DRAM unroll allocation bottlenecks.",
+        "The **cuDNN Implicit GEMM On-The-Fly Kernel** computes spatial im2col memory addresses dynamically inside GPU register loops, eliminating DRAM buffer allocations.",
       sections: [
         {
-          heading: "Core Concepts & On-The-Fly Coordinate Math",
-          body: "Implicit GEMM formulates convolution as C[m, n] = sum_k (A[m, k] * B[k, n]). Rather than loading A from a pre-unrolled DRAM buffer, GPU threads evaluate the index mapping (m, k) -> (img_r, img_c) = ( (m // W_out)*S + k // K_w - P, (m % W_out)*S + k % K_w - P ) in fast register hardware.",
+          heading: "1. Core Concept & Implicit GEMM Address Generation",
+          body: "Implicit GEMM simulates matrix multiplication $C[m, n] = \\sum_k A_{implicit}[m, k] \\cdot B[k, n]$. Instead of pre-building $A_{implicit}$ in DRAM, CUDA thread blocks compute $A_{implicit}[m, k]$ by decoding $m \\to (out\\_r, out\\_c)$ and $k \\to (kr, kc)$ in registers.",
         },
         {
-          heading: "Systems & Hardware Kernel Architecture",
-          body: "High-performance kernels (cuDNN, CUTLASS) partition the GEMM space into thread block tiles (e.g. 128x128x32). Asynchronous global-to-shared copy instructions (`cp.async`) stream activation blocks directly into Shared Memory (SRAM), overlapping memory access with Tensor Core math execution.",
+          heading: "2. Systems & Memory Hierarchy Advantages",
+          body: "Explicit `im2col` inflates DRAM memory footprint by $K_h \\cdot K_w$ times. Implicit GEMM executes with 0 Bytes of extra DRAM memory allocation, keeping memory traffic limited to original input activation reads and output feature writes.",
         },
         {
-          heading: "Implementation Nuances & Data Formats",
-          body: "NHWC layout (channels-last) is strongly preferred for Implicit GEMM because contiguous channel elements lie along the fastest-moving memory dimension, enabling 128-bit vectorized loads (LDG.128).",
+          heading: "3. CUTLASS & Fast Integer Division",
+          body: "Evaluating integer division ($m // W_{out}$) and modulo ($m \\% W_{out}$) on GPU ALUs can introduce instruction latency. Libraries like CUTLASS use magic multiplication constants (`fast_divmod`) to evaluate division using high-speed integer multiplications.",
         },
         {
-          heading: "Edge Cases & Production Safeguards",
-          body: "Padding boundary handling uses predicate bits inside registers rather than conditional branch statements, preventing thread warp divergence.",
+          heading: "4. Edge Case Analysis & Padding Handling",
+          body: "Boundary zero-padding is handled via register predicates: if $0 \\le img\\_r < H_{in}$ and $0 \\le img\\_c < W_{in}$ load input activation, else load 0.0 float.",
         },
       ],
       keyTerms: [
         {
           term: "Implicit GEMM",
           definition:
-            "On-the-fly coordinate calculation mechanism executing convolution via GEMM without explicit DRAM unrolling.",
+            "GPU convolution kernel evaluating im2col indices on-the-fly in SRAM registers without DRAM buffer allocations.",
         },
         {
-          term: "SRAM Register Tiling",
+          term: "On-The-Fly Address Generation",
           definition:
-            "Technique of storing matrix sub-blocks in high-speed GPU registers and shared memory.",
+            "Decoding 2D GEMM matrix indices (m, k) to 4D spatial tensor coordinates inside CUDA registers.",
         },
         {
-          term: "Predicated Global Load",
+          term: "Register Predicate Masking",
           definition:
-            "Hardware instruction executing conditional memory reads based on register predicate flags to handle padding.",
+            "Evaluating spatial boundary checks in registers to inject 0.0 zero-padding without extra memory branches.",
         },
         {
-          term: "CUTLASS Memory Engine",
+          term: "Fast Divmod Optimization",
           definition:
-            "NVIDIA CUDA C++ template library powering high-performance implicit GEMM convolution kernels.",
+            "Replacing GPU integer division instructions with magic constant multiplication for index decoding.",
         },
       ],
     },

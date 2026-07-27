@@ -5,7 +5,7 @@ import {
   generateAsStridedTensorViewEngineSteps,
 } from "./asStridedTensorViewEngine";
 
-describe("as-strided-tensor-view-engine (PyTorch ATen `as_strided` Zero-Copy View Engine)", () => {
+describe("as-strided-tensor-view-engine (PyTorch ATen as_strided Zero-Copy View Engine)", () => {
   it("should have correct metadata", () => {
     expect(asStridedTensorViewEngine.id).toBe("as-strided-tensor-view-engine");
     expect(asStridedTensorViewEngine.isMlInfra).toBe(true);
@@ -14,10 +14,24 @@ describe("as-strided-tensor-view-engine (PyTorch ATen `as_strided` Zero-Copy Vie
     expect(asStridedTensorViewEngine.categories).toContain("ml_tensor_algebra");
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate at least 20 algorithm steps with matrix snapshots", () => {
     const steps = generateAsStridedTensorViewEngineSteps(DEFAULT_ASSTRIDEDTENSORVIEWENGINE_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("PyTorch ATen `as_strided` Zero-Copy View Engine");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].explanation.what).toContain("as_strided");
+    expect(steps[0].primarySnapshot.kind).toBe("matrix");
+    expect(steps[steps.length - 1].explanation.what).toContain("Return View Contiguity");
+  });
+
+  it("should map every line of code in trivia lineExplanations", () => {
+    const trivia = asStridedTensorViewEngine.trivia;
+    expect(trivia).toBeDefined();
+    if (!trivia || !trivia.lineExplanations) return;
+
+    const codeLines = asStridedTensorViewEngine.code.split("\n");
+    const lineKeys = Object.keys(trivia.lineExplanations).map(Number);
+
+    for (let i = 1; i <= codeLines.length; i++) {
+      expect(lineKeys).toContain(i);
+    }
   });
 });

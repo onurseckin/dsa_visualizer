@@ -8,11 +8,11 @@ import {
 import type { AlgorithmStep } from "../../../types/dsa";
 
 describe("editDistance algorithm logic spec", () => {
-  it('computes correct edit distance for default input ("horse" -> "ros")', () => {
+  it("generates valid steps for default input", () => {
     const steps = generateEditDistanceSteps(DEFAULT_EDIT_DISTANCE_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-
+    expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
+    expect(lastStep.primarySnapshot.kind).toBe("grid");
     expect(lastStep.variables.minDistance).toBe(3);
   });
 

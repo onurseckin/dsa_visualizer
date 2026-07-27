@@ -26,17 +26,29 @@ export const DEFAULT_HAMILTONIAN_PATH_INPUT: HamiltonianPathInput = {
 
 const HAMILTONIAN_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Helper build_adj constructs undirected adjacency list.",
+    1: "Helper build_adj defines function to construct undirected adjacency list from edge list.",
+    2: "Initialize list of empty lists for all n vertices.",
+    3: "Iterate through each undirected edge pair (u, v) in the input graph.",
+    4: "Add vertex v to the adjacency list of vertex u.",
+    5: "Add vertex u to the adjacency list of vertex v for undirected connectivity.",
+    6: "Return the completed adjacency list.",
+    7: "Blank line separating build_adj helper from main DP solver function.",
     8: "Signature: check if graph has a Hamiltonian path using Bitmask DP.",
-    9: "Build adjacency list from graph edge list.",
-    10: "Initialize DP table of size (1 << n) × n with False.",
-    12: "Base case: single vertex paths dp[1 << u][u] = True.",
+    9: "Build adjacency list representation from graph edge list.",
+    10: "Initialize DP table of size (1 << n) × n filled with False reachability flags.",
+    11: "Iterate over every vertex u to initialize base cases.",
+    12: "Base case: single vertex paths dp[1 << u][u] = True for each node starting its path.",
+    13: "Blank line separating base case initialization from subset DP transitions.",
     14: "Iterate over all subset bitmasks of vertices from 1 to (1 << n) - 1.",
-    18: "Try extending path from current endpoint u to neighbor v.",
-    19: "Check if node v is not yet visited in current bitmask.",
-    20: "Transition: set dp[mask | (1 << v)][v] = True.",
-    22: "Full mask representing all n vertices visited.",
-    23: "Check if any node u yields dp[full_mask][u] == True.",
+    15: "Iterate over every possible path ending vertex u.",
+    16: "If state dp[mask][u] is False, skip since no valid path ends at u with visited set mask.",
+    17: "Continue to next vertex u.",
+    18: "Iterate over all graph neighbors v of vertex u.",
+    19: "Check if node v is not yet visited in current bitmask (mask & (1 << v) == 0).",
+    20: "Transition: set dp[mask | (1 << v)][v] = True to record valid extended path.",
+    21: "Blank line separating DP iteration loops from final result computation.",
+    22: "Full mask (1 << n) - 1 representing all n vertices visited.",
+    23: "Check if any node u yields dp[full_mask][u] == True to determine global Hamiltonian path existence.",
   },
 };
 
@@ -141,7 +153,7 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
             }
           }
 
-          if (steps.length < 25) {
+          if (steps.length < 35) {
             steps.push({
               stepIndex: stepIdx++,
               codeLine: 20,
@@ -203,7 +215,7 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   categories: ["backtracking"],
   difficulty: "Hard",
   description:
-    "Given an undirected graph with N vertices (labeled 0 to N-1) and a list of edges, determine whether there exists a Hamiltonian Path (a path visiting every vertex exactly once) or a Hamiltonian Circuit (a Hamiltonian Path that forms a closed loop returning to the start vertex).\n\nWhile brute-force depth-first search requires O(N!) factorial search time, Bitmask Dynamic Programming optimizes the exploration to O(2^N * N^2) by using bitwise integer representations as DP table state indices.",
+    "Determine whether an undirected graph contains a Hamiltonian Path (visiting every vertex exactly once) or Hamiltonian Circuit using Bitmask Dynamic Programming.\n\n### Problem Statement\nGiven an undirected graph with $N$ vertices (labeled 0 to $N-1$) and a list of edges, determine whether there exists a Hamiltonian Path (a simple path visiting every vertex exactly once) or a Hamiltonian Circuit (a closed loop returning to the start vertex).\n\nWhile brute-force depth-first search requires $O(N!)$ factorial time, Bitmask Dynamic Programming (Held-Karp algorithm) optimizes state exploration to $O(2^N \\cdot N^2)$ by encoding visited vertex sets into binary bitmask integers.\n\n### Input Parameters\n- `numNodes` (int): Number of vertices $N$.\n- `edges` (list[tuple[int, int]]): Undirected edge list.\n- `isCircuit` (bool, optional): Whether to check for a closed Hamiltonian Circuit.\n\n### Output\n- bool: True if a valid Hamiltonian Path/Circuit exists, False otherwise.\n\n### Constraints & Edge Cases\n- `1 <= numNodes <= 12`\n- `0 <= edges.length <= numNodes * (numNodes - 1) / 2`\n- Disconnected components or isolated vertices correctly return False.",
   constraints: [
     "1 <= numNodes <= 12",
     "0 <= edges.length <= numNodes * (numNodes - 1) / 2",
@@ -344,3 +356,5 @@ def hamiltonian_path_dp(n: int, edges: list[tuple[int, int]]) -> bool:
   ],
   defaultInput: DEFAULT_HAMILTONIAN_PATH_INPUT,
 };
+
+export default hamiltonianPathDp;

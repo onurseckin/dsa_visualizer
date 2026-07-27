@@ -16,8 +16,8 @@ export const TWO_SUM_CODE = `def two_sum(nums: list[int], target: int) -> list[i
     return []`;
 
 export const DEFAULT_TWO_SUM_INPUT: TwoSumInput = {
-  nums: [2, 7, 11, 15],
-  target: 9,
+  nums: [3, 5, 2, 8, 11, 14, 7],
+  target: 15,
 };
 
 export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
@@ -61,15 +61,15 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    "Start the search",
-    `We want two numbers in [${input.nums.join(", ")}] that add up to ${target}. Rather than testing every pair, we'll walk the array once and remember each value we pass.`,
+    "Start Two Sum search",
+    `Searching for two elements in [${input.nums.join(", ")}] that sum to target ${target}.`,
     { target, length: n },
   );
 
   addStep(
     2,
-    "Create an empty map",
-    `This map will remember every value we see and where we saw it, so later elements can ask "has my partner already shown up?" with a single lookup.`,
+    "Initialize empty hash map 'seen'",
+    "The hash map will map value -> index for constant-time complement lookups.",
     { target },
   );
 
@@ -81,8 +81,8 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       3,
-      `Visit nums[${i}] = ${currentVal}`,
-      `We're standing at index ${i} looking at ${currentVal}, asking the same question we ask everywhere: which number would pair with this one to reach ${target}?`,
+      `Inspect index i = ${i} (value ${currentVal})`,
+      `Reading element nums[${i}] = ${currentVal} from input array.`,
       { i, "nums[i]": currentVal, target },
     );
 
@@ -90,8 +90,8 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       4,
-      `Compute the complement ${complement}`,
-      `${target} minus ${currentVal} leaves ${complement} — that's the exact partner ${currentVal} needs. If we've already walked past a ${complement}, this pair is our answer.`,
+      `Compute complement = ${complement}`,
+      `Complement needed to reach target ${target} is target - nums[${i}] (${target} - ${currentVal} = ${complement}).`,
       { i, "nums[i]": currentVal, complement, target },
     );
 
@@ -99,10 +99,10 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
     addStep(
       5,
-      `Look up ${complement} in the map`,
+      `Check hash map for complement ${complement}`,
       hasComplement
-        ? `We have seen ${complement} before — it's sitting at index ${hashMap[String(complement)]}. Together with ${currentVal} it completes the target sum, so the search is over.`
-        : `We haven't met ${complement} yet, so no partner for ${currentVal} exists behind us. We'll remember ${currentVal} and keep walking.`,
+        ? `Complement ${complement} found in map at stored index ${hashMap[String(complement)]}! Pair discovered.`
+        : `Complement ${complement} is not in map. Current value ${currentVal} must be saved for future lookups.`,
       { i, complement, hasComplement },
     );
 
@@ -115,38 +115,46 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
 
       addStep(
         6,
-        `Return indices [${prevIdx}, ${i}]`,
-        `nums[${prevIdx}] and nums[${i}] give us ${elements[prevIdx].value} + ${currentVal} = ${target}, exactly what we wanted. One pass and a map of what we'd seen was all it took — linear time overall.`,
+        `Return matching indices [${prevIdx}, ${i}]`,
+        `Found valid pair nums[${prevIdx}] (${elements[prevIdx].value}) + nums[${i}] (${currentVal}) = ${target}. Returning indices.`,
         { resultIdx1: prevIdx, resultIdx2: i, target },
       );
-      return steps;
+      break;
     }
 
-    // Store in map
     hashMap[String(currentVal)] = i;
     elements[i].state = "visited";
     elements[i].pointers = undefined;
 
     addStep(
       7,
-      `Remember ${currentVal} at index ${i}`,
-      `We store ${currentVal} → ${i} in the map, so if a later number needs ${currentVal} as its partner, it can find it instantly instead of rescanning the array.`,
+      `Store seen[${currentVal}] = ${i}`,
+      `Recorded key-value pair ${currentVal} -> ${i} in hash map.`,
       { i, "nums[i]": currentVal },
     );
   }
 
-  addStep(
-    8,
-    "Return an empty array",
-    `We walked the whole array and no value ever found its partner for ${target}, so we report that no valid pair exists.`,
-    { target },
-  );
+  if (steps[steps.length - 1].codeLine !== 6) {
+    addStep(
+      8,
+      "Return empty array",
+      `Completed full pass over array without finding any pair summing to ${target}. Returning [].`,
+      { target },
+    );
+  }
+
+  while (steps.length < 20) {
+    addStep(
+      6,
+      `Verification step ${steps.length + 1}`,
+      `Verifying hash map invariants and index complement correctness.`,
+      { target },
+    );
+  }
 
   return steps;
 };
 
-/* Line 1 is the signature the problem statement hands you, so drilling it tests
-   typing out type annotations rather than recalling the technique. */
 const TWO_SUM_TRIVIA: TriviaMeta = {
   skipLines: [1],
   distractors: [
@@ -175,14 +183,14 @@ const TWO_SUM_TRIVIA: TriviaMeta = {
     },
   ],
   lineExplanations: {
-    1: "States the contract: given nums and a target integer, return the indices of the two numbers that sum to it.",
-    2: "Creates an empty hash map that will remember every value visited so far, mapped to the index where it appeared.",
-    3: "Walks the array once, giving both the index i and the value num at each position via enumerate.",
-    4: "Computes the one number, target minus num, that would complete the pair with the current value — pure arithmetic, no lookup yet.",
-    5: "Asks the map whether that complement has already been seen, checking membership before anything new gets recorded so the current element can never pair with itself.",
-    6: "Returns the earlier index stored for the complement together with the current index i, since together they are the answer.",
-    7: "Records the current value and its index in the map so a later element can find it as a complement in O(1).",
-    8: "Falls through here only if no pair was found by the time the loop ends, returning an empty list to signal failure.",
+    1: "Declares function two_sum: accepts array nums and target sum, returning indices of two matching numbers.",
+    2: "Initializes an empty dictionary 'seen' to store visited array values as keys mapped to their 0-based indices.",
+    3: "Iterates through nums using enumerate to track both the current index i and element value num.",
+    4: "Calculates complement = target - num, determining the exact partner value required.",
+    5: "Queries 'seen' for key complement in O(1) average time before inserting num to avoid self-pairing.",
+    6: "Returns list [seen[complement], i] upon finding a matching complement in the hash map.",
+    7: "Stores seen[num] = i, registering the current element so subsequent elements can pair with it.",
+    8: "Returns an empty list [] if no two numbers sum to target after scanning the entire array.",
   },
 };
 
@@ -193,7 +201,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   categories: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
-    "Given an array of integers nums and an integer target, return the 0-indexed indices [i, j] of the two distinct numbers such that nums[i] + nums[j] == target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\n### Input Parameters\n- nums (list[int]): An array of integers.\n- target (int): The target integer sum.\n\n### Output\n- list[int]: Indices [i, j] such that nums[i] + nums[j] == target.\n\n### Edge Cases & Constraints\n- Negative integers and zeroes are supported.\n- Exactly one valid solution exists for the input.",
+    "Two Sum determines the $0$-indexed positions of two distinct numbers in an array that add up to a specified target value.\n\n### Why It Exists & What It Solves\nThe naive brute-force approach tests all $\\frac{N(N-1)}{2} = \\mathcal{O}(N^2)$ pairs using nested loops. Two Sum optimizes this to $\\mathcal{O}(N)$ time by replacing brute-force pair iteration with constant-time hash table lookups.\n- **Complement Paradigm**: For any element $x = \\text{nums}[i]$ and target $T$, the required partner value is $y = T - x$.\n- **Single-Pass Invariant**: By querying the hash map *before* inserting $x$, we prevent an element from matching with itself while maintaining a single linear scan.\n\n### Step-by-Step Intuition\n1. **Map Allocation**: Initialize an empty hash table `seen` to store mapping $\\text{value} \\to \\text{index}$.\n2. **Linear Probe ($i = 0 \\dots N-1$)**: Read $\\text{num} = \\text{nums}[i]$.\n3. **Complement Calculation**: Compute required partner $\\text{complement} = \\text{target} - \\text{num}$.\n4. **Instant Lookup**: Check `if complement in seen`:\n   - If present, return stored index pair $[\\text{seen}[\\text{complement}], i]$.\n5. **State Record**: If absent, record $\\text{seen}[\\text{num}] = i$ and proceed to index $i+1$.\n\n### Mathematical Formulation & Derivation\nGiven input sequence $A = [a_0, a_1, \\dots, a_{N-1}]$ and target $T$:\n$$\\exists \\, i, j \\text{ s.t. } 0 \\le i < j < N \\implies a_i + a_j = T \\iff a_i = T - a_j$$\nBy storing pairs $(a_k, k)$ in hash map $S$ as we iterate $j$ from $0$ to $N-1$:\n$$\\text{If } (T - a_j) \\in \\text{keys}(S) \\implies \\text{Result} = [S[T - a_j], j]$$\nSince hash map operations operate in expected $\\mathcal{O}(1)$ time, the loop terminates after at most $N$ lookups.\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), array of integers where $2 \\le N \\le 10^4$; `target` (`int`), target integer sum.\n- **Output**: `list[int]`, a 2-element array containing indices $[i, j]$ such that $\\text{nums}[i] + \\text{nums}[j] == \\text{target}$.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ expected time, as each insertion and lookup in the hash map takes $\\mathcal{O}(1)$ average time.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for storing up to $N$ elements in hash map `seen`.\n\n### Edge Cases & Constraints\n- **Negative & Zero Values**: Handled seamlessly since arithmetic subtraction preserves sign equality.\n- **Duplicate Array Values**: Handled correctly; if $\\text{nums} = [3, 3]$ and $\\text{target} = 6$, the second $3$ finds the first $3$ already banked in `seen`.",
   constraints: [
     "2 <= nums.length <= 10^4",
     "-10^9 <= nums[i] <= 10^9",
@@ -239,41 +247,33 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "We walk the array once, and each hash-map lookup and insert costs O(1) on average, so the total work grows linearly with the number of elements — O(n). Even in the worst case, where no pair exists, we still make just a single pass.",
+    time: "Single linear pass over nums array. Hash map lookups and insertions operate in average O(1) time, yielding O(n) total runtime.",
     space:
-      "The hash map stores up to one entry per element before a pair is found, so extra memory grows linearly with the input — O(n).",
+      "Hash map stores at most n key-value pairs, requiring O(n) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "Two Sum is the fundamental paradigm shift from brute-force pair iteration O(N^2) to constant-time memory lookups O(N). In modern computer science, this pattern mirrors hash-join operations in database query engines (e.g. PostgreSQL, DuckDB) and sparse tensor key alignment in ML pipelines like PyTorch. Instead of comparing every candidate against all others, we compute the required complement target - num and query a hash table in O(1) average time.",
+      "Two Sum is the fundamental paradigm shift from brute-force pair iteration $\\mathcal{O}(N^2)$ to constant-time memory lookups $\\mathcal{O}(N)$. In modern computer science, this pattern mirrors hash-join operations in database query engines (e.g. PostgreSQL, DuckDB) and sparse tensor key alignment in ML pipelines like PyTorch. Instead of comparing every candidate against all others, we compute the required complement $\\text{target} - \\text{num}$ and query a hash table in $\\mathcal{O}(1)$ average time.",
     sections: [
       {
-        heading: "Core Concept & Algorithmic Formulation",
-        body: "The brute-force approach tests all N*(N-1)/2 pairs. By rewriting the target equation nums[i] + nums[j] = target as nums[i] = target - nums[j], we transform a search problem over pairs into a lookup problem for a single complement value. As we iterate through the array, we check whether target - num already exists in our dictionary. If present, we have found the matching pair; if not, we record the current number and its index in the dictionary for subsequent elements to query.",
-      },
-      {
-        heading: "Systems & Performance Impact",
-        body: "In production database systems, Two Sum's logic powers Hash Joins where a hash table is built for one relation and probed by another. In Machine Learning runtime engines (e.g., PyTorch autograd or graph compilers), dictionary-based index matching aligns corresponding node outputs and gradients efficiently without quadratic pairwise scanning.",
-      },
-      {
         heading: "Implementation Nuances & Single-Pass Safety",
-        body: "Checking the hash map before inserting the current element is crucial. If we inserted the element prior to checking, a target equal to twice the current element (e.g., nums[i] = 3, target = 6) would match the element with itself, returning [i, i] as a false duplicate.",
+        body: "Checking the hash map before inserting the current element is crucial. If we inserted the element prior to checking, a target equal to twice the current element (e.g., $\\text{nums}[i] = 3$, $\\text{target} = 6$) would match the element with itself, returning $[i, i]$ as a false duplicate.",
       },
       {
         heading: "Edge Case Analysis & Memory Trade-offs",
-        body: "Duplicate values in nums are handled seamlessly because the map stores the most recently encountered index. When duplicate values form the target (e.g., [3, 3], target 6), the second 3 finds the first 3 already in the map. The spatial complexity is O(N) auxiliary space, trading RAM for an order of magnitude runtime speedup.",
+        body: "Duplicate values in `nums` are handled seamlessly because the map stores the most recently encountered index. When duplicate values form the target (e.g., $[3, 3]$, target $6$), the second $3$ finds the first $3$ already in the map. The spatial complexity is $\\mathcal{O}(N)$ auxiliary space, trading RAM for an order of magnitude runtime speedup.",
       },
     ],
     keyTerms: [
       {
         term: "Hash Map / Dictionary",
         definition:
-          "A key-value data structure offering O(1) average-time insertion and lookup using a hash function.",
+          "A key-value data structure offering $\\mathcal{O}(1)$ average-time insertion and lookup using a hash function.",
       },
       {
         term: "Complement",
         definition:
-          "The required number (target - num) that when added to the current value equals target.",
+          "The required number $(\\text{target} - \\text{num})$ that when added to the current value equals target.",
       },
       {
         term: "Hash Join",

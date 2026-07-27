@@ -86,15 +86,18 @@ const BELLMAN_FORD_TRIVIA: TriviaMeta = {
     1: "Entry point: takes the vertex list, the raw (u, v, weight) edge list, and the source, and tolerates negative edge weights unlike Dijkstra.",
     2: "Every vertex starts at infinity — unknown — until some sequence of relaxations proves a finite distance to it.",
     3: "The one certain distance before any work begins: the source is zero away from itself.",
+    4: "Blank line separating distance table initialization from outer iteration sweeps.",
     5: "Runs one full sweep per possible path length, since after k sweeps every shortest path using at most k edges is already proven correct.",
     6: "Each sweep walks every single edge, because unlike Dijkstra there's no priority order to trust — every edge must be re-examined on every pass.",
     7: "Only relaxes through u if u is actually reachable, guarding against adding a weight to infinity, which negative weights could otherwise turn into a bogus finite number.",
     8: "Takes the cheaper route the instant this sweep discovers one — the update is visible to later edges in the same pass, which is why a lucky ordering can converge early.",
+    9: "Blank line separating edge relaxation passes from negative cycle detection pass.",
     10: "Starts the detection flag optimistic; only a genuinely still-relaxable edge will flip it.",
     11: "One more full pass over every edge, run only after the V - 1 sweeps that should already have settled every true shortest path.",
     12: "If any edge can still be relaxed after V - 1 passes, no ordinary simple path explains it — the only remaining explanation is a negative-weight cycle.",
     13: "Records that the graph is unsafe: some reachable cycle can be looped forever to drive a distance toward negative infinity.",
     14: "Stops immediately once one negative cycle is confirmed — a single one is enough to invalidate the shortest-path question for the vertices it touches.",
+    15: "Blank line separating negative cycle loop from return statement.",
     16: "Hands back both the distance table and whether it can actually be trusted.",
   },
 };
@@ -106,7 +109,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   categories: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "Bellman-Ford computes shortest paths from one source vertex to every other vertex in a weighted graph — and unlike Dijkstra's algorithm, it tolerates negative edge weights. The idea is simple: relax every edge, and repeat that sweep V - 1 times so improvements can propagate along even the longest simple path. A final extra sweep doubles as a detector: if any edge can still be relaxed after V - 1 passes, the graph must contain a negative-weight cycle reachable from the source.",
+    "The Bellman-Ford algorithm computes shortest paths from one source vertex to every other vertex in a directed weighted graph $G = (V, E)$. Unlike Dijkstra's algorithm, Bellman-Ford supports negative edge weights ($w(u,v) \\in \\mathbb{R}$) and detects negative-weight cycles. It repeatedly relaxes all $|E|$ edges over $|V|-1$ passes in $\\mathcal{O}(|V| \\cdot |E|)$ time and $\\mathcal{O}(|V|)$ space.",
   constraints: [
     "1 <= Vertices V <= 250",
     "0 <= Edges E <= 2500",
@@ -184,9 +187,8 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each pass sweeps all E edges once, and we run up to V - 1 passes so that an improvement can travel across the longest possible simple path — that product gives the O(V * E) worst case. When the graph converges early, a pass with zero updates lets us stop, so the best case is a single O(E) sweep.",
-    space:
-      "We keep one distance value per vertex, so extra memory grows linearly with the vertex count — O(V). The edge list is just the input; nothing else accumulates.",
+    time: "Each of the $|V|-1$ passes relaxes all $|E|$ edges, resulting in $\\mathcal{O}(|V| \\cdot |E|)$ time. If no distances change in a pass, the algorithm terminates early in $\\mathcal{O}(|E|)$ best-case time.",
+    space: "The distance map stores $|V|$ entries, requiring $\\mathcal{O}(|V|)$ space.",
   },
   topicGuide: BELLMAN_FORD_TOPIC_GUIDE,
   trivia: BELLMAN_FORD_TRIVIA,

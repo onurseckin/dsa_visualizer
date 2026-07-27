@@ -6,20 +6,32 @@ import {
 } from "./kvCacheSequenceMemoryEstimator";
 
 describe("kv-cache-sequence-memory-estimator (KV-Cache Sequence Memory Footprint Calculator)", () => {
-  it("should have correct metadata", () => {
+  it("should have correct metadata and full trivia lineExplanations", () => {
     expect(kvCacheSequenceMemoryEstimator.id).toBe("kv-cache-sequence-memory-estimator");
     expect(kvCacheSequenceMemoryEstimator.isMlInfra).toBe(true);
     expect(kvCacheSequenceMemoryEstimator.mlInfraLevel).toBe(12);
     expect(kvCacheSequenceMemoryEstimator.mlInfraCategory).toBe("ml_llm_serving");
     expect(kvCacheSequenceMemoryEstimator.categories).toContain("ml_llm_serving");
+    expect(kvCacheSequenceMemoryEstimator.defaultInput).toEqual(
+      DEFAULT_KVCACHESEQUENCEMEMORYESTIMATOR_INPUT,
+    );
+
+    const codeLines = kvCacheSequenceMemoryEstimator.code.trim().split("\n").length;
+    const explanationKeys = Object.keys(
+      kvCacheSequenceMemoryEstimator.trivia?.lineExplanations || {},
+    ).map(Number);
+    expect(explanationKeys.length).toBe(codeLines);
+    for (let i = 1; i <= codeLines; i++) {
+      expect(kvCacheSequenceMemoryEstimator.trivia?.lineExplanations?.[i]).toBeDefined();
+    }
   });
 
-  it("should generate valid algorithm steps", () => {
+  it("should generate valid algorithm steps and produce >= 20 steps", () => {
     const steps = generateKvCacheSequenceMemoryEstimatorSteps(
       DEFAULT_KVCACHESEQUENCEMEMORYESTIMATOR_INPUT,
     );
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("KV-Cache Sequence Memory Footprint Calculator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps[0].codeLine).toBe(1);
+    expect(steps[steps.length - 1].explanation.what).toBe("Return completed estimation dictionary");
   });
 });

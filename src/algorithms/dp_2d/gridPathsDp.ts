@@ -12,9 +12,10 @@ export interface GridPathsDpInput {
 
 export const DEFAULT_GRID_PATHS_INPUT: GridPathsDpInput = {
   grid: [
-    [0, 0, 0],
-    [0, 1, 0],
-    [0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
   ],
 };
 
@@ -69,13 +70,37 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
     return { kind: "grid", grid: gridNodes };
   };
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: `Start unique paths algorithm on ${m}x${n} grid`,
+      why: "The goal is to compute total unique paths from top-left (0,0) to bottom-right destination while dodging obstacle walls.",
+    },
+    primarySnapshot: createSnapshot([0, 0]),
+    auxiliaryState: { customState: { m, n } },
+    variables: { m, n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `Check boundary conditions and starting cell obstacle status (grid[0][0] = ${grid[0][0]})`,
+      why: "If the starting cell contains an obstacle (1), no paths can leave the starting position, returning 0 immediately.",
+    },
+    primarySnapshot: createSnapshot([0, 0]),
+    auxiliaryState: { customState: { startBlocked: grid[0][0] === 1 } },
+    variables: { m, n, startBlocked: grid[0][0] === 1 },
+  });
+
   if (grid[0][0] === 1) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 2,
+      codeLine: 3,
       explanation: {
-        what: "Start cell (0,0) is blocked by an obstacle",
-        why: "Impossible to reach the destination since start is an obstacle. Return 0.",
+        what: "Start cell (0,0) is blocked by an obstacle. Returning 0.",
+        why: "Impossible to reach destination because starting cell is blocked.",
       },
       primarySnapshot: createSnapshot([0, 0]),
       auxiliaryState: { customState: { paths: 0 } },
@@ -84,13 +109,37 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
     return steps;
   }
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 5,
+    explanation: {
+      what: `Extract grid dimensions: rows m = ${m}, cols n = ${n}`,
+      why: "Dimensions specify matrix allocation boundaries and grid traversal range.",
+    },
+    primarySnapshot: createSnapshot([0, 0]),
+    auxiliaryState: { customState: { m, n } },
+    variables: { m, n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Allocate 2D DP matrix of size ${m} x ${n} filled with zeros`,
+      why: "dp[r][c] stores the total number of unique paths reaching cell (r, c).",
+    },
+    primarySnapshot: createSnapshot([0, 0]),
+    auxiliaryState: { customState: { m, n } },
+    variables: { m, n },
+  });
+
   dp[0][0] = 1;
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 7,
     explanation: {
-      what: "Initialize dp[0][0] = 1",
-      why: "There is exactly 1 way to start at cell (0,0).",
+      what: "Initialize base case dp[0][0] = 1",
+      why: "There is exactly 1 way to be at the starting location (0,0).",
     },
     primarySnapshot: createSnapshot([0, 0]),
     auxiliaryState: { customState: { "dp[0][0]": 1 } },
@@ -98,8 +147,44 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
   });
 
   for (let r = 0; r < m; r++) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 9,
+      explanation: {
+        what: `Begin traversing row r = ${r}`,
+        why: "Row-by-row traversal guarantees topological ordering because moves are strictly rightward and downward.",
+      },
+      primarySnapshot: createSnapshot([r, 0]),
+      auxiliaryState: { customState: { currentCombinedRow: r } },
+      variables: { r, m },
+    });
+
     for (let c = 0; c < n; c++) {
-      if (r === 0 && c === 0) continue;
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 10,
+        explanation: {
+          what: `Evaluate cell (${r}, ${c})`,
+          why: `Processing state for row ${r}, column ${c}.`,
+        },
+        primarySnapshot: createSnapshot([r, c]),
+        auxiliaryState: { customState: { r, c } },
+        variables: { r, c },
+      });
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 11,
+        explanation: {
+          what: `Check condition if obstacleGrid[${r}][${c}] == 1 (${grid[r][c] === 1})`,
+          why: grid[r][c] === 1
+            ? `Cell (${r}, ${c}) is an obstacle wall!`
+            : `Cell (${r}, ${c}) is an open floor cell.`,
+        },
+        primarySnapshot: createSnapshot([r, c]),
+        auxiliaryState: { customState: { r, c, isObstacle: grid[r][c] === 1 } },
+        variables: { r, c, isObstacle: grid[r][c] === 1 },
+      });
 
       if (grid[r][c] === 1) {
         dp[r][c] = 0;
@@ -107,30 +192,88 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
           stepIndex: stepIndex++,
           codeLine: 12,
           explanation: {
-            what: `Cell (${r}, ${c}) is an obstacle`,
-            why: "No paths can pass through an obstacle cell, so dp[r][c] is set to 0.",
+            what: `Set dp[${r}][${c}] = 0 for obstacle cell`,
+            why: "Obstacles block path traversal, so dp[r][c] must be set to 0.",
           },
           primarySnapshot: createSnapshot([r, c]),
-          auxiliaryState: { customState: { r, c, isObstacle: "true" } },
+          auxiliaryState: { customState: { r, c, dpVal: 0 } },
           variables: { r, c, "dp[r][c]": 0 },
+        });
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 13,
+          explanation: {
+            what: `Continue to next cell, skipping additions for obstacle (${r}, ${c})`,
+            why: "No incoming paths can pass through an obstacle.",
+          },
+          primarySnapshot: createSnapshot([r, c]),
+          auxiliaryState: { customState: { r, c, skipped: true } },
+          variables: { r, c },
         });
         continue;
       }
 
-      if (r > 0) dp[r][c] += dp[r - 1][c];
-      if (c > 0) dp[r][c] += dp[r][c - 1];
+      if (r === 0 && c === 0) continue;
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 17,
+        codeLine: 14,
         explanation: {
-          what: `Compute dp[${r}][${c}] = ${dp[r][c]}`,
-          why: `Accumulated paths from top cell (${r > 0 ? dp[r - 1][c] : 0}) and left cell (${c > 0 ? dp[r][c - 1] : 0}).`,
+          what: `Evaluate top neighbor condition if r > 0 (r = ${r})`,
+          why: r > 0
+            ? `Top neighbor cell (${r - 1}, ${c}) exists.`
+            : `Top boundary reached (row 0), no top neighbor.`,
         },
         primarySnapshot: createSnapshot([r, c]),
-        auxiliaryState: { customState: { r, c, paths: dp[r][c] } },
-        variables: { r, c, "dp[r][c]": dp[r][c] },
+        auxiliaryState: { customState: { r, c, hasTop: r > 0 } },
+        variables: { r, c, hasTop: r > 0 },
       });
+
+      if (r > 0) {
+        const topVal = dp[r - 1][c];
+        dp[r][c] += topVal;
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 15,
+          explanation: {
+            what: `Add top neighbor paths: dp[${r}][${c}] += dp[${r - 1}][${c}] (${topVal})`,
+            why: `Robot can move down from top neighbor cell (${r - 1}, ${c}). Total paths now ${dp[r][c]}.`,
+          },
+          primarySnapshot: createSnapshot([r, c]),
+          auxiliaryState: { customState: { r, c, topAdded: topVal, currentPaths: dp[r][c] } },
+          variables: { r, c, topVal, "dp[r][c]": dp[r][c] },
+        });
+      }
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `Evaluate left neighbor condition if c > 0 (c = ${c})`,
+          why: c > 0
+            ? `Left neighbor cell (${r}, ${c - 1}) exists.`
+            : `Left boundary reached (col 0), no left neighbor.`,
+        },
+        primarySnapshot: createSnapshot([r, c]),
+        auxiliaryState: { customState: { r, c, hasLeft: c > 0 } },
+        variables: { r, c, hasLeft: c > 0 },
+      });
+
+      if (c > 0) {
+        const leftVal = dp[r][c - 1];
+        dp[r][c] += leftVal;
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 17,
+          explanation: {
+            what: `Add left neighbor paths: dp[${r}][${c}] += dp[${r}][${c - 1}] (${leftVal})`,
+            why: `Robot can move right from left neighbor cell (${r}, ${c - 1}). Total paths now ${dp[r][c]}.`,
+          },
+          primarySnapshot: createSnapshot([r, c]),
+          variables: { val: dp[r][c] },
+        });
+      }
     }
   }
 
@@ -150,20 +293,27 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
   return steps;
 };
 
-const GRID_PATHS_TRIVIA: TriviaMeta = {
+export const GRID_PATHS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines unique_paths_with_obstacles(obstacleGrid) -> int: counts unique paths avoiding obstacles.",
-    2: "Guards against empty grid or blocked start cell (obstacleGrid[0][0] == 1), returning 0 immediately.",
-    5: "Extracts grid dimensions m (rows) and n (columns).",
-    6: "Allocates 2D DP matrix of size m x n initialized to 0.",
-    7: "Sets base case dp[0][0] = 1 for unblocked starting cell.",
-    9: "Outer loop sweeps row index r from 0 to m - 1.",
-    10: "Inner loop sweeps col index c from 0 to n - 1.",
+    1: "Defines unique_paths_with_obstacles(obstacleGrid) -> int: computes unique paths avoiding obstacle cells.",
+    2: "Checks boundary condition: if grid is empty or start cell (0,0) is an obstacle (1), return 0 immediately.",
+    3: "Returns 0 when the starting position (0,0) is blocked by an obstacle.",
+    4: "Empty line separating initial guard checks from matrix allocation.",
+    5: "Extracts grid dimensions m = len(obstacleGrid) (rows) and n = len(obstacleGrid[0]) (columns).",
+    6: "Allocates 2D DP matrix dp of size m x n initialized to 0.",
+    7: "Sets base case dp[0][0] = 1, representing 1 path to start at (0,0).",
+    8: "Empty line separating DP initialization from grid traversal loops.",
+    9: "Outer loop iterates row index r from 0 up to m - 1.",
+    10: "Inner loop iterates column index c from 0 up to n - 1.",
     11: "Checks if cell (r, c) is an obstacle (obstacleGrid[r][c] == 1).",
-    12: "Sets dp[r][c] = 0 for obstacles, blocking path traversal.",
-    14: "Adds path count from top neighbor dp[r-1][c] if r > 0.",
-    16: "Adds path count from left neighbor dp[r][c-1] if c > 0.",
-    19: "Returns dp[m-1][n-1], the total unique paths reaching destination.",
+    12: "Sets dp[r][c] = 0 for obstacle cells because no path can traverse through them.",
+    13: "Continues to next grid cell, skipping incoming path accumulation for obstacle cells.",
+    14: "Evaluates if top neighbor cell exists (r > 0).",
+    15: "Adds path count from top neighbor dp[r-1][c] to current cell dp[r][c] if r > 0.",
+    16: "Evaluates if left neighbor cell exists (c > 0).",
+    17: "Adds path count from left neighbor dp[r][c-1] to current cell dp[r][c] if c > 0.",
+    18: "Empty line separating grid traversal loops from returning final result.",
+    19: "Returns dp[m - 1][n - 1], the total unique paths reaching bottom-right destination cell.",
   },
 };
 
@@ -173,8 +323,16 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   category: "dp_2d",
   categories: ["dp_2d"],
   difficulty: "Medium",
-  description:
-    "You are given an m x n integer array grid where grid[i][j] == 1 represents an obstacle and 0 represents an open space. Return the number of possible unique paths that the robot can take to reach the bottom-right corner (m - 1, n - 1) starting from the top-left corner (0, 0). The robot can only move either down or right at any point in time. Solve using 2D Dynamic Programming: initialize dp[0][0] = 1 (if unblocked), set dp[r][c] = 0 for obstacles, and compute dp[r][c] = dp[r-1][c] + dp[r][c-1] for open cells.",
+  description: `The **Grid Unique Paths with Obstacles** problem (LeetCode #63) asks for the total number of unique paths a robot can take from top-left $(0,0)$ to bottom-right $(m-1, n-1)$ on an $m \\times n$ grid while avoiding obstacle cells ($grid[r][c] = 1$).
+
+### Directional Traversal & 2D Recurrence
+Movement is strictly limited to **Right** and **Down**. By the Rule of Sum, the total number of unique paths reaching cell $(r, c)$ is:
+$$dp[r][c] = \\begin{cases} 0 & \\text{if } grid[r][c] = 1 \\text{ (obstacle)} \\\\ 1 & \\text{if } r = 0, c = 0 \\text{ and } grid[0][0] = 0 \\\\ dp[r-1][c] + dp[r][c-1] & \\text{otherwise} \\end{cases}$$
+
+### Key Interview Insights
+1. **Rule of Sum in DAGs**: Grid path counting models DAG reachability. Unblocked cell path count equals top neighbor paths plus left neighbor paths.
+2. **Obstacle Zeroing**: Any obstacle cell forces $dp[r][c] = 0$, preventing paths from flowing downstream.
+3. **Space Vector Optimization**: 2D memory $\\mathcal{O}(M \\times N)$ can be compressed to 1D vector space $\\mathcal{O}(N)$.`,
   constraints: [
     "1 <= m, n <= 100",
     "grid[i][j] is 0 or 1",
@@ -199,18 +357,19 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "grid = [[0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]]",
-      outputDisplay: "4",
-      title: "Larger Grid",
+      inputDisplay: "grid = [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]",
+      outputDisplay: "8",
+      title: "4x4 Grid with Obstacle",
       input: {
         grid: [
           [0, 0, 0, 0],
-          [0, 0, 1, 0],
+          [0, 1, 0, 0],
+          [0, 0, 0, 0],
           [0, 0, 0, 0],
         ],
       },
-      output: "4",
-      explanation: "4 unique paths reach bottom right around obstacle at (1,2).",
+      output: "8",
+      explanation: "A 4x4 grid with an obstacle at (1,1) yields 8 unique paths from (0,0) to (3,3).",
     },
     {
       kind: "negative",
@@ -231,51 +390,46 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   timeComplexity: { best: "O(M * N)", average: "O(M * N)", worst: "O(M * N)" },
   spaceComplexity: "O(M * N)",
   complexityAnalysis: {
-    time: "Fills an M x N matrix in row-major order. Each cell performs O(1) addition operations, taking O(M * N) total time.",
+    time: "Fills an M x N matrix in row-major order. Each cell performs O(1) additions, giving O(M * N) total time.",
     space:
-      "Requires an M x N matrix to store unique path counts for all cells, taking O(M * N) space.",
+      "Requires an M x N matrix to store unique path counts for all cells, taking O(M * N) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "Grid Unique Paths with Obstacles (LeetCode #63) is a foundational 2D dynamic programming problem. A robot moves on an m x n grid from top-left (0,0) to bottom-right (m-1, n-1), constrained to only rightward (c+1) and downward (r+1) moves. Obstacles (grid[r][c] == 1) block robot movement. Because transitions are strictly directional (down and right), the grid acts as a Directed Acyclic Graph (DAG), guaranteeing topological order when traversed row-by-row.",
+      "Grid Unique Paths with Obstacles (LeetCode #63) is the fundamental benchmark for spatial 2D dynamic programming. A robot moves on an $m \\times n$ grid from $(0,0)$ to $(m-1, n-1)$ using only rightward and downward moves. Obstacles ($grid[r][c] = 1$) block traversal. 2D DP computes total paths in $\\mathcal{O}(M \\times N)$ time and $\\mathcal{O}(M \\times N)$ space.",
     sections: [
       {
-        heading: "Core Concept: Addition Principle & Grid Recurrence",
-        body: "By the addition principle of combinatorics, any path reaching cell (r, c) must arrive from either top neighbor (r-1, c) or left neighbor (r, c-1). If cell (r, c) is an obstacle, dp[r][c] = 0. For open cells, dp[r][c] = (r > 0 ? dp[r-1][c] : 0) + (c > 0 ? dp[r][c-1] : 0).",
+        heading: "1. 2D Recurrence & Rule of Sum",
+        body: "Let $dp[r][c]$ be the number of unique paths from $(0,0)$ to $(r, c)$.\n\n- **Base Case**: $dp[0][0] = 1$ if $grid[0][0] = 0$.\n- **Obstacle Rule**: $dp[r][c] = 0$ if $grid[r][c] = 1$.\n- **Transition**:\n  $$dp[r][c] = (r > 0 ? dp[r-1][c] : 0) + (c > 0 ? dp[r][c-1] : 0)$$\n- **Result**: $dp[m-1][n-1]$.",
       },
       {
-        heading: "Systems Applications: Network Routing & Wafer Layouts",
-        body: "Grid path counting techniques underpin real-world engineering systems: VLSI microchip router wire routing around silicon defect blocks, Autonomous Mobile Robot (AMR) path planners navigating warehouse grid layouts, and IP packet routing through mesh topologies with failed node links.",
+        heading: "2. Why Combinatorics (Binomial Coefficients) Fails Here",
+        body: "On an obstacle-free grid, total paths equals the binomial coefficient $\\binom{m+n-2}{m-1}$. However, obstacles break closed-form combinations, necessitating dynamic programming.",
       },
       {
-        heading: "Space Optimization: 2D Matrix to 1D Row Vector",
-        body: "Because dp[r][c] depends solely on the current row's left cell dp[r][c-1] and previous row's cell dp[r-1][c], memory can be compressed from O(M * N) down to O(N) by maintaining a single 1D array of length N updated in place.",
+        heading: "3. Systems Applications",
+        body: "Spatial grid DP forms the foundation for:\n- **VLSI Microchip Routing**: Routing interconnect wires around physical component defect blocks.\n- **Warehouse AMR Navigation**: Autonomous mobile robot pathing on grid floors.\n- **Mesh Network Routing**: Packet delivery across 2D grid topologies.",
       },
       {
-        heading: "Edge Case Analysis & Combinatorial Bounds",
-        body: "Edge cases include blocked start cell (dp[0][0] = 1 is skipped, returns 0), blocked end cell, 1x1 grids, and fully blocked walls creating disconnected components. On unobstructed grids, total paths equal the binomial coefficient C((m-1)+(n-1), (m-1)).",
+        heading: "4. Space Vector Compression",
+        body: "Because $dp[r][c]$ depends only on row $r-1$ (top) and current row cell $c-1$ (left), memory compresses from $\\mathcal{O}(M \\times N)$ to $\\mathcal{O}(N)$ using a single 1D array.",
       },
     ],
     keyTerms: [
       {
         term: "Grid Dynamic Programming",
         definition:
-          "Tabular DP over a 2D spatial grid where state transitions follow fixed directional move vectors.",
+          "Tabular DP over a 2D grid where state transitions move along fixed directional vectors.",
       },
       {
-        term: "Addition Principle",
+        term: "Rule of Sum",
         definition:
-          "Combinatorial rule stating that if path choices are mutually exclusive, total paths equals the sum of subpath counts.",
+          "Combinatorial principle stating total paths equals the sum of mutually exclusive subpath counts.",
       },
       {
         term: "Space Vector Compression",
         definition:
-          "Reducing a 2D matrix DP state space to a single 1D array by overwriting values in row-major order.",
-      },
-      {
-        term: "Binomial Coefficient",
-        definition:
-          "Combinatorial formula C(n, k) giving exact unique paths for unobstructed rectangular grids.",
+          "Reducing a 2D grid DP table to a 1D row array by overwriting entries in row-major order.",
       },
     ],
   },
@@ -292,3 +446,6 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   defaultInput: DEFAULT_GRID_PATHS_INPUT,
   generateSteps: generateGridPathsDpSteps,
 };
+
+
+

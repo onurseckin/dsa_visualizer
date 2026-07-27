@@ -1,44 +1,47 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
+export interface ProgramMappingResult {
+  pid1d: number;
+  pidM: number;
+  pidN: number;
+  startRow: number;
+  startCol: number;
+  globalPtrOffset: number;
+}
+
 export interface tileIndexGridMapperInput {
+  pids?: number[];
+  numPidM?: number;
+  numPidN?: number;
+  blockM?: number;
+  blockN?: number;
+  strideM?: number;
+  strideN?: number;
   data?: number[];
-  target?: number;
   [key: string]: unknown;
 }
 
-export const TILEINDEXGRIDMAPPER_CODE = `
-def map_1d_program_id_to_2d_tile(
-    pid_1d: int,
-    num_pid_m: int,
-    num_pid_n: int,
-    block_m: int = 128,
-    block_n: int = 128,
-    stride_m: int = 4096,
-    stride_n: int = 1
-) -> tuple[int, int, int, int, int]:
-    """
-    Maps a 1D GPU Thread Block Program ID (tl.program_id(0)) into 2D tile matrix coordinates (pid_m, pid_n).
-    Calculates starting row/col indices and global memory byte pointer offset.
-    - pid_m = pid_1d // num_pid_n
-    - pid_n = pid_1d % num_pid_n
-    - start_row = pid_m * block_m
-    - start_col = pid_n * block_n
-    - global_ptr_offset = start_row * stride_m + start_col * stride_n
-    """
+export const TILEINDEXGRIDMAPPER_CODE = `def map_1d_program_id_to_2d_tile(pid_1d: int, num_pid_m: int, num_pid_n: int, block_m: int = 128, block_n: int = 128, stride_m: int = 4096, stride_n: int = 1) -> tuple[int, int, int, int, int]:
+    """Maps a 1D GPU Thread Block Program ID (tl.program_id(0)) into 2D tile matrix coordinates (pid_m, pid_n)."""
     pid_m = pid_1d // num_pid_n
     pid_n = pid_1d % num_pid_n
-    
+
     start_row = pid_m * block_m
     start_col = pid_n * block_n
-    
+
     global_ptr_offset = start_row * stride_m + start_col * stride_n
 
-    return pid_m, pid_n, start_row, start_col, global_ptr_offset
-`;
+    return pid_m, pid_n, start_row, start_col, global_ptr_offset`;
 
 export const DEFAULT_TILEINDEXGRIDMAPPER_INPUT: tileIndexGridMapperInput = {
-  data: [0, 1, 2, 3, 4, 5, 6, 7],
+  pids: [0, 1, 2, 3, 4, 5, 6, 7],
+  numPidM: 2,
+  numPidN: 4,
+  blockM: 128,
+  blockN: 128,
+  strideM: 4096,
+  strideN: 1,
 };
 
 export const generateTILEINDEXGRIDMAPPERSteps = (
@@ -47,36 +50,72 @@ export const generateTILEINDEXGRIDMAPPERSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayData = input.data || [0, 1, 2, 3, 4, 5, 6, 7];
+  const pids = input.pids || DEFAULT_TILEINDEXGRIDMAPPER_INPUT.pids!;
+  const numPidM = input.numPidM || 2;
+  const numPidN = input.numPidN || 4;
+  const blockM = input.blockM || 128;
+  const blockN = input.blockN || 128;
+  const strideM = input.strideM || 4096;
+  const strideN = input.strideN || 1;
 
-  const elements: ArrayElement[] = arrayData.map((val: number, idx: number) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const mappings: ProgramMappingResult[] = [];
+
+  const createMatrixSnapshot = (
+    activePid1d?: number,
+  ): MatrixCellItem[][] => {
+    const grid: MatrixCellItem[][] = [];
+    for (let r = 0; r < numPidM; r++) {
+      const rowItems: MatrixCellItem[] = [];
+      for (let c = 0; c < numPidN; c++) {
+        const pidVal = r * numPidN + c;
+        const mapping = mappings.find((m) => m.pid1d === pidVal);
+
+        let state: MatrixCellItem["state"] = "default";
+        if (activePid1d === pidVal) {
+          state = "active";
+        } else if (mapping) {
+          state = "sorted";
+        }
+
+        const offsetVal = mapping ? mapping.globalPtrOffset : 0;
+
+        rowItems.push({
+          row: r,
+          col: c,
+          value: pidVal,
+          label: mapping ? `PID ${pidVal}: (${r},${c}) Off:${offsetVal}` : `PID ${pidVal}`,
+          state,
+        });
+      }
+      grid.push(rowItems);
+    }
+    return grid;
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activePid1d?: number,
+    customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "matrix",
+        rows: numPidM,
+        cols: numPidN,
+        cells: createMatrixSnapshot(activePid1d),
       },
       auxiliaryState: {
-        customState: {
-          block_m: "128",
-          block_n: "128",
+        customState: customState ?? {
+          grid_shape: `[${numPidM}, ${numPidN}]`,
+          tile_shape: `[${blockM}, ${blockN}]`,
+          stride_m: String(strideM),
+          stride_n: String(strideN),
         },
       },
       variables,
@@ -85,68 +124,125 @@ export const generateTILEINDEXGRIDMAPPERSteps = (
 
   addStep(
     1,
-    "Initialize Tile Index Grid Mapper",
-    "Configuring 1D-to-2D GPU grid mapping: mapping pid_1d -> (pid_m, pid_n).",
-    { num_programs: arrayData.length },
+    "Initialize GPU 1D-to-2D Tile Index Grid Mapper",
+    `Setting up 1D Program ID mapping: 2D grid shape [${numPidM}, ${numPidN}], tile size [${blockM}, ${blockN}], DRAM strides (${strideM}, ${strideN}).`,
+    { num_pid_m: numPidM, num_pid_n: numPidN, block_m: blockM, block_n: blockN, stride_m: strideM },
   );
 
-  arrayData.forEach((val: number, idx: number) => {
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`pid=${val}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
+  addStep(
+    2,
+    "Inspect GPU 1D Program ID launch list",
+    `Processing ${pids.length} 1D Program IDs across ${numPidM * numPidN} total grid tiles.`,
+    { num_programs: pids.length },
+  );
+
+  pids.forEach((pid1d) => {
+    addStep(
+      1,
+      `Map 1D Program ID ${pid1d}: map_1d_program_id_to_2d_tile(pid_1d=${pid1d})`,
+      `Translating 1D CUDA thread block index pid_1d=${pid1d} into 2D matrix tile coordinates.`,
+      { pid_1d: pid1d },
+      pid1d,
+    );
+
+    const pidM = Math.floor(pid1d / numPidN);
+    addStep(
+      3,
+      `Compute row block index pid_m = ${pid1d} // ${numPidN} = ${pidM}`,
+      `Dividing 1D program ID by grid column count ${numPidN} yields row block index ${pidM}.`,
+      { pid_1d: pid1d, num_pid_n: numPidN, pid_m: pidM },
+      pid1d,
+    );
+
+    const pidN = pid1d % numPidN;
+    addStep(
+      4,
+      `Compute column block index pid_n = ${pid1d} % ${numPidN} = ${pidN}`,
+      `Modulo of 1D program ID by grid column count ${numPidN} yields column block index ${pidN}.`,
+      { pid_1d: pid1d, num_pid_n: numPidN, pid_n: pidN },
+      pid1d,
+    );
+
+    const startRow = pidM * blockM;
+    addStep(
+      6,
+      `Compute starting matrix row start_row = pid_m * block_m = ${pidM} * ${blockM} = ${startRow}`,
+      `Multiplying row tile index ${pidM} by tile height ${blockM} gives starting row ${startRow}.`,
+      { pid_m: pidM, block_m: blockM, start_row: startRow },
+      pid1d,
+    );
+
+    const startCol = pidN * blockN;
+    addStep(
+      7,
+      `Compute starting matrix column start_col = pid_n * block_n = ${pidN} * ${blockN} = ${startCol}`,
+      `Multiplying column tile index ${pidN} by tile width ${blockN} gives starting column ${startCol}.`,
+      { pid_n: pidN, block_n: blockN, start_col: startCol },
+      pid1d,
+    );
+
+    const globalPtrOffset = startRow * strideM + startCol * strideN;
+    addStep(
+      9,
+      `Compute global DRAM byte pointer offset global_ptr_offset = ${startRow} * ${strideM} + ${startCol} * ${strideN} = ${globalPtrOffset}`,
+      `Linearizing 2D matrix tile offset using tensor strides in DRAM.`,
+      { start_row: startRow, stride_m: strideM, start_col: startCol, stride_n: strideN, global_ptr_offset: globalPtrOffset },
+      pid1d,
+    );
+
+    mappings.push({
+      pid1d,
+      pidM,
+      pidN,
+      startRow,
+      startCol,
+      globalPtrOffset,
     });
 
-    const pidM = Math.floor(val / 4);
-    const pidN = val % 4;
-
     addStep(
-      18,
-      `Map 1D program_id=${val} to 2D tile (pid_m=${pidM}, pid_n=${pidN})`,
-      `Calculating global memory starting row=${pidM * 128}, col=${pidN * 128} and pointer offset.`,
-      { pid1d: val, pidM, pidN },
-      currentElements,
+      11,
+      `Return (pid_m=${pidM}, pid_n=${pidN}, start_row=${startRow}, start_col=${startCol}, offset=${globalPtrOffset})`,
+      `Mapping complete for 1D Program ID ${pid1d}: assigned to SM tile (${pidM}, ${pidN}) with DRAM offset ${globalPtrOffset}.`,
+      { pid_m: pidM, pid_n: pidN, start_row: startRow, start_col: startCol, offset: globalPtrOffset },
+      pid1d,
     );
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
   addStep(
-    25,
-    "Execution Complete",
-    "Successfully mapped 1D GPU program IDs to 2D matrix tile pointer offsets.",
-    { completed: true },
-    finalElements,
+    11,
+    "1D-to-2D GPU Grid Mapping Execution Complete",
+    `Successfully mapped ${pids.length} 1D GPU Program IDs to 2D matrix tiles and global memory DRAM pointer offsets.`,
+    { completed: true, total_mapped: mappings.length },
   );
 
   return steps;
 };
 
-const TILEINDEXGRIDMAPPER_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+export const TILEINDEXGRIDMAPPER_TRIVIA: TriviaMeta = {
+  skipLines: [5, 8, 10],
   distractors: [
     "pid_m = pid_1d % num_pid_m",
     "global_ptr_offset = start_row + start_col",
     "start_row = pid_m // block_m",
+    "pid_n = pid_1d // num_pid_n",
   ],
   hints: [
-    { line: 18, hint: "Compute pid_m = pid_1d // num_pid_n for row tile index." },
-    { line: 19, hint: "Compute pid_n = pid_1d % num_pid_n for column tile index." },
-    {
-      line: 24,
-      hint: "Calculate global DRAM pointer offset start_row * stride_m + start_col * stride_n.",
-    },
+    { line: 3, hint: "Compute pid_m = pid_1d // num_pid_n for row tile index." },
+    { line: 4, hint: "Compute pid_n = pid_1d % num_pid_n for column tile index." },
+    { line: 9, hint: "Calculate global DRAM pointer offset start_row * stride_m + start_col * stride_n." },
   ],
   lineExplanations: {
-    1: "Defines 1D-to-2D GPU tile index grid mapper entry point.",
-    18: "Calculates 2D row block index pid_m using integer division.",
-    19: "Calculates 2D column block index pid_n using modulo arithmetic.",
-    21: "Multiplies pid_m by block_m to find starting matrix row.",
-    22: "Multiplies pid_n by block_n to find starting matrix column.",
-    24: "Calculates absolute global memory pointer byte offset for DRAM access.",
+    1: "Defines map_1d_program_id_to_2d_tile signature with 1D program ID, 2D grid dimensions, block sizes, and DRAM strides.",
+    2: "Docstring explaining GPU 1D thread block Program ID translation into 2D matrix tile coordinates.",
+    3: "Calculates 2D row tile index pid_m = pid_1d // num_pid_n using integer division.",
+    4: "Calculates 2D column tile index pid_n = pid_1d % num_pid_n using modulo arithmetic.",
+    5: "Blank line preceding row/col range calculations.",
+    6: "Calculates starting matrix row index start_row = pid_m * block_m.",
+    7: "Calculates starting matrix column index start_col = pid_n * block_n.",
+    8: "Blank line preceding global pointer calculation.",
+    9: "Calculates absolute global memory DRAM byte pointer offset start_row * stride_m + start_col * stride_n.",
+    10: "Blank line preceding return statement.",
+    11: "Returns tuple of (pid_m, pid_n, start_row, start_col, global_ptr_offset) for GPU SM tile allocation.",
   },
 };
 
@@ -159,34 +255,94 @@ export const tileIndexGridMapper: AlgorithmDefinition<tileIndexGridMapperInput> 
   isMlInfra: true,
   mlInfraLevel: 9,
   mlInfraCategory: "ml_hardware_kernels",
-  description:
-    "In OpenAI Triton and CUDA kernel launches, grid dimensions can be launched as 1D arrays of Thread Blocks (`grid = (num_programs,)`). However, matrix multiplication (GEMM) and attention operators operate on 2D matrices of shape $[M, N]$ partitioned into tiles of size `BLOCK_M` $\\times$ `BLOCK_N`.\n\n**Tile Index Grid Mapper** computes the mathematical mapping from a 1D Program ID `pid = tl.program_id(0)` to 2D tile matrix coordinates `(pid_m, pid_n)` and global memory pointer offsets:\n$$\\text{pid\\_m} = \\lfloor \\text{pid} / N_{\\text{blocks\\_n}} \\rfloor, \\quad \\text{pid\\_n} = \\text{pid} \\bmod N_{\\text{blocks\\_n}}$$\n$$\\text{start\\_row} = \\text{pid\\_m} \\times \\text{BLOCK\\_M}, \\quad \\text{start\\_col} = \\text{pid\\_n} \\times \\text{BLOCK\\_N}$$\n$$\\text{ptr\\_offset} = \\text{start\\_row} \\times S_m + \\text{start\\_col} \\times S_n$$\nwhere $S_m, S_n$ are the tensor strides in DRAM.\n\nInput Format:\n- data: Array of 1D program IDs `[0, 1, 2, ...]`.\n- target: Target matrix dimension $M$.\n\nOutput Format:\n- Tuple `(pid_m, pid_n, start_row, start_col, global_ptr_offset)` for each GPU thread block.",
+  description: `Master GPU Program ID Grid Mapping: convert 1D thread block indices (\`tl.program_id(0)\`) into 2D matrix tile coordinates \`(pid_m, pid_n)\` and global DRAM pointer offsets.
+
+### Why It Exists & What It Solves
+In OpenAI Triton and CUDA kernel launches, grid dimensions are launched as 1D arrays of Thread Blocks (\`grid = (num_programs,)\`). However, matrix multiplication (GEMM) and attention operators operate on 2D matrices of shape $[M, N]$ partitioned into tiles of size \`BLOCK_M\` $\\times$ \`BLOCK_N\`.
+
+**Tile Index Grid Mapper** computes the mathematical mapping from a 1D Program ID \`pid = tl.program_id(0)\` to 2D tile matrix coordinates \`(pid_m, pid_n)\` and global memory pointer offsets:
+$$\\text{pid\\_m} = \\lfloor \\text{pid} / N_{\\text{blocks\\_n}} \\rfloor, \\quad \\text{pid\\_n} = \\text{pid} \\bmod N_{\\text{blocks\\_n}}$$
+
+$$\\text{start\\_row} = \\text{pid\\_m} \\times \\text{BLOCK\\_M}, \\quad \\text{start\\_col} = \\text{pid\\_n} \\times \\text{BLOCK\\_N}$$
+
+$$\\text{ptr\\_offset} = \\text{start\\_row} \\times S_m + \\text{start\\_col} \\times S_n$$
+
+where $S_m, S_n$ are the tensor strides in DRAM.
+
+This allows GPU hardware schedulers to map contiguous 1D thread blocks across 2D matrix tiles with zero overhead.
+
+### Step-by-Step Intuition
+1. **Row Tile Index \`pid_m\`**: Divide 1D program ID by column grid count: $\\lfloor \\text{pid} / N_{\\text{blocks\\_n}} \\rfloor$.
+2. **Col Tile Index \`pid_n\`**: Take modulo of 1D program ID by column grid count: $\\text{pid} \\bmod N_{\\text{blocks\\_n}}$.
+3. **Matrix Row Start**: $\\text{start\\_row} = \\text{pid\\_m} \\times \\text{BLOCK\\_M}$.
+4. **Matrix Col Start**: $\\text{start\\_col} = \\text{pid\\_n} \\times \\text{BLOCK\\_N}$.
+5. **DRAM Byte Offset**: $\\text{ptr\\_offset} = \\text{start\\_row} \\times S_m + \\text{start\\_col} \\times S_n$.
+
+### Input Parameters
+- \`pids\`: Array of 1D program IDs.
+- \`numPidM\`: Grid row count ($M_{\\text{blocks}}$).
+- \`numPidN\`: Grid column count ($N_{\\text{blocks}}$).
+- \`blockM\`: Tile height (\`BLOCK_M\`).
+- \`blockN\`: Tile width (\`BLOCK_N\`).
+- \`strideM\`: DRAM stride along matrix row dimension.
+- \`strideN\`: DRAM stride along matrix column dimension.
+
+### Output
+- Returns tuple \`(pid_m, pid_n, start_row, start_col, global_ptr_offset)\` for each GPU thread block.
+
+### Trade-offs & Complexity
+- **Time Complexity**: $O(1)$ integer operations per program ID.
+- **Space Complexity**: $O(1)$ auxiliary space.`,
   constraints: ["0 <= pid_1d < num_pid_m * num_pid_n", "stride_m >= 1"],
   examples: [
     {
       kind: "basic",
       title: "1D-to-2D Mapping (Grid 2x4)",
-      inputDisplay: "pid = 5, num_pid_n = 4, BLOCK = 128",
+      inputDisplay: "pid = 5, Grid [2, 4], Tile [128, 128]",
       outputDisplay: "pid_m = 1, pid_n = 1 (Row 128, Col 128)",
-      input: { data: [0, 1, 2, 3, 4, 5, 6, 7] },
+      input: {
+        pids: [0, 1, 2, 3, 4, 5, 6, 7],
+        numPidM: 2,
+        numPidN: 4,
+        blockM: 128,
+        blockN: 128,
+        strideM: 4096,
+        strideN: 1,
+      },
       output: "pid_m = 1, pid_n = 1",
       explanation: "Program ID 5 maps to row block 1 and col block 1 in a 2x4 grid.",
     },
     {
       kind: "complex",
       title: "8-Program ID Grid Launch",
-      inputDisplay: "data = [0, 1, 2, 3, 4, 5, 6, 7]",
+      inputDisplay: "pids = [0..7], Grid [2, 4]",
       outputDisplay: "Pointer Offsets Computed",
-      input: { data: [0, 1, 2, 3, 4, 5, 6, 7] },
+      input: {
+        pids: [0, 1, 2, 3, 4, 5, 6, 7],
+        numPidM: 2,
+        numPidN: 4,
+        blockM: 128,
+        blockN: 128,
+        strideM: 4096,
+        strideN: 1,
+      },
       output: "Pointer Offsets Computed",
       explanation: "Evaluates 2D tile pointer offsets across 8 parallel GPU thread blocks.",
     },
     {
       kind: "negative",
       title: "Program ID 0 Origin Check",
-      inputDisplay: "data = [0]",
+      inputDisplay: "pid = 0",
       outputDisplay: "pid_m = 0, pid_n = 0 (Offset 0)",
-      input: { data: [0] },
+      input: {
+        pids: [0],
+        numPidM: 2,
+        numPidN: 4,
+        blockM: 128,
+        blockN: 128,
+        strideM: 4096,
+        strideN: 1,
+      },
       output: "pid_m = 0, pid_n = 0",
       explanation: "Program ID 0 maps to top-left matrix origin (0, 0) with zero offset.",
     },
@@ -195,8 +351,8 @@ export const tileIndexGridMapper: AlgorithmDefinition<tileIndexGridMapperInput> 
   timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Computes 1D-to-2D tile index mapping in $O(1)$ integer division and modulo operations.",
-    space: "Requires $O(1)$ auxiliary space per thread block.",
+    time: "Computes 1D-to-2D tile index mapping in O(1) integer division and modulo operations.",
+    space: "Requires O(1) auxiliary space per thread block.",
   },
   topicGuide: {
     overview:

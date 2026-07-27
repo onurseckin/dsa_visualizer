@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, FieldLabel } from "..";
+import { Card, FieldLabel, MarkdownRenderer } from "..";
 import { TopicGuide } from "../../types/dsa";
 
 export interface SolutionApproachCardProps {
@@ -30,12 +30,9 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({ topi
           data-testid="solution-approach-details"
           className="flex flex-col gap-6"
         >
-          <p
-            data-testid="details-overview"
-            className="m-0 text-lg leading-relaxed text-[var(--text-secondary)] pb-6 border-b border-[var(--border-default)]"
-          >
-            {topicGuide.overview}
-          </p>
+          <div className="m-0 text-lg leading-relaxed text-[var(--text-secondary)] pb-6 border-b border-[var(--border-default)]">
+            <MarkdownRenderer content={topicGuide.overview} />
+          </div>
 
           <div className="flex flex-col gap-5">
             {topicGuide.sections.map((section, idx) => (
@@ -43,9 +40,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({ topi
                 <h3 className="m-0 mb-3 text-base font-semibold text-[var(--text-primary)]">
                   {section.heading}
                 </h3>
-                <p className="m-0 text-base leading-relaxed text-[var(--text-secondary)]">
-                  {section.body}
-                </p>
+                <MarkdownRenderer content={section.body} />
               </section>
             ))}
 

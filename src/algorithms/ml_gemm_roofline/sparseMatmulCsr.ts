@@ -1,13 +1,14 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface sparseMatmulCsrInput {
-  data: number[];
-  target?: number;
+  values?: number[];
+  col_indices?: number[];
+  row_ptr?: number[];
+  vector?: number[];
 }
 
-export const SPARSEMATMULCSR_CODE = `
-def sparse_matmul_csr(values, col_indices, row_ptr, vector):
+export const SPARSEMATMULCSR_CODE = `def sparse_matmul_csr(values, col_indices, row_ptr, vector):
     """
     Computes SpMV sparse matrix-vector product y = A_csr @ x.
     """
@@ -24,114 +25,277 @@ def sparse_matmul_csr(values, col_indices, row_ptr, vector):
             dot += val * vector[col]
         result.append(dot)
 
-    return result
-`;
+    return result`;
 
 export const DEFAULT_SPARSEMATMULCSR_INPUT: sparseMatmulCsrInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  values: [3, 4, 1, 5, 2, 6, 7, 8],
+  col_indices: [0, 2, 1, 3, 0, 2, 1, 3],
+  row_ptr: [0, 2, 4, 6, 8],
+  vector: [2, 1, 4, 3],
 };
 
 export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): AlgorithmStep[] => {
+  const values = input.values ?? [3, 4, 1, 5, 2, 6, 7, 8];
+  const col_indices = input.col_indices ?? [0, 2, 1, 3, 0, 2, 1, 3];
+  const row_ptr = input.row_ptr ?? [0, 2, 4, 6, 8];
+  const vector = input.vector ?? [2, 1, 4, 3];
+
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const numRows = Math.max(0, row_ptr.length - 1);
+  const numCols = vector.length > 0 ? vector.length : 4;
+
+  // Build dense reference matrix representation for matrix snapshot
+  const denseMatrix: number[][] = Array.from({ length: numRows }, () =>
+    Array.from({ length: numCols }, () => 0),
+  );
+
+  for (let r = 0; r < numRows; r++) {
+    const start = row_ptr[r];
+    const end = row_ptr[r + 1];
+    for (let i = start; i < end; i++) {
+      const c = col_indices[i];
+      if (c < numCols) {
+        denseMatrix[r][c] = values[i];
+      }
+    }
+  }
+
+  const createMatrixSnapshot = (
+    activeRow?: number,
+    activeCol?: number,
+    completedRows: number[] = [],
+    titleExtra = "",
+  ) => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const val = denseMatrix[r][c];
+        let state: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default";
+        if (completedRows.includes(r)) {
+          state = "sorted";
+        } else if (r === activeRow && c === activeCol) {
+          state = "active";
+        } else if (r === activeRow) {
+          state = val !== 0 ? "compared" : "inactive";
+        } else if (val === 0) {
+          state = "inactive";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: val !== 0 ? `A[${r},${c}]` : undefined,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix" as const,
+      rows: numRows,
+      cols: numCols,
+      rowHeaders: Array.from({ length: numRows }, (_, r) => `Row ${r}`),
+      colHeaders: Array.from({ length: numCols }, (_, c) => `x[${c}]=${vector[c]}`),
+      title: `CSR Matrix A Sparse Grid (${numRows}x${numCols})${titleExtra}`,
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeRow?: number,
+    activeCol?: number,
+    completedRows: number[] = [],
+    titleExtra = "",
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: createMatrixSnapshot(activeRow, activeCol, completedRows, titleExtra),
       auxiliaryState: {
         customState: {
-          data: `[${input.data.join(", ")}]`,
-          target: String(input.target ?? 0),
+          values: `[${values.join(", ")}]`,
+          col_indices: `[${col_indices.join(", ")}]`,
+          row_ptr: `[${row_ptr.join(", ")}]`,
+          vector: `[${vector.join(", ")}]`,
+          numRows,
         },
       },
       variables,
     });
   };
 
+  // Line 1: Setup
   addStep(
     1,
     "Initialize Sparse Matrix Multiplication (CSR Format)",
-    "Setting up execution data structures and memory layout pointers.",
-    { n: input.data.length, target: input.target ?? 0 },
+    "Set up inputs: values, col_indices, row_ptr, and vector x for SpMV evaluation.",
+    { num_rows: numRows, num_nonzeros: values.length },
   );
 
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return { ...el, state: isTarget ? "active" : "compare", pointers: [`i=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  // Line 5: num_rows calculation
+  addStep(
+    5,
+    `Calculate Row Count: num_rows = ${numRows}`,
+    `Extract matrix row count from row_ptr length (${row_ptr.length} - 1 = ${numRows}).`,
+    { num_rows: numRows },
+  );
+
+  // Line 6: result initialization
+  const result: number[] = [];
+  const completedRows: number[] = [];
+  addStep(
+    6,
+    "Initialize Output Result Vector",
+    "Allocate empty list 'result' to hold dot products for each row.",
+    { result: "[]" },
+  );
+
+  // Loop over rows
+  for (let r = 0; r < numRows; r++) {
+    addStep(
+      8,
+      `Start Processing Row ${r}`,
+      `Iterate outer loop for row index r = ${r}.`,
+      { r, num_rows: numRows },
+      r,
+    );
+
+    const rowStart = row_ptr[r];
+    const rowEnd = row_ptr[r + 1];
 
     addStep(
-      4,
-      `Process element ${idx}: value = ${val}`,
-      `Evaluating element at index ${idx} in memory layout.`,
-      { idx, val, isTarget },
-      currentElements,
+      9,
+      `Get row_start = row_ptr[${r}] (${rowStart})`,
+      `Fetch starting offset in values array for row ${r}.`,
+      { r, row_start: rowStart },
+      r,
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+    addStep(
+      10,
+      `Get row_end = row_ptr[${r + 1}] (${rowEnd})`,
+      `Fetch ending offset in values array for row ${r}. Non-zero count for row is ${rowEnd - rowStart}.`,
+      { r, row_start: rowStart, row_end: rowEnd },
+      r,
+    );
 
+    let dot = 0;
+    addStep(
+      11,
+      `Initialize Row Accumulator: dot = 0`,
+      `Reset dot product accumulator for row ${r}.`,
+      { r, dot },
+      r,
+    );
+
+    for (let i = rowStart; i < rowEnd; i++) {
+      addStep(
+        12,
+        `Loop non-zero index i = ${i} (range ${rowStart}..${rowEnd})`,
+        `Iterate over non-zero entry at index ${i}.`,
+        { r, i, row_start: rowStart, row_end: rowEnd },
+        r,
+      );
+
+      const val = values[i];
+      addStep(
+        13,
+        `Fetch val = values[${i}] (${val})`,
+        `Read non-zero coefficient value at index ${i}.`,
+        { i, val },
+        r,
+        col_indices[i],
+      );
+
+      const col = col_indices[i];
+      addStep(
+        14,
+        `Fetch col = col_indices[${i}] (${col})`,
+        `Read column index for non-zero coefficient: col = ${col}.`,
+        { i, val, col },
+        r,
+        col,
+      );
+
+      const prod = val * vector[col];
+      dot += prod;
+      addStep(
+        15,
+        `Accumulate Product: dot += ${val} * ${vector[col]} (${prod}) -> dot = ${dot}`,
+        `Multiply non-zero val by vector[${col}] and add to row dot product total.`,
+        { r, i, val, col, "vector[col]": vector[col], prod, dot },
+        r,
+        col,
+      );
+    }
+
+    result.push(dot);
+    completedRows.push(r);
+    addStep(
+      16,
+      `Append Row Total: result.append(${dot})`,
+      `Store finished dot product for row ${r} into result vector: [${result.join(", ")}].`,
+      { r, dot, result: `[${result.join(", ")}]` },
+      undefined,
+      undefined,
+      [...completedRows],
+    );
+  }
+
+  // Line 18: Return result
   addStep(
     18,
-    "Execution Complete",
-    "Successfully processed all elements in the memory structure.",
-    { completed: true },
-    finalElements,
+    `SpMV Complete: Return result = [${result.join(", ")}]`,
+    "Successfully computed sparse matrix-vector product for all rows.",
+    { completed: true, result: `[${result.join(", ")}]` },
+    undefined,
+    undefined,
+    [...completedRows],
+    " - Complete",
   );
 
   return steps;
 };
 
-const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
+export const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
+    "result.append(val * vector[i])",
+    "row_start = row_ptr[r + 1]",
+    "dot += values[col] * vector[i]",
   ],
-  hints: [{ line: 4, hint: "Process elements in GEMM memory pipeline." }],
+  hints: [
+    { line: 5, hint: "Row count is given by len(row_ptr) - 1." },
+    { line: 8, hint: "Iterate over each row index r in range(num_rows)." },
+    { line: 12, hint: "Iterate non-zero entries from row_start to row_end." },
+    { line: 15, hint: "Multiply non-zero value by vector[col] and accumulate into dot." },
+  ],
   lineExplanations: {
     1: "Defines SpMV sparse matrix-vector multiplication function in CSR format.",
-    4: "Gets matrix row count M = len(row_ptr) - 1.",
-    5: "Initializes output result vector y.",
-    7: "Iterates through row index r from 0 to M-1.",
-    8: "Extracts row non-zero start pointer row_start = row_ptr[r].",
-    9: "Extracts row non-zero end pointer row_end = row_ptr[r+1].",
-    10: "Initializes row dot product accumulator to 0.",
-    11: "Iterates through non-zero element index i from row_start to row_end - 1.",
-    12: "Fetches non-zero scalar value val = values[i].",
-    13: "Fetches column index col = col_indices[i].",
-    14: "Accumulates val * vector[col] product into dot.",
-    15: "Appends computed row dot product to output result vector.",
-    17: "Returns computed SpMV result vector.",
+    2: "Starts docstring explaining SpMV kernel computation.",
+    3: "Describes mathematical contract: y = A_csr @ x.",
+    4: "Ends function docstring.",
+    5: "Calculates total rows M = len(row_ptr) - 1 from offset pointer array.",
+    6: "Initializes empty list 'result' to store computed output dot products.",
+    7: "Blank line separating initialization from row processing loop.",
+    8: "Iterates through row indices r from 0 up to num_rows - 1.",
+    9: "Extracts row start offset pointer row_start = row_ptr[r].",
+    10: "Extracts row end offset pointer row_end = row_ptr[r + 1].",
+    11: "Resets scalar row dot product accumulator 'dot' to zero.",
+    12: "Iterates non-zero entry index i from row_start to row_end - 1.",
+    13: "Fetches non-zero coefficient value val = values[i].",
+    14: "Fetches column index col = col_indices[i] for non-zero entry.",
+    15: "Accumulates product val * vector[col] into row dot product total.",
+    16: "Appends finalized row dot product 'dot' to output result vector.",
+    17: "Blank line separating row processing loop from return statement.",
+    18: "Returns output result vector containing SpMV matrix-vector product.",
   },
 };
 
@@ -145,78 +309,88 @@ export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
   mlInfraLevel: 2,
   mlInfraCategory: "ml_gemm_roofline",
   description:
-    "In Graph Neural Networks (GNNs, e.g., PyTorch Geometric, DGL) and pruned sparse ML models, matrices contain mostly zeros (>90% sparsity). Compressed Sparse Row (CSR) format compresses M x N sparse matrices into 3 compact 1D vectors: values (non-zero entries), col_indices (column indices of non-zero entries), and row_ptr (pointers to row start/end offsets).\n\nThis algorithm implements Sparse Matrix Multiplication (CSR Format), evaluating SpMV vector dot products using CSR index vectors.\n\nInput Format:\n- data: Array representing CSR arrays or vector inputs.\n- target: Optional target value.\n\nOutput Format:\n- Returns 1D result vector y of length M.\n\nEdge Cases & Constraints:\n- Empty rows in sparse matrix (row_start == row_end, output entry is 0).\n- Fully dense matrix stored in CSR format.\n- Single non-zero element sparse matrices.",
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+    "In Graph Neural Networks (GNNs, e.g., PyTorch Geometric, DGL) and heavily pruned modern LLMs (e.g. 50-80% sparse weights), dense matrix storage wastes memory and compute on zero elements. Compressed Sparse Row (CSR) format compresses an $M \\times N$ sparse matrix into three 1D arrays: `values` (length $\\text{NNZ}$), `col_indices` (length $\\text{NNZ}$), and `row_ptr` (length $M + 1$).\n\nSparse Matrix-Vector Multiplication (SpMV) computes $\\mathbf{y} = A_{\\text{CSR}} \\mathbf{x}$ by iterating only over non-zero entries:\n$$y[r] = \\sum_{i=\\text{row\\_ptr}[r]}^{\\text{row\\_ptr}[r+1]-1} \\text{values}[i] \\times x[\\text{col\\_indices}[i]]$$\nIn CUDA/Triton kernels, SpMV presents high arithmetic intensity challenges because indirect memory accesses via `col_indices[i]` cause memory bandwidth bottlenecks and non-coalesced DRAM reads.",
+  constraints: [
+    "1 <= values.length <= 1000",
+    "col_indices.length == values.length",
+    "row_ptr.length >= 2",
+    "1 <= vector.length <= 1000",
+  ],
   examples: [
     {
       kind: "basic",
-      title: "Standard Execution",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "[10, 20, 30]",
+      title: "Standard CSR SpMV",
+      inputDisplay: "values = [3, 4, 1, 5, 2, 6, 7, 8], row_ptr = [0, 2, 4, 6, 8], vector = [2, 1, 4, 3]",
+      outputDisplay: "[22, 16, 28, 31]",
       input: DEFAULT_SPARSEMATMULCSR_INPUT,
-      output: "[10, 20, 30]",
-      explanation: "Standard execution pass.",
+      output: "[22, 16, 28, 31]",
+      explanation: "Computes SpMV for 4x4 sparse matrix with 2 non-zeros per row.",
     },
     {
       kind: "complex",
-      title: "Complex Execution",
-      inputDisplay: "data = [10, 20, 30, 40, 50]",
-      outputDisplay: "[10, 20, 30, 40, 50]",
-      input: DEFAULT_SPARSEMATMULCSR_INPUT,
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Evaluates workload performance boundaries.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "[5, 10, 15]",
-      input: DEFAULT_SPARSEMATMULCSR_INPUT,
-      output: "[5, 10, 15]",
-      explanation: "Edge case execution completes safely.",
+      title: "Sparse Matrix with Empty Row",
+      inputDisplay: "values = [5, 9], col_indices = [0, 2], row_ptr = [0, 1, 1, 2], vector = [3, 1, 2]",
+      outputDisplay: "[15, 0, 18]",
+      input: {
+        values: [5, 9],
+        col_indices: [0, 2],
+        row_ptr: [0, 1, 1, 2],
+        vector: [3, 1, 2],
+      },
+      output: "[15, 0, 18]",
+      explanation: "Row 1 is completely zero (row_ptr[1] == row_ptr[2] == 1), resulting in 0.",
     },
   ],
   code: SPARSEMATMULCSR_CODE,
-  timeComplexity: { best: "O(N)", average: "O(N)", worst: "O(N)" },
-  spaceComplexity: "O(N)",
+  timeComplexity: { best: "O(NNZ)", average: "O(NNZ)", worst: "O(NNZ)" },
+  spaceComplexity: "O(M)",
   complexityAnalysis: {
-    time: "Execution time complexity pass across input elements.",
-    space: "Memory allocation space for result structures.",
+    time: "O(NNZ) where NNZ is total number of non-zero entries. Skipping zeros avoids O(M * N) dense matrix multiplications.",
+    space: "O(M) space for output vector y of length M.",
   },
   topicGuide: {
     overview:
-      "CSR (Compressed Sparse Row) representation eliminates zero-value multiplications, reducing memory footprint from O(M * N) down to O(NNZ + M), where NNZ is total non-zero elements. SpMV executes in O(NNZ) time.",
+      "Compressed Sparse Row (CSR) representation is a fundamental sparse matrix encoding scheme used across scientific computing, Graph Neural Networks, and sparse machine learning inference. By storing only non-zero matrix entries along with column index mappings and row offset pointers, CSR reduces memory consumption from $\\mathcal{O}(M \\times N)$ to $\\mathcal{O}(\\text{NNZ} + M)$.\n\nIn GPU roofline performance terms, SpMV is strictly memory-bandwidth bound. Because arithmetic intensity (FLOPs per byte transferred) is very low, optimizing SpMV relies heavily on hardware cache utilization and warp load balancing.",
     sections: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, CSR format defines: values array of size NNZ, col_indices array of size NNZ, and row_ptr array of size M+1 where row r stores non-zero entries at index range [row_ptr[r] .. row_ptr[r+1]-1]. Row result y_r = sum_{i=row_ptr[r]}^{row_ptr[r+1]-1} values[i] * vector[col_indices[i]].",
+        heading: "Why It Exists & Theoretical Foundations",
+        body: "Large-scale deep learning models contain vast regions of zero weights. Storing full dense matrices wastes SRAM and memory bandwidth. CSR format compresses these matrices into three compact arrays: `values` (length $\\text{NNZ}$), `col_indices` (length $\\text{NNZ}$), and `row_ptr` (length $M + 1$). The offset difference $\\text{row\\_ptr}[r+1] - \\text{row\\_ptr}[r]$ gives the exact count of non-zeros in row $r$.",
       },
       {
-        heading: "Systems & Memory Hierarchy Performance",
-        body: "SpMV kernels on GPUs suffer from irregular memory access patterns because col_indices[i] causes indirect memory reads from vector x, resulting in non-coalesced DRAM accesses.",
+        heading: "What It Solves & Real-World Applications",
+        body: "SpMV solves high-throughput sparse matrix-vector multiplication in Graph Convolutional Networks (GCNs), PageRank algorithms, finite element simulations, and sparse LLM inference engines (e.g. vLLM, TensorRT-LLM with sparse Tensor Cores).",
       },
       {
-        heading: "Implementation Nuances & Data Structures",
-        body: "Implementation iterates through rows r, extracts non-zero index range [row_start .. row_end], multiplies values[i] by vector[col_indices[i]], and appends row totals.",
+        heading: "Step-by-Step Intuition & Worked Example",
+        body: "To compute $y[r]$, we look up $\\text{row\\_start} = \\text{row\\_ptr}[r]$ and $\\text{row\\_end} = \\text{row\\_ptr}[r+1]$. We initialize $\\text{dot} = 0$, then loop $i$ from $\\text{row\\_start}$ to $\\text{row\\_end} - 1$. For each non-zero, we read $v = \\text{values}[i]$ and $c = \\text{col\\_indices}[i]$, accumulating $v \\times \\mathbf{x}[c]$ into $\\text{dot}$. Finally, $\\text{dot}$ is written to $y[r]$.",
       },
       {
-        heading: "Edge Case Analysis & Production Robustness",
-        body: "Edge case analysis includes empty rows where row_start == row_end, yielding dot product 0 without looping.",
+        heading: "Trade-offs & Hardware Realities",
+        body: "While CSR saves memory footprint, it introduces indirect memory indexing ($\\mathbf{x}[\\text{col\\_indices}[i]]$). On GPU hardware, non-consecutive column indices cause uncoalesced DRAM accesses. Furthermore, non-uniform non-zero distributions per row cause thread warp divergence.",
+      },
+      {
+        heading: "Time & Space Complexity Analysis",
+        body: "Time Complexity: $\\mathcal{O}(\\text{NNZ})$ where $\\text{NNZ}$ is non-zero element count. Space Complexity: $\\mathcal{O}(M)$ for output vector result $\\mathbf{y}$.",
       },
     ],
     keyTerms: [
       {
         term: "CSR Format",
         definition:
-          "Compressed Sparse Row matrix representation storing non-zero values, column indices, and row offset pointers.",
+          "Compressed Sparse Row representation storing non-zero values, column indices, and row offset pointers.",
       },
       {
         term: "SpMV Kernel",
-        definition: "Sparse Matrix-Vector Multiplication computing y = A_sparse * x.",
+        definition: "Sparse Matrix-Vector Multiplication kernel executing y = A_sparse * x.",
       },
       {
         term: "Non-Zero Count (NNZ)",
-        definition: "The total count of non-zero scalar entries stored in a sparse matrix.",
+        definition: "Total count of non-zero elements present in a sparse matrix.",
+      },
+      {
+        term: "Indirect Memory Addressing",
+        definition:
+          "Fetching vector values via indexed lookup (vector[col_indices[i]]) leading to non-coalesced memory reads.",
       },
     ],
   },

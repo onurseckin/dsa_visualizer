@@ -12,7 +12,7 @@ describe("kosarajuScc algorithm spec", () => {
 
   it("should generate steps and compute 2 SCCs for default input graph", () => {
     const steps = generateKosarajuSccSteps(DEFAULT_KOSARAJU_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.codeLine).toBe(1);
@@ -28,6 +28,14 @@ describe("kosarajuScc algorithm spec", () => {
       // All nodes should be in sorted state after SCC assignment
       const sortedNodes = snapshot.nodes.filter((n) => n.state === "sorted");
       expect(sortedNodes).toHaveLength(5);
+    }
+  });
+
+  it("should map every line of pythonCode in lineExplanations", () => {
+    const codeLines = kosarajuScc.code.split("\n").length;
+    const explanations = kosarajuScc.trivia?.lineExplanations ?? {};
+    for (let i = 1; i <= codeLines; i++) {
+      expect(explanations[i], `Missing explanation for line ${i}`).toBeDefined();
     }
   });
 

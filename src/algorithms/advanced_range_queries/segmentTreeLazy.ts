@@ -17,7 +17,7 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   categories: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A Segment Tree with Lazy Propagation supports both range updates and range sum queries in O(log N) time. Instead of touching every element in an updated range, it records the pending change as a lazy tag on the highest covering nodes and pushes those tags down only when a later query or update actually walks into the affected subtree.",
+    "A **Segment Tree with Lazy Propagation** supports both range updates and range sum queries in $O(\\log N)$ time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= val <= 10^9"],
   examples: [
     {

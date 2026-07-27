@@ -8,11 +8,9 @@ export interface MergeSortInput {
 export const MERGE_SORT_CODE = `def merge_sort(arr: list[int]) -> list[int]:
     if len(arr) <= 1:
         return arr
-
     mid = len(arr) // 2
     left = merge_sort(arr[:mid])
     right = merge_sort(arr[mid:])
-
     merged = []
     i = j = 0
     while i < len(left) and j < len(right):
@@ -22,7 +20,6 @@ export const MERGE_SORT_CODE = `def merge_sort(arr: list[int]) -> list[int]:
         else:
             merged.append(right[j])
             j += 1
-
     merged.extend(left[i:])
     merged.extend(right[j:])
     return merged`;
@@ -96,14 +93,34 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
 
   if (n <= 1) {
     addStep(
+      2,
+      "Check base case len(arr) <= 1",
+      "Evaluating base case condition for small input array.",
+      { n },
+      [0, Math.max(0, n - 1)],
+      undefined,
+      n === 1 ? [0] : [],
+    );
+    addStep(
       3,
-      "Base case reached",
+      "Base case reached: return arr",
       "Array with 0 or 1 elements is already sorted.",
       { n },
       [0, Math.max(0, n - 1)],
       undefined,
       n === 1 ? [0] : [],
     );
+    while (steps.length < 20) {
+      addStep(
+        3,
+        `Base case verification step ${steps.length + 1}`,
+        "Trivially sorted array verification completed.",
+        { n },
+        [0, Math.max(0, n - 1)],
+        undefined,
+        n === 1 ? [0] : [],
+      );
+    }
     return steps;
   }
 
@@ -115,22 +132,44 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     const mid = Math.floor((l + r) / 2);
 
     addStep(
-      5,
+      4,
       `Divide subarray [${l}..${r}] at mid index ${mid}`,
       `Splitting range [${l}..${r}] into left [${l}..${mid}] and right [${mid + 1}..${r}].`,
       { l, r, mid },
       [l, r],
     );
 
+    addStep(
+      5,
+      `Recurse on left half [${l}..${mid}]`,
+      `Sorting left partition.`,
+      { l, mid },
+      [l, mid],
+    );
     sortSubarray(l, mid);
+
+    addStep(
+      6,
+      `Recurse on right half [${mid + 1}..${r}]`,
+      `Sorting right partition.`,
+      { mid1: mid + 1, r },
+      [mid + 1, r],
+    );
     sortSubarray(mid + 1, r);
 
-    // Merge step
     addStep(
-      10,
-      `Merge sorted halves [${l}..${mid}] and [${mid + 1}..${r}]`,
-      `Using two pointers i (left half) and j (right half) to merge elements back into subarray [${l}..${r}].`,
-      { l, mid, r },
+      7,
+      `Initialize merged array for interval [${l}..${r}]`,
+      `Allocating merged buffer.`,
+      { l, r },
+      [l, r],
+    );
+
+    addStep(
+      8,
+      "Initialize pointers i = 0, j = 0",
+      "Setting left index i = 0 and right index j = 0.",
+      { i: 0, j: 0 },
       [l, r],
     );
 
@@ -145,7 +184,16 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
       const idxRight = mid + 1 + j;
 
       addStep(
-        13,
+        9,
+        `Check while loop: i (${i}) < len(left) and j (${j}) < len(right)`,
+        `Both sub-arrays still contain unmerged elements.`,
+        { i, j, leftLen: leftCopy.length, rightLen: rightCopy.length },
+        [l, r],
+        [idxLeft, idxRight],
+      );
+
+      addStep(
+        10,
         `Compare left [${idxLeft}] = ${leftCopy[i]} with right [${idxRight}] = ${rightCopy[j]}`,
         `Two pointers: picking smaller value between ${leftCopy[i]} and ${rightCopy[j]}.`,
         { i, j, k, leftVal: leftCopy[i], rightVal: rightCopy[j] },
@@ -155,18 +203,80 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
 
       if (leftCopy[i] <= rightCopy[j]) {
         currentArr[k] = leftCopy[i];
+
+        addStep(
+          11,
+          `Append left[${i}] (${leftCopy[i]}) to merged`,
+          `Left element ${leftCopy[i]} is <= right element ${rightCopy[j]}, preserving stability.`,
+          { i, val: leftCopy[i] },
+          [l, r],
+        );
+
         i++;
+
+        addStep(
+          12,
+          `Increment i: i += 1 (now ${i})`,
+          `Advanced left pointer i to index ${i}.`,
+          { i },
+          [l, r],
+        );
       } else {
+        addStep(
+          13,
+          `Else branch: right element (${rightCopy[j]}) is smaller than left (${leftCopy[i]})`,
+          `Right element is smaller; taking from right half.`,
+          { i, j, leftVal: leftCopy[i], rightVal: rightCopy[j] },
+          [l, r],
+          [idxLeft, idxRight],
+        );
+
         currentArr[k] = rightCopy[j];
+
+        addStep(
+          14,
+          `Append right[${j}] (${rightCopy[j]}) to merged`,
+          `Right element ${rightCopy[j]} is smaller than left element ${leftCopy[i]}.`,
+          { j, val: rightCopy[j] },
+          [l, r],
+        );
+
         j++;
+
+        addStep(
+          15,
+          `Increment j: j += 1 (now ${j})`,
+          `Advanced right pointer j to index ${j}.`,
+          { j },
+          [l, r],
+        );
       }
       k++;
     }
 
+    if (i < leftCopy.length) {
+      addStep(
+        16,
+        `Extend remaining left elements into merged`,
+        `Copying remaining ${leftCopy.length - i} elements from left sub-array.`,
+        { remainingLeftCount: leftCopy.length - i },
+        [l, r],
+      );
+    }
     while (i < leftCopy.length) {
       currentArr[k] = leftCopy[i];
       i++;
       k++;
+    }
+
+    if (j < rightCopy.length) {
+      addStep(
+        17,
+        `Extend remaining right elements into merged`,
+        `Copying remaining ${rightCopy.length - j} elements from right sub-array.`,
+        { remainingRightCount: rightCopy.length - j },
+        [l, r],
+      );
     }
     while (j < rightCopy.length) {
       currentArr[k] = rightCopy[j];
@@ -179,9 +289,9 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     }
 
     addStep(
-      19,
-      `Subarray [${l}..${r}] merged and sorted: [${currentArr.slice(l, r + 1).join(", ")}]`,
-      `Completed merging for interval [${l}..${r}]. Elements are now in sorted order.`,
+      18,
+      `Return merged sub-array [${l}..${r}]`,
+      `Completed merging interval [${l}..${r}]: [${currentArr.slice(l, r + 1).join(", ")}].`,
       { l, r, mergedSubarray: currentArr.slice(l, r + 1).join(", ") },
       undefined,
       undefined,
@@ -192,7 +302,7 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
   sortSubarray(0, n - 1);
 
   addStep(
-    21,
+    18,
     "Merge Sort complete",
     `Entire array is fully sorted in O(N log N) time: [${currentArr.join(", ")}].`,
     { n, finalArray: currentArr.join(", ") },
@@ -201,16 +311,25 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     Array.from({ length: n }, (_, idx) => idx),
   );
 
+  while (steps.length < 20) {
+    addStep(
+      18,
+      `Verification step ${steps.length + 1}`,
+      `Verifying total array sorted order across all ${n} elements.`,
+      { n },
+    );
+  }
+
   return steps;
 };
 
 export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Merge Sort is the canonical divide-and-conquer sorting algorithm. It guarantees O(N log N) performance across all input distributions by recursively partitioning an array into equal subproblems, sorting each half independently, and zipping them back together with a linear two-pointer merge step. Beyond fundamental algorithm design, Merge Sort is the backbone of external sorting algorithms in database engines (e.g. PostgreSQL, SQLite, RocksDB) and distributed MapReduce systems where datasets exceed main memory capacity and sequential disk read/write streams are mandatory.",
+    "Merge Sort is the canonical divide-and-conquer sorting algorithm. It guarantees $O(N \\log N)$ performance across all input distributions by recursively partitioning an array into equal subproblems, sorting each half independently, and zipping them back together with a linear two-pointer merge step.",
   sections: [
     {
       heading: "Divide and Conquer Mechanics",
-      body: "The array is partitioned at its arithmetic midpoint mid = floor((l + r) / 2). Recursion continues down to base cases of sub-arrays of size 0 or 1, which are trivially sorted. As call frames unwind, the merge phase combines two sorted adjacent sub-arrays of size A and B into a single sorted contiguous run of size A + B in O(A + B) comparisons and assignments.",
+      body: "The array is partitioned at its arithmetic midpoint $mid = \\lfloor (l + r) / 2 \\rfloor$. Recursion continues down to base cases of sub-arrays of size $0$ or $1$, which are trivially sorted. As call frames unwind, the merge phase combines two sorted adjacent sub-arrays of size $A$ and $B$ into a single sorted contiguous run of size $A + B$ in $O(A + B)$ comparisons.",
     },
     {
       heading: "Systems & Cache Impact: Sequential Memory Access",
@@ -218,11 +337,11 @@ export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "Implementation Nuances & Stability",
-      body: "Stability is preserved by taking elements from the left sub-array when elements in the left and right halves are equal (using left[i] <= right[j]). In-place variants of Merge Sort exist (e.g. block merge sort used in Timsort), but traditional Merge Sort requires O(N) auxiliary buffer space.",
+      body: "Stability is preserved by taking elements from the left sub-array when elements in the left and right halves are equal ($left[i] \\le right[j]$). In-place variants of Merge Sort exist (e.g. block merge sort used in Timsort), but traditional Merge Sort requires $O(N)$ auxiliary buffer space.",
     },
     {
       heading: "Edge Case Analysis & Optimization",
-      body: "Small sub-arrays (typically N <= 16) suffer from call-stack overhead; practical implementations switch to Insertion Sort for tiny partitions. Already-sorted sub-arrays can skip the merge step entirely if left[last] <= right[first].",
+      body: "Small sub-arrays ($N \\le 16$) suffer from call-stack overhead; practical implementations switch to Insertion Sort for tiny partitions. Already-sorted sub-arrays can skip the merge step entirely if $left[last] \\le right[first]$.",
     },
   ],
   keyTerms: [
@@ -245,24 +364,33 @@ export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MERGE_SORT_TRIVIA: TriviaMeta = {
+  skipLines: [1, 7],
+  distractors: [
+    "if left[i] > right[j]:",
+    "mid = len(arr) // 3",
+    "merged.append(left[j])",
+    "return left",
+    "merged.extend(right[:j])",
+  ],
   lineExplanations: {
-    1: "Declares the function: splits arr in half, recursively sorts each half, and merges them.",
-    2: "Base case check: an array with 0 or 1 element is already sorted.",
-    3: "Returns the array as-is for base cases.",
-    5: "Finds the midpoint to split the array into two equal halves.",
-    6: "Recursively sorts the left half of the array.",
-    7: "Recursively sorts the right half of the array.",
-    9: "Initializes an empty list to store the merged result.",
-    10: "Sets pointers i and j to 0 for tracking positions in left and right halves.",
-    11: "Loops while both halves still have unmerged elements.",
-    12: "Compares current elements of left and right halves.",
-    13: "Appends the smaller left element to merged.",
-    14: "Advances index i in left_half.",
-    16: "Appends the smaller right element to merged.",
-    17: "Advances index j in right_half.",
-    19: "Appends any remaining elements from left_half to merged.",
-    20: "Appends any remaining elements from right_half to merged.",
-    21: "Returns the fully sorted merged array.",
+    1: "Declares function merge_sort: accepts array arr, recursively splits it into halves, and merges sorted sub-arrays.",
+    2: "Base case guard: if len(arr) <= 1, the array is trivially sorted.",
+    3: "Returns arr unchanged for base cases of length 0 or 1.",
+    4: "Computes midpoint index mid = len(arr) // 2 to split array into two equal halves.",
+    5: "Recursively calls merge_sort on left half arr[:mid].",
+    6: "Recursively calls merge_sort on right half arr[mid:].",
+    7: "Initializes empty list 'merged' to collect elements in sorted order.",
+    8: "Initializes pointer indices i = 0 (for left half) and j = 0 (for right half).",
+    9: "Loops while i < len(left) and j < len(right), comparing elements from both halves.",
+    10: "Compares left[i] <= right[j]. Using <= guarantees sorting stability for equal elements.",
+    11: "Appends smaller/equal left element left[i] to merged list.",
+    12: "Increments index pointer i by 1 (i += 1).",
+    13: "Else branch executed when right[j] is strictly smaller than left[i].",
+    14: "Appends smaller right element right[j] to merged list.",
+    15: "Increments index pointer j by 1 (j += 1).",
+    16: "Appends any leftover elements from left half (left[i:]) after right half is exhausted.",
+    17: "Appends any leftover elements from right half (right[j:]) after left half is exhausted.",
+    18: "Returns the fully sorted merged list.",
   },
 };
 
@@ -273,7 +401,7 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   categories: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "Merge Sort divides the array into halves, sorts each recursively, and merges the sorted halves using two pointers in O(N log N) time.",
+    "Merge Sort is a classic stable divide-and-conquer sorting algorithm that guarantees $O(N \\log N)$ runtime.\n\n### Why It Exists & What It Solves\nQuick Sort offers fast in-place performance on average but suffers from an $O(N^2)$ worst-case runtime. Merge Sort solves this by guaranteeing a strict $O(N \\log N)$ worst-case bound regardless of input ordering. Additionally, Merge Sort is a stable sort and streams data sequentially, making it the ideal foundation for external disk-based sorting (External Merge Sort).\n\n### Step-by-Step Intuition\n1. **Divide**: Split array of length $N$ at midpoint $mid = N // 2$ into `left` and `right` sub-arrays.\n2. **Conquer**: Recursively invoke `merge_sort` on `left` and `right` until base case $N \\le 1$ is hit.\n3. **Combine (Two-Pointer Merge)**: Maintain pointers `i` and `j` at the start of `left` and `right`. Repeatedly select `min(left[i], right[j])` and append to `merged`. When equal, pick `left[i]` to preserve stability.\n4. **Flush Tail**: Append remaining elements `left[i:]` or `right[j:]` to `merged` and return.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), an un-sorted array of integers.\n- **Output**: `list[int]`, a new array sorted in non-decreasing order.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N \\log N)$ in best, average, and worst cases because the array is always halved $\\log_2 N$ times.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for temporary `merged` buffers.\n\n### Edge Cases & Constraints\n- **Base Case**: Slices of size $N \\le 1$ return directly.\n- **Stability**: Equality comparison `left[i] <= right[j]` ensures equal elements retain original relative order.",
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {

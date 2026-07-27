@@ -17,7 +17,7 @@ describe("treeDiameter algorithm spec", () => {
 
   it("should generate steps and compute correct tree diameter for default input", () => {
     const steps = generateTreeDiameterSteps(DEFAULT_TREE_DIAMETER_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.length).toBeGreaterThanOrEqual(20);
 
     const firstStep = steps[0];
     expect(firstStep.codeLine).toBe(1);

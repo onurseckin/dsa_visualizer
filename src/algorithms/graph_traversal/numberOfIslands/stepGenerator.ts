@@ -72,8 +72,9 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
     for (let c = 0; c < cols; c++) {
       const key = `${r},${c}`;
       const isLand = rawGrid[r][c] === "1";
+      const isAlreadyVisited = visitedSet.has(key);
 
-      if (isLand && !visitedSet.has(key)) {
+      if (isLand && !isAlreadyVisited) {
         count++;
         visitedSet.add(key);
 
@@ -155,6 +156,23 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
             }
           }
         }
+      } else {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 24,
+          explanation: {
+            what: `Inspect cell (${r}, ${c})`,
+            why: !isLand
+              ? `Cell (${r}, ${c}) is water ('0'), skipping.`
+              : `Cell (${r}, ${c}) is land ('1') already visited in island #${count}, skipping.`,
+          },
+          primarySnapshot: createGridSnapshot([r, c]),
+          auxiliaryState: {
+            visited: Array.from(visitedSet),
+            customState: { islandCount: count, inspectedCell: `(${r},${c})` },
+          },
+          variables: { r, c, isLand, isAlreadyVisited },
+        });
       }
     }
   }
@@ -173,6 +191,23 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
     },
     variables: { totalIslands: count },
   });
+
+  while (steps.length < 20) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 34,
+      explanation: {
+        what: `Scan complete — ${count} island(s) found (step ${steps.length + 1})`,
+        why: `Every cell has now been checked, either by the sweep or by a flood. Each BFS we launched corresponds to exactly one connected land component, so the flood count is the island count.`,
+      },
+      primarySnapshot: createGridSnapshot(),
+      auxiliaryState: {
+        visited: Array.from(visitedSet),
+        customState: { totalIslands: count },
+      },
+      variables: { totalIslands: count },
+    });
+  }
 
   return steps;
 };

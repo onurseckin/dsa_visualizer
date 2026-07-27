@@ -79,7 +79,14 @@ export interface StepExplanation {
   why: string;
 }
 
-export type PrimaryVisualKind = "array" | "grid" | "graph" | "tree";
+export type PrimaryVisualKind =
+  | "array"
+  | "grid"
+  | "graph"
+  | "tree"
+  | "vector"
+  | "matrix"
+  | "quantization";
 
 export interface ArrayVisualSnapshot {
   kind: "array";
@@ -103,11 +110,70 @@ export interface TreeVisualSnapshot {
   rootId?: string;
 }
 
+export interface VectorItem {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  z?: number;
+  color?: string;
+  state?: "default" | "active" | "compared" | "result" | "inactive";
+  subText?: string;
+}
+
+export interface VectorVisualSnapshot {
+  kind: "vector";
+  vectors: VectorItem[];
+  origin?: { x: number; y: number };
+  planeTitle?: string;
+  dimensions?: "2d" | "3d";
+}
+
+export interface MatrixCellItem {
+  row: number;
+  col: number;
+  value: string | number;
+  label?: string;
+  state?: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive";
+  color?: string;
+}
+
+export interface MatrixVisualSnapshot {
+  kind: "matrix";
+  rows: number;
+  cols: number;
+  cells: MatrixCellItem[];
+  rowHeaders?: string[];
+  colHeaders?: string[];
+  title?: string;
+}
+
+export interface BitItem {
+  index: number;
+  label?: string;
+  value: string | number;
+  state?: "default" | "active" | "sign" | "exponent" | "mantissa" | "quantized";
+  bitGroup?: string;
+}
+
+export interface QuantizationVisualSnapshot {
+  kind: "quantization";
+  originalValue?: number | string;
+  quantizedValue?: number | string;
+  scale?: number | string;
+  zeroPoint?: number | string;
+  bits: BitItem[];
+  title?: string;
+}
+
 export type PrimaryVisualSnapshot =
   | ArrayVisualSnapshot
   | GridVisualSnapshot
   | GraphVisualSnapshot
-  | TreeVisualSnapshot;
+  | TreeVisualSnapshot
+  | VectorVisualSnapshot
+  | MatrixVisualSnapshot
+  | QuantizationVisualSnapshot;
 
 export interface AlgorithmStep {
   stepIndex: number;

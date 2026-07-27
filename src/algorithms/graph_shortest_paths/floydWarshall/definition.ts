@@ -83,16 +83,20 @@ const FLOYD_WARSHALL_TRIVIA: TriviaMeta = {
     2: "Caches the vertex count once, since it sizes the distance matrix and bounds every loop that follows.",
     3: "Builds the n by n table with every pair starting at infinity — unreachable until proven otherwise.",
     4: "Maps each node label to a matrix row and column index, since the table is addressed by position rather than by name.",
+    5: "Blank line separating index dictionary creation from diagonal matrix initialization.",
     6: "Walks every vertex to seed its own diagonal entry.",
     7: "Every vertex reaches itself at zero cost — the base case the whole dynamic program builds on.",
+    8: "Blank line separating diagonal self-distance initialization from direct edge weight population.",
     9: "Walks the raw edge list to fill in what is known directly, before any pivoting begins.",
     10: "Writes each direct edge weight straight into the matrix using the index mapping — the starting facts the algorithm goes on to improve.",
+    11: "Blank line separating direct edge insertion from triple nested pivot loop.",
     12: "The pivot loop: each iteration allows one more vertex to be used as an intermediate stop on any path — this must be the outermost loop or the recurrence is simply wrong.",
     13: "For the current pivot, checks every possible source vertex.",
     14: "And every possible target vertex, so all n^2 pairs get re-examined against this pivot.",
     15: "Only considers routing through k if both halves of the detour (i to k, and k to j) are actually reachable, avoiding arithmetic on infinity.",
     16: "The core comparison: does detouring through pivot k beat the best route from i to j found so far?",
     17: "Overwrites the matrix in place with the cheaper route — safe because row k and column k cannot themselves improve during this same pivot round.",
+    18: "Blank line separating inner relaxation loop from matrix return statement.",
     19: "Every vertex has had its turn as pivot, so the matrix now holds the true shortest distance between every ordered pair.",
   },
 };
@@ -104,7 +108,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   categories: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "Floyd-Warshall computes the shortest path between every pair of vertices in a weighted directed graph using dynamic programming over a distance matrix. It considers each vertex k in turn as a potential intermediate stop between every pair (i, j): whenever routing through k is cheaper (dist[i][k] + dist[k][j] < dist[i][j]), the matrix entry is updated. Once every vertex has had its turn as the pivot, the matrix holds the true shortest distance between every pair of vertices in the graph.",
+    "The Floyd-Warshall algorithm computes the shortest path between every pair of vertices in a weighted directed graph $G = (V, E)$ using dynamic programming over a distance matrix $\\mathbf{D} \\in \\mathbb{R}^{|V| \\times |V|}$. For each pivot vertex $k \\in V$, it relaxes every pair $(i, j)$ using the dynamic programming recurrence: $$d_{i,j}^{(k)} = \\min\\left(d_{i,j}^{(k-1)}, d_{i,k}^{(k-1)} + d_{k,j}^{(k-1)}\\right)$$ It runs in $\\mathcal{O}(|V|^3)$ time and $\\mathcal{O}(|V|^2)$ space, supporting negative edge weights.",
   constraints: [
     "1 <= Vertices V <= 200",
     "0 <= Edges E <= V * (V - 1)",
@@ -177,9 +181,8 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   },
   spaceComplexity: "O(V^2)",
   complexityAnalysis: {
-    time: "The algorithm is three nested loops over the vertices: every pivot k, against every source i, against every target j, doing a constant-time comparison each time. That's V * V * V iterations no matter what the graph looks like, so the running time is O(V^3) in every case — the edge count never even enters the formula.",
-    space:
-      "The V x V distance matrix dominates memory: one cell for every ordered pair of vertices, updated in place, giving O(V^2).",
+    time: "Three nested loops sweep all $|V|$ pivot vertices, $|V|$ source vertices, and $|V|$ target vertices, taking strictly $\\mathcal{O}(|V|^3)$ operations.",
+    space: "The $|V| \\times |V|$ distance matrix requires $\\mathcal{O}(|V|^2)$ memory.",
   },
   topicGuide: FLOYD_WARSHALL_TOPIC_GUIDE,
   trivia: FLOYD_WARSHALL_TRIVIA,

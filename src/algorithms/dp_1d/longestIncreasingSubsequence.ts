@@ -32,6 +32,49 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
 
   steps.push({
     stepIndex: stepIndex++,
+    codeLine: 1,
+    explanation: {
+      what: `Start Length of LIS algorithm with nums=[${nums.join(", ")}]`,
+      why: "The goal is to find the length of the longest strictly increasing subsequence in nums.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default",
+        pointers: [`nums[${idx}] = ${nums[idx]}`],
+      })),
+    },
+    auxiliaryState: {
+      customState: { nums: nums.join(", ") },
+    },
+    variables: { n, "max(dp)": 1 },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 4,
+    explanation: {
+      what: `Store input array length n = ${n}`,
+      why: "Determines boundaries for outer and inner iteration loops.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: dp.map((v, idx) => ({
+        id: `dp-${idx}`,
+        value: v,
+        state: "default",
+      })),
+    },
+    auxiliaryState: {
+      customState: { n },
+    },
+    variables: { n },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
       what: `Initialize DP table of size ${n} with 1s`,
@@ -53,20 +96,35 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
   });
 
   for (let i = 1; i < n; i++) {
-    for (let j = 0; j < i; j++) {
-      const isIncreasing = nums[i] > nums[j];
-      if (isIncreasing) {
-        dp[i] = Math.max(dp[i], dp[j] + 1);
-      }
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 7,
+      explanation: {
+        what: `Outer loop for index i = ${i} (nums[${i}] = ${nums[i]})`,
+        why: `Evaluating all preceding elements j < ${i} to determine the longest strictly increasing subsequence ending at index ${i}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: dp.map((v, idx) => ({
+          id: `dp-${idx}`,
+          value: v,
+          state: idx === i ? "active" : idx < i ? "visited" : "default",
+          pointers: idx === i ? [`i: ${nums[i]}`] : undefined,
+        })),
+      },
+      auxiliaryState: {
+        customState: { i, "nums[i]": nums[i] },
+      },
+      variables: { i, "nums[i]": nums[i] },
+    });
 
+    for (let j = 0; j < i; j++) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 10,
+        codeLine: 8,
         explanation: {
-          what: `Compare nums[${j}] (${nums[j]}) with nums[${i}] (${nums[i]})`,
-          why: isIncreasing
-            ? `Since nums[${i}] (${nums[i]}) > nums[${j}] (${nums[j]}), we can extend the LIS ending at ${j}. Candidate length is dp[${j}] + 1 = ${dp[j] + 1}. Updated dp[${i}] = ${dp[i]}.`
-            : `Since nums[${i}] (${nums[i]}) <= nums[${j}] (${nums[j]}), element at index ${i} cannot extend LIS ending at ${j}.`,
+          what: `Inner loop inspecting predecessor j = ${j} (nums[${j}] = ${nums[j]}) for target i = ${i} (nums[${i}] = ${nums[i]})`,
+          why: `Comparing preceding element nums[${j}] against target element nums[${i}].`,
         },
         primarySnapshot: {
           kind: "array",
@@ -78,16 +136,67 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
           })),
         },
         auxiliaryState: {
-          customState: {
-            i,
-            j,
-            "nums[i]": nums[i],
-            "nums[j]": nums[j],
-            isIncreasing: isIncreasing ? "true" : "false",
-          },
+          customState: { i, j, "nums[i]": nums[i], "nums[j]": nums[j] },
         },
-        variables: { i, j, "dp[i]": dp[i], "dp[j]": dp[j] },
+        variables: { i, j, "nums[i]": nums[i], "nums[j]": nums[j] },
       });
+
+      const isIncreasing = nums[i] > nums[j];
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 9,
+        explanation: {
+          what: `Evaluate condition nums[${i}] (${nums[i]}) > nums[${j}] (${nums[j]})`,
+          why: isIncreasing
+            ? `Condition true (${nums[i]} > ${nums[j]}). We can extend LIS ending at ${j}.`
+            : `Condition false (${nums[i]} <= ${nums[j]}). Cannot extend LIS ending at ${j}.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: dp.map((v, idx) => ({
+            id: `dp-${idx}`,
+            value: v,
+            state: idx === i ? "active" : idx === j ? "compare" : idx < i ? "visited" : "default",
+            pointers: idx === i ? [`i: ${nums[i]}`] : idx === j ? [`j: ${nums[j]}`] : undefined,
+          })),
+        },
+        auxiliaryState: {
+          customState: { i, j, isIncreasing: isIncreasing ? "true" : "false" },
+        },
+        variables: { i, j, isIncreasing },
+      });
+
+      if (isIncreasing) {
+        const prevDpI = dp[i];
+        dp[i] = Math.max(dp[i], dp[j] + 1);
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 10,
+          explanation: {
+            what: `Update dp[${i}] = max(dp[${i}], dp[${j}] + 1) -> max(${prevDpI}, ${dp[j]} + 1 = ${dp[j] + 1}) = ${dp[i]}`,
+            why: `Extended LIS ending at j (${j}) of length ${dp[j]} to index i (${i}), yielding candidate length ${dp[j] + 1}.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: dp.map((v, idx) => ({
+              id: `dp-${idx}`,
+              value: v,
+              state: idx === i ? "active" : idx === j ? "compare" : idx < i ? "visited" : "default",
+              pointers: idx === i ? [`i: ${nums[i]}`] : idx === j ? [`j: ${nums[j]}`] : undefined,
+            })),
+          },
+          auxiliaryState: {
+            customState: {
+              i,
+              j,
+              "dp[i]": dp[i],
+              "dp[j]": dp[j],
+            },
+          },
+          variables: { i, j, "dp[i]": dp[i], "dp[j]": dp[j] },
+        });
+      }
     }
   }
 
@@ -120,14 +229,16 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
 const LIS_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines length_of_lis(nums) -> int: returns the length of the longest strictly increasing subsequence.",
-    2: "Base case guard: returns 0 immediately if input array nums is empty.",
+    2: "Base case guard: checks if input array nums is empty.",
     3: "Returns 0 for empty array.",
     4: "Stores total length n of input array.",
     5: "Initializes DP array dp of size n filled with 1s (each element is an LIS of length 1 by itself).",
+    6: "Blank line separating initialization from subproblem iterations.",
     7: "Outer loop sweeps index i from 1 to n - 1, fixing the ending element of the candidate subsequence.",
     8: "Inner loop sweeps index j from 0 to i - 1, examining all preceding elements.",
     9: "Checks condition nums[i] > nums[j] to ensure strict monotonically increasing order.",
     10: "Updates dp[i] = max(dp[i], dp[j] + 1) using optimal substructure.",
+    11: "Blank line separating nested loops from final max reduction.",
     12: "Returns max(dp), the maximum value found across all DP array entries.",
   },
 };
@@ -139,8 +250,20 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     category: "dp_1d",
     categories: ["dp_1d"],
     difficulty: "Medium",
-    description:
-      "Given an integer array nums, return the length of the longest strictly increasing subsequence. A subsequence is a sequence that can be derived from an array by deleting zero or more elements without changing the order of the remaining elements (unlike a subarray, elements are not required to be contiguous). Define dp[i] as the length of the longest strictly increasing subsequence ending at index i. Initialize dp[i] = 1 for all indices. For each index i from 1 to N-1, iterate over all previous indices j (0 <= j < i); if nums[i] > nums[j], update dp[i] = max(dp[i], dp[j] + 1). The final answer is max(dp).",
+    description: `The **Longest Increasing Subsequence (LIS)** problem (LeetCode #300) asks for the length of the longest subsequence in an array where elements appear in strictly ascending order. Subsequences do not need to be contiguous.
+
+### Optimal Substructure & 1D Recurrence
+Let $dp[i]$ represent the length of the longest strictly increasing subsequence that **ends at index $i$**. For each index $i$, we examine all previous indices $j < i$:
+$$dp[i] = \\max \\Big(1, \\max_{j < i, \\text{nums}[i] > \\text{nums}[j]} (dp[j] + 1) \\Big)$$
+
+The base case is $dp[i] = 1$ for all $i$, because an element alone forms a valid subsequence of length $1$. The overall result is $\\max_{0 \\le i < N} dp[i]$.
+
+### Key Interview Insights
+1. **$O(N^2)$ Dynamic Programming vs. $O(N \\log N)$ Binary Search**:
+   - The standard 1D DP approach runs in $\\mathcal{O}(N^2)$ time and $\\mathcal{O}(N)$ space.
+   - Patience Sorting (using a \`tails\` array and binary search) improves runtime to $\\mathcal{O}(N \\log N)$.
+2. **Subsequence vs. Subarray**: A subsequence allows skipping elements while maintaining relative order.
+3. **Strictly Increasing**: Requires $\\text{nums}[i] > \\text{nums}[j]$. Duplicate values cannot extend the subsequence.`,
     constraints: [
       "1 <= nums.length <= 2500",
       "-10^4 <= nums[i] <= 10^4",
@@ -186,45 +309,40 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     },
     topicGuide: {
       overview:
-        "The Longest Increasing Subsequence (LIS) problem (LeetCode #300) is a fundamental problem in sequence alignment and dynamic programming. Given an array of integers, the goal is to find the maximum length of a subsequence in which all elements appear in strictly ascending numerical order. Subsequences differ from contiguous subarrays in that elements can be skipped. The standard O(N^2) DP approach defines dp[i] as the LIS length ending at index i, evaluating all predecessors j < i. An advanced O(N log N) solution uses patience sorting combined with binary search (bisect_left) over candidate tail values.",
+        "The Longest Increasing Subsequence (LIS) problem is a fundamental challenge in sequence analysis. Given an array of integers $\\text{nums}$, we compute the maximum length of a strictly increasing subsequence. Because subproblems depend on all previous elements, 1D dynamic programming evaluates transitions in $\\mathcal{O}(N^2)$ time. Patience sorting with binary search optimizes this to $\\mathcal{O}(N \\log N)$.",
       sections: [
         {
-          heading: "Core Concept: State Definition & Recurrence",
-          body: "Define dp[i] as the length of the longest strictly increasing subsequence whose final element is nums[i]. Every element forms a single-element subsequence of length 1 by default (dp[i] = 1). For each index i, examining all earlier indices j < i allows appending nums[i] whenever nums[i] > nums[j], giving recurrence dp[i] = max(dp[i], dp[j] + 1). The overall answer is max_{0 <= i < N}(dp[i]).",
+          heading: "1. Mathematical Formulation & 1D Recurrence",
+          body: "Define $dp[i]$ as the length of the longest strictly increasing subsequence ending at index $i$.\n\n- **Base Case**: $dp[i] = 1$ for all $0 \\le i < N$.\n- **State Transition**:\n  $$dp[i] = \\max_{0 \\le j < i, \\text{nums}[i] > \\text{nums}[j]} (dp[j] + 1)$$\n- **Global Result**:\n  $$\\text{LIS} = \\max_{0 \\le i < N} dp[i]$$",
         },
         {
-          heading: "O(N log N) Optimization: Patience Sorting & Binary Search",
-          body: "By maintaining an array tails where tails[k] stores the smallest tail value among all strictly increasing subsequences of length k+1, elements can be binary searched in O(log N) time. For each number x, if x is larger than all elements in tails, append x; otherwise, overwrite the smallest element in tails that is >= x. The length of tails equals the LIS length.",
+          heading: "2. $O(N \\log N)$ Patience Sorting Optimization",
+          body: "Instead of comparing all pairs $(i, j)$, maintain a dynamic array $\\text{tails}$ where $\\text{tails}[k]$ stores the smallest tail value of all increasing subsequences of length $k+1$.\n\n1. Iterate through each $x \\in \\text{nums}$.\n2. Binary search (`bisect_left`) to find the smallest index $idx$ in $\\text{tails}$ such that $\\text{tails}[idx] \\ge x$.\n3. If $idx$ equals the length of $\\text{tails}$, append $x$.\n4. Otherwise, update $\\text{tails}[idx] = x$.\n\nAt the end, $\\text{len}(\\text{tails})$ is the exact LIS length, running in $\\mathcal{O}(N \\log N)$ time.",
         },
         {
-          heading: "Systems Applications: Version Control Diffing & DNA Alignment",
-          body: "LIS concepts underpin critical systems software: git diff and Myers diff algorithms compute longest common subsequences (LCS) by mapping to LIS models. In bioinformatics, LIS aligns genomic DNA sequences. In database query optimizers, LIS ranks index scan candidates.",
+          heading: "3. Real-World Systems Applications",
+          body: "LIS and its variants power critical infrastructure systems:\n- **Version Control & Diff Engines**: `git diff` and Myers LCS/LIS algorithm variants for code change tracking.\n- **Computational Genomics**: DNA/RNA sequence alignment and gene mutation tracking.\n- **Database Query Planning**: Index selection for multi-column range queries.",
         },
         {
-          heading: "Edge Case Analysis & Non-Decreasing Variants",
-          body: "Strictly increasing (nums[i] > nums[j]) vs non-decreasing (nums[i] >= nums[j]) variants differ in duplicate handling. For identical elements like [7, 7, 7], strictly increasing order returns length 1, whereas non-decreasing order returns length N. Reconstructing the actual LIS sequence requires a parent array tracking predecessor pointers.",
+          heading: "4. Common Pitfalls & Edge Cases",
+          body: "- **Strict vs. Non-Strict Order**: Strict inequality ($\\text{nums}[i] > \\text{nums}[j]$) excludes equal elements. For non-decreasing LIS, use $\\ge$ and `bisect_right`.\n- **Decreasing/Duplicate Arrays**: Input like $[7, 7, 7]$ returns $1$.\n- **Empty Input**: Returns $0$ immediately.",
         },
       ],
       keyTerms: [
         {
           term: "Subsequence",
           definition:
-            "A sequence derived by deleting zero or more elements from an array without changing the relative order of remaining elements.",
+            "A sequence derived by deleting zero or more elements without changing relative order.",
         },
         {
           term: "Patience Sorting",
           definition:
-            "A card game sorting algorithm that constructs LIS in O(N log N) time by maintaining pile tops with binary search.",
-        },
-        {
-          term: "Optimal Substructure",
-          definition:
-            "The property that an optimal LIS ending at index i is built by extending an optimal LIS ending at some earlier index j.",
+            "A card-game-inspired algorithm that builds LIS in $\\mathcal{O}(N \\log N)$ using binary search.",
         },
         {
           term: "Tails Array",
           definition:
-            "An auxiliary sorted array tracking the minimum tail element for each candidate subsequence length in O(N log N) LIS.",
+            "An auxiliary array in patience sorting storing the minimal ending element for each subsequence length.",
         },
       ],
     },
@@ -241,3 +359,4 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     defaultInput: DEFAULT_LIS_INPUT,
     generateSteps: generateLisSteps,
   };
+
