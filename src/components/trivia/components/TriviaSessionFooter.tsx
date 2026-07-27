@@ -4,7 +4,6 @@ import { TriviaGrade } from "../../../types/trivia";
 
 interface TriviaSessionFooterProps {
   grade: TriviaGrade | null;
-  filledCount: number;
   totalBlanks: number;
   correctCount: number;
   allFilled: boolean;
@@ -15,7 +14,6 @@ interface TriviaSessionFooterProps {
 
 export const TriviaSessionFooter: React.FC<TriviaSessionFooterProps> = ({
   grade,
-  filledCount,
   totalBlanks,
   correctCount,
   allFilled,

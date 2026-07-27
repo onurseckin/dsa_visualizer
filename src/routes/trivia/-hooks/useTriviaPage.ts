@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type {
   PuzzleLine,
@@ -46,7 +46,18 @@ export function useTriviaPage() {
   const config = activeSession?.config ?? null;
   const progress = activeSession?.progress ?? null;
 
-  const [round, setRound] = useState<TriviaRound | null>(null);
+  const [round, setRoundState] = useState<TriviaRound | null>(activeSession?.activeRound ?? null);
+
+  const updateRound = useCallback(
+    (nextRound: TriviaRound | null) => {
+      setRoundState(nextRound);
+      if (activeSessionId !== null) {
+        updateSession(activeSessionId, { activeRound: nextRound });
+        setSessions(readTriviaSessions());
+      }
+    },
+    [activeSessionId],
+  );
 
   const { sources, meta } = useMemo<DeckSources>(() => {
     const nextSources = new Map<string, PuzzleLine[]>();
@@ -77,13 +88,22 @@ export function useTriviaPage() {
     config && progress ? Math.round(coverageRatio(progress, sources, config) * 100) : 0;
 
   useEffect(() => {
-    if (round !== null && !sources.has(round.algorithmId)) setRound(null);
-  }, [round, sources]);
+    if (round !== null && !sources.has(round.algorithmId)) {
+      updateRound(null);
+    } else if (
+      round === null &&
+      activeSession?.activeRound &&
+      sources.has(activeSession.activeRound.algorithmId)
+    ) {
+      setRoundState(activeSession.activeRound);
+    }
+  }, [round, activeSession, sources, updateRound]);
 
   useEffect(() => {
     if (screen !== "drill" || round !== null || !config || !progress || progress.completed) return;
-    setRound(pickRound({ config, progress, sources, meta }));
-  }, [screen, round, config, progress, sources, meta]);
+    const nextRound = pickRound({ config, progress, sources, meta });
+    updateRound(nextRound);
+  }, [screen, round, config, progress, sources, meta, updateRound]);
 
   const applySessionPatch = (patch: Partial<Omit<TriviaSessionRecord, "id">>) => {
     if (activeSessionId === null) return;
@@ -97,9 +117,10 @@ export function useTriviaPage() {
     const nextProgress = reviveProgressForConfig(progress, nextConfig);
     applySessionPatch(
       nextProgress === progress
-        ? { config: nextConfig }
-        : { config: nextConfig, progress: nextProgress },
+        ? { config: nextConfig, activeRound: null }
+        : { config: nextConfig, progress: nextProgress, activeRound: null },
     );
+    updateRound(null);
   };
 
   const handleSubmit = (answers: Record<number, string>) => {
@@ -107,42 +128,40 @@ export function useTriviaPage() {
     const grade = gradeRound(round, answers);
     const updatedProgress = recordRound(progress, round, grade, config, sources);
     applySessionPatch({ progress: updatedProgress });
-    if (updatedProgress.completed) setRound(null);
+    if (updatedProgress.completed) {
+      updateRound(null);
+    }
   };
 
   const handleNext = () => {
     if (!config || !progress) return;
-    setRound(pickRound({ config, progress, sources, meta }));
+    const nextRound = pickRound({ config, progress, sources, meta });
+    updateRound(nextRound);
   };
 
   const handleStartDrilling = () => {
     applySessionPatch({ lastScreen: "drill" });
-    setRound(null);
   };
 
   const handleEditSettings = () => {
     applySessionPatch({ lastScreen: "setup" });
-    setRound(null);
   };
 
   const handleBackToHome = (fromScreen: TriviaScreen) => {
     applySessionPatch({ lastScreen: fromScreen });
     writeActiveSessionId(null);
     setActiveSessionId(null);
-    setRound(null);
   };
 
   const handleCreateNewSession = () => {
     const created = createSession();
     setSessions(readTriviaSessions());
     setActiveSessionId(created.id);
-    setRound(null);
   };
 
   const handleResumeSession = (session: TriviaSessionRecord) => {
     writeActiveSessionId(session.id);
     setActiveSessionId(session.id);
-    setRound(null);
   };
 
   const handleRenameSession = (id: string, newName: string) => {

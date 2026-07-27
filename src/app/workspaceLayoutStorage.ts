@@ -15,6 +15,7 @@ import {
   clampSplitPercent,
   cloneWorkspaceLayout,
 } from "./workspaceLayoutTypes";
+import { syncKeyToSqlite } from "./sqliteSync";
 
 type WorkspaceValue =
   | string
@@ -119,13 +120,15 @@ export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayo
   };
 
   const storage = getStorage();
+  const value = JSON.stringify(merged);
   if (storage) {
     try {
-      storage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(merged));
+      storage.setItem(WORKSPACE_LAYOUT_KEY, value);
     } catch {
       // Storage full or blocked: the in-memory layout still applies this session.
     }
   }
+  void syncKeyToSqlite(WORKSPACE_LAYOUT_KEY, value);
 
   return merged;
 }
@@ -133,12 +136,14 @@ export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayo
 /** Only ever called from a confirmed "reset layout" action. */
 export function clearWorkspaceLayout(): void {
   const storage = getStorage();
-  if (!storage) return;
-  try {
-    storage.removeItem(WORKSPACE_LAYOUT_KEY);
-  } catch {
-    // Nothing to recover from — the caller restores defaults in memory anyway.
+  if (storage) {
+    try {
+      storage.removeItem(WORKSPACE_LAYOUT_KEY);
+    } catch {
+      // Nothing to recover from — the caller restores defaults in memory anyway.
+    }
   }
+  void syncKeyToSqlite(WORKSPACE_LAYOUT_KEY, null);
 }
 
 /**

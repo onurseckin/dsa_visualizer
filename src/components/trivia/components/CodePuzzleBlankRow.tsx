@@ -1,4 +1,4 @@
-import React, { DragEvent, MouseEvent, MutableRefObject, useState } from "react";
+import React, { DragEvent, MutableRefObject, useState } from "react";
 import { Eye } from "lucide-react";
 import { IconButton, Kbd } from "../../../ui";
 import { PuzzleLine, TriviaGrade, TriviaMode } from "../../../types/trivia";
@@ -25,8 +25,6 @@ interface CodePuzzleBlankRowProps {
   onTypeAnswer: (line: number, text: string) => void;
   onReveal: (line: number) => void;
   onSubmit?: () => void;
-  onToggleHint: (line: number) => void;
-  onExplainClick: (line: number, event: MouseEvent<HTMLButtonElement>) => void;
   rowHoverHandlers?: (line: number) => {
     onMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
     onMouseLeave: () => void;
@@ -53,8 +51,6 @@ export const CodePuzzleBlankRow: React.FC<CodePuzzleBlankRowProps> = ({
   onTypeAnswer,
   onReveal,
   onSubmit,
-  onToggleHint,
-  onExplainClick,
   rowHoverHandlers,
   allowRowDrop,
   handleRowDrop,

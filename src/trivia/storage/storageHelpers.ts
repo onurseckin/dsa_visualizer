@@ -131,15 +131,20 @@ export const readVersioned = (key: string): Record<string, RawTriviaStorageValue
   return parsed;
 };
 
+import { syncKeyToSqlite } from "../../app/sqliteSync";
+
 export const writeVersioned = (
   key: string,
   payload: Record<string, RawTriviaStorageValue>,
 ): void => {
   const storage = getStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(key, JSON.stringify({ version: TRIVIA_STORAGE_VERSION, ...payload }));
-  } catch {
-    // Storage full or blocked: the in-memory value still applies this session.
+  const value = JSON.stringify({ version: TRIVIA_STORAGE_VERSION, ...payload });
+  if (storage) {
+    try {
+      storage.setItem(key, value);
+    } catch {
+      // Storage full or blocked: the in-memory value still applies this session.
+    }
   }
+  void syncKeyToSqlite(key, value);
 };

@@ -18,7 +18,7 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
 }) => {
   const lines = code.trim().split("\n");
   const activeLineRef = useRef<HTMLDivElement | null>(null);
-  const { hovered, rowHoverHandlers } = useHoveredCodeLine(true);
+  const { hovered, rowHoverHandlers } = useHoveredCodeLine();
 
   useEffect(() => {
     activeLineRef.current?.scrollIntoView?.({ block: "nearest" });

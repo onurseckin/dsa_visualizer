@@ -69,7 +69,8 @@ export function useCodePuzzleState({
     );
   };
 
-  const hoveredExplanation = showLineInfo && hovered !== null ? explanationFor(hovered.line) : undefined;
+  const hoveredExplanation =
+    showLineInfo && hovered !== null ? explanationFor(hovered.line) : undefined;
   const clickedExplanation =
     showLineInfo && clickedExplain !== null ? explanationFor(clickedExplain.line) : undefined;
 

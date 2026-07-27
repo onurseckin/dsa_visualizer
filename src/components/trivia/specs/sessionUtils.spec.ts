@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildProblemPatch,
   buildPuzzlePatch,
+  buildTilesPatch,
   omit,
   tileTextOf,
   truthOf,
@@ -51,8 +52,9 @@ describe("sessionUtils", () => {
     expect(omit(map, 99)).toEqual({ 1: "a", 2: "b", 3: "c" });
   });
 
-  it("buildProblemPatch and buildPuzzlePatch create correct layout patches", () => {
+  it("buildProblemPatch, buildPuzzlePatch and buildTilesPatch create correct layout patches", () => {
     expect(buildProblemPatch(250)).toEqual({ problem: 250 });
     expect(buildPuzzlePatch(null)).toEqual({ puzzle: null });
+    expect(buildTilesPatch(180)).toEqual({ tiles: 180 });
   });
 });

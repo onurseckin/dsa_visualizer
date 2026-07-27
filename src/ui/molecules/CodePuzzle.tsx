@@ -1,8 +1,6 @@
 import { Card } from "..";
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
-import {
-  LineExplainPopover,
-} from "../../components/primitives/LineExplainPopover";
+import { LineExplainPopover } from "../../components/primitives/LineExplainPopover";
 import { TILE_MIME } from "../../components/trivia/codePuzzleTypes";
 import { useCodePuzzleDragDrop } from "../../components/trivia/hooks/useCodePuzzleDragDrop";
 import { useCodePuzzleState } from "../../components/trivia/hooks/useCodePuzzleState";
@@ -54,7 +52,6 @@ export function CodePuzzle({
   const graded = grade !== null;
 
   const {
-
     clickedExplain,
     inputRefs,
     blankRowRefs,
@@ -62,11 +59,9 @@ export function CodePuzzle({
     rowHoverHandlers,
     blanks,
     openHintsSet,
-    toggleHint,
     hintFor,
     explanationFor,
     truthFor,
-    handleExplainClick,
     hoveredExplanation,
     clickedExplanation,
   } = useCodePuzzleState({
@@ -79,8 +74,6 @@ export function CodePuzzle({
     onToggleHint,
     showLineInfo,
   });
-
-  const filledCount = round.blanks.filter((line) => (filled[line] ?? "").trim().length > 0).length;
 
   const { allowRowDrop, handleRowDrop, handleWellDrop } = useCodePuzzleDragDrop({
     graded,
@@ -130,8 +123,6 @@ export function CodePuzzle({
               onTypeAnswer={onTypeAnswer}
               onReveal={onReveal}
               onSubmit={onSubmit}
-              onToggleHint={toggleHint}
-              onExplainClick={handleExplainClick}
               rowHoverHandlers={rowHoverHandlers}
               allowRowDrop={allowRowDrop}
               handleRowDrop={handleRowDrop}
