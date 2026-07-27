@@ -116,6 +116,16 @@ import { deepspeedZeroSharding } from "./ml_infra/deepspeedZeroSharding";
 import { pagedAttentionBlockTable } from "./ml_infra/pagedAttentionBlockTable";
 import { continuousBatchingScheduler } from "./ml_infra/continuousBatchingScheduler";
 import { speculativeDecodingVerifier } from "./ml_infra/speculativeDecodingVerifier";
+import { arrayMatrixTraversal } from "./ml_infra/arrayMatrixTraversal";
+import { stridedIndexArithmetic } from "./ml_infra/stridedIndexArithmetic";
+import { matrixMultiplicationNaive } from "./ml_infra/matrixMultiplicationNaive";
+import { topologicalSortDag } from "./ml_infra/topologicalSortDag";
+import { floatingPointOverflow } from "./ml_infra/floatingPointOverflow";
+import { distanceMetricsKnn } from "./ml_infra/distanceMetricsKnn";
+import { triePrefixTreeSearch } from "./ml_infra/triePrefixTreeSearch";
+import { decisionTreeGiniSplit } from "./ml_infra/decisionTreeGiniSplit";
+import { conv2dSlidingWindow } from "./ml_infra/conv2dSlidingWindow";
+import { recurrentUnrollingBptt } from "./ml_infra/recurrentUnrollingBptt";
 
 export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "prefix-sum": prefixSum as AlgorithmDefinition,
@@ -235,6 +245,16 @@ export const ALGORITHM_REGISTRY: Record<string, AlgorithmDefinition> = {
   "paged-attention-block-table": pagedAttentionBlockTable as AlgorithmDefinition,
   "continuous-batching-scheduler": continuousBatchingScheduler as AlgorithmDefinition,
   "speculative-decoding-verifier": speculativeDecodingVerifier as AlgorithmDefinition,
+  "2d-array-matrix-traversal": arrayMatrixTraversal as AlgorithmDefinition,
+  "strided-index-arithmetic": stridedIndexArithmetic as AlgorithmDefinition,
+  "matrix-multiplication-naive": matrixMultiplicationNaive as AlgorithmDefinition,
+  "topological-sort-dag": topologicalSortDag as AlgorithmDefinition,
+  "floating-point-overflow": floatingPointOverflow as AlgorithmDefinition,
+  "distance-metrics-knn": distanceMetricsKnn as AlgorithmDefinition,
+  "trie-prefix-tree-search": triePrefixTreeSearch as AlgorithmDefinition,
+  "decision-tree-gini-split": decisionTreeGiniSplit as AlgorithmDefinition,
+  "conv2d-sliding-window": conv2dSlidingWindow as AlgorithmDefinition,
+  "recurrent-unrolling-bptt": recurrentUnrollingBptt as AlgorithmDefinition,
 };
 
 export const getAlgorithm = (id: string): AlgorithmDefinition | undefined => {
