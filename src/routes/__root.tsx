@@ -22,16 +22,20 @@ function RootShell(): React.ReactElement {
   const { panels, togglePanel, lastAlgorithmId, setLastAlgorithmId } = useSettings();
 
   const appView: AppView =
-    pathname === "/"
-      ? "tree"
-      : pathname.startsWith("/problems")
-        ? "list"
-        : pathname.startsWith("/trivia")
-          ? "trivia"
-          : "workspace";
+    pathname.startsWith("/ml-infra")
+      ? "ml-infra"
+      : pathname === "/"
+        ? "tree"
+        : pathname.startsWith("/problems")
+          ? "list"
+          : pathname.startsWith("/trivia")
+            ? "trivia"
+            : "workspace";
 
   const handleSetAppView = (view: AppView) => {
-    if (view === "tree") {
+    if (view === "ml-infra") {
+      navigate({ to: "/ml-infra" });
+    } else if (view === "tree") {
       navigate({ to: "/" });
     } else if (view === "list") {
       navigate({ to: "/problems", search: {} });

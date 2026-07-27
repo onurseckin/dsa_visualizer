@@ -59,6 +59,7 @@ describe("NavbarControls Component Spec", () => {
     render(<Navbar {...makeProps()} />);
 
     expect(screen.getByRole("button", { name: "DSA Visualizer home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ML Infra" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Knowledge Tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Problem List" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Workspace" })).toBeInTheDocument();
@@ -141,7 +142,7 @@ describe("NavbarControls Component Spec", () => {
     const { rerender } = render(<Navbar {...makeProps()} />);
     expect(screen.getByRole("button", { name: "Visualizer" })).toBeInTheDocument();
 
-    for (const appView of ["tree", "list", "trivia"] as const) {
+    for (const appView of ["ml-infra", "tree", "list", "trivia"] as const) {
       rerender(<Navbar {...makeProps({ appView })} />);
       for (const label of Object.values(PANEL_LABELS)) {
         expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
@@ -155,23 +156,26 @@ describe("NavbarControls Component Spec", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Knowledge Tree" }));
     expect(onSetAppView).toHaveBeenCalledWith("tree");
+
+    fireEvent.click(screen.getByRole("button", { name: "ML Infra" }));
+    expect(onSetAppView).toHaveBeenCalledWith("ml-infra");
   });
 
   describe("trivia app view", () => {
     const APP_VIEW_LABELS: Record<AppView, string> = {
+      "ml-infra": "ML Infra",
       tree: "Knowledge Tree",
       list: "Problem List",
       workspace: "Workspace",
       trivia: "Trivia",
     };
 
-    it("renders Trivia as the fourth segment of the app-view group", () => {
+    it("renders ML Infra as the first segment of the app-view group", () => {
       render(<Navbar {...makeProps()} />);
 
       const group = screen.getByRole("group", { name: "App view" });
       const labels = Array.from(group.querySelectorAll("button")).map((btn) => btn.textContent);
-      console.log("LABELS:", labels);
-      expect(labels).toEqual(["Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
+      expect(labels).toEqual(["ML Infra", "Knowledge Tree", "Problem List", "Workspace", "Trivia"]);
     });
 
     it("switches the app view when the Trivia segment is clicked", () => {

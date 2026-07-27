@@ -1,7 +1,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { CategoryType } from "../../types/dsa";
-import { Input, Select } from "../index";
+import { Button, Input, Select } from "../index";
 import {
   CATEGORY_ENTRIES,
   ProblemListDifficulty,
@@ -33,6 +33,8 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   filteredCount,
   stats,
 }) => {
+  const isMlInfraActive = selectedSource === "ml_infra";
+
   return (
     <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
       <div className="flex-1 min-w-[240px]">
@@ -93,7 +95,19 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           <option value="leetcode">LeetCode</option>
           <option value="book">Competitive Programmer's Handbook</option>
           <option value="standard">Standard</option>
+          <option value="ml_infra">ML Infra</option>
         </Select>
+
+        <Button
+          size="sm"
+          variant={isMlInfraActive ? "primary" : "ghost"}
+          onClick={() => onSourceSelect && onSourceSelect(isMlInfraActive ? "All" : "ml_infra")}
+          aria-label="Filter by ML Infra"
+          aria-pressed={isMlInfraActive}
+          className="shrink-0"
+        >
+          ML Infra
+        </Button>
       </div>
 
       <div className="flex items-center gap-3 shrink-0">

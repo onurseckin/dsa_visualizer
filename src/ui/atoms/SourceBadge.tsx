@@ -1,13 +1,13 @@
 import React from "react";
 import { Book } from "lucide-react";
-import type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind } from "../../types/dsa";
+import type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind, MlInfraSource } from "../../types/dsa";
 import { getSourceKind } from "../../types/dsa";
 import type { BadgeSize } from "./Badge";
 import { Badge } from "./Badge";
 import { LeetCodeBadge } from "./LeetCodeBadge";
 import { cx } from "../cx";
 
-export type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind };
+export type { ProblemSource, BookSource, LeetCodeSource, StandardSource, SourceKind, MlInfraSource };
 
 export interface BookBadgeProps {
   book?: BookSource;
@@ -114,6 +114,33 @@ export const StandardBadge: React.FC<StandardBadgeProps> = ({
   );
 };
 
+export interface MlInfraBadgeProps {
+  size?: BadgeSize;
+  className?: string;
+  label?: string;
+}
+
+export const MlInfraBadge: React.FC<MlInfraBadgeProps> = ({
+  size = "sm",
+  className,
+  label = "ML Infra",
+}) => {
+  return (
+    <Badge
+      variant="neutral"
+      size={size}
+      className={cx(
+        "inline-flex items-center gap-1.5 font-mono text-purple-300 border-purple-500/30 bg-purple-950/40 hover:bg-purple-900/40 transition-colors",
+        className,
+      )}
+      title={`${label} Problem`}
+      aria-label={`${label} Problem`}
+    >
+      <span>{label}</span>
+    </Badge>
+  );
+};
+
 export interface SourceBadgeProps {
   source?: ProblemSource;
   size?: BadgeSize;
@@ -163,6 +190,16 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({
         size={size}
         className={className}
         label={stdSource.label ?? "Standard"}
+      />
+    );
+  }
+
+  if (kind === "ml_infra") {
+    return (
+      <MlInfraBadge
+        size={size}
+        className={className}
+        label={source.label ?? "ML Infra"}
       />
     );
   }

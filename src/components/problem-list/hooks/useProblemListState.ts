@@ -91,7 +91,13 @@ export function useProblemListState({ category, onCategoryChange }: UseProblemLi
       if (selectedSource !== "All") {
         const sources = getAlgorithmSources(alg);
         const matchesSource = sources.some((s) => getSourceKind(s) === selectedSource);
-        if (!matchesSource) return false;
+        const isMl =
+          selectedSource === "ml_infra" &&
+          (Boolean(alg.isMlInfra) ||
+            alg.category === "ml_infra" ||
+            alg.category === "ml_infrastructure" ||
+            alg.category.startsWith("ml_"));
+        if (!matchesSource && !isMl) return false;
       }
 
       if (!q) return true;

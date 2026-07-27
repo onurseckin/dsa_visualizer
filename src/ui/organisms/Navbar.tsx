@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Brain,
+  BrainCircuit,
   Code2,
   Eye,
   FileText,
@@ -36,6 +37,7 @@ export interface NavbarProps {
 }
 
 const APP_VIEW_OPTIONS = [
+  { value: "ml-infra", label: "ML Infra", icon: <BrainCircuit className="w-4 h-4" /> },
   { value: "tree", label: "Knowledge Tree", icon: <Network className="w-4 h-4" /> },
   { value: "list", label: "Problem List", icon: <List className="w-4 h-4" /> },
   { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft className="w-4 h-4" /> },

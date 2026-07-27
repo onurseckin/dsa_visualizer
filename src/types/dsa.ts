@@ -163,6 +163,18 @@ export type CategoryType =
   | "game_theory"
   | "advanced_range_queries"
   | "geometry_and_sweep_line"
+  | "ml_infrastructure"
+  | "ml_infra"
+  | "ml_tensor_algebra"
+  | "ml_autograd_dags"
+  | "ml_precision_quantization"
+  | "ml_vector_search"
+  | "ml_tokenization"
+  | "ml_convolutions"
+  | "ml_attention_geometry"
+  | "ml_graph_compilers"
+  | "ml_distributed_systems"
+  | "ml_llm_serving"
   // Compatibility aliases
   | "stack"
   | "trees"
@@ -229,7 +241,7 @@ export interface LeetCodeMeta {
   url: string;
 }
 
-export type SourceKind = "leetcode" | "book" | "standard" | "hackerrank" | "other";
+export type SourceKind = "leetcode" | "book" | "standard" | "hackerrank" | "ml_infra" | "other";
 
 export interface BaseSource {
   type?: SourceKind;
@@ -265,7 +277,13 @@ export interface StandardSource extends BaseSource {
   label?: string;
 }
 
-export type ProblemSource = LeetCodeSource | BookSource | StandardSource;
+export interface MlInfraSource extends BaseSource {
+  type?: "ml_infra";
+  kind?: "ml_infra";
+  label?: string;
+}
+
+export type ProblemSource = LeetCodeSource | BookSource | StandardSource | MlInfraSource;
 
 export function getSourceKind(source: ProblemSource): SourceKind {
   return source.kind || source.type || "standard";
@@ -274,14 +292,21 @@ export function getSourceKind(source: ProblemSource): SourceKind {
 export function getAlgorithmSources(alg: {
   sources?: ProblemSource[];
   leetcode?: LeetCodeMeta | { id: number; url: string };
+  isMlInfra?: boolean;
 }): ProblemSource[] {
+  let result: ProblemSource[] = [];
   if (alg.sources && alg.sources.length > 0) {
-    return alg.sources;
+    result = [...alg.sources];
+  } else if (alg.leetcode) {
+    result = [{ type: "leetcode", kind: "leetcode", id: alg.leetcode.id, leetcodeId: alg.leetcode.id, url: alg.leetcode.url }];
+  } else {
+    result = [{ type: "standard", kind: "standard", label: "Standard" }];
   }
-  if (alg.leetcode) {
-    return [{ type: "leetcode", kind: "leetcode", id: alg.leetcode.id, leetcodeId: alg.leetcode.id, url: alg.leetcode.url }];
+
+  if (alg.isMlInfra && !result.some((s) => getSourceKind(s) === "ml_infra")) {
+    result.push({ type: "ml_infra", kind: "ml_infra", label: "ML Infra" });
   }
-  return [{ type: "standard", kind: "standard", label: "Standard" }];
+  return result;
 }
 
 export interface AlgorithmDefinition<TInput = unknown> {
@@ -290,6 +315,9 @@ export interface AlgorithmDefinition<TInput = unknown> {
   category: CategoryType;
   difficulty?: DifficultyLevel;
   description: string;
+  isMlInfra?: boolean;
+  mlInfraLevel?: number;
+  mlInfraCategory?: string;
   constraints?: string[];
   examples?: ProblemExample<TInput>[];
   code: string;
@@ -306,4 +334,4 @@ export interface AlgorithmDefinition<TInput = unknown> {
   defaultInput: TInput;
 }
 
-export type AppView = "tree" | "list" | "workspace" | "trivia";
+export type AppView = "ml-infra" | "tree" | "list" | "workspace" | "trivia";

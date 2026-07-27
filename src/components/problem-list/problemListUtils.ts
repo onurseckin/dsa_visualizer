@@ -27,6 +27,18 @@ export const CATEGORY_LABELS: Partial<Record<CategoryType, string>> = {
   game_theory: "Game Theory",
   advanced_range_queries: "Advanced Range Queries",
   geometry_and_sweep_line: "Geometry & Sweep Line",
+  ml_tensor_algebra: "Tensor Algebra & Memory Strides",
+  ml_autograd_dags: "Autograd & Computational Graphs",
+  ml_precision_quantization: "Precision Math & Quantization",
+  ml_vector_search: "Vector Search & Spatial Indexing",
+  ml_tokenization: "Subword Tokenization & Tries",
+  ml_convolutions: "Convolutional Tiling & Recurrent Gates",
+  ml_attention_geometry: "Attention Geometry & KV-Cache",
+  ml_graph_compilers: "Model Compression & Compilers",
+  ml_distributed_systems: "Distributed ML & Interconnects",
+  ml_llm_serving: "LLM Serving & Continuous Batching",
+  ml_infrastructure: "ML Infrastructure",
+  ml_infra: "ML Infrastructure",
 };
 
 export const PROBLEM_LIST_STORAGE_PREFIX = "dsa_visualizer_problem_list_";
@@ -55,7 +67,7 @@ export function writeStoredProblemListValue(key: string, value: string): void {
 }
 
 export type ProblemListDifficulty = "All" | "Easy" | "Medium" | "Hard";
-export type ProblemListSource = "All" | "leetcode" | "book" | "standard";
+export type ProblemListSource = "All" | "leetcode" | "book" | "standard" | "ml_infra";
 export type ProblemListSortField = "title" | "difficulty" | "category";
 export type ProblemListSortOrder = "asc" | "desc";
 
@@ -63,7 +75,7 @@ export const isProblemListDifficulty = (value: unknown): value is ProblemListDif
   value === "All" || value === "Easy" || value === "Medium" || value === "Hard";
 
 export const isProblemListSource = (value: unknown): value is ProblemListSource =>
-  value === "All" || value === "leetcode" || value === "book" || value === "standard";
+  value === "All" || value === "leetcode" || value === "book" || value === "standard" || value === "ml_infra";
 
 export const isProblemListSortField = (value: unknown): value is ProblemListSortField =>
   value === "title" || value === "difficulty" || value === "category";
