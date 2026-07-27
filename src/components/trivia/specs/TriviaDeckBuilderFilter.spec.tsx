@@ -54,7 +54,11 @@ describe("TriviaDeckBuilderFilter", () => {
     const titles = Array.from(container.querySelectorAll(".ui-collapsible__title")).map(
       (node) => node.textContent,
     );
-    expect(titles).toEqual(["Geometry & Sweep Line"]);
+    expect(titles).toEqual([
+      "Geometry & Sweep Line",
+      "Vector Search & Spatial Geometry",
+      "Attention Geometry & RoPE",
+    ]);
   });
 
   it("tells the user when nothing matches", () => {
