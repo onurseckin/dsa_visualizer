@@ -103,8 +103,8 @@ export const generateAffineQuantizationSq8Steps = (
 
   if (n === 0) {
     addStep(
-      3,
-      "Empty input values array",
+      2,
+      "Empty input values array — early return",
       "Returning default scale 1.0 and zero_point 0 for empty vector.",
       { scale: 1.0, zero_point: 0, max_error: 0 },
       [],
@@ -116,28 +116,44 @@ export const generateAffineQuantizationSq8Steps = (
   const minVal = Math.min(...values);
   const maxVal = Math.max(...values);
 
+  addStep(
+    5,
+    `Extract min_val = ${minVal.toFixed(4)}, max_val = ${maxVal.toFixed(4)}`,
+    `Scanning ${n} input values to find the range bounds [${minVal.toFixed(4)}, ${maxVal.toFixed(4)}].`,
+    { min_val: minVal, max_val: maxVal },
+    initialElements.map((el) => ({ ...el, state: "active" })),
+    { min_val: minVal.toFixed(4), max_val: maxVal.toFixed(4) },
+  );
+
   let scale = 1.0;
   let zeroPoint = qmin;
 
   if (maxVal === minVal) {
     scale = 1.0;
     zeroPoint = qmin;
+
+    addStep(
+      8,
+      `Constant Input Detected (max_val == min_val = ${minVal.toFixed(4)}) — use scale=1.0, zero_point=${qmin}`,
+      "When all values are identical, scale defaults to 1.0 and zero_point is clamped to qmin.",
+      { scale: 1.0, zero_point: qmin },
+      initialElements.map((el) => ({ ...el, state: "active" })),
+      { scale: 1.0, zero_point: qmin },
+    );
   } else {
     scale = (maxVal - minVal) / (qmax - qmin);
     const rawZ = Math.round(qmin - minVal / scale);
     zeroPoint = Math.max(qmin, Math.min(qmax, rawZ));
-  }
 
-  addStep(
-    10,
-    `Compute Scale S=${scale.toFixed(6)} & Zero-Point Z=${zeroPoint}`,
-    `Extracted min=${minVal.toFixed(2)}, max=${maxVal.toFixed(2)}. Derived scale S=(max-min)/(qmax-qmin)=${scale.toFixed(
-      6,
-    )} and zero-point Z=${zeroPoint}.`,
-    { minVal, maxVal, scale: Number(scale.toFixed(6)), zeroPoint },
-    initialElements.map((el) => ({ ...el, state: "active" })),
-    { minVal, maxVal, scale: scale.toFixed(6), zeroPoint },
-  );
+    addStep(
+      12,
+      `Compute Scale S=${scale.toFixed(6)} & Zero-Point Z=${zeroPoint}`,
+      `S = (${maxVal.toFixed(4)} - ${minVal.toFixed(4)}) / (${qmax} - ${qmin}) = ${scale.toFixed(6)}. Z = clamp(round(${qmin} - ${minVal.toFixed(4)} / ${scale.toFixed(6)}), ${qmin}, ${qmax}) = ${zeroPoint}.`,
+      { minVal, maxVal, scale: Number(scale.toFixed(6)), zeroPoint },
+      initialElements.map((el) => ({ ...el, state: "active" })),
+      { minVal, maxVal, scale: scale.toFixed(6), zeroPoint },
+    );
+  }
 
   const quantized: number[] = [];
   const dequantized: number[] = [];
@@ -166,10 +182,8 @@ export const generateAffineQuantizationSq8Steps = (
 
   addStep(
     20,
-    `Quantize & Dequantize All Elements (Max Reconstruction Error = ${maxError.toFixed(4)})`,
-    `Successfully mapped continuous floats to INT8 integers. Max quantization error = ${maxError.toFixed(
-      4,
-    )}.`,
+    `Quantize for x in values: q = round(x / S) + Z → clamp to [${qmin}, ${qmax}]`,
+    `Mapped ${n} continuous FP32 values to INT8 integers via q = clamp(round(x / ${scale.toFixed(6)}) + ${zeroPoint}, ${qmin}, ${qmax}).`,
     {
       scale: Number(scale.toFixed(6)),
       zero_point: zeroPoint,
@@ -180,6 +194,23 @@ export const generateAffineQuantizationSq8Steps = (
       scale: scale.toFixed(6),
       zero_point: zeroPoint,
       quantized: `[${quantized.join(", ")}]`,
+      max_error: maxError.toFixed(4),
+    },
+  );
+
+  addStep(
+    29,
+    `Return quantization result: scale=${scale.toFixed(6)}, zero_point=${zeroPoint}, max_error=${maxError.toFixed(4)}`,
+    `Quantize & Dequantize All Elements complete. Max Reconstruction Error = ${maxError.toFixed(4)}.`,
+    {
+      scale: Number(scale.toFixed(6)),
+      zero_point: zeroPoint,
+      max_error: Number(maxError.toFixed(4)),
+    },
+    finalElements,
+    {
+      scale: scale.toFixed(6),
+      zero_point: zeroPoint,
       max_error: maxError.toFixed(4),
     },
   );
