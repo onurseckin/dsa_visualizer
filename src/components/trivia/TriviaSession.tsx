@@ -1,10 +1,10 @@
 import React from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { DragHandle } from "../../ui";
+import { ResizableLayout, ResizableRows } from "../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
 import { getAlgorithm } from "../../algorithms/registry";
 import { ProblemDescriptionCard } from "../../ui";
-import { MAX_PANEL_HEIGHT_PX, MIN_PANEL_HEIGHT_PX } from "../../trivia/triviaLayout";
+
 import { useTriviaSessionState } from "./hooks/useTriviaSessionState";
 import { TriviaSessionHeader } from "./components/TriviaSessionHeader";
 import { TriviaSessionFooter } from "./components/TriviaSessionFooter";
@@ -66,56 +66,60 @@ export function TriviaSession({
         onStudyInWorkspace={onStudyInWorkspace}
         onEditSettings={onEditSettings}
         onBackToHome={onBackToHome}
-      />
-
-      {algorithm && (
-        <div
-          ref={session.problemPanel.ref}
-          style={{
-            flexShrink: 0,
-            height:
-              session.layout.panelHeights.problem !== null
-                ? `${session.layout.panelHeights.problem}px`
-                : undefined,
-            overflow: session.layout.panelHeights.problem !== null ? "auto" : "visible",
-          }}
-        >
-          <ProblemDescriptionCard
-            title={algorithm.title}
-            category={algorithm.category}
-            difficulty={algorithm.difficulty}
-            description={algorithm.description}
-            constraints={algorithm.constraints}
-            examples={algorithm.examples}
-            expanded={session.problemExpanded}
-            onToggleExpanded={session.handleToggleProblemExpanded}
-          />
-        </div>
-      )}
-
-      <DragHandle
-        orientation="horizontal"
-        label="Resize problem description and puzzle rows"
-        valueNow={session.layout.panelHeights.problem ?? MIN_PANEL_HEIGHT_PX}
-        valueMin={MIN_PANEL_HEIGHT_PX}
-        valueMax={MAX_PANEL_HEIGHT_PX}
-        valueText={
-          session.layout.panelHeights.problem === null ? "Automatic, sized to content" : undefined
-        }
-        step={16}
-        dragging={session.problemPanel.dragging}
-        onDragStart={() => session.problemPanel.setDragging(true)}
-        onNudge={session.problemPanel.nudge}
-        onRestoreDefault={session.problemPanel.restoreDefault}
-      />
-
-      <TriviaSessionStage
-        round={round}
+        layout={session.layout}
+        onTogglePanel={session.handleTogglePanel}
         mode={mode}
-        session={session}
-        hints={hints}
-        lineExplanations={lineExplanations}
       />
+
+      <div style={{ flex: "1 1 0%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <ResizableLayout
+          splitPercent={session.layout.problemSplitPercent}
+          onSplitChange={session.handleProblemSplitChange}
+          onSplitCommit={session.handleProblemSplitCommit}
+          showLeft={session.layout.panelVisibility.problem && algorithm !== undefined}
+          showRight={
+            session.layout.panelVisibility.puzzle ||
+            (mode === "choice" && session.layout.panelVisibility.tiles)
+          }
+          handleLabel="Resize problem description and puzzle columns"
+          leftPanel={
+            algorithm ? (
+              <ResizableRows
+                rows={[
+                  {
+                    id: "problem",
+                    label: "Problem description",
+                    greedy: true,
+                    content: (
+                      <ProblemDescriptionCard
+                        title={algorithm.title}
+                        category={algorithm.category}
+                        difficulty={algorithm.difficulty}
+                        description={algorithm.description}
+                        constraints={algorithm.constraints}
+                        examples={algorithm.examples}
+                        expanded={session.problemExpanded}
+                        onToggleExpanded={session.handleToggleProblemExpanded}
+                      />
+                    ),
+                    height: null,
+                  },
+                ]}
+                onHeightsChange={() => {}}
+              />
+            ) : null
+          }
+          rightPanel={
+            <TriviaSessionStage
+              round={round}
+              mode={mode}
+              session={session}
+              hints={hints}
+              lineExplanations={lineExplanations}
+            />
+          }
+        />
+      </div>
 
       <TriviaSessionFooter
         grade={session.grade}

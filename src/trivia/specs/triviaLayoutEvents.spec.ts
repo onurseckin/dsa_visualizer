@@ -14,7 +14,7 @@ import {
 } from "../triviaLayout";
 
 const customLayout: TriviaLayout = {
-  version: 2,
+  version: 3,
   puzzleSplitPercent: 55,
   panelHeights: {
     sessionList: null,
@@ -23,7 +23,13 @@ const customLayout: TriviaLayout = {
     problem: 140,
     puzzle: null,
   },
-  problemExpanded: false,
+  problemExpanded: true,
+  problemSplitPercent: 45,
+  panelVisibility: {
+    problem: true,
+    puzzle: true,
+    tiles: true,
+  },
 };
 
 afterEach(() => {

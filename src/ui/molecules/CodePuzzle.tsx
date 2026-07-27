@@ -1,7 +1,6 @@
 import { Card } from "..";
 import type { TriviaGrade, TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
 import {
-  CodeExplainToggle,
   LineExplainPopover,
 } from "../../components/primitives/LineExplainPopover";
 import { TILE_MIME } from "../../components/trivia/codePuzzleTypes";
@@ -30,6 +29,7 @@ export interface CodePuzzleProps {
   openHints?: readonly number[];
   onToggleHint?: (line: number) => void;
   activeShortcutLine?: number | null;
+  showLineInfo?: boolean;
 }
 
 export function CodePuzzle({
@@ -49,12 +49,12 @@ export function CodePuzzle({
   openHints: openHintsProp,
   onToggleHint,
   activeShortcutLine = null,
+  showLineInfo = true,
 }: CodePuzzleProps) {
   const graded = grade !== null;
 
   const {
-    explainEnabled,
-    setExplainEnabled,
+
     clickedExplain,
     inputRefs,
     blankRowRefs,
@@ -77,6 +77,7 @@ export function CodePuzzle({
     lineExplanations,
     openHintsProp,
     onToggleHint,
+    showLineInfo,
   });
 
   const filledCount = round.blanks.filter((line) => (filled[line] ?? "").trim().length > 0).length;
@@ -90,37 +91,8 @@ export function CodePuzzle({
 
   return (
     <Card
-      title={
-        <span
-          style={{
-            fontFamily: "var(--font-code)",
-            fontSize: "var(--text-xs)",
-            fontWeight: 400,
-            color: "var(--text-muted)",
-          }}
-        >
-          solution.py
-        </span>
-      }
-      actions={
-        <>
-          <CodeExplainToggle
-            enabled={explainEnabled}
-            onToggle={() => setExplainEnabled((current) => !current)}
-          />
-          <span
-            style={{
-              fontFamily: "var(--font-code)",
-              fontSize: "var(--text-xs)",
-              color: "var(--text-muted)",
-            }}
-          >
-            {filledCount}/{round.blanks.length} filled
-          </span>
-        </>
-      }
       style={{ borderColor: "var(--border-default)", minWidth: 0 }}
-      className="border border-[var(--border-default)] rounded-2xl p-8 bg-[var(--bg-inset)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed"
+      className="border border-[var(--border-default)] rounded-2xl p-0 bg-[var(--bg-surface)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed overflow-hidden flex flex-col"
     >
       <div
         data-testid="code-puzzle-well"
@@ -130,9 +102,10 @@ export function CodePuzzle({
         style={{
           minHeight: 0,
           overflow: "auto",
-          background: "var(--bg-elevated)",
-          borderTop: "2px solid var(--border-default)",
+          background: "var(--bg-inset)",
+          borderTop: "2px solid transparent",
           padding: "var(--space-2) 0",
+          flex: "1 1 auto",
         }}
       >
         {round.lines.map((line) =>
@@ -173,7 +146,7 @@ export function CodePuzzle({
           ),
         )}
       </div>
-      {explainEnabled && hovered !== null && hoveredExplanation !== undefined ? (
+      {hovered !== null && hoveredExplanation !== undefined ? (
         <LineExplainPopover
           line={hovered.line}
           explanation={hoveredExplanation}
@@ -186,7 +159,7 @@ export function CodePuzzle({
           line={clickedExplain.line}
           explanation={clickedExplanation}
           anchorRect={clickedExplain.rect}
-          side="right"
+          side="left"
         />
       ) : null}
     </Card>

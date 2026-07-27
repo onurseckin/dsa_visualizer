@@ -65,7 +65,7 @@ describe("/trivia route drill settings", () => {
   it("raises maxBlanks on a session without resetting its drilled progress, via Edit deck & settings", async () => {
     seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     const beforeDrilled = readActiveSessionRecord().progress.drilled;
     const beforeStats = readActiveSessionRecord().progress.stats;
@@ -120,7 +120,7 @@ describe("/trivia route drill settings", () => {
     expect(revived.progress.drilled["bubble-sort"]?.["1"]).toEqual(beforeDrilled);
 
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
-    expect(await screen.findByText("solution.py")).toBeInTheDocument();
+    expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
     expect(screen.queryByText("Deck complete")).not.toBeInTheDocument();
   });
 });

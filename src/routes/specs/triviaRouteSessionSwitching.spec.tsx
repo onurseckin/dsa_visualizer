@@ -64,7 +64,7 @@ describe("/trivia route session switching", () => {
   it('shows an unambiguous "New session" identity right after creating one, distinct from a session with real progress', async () => {
     seedActiveSession("Session 1", DECK, { ...createProgress(DECK), roundsPlayed: 1 }, "drill");
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     fireEvent.click(screen.getByRole("button", { name: "Edit deck & settings" }));
     expect(await screen.findByText("Paused · progress saved")).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe("/trivia route session switching", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add all Arrays & Hashing" }));
     await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(["bubble-sort"]));
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     updateSession(readActiveSessionId()!, {
       progress: {
@@ -165,7 +165,7 @@ describe("/trivia route session switching", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add all Arrays & Hashing" }));
     await waitFor(() => expect(readActiveSessionRecord().config.deck).toEqual(["two-sum"]));
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
     updateSession(readActiveSessionId()!, {
       progress: {
         ...readActiveSessionRecord().progress,

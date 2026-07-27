@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { TutorialCard, hasTutorialContent } from "../../../ui";
 
 describe("hasTutorialContent helper", () => {
@@ -49,15 +49,5 @@ describe("TutorialCard Component Spec", () => {
 
     expect(screen.getByText("Step 1")).toBeInTheDocument();
     expect(screen.getByText("Comparing nodes.")).toBeInTheDocument();
-  });
-
-  it("renders close button and triggers onClose callback when clicked", () => {
-    const onClose = vi.fn();
-    render(<TutorialCard what="Inspecting root" onClose={onClose} />);
-
-    const closeBtn = screen.getByRole("button", { name: "Hide tutorial" });
-    fireEvent.click(closeBtn);
-
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

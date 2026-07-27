@@ -54,7 +54,7 @@ describe("useTriviaPage hook & route integration", () => {
     const { router } = await renderTriviaRoute();
     await screen.findByText("Build your deck");
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     const studyButton = screen.getByRole("button", { name: /Study in workspace/i });
     fireEvent.click(studyButton);
@@ -95,7 +95,7 @@ describe("useTriviaPage hook & route integration", () => {
     writeActiveSessionId(s.id);
 
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     // Click Edit deck & settings
     const editBtn = screen.getByRole("button", { name: "Edit deck & settings" });

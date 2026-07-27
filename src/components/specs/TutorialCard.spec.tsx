@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { TutorialCard, hasTutorialContent } from "../../ui";
 import type { StepExplanation } from "../../types/dsa";
 
@@ -35,15 +35,6 @@ describe("TutorialCard Component Spec", () => {
     expect(screen.getByText("Step 1")).toBeInTheDocument();
   });
 
-  it('invokes onClose from the "Hide tutorial" icon button', () => {
-    const handleClose = vi.fn();
-    render(<TutorialCard explanation={sampleExplanation} stepIndex={0} onClose={handleClose} />);
-
-    const closeBtn = screen.getByRole("button", { name: /Hide tutorial/i });
-    fireEvent.click(closeBtn);
-    expect(handleClose).toHaveBeenCalled();
-  });
-
   it("renders nothing when there is no explanation text", () => {
     const { container } = render(<TutorialCard stepIndex={0} totalSteps={5} />);
     expect(container).toBeEmptyDOMElement();
@@ -71,12 +62,7 @@ describe("TutorialCard Component Spec", () => {
 
     it("uses --text-xs nowhere, including the step counter", () => {
       const { container } = render(
-        <TutorialCard
-          explanation={sampleExplanation}
-          stepIndex={2}
-          totalSteps={10}
-          onClose={vi.fn()}
-        />,
+        <TutorialCard explanation={sampleExplanation} stepIndex={2} totalSteps={10} />,
       );
 
       const sized = Array.from(container.querySelectorAll<HTMLElement>("[style]")).filter(
@@ -102,18 +88,13 @@ describe("TutorialCard Component Spec", () => {
 
     it("gives the strip real padding and the prose the panel’s full measure", () => {
       const { container } = render(
-        <TutorialCard
-          explanation={sampleExplanation}
-          stepIndex={2}
-          totalSteps={10}
-          onClose={vi.fn()}
-        />,
+        <TutorialCard explanation={sampleExplanation} stepIndex={2} totalSteps={10} />,
       );
 
       const body =
         (container.querySelector(".ui-card > div") as HTMLElement) ||
         (container.querySelector('[data-testid="tutorial-card"] > div') as HTMLElement);
-      expect(body.className).toContain("p-6");
+      expect(body.className).toContain("p-3");
       expect(body.className).toContain("flex-col");
 
       // The counter row is above the prose, so the sentence is not squeezed into

@@ -42,7 +42,7 @@ export const isLevelCovered = (
 ): boolean => {
   for (const [algorithmId, lines] of sources) {
     const all = blankableLines(lines);
-    if (all.length < level) continue;
+    if (all.length === 0) continue;
     if (remainingAt(progress, algorithmId, lines, level).length > 0) return false;
   }
   return true;
@@ -60,9 +60,11 @@ export const coverageRatio = (
   for (let level = minBlanks; level <= maxBlanks; level++) {
     for (const [algorithmId, lines] of sources) {
       const all = blankableLines(lines);
-      if (all.length < level) continue;
-      total += all.length;
-      done += drilledAt(progress, algorithmId, level).length;
+      if (all.length === 0) continue;
+      const targetCount = Math.min(level, all.length);
+      total += targetCount;
+      const drilledCount = drilledAt(progress, algorithmId, level).length;
+      done += Math.min(drilledCount, targetCount);
     }
   }
   return total === 0 ? 0 : Math.min(1, done / total);

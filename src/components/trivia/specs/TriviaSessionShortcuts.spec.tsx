@@ -89,7 +89,7 @@ afterEach(() => {
 });
 
 describe("TriviaSession Component Spec - Shortcuts & Controls", () => {
-  it("marks the current shortcut-target blank so ⌘E/⌘I are discoverable directly on the Eye/Hint buttons themselves", () => {
+  it("marks the current shortcut-target blank so Alt+E is discoverable directly on the Eye button itself", () => {
     setup(choiceRound());
     expect(screen.getByTestId("shortcut-target-2")).toBeInTheDocument();
     expect(screen.queryByTestId("shortcut-target-5")).not.toBeInTheDocument();
@@ -100,25 +100,13 @@ describe("TriviaSession Component Spec - Shortcuts & Controls", () => {
     expect(screen.queryByTestId("shortcut-target-2")).not.toBeInTheDocument();
   });
 
-  it("reveals the current-target line with the global ⌘E shortcut even when nothing is focused", () => {
+  it("reveals the current-target line with the global Alt+E shortcut even when nothing is focused", () => {
     setup(choiceRound());
 
-    fireEvent.keyDown(window, { key: "e", metaKey: true });
+    fireEvent.keyDown(window, { key: "e", altKey: true });
 
     expect(slot(2)).toHaveTextContent(ANSWER_2);
     expect(slot(2)).toHaveAttribute("aria-label", expect.stringMatching(/revealed/i));
-  });
-
-  it("toggles the hint for the current-target line with the global ⌘H shortcut even when nothing is focused", () => {
-    setup(choiceRound(), "choice", {
-      hints: [{ line: 2, hint: "An empty map of value to index." }],
-    });
-
-    fireEvent.keyDown(window, { key: "h", metaKey: true });
-    expect(screen.getByTestId("hint-2")).toHaveTextContent("An empty map of value to index.");
-
-    fireEvent.keyDown(window, { key: "h", metaKey: true });
-    expect(screen.queryByTestId("hint-2")).not.toBeInTheDocument();
   });
 
   it("clears the board with the global ⌘R shortcut regardless of focus", () => {

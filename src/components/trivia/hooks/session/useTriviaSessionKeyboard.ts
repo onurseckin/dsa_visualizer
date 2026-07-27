@@ -40,7 +40,7 @@ export function useTriviaSessionKeyboard(handlers: KeyHandlers) {
         doRetry();
         return;
       }
-      if (meta && key === "e") {
+      if (e.altKey && key === "e") {
         e.preventDefault();
         if (target !== null) doReveal(target);
         return;

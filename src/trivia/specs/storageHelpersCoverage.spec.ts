@@ -53,7 +53,9 @@ import type { TriviaProgress, TriviaSessionRecord } from "../../types/trivia";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  window.localStorage.clear();
+  if (typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.clear();
+  }
 });
 
 describe("storageHelpers coverage", () => {
@@ -361,6 +363,12 @@ describe("triviaSessions coverage", () => {
         stats: {},
         completed: false,
         roundsPlayed: 5,
+        sessionList: null,
+        deckBuilder: null,
+        settings: 250,
+        problem: null,
+        puzzle: null,
+        tiles: null,
       }),
     );
     boot = loadTriviaBootstrap();
@@ -386,21 +394,28 @@ describe("triviaLayout coverage", () => {
 
   it("readTriviaLayout & writeTriviaLayout handle corrupted values and errors", () => {
     window.localStorage.setItem(TRIVIA_LAYOUT_KEY, "invalid json");
-    expect(readTriviaLayout().version).toBe(2);
+    expect(readTriviaLayout().version).toBe(5);
 
     window.localStorage.setItem(TRIVIA_LAYOUT_KEY, JSON.stringify({ version: 999 }));
-    expect(readTriviaLayout().version).toBe(2);
+    expect(readTriviaLayout().version).toBe(5);
 
     window.localStorage.setItem(
       TRIVIA_LAYOUT_KEY,
       JSON.stringify({
-        version: 2,
-        puzzleSplitPercent: 65,
-        panelHeights: { sessionList: "invalid" },
+        version: 4,
+        puzzleSplitPercent: 55,
+        panelHeights: {
+          sessionList: null,
+          deckBuilder: 200,
+          settings: null,
+          problem: 140,
+          puzzle: null,
+          tiles: null,
+        },
         problemExpanded: true,
       }),
     );
-    expect(readTriviaLayout().version).toBe(2);
+    expect(readTriviaLayout().version).toBe(5);
 
     const written = writeTriviaLayout({ puzzleSplitPercent: 50 });
     expect(written.puzzleSplitPercent).toBe(50);
@@ -469,7 +484,7 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
     expect(readVersioned("key")).toBeNull();
     expect(() => writeVersioned("key", { a: 1 })).not.toThrow();
     expect(() => clearTrivia()).not.toThrow();
-    expect(readTriviaLayout().version).toBe(2);
+    expect(readTriviaLayout().version).toBe(5);
     expect(writeTriviaLayout({})).toBeDefined();
     expect(() => clearTriviaLayout()).not.toThrow();
     expect(readTriviaSessions()).toEqual([]);
@@ -488,7 +503,7 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
     });
 
     expect(readVersioned("key")).toBeNull();
-    expect(readTriviaLayout().version).toBe(2);
+    expect(readTriviaLayout().version).toBe(5);
     expect(writeTriviaLayout({})).toBeDefined();
     expect(clearTriviaLayout()).toBeUndefined();
     expect(readTriviaSessions()).toEqual([]);
@@ -502,11 +517,13 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
   });
 
   it("readVersioned returns null when parsed value is a primitive JSON e.g. number or string", () => {
-    window.localStorage.setItem("number_key", JSON.stringify(123));
-    expect(readVersioned("number_key")).toBeNull();
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem("number_key", JSON.stringify(123));
+      expect(readVersioned("number_key")).toBeNull();
 
-    window.localStorage.setItem("string_key", JSON.stringify("hello"));
-    expect(readVersioned("string_key")).toBeNull();
+      window.localStorage.setItem("string_key", JSON.stringify("hello"));
+      expect(readVersioned("string_key")).toBeNull();
+    }
   });
 
   it("writeTriviaLayout handles partial panelHeights, puzzleSplitPercent and problemExpanded patches", () => {
@@ -542,22 +559,24 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
   });
 
   it("loadTriviaBootstrap migrates legacy progress with drilled entries when deck is empty", () => {
-    window.localStorage.clear();
-    window.localStorage.setItem(
-      TRIVIA_PROGRESS_KEY,
-      JSON.stringify({
-        version: TRIVIA_STORAGE_VERSION,
-        level: 2,
-        drilled: { "bubble-sort": { "1": [1, 2] } },
-        stats: {},
-        completed: false,
-        roundsPlayed: 0,
-      }),
-    );
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.clear();
+      window.localStorage.setItem(
+        TRIVIA_PROGRESS_KEY,
+        JSON.stringify({
+          version: TRIVIA_STORAGE_VERSION,
+          level: 2,
+          drilled: { "bubble-sort": { "1": [1, 2] } },
+          stats: {},
+          completed: false,
+          roundsPlayed: 0,
+        }),
+      );
 
-    const boot = loadTriviaBootstrap();
-    expect(boot.sessions).toHaveLength(1);
-    expect(boot.sessions[0].progress.drilled).toEqual({ "bubble-sort": { "1": [1, 2] } });
-    expect(boot.activeId).toBeNull();
+      const boot = loadTriviaBootstrap();
+      expect(boot.sessions).toHaveLength(1);
+      expect(boot.sessions[0].progress.drilled).toEqual({ "bubble-sort": { "1": [1, 2] } });
+      expect(boot.activeId).toBeNull();
+    }
   });
 });

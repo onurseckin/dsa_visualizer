@@ -26,7 +26,7 @@ const seed = (value: TestPayload): void => {
 };
 
 const customLayout: TriviaLayout = {
-  version: 2,
+  version: 5,
   puzzleSplitPercent: 55,
   panelHeights: {
     sessionList: null,
@@ -34,8 +34,16 @@ const customLayout: TriviaLayout = {
     settings: null,
     problem: 140,
     puzzle: null,
+    tiles: null,
   },
   problemExpanded: false,
+  problemSplitPercent: 45,
+  panelVisibility: {
+    problem: true,
+    puzzle: true,
+    tiles: true,
+    lineInfo: true,
+  },
 };
 
 afterEach(() => {
@@ -94,6 +102,7 @@ describe("triviaLayout mutations & validation", () => {
       settings: null,
       problem: 150,
       puzzle: null,
+      tiles: null,
     });
   });
 
@@ -131,9 +140,15 @@ describe("triviaLayout mutations & validation", () => {
     ["a non-object payload", 42],
     [
       "a missing puzzleSplitPercent",
-      { version: 2, panelHeights: customLayout.panelHeights, problemExpanded: true },
+      {
+        version: 3,
+        panelHeights: customLayout.panelHeights,
+        problemExpanded: true,
+        panelVisibility: customLayout.panelVisibility,
+        problemSplitPercent: 35,
+      },
     ],
-    ["a stale version", { ...customLayout, version: 3 }],
+    ["a stale version", { ...customLayout, version: 2 }],
     ["a null panelHeights group", { ...customLayout, panelHeights: null }],
     ["an array panelHeights group", { ...customLayout, panelHeights: [180, 240] }],
     [
@@ -177,7 +192,9 @@ describe("triviaLayout mutations & validation", () => {
     expect(layout).toEqual(customLayout);
     expect(Object.keys(layout).sort()).toEqual([
       "panelHeights",
+      "panelVisibility",
       "problemExpanded",
+      "problemSplitPercent",
       "puzzleSplitPercent",
       "version",
     ]);
@@ -187,6 +204,7 @@ describe("triviaLayout mutations & validation", () => {
       "puzzle",
       "sessionList",
       "settings",
+      "tiles",
     ]);
   });
 

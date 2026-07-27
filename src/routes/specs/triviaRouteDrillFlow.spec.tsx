@@ -87,10 +87,10 @@ describe("/trivia route drilling flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
 
-    expect(await screen.findByText("solution.py")).toBeInTheDocument();
+    expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Bubble Sort" })).toBeInTheDocument();
     expect(screen.getByTestId("code-puzzle-well")).toBeInTheDocument();
-    expect(screen.getByText("Tiles")).toBeInTheDocument();
+    expect(screen.getAllByText("Tiles").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /^Check answers/ })).toBeDisabled();
     expect(screen.queryByText("Build your deck")).not.toBeInTheDocument();
 
@@ -106,7 +106,7 @@ describe("/trivia route drilling flow", () => {
     await renderTriviaRoute();
 
     expect(await screen.findByText("Level 3 · 0% covered")).toBeInTheDocument();
-    expect(await screen.findByText("solution.py")).toBeInTheDocument();
+    expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
     expect(screen.getByText("Hiding 3 lines")).toBeInTheDocument();
     expect(revealButtons()).toHaveLength(3);
     expect(readActiveSessionRecord().progress.roundsPlayed).toBe(0);
@@ -117,7 +117,7 @@ describe("/trivia route drilling flow", () => {
   it("drills a four-algorithm deck, serving a real solution from the deck each round", async () => {
     seedActiveSession("Session 1", FOUR_DECK, createProgress(FOUR_DECK), "drill");
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     const titles = FOUR_DECK.deck.map((id) => ALGORITHM_REGISTRY[id].title);
     expect(readActiveSessionRecord().config.deck).toEqual(FOUR_DECK.deck);
@@ -145,7 +145,7 @@ describe("/trivia route drilling flow", () => {
   it("grades a submitted round, persists the progress, and serves the next one", async () => {
     seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
     await renderTriviaRoute();
-    await screen.findByText("solution.py");
+    await screen.findByTestId("code-puzzle-well");
 
     revealButtons().forEach((button) => fireEvent.click(button));
 

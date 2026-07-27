@@ -1,12 +1,10 @@
 import React from "react";
-import { X } from "lucide-react";
-import { Card, Chip, IconButton } from "../index";
+import { Card, Chip } from "../index";
 import { AuxiliaryState } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
   state?: AuxiliaryState;
   variables?: Record<string, string | number | boolean>;
-  onClose?: () => void;
 }
 
 interface DataGroup {
@@ -33,7 +31,7 @@ export function hasAuxiliaryContent(
   );
 }
 
-export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables, onClose }) => {
+export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables }) => {
   const { stack, queue, visited, hashMap, distanceTable, customState } = state || {};
 
   const stackItems = stack || [];
@@ -143,22 +141,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
       data-testid="auxiliary-panel"
       className="min-w-0 border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-xl overflow-hidden"
     >
-      <Card.Header
-        title="Working Data & Variables"
-        actions={
-          onClose ? (
-            <IconButton
-              icon={<X />}
-              size="sm"
-              aria-label="Hide auxiliary panel"
-              title="Hide auxiliary panel"
-              onClick={onClose}
-            />
-          ) : undefined
-        }
-        className="px-4 py-3 border-b border-[var(--border-default)]"
-      />
-      <Card.Body className="flex flex-col gap-4 p-4 md:p-5">
+      <Card.Body className="flex flex-col gap-3 p-3 md:p-4">
         {groups.map((group) => (
           <div
             key={group.key}

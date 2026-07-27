@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { CodeExplainToggle, LineExplainPopover, useHoveredCodeLine } from "../LineExplainPopover";
+import { LineExplainPopover, useHoveredCodeLine } from "../LineExplainPopover";
 
 const ZERO_RECT: DOMRect = {
   x: 0,
@@ -15,26 +15,6 @@ const ZERO_RECT: DOMRect = {
   toJSON: () => ({}),
 };
 
-describe("CodeExplainToggle Component Spec", () => {
-  it("renders as pressed when enabled and unpressed when disabled", () => {
-    const { rerender } = render(<CodeExplainToggle enabled onToggle={() => {}} />);
-    const toggle = screen.getByRole("button", { name: "Toggle line explanations" });
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
-
-    rerender(<CodeExplainToggle enabled={false} onToggle={() => {}} />);
-    expect(screen.getByRole("button", { name: "Toggle line explanations" })).not.toHaveAttribute(
-      "aria-pressed",
-    );
-  });
-
-  it("calls onToggle on click without managing its own on/off state", () => {
-    const onToggle = vi.fn();
-    render(<CodeExplainToggle enabled onToggle={onToggle} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Toggle line explanations" }));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe("LineExplainPopover Component Spec", () => {
   it("renders the explanation with a line-number header and a side-appropriate connector", () => {
@@ -120,12 +100,10 @@ describe("LineExplainPopover Component Spec", () => {
 });
 
 function HoverHarness(): React.ReactElement {
-  const [enabled, setEnabled] = useState(true);
-  const { hovered, rowHoverHandlers } = useHoveredCodeLine(enabled);
+  const { hovered, rowHoverHandlers } = useHoveredCodeLine();
 
   return (
     <div>
-      <button onClick={() => setEnabled((current) => !current)}>toggle</button>
       <div data-testid="row-1" {...rowHoverHandlers(1)} />
       <div data-testid="row-2" {...rowHoverHandlers(2)} />
       <div data-testid="hovered">{hovered ? `line-${hovered.line}` : "none"}</div>
@@ -157,20 +135,6 @@ describe("useHoveredCodeLine hook Spec", () => {
     expect(screen.getByTestId("hovered")).toHaveTextContent("line-2");
   });
 
-  it("ignores hover while disabled, and clears any open hover the instant it becomes disabled", () => {
-    render(<HoverHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "toggle" }));
-    fireEvent.mouseEnter(screen.getByTestId("row-1"));
-    expect(screen.getByTestId("hovered")).toHaveTextContent("none");
-
-    fireEvent.click(screen.getByRole("button", { name: "toggle" }));
-    fireEvent.mouseEnter(screen.getByTestId("row-1"));
-    expect(screen.getByTestId("hovered")).toHaveTextContent("line-1");
-
-    fireEvent.click(screen.getByRole("button", { name: "toggle" }));
-    expect(screen.getByTestId("hovered")).toHaveTextContent("none");
-  });
 
   it("tears the hover down on scroll instead of repositioning it", () => {
     render(<HoverHarness />);

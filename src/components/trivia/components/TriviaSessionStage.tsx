@@ -1,12 +1,7 @@
 import React from "react";
-import { DragHandle, ResizableLayout } from "../../../ui";
+import { ResizableRows } from "../../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../../types/trivia";
-import {
-  MAX_PANEL_HEIGHT_PX,
-  MAX_SPLIT_PERCENT,
-  MIN_PANEL_HEIGHT_PX,
-  MIN_SPLIT_PERCENT,
-} from "../../../trivia/triviaLayout";
+import { MIN_PANEL_HEIGHT_PX, MAX_PANEL_HEIGHT_PX } from "../../../trivia/triviaLayout";
 import { CodePuzzle } from "../../../ui";
 import { TileTray } from "../../../ui";
 import { useTriviaSessionState } from "../hooks/useTriviaSessionState";
@@ -44,6 +39,7 @@ export const TriviaSessionStage: React.FC<TriviaSessionStageProps> = ({
       openHints={session.openHints}
       onToggleHint={session.toggleHint}
       activeShortcutLine={session.currentTargetLine}
+      showLineInfo={session.layout.panelVisibility.lineInfo}
     />
   );
 
@@ -52,57 +48,48 @@ export const TriviaSessionStage: React.FC<TriviaSessionStageProps> = ({
       <div
         ref={session.puzzlePanel.ref}
         style={{
-          minHeight:
-            session.layout.panelHeights.puzzle !== null
-              ? `${session.layout.panelHeights.puzzle}px`
-              : "20rem",
-          height:
-            session.layout.panelHeights.puzzle !== null
-              ? `${session.layout.panelHeights.puzzle}px`
-              : undefined,
-          overflow: session.layout.panelHeights.puzzle !== null ? "auto" : "visible",
+          minHeight: "20rem",
+          height: "100%",
         }}
       >
         {mode === "choice" ? (
-          <ResizableLayout
-            leftPanel={puzzleColumn}
-            rightPanel={
-              <TileTray
-                tiles={round.tiles}
-                usedTileIds={session.usedTileIds}
-                selectedTileId={session.selectedTileId}
-                onSelect={session.handleSelectTile}
-                onActivate={session.handleActivateTile}
-                disabled={session.graded}
-              />
-            }
-            splitPercent={session.layout.puzzleSplitPercent}
-            minLeftPercent={MIN_SPLIT_PERCENT}
-            maxLeftPercent={MAX_SPLIT_PERCENT}
-            onSplitChange={session.handleSplitChange}
-            onSplitCommit={session.handleSplitCommit}
-            handleLabel="Resize puzzle and tiles columns"
+          <ResizableRows
+            minRowHeight={MIN_PANEL_HEIGHT_PX}
+            maxRowHeight={MAX_PANEL_HEIGHT_PX}
+            onHeightsChange={(heights) => session.applyPanelHeights(heights, false)}
+            onHeightsCommit={(heights) => session.applyPanelHeights(heights, true)}
+            rows={[
+              {
+                id: "puzzle",
+                label: "Puzzle",
+                greedy: !session.layout.panelVisibility.tiles,
+                visible: session.layout.panelVisibility.puzzle,
+                height: session.layout.panelHeights.puzzle,
+                content: puzzleColumn,
+              },
+              {
+                id: "tiles",
+                label: "Tiles",
+                greedy: !session.layout.panelVisibility.puzzle,
+                visible: session.layout.panelVisibility.tiles,
+                height: session.layout.panelHeights.tiles,
+                content: (
+                  <TileTray
+                    tiles={round.tiles}
+                    usedTileIds={session.usedTileIds}
+                    selectedTileId={session.selectedTileId}
+                    onSelect={session.handleSelectTile}
+                    onActivate={session.handleActivateTile}
+                    disabled={session.graded}
+                  />
+                ),
+              },
+            ]}
           />
-        ) : (
+        ) : session.layout.panelVisibility.puzzle ? (
           puzzleColumn
-        )}
+        ) : null}
       </div>
-
-      <DragHandle
-        orientation="horizontal"
-        label="Resize the puzzle row"
-        valueNow={session.layout.panelHeights.puzzle ?? MIN_PANEL_HEIGHT_PX}
-        valueMin={MIN_PANEL_HEIGHT_PX}
-        valueMax={MAX_PANEL_HEIGHT_PX}
-        valueText={
-          session.layout.panelHeights.puzzle === null ? "Automatic, sized to content" : undefined
-        }
-        step={16}
-        dragging={session.puzzlePanel.dragging}
-        onDragStart={() => session.puzzlePanel.setDragging(true)}
-        onNudge={session.puzzlePanel.nudge}
-        onRestoreDefault={session.puzzlePanel.restoreDefault}
-      />
     </>
   );
 };

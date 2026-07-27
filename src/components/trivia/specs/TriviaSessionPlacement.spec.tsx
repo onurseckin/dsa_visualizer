@@ -85,7 +85,6 @@ describe("TriviaSession Component Spec - Tile Placement", () => {
     expect(slot(2)).toHaveAttribute("data-state", "filled");
     expect(placedTile(ANSWER_2)).toBeDisabled();
     expect(screen.getByText("3 left")).toBeInTheDocument();
-    expect(screen.getByText("1/2 filled")).toBeInTheDocument();
   });
 
   it("keeps filling forward: the next plain click lands on the next still-empty blank", () => {
@@ -96,7 +95,6 @@ describe("TriviaSession Component Spec - Tile Placement", () => {
 
     fireEvent.click(tile(ANSWER_5));
     expect(slot(5)).toHaveTextContent(ANSWER_5);
-    expect(screen.getByText("2/2 filled")).toBeInTheDocument();
   });
 
   it("fills the next empty blank on a plain click, while a drag can still target a specific later blank out of order", () => {
@@ -110,7 +108,6 @@ describe("TriviaSession Component Spec - Tile Placement", () => {
     fireEvent.drop(slot(5), { dataTransfer });
 
     expect(slot(5)).toHaveTextContent(ANSWER_5);
-    expect(screen.getByText("2/2 filled")).toBeInTheDocument();
   });
 
   it("falls back to select-then-click-a-slot once every blank already has an answer", () => {
@@ -118,7 +115,6 @@ describe("TriviaSession Component Spec - Tile Placement", () => {
 
     place(ANSWER_2, 2);
     place(ANSWER_5, 5);
-    expect(screen.getByText("2/2 filled")).toBeInTheDocument();
 
     fireEvent.click(tile(DECOY));
     expect(tile(DECOY)).toHaveAttribute("aria-pressed", "true");
@@ -173,7 +169,6 @@ describe("TriviaSession Component Spec - Tile Placement", () => {
 
     expect(slot(2)).toHaveAttribute("data-state", "empty");
     expect(slot(5)).toHaveTextContent(ANSWER_2);
-    expect(screen.getByText("1/2 filled")).toBeInTheDocument();
   });
 
   it("ignores a drop that carries an id from outside the round", () => {

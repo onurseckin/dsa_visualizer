@@ -79,7 +79,7 @@ export const CodePuzzleSlot: React.FC<CodePuzzleSlotProps> = ({
     return (
       <Input
         size="sm"
-        className="code-slot-input font-mono py-2 px-3 my-1"
+        className="code-slot-input font-mono w-full"
         ref={(el) => {
           if (el) inputRefs.current.set(line, el);
           else inputRefs.current.delete(line);
@@ -91,8 +91,8 @@ export const CodePuzzleSlot: React.FC<CodePuzzleSlotProps> = ({
         onKeyDown={handleInputKeyDown}
         style={{
           ...MONO_INPUT,
-          flex: "1 1 0%",
-          minWidth: 0,
+          flex: "1 1 auto",
+          minWidth: "320px",
         }}
       />
     );
@@ -104,15 +104,15 @@ export const CodePuzzleSlot: React.FC<CodePuzzleSlotProps> = ({
   return (
     <button
       type="button"
-      className="ui-btn ui-btn--secondary ui-btn--sm code-slot-btn transition-all py-2 px-3 my-1"
+      className="ui-btn ui-btn--secondary ui-btn--sm code-slot-btn transition-all min-h-[44px] px-3 py-2"
       data-state={state}
       aria-label={slotLabel()}
       aria-pressed={filledText.length > 0}
       disabled={graded}
       onClick={() => onSlotActivate(line)}
       style={{
-        flex: "1 1 0%",
-        minWidth: 0,
+        flex: "1 1 auto",
+        minWidth: "320px",
         justifyContent: "flex-start",
         fontFamily: "var(--font-code)",
         fontSize: "var(--text-sm)",

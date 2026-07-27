@@ -7,7 +7,7 @@ import {
   writeTriviaLayout,
 } from "../../../../trivia/triviaLayout";
 import { usePinnedPanelHeight } from "../usePinnedPanelHeight";
-import { buildProblemPatch, buildPuzzlePatch } from "./sessionUtils";
+import { buildProblemPatch, buildPuzzlePatch, buildTilesPatch } from "./sessionUtils";
 
 export function useSessionLayoutState() {
   const [layout, setLayout] = useState<TriviaLayout>(() => readTriviaLayout());
@@ -38,6 +38,19 @@ export function useSessionLayoutState() {
     );
   }, []);
 
+  const handleProblemSplitChange = useCallback((percent: number) => {
+    setLayout((prev) => ({ ...prev, problemSplitPercent: percent }));
+  }, []);
+
+  const handleProblemSplitCommit = useCallback((percent: number) => {
+    setLayout(
+      writeTriviaLayout({
+        problemSplitPercent: percent,
+        panelHeights: layoutRef.current.panelHeights,
+      }),
+    );
+  }, []);
+
   const handleSplitChange = useCallback((percent: number) => {
     setLayout((prev) => ({ ...prev, puzzleSplitPercent: percent }));
   }, []);
@@ -47,6 +60,16 @@ export function useSessionLayoutState() {
       writeTriviaLayout({
         puzzleSplitPercent: percent,
         panelHeights: layoutRef.current.panelHeights,
+      }),
+    );
+  }, []);
+
+  const handleTogglePanel = useCallback((panel: keyof TriviaLayout["panelVisibility"]) => {
+    setLayout(
+      writeTriviaLayout({
+        panelVisibility: {
+          [panel]: !layoutRef.current.panelVisibility[panel],
+        },
       }),
     );
   }, []);
@@ -61,14 +84,24 @@ export function useSessionLayoutState() {
     applyPanelHeights,
     buildPuzzlePatch,
   );
+  const tilesPanel = usePinnedPanelHeight(
+    layout.panelHeights.tiles,
+    applyPanelHeights,
+    buildTilesPatch,
+  );
 
   return {
     layout,
     problemExpanded,
     handleToggleProblemExpanded,
+    handleProblemSplitChange,
+    handleProblemSplitCommit,
     handleSplitChange,
     handleSplitCommit,
+    handleTogglePanel,
+    applyPanelHeights,
     problemPanel,
     puzzlePanel,
+    tilesPanel,
   };
 }

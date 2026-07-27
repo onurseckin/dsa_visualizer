@@ -22,7 +22,7 @@ const seed = (value: TestPayload): void => {
 };
 
 const customLayout: TriviaLayout = {
-  version: 2,
+  version: 3,
   puzzleSplitPercent: 55,
   panelHeights: {
     sessionList: null,
@@ -31,7 +31,13 @@ const customLayout: TriviaLayout = {
     problem: 140,
     puzzle: null,
   },
-  problemExpanded: false,
+  problemExpanded: true,
+  problemSplitPercent: 45,
+  panelVisibility: {
+    problem: true,
+    puzzle: true,
+    tiles: true,
+  },
 };
 
 afterEach(() => {
@@ -40,10 +46,10 @@ afterEach(() => {
 });
 
 describe("triviaLayout defaults & schema contract", () => {
-  it("uses the v2 versioned localStorage key", () => {
-    expect(TRIVIA_LAYOUT_KEY).toBe("dsa_visualizer_trivia_layout_v2");
-    expect(TRIVIA_LAYOUT_VERSION).toBe(2);
-    expect(DEFAULT_TRIVIA_LAYOUT.version).toBe(2);
+  it("uses the v5 versioned localStorage key", () => {
+    expect(TRIVIA_LAYOUT_KEY).toBe("dsa_visualizer_trivia_layout_v5");
+    expect(TRIVIA_LAYOUT_VERSION).toBe(5);
+    expect(DEFAULT_TRIVIA_LAYOUT.version).toBe(5);
   });
 
   it("keeps a height slot for every trivia panel across Home, Setup, and Drill, all automatic by default", () => {
@@ -53,6 +59,7 @@ describe("triviaLayout defaults & schema contract", () => {
       settings: null,
       problem: null,
       puzzle: null,
+      tiles: null,
     });
     expect(TRIVIA_PANEL_KEYS).toEqual([
       "sessionList",
@@ -60,6 +67,7 @@ describe("triviaLayout defaults & schema contract", () => {
       "settings",
       "problem",
       "puzzle",
+      "tiles",
     ]);
   });
 

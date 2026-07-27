@@ -35,7 +35,8 @@ const mockSessionState = {
   currentTargetLine: null,
   problemExpanded: true,
   layout: {
-    version: 2,
+    version: 3,
+    problemSplitPercent: 35,
     puzzleSplitPercent: 65,
     panelHeights: {
       sessionList: null,
@@ -45,6 +46,11 @@ const mockSessionState = {
       puzzle: null,
     },
     problemExpanded: true,
+    panelVisibility: {
+      problem: true,
+      puzzle: true,
+      tiles: true,
+    },
   },
   problemPanel: {
     ref: { current: null },
@@ -77,9 +83,8 @@ describe("TriviaSessionStage component", () => {
     render(<TriviaSessionStage round={mockRound} mode="choice" session={mockSessionState} />);
 
     expect(screen.getByText("bubble_sort")).toBeInTheDocument();
-    expect(screen.getByRole("separator", { name: "Resize the puzzle row" })).toBeInTheDocument();
     expect(
-      screen.getByRole("separator", { name: "Resize puzzle and tiles columns" }),
+      screen.getByRole("separator", { name: "Resize Puzzle and Tiles rows" }),
     ).toBeInTheDocument();
   });
 
@@ -87,36 +92,9 @@ describe("TriviaSessionStage component", () => {
     render(<TriviaSessionStage round={mockRound} mode="type" session={mockSessionState} />);
 
     expect(screen.getByText("bubble_sort")).toBeInTheDocument();
-    expect(screen.getByRole("separator", { name: "Resize the puzzle row" })).toBeInTheDocument();
     expect(
       screen.queryByRole("separator", { name: "Resize puzzle and tiles columns" }),
     ).not.toBeInTheDocument();
   });
 
-  it("applies fixed puzzle panel height when specified in layout", () => {
-    const fixedSessionState = {
-      ...mockSessionState,
-      layout: {
-        ...mockSessionState.layout,
-        panelHeights: { ...mockSessionState.layout.panelHeights, puzzle: 300 },
-      },
-    } as unknown as ReturnType<typeof useTriviaSessionState>;
-
-    render(<TriviaSessionStage round={mockRound} mode="choice" session={fixedSessionState} />);
-    expect(screen.getByRole("separator", { name: "Resize the puzzle row" })).toBeInTheDocument();
-  });
-
-  it("triggers puzzlePanel.setDragging(true) on drag handle mouse down", () => {
-    const setDraggingSpy = vi.fn();
-    const dragSessionState = {
-      ...mockSessionState,
-      puzzlePanel: { ...mockSessionState.puzzlePanel, setDragging: setDraggingSpy },
-    } as unknown as ReturnType<typeof useTriviaSessionState>;
-
-    render(<TriviaSessionStage round={mockRound} mode="choice" session={dragSessionState} />);
-
-    const handle = screen.getByRole("separator", { name: "Resize the puzzle row" });
-    fireEvent.mouseDown(handle);
-    expect(setDraggingSpy).toHaveBeenCalledWith(true);
-  });
 });

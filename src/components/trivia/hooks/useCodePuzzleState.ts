@@ -11,6 +11,7 @@ export interface UseCodePuzzleStateOptions {
   lineExplanations?: TriviaMeta["lineExplanations"];
   openHintsProp?: readonly number[];
   onToggleHint?: (line: number) => void;
+  showLineInfo?: boolean;
 }
 
 export function useCodePuzzleState({
@@ -21,15 +22,15 @@ export function useCodePuzzleState({
   lineExplanations,
   openHintsProp,
   onToggleHint,
+  showLineInfo = true,
 }: UseCodePuzzleStateOptions) {
   const [internalOpenHints, setInternalOpenHints] = useState<readonly number[]>([]);
   const openHints = openHintsProp ?? internalOpenHints;
-  const [explainEnabled, setExplainEnabled] = useState(false);
   const [clickedExplain, setClickedExplain] = useState<HoveredLine | null>(null);
   const inputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
   const blankRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  const { hovered, rowHoverHandlers } = useHoveredCodeLine(explainEnabled);
+  const { hovered, rowHoverHandlers } = useHoveredCodeLine();
   const blanks = useMemo(() => new Set(round.blanks), [round.blanks]);
   const openHintsSet = useMemo(() => new Set(openHints), [openHints]);
   const hintMap = useMemo(() => new Map(hints?.map((entry) => [entry.line, entry.hint])), [hints]);
@@ -68,13 +69,11 @@ export function useCodePuzzleState({
     );
   };
 
-  const hoveredExplanation = hovered !== null ? explanationFor(hovered.line) : undefined;
+  const hoveredExplanation = showLineInfo && hovered !== null ? explanationFor(hovered.line) : undefined;
   const clickedExplanation =
-    clickedExplain !== null ? explanationFor(clickedExplain.line) : undefined;
+    showLineInfo && clickedExplain !== null ? explanationFor(clickedExplain.line) : undefined;
 
   return {
-    explainEnabled,
-    setExplainEnabled,
     clickedExplain,
     inputRefs,
     blankRowRefs,

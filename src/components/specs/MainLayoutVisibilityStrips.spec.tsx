@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { MainLayout } from "../../ui";
@@ -25,9 +25,9 @@ vi.mock("../ControlPanel", () => ({
 }));
 
 vi.mock("../primitives/TutorialCard", () => ({
-  TutorialCard: ({ onClose }: { onClose?: () => void }) => (
+  TutorialCard: () => (
     <div data-testid="tutorial-card">
-      <button onClick={onClose}>Dismiss explanation</button>
+      <div>Dismiss explanation</div>
     </div>
   ),
   hasTutorialContent: (explanation?: StepExplanation, what?: string, why?: string) =>
@@ -35,9 +35,9 @@ vi.mock("../primitives/TutorialCard", () => ({
 }));
 
 vi.mock("../primitives/AuxiliaryPanel", () => ({
-  AuxiliaryPanel: ({ onClose }: { onClose?: () => void }) => (
+  AuxiliaryPanel: () => (
     <div data-testid="auxiliary-panel">
-      <button onClick={onClose}>Hide auxiliary panel</button>
+      <div>Hide auxiliary panel</div>
     </div>
   ),
   hasAuxiliaryContent: (state?: AuxiliaryState) =>
@@ -118,8 +118,7 @@ const renderLayout = (
       algorithm={dummyAlgorithm}
       currentStep={dummyStep}
       panels={allPanels()}
-      onToggleTutorial={vi.fn()}
-      onToggleAuxiliary={vi.fn()}
+
       {...overrides}
     />,
   );
@@ -174,23 +173,5 @@ describe("MainLayoutVisibilityStrips Component Spec", () => {
 
     expect(container.querySelector('[data-region="tutorial"]')).toBeNull();
     expect(screen.queryByTestId("tutorial-card")).not.toBeInTheDocument();
-  });
-
-  it("forwards the tutorial close button to onToggleTutorial", () => {
-    const handleToggleTutorial = vi.fn();
-    renderLayout({ onToggleTutorial: handleToggleTutorial });
-
-    fireEvent.click(screen.getByTitle("Dismiss explanation"));
-
-    expect(handleToggleTutorial).toHaveBeenCalledTimes(1);
-  });
-
-  it("forwards the auxiliary close button to onToggleAuxiliary", () => {
-    const handleToggleAuxiliary = vi.fn();
-    renderLayout({ onToggleAuxiliary: handleToggleAuxiliary });
-
-    fireEvent.click(screen.getByRole("button", { name: "Hide auxiliary panel" }));
-
-    expect(handleToggleAuxiliary).toHaveBeenCalledTimes(1);
   });
 });

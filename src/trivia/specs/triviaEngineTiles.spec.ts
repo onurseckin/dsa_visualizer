@@ -98,12 +98,19 @@ describe("buildTiles", () => {
     expect(tiles.every((tile) => tile.correctFor !== null)).toBe(true);
   });
 
-  it("keeps the tray proportional to the blanks: one decoy per blank", () => {
+  it("keeps the tray proportional to the blanks when distractors are on: one decoy per blank", () => {
     const lines = parsePuzzleLines(LONG_CODE);
 
-    expect(buildTiles(lines, [1], undefined, seededRng(2))).toHaveLength(2);
-    expect(buildTiles(lines, [1, 2], undefined, seededRng(2))).toHaveLength(4);
-    expect(buildTiles(lines, [1, 2, 3], undefined, seededRng(2))).toHaveLength(6);
+    expect(buildTiles(lines, [1], undefined, true, seededRng(2))).toHaveLength(2);
+    expect(buildTiles(lines, [1, 2], undefined, true, seededRng(2))).toHaveLength(4);
+    expect(buildTiles(lines, [1, 2, 3], undefined, true, seededRng(2))).toHaveLength(6);
+  });
+
+  it("emits zero decoys when includeDistractors is false", () => {
+    const lines = parsePuzzleLines(LONG_CODE);
+
+    expect(buildTiles(lines, [1], undefined, false, seededRng(2))).toHaveLength(1);
+    expect(buildTiles(lines, [1, 2], undefined, false, seededRng(2))).toHaveLength(2);
   });
 
   it("caps the decoy count by what the solution can actually supply", () => {

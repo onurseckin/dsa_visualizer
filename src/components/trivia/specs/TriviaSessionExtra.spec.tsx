@@ -72,7 +72,7 @@ describe("TriviaSession extra coverage", () => {
       />,
     );
     expect(
-      screen.getByRole("separator", { name: "Resize problem description and puzzle rows" }),
+      screen.getByRole("separator", { name: "Resize problem description and puzzle columns" }),
     ).toBeInTheDocument();
   });
 

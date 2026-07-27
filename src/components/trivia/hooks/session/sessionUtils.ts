@@ -24,3 +24,6 @@ export const buildProblemPatch = (value: number | null): Partial<TriviaPanelHeig
 export const buildPuzzlePatch = (value: number | null): Partial<TriviaPanelHeights> => ({
   puzzle: value,
 });
+export const buildTilesPatch = (value: number | null): Partial<TriviaPanelHeights> => ({
+  tiles: value,
+});

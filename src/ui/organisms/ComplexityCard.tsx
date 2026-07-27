@@ -72,7 +72,7 @@ export function ComplexityCard({
   return (
     <div
       data-testid="complexity-card"
-      className="border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)] p-4 md:p-5 flex flex-col gap-3 h-full overflow-auto"
+      className="border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)] p-3 md:p-4 flex flex-col gap-3 h-full overflow-auto"
     >
       <BigOChipRow chips={chips} />
       <ProseBlock label="Time" body={complexityAnalysis.time} />
