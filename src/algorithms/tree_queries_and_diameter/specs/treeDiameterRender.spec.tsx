@@ -13,7 +13,14 @@ describe("TreeDiameter React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["tree-diameter"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -34,7 +41,14 @@ describe("TreeDiameter React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["tree-diameter"]}
         currentStep={midStep}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

@@ -111,10 +111,10 @@ export function CardBody({
     padding === "none"
       ? "p-0"
       : padding === "sm"
-        ? "p-4 md:p-6"
+        ? "p-3.5 md:p-4"
         : padding === "lg"
-          ? "p-8 md:p-10"
-          : "p-6 md:p-8";
+          ? "p-6 md:p-8"
+          : "p-5 md:p-6";
 
   return (
     <div

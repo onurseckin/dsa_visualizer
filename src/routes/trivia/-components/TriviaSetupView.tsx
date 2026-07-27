@@ -1,7 +1,12 @@
 import type { RefObject } from "react";
+import {
+  MAX_PANEL_HEIGHT_PX,
+  MIN_PANEL_HEIGHT_PX,
+  TriviaLayout,
+} from "../../../trivia/triviaLayout";
 import { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../../types/trivia";
+import { DragHandle, TriviaDeckBuilder } from "../../../ui";
 import { TriviaHeaderCard } from "../../../components/trivia/TriviaHeaderCard";
-import { TriviaDeckBuilder } from "../../../ui";
 
 interface TriviaSetupViewProps {
   activeSession: TriviaSessionRecord;
@@ -12,20 +17,20 @@ interface TriviaSetupViewProps {
   coverage: number;
   isDeckEmpty: boolean;
   deckLineCounts: number[];
-  layout?: unknown;
+  layout: TriviaLayout;
   settingsPanel: {
     ref: RefObject<HTMLDivElement | null>;
-    dragging?: boolean;
-    setDragging?: (dragging: boolean) => void;
-    nudge?: (delta: number) => void;
-    restoreDefault?: () => void;
+    dragging: boolean;
+    setDragging: (dragging: boolean) => void;
+    nudge: (delta: number) => void;
+    restoreDefault: () => void;
   };
   deckBuilderPanel: {
     ref: RefObject<HTMLDivElement | null>;
-    dragging?: boolean;
-    setDragging?: (dragging: boolean) => void;
-    nudge?: (delta: number) => void;
-    restoreDefault?: () => void;
+    dragging: boolean;
+    setDragging: (dragging: boolean) => void;
+    nudge: (delta: number) => void;
+    restoreDefault: () => void;
   };
   onStartDrilling: () => void;
   onBackToHome: () => void;
@@ -42,6 +47,7 @@ export function TriviaSetupView({
   coverage,
   isDeckEmpty,
   deckLineCounts,
+  layout,
   settingsPanel,
   deckBuilderPanel,
   onStartDrilling,
@@ -50,14 +56,16 @@ export function TriviaSetupView({
   onChangeSettings,
 }: TriviaSetupViewProps): React.ReactElement {
   return (
-    <div className="w-full flex flex-col lg:flex-row items-start gap-8 mt-6 md:mt-8">
-      {/* Left Column (62%): Build Your Deck / Question Selection */}
-      <div className="w-full lg:w-[62%] flex flex-col gap-6" ref={deckBuilderPanel.ref}>
-        <TriviaDeckBuilder deck={config.deck} onChange={(deck) => onChangeSettings({ deck })} />
-      </div>
-
-      {/* Right Column (38%): Trivia Drill Settings & Controls */}
-      <div className="w-full lg:w-[38%] flex flex-col gap-6 sticky top-20" ref={settingsPanel.ref}>
+    <div className="flex flex-col gap-6">
+      <div
+        ref={settingsPanel.ref}
+        className="shrink-0"
+        style={{
+          height:
+            layout.panelHeights.settings !== null ? `${layout.panelHeights.settings}px` : undefined,
+          overflow: layout.panelHeights.settings !== null ? "auto" : "visible",
+        }}
+      >
         <TriviaHeaderCard
           activeSession={activeSession}
           level={level}
@@ -72,11 +80,42 @@ export function TriviaSetupView({
           deckLineCounts={deckLineCounts}
           onChangeSettings={onChangeSettings}
         />
-        {isDeckEmpty && (
-          <span className="text-xs text-rose-400 font-medium px-2">
-            Add at least one algorithm to the deck to start drilling.
-          </span>
-        )}
+      </div>
+
+      {isDeckEmpty && (
+        <span className="text-xs text-[var(--text-muted)] leading-normal">
+          Add at least one algorithm to the deck to start drilling.
+        </span>
+      )}
+
+      <DragHandle
+        orientation="horizontal"
+        label="Resize drill settings and deck builder"
+        valueNow={layout.panelHeights.settings ?? MIN_PANEL_HEIGHT_PX}
+        valueMin={MIN_PANEL_HEIGHT_PX}
+        valueMax={MAX_PANEL_HEIGHT_PX}
+        valueText={
+          layout.panelHeights.settings === null ? "Automatic, sized to content" : undefined
+        }
+        step={16}
+        dragging={settingsPanel.dragging}
+        onDragStart={() => settingsPanel.setDragging(true)}
+        onNudge={settingsPanel.nudge}
+        onRestoreDefault={settingsPanel.restoreDefault}
+      />
+
+      <div
+        ref={deckBuilderPanel.ref}
+        className="shrink-0"
+        style={{
+          height:
+            layout.panelHeights.deckBuilder !== null
+              ? `${layout.panelHeights.deckBuilder}px`
+              : undefined,
+          overflow: layout.panelHeights.deckBuilder !== null ? "auto" : "visible",
+        }}
+      >
+        <TriviaDeckBuilder deck={config.deck} onChange={(deck) => onChangeSettings({ deck })} />
       </div>
     </div>
   );

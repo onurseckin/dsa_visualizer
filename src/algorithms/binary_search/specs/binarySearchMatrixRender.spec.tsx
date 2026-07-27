@@ -16,7 +16,14 @@ describe("BinarySearchMatrix React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["binary-search-matrix"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -42,7 +49,14 @@ describe("BinarySearchMatrix React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["binary-search-matrix"]}
         currentStep={midStep}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

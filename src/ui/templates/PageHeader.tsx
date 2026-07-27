@@ -20,7 +20,9 @@ export function PageHeader({
   const isCentered = className.includes("text-center");
 
   return (
-    <div className={cx("w-full mt-6 md:mt-8 pb-4 px-4 md:px-8 mb-6 flex flex-col gap-4", className)}>
+    <div
+      className={cx("w-full mt-6 md:mt-8 pb-4 px-4 md:px-8 mb-6 flex flex-col gap-4", className)}
+    >
       <div
         className={cx(
           "flex flex-col md:flex-row md:items-center gap-4 w-full",

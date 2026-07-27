@@ -50,11 +50,7 @@ describe("ControlPanel render spec", () => {
     );
 
     const rootEl = container.firstChild as HTMLElement;
-    expect(rootEl).toHaveClass(
-      "border",
-      "border-[var(--border-default)]",
-      "rounded-[var(--radius-md)]",
-    );
+    expect(rootEl).toHaveClass("border", "border-[var(--border-default)]", "rounded-2xl");
     expect(screen.queryByLabelText("Element count")).not.toBeInTheDocument();
   });
 

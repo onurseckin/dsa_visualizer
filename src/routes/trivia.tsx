@@ -46,7 +46,7 @@ function TriviaPage() {
   return (
     <main
       aria-label="Code trivia drill"
-      className="w-[90%] max-w-[1600px] py-8 mx-auto flex flex-col flex-1 gap-8 min-h-0 box-border overflow-y-auto"
+      className="w-[90vw] py-8 mx-auto flex flex-col flex-1 gap-8 min-h-0 box-border"
     >
       {screen === "home" ? (
         <TriviaHomeView
@@ -61,6 +61,7 @@ function TriviaPage() {
       ) : activeSession && config && progress ? (
         screen === "setup" ? (
           <TriviaSetupView
+            layout={layout}
             activeSession={activeSession}
             level={level}
             config={config}

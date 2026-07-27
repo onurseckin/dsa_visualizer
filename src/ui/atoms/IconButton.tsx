@@ -40,13 +40,13 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         `ui-btn--${variant}`,
         `ui-btn--${size}`,
         size === "sm"
-          ? "p-2 min-h-[36px] min-w-[36px]"
+          ? "p-2 min-h-[44px] min-w-[44px]"
           : size === "md"
             ? "p-2.5 min-h-[44px] min-w-[44px]"
             : size === "lg"
               ? "p-3 min-h-[48px] min-w-[48px]"
               : `ui-btn--${size}`,
-        "border border-[var(--border-default)] rounded-[var(--radius-md)]",
+        "border border-[var(--border-default)] rounded-xl",
         selected && "ui-btn--selected",
         className,
       )}

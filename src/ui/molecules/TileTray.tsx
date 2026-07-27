@@ -44,7 +44,7 @@ export function TileTray({
     <Card
       title="Tiles"
       actions={<span className="text-xs text-[var(--text-muted)]">{remaining} left</span>}
-      className="bg-[#141418] border border-white/10 rounded-2xl p-6 shadow-xl min-w-0"
+      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl min-w-0"
     >
       <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)]">
         Click a tile to fill the next empty line — or drag it to a specific one.
@@ -57,6 +57,7 @@ export function TileTray({
           return (
             <Button
               key={tile.id}
+              variant="secondary"
               size="sm"
               data-state={isUsed ? "used" : isSelected ? "selected" : "available"}
               selected={isSelected}

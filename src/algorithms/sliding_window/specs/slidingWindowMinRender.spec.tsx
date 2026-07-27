@@ -16,7 +16,14 @@ describe("SlidingWindowMin React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["sliding-window-min"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -39,7 +46,14 @@ describe("SlidingWindowMin React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["sliding-window-min"]}
         currentStep={stepWithQueue}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

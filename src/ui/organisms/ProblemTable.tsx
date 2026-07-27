@@ -21,11 +21,12 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   onSelectAlgorithm,
 }) => {
   const sortableHeader = (label: string, field: ProblemListSortField) => (
-    <th className="bg-[#1a1a22] text-xs font-bold uppercase tracking-widest text-neutral-400 py-4.5 px-6 border-b border-white/10">
+    <th className="bg-[var(--bg-elevated)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
       <button
         onClick={() => onToggleSort(field)}
         aria-label={`Sort by ${label.toLowerCase()}`}
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-400 cursor-pointer hover:text-white bg-transparent border-none p-0 w-full text-left font-[inherit]"
+        aria-pressed={sortBy === field}
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] bg-transparent border-none p-0 w-full text-left font-[inherit]"
       >
         {label}
         {sortBy === field && <ArrowUpDown size={14} className="ml-1" />}
@@ -34,7 +35,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   );
 
   return (
-    <div className="bg-[#141418] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+    <div className="ui-card border border-[var(--border-default)] bg-[var(--bg-surface)] rounded-2xl overflow-hidden shadow-2xl">
       <div style={{ overflowX: "auto" }}>
         <table className="w-full border-collapse text-left">
           <thead className="bg-[#1a1a22] border-b border-white/10">
@@ -61,7 +62,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               <tr>
                 <td
                   colSpan={7}
-                  className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 text-center"
+                  className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-muted)] text-center"
                 >
                   No matching problems found. Try adjusting your search query or filters.
                 </td>
@@ -83,50 +84,50 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                         onSelectAlgorithm(alg.id, alg.category);
                       }
                     }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer outline-none focus:bg-white/5 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500"
+                    className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer outline-none focus:bg-[var(--bg-hover)] focus:outline-2 focus:-outline-offset-2 focus:outline-[var(--border-accent)]"
                   >
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 font-mono w-[60px]">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-muted)] font-mono w-[60px]">
                       {index + 1}
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 font-semibold">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)] font-semibold">
                       <span className="inline-flex items-center gap-2.5">
                         <Code2
                           aria-hidden="true"
                           size={16}
-                          className="text-neutral-400 shrink-0"
+                          className="text-[var(--text-muted)] shrink-0"
                         />
                         <span>{alg.title}</span>
                       </span>
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200">
-                      <span className="px-3 py-1 text-xs rounded-full border border-white/10 bg-white/5 text-neutral-300">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
+                      <span className="px-3 py-1 text-xs rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]">
                         {catLabel}
                       </span>
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
                       {alg.difficulty && (
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             alg.difficulty === "Easy"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : alg.difficulty === "Medium"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                           }`}
                         >
                           {alg.difficulty}
                         </span>
                       )}
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 font-mono text-neutral-400">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
                       {alg.timeComplexity?.average || "O(N)"}
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 font-mono text-neutral-400">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
                       {alg.spaceComplexity || "O(1)"}
                     </td>
-                    <td className="py-4 px-6 border-b border-white/5 text-sm text-neutral-200 text-center">
+                    <td className="py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)] text-center">
                       <button
-                        className="bg-[#050506] hover:bg-[#181820] text-white border border-[#444] px-4 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 mx-auto cursor-pointer transition-all"
+                        className="bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-strong)] px-4 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 mx-auto cursor-pointer transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectAlgorithm(alg.id, alg.category);

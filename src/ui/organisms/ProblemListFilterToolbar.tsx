@@ -29,16 +29,16 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   stats,
 }) => {
   return (
-    <div className="bg-[#141418] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
       <div className="flex-1 min-w-[240px]">
         <Input
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
           onClear={() => onSearchTermChange("")}
-          leadingIcon={<Search className="text-neutral-400" size={18} />}
+          leadingIcon={<Search className="text-[var(--text-muted)]" size={18} />}
           placeholder="Search problems by title, category, description..."
           aria-label="Filter problems"
-          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full placeholder-neutral-500"
+          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full placeholder-[var(--text-muted)]"
         />
       </div>
 
@@ -50,7 +50,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedCategory}
           onChange={(e) => onCategorySelect(e.target.value as CategoryType | "All")}
           aria-label="Filter by Category"
-          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full"
+          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full"
         >
           <option value="All">All Categories ({stats.total})</option>
           {CATEGORY_ENTRIES.map(([catKey, label]) => (
@@ -69,7 +69,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           value={selectedDifficulty}
           onChange={(e) => onDifficultySelect(e.target.value as ProblemListDifficulty)}
           aria-label="Filter by Difficulty"
-          className="bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 min-h-[42px] w-full"
+          className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--border-accent)] min-h-[42px] w-full"
         >
           <option value="All">All Difficulties</option>
           <option value="Easy">Easy ({stats.easy})</option>
@@ -79,7 +79,7 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <span className="bg-[#1e1e24] text-neutral-200 border border-white/10 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
+        <span className="bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-default)] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
           {filteredCount} / {stats.total} Problems
         </span>
       </div>

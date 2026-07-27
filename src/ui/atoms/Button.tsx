@@ -37,14 +37,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={asChild ? undefined : type}
       className={cx(
-        "ui-btn inline-flex items-center justify-center gap-2",
+        "ui-btn inline-flex items-center justify-center gap-2 rounded-xl min-h-[44px]",
         `ui-btn--${variant}`,
         `ui-btn--${size}`,
         variant === "primary" &&
           "bg-[var(--bg-inset)] border border-[var(--accent)] text-[var(--text-primary)]",
-        `ui-btn--${size}`,
         size === "sm"
-          ? "px-3 py-1.5 text-xs min-h-[36px]"
+          ? "px-3 py-2 text-xs min-h-[44px]"
           : size === "md"
             ? "px-4.5 py-2.5 text-sm min-h-[44px]"
             : size === "lg"

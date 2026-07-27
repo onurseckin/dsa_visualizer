@@ -47,14 +47,14 @@ export function ControlPanel({
       data-customsize={String(supportsCustomSize)}
       data-currentstep={currentStep}
       data-totalsteps={totalSteps}
-      className={`bg-[#141418] border border-white/10 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 w-full box-border ${
+      className={`bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-4 md:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 w-full box-border ${
         isEmbedded ? "border-t" : "relative top-2 z-10"
       }`}
     >
       <div className="flex items-center gap-3">
         <IconButton
           size="md"
-          className="bg-[#1e1e28] hover:bg-[#282834] text-white border border-white/10 p-3 rounded-xl min-h-[44px] min-w-[44px]"
+          className="bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] p-3 rounded-xl min-h-[44px] min-w-[44px]"
           icon={<RotateCcw size={24} strokeWidth={2.5} />}
           aria-label="Reset visualization to step 0"
           aria-keyshortcuts="KeyR"
@@ -64,7 +64,7 @@ export function ControlPanel({
         />
         <IconButton
           size="md"
-          className="bg-[#1e1e28] hover:bg-[#282834] text-white border border-white/10 p-3 rounded-xl min-h-[44px] min-w-[44px]"
+          className="bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] p-3 rounded-xl min-h-[44px] min-w-[44px]"
           icon={<SkipBack size={24} strokeWidth={2.5} />}
           aria-label="Step backward"
           aria-keyshortcuts="ArrowLeft"
@@ -74,7 +74,7 @@ export function ControlPanel({
         />
         <Button
           variant={isPlaying ? "secondary" : "primary"}
-          className="bg-[#050506] hover:bg-[#181820] text-white border border-[#444] px-6 py-3 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 transition-all"
+          className="bg-[var(--bg-inset)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-strong)] px-6 py-3 rounded-xl font-semibold text-sm shadow-md flex items-center gap-2 transition-all"
           aria-label={isPlaying ? "Pause playback" : "Play all steps"}
           aria-keyshortcuts="Space"
           title={`${isPlaying ? "Pause" : "Play"} (Space)`}

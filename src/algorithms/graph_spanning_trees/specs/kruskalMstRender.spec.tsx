@@ -13,7 +13,14 @@ describe("kruskalMst React component spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["kruskal-mst"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

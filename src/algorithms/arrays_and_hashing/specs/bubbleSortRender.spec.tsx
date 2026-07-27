@@ -13,7 +13,14 @@ describe("BubbleSort React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["bubble-sort"]}
         currentStep={steps[0]}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,
@@ -41,7 +48,14 @@ describe("BubbleSort React Component Spec", () => {
       <MainLayout
         algorithm={ALGORITHM_REGISTRY["bubble-sort"]}
         currentStep={lastStep}
-        panels={{ visualizer: true, code: true, tutorial: true, auxiliary: true }}
+        panels={{
+          problem: true,
+          solution: true,
+          visualizer: true,
+          code: true,
+          tutorial: true,
+          auxiliary: true,
+        }}
         onToggleTutorial={noop}
         onToggleAuxiliary={noop}
       />,

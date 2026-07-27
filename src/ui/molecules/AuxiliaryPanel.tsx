@@ -1,5 +1,6 @@
 import React from "react";
-import { Chip, Card } from "../../ui";
+import { X } from "lucide-react";
+import { Chip, Card, IconButton } from "../../ui";
 import { AuxiliaryState } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
@@ -32,7 +33,7 @@ export function hasAuxiliaryContent(
   );
 }
 
-export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables }) => {
+export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables, onClose }) => {
   const { stack, queue, visited, hashMap, distanceTable, customState } = state || {};
 
   const stackItems = stack || [];
@@ -72,8 +73,14 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
         <Chip
           key={`queue-${idx}`}
           size="md"
-          label={idx === 0 ? <span className="text-[var(--accent)]">front</span> : undefined}
-          value={String(item)}
+          label={String(item)}
+          value={
+            idx === 0 ? (
+              <span className="text-[var(--accent)]">front</span>
+            ) : idx === queueItems.length - 1 ? (
+              <span className="text-[var(--accent)]">back</span>
+            ) : undefined
+          }
         />
       )),
     });
@@ -84,17 +91,17 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
       key: "visited",
       label: `Visited (${visitedItems.length})`,
       chips: visitedItems.map((item, idx) => (
-        <Chip key={`vis-${idx}`} size="md" value={String(item)} />
+        <Chip key={`visited-${idx}`} size="md" value={String(item)} />
       )),
     });
   }
 
   if (hashMapEntries.length > 0) {
     groups.push({
-      key: "hash",
+      key: "hashmap",
       label: "Hash map",
-      chips: hashMapEntries.map(([key, val]) => (
-        <Chip key={`hash-${key}`} size="md" label={key} value={String(val)} />
+      chips: hashMapEntries.map(([k, v]) => (
+        <Chip key={`hash-${k}`} size="md" label={k} value={String(v)} />
       )),
     });
   }
@@ -103,13 +110,8 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
     groups.push({
       key: "distance",
       label: "Distances",
-      chips: distanceEntries.map(([node, dist]) => (
-        <Chip
-          key={`dist-${node}`}
-          size="md"
-          label={node}
-          value={dist === Infinity ? "∞" : String(dist)}
-        />
+      chips: distanceEntries.map(([k, d]) => (
+        <Chip key={`dist-${k}`} size="md" label={k} value={d === Infinity ? "∞" : String(d)} />
       )),
     });
   }
@@ -118,8 +120,8 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
     groups.push({
       key: "custom",
       label: "State",
-      chips: customEntries.map(([k, val]) => (
-        <Chip key={`cust-${k}`} size="md" label={k} value={String(val)} />
+      chips: customEntries.map(([k, v]) => (
+        <Chip key={`custom-${k}`} size="md" label={k} value={String(v)} />
       )),
     });
   }
@@ -137,7 +139,25 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
   if (groups.length === 0) return null;
 
   return (
-    <Card data-testid="auxiliary-panel" className="min-w-0 border-[#1e1e24] bg-[#0a0a0c]">
+    <Card
+      data-testid="auxiliary-panel"
+      className="min-w-0 border-[var(--border-default)] bg-[var(--bg-surface)]"
+    >
+      <Card.Header
+        title="Working Data & Variables"
+        actions={
+          onClose ? (
+            <IconButton
+              icon={<X />}
+              size="sm"
+              aria-label="Hide auxiliary panel"
+              title="Hide auxiliary panel"
+              onClick={onClose}
+            />
+          ) : undefined
+        }
+        className="px-4 py-3 border-b border-[var(--border-default)]"
+      />
       <Card.Body className="flex flex-col gap-4 px-2 py-4">
         {groups.map((group) => (
           <div
