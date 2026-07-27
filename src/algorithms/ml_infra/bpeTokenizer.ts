@@ -182,7 +182,7 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
     if (maxCount < 2) {
       addStep(
-        18,
+        20,
         `if pair_counts[best_pair] < 2: break — Stop at iteration ${iter} (max count=${maxCount})`,
         `Highest pair frequency ${maxCount} < 2. No pair appears at least 2 times. Halting BPE merge iterations.`,
         { iteration: iter, maxCount },
@@ -236,17 +236,9 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
   const finalTokens = vocab.flat();
 
   addStep(
-    39,
-    `flat_tokens = [t for w in vocab for t in w] → ${finalTokens.length} tokens`,
+    38,
+    `flat_tokens = [t for w in vocab for t in w] → ${finalTokens.length} tokens — BPE Complete`,
     `Flattened vocabulary into final token list: [${finalTokens.map((t) => `'${t}'`).join(", ")}]. Total merges executed: ${merges.length}.`,
-    { totalTokens: finalTokens.length, mergesExecuted: merges.length },
-    vocab,
-  );
-
-  addStep(
-    40,
-    `return flat_tokens, merges`,
-    `Returning final subword token sequence and the ${merges.length} merge operations applied.`,
     { totalTokens: finalTokens.length, mergesExecuted: merges.length },
     vocab,
   );
