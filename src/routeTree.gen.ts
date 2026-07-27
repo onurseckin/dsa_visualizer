@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MlInfraRouteImport } from './routes/ml-infra'
 import { Route as ProblemsRouteImport } from './routes/problems'
 import { Route as TriviaRouteImport } from './routes/trivia'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
@@ -18,6 +19,11 @@ import { Route as WorkspaceAlgorithmIdRouteImport } from './routes/workspace.$al
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MlInfraRoute = MlInfraRouteImport.update({
+  id: '/ml-infra',
+  path: '/ml-infra',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProblemsRoute = ProblemsRouteImport.update({
@@ -43,6 +49,7 @@ const WorkspaceAlgorithmIdRoute = WorkspaceAlgorithmIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
@@ -66,12 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/problems' | '/trivia' | '/workspace/$algorithmId' | '/workspace/'
+    | '/'
+    | '/ml-infra'
+    | '/problems'
+    | '/trivia'
+    | '/workspace/$algorithmId'
+    | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/problems' | '/trivia' | '/workspace/$algorithmId' | '/workspace'
+  to:
+    | '/'
+    | '/ml-infra'
+    | '/problems'
+    | '/trivia'
+    | '/workspace/$algorithmId'
+    | '/workspace'
   id:
     | '__root__'
     | '/'
+    | '/ml-infra'
     | '/problems'
     | '/trivia'
     | '/workspace/$algorithmId'
@@ -80,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MlInfraRoute: typeof MlInfraRoute
   ProblemsRoute: typeof ProblemsRoute
   TriviaRoute: typeof TriviaRoute
   WorkspaceAlgorithmIdRoute: typeof WorkspaceAlgorithmIdRoute
@@ -93,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ml-infra': {
+      id: '/ml-infra'
+      path: '/ml-infra'
+      fullPath: '/ml-infra'
+      preLoaderRoute: typeof MlInfraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/problems': {
@@ -128,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MlInfraRoute: MlInfraRoute,
   ProblemsRoute: ProblemsRoute,
   TriviaRoute: TriviaRoute,
   WorkspaceAlgorithmIdRoute: WorkspaceAlgorithmIdRoute,

@@ -32,6 +32,7 @@ export const ALL_CATEGORIES: { id: CategoryType; label: string }[] = [
   { id: "game_theory", label: "23. Game Theory" },
   { id: "advanced_range_queries", label: "24. Advanced Range Queries" },
   { id: "geometry_and_sweep_line", label: "25. Geometry & Sweep Line" },
+  { id: "ml_infrastructure", label: "26. ML Infrastructure" },
 ];
 
 export interface QuickAccessDrawerProps {
@@ -86,7 +87,14 @@ export function QuickAccessDrawer({
         const matches = catAlgorithms.filter((alg) => {
           if (sourceFilter !== "all") {
             const sources = getAlgorithmSources(alg);
-            if (!sources.some((s) => getSourceKind(s) === sourceFilter)) {
+            const matchesSource = sources.some((s) => getSourceKind(s) === sourceFilter);
+            const isMl =
+              sourceFilter === "ml_infra" &&
+              (Boolean(alg.isMlInfra) ||
+                alg.category === "ml_infra" ||
+                alg.category === "ml_infrastructure" ||
+                alg.category.startsWith("ml_"));
+            if (!matchesSource && !isMl) {
               return false;
             }
           }
@@ -126,6 +134,9 @@ export function QuickAccessDrawer({
             if (kind === "standard") {
               const std = s as StandardSource;
               return (std.label || "standard").toLowerCase().includes(query);
+            }
+            if (kind === "ml_infra") {
+              return "ml infra".includes(query) || "ml_infra".includes(query);
             }
             return false;
           });
@@ -195,6 +206,13 @@ export function QuickAccessDrawer({
                   onClick={() => setSourceFilter("standard")}
                 >
                   Standard
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "ml_infra" ? "primary" : "ghost"}
+                  onClick={() => setSourceFilter("ml_infra")}
+                >
+                  ML Infra
                 </Button>
               </div>
 

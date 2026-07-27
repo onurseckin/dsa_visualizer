@@ -14,16 +14,18 @@ export type { BadgeProps, BadgeVariant, BadgeSize } from "./atoms/Badge";
 export { LeetCodeBadge } from "./atoms/LeetCodeBadge";
 export type { LeetCodeBadgeProps } from "./atoms/LeetCodeBadge";
 
-export { SourceBadge, BookBadge, StandardBadge, SourceBadgeList } from "./atoms/SourceBadge";
+export { SourceBadge, BookBadge, StandardBadge, MlInfraBadge, SourceBadgeList } from "./atoms/SourceBadge";
 export type {
   SourceBadgeProps,
   BookBadgeProps,
   StandardBadgeProps,
+  MlInfraBadgeProps,
   SourceBadgeListProps,
   ProblemSource,
   BookSource,
   LeetCodeSource,
   StandardSource,
+  MlInfraSource,
 } from "./atoms/SourceBadge";
 
 export { Card, CardHeader, CardTitle, CardActions, CardBody } from "./atoms/Card";
