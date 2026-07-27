@@ -217,7 +217,7 @@ export const generateDecisionTreeGiniSplitSteps = (
     bestThresh,
     bestThresh,
     bestGini,
-    { bestThresh, bestGini: bestGini.toFixed(4) },
+    { bestThresh, bestGini: bestGini.toFixed(4), complete: true },
   );
 
   return steps;
