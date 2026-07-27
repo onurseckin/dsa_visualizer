@@ -1,5 +1,21 @@
 @import "./theme.css";
-@import "./ui.css";
+@import "./components/badge.css";
+@import "./components/button.css";
+@import "./components/buttongroup.css";
+@import "./components/card.css";
+@import "./components/chip.css";
+@import "./components/code-line.css";
+@import "./components/collapsible.css";
+@import "./components/confirmdialog.css";
+@import "./components/drawer.css";
+@import "./components/fieldlabel.css";
+@import "./components/input.css";
+@import "./components/kbd.css";
+@import "./components/panelheader.css";
+@import "./components/segmented.css";
+@import "./components/select.css";
+@import "./components/slider.css";
+@import "./components/well.css";
 /* Tailwind v4 theme + utilities only — preflight is intentionally skipped so it
    cannot reset the token-styled ui.css components. */
 @import "tailwindcss/theme.css" layer(theme);
