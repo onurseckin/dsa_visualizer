@@ -99,6 +99,27 @@ export const generateLogicalToPhysicalBlockAddressTranslatorSteps = (
     { token_index, block_size, table_len: block_table.length },
   );
 
+  addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Translates a logical sequence token index into physical GPU VRAM block address a",
+    {},
+  );
+
+  addStep(
+    3,
+    "Docstring body: algorithm description",
+    "See the Python docstring for the contract and purpose of this algorithm.",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
   // Step 2: Check block_table None
   addStep(
     5,
