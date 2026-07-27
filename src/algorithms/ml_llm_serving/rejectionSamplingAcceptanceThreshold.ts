@@ -88,7 +88,35 @@ export const generateRejectionSamplingAcceptanceThresholdSteps = (
   );
 
   // Step 2: Init accepted_tokens
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Evaluates token acceptance probability P(accept) = min(1.0, P_target(x) / P",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "in speculative decoding to guarantee exact target probability distribution ",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     "Initialize accepted_tokens = []",
     "Empty array to store accepted speculative candidate tokens or fallback bounded values.",

@@ -128,7 +128,28 @@ export const generateKvCacheSequenceMemoryEstimatorSteps = (
 
   // Step 9: Key vector size
   const keyVecBytes = num_kv_heads * head_dim * precision_bytes;
+    addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Calculates total VRAM required for Key-Value cache storage across transform",
+    {},
+  );
+
   addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Formula: Total Bytes = 2 * layers * num_kv_heads * head_dim * seq_len * pre",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     `Calculate Key vector size: ${keyVecBytes} Bytes/token/layer`,
     `$H_{\\text{kv}} \\cdot D_{\\text{head}} \\cdot P = ${num_kv_heads} \\cdot ${head_dim} \\cdot ${precision_bytes} = ${keyVecBytes}$ Bytes.`,

@@ -153,7 +153,42 @@ export const generateMissingValueSplitterSteps = (
   );
 
   // Step 2: G_total (7)
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "XGBoost Sparsity-Aware Split Finding Algorithm (Algorithm 2 in Chen & Guest",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Evaluates split gain when assigning ALL missing value samples to Left vs Ri",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Returns (defaultDirection, bestThreshold, maxGain).",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     7,
     `Calculate Total Gradient G_total = ${Gtotal.toFixed(4)}`,
     `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)}.`,

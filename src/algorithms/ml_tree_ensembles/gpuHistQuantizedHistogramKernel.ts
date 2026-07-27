@@ -109,7 +109,42 @@ export const generateGpuHistSteps = (input: GpuHistQuantizedHistogramInput): Alg
   );
 
   // Step 2: Init hist_G (7)
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "GPU Quantized Histogram Construction Kernel (XGBoost 'tree_method=hist' / L",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Bins feature values into discrete uint8 bins (0..num_bins-1) and accumulate",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "into fast shared memory histogram buckets in parallel O(N) time.",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     7,
     `Zero-Initialize hist_G SRAM Buffer (${numBins} Bins)`,
     `Allocated ${numBins} floating point buckets for gradient histogram hist_G filled with 0.0.`,

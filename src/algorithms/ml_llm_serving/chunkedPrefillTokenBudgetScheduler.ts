@@ -154,7 +154,28 @@ export const generateChunkedPrefillTokenBudgetSchedulerSteps = (
     "Init",
   );
 
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Schedules an iteration budget under Chunked Prefill & Piggybacked Decoding ",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Prioritizes decode requests (1 token each), then chunks prefill prompts to ",
+    {},
+  );
+
+addStep(
     5,
     "Initialize scheduled_batch List",
     "Creating container scheduled_batch to collect scheduled token allocations.",

@@ -137,7 +137,49 @@ export const generateExactGreedySplitSteps = (
   );
 
   // Step 2: Sort samples
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Exact Greedy Split Search algorithm (XGBoost Exact Greedy Algorithm 1, Chen",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "Sorts samples by feature value, accumulates gradient sums G_L, H_L and G_R,",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "and finds the optimal split threshold maximizing regularized Gain score.",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+  addStep(
+    7,
+    "Docstring body: algorithm description",
+    "# Sort samples by feature value",
+    {},
+  );
+
+addStep(
     8,
     "Sort Samples by Feature Value x",
     `Sorted ${samples.length} samples in ascending feature order: [${samples.map((s) => s.x).join(", ")}].`,

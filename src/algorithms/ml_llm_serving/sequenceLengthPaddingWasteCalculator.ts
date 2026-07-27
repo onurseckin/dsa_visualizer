@@ -92,7 +92,35 @@ export const generateSequenceLengthPaddingWasteCalculatorSteps = (
     { batch_size: sequenceLengths.length },
   );
 
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Calculates VRAM padding waste and compute overhead when variable-length",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "sequences are padded to max_seq_len under traditional static batching.",
+    {},
+  );
+
+  addStep(
+    5,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     6,
     `Check if not sequence_lengths (len = ${sequenceLengths.length})`,
     "Verifying batch is non-empty.",

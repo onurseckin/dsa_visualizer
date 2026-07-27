@@ -105,7 +105,42 @@ export const generateIterationLevelContinuousBatchSchedulerSteps = (
   );
 
   // Step 2: init queue
+    addStep(
+    2,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    "Simulates iteration-level continuous batching (Orca / vLLM).",
+    {},
+  );
+
+  addStep(
+    4,
+    "Docstring body: algorithm description",
+    "At every token generation step (iteration), completed requests are evicted ",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "and waiting requests from the queue are admitted into open batch slots.",
+    {},
+  );
+
+  addStep(
+    6,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     7,
     `Initialize queue = list(incoming_requests) -> [${queue.join(", ")}]`,
     "Converted incoming request stream into mutable scheduler queue.",

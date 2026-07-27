@@ -80,7 +80,49 @@ export const generateTargetModelParallelVerificationPassSteps = (
   );
 
   const verificationResults: boolean[] = [];
+    addStep(
+    2,
+    "Docstring body: algorithm description",
+    "draft_tokens: list[int], target_threshold: int = 30",
+    {},
+  );
+
   addStep(
+    3,
+    "Docstring body: algorithm description",
+    ") -> list[bool]:",
+    {},
+  );
+
+  addStep(
+    4,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+  addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Executes a single parallel target model forward pass verifying all gamma dr",
+    {},
+  );
+
+  addStep(
+    6,
+    "Docstring body: algorithm description",
+    "concurrently, evaluating acceptance criteria sequentially up to first rejec",
+    {},
+  );
+
+  addStep(
+    7,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     8,
     "Initialize verification_results = []",
     "Empty array to accumulate boolean verification outcomes for candidate draft tokens.",

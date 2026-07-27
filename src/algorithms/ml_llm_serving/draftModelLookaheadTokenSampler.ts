@@ -113,7 +113,42 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
   );
 
   // Step 2: Init draft_tokens
+    addStep(
+    4,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    5,
+    "Docstring body: algorithm description",
+    "Autoregressively samples gamma lookahead candidate tokens from draft model ",
+    {},
+  );
+
+  addStep(
+    6,
+    "Docstring body: algorithm description",
+    "Applies temperature scaling, max logit subtraction for softmax numerical st",
+    {},
+  );
+
+  addStep(
+    7,
+    "Docstring body: algorithm description",
+    "and returns sampled token indices along with candidate probabilities q(x_i)",
+    {},
+  );
+
+  addStep(
+    8,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     9,
     "Initialize draft_tokens = []",
     "Empty array to store sampled candidate token indices $x_1, x_2, \\dots, x_{\\gamma}$.",
