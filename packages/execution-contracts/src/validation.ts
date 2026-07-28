@@ -72,6 +72,7 @@ const PYTHON_KEYWORDS = new Set([
 export function validatePythonExecutionSpec(input: unknown): ValidationResult<PythonExecutionSpec> {
   return safely(() => {
     const issues: ValidationIssue[] = [];
+    validateUtf8Strings(input, "$", issues);
     validateSpec(input, "$", issues);
     return result(input, issues);
   });
@@ -80,6 +81,7 @@ export function validatePythonExecutionSpec(input: unknown): ValidationResult<Py
 export function validatePythonRunRequest(input: unknown): ValidationResult<PythonRunRequest> {
   return safely(() => {
     const issues: ValidationIssue[] = [];
+    validateUtf8Strings(input, "$", issues);
     if (!isRecord(input)) {
       issue(issues, "$", "must be an object");
       return result(input, issues);
@@ -88,10 +90,11 @@ export function validatePythonRunRequest(input: unknown): ValidationResult<Pytho
     if (!isNonEmptyString(input.runId)) issue(issues, "$.runId", "must be a non-empty string");
     if (typeof input.code !== "string") issue(issues, "$.code", "must be a string");
 
-    validateSpec(input.spec, "$.spec", issues);
+    validateSpec(input.spec, "$.spec", issues, input.caseIds);
     if (isRecord(input.spec) && typeof input.code === "string") {
       const limits = parsedLimits(input.spec.limits);
-      if (limits && byteLength(input.code) > limits.maxSourceBytes) {
+      const sourceBytes = utf8ByteLength(input.code);
+      if (limits && sourceBytes !== undefined && sourceBytes > limits.maxSourceBytes) {
         issue(issues, "$.code", "exceeds maxSourceBytes");
       }
     }
@@ -107,7 +110,12 @@ export function validatePythonRunRequest(input: unknown): ValidationResult<Pytho
   });
 }
 
-function validateSpec(input: unknown, path: string, issues: ValidationIssue[]): void {
+function validateSpec(
+  input: unknown,
+  path: string,
+  issues: ValidationIssue[],
+  selection?: unknown,
+): void {
   if (!isRecord(input)) {
     issue(issues, path, "must be an object");
     return;
@@ -124,7 +132,7 @@ function validateSpec(input: unknown, path: string, issues: ValidationIssue[]): 
   validatePackages(input.packages, input.runtime, `${path}.packages`, issues);
   const limits = validateLimits(input.limits, `${path}.limits`, issues);
   const requiresStringInput = isRecord(input.invocation) && input.invocation.kind === "stdin";
-  validateCases(input.cases, limits, requiresStringInput, `${path}.cases`, issues);
+  validateCases(input.cases, limits, requiresStringInput, `${path}.cases`, issues, selection);
 }
 
 function validateInvocation(input: unknown, path: string, issues: ValidationIssue[]): void {
@@ -276,6 +284,7 @@ function validateCases(
   requiresStringInput: boolean,
   path: string,
   issues: ValidationIssue[],
+  selection?: unknown,
 ): void {
   if (!Array.isArray(input) || input.length === 0) {
     issue(issues, path, "must be a non-empty array");
@@ -284,8 +293,11 @@ function validateCases(
   if (limits && input.length > limits.maxCases) issue(issues, path, "exceeds maxCases");
 
   const ids = new Set<string>();
+  const selectedIds =
+    selection === undefined ? undefined : new Set(Array.isArray(selection) ? selection : []);
   let inputBytes = 0;
   let expectedBytes = 0;
+  let expectedStdoutBytes = 0;
   input.forEach((testCase, index) => {
     const casePath = `${path}[${index}]`;
     if (!isRecord(testCase)) {
@@ -349,12 +361,21 @@ function validateCases(
       if (size === undefined) issue(issues, `${casePath}.expected`, "must be safely serializable");
       else expectedBytes += size;
     }
+    if (
+      testCase.comparison === "stdout" &&
+      typeof expected === "string" &&
+      (selectedIds === undefined || selectedIds.has(testCase.id))
+    ) {
+      expectedStdoutBytes += utf8ByteLength(expected) ?? 0;
+    }
   });
 
   if (limits && inputBytes > limits.maxInputBytes)
     issue(issues, path, "inputs exceed maxInputBytes");
   if (limits && expectedBytes > limits.maxResultBytes)
     issue(issues, path, "expected values exceed maxResultBytes");
+  if (limits && expectedStdoutBytes > limits.maxOutputBytes)
+    issue(issues, path, "expected stdout exceeds maxOutputBytes");
 }
 
 function validateCaseSelection(selection: unknown, spec: unknown, issues: ValidationIssue[]): void {
@@ -392,14 +413,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function byteLength(value: string): number {
+function utf8ByteLength(value: string): number | undefined {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      if (index + 1 >= value.length) return undefined;
+      const next = value.charCodeAt(index + 1);
+      if (next < 0xdc00 || next > 0xdfff) return undefined;
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      return undefined;
+    }
+  }
   return new TextEncoder().encode(value).byteLength;
+}
+
+function validateUtf8Strings(
+  value: unknown,
+  path: string,
+  issues: ValidationIssue[],
+  seen = new WeakSet<object>(),
+): void {
+  if (typeof value === "string") {
+    if (utf8ByteLength(value) === undefined) issue(issues, path, "must be valid UTF-8 text");
+    return;
+  }
+  if (typeof value !== "object" || value === null || seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => validateUtf8Strings(item, `${path}[${index}]`, issues, seen));
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    if (utf8ByteLength(key) === undefined)
+      issue(issues, path, "property names must be valid UTF-8 text");
+    validateUtf8Strings((value as Record<string, unknown>)[key], `${path}.${key}`, issues, seen);
+  }
 }
 
 function serializedJsonByteLength(value: unknown): number | undefined {
   try {
     const serialized = JSON.stringify(value);
-    return typeof serialized === "string" ? byteLength(serialized) : undefined;
+    return typeof serialized === "string" ? utf8ByteLength(serialized) : undefined;
   } catch {
     return undefined;
   }
