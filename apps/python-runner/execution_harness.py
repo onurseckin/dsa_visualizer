@@ -11,6 +11,7 @@ import io
 import json
 import math
 import os
+import secrets
 import sys
 import time
 import traceback
@@ -245,6 +246,13 @@ def execute_request(request: Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(selected_ids, list):
         selected = set(selected_ids)
         cases = [test_case for test_case in cases if test_case.get("id") in selected]
+
+    expected_stdout_error = _expected_stdout_budget_error(
+        cases,
+        limits["maxOutputBytes"],
+    )
+    if expected_stdout_error is not None:
+        return _request_error(run_id, expected_stdout_error, started)
 
     output_budget = OutputBudget(limits["maxOutputBytes"])
     case_results = [
@@ -566,6 +574,23 @@ def _overall_status(case_results: Sequence[Mapping[str, Any]]) -> str:
     return "passed"
 
 
+def _expected_stdout_budget_error(cases: Sequence[Any], max_output_bytes: int) -> str | None:
+    size = 0
+    for test_case in cases:
+        if not isinstance(test_case, Mapping) or test_case.get("comparison") != "stdout":
+            continue
+        expected = test_case.get("expected")
+        if not isinstance(expected, str):
+            return "Each expected stdout value must be a string."
+        try:
+            size += len(expected.encode("utf-8"))
+        except UnicodeEncodeError:
+            return "Expected stdout must be valid UTF-8."
+        if size > max_output_bytes:
+            return "Combined expected stdout exceeds maxOutputBytes."
+    return None
+
+
 def _request_error(run_id: str, message: str, started: float) -> dict[str, Any]:
     return {
         "runId": run_id,
@@ -673,7 +698,20 @@ def _set_resource_limit(resource_module: Any, name: int, requested: int) -> None
 def _open_protocol_stream() -> io.TextIOWrapper:
     sys.stdout.flush()
     sys.stderr.flush()
-    protocol_fd = os.dup(sys.stdout.fileno())
+    if os.name == "posix":
+        import fcntl
+
+        minimum_fd = 64 + secrets.randbelow(128)
+        protocol_fd = fcntl.fcntl(
+            sys.stdout.fileno(),
+            fcntl.F_DUPFD_CLOEXEC,
+            minimum_fd,
+        )
+    else:
+        protocol_fd = os.dup(sys.stdout.fileno())
+        os.set_inheritable(protocol_fd, False)
+    if hasattr(os, "register_at_fork"):
+        os.register_at_fork(after_in_child=lambda: _close_file_descriptor(protocol_fd))
     null_fd = os.open(os.devnull, os.O_WRONLY)
     try:
         os.dup2(null_fd, 1)
@@ -681,6 +719,13 @@ def _open_protocol_stream() -> io.TextIOWrapper:
     finally:
         os.close(null_fd)
     return os.fdopen(protocol_fd, "w", encoding="utf-8", closefd=True)
+
+
+def _close_file_descriptor(file_descriptor: int) -> None:
+    try:
+        os.close(file_descriptor)
+    except OSError:
+        pass
 
 
 def main() -> int:

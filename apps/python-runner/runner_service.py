@@ -23,6 +23,8 @@ DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
 DEFAULT_READ_TIMEOUT_SECONDS = 2.0
 DEFAULT_MAX_ACTIVE = 2
 DEFAULT_MAX_REQUEST_THREADS = 8
+MAX_PROTOCOL_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_PROTOCOL_STDERR_BYTES = 64 * 1024
 DEFAULT_CANCELLATION_TOMBSTONE_TTL_SECONDS = 5.0
 DEFAULT_MAX_CANCELLATION_TOMBSTONES = 256
 POLICY_DEFAULTS = {
@@ -53,9 +55,8 @@ class _RunControl:
     def attach(self, process: subprocess.Popen[bytes]) -> None:
         with self._lock:
             self._process = process
-            cancelled = self.cancelled.is_set()
-        if cancelled:
-            _kill_process_tree(process)
+            if self.cancelled.is_set():
+                _kill_process_tree(process)
 
     def detach(self, process: subprocess.Popen[bytes]) -> None:
         with self._lock:
@@ -66,8 +67,39 @@ class _RunControl:
         self.cancelled.set()
         with self._lock:
             process = self._process
-        if process is not None:
-            _kill_process_tree(process)
+            if process is not None:
+                _kill_process_tree(process)
+
+
+class _BoundedPipeCapture:
+    def __init__(
+        self,
+        pipe: Any,
+        *,
+        limit: int,
+        process: subprocess.Popen[bytes],
+    ) -> None:
+        self._pipe = pipe
+        self._limit = max(0, limit)
+        self._process = process
+        self.data = bytearray()
+        self.overflowed = False
+
+    def read(self) -> None:
+        try:
+            while True:
+                chunk = self._pipe.read(64 * 1024)
+                if not chunk:
+                    return
+                remaining = self._limit - len(self.data)
+                if remaining > 0:
+                    self.data.extend(chunk[:remaining])
+                if len(chunk) > remaining:
+                    self.overflowed = True
+                    _kill_process_tree(self._process)
+                    return
+        finally:
+            self._pipe.close()
 
 
 class ExecutionManager:
@@ -288,7 +320,7 @@ def _run_child(
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError, UnicodeEncodeError):
         return _execution_error(run_id, "error", "Run request must be valid JSON.", started)
 
     process: subprocess.Popen[bytes] | None = None
@@ -303,18 +335,14 @@ def _run_child(
                 start_new_session=os.name == "posix",
             )
             control.attach(process)
-            if control.cancelled.is_set():
-                _kill_and_reap(process)
-                return _execution_error(
-                    run_id,
-                    "error",
-                    "Python execution was cancelled.",
-                    started,
-                )
             try:
-                stdout, stderr = process.communicate(payload, timeout=timeout_ms / 1_000)
+                stdout, stderr, protocol_overflow = _communicate_owned_process(
+                    process,
+                    payload,
+                    timeout=timeout_ms / 1_000,
+                    control=control,
+                )
             except subprocess.TimeoutExpired:
-                _kill_and_reap(process)
                 if control.cancelled.is_set():
                     return _execution_error(
                         run_id,
@@ -328,8 +356,15 @@ def _run_child(
                     f"Execution exceeded the {timeout_ms} ms time limit.",
                     started,
                 )
+            if protocol_overflow is not None:
+                stream_name, byte_limit = protocol_overflow
+                return _execution_error(
+                    run_id,
+                    "error",
+                    f"Runner protocol {stream_name} byte limit of {byte_limit} was exceeded.",
+                    started,
+                )
             if control.cancelled.is_set():
-                _kill_and_reap(process)
                 return _execution_error(
                     run_id,
                     "error",
@@ -337,8 +372,14 @@ def _run_child(
                     started,
                 )
     except (OSError, ValueError) as error:
-        if process is not None:
-            _kill_and_reap(process)
+        if process is not None and process.returncode is None:
+            _kill_process_tree(process)
+            control.detach(process)
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
         return _execution_error(run_id, "error", f"Runner failed: {error}", started)
     finally:
         if process is not None:
@@ -565,7 +606,11 @@ def _validate_request_policy(request: dict[str, Any]) -> str | None:
                 return "Execution limit maxCases must be an integer."
 
     effective = _effective_limits(request)
-    if len(code.encode("utf-8")) > effective["maxSourceBytes"]:
+    try:
+        source_size = len(code.encode("utf-8"))
+    except UnicodeEncodeError:
+        return "Learner code must be valid UTF-8."
+    if source_size > effective["maxSourceBytes"]:
         return "Learner code exceeds maxSourceBytes."
     cases = spec.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -574,6 +619,9 @@ def _validate_request_policy(request: dict[str, Any]) -> str | None:
         return "Execution cases exceed maxCases."
     input_size = 0
     expected_size = 0
+    expected_stdout_size = 0
+    selected_ids = request.get("caseIds")
+    selected = set(selected_ids) if isinstance(selected_ids, list) else None
     for test_case in cases:
         if not isinstance(test_case, dict):
             return "Each execution case must be an object."
@@ -586,6 +634,19 @@ def _validate_request_policy(request: dict[str, Any]) -> str | None:
             return "Execution inputs exceed maxInputBytes."
         if expected_size > effective["maxResultBytes"]:
             return "Expected results exceed maxResultBytes."
+        if (
+            test_case.get("comparison") == "stdout"
+            and (selected is None or test_case.get("id") in selected)
+        ):
+            expected_stdout = test_case.get("expected")
+            if not isinstance(expected_stdout, str):
+                return "Each expected stdout value must be a string."
+            try:
+                expected_stdout_size += len(expected_stdout.encode("utf-8"))
+            except UnicodeEncodeError:
+                return "Expected stdout must be valid UTF-8."
+            if expected_stdout_size > effective["maxOutputBytes"]:
+                return "Combined expected stdout exceeds maxOutputBytes."
     return None
 
 
@@ -606,31 +667,112 @@ def _json_size(value: Any, remaining: int) -> int:
     return max(0, remaining) + 1 if size is None else size
 
 
+def _communicate_owned_process(
+    process: subprocess.Popen[bytes],
+    payload: bytes,
+    *,
+    timeout: float,
+    control: _RunControl,
+) -> tuple[bytes, bytes, tuple[str, int] | None]:
+    if os.name == "posix" and (not hasattr(os, "waitid") or not hasattr(os, "WNOWAIT")):
+        raise OSError("POSIX runner requires waitid with WNOWAIT support.")
+    if process.stdin is None or process.stdout is None or process.stderr is None:
+        raise ValueError("Runner process pipes were not created.")
+    stdout_capture = _BoundedPipeCapture(
+        process.stdout,
+        limit=MAX_PROTOCOL_RESPONSE_BYTES,
+        process=process,
+    )
+    stderr_capture = _BoundedPipeCapture(
+        process.stderr,
+        limit=MAX_PROTOCOL_STDERR_BYTES,
+        process=process,
+    )
+    reader_threads = [
+        threading.Thread(target=stdout_capture.read, daemon=True),
+        threading.Thread(target=stderr_capture.read, daemon=True),
+    ]
+
+    def write_request() -> None:
+        try:
+            process.stdin.write(payload)
+            process.stdin.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            pass
+        finally:
+            try:
+                process.stdin.close()
+            except OSError:
+                pass
+
+    writer_thread = threading.Thread(target=write_request, daemon=True)
+    for thread in reader_threads:
+        thread.start()
+    writer_thread.start()
+    pending_error: BaseException | None = None
+    wait_without_reaping = os.name == "posix"
+    try:
+        if wait_without_reaping:
+            _wait_without_reaping(process, timeout)
+        else:
+            process.wait(timeout=timeout)
+    except BaseException as error:
+        pending_error = error
+    finally:
+        # On POSIX the session leader remains an unreaped zombie here, so its
+        # owned PGID cannot be reused between termination and synchronized detach.
+        _kill_process_tree(process)
+        control.detach(process)
+        try:
+            process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+        writer_thread.join(timeout=1)
+        for thread in reader_threads:
+            thread.join(timeout=1)
+
+    if pending_error is not None:
+        raise pending_error
+    overflow = None
+    if stdout_capture.overflowed:
+        overflow = ("stdout", MAX_PROTOCOL_RESPONSE_BYTES)
+    elif stderr_capture.overflowed:
+        overflow = ("stderr", MAX_PROTOCOL_STDERR_BYTES)
+    return bytes(stdout_capture.data), bytes(stderr_capture.data), overflow
+
+
+def _wait_without_reaping(process: subprocess.Popen[bytes], timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    flags = os.WEXITED | os.WNOHANG | os.WNOWAIT
+    while True:
+        try:
+            status = os.waitid(os.P_PID, process.pid, flags)
+        except InterruptedError:
+            continue
+        if status is not None:
+            return
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise subprocess.TimeoutExpired(process.args, timeout)
+        time.sleep(min(0.005, remaining))
+
+
 def _kill_process_tree(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (ProcessLookupError, OSError):
+            pass
         return
     try:
-        if os.name == "posix":
-            os.killpg(process.pid, signal.SIGKILL)
-        else:
+        if process.poll() is None:
             process.kill()
     except (ProcessLookupError, OSError):
         try:
             process.kill()
         except (ProcessLookupError, OSError):
             pass
-
-
-def _kill_and_reap(process: subprocess.Popen[bytes]) -> None:
-    _kill_process_tree(process)
-    try:
-        process.communicate(timeout=1)
-    except subprocess.TimeoutExpired:
-        try:
-            process.kill()
-        except (ProcessLookupError, OSError):
-            pass
-        process.communicate()
 
 
 def _bounded_decode(value: bytes, max_bytes: int) -> str:

@@ -9,6 +9,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest.mock import patch
 
 
 RUNNER_DIRECTORY = Path(__file__).resolve().parents[1]
@@ -17,6 +18,8 @@ sys.path.insert(0, str(RUNNER_DIRECTORY))
 from runner_service import (  # noqa: E402
     DEFAULT_MAX_BODY_BYTES,
     ExecutionManager,
+    MAX_PROTOCOL_RESPONSE_BYTES,
+    MAX_PROTOCOL_STDERR_BYTES,
     create_server,
     run_in_subprocess,
 )
@@ -104,6 +107,48 @@ class SubprocessRunnerTests(unittest.TestCase):
             self.assertEqual(result["status"], "timeout")
             self.assertTrue(wait_until_dead(descendant_pid), f"descendant {descendant_pid} survived")
 
+    @unittest.skipUnless(os.name == "posix", "process-group assertion requires POSIX")
+    def test_success_kills_and_reaps_a_learner_spawned_descendant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pid_path = Path(directory) / "descendant.pid"
+            code = (
+                "import pathlib, subprocess, sys\n"
+                "def solve(value):\n"
+                f"    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
+                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child.pid))\n"
+                "    return value * 2"
+            )
+
+            result = run_in_subprocess(request_for(code))
+            descendant_pid = int(pid_path.read_text())
+
+            self.assertEqual(result["status"], "passed")
+            self.assertTrue(wait_until_dead(descendant_pid), f"descendant {descendant_pid} survived")
+
+    @unittest.skipUnless(hasattr(os, "fork"), "inherited-FD assertion requires fork")
+    def test_forked_descendant_cannot_hold_protocol_fds_or_extend_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pid_path = Path(directory) / "descendant.pid"
+            code = (
+                "import os, pathlib, time\n"
+                "def solve(value):\n"
+                "    child_pid = os.fork()\n"
+                "    if child_pid == 0:\n"
+                "        time.sleep(30)\n"
+                "        os._exit(0)\n"
+                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
+                "    return value * 2"
+            )
+            started = time.monotonic()
+
+            result = run_in_subprocess(request_for(code))
+            elapsed = time.monotonic() - started
+            descendant_pid = int(pid_path.read_text())
+
+            self.assertEqual(result["status"], "passed")
+            self.assertLess(elapsed, 1)
+            self.assertTrue(wait_until_dead(descendant_pid), f"descendant {descendant_pid} survived")
+
     def test_rejects_limits_above_the_shared_policy_ceiling_without_spawning(self):
         request = request_for("def solve(value):\n    return value * 2")
         request["spec"]["limits"] = {"wallTimeMs": 30_001}
@@ -112,6 +157,49 @@ class SubprocessRunnerTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "error")
         self.assertIn("policy ceiling", result["stderr"])
+
+    def test_rejects_lone_surrogate_source_with_a_normalized_error(self):
+        result = run_in_subprocess(request_for("def solve(value):\n    return '\ud800'"))
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("UTF-8", result["stderr"])
+
+    def test_normalizes_protocol_output_above_the_parent_response_cap(self):
+        code = (
+            "import inspect, os\n"
+            "def solve(value):\n"
+            "    frame = inspect.currentframe()\n"
+            "    while frame is not None:\n"
+            "        for candidate in frame.f_locals.values():\n"
+            "            try: fd = candidate.fileno()\n"
+            "            except Exception: continue\n"
+            "            if fd > 2:\n"
+            f"                os.write(fd, b'x' * ({MAX_PROTOCOL_RESPONSE_BYTES} + 1))\n"
+            "        frame = frame.f_back\n"
+            "    return value * 2"
+        )
+
+        result = run_in_subprocess(request_for(code))
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("stdout byte limit", result["stderr"])
+        self.assertIn(str(MAX_PROTOCOL_RESPONSE_BYTES), result["stderr"])
+
+    def test_reports_the_distinct_bounded_runner_stderr_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            harness = Path(directory) / "noisy_harness.py"
+            harness.write_text(
+                "import sys\n"
+                f"sys.stderr.buffer.write(b'x' * ({MAX_PROTOCOL_STDERR_BYTES} + 1))\n"
+            )
+            with patch("runner_service.HARNESS_PATH", harness):
+                result = run_in_subprocess(
+                    request_for("def solve(value):\n    return value * 2")
+                )
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("stderr byte limit", result["stderr"])
+        self.assertIn(str(MAX_PROTOCOL_STDERR_BYTES), result["stderr"])
 
     def test_execution_manager_cancels_a_running_process_and_cleans_its_registry(self):
         manager = ExecutionManager(max_active=1)
