@@ -26,11 +26,13 @@
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
+    "@dsa-visualizer/execution-contracts": "workspace:*",
     "@radix-ui/react-slot": "1.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-router-devtools": "^1.167.0",
     "lucide-react": "^0.344.0",
+    "pyodide": "314.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.9",
@@ -52,6 +54,7 @@
     "oxlint": "^1.75.0",
     "typescript": "^7.0.2",
     "vite": "^5.1.4",
+    "vite-plugin-static-copy": "3.1.4",
     "vitest": "1.6.1"
   },
   "intent": {
