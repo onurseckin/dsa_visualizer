@@ -176,10 +176,55 @@ export function verifyCompose(config: ComposeConfig): void {
   if (!objectValues(config.volumes).api_data) fail("api_data named volume is required.");
 }
 
-function verifyPinnedBuildFiles(): void {
+export function verifyRunnerDependencyLock(
+  runnerDockerfile: string,
+  requirements: readonly string[],
+): void {
+  if (!runnerDockerfile.includes("ARG TARGETARCH")) {
+    fail("Dockerfile.runner must select dependencies with TARGETARCH.");
+  }
+  if (!runnerDockerfile.includes("--require-hashes")) {
+    fail("Dockerfile.runner must install hash-locked dependencies with --require-hashes.");
+  }
+  if (!runnerDockerfile.includes("amd64") || !runnerDockerfile.includes("arm64")) {
+    fail("Dockerfile.runner must select both amd64 and arm64 dependency locks.");
+  }
+  if (!runnerDockerfile.includes("Unsupported TARGETARCH")) {
+    fail("Dockerfile.runner must fail for an unsupported TARGETARCH.");
+  }
+  if (!requirements.includes("--extra-index-url https://download.pytorch.org/whl/cpu")) {
+    fail("runner dependency locks must include the PyTorch CPU index.");
+  }
+  const packageBlocks = requirements
+    .join("\n")
+    .split(/(?=^[a-z0-9][a-z0-9_.-]*==)/im)
+    .filter((block) => /^[a-z0-9][a-z0-9_.-]*==/im.test(block));
+  if (!packageBlocks.some((block) => /^numpy==2\.2\.5\b/im.test(block))) {
+    fail("runner dependency locks must pin numpy==2.2.5.");
+  }
+  if (!packageBlocks.some((block) => /^torch==2\.6\.0\+cpu\b/im.test(block))) {
+    fail("runner dependency locks must pin the CPU torch==2.6.0+cpu wheel.");
+  }
+  if (
+    packageBlocks.length === 0 ||
+    packageBlocks.some((block) => !block.includes("--hash=sha256:"))
+  ) {
+    fail("runner dependency locks must be hash-locked.");
+  }
+}
+
+export function verifyPinnedBuildFiles(): void {
   const webDockerfile = readFileSync("Dockerfile.web", "utf8");
   const apiDockerfile = readFileSync("Dockerfile.api", "utf8");
   const runnerDockerfile = readFileSync("Dockerfile.runner", "utf8");
+  const amd64Requirements = readFileSync(
+    "docker/python-runner/requirements-linux-amd64.txt",
+    "utf8",
+  ).split("\n");
+  const arm64Requirements = readFileSync(
+    "docker/python-runner/requirements-linux-arm64.txt",
+    "utf8",
+  ).split("\n");
   const nginx = readFileSync("docker/web/nginx.conf", "utf8");
   const requiredPins: readonly [string, string, string][] = [
     [
@@ -202,8 +247,6 @@ function verifyPinnedBuildFiles(): void {
       runnerDockerfile,
       "FROM python:3.12.10-slim-bookworm@sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d1805692d11588db",
     ],
-    ["Dockerfile.runner", runnerDockerfile, "numpy==2.2.5"],
-    ["Dockerfile.runner", runnerDockerfile, "torch==2.6.0+cpu"],
     ["Dockerfile.runner", runnerDockerfile, "USER 10001:10001"],
     ["docker/web/nginx.conf", nginx, "location /api/"],
     ["docker/web/nginx.conf", nginx, "proxy_pass http://api:3000;"],
@@ -216,6 +259,8 @@ function verifyPinnedBuildFiles(): void {
   for (const [file, contents, expected] of requiredPins) {
     if (!contents.includes(expected)) fail(`${file} must include ${expected}.`);
   }
+  verifyRunnerDependencyLock(runnerDockerfile, amd64Requirements);
+  verifyRunnerDependencyLock(runnerDockerfile, arm64Requirements);
 }
 
 export function main(): void {
@@ -228,6 +273,12 @@ export function main(): void {
     fail("all three Dockerfiles are required.");
   }
   if (!existsSync("docker/web/nginx.conf")) fail("docker/web/nginx.conf is required.");
+  if (
+    !existsSync("docker/python-runner/requirements-linux-amd64.txt") ||
+    !existsSync("docker/python-runner/requirements-linux-arm64.txt")
+  ) {
+    fail("hash-locked Python runner requirements are required for amd64 and arm64.");
+  }
   const result = Bun.spawnSync(["docker", "compose", "config", "--format", "json"], {
     cwd: process.cwd(),
     stdout: "pipe",

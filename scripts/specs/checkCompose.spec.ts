@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { verifyCompose } from "../checkCompose";
+import { verifyCompose, verifyRunnerDependencyLock } from "../checkCompose";
 
 const validConfig = {
   services: {
@@ -73,5 +73,33 @@ describe("verifyCompose", () => {
         },
       }),
     ).toThrow("python-runner healthcheck must call /health");
+  });
+});
+
+describe("verifyRunnerDependencyLock", () => {
+  it("rejects a runner dependency lock without hashes", () => {
+    expect(() =>
+      verifyRunnerDependencyLock(
+        "ARG TARGETARCH\nRUN pip install -r requirements-${TARGETARCH}.txt",
+        [
+          "--extra-index-url https://download.pytorch.org/whl/cpu",
+          "numpy==2.2.5",
+          "torch==2.6.0+cpu",
+        ],
+      ),
+    ).toThrow("hash-locked");
+  });
+
+  it("accepts a hash-locked CPU dependency selection", () => {
+    expect(() =>
+      verifyRunnerDependencyLock(
+        'ARG TARGETARCH\nRUN case "$TARGETARCH" in amd64|arm64) ;; *) echo "Unsupported TARGETARCH"; exit 1 ;; esac && pip install --require-hashes -r requirements-${TARGETARCH}.txt',
+        [
+          "--extra-index-url https://download.pytorch.org/whl/cpu",
+          "numpy==2.2.5 --hash=sha256:abc",
+          "torch==2.6.0+cpu --hash=sha256:def",
+        ],
+      ),
+    ).not.toThrow();
   });
 });
