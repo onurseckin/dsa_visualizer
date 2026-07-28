@@ -85,6 +85,7 @@ export interface PythonRunResult {
 
 export {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
+  PYTHON_EXECUTION_POLICY_CEILINGS,
   validatePythonExecutionSpec,
   validatePythonRunRequest,
 } from "./validation";
