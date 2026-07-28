@@ -381,9 +381,9 @@ describe("triviaSessions coverage", () => {
 
 describe("triviaLayout coverage", () => {
   it("clampSplitPercent and clampPanelHeight handle edge values", () => {
-    expect(clampSplitPercent(Number.NaN)).toBe(65);
-    expect(clampSplitPercent(10)).toBe(40);
-    expect(clampSplitPercent(99)).toBe(85);
+    expect(clampSplitPercent(Number.NaN)).toBe(35);
+    expect(clampSplitPercent(10)).toBe(20);
+    expect(clampSplitPercent(99)).toBe(80);
 
     expect(clampPanelHeight(null)).toBeNull();
     expect(clampPanelHeight(Number.NaN)).toBeNull();
@@ -394,10 +394,10 @@ describe("triviaLayout coverage", () => {
 
   it("readTriviaLayout & writeTriviaLayout handle corrupted values and errors", () => {
     window.localStorage.setItem(TRIVIA_LAYOUT_KEY, "invalid json");
-    expect(readTriviaLayout().version).toBe(5);
+    expect(readTriviaLayout().version).toBe(6);
 
     window.localStorage.setItem(TRIVIA_LAYOUT_KEY, JSON.stringify({ version: 999 }));
-    expect(readTriviaLayout().version).toBe(5);
+    expect(readTriviaLayout().version).toBe(6);
 
     window.localStorage.setItem(
       TRIVIA_LAYOUT_KEY,
@@ -415,7 +415,7 @@ describe("triviaLayout coverage", () => {
         problemExpanded: true,
       }),
     );
-    expect(readTriviaLayout().version).toBe(5);
+    expect(readTriviaLayout().version).toBe(6);
 
     const written = writeTriviaLayout({ puzzleSplitPercent: 50 });
     expect(written.puzzleSplitPercent).toBe(50);
@@ -484,7 +484,7 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
     expect(readVersioned("key")).toBeNull();
     expect(() => writeVersioned("key", { a: 1 })).not.toThrow();
     expect(() => clearTrivia()).not.toThrow();
-    expect(readTriviaLayout().version).toBe(5);
+    expect(readTriviaLayout().version).toBe(6);
     expect(writeTriviaLayout({})).toBeDefined();
     expect(() => clearTriviaLayout()).not.toThrow();
     expect(readTriviaSessions()).toEqual([]);
@@ -494,25 +494,29 @@ describe("additional branch coverage for storage, engine, parser and layout", ()
 
     vi.unstubAllGlobals();
 
-    const originalGetter = Object.getOwnPropertyDescriptor(window, "localStorage");
-    Object.defineProperty(window, "localStorage", {
-      get: () => {
-        throw new Error("Access denied");
-      },
-      configurable: true,
-    });
+    const originalLocalStorage = window.localStorage;
+    try {
+      Object.defineProperty(window, "localStorage", {
+        get: () => {
+          throw new Error("Access denied");
+        },
+        configurable: true,
+      });
 
-    expect(readVersioned("key")).toBeNull();
-    expect(readTriviaLayout().version).toBe(5);
-    expect(writeTriviaLayout({})).toBeDefined();
-    expect(clearTriviaLayout()).toBeUndefined();
-    expect(readTriviaSessions()).toEqual([]);
-    expect(writeTriviaSessions([])).toBeUndefined();
-    expect(readActiveSessionId()).toBeNull();
-    expect(writeActiveSessionId("x")).toBeUndefined();
-
-    if (originalGetter) {
-      Object.defineProperty(window, "localStorage", originalGetter);
+      expect(readVersioned("key")).toBeNull();
+      expect(readTriviaLayout().version).toBe(6);
+      expect(writeTriviaLayout({})).toBeDefined();
+      expect(clearTriviaLayout()).toBeUndefined();
+      expect(readTriviaSessions()).toEqual([]);
+      expect(writeTriviaSessions([])).toBeUndefined();
+      expect(readActiveSessionId()).toBeNull();
+      expect(writeActiveSessionId("x")).toBeUndefined();
+    } finally {
+      Object.defineProperty(window, "localStorage", {
+        value: originalLocalStorage,
+        configurable: true,
+        writable: true,
+      });
     }
   });
 

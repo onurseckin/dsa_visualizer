@@ -25,11 +25,6 @@ const PANEL_LABELS: Record<PanelKey, string> = {
   complexity: "Complexity",
 };
 
-const accentTintedText = (root: ParentNode): Element[] =>
-  Array.from(root.querySelectorAll("[style]")).filter((el) =>
-    /(?:^|;\s*)color:\s*var\(--accent/.test(el.getAttribute("style") ?? ""),
-  );
-
 import { useSearchStore } from "../../app/useSearchStore";
 
 describe("NavbarControls Component Spec", () => {
@@ -55,10 +50,10 @@ describe("NavbarControls Component Spec", () => {
     ...overrides,
   });
 
-  it("renders brand, app-view segmented switcher, five toggles, and search trigger", () => {
+  it("renders app-view segmented switcher, panel toggles, and search trigger with left-aligned navigation", () => {
     render(<Navbar {...makeProps()} />);
 
-    expect(screen.getByRole("button", { name: "DSA Visualizer home" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "DSA Visualizer home" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ML Infra" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Knowledge Tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Problem List" })).toBeInTheDocument();
@@ -71,14 +66,10 @@ describe("NavbarControls Component Spec", () => {
     expect(screen.getByRole("button", { name: /Search algorithms/i })).toBeInTheDocument();
   });
 
-  it("renders the brand button as a graph icon badge button in a bordered container", () => {
-    const { container } = render(<Navbar {...makeProps()} />);
+  it("does not render the removed graph icon home button", () => {
+    render(<Navbar {...makeProps()} />);
 
-    const brand = screen.getByRole("button", { name: "DSA Visualizer home" });
-    expect(brand).toHaveClass("ui-btn", "ui-btn--secondary", "ui-btn--sm");
-    expect(brand.querySelector("svg")).toBeInTheDocument();
-
-    expect(accentTintedText(container)).toEqual([]);
+    expect(screen.queryByRole("button", { name: "DSA Visualizer home" })).not.toBeInTheDocument();
   });
 
   it("no longer renders the removed Split/Visual/Code view-mode segmented", () => {

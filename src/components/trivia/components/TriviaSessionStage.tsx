@@ -1,7 +1,6 @@
 import React from "react";
-import { ResizableRows } from "../../../ui";
+import { ResizableLayout } from "../../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../../types/trivia";
-import { MIN_PANEL_HEIGHT_PX, MAX_PANEL_HEIGHT_PX } from "../../../trivia/triviaLayout";
 import { CodePuzzle } from "../../../ui";
 import { TileTray } from "../../../ui";
 import { useTriviaSessionState } from "../hooks/useTriviaSessionState";
@@ -43,53 +42,38 @@ export const TriviaSessionStage: React.FC<TriviaSessionStageProps> = ({
     />
   );
 
+  const tilesColumn = (
+    <TileTray
+      tiles={round.tiles}
+      usedTileIds={session.usedTileIds}
+      selectedTileId={session.selectedTileId}
+      onSelect={session.handleSelectTile}
+      onActivate={session.handleActivateTile}
+      disabled={session.graded}
+    />
+  );
+
   return (
-    <>
-      <div
-        ref={session.puzzlePanel.ref}
-        style={{
-          minHeight: "20rem",
-          height: "100%",
-        }}
-      >
-        {mode === "choice" ? (
-          <ResizableRows
-            minRowHeight={MIN_PANEL_HEIGHT_PX}
-            maxRowHeight={MAX_PANEL_HEIGHT_PX}
-            onHeightsChange={(heights) => session.applyPanelHeights(heights, false)}
-            onHeightsCommit={(heights) => session.applyPanelHeights(heights, true)}
-            rows={[
-              {
-                id: "puzzle",
-                label: "Puzzle",
-                greedy: !session.layout.panelVisibility.tiles,
-                visible: session.layout.panelVisibility.puzzle,
-                height: session.layout.panelHeights.puzzle,
-                content: puzzleColumn,
-              },
-              {
-                id: "tiles",
-                label: "Tiles",
-                greedy: !session.layout.panelVisibility.puzzle,
-                visible: session.layout.panelVisibility.tiles,
-                height: session.layout.panelHeights.tiles,
-                content: (
-                  <TileTray
-                    tiles={round.tiles}
-                    usedTileIds={session.usedTileIds}
-                    selectedTileId={session.selectedTileId}
-                    onSelect={session.handleSelectTile}
-                    onActivate={session.handleActivateTile}
-                    disabled={session.graded}
-                  />
-                ),
-              },
-            ]}
-          />
-        ) : session.layout.panelVisibility.puzzle ? (
-          puzzleColumn
-        ) : null}
-      </div>
-    </>
+    <div
+      ref={session.puzzlePanel.ref}
+      style={{
+        minHeight: "20rem",
+        height: "100%",
+        flex: "1 1 0%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <ResizableLayout
+        splitPercent={session.layout.puzzleSplitPercent}
+        onSplitChange={session.handleSplitChange}
+        onSplitCommit={session.handleSplitCommit}
+        showLeft={mode === "choice" && session.layout.panelVisibility.tiles}
+        showRight={session.layout.panelVisibility.puzzle}
+        handleLabel="Resize tiles and puzzle columns"
+        leftPanel={tilesColumn}
+        rightPanel={puzzleColumn}
+      />
+    </div>
   );
 };

@@ -84,7 +84,7 @@ describe("TriviaSessionStage component", () => {
 
     expect(screen.getByText("bubble_sort")).toBeInTheDocument();
     expect(
-      screen.getByRole("separator", { name: "Resize Puzzle and Tiles rows" }),
+      screen.getByRole("separator", { name: "Resize tiles and puzzle columns" }),
     ).toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe("TriviaSessionStage component", () => {
 
     expect(screen.getByText("bubble_sort")).toBeInTheDocument();
     expect(
-      screen.queryByRole("separator", { name: "Resize puzzle and tiles columns" }),
+      screen.queryByRole("separator", { name: "Resize tiles and puzzle columns" }),
     ).not.toBeInTheDocument();
   });
 });

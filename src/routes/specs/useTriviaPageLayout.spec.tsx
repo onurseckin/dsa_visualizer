@@ -24,7 +24,7 @@ describe("useTriviaPageLayout hook", () => {
       resetTriviaLayout();
     });
 
-    expect(result.current.layout.puzzleSplitPercent).toBe(65);
+    expect(result.current.layout.puzzleSplitPercent).toBe(35);
   });
 
   it("supports uncommitted and committed panel height changes", () => {

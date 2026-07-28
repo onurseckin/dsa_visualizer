@@ -13,7 +13,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: [],
     x: 840,
     y: 80,
-    algorithmCount: 15,
+    algorithmCount: 27,
     questions: [
       {
         id: "tensor-contiguity-verifier",
@@ -162,7 +162,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_tensor_algebra"],
     x: 300,
     y: 270,
-    algorithmCount: 17,
+    algorithmCount: 46,
     questions: [
       {
         id: "conv1d-shared-memory-scratchpad",
@@ -317,7 +317,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_tensor_algebra"],
     x: 840,
     y: 270,
-    algorithmCount: 16,
+    algorithmCount: 20,
     questions: [
       {
         id: "A",
@@ -473,7 +473,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_gemm_roofline"],
     x: 1380,
     y: 270,
-    algorithmCount: 15,
+    algorithmCount: 22,
     questions: [
       {
         id: "basic-symmetric-int8-scale",
@@ -612,7 +612,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_precision_quantization"],
     x: 1460,
     y: 460,
-    algorithmCount: 16,
+    algorithmCount: 20,
     questions: [
       {
         id: "hnswMultiLayerProbabilisticGraph",
@@ -771,7 +771,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_autograd_dags"],
     x: 1040,
     y: 460,
-    algorithmCount: 16,
+    algorithmCount: 19,
     questions: [
       {
         id: "byteLevelBpeTiktokenTokenizer",
@@ -914,7 +914,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_gemm_roofline", "ml_autograd_dags"],
     x: 640,
     y: 460,
-    algorithmCount: 16,
+    algorithmCount: 29,
     questions: [
       {
         id: "causalLowerTriangularMask",
@@ -1061,7 +1061,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_gemm_roofline"],
     x: 220,
     y: 460,
-    algorithmCount: 16,
+    algorithmCount: 18,
     questions: [
       {
         id: "transposedConv2dDeconvIndexMapper",
@@ -1211,7 +1211,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_precision_quantization"],
     x: 740,
     y: 650,
-    algorithmCount: 15,
+    algorithmCount: 17,
     questions: [
       {
         id: "single-feature-threshold-split",
@@ -1351,7 +1351,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_attention_geometry"],
     x: 1260,
     y: 650,
-    algorithmCount: 16,
+    algorithmCount: 35,
     questions: [
       {
         id: "tile-index-grid-mapper",
@@ -1502,7 +1502,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_hardware_kernels"],
     x: 440,
     y: 840,
-    algorithmCount: 16,
+    algorithmCount: 20,
     questions: [
       {
         id: "column-parallel-linear-reshaper",
@@ -1656,7 +1656,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_hardware_kernels"],
     x: 1240,
     y: 840,
-    algorithmCount: 16,
+    algorithmCount: 25,
     questions: [
       {
         id: "kv-cache-sequence-memory-estimator",
