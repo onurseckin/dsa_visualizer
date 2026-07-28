@@ -7,6 +7,7 @@ import { sqliteVitePlugin } from "./src/server/sqliteVitePlugin";
 
 export default defineConfig({
   plugins: [
+    // Owns the same Fetch API handler used by apps/api in Docker production.
     sqliteVitePlugin(),
     // Router plugin must precede the React plugin — wrong order fails silently.
     tanstackRouter({

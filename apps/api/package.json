@@ -1,0 +1,12 @@
+{
+  "name": "@dsa-visualizer/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@dsa-visualizer/execution-contracts": "workspace:*"
+  }
+}
