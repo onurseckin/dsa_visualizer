@@ -131,7 +131,28 @@ export const generateDynamicSegmentTreeSteps = (
     });
   };
 
+    addStep(
+    10,
+    "Function docstring — describes algorithm contract",
+    "Opening delimiter of the Python docstring.",
+    {},
+  );
+
   addStep(
+    11,
+    "Docstring body: algorithm description",
+    "Dynamic Segment Tree allocating nodes lazily on demand for range [l, r].",
+    {},
+  );
+
+  addStep(
+    12,
+    "End of docstring",
+    "Docstring complete. Entering the function body.",
+    {},
+  );
+
+addStep(
     14,
     "Initialize Dynamic Segment Tree",
     `Created root node representing interval [${rangeL}..${rangeR}]. Child nodes will be allocated lazily on demand when point updates arrive.`,

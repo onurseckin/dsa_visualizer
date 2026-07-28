@@ -56,16 +56,14 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
     const map = new Map<string, number>();
     const allAlgs = getAllAlgorithms();
     allAlgs.forEach((alg) => {
-      const cats = getAlgorithmCategories(alg);
-      cats.forEach((cat) => {
+      // Collect unique category ids for this algorithm to prevent multi-counting
+      const algCats = new Set<string>();
+      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
+      if (alg.category) algCats.add(alg.category);
+      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
+      algCats.forEach((cat) => {
         map.set(cat, (map.get(cat) || 0) + 1);
       });
-      if (alg.category) {
-        map.set(alg.category, (map.get(alg.category) || 0) + 1);
-      }
-      if (alg.mlInfraCategory) {
-        map.set(alg.mlInfraCategory, (map.get(alg.mlInfraCategory) || 0) + 1);
-      }
     });
     return map;
   }, []);

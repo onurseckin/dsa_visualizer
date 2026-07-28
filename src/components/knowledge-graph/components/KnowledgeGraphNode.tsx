@@ -1,7 +1,6 @@
 import React from "react";
 import { getAllAlgorithms } from "../../../algorithms/registry";
 import { getAlgorithmCategories } from "../../../app/categories";
-import type { CategoryType } from "../../../types/dsa";
 import {
   TOPIC_ROADMAP_NODE_MAP,
   TopicRoadmapNode,
@@ -35,12 +34,11 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
   const actualCount = React.useMemo(() => {
     const allAlgs = getAllAlgorithms();
     const count = allAlgs.filter((alg) => {
-      const cats = getAlgorithmCategories(alg);
-      return (
-        cats.includes(node.categoryFolder as CategoryType) ||
-        alg.category === node.categoryFolder ||
-        alg.mlInfraCategory === node.categoryFolder
-      );
+      const algCats = new Set<string>();
+      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
+      if (alg.category) algCats.add(alg.category);
+      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
+      return algCats.has(node.categoryFolder);
     }).length;
     return count > 0 ? count : node.algorithmCount;
   }, [node.categoryFolder, node.algorithmCount]);
